@@ -21,10 +21,10 @@ certbot renew --dry-run
 - password: admin
 - database path: /etc/x-ui/x-ui.db
 
-- before you set ssl on settings
+before you set ssl on settings
 - http:// ip or domain:2053/xui
 
-- After you set ssl on settings 
+After you set ssl on settings 
 - https://yourdomain:2053/xui
 
 # suggestion system
