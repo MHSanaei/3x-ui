@@ -77,7 +77,7 @@
                     this.inModal.inbound.tls = false;
                 }
             },
-            addClient(protocol, clients) {
+            addClient(protocol,value, clients) {
                 switch (protocol) {
                     case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
                     case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
