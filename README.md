@@ -27,6 +27,26 @@ before you set ssl on settings
 After you set ssl on settings 
 - https://yourdomain:2053/xui
 
+**for enable traffic for users you should do :**
+
+**xray Configuration :**
+```json
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserUplink": true,
+        "statsUserDownlink": true
+      }
+    },
+
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true
+    }
+  },
+  "routing": {
+```
+
 # suggestion system
 - Ubuntu 20.04+
 
