@@ -1,0 +1,120 @@
+{{define "qrcodeModal"}}
+<a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
+         :closable="true" width="300px" :ok-text="qrModal.okText"
+         cancel-text='{{ i18n "close" }}' :ok-button-props="{attrs:{id:'qr-modal-ok-btn'}}">
+    <a-tag color="green" style="margin-bottom: 10px;display: block;text-align: center;" >click on QR Code to Copy</a-tag>
+    <canvas v-if="qrModal.inbound.protocol != Protocols.VMESS && qrModal.inbound.protocol != Protocols.VLESS" id="qrCode" style="width: 100%; height: 100%;"></canvas>
+
+    <template v-if="qrModal.inbound.protocol === Protocols.VMESS" v-for="(vmess, index) in qrModal.inbound.settings.vmesses">
+        <a-tag color="red" style="margin-bottom: 10px;display: block;text-align: center;" v-text="vmess.email"></a-tag>
+        <canvas @click="copyTextToClipboard(`qrCode-vmess-${vmess.id}`,index)" :id="`qrCode-vmess-${vmess.id}`" style="width: 100%; height: 100%;"></canvas>
+        <a-divider style="height: 2px; background-color: #7e7e7e" />
+    </template>
+
+    <template v-if="qrModal.inbound.protocol === Protocols.VLESS" v-for="(vless, index) in qrModal.inbound.settings.vlesses">
+        <a-tag color="red" style="margin-bottom: 10px;display: block;text-align: center;" v-text="vless.email"></a-tag>
+        <canvas @click="copyTextToClipboard(`qrCode-vless-${vless.id}`,index)" :id="`qrCode-vless-${vless.id}`" style="width: 100%; height: 100%;"></canvas>
+        <a-divider style="height: 2px; background-color: #7e7e7e" />
+    </template>
+</a-modal>
+
+<script>
+
+    const qrModal = {
+        title: '',
+        content: '',
+        inbound: new Inbound(),
+        dbInbound: new DBInbound(),
+        okText: '',
+        copyText: '',
+        qrcode: null,
+        clipboard: null,
+        visible: false,
+        show: function (title='', content='', dbInbound=new DBInbound(),okText='{{ i18n "copy" }}', copyText='') {
+            this.title = title;
+            this.content = content;
+            this.dbInbound = dbInbound;
+            this.inbound = dbInbound.toInbound();
+            this.okText = okText;
+            if (ObjectUtil.isEmpty(copyText)) {
+                this.copyText = content;
+            } else {
+                this.copyText = copyText;
+            }
+            this.visible = true;
+            qrModalApp.$nextTick(() => {
+                if (this.clipboard === null) {
+                    this.clipboard = new ClipboardJS('#qr-modal-ok-btn', {
+                        text: () => this.copyText,
+                    });
+                    this.clipboard.on('success', () => app.$message.success('{{ i18n "copied" }}'));
+                }
+                if (this.qrcode === null) {
+                    this.qrcode = new QRious({
+                        element: document.querySelector('#qrCode'),
+                        size: 260,
+                        value: content,
+                    });
+                } else {
+                    this.qrcode.value = content;
+                }
+            });
+        },
+        close: function () {
+            this.visible = false;
+        },
+    };
+
+    const qrModalApp = new Vue({
+        el: '#qrcode-modal',
+        data: {
+            qrModal: qrModal,
+        },
+        methods: {
+            setQrCode(elmentId,index) {
+                content = qrModal.inbound.genLink(qrModal.dbInbound.address,qrModal.dbInbound.remark,index)
+
+                new QRious({
+                        element: document.querySelector('#'+elmentId),
+                        size: 260,
+                        value: content,
+                    });
+            },
+            copyTextToClipboard(elmentId,index) {
+                link = qrModal.inbound.genLink(qrModal.dbInbound.address,qrModal.dbInbound.remark,index)
+                this.qrModal.copyText = link
+
+                this.qrModal.clipboard = new ClipboardJS('#' + elmentId, {
+                        text: () => link,
+                    });
+                this.qrModal.clipboard.on('success', () => { 
+                    app.$message.success('{{ i18n "copied" }}')
+                    this.qrModal.clipboard.destroy();
+                });
+
+
+            }
+        },
+        updated()  {
+            switch (qrModal.inbound.protocol) {
+                    case Protocols.VMESS: 
+                        vmesses = qrModal.inbound.settings.vmesses
+                        for (const index in vmesses) {
+                            this.setQrCode("qrCode-vmess-" + vmesses[index].id ,index)
+                        }
+                    break;
+                    case Protocols.VLESS: 
+                        vlesses = qrModal.inbound.settings.vlesses
+
+                        for (const index in vlesses) {
+                            this.setQrCode("qrCode-vless-" + vlesses[index].id ,index)
+                        }
+                    break;
+                    default: return null;
+            }
+
+        }
+    });
+
+</script>
+{{end}}

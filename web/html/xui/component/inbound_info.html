@@ -1,0 +1,94 @@
+{{define "inboundInfoStream"}}
+<p>{{ i18n "transmission" }}: <a-tag color="green">[[ inbound.network ]]</a-tag></p>
+
+<template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
+    <p v-if="inbound.host">host: <a-tag color="green">[[ inbound.host ]]</a-tag></p>
+    <p v-else>{{ i18n "host" }}: <a-tag color="orange">{{ i18n "none" }}</a-tag></p>
+
+    <p v-if="inbound.path">path: <a-tag color="green">[[ inbound.path ]]</a-tag></p>
+    <p v-else>{{ i18n "path" }}: <a-tag color="orange">{{ i18n "none" }}</a-tag></p>
+</template>
+
+<template v-if="inbound.isQuic">
+    <p>quic {{ i18n "encryption" }}: <a-tag color="green">[[ inbound.quicSecurity ]]</a-tag></p>
+    <p>quic {{ i18n "password" }}: <a-tag color="green">[[ inbound.quicKey ]]</a-tag></p>
+    <p>quic {{ i18n "camouflage" }}: <a-tag color="green">[[ inbound.quicType ]]</a-tag></p>
+</template>
+
+<template v-if="inbound.isKcp">
+    <p>kcp {{ i18n "encryption" }}: <a-tag color="green">[[ inbound.kcpType ]]</a-tag></p>
+    <p>kcp {{ i18n "password" }}: <a-tag color="green">[[ inbound.kcpSeed ]]</a-tag></p>
+</template>
+
+<template v-if="inbound.isGrpc">
+    <p>grpc serviceName: <a-tag color="green">[[ inbound.serviceName ]]</a-tag></p>
+</template>
+
+<template v-if="inbound.tls || inbound.xtls">
+    <p v-if="inbound.tls">tls: <a-tag color="green">{{ i18n "turnOn" }}</a-tag></p>
+    <p v-if="inbound.xtls">xtls: <a-tag color="green">{{ i18n "turnOn" }}</a-tag></p>
+</template>
+<template v-else>
+    <p>tls: <a-tag color="red">{{ i18n "closure" }}</a-tag></p>
+</template>
+<p v-if="inbound.tls">
+    tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+</p>
+<p v-if="inbound.xtls">
+    xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+</p>
+{{end}}
+
+
+{{define "component/inboundInfoComponent"}}
+<div>
+    <p>{{ i18n "protocol"}}: <a-tag color="green">[[ dbInbound.protocol ]]</a-tag></p>
+    <p>{{ i18n "pages.inbounds.address"}}: <a-tag color="blue">[[ dbInbound.address ]]</a-tag></p>
+    <p>{{ i18n "pages.inbounds.port"}}: <a-tag color="green">[[ dbInbound.port ]]</a-tag></p>
+
+    <template v-if="dbInbound.isVMess" v-for="(vmess, index) in inbound.settings.vmesses">
+        <p>uuid: <a-tag color="green">[[ vmess.id ]]</a-tag></p>
+        <p>alterId: <a-tag color="green">[[ vmess.alterId ]]</a-tag></p>
+        <a-divider style="height: 2px; background-color: #7e7e7e" />
+    </template>
+
+    <template v-if="dbInbound.isVLess" v-for="(vless, index) in inbound.settings.vlesses">
+        <p>uuid: <a-tag color="green">[[ vless.id ]]</a-tag></p>
+        <p v-if="inbound.isXTls">flow: <a-tag color="green">[[ vless.flow ]]</a-tag></p>
+        <a-divider style="height: 2px; background-color: #7e7e7e" />
+    </template>
+
+    <template v-if="dbInbound.isTrojan">
+        <p>{{ i18n "password"}}: <a-tag color="green">[[ inbound.password ]]</a-tag></p>
+    </template>
+
+    <template v-if="dbInbound.isSS">
+        <p>{{ i18n "encryption"}}: <a-tag color="green">[[ inbound.method ]]</a-tag></p>
+        <p>{{ i18n "password"}}: <a-tag color="green">[[ inbound.password ]]</a-tag></p>
+    </template>
+
+    <template v-if="dbInbound.isSocks">
+        <p>{{ i18n "username"}}: <a-tag color="green">[[ inbound.username ]]</a-tag></p>
+        <p>{{ i18n "password"}}: <a-tag color="green">[[ inbound.password ]]</a-tag></p>
+    </template>
+
+    <template v-if="dbInbound.isHTTP">
+        <p>{{ i18n "username"}}: <a-tag color="green">[[ inbound.username ]]</a-tag></p>
+        <p>{{ i18n "password"}}: <a-tag color="green">[[ inbound.password ]]</a-tag></p>
+    </template>
+
+    <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+        {{template "inboundInfoStream"}}
+    </template>
+</div>
+{{end}}
+
+{{define "component/inboundInfo"}}
+<script>
+    Vue.component('inbound-info', {
+        delimiters: ['[[', ']]'],
+        props: ["dbInbound", "inbound"],
+        template: `{{template "component/inboundInfoComponent"}}`,
+    });
+</script>
+{{end}}

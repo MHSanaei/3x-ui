@@ -1,0 +1,32 @@
+{{define "component/settingListItem"}}
+<a-list-item style="padding: 20px">
+    <a-row>
+        <a-col :lg="24" :xl="12">
+            <a-list-item-meta :title="title" :description="desc"/>
+        </a-col>
+        <a-col :lg="24" :xl="12">
+            <template v-if="type === 'text'">
+                <a-input :value="value" @input="$emit('input', $event.target.value)"></a-input>
+            </template>
+            <template v-else-if="type === 'number'">
+                <a-input type="number" :value="value" @input="$emit('input', $event.target.value)"></a-input>
+            </template>
+            <template v-else-if="type === 'textarea'">
+                <a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 10 }"></a-textarea>
+            </template>
+            <template v-else-if="type === 'switch'">
+                <a-switch :checked="value" @change="value => $emit('input', value)"></a-switch>
+            </template>
+        </a-col>
+    </a-row>
+</a-list-item>
+{{end}}
+
+{{define "component/setting"}}
+<script>
+    Vue.component('setting-list-item', {
+        props: ["type", "title", "desc", "value"],
+        template: `{{template "component/settingListItem"}}`,
+    });
+</script>
+{{end}}

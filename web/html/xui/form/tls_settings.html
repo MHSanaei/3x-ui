@@ -1,0 +1,60 @@
+{{define "form/tlsSettings"}}
+<!-- tls enable -->
+<a-form layout="inline" v-if="inbound.canSetTls()">
+    <a-form-item label="tls">
+        <a-switch v-model="inbound.tls">
+        </a-switch>
+    </a-form-item>
+    <a-form-item v-if="inbound.canEnableXTls()" label="xtls">
+        <a-switch v-model="inbound.xtls"></a-switch>
+    </a-form-item>
+</a-form>
+
+<!-- tls settings -->
+<a-form v-if="inbound.tls || inbound.xtls"layout="inline">
+    <a-form-item label="minVersion">
+        <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px">
+            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label="maxVersion">
+        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px">
+            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label="cipherSuites">
+        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px">
+            <a-select-option value="">auto</a-select-option>
+            <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label='{{ i18n "domainName" }}'>
+        <a-input v-model.trim="inbound.stream.tls.server"></a-input>
+    </a-form-item>
+    <a-form-item label="alpn">
+        <a-input v-model.trim="inbound.stream.tls.alpn"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "certificate" }}'>
+        <a-radio-group v-model="inbound.stream.tls.certs[0].useFile" button-style="solid">
+            <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+            <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+        </a-radio-group>
+    </a-form-item>
+    <template v-if="inbound.stream.tls.certs[0].useFile">
+        <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
+            <a-input v-model.trim="inbound.stream.tls.certs[0].certFile"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
+            <a-input v-model.trim="inbound.stream.tls.certs[0].keyFile"></a-input>
+        </a-form-item>
+    </template>
+    <template v-else>
+        <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+            <a-input type="textarea" :rows="2" v-model="inbound.stream.tls.certs[0].cert"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+            <a-input type="textarea" :rows="2" v-model="inbound.stream.tls.certs[0].key"></a-input>
+        </a-form-item>
+    </template>
+</a-form>
+{{end}}

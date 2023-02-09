@@ -1,0 +1,106 @@
+{{define "form/inbound"}}
+<!-- base -->
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "remark" }}'>
+        <a-input v-model.trim="dbInbound.remark"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "enable" }}'>
+        <a-switch v-model="dbInbound.enable"></a-switch>
+    </a-form-item>
+    <a-form-item label='{{ i18n "protocol" }}'>
+        <a-select v-model="inbound.protocol" style="width: 160px;">
+            <a-select-option v-for="p in Protocols" :key="p" :value="p">[[ p ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item>
+        <span slot="label">
+            {{ i18n "monitor" }}
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.monitorDesc" }}</span>
+                </template>
+                <a-icon type="question-circle" theme="filled"></a-icon>
+            </a-tooltip>
+        </span>
+        <a-input v-model.trim="inbound.listen"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
+        <a-input type="number" v-model.number="inbound.port"></a-input>
+    </a-form-item>
+    <a-form-item>
+        <span slot="label">
+            <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)
+            <a-tooltip>
+                <template slot="title">
+                    0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                </template>
+                <a-icon type="question-circle" theme="filled"></a-icon>
+            </a-tooltip>
+        </span>
+        <a-input-number v-model="dbInbound.totalGB" :min="0"></a-input-number>
+    </a-form-item>
+    <a-form-item>
+        <span slot="label">
+            <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
+                </template>
+                <a-icon type="question-circle" theme="filled"></a-icon>
+            </a-tooltip>
+        </span>
+        <a-date-picker :show-time="{ format: 'HH:mm' }" format="YYYY-MM-DD HH:mm"
+                       v-model="dbInbound._expiryTime" style="width: 300px;"></a-date-picker>
+    </a-form-item>
+</a-form>
+
+<!-- vmess settings -->
+<template v-if="inbound.protocol === Protocols.VMESS">
+    {{template "form/vmess"}}
+</template>
+
+<!-- vless settings -->
+<template v-if="inbound.protocol === Protocols.VLESS">
+    {{template "form/vless"}}
+</template>
+
+<!-- trojan settings -->
+<template v-if="inbound.protocol === Protocols.TROJAN">
+    {{template "form/trojan"}}
+</template>
+
+<!-- shadowsocks -->
+<template v-if="inbound.protocol === Protocols.SHADOWSOCKS">
+    {{template "form/shadowsocks"}}
+</template>
+
+<!-- dokodemo-door -->
+<template v-if="inbound.protocol === Protocols.DOKODEMO">
+    {{template "form/dokodemo"}}
+</template>
+
+<!-- socks -->
+<template v-if="inbound.protocol === Protocols.SOCKS">
+    {{template "form/socks"}}
+</template>
+
+<!-- http -->
+<template v-if="inbound.protocol === Protocols.HTTP">
+    {{template "form/http"}}
+</template>
+
+<!-- stream settings -->
+<template v-if="inbound.canEnableStream()">
+    {{template "form/streamSettings"}}
+</template>
+
+<!-- tls settings -->
+<template v-if="inbound.canEnableTls()">
+    {{template "form/tlsSettings"}}
+</template>
+
+<!-- sniffing -->
+<template v-if="inbound.canSniffing()">
+    {{template "form/sniffing"}}
+</template>
+{{end}}

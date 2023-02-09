@@ -1,0 +1,58 @@
+{{define "textModal"}}
+<a-modal id="text-modal" v-model="txtModal.visible" :title="txtModal.title"
+         :closable="true" ok-text='{{ i18n "copy" }}' cancel-text='{{ i18n "close" }}'
+         :ok-button-props="{attrs:{id:'txt-modal-ok-btn'}}">
+    <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" type="primary" style="margin-bottom: 10px;"
+              @click="downloader.download(txtModal.fileName, txtModal.content)">
+        {{ i18n "download" }} [[ txtModal.fileName ]]
+    </a-button>
+    <a-input type="textarea" v-model="txtModal.content"
+             :autosize="{ minRows: 10, maxRows: 20}"></a-input>
+</a-modal>
+
+<script>
+
+    const txtModal = {
+        title: '',
+        content: '',
+        fileName: '',
+        qrcode: null,
+        clipboard: null,
+        visible: false,
+        show: function (title='', content='', fileName='') {
+            this.title = title;
+            this.content = content;
+            this.fileName = fileName;
+            this.visible = true;
+            textModalApp.$nextTick(() => {
+                if (this.clipboard === null) {
+                    this.clipboard = new ClipboardJS('#txt-modal-ok-btn', {
+                        text: () => this.content,
+                    });
+                    this.clipboard.on('success', () => app.$message.success('{{ i18n "copied" }}'));
+                }
+                if (this.qrcode === null) {
+                    this.qrcode = new QRious({
+                        element: document.querySelector('#qrCode'),
+                        size: 260,
+                        value: content,
+                    });
+                } else {
+                    this.qrcode.value = content;
+                }
+            });
+        },
+        close: function () {
+            this.visible = false;
+        },
+    };
+
+    const textModalApp = new Vue({
+        el: '#text-modal',
+        data: {
+            txtModal: txtModal,
+        },
+    });
+
+</script>
+{{end}}

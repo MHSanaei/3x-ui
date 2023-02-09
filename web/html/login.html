@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<style>
+
+    #app {
+        padding-top: 100px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #fff;
+        margin: 20px 0 50px 0;
+    }
+
+    .ant-btn, .ant-input {
+        height: 50px;
+        border-radius: 30px;
+    }
+
+    .ant-input-affix-wrapper .ant-input-prefix {
+        left: 23px;
+    }
+
+    .ant-input-affix-wrapper .ant-input:not(:first-child) {
+        padding-left: 50px;
+    }
+
+    .selectLang{
+        display: flex;
+        text-align: center;
+        justify-content: center;
+    }
+
+</style>
+<body>
+<a-layout id="app" v-cloak>
+    <transition name="list" appear>
+        <a-layout-content>
+            <a-row type="flex" justify="center">
+                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
+                    <h1>{{ i18n "pages.login.title" }}</h1>
+                </a-col>
+            </a-row>
+            <a-row type="flex" justify="center">
+                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
+                    <a-form>
+                        <a-form-item>
+                            <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
+                                     @keydown.enter.native="login" autofocus>
+                                <a-icon slot="prefix" type="user" style="color: rgba(0,0,0,.25)"/>
+                            </a-input>
+                        </a-form-item>
+                        <a-form-item>
+                            <a-input type="password" v-model.trim="user.password"
+                                     placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
+                                <a-icon slot="prefix" type="lock" style="color: rgba(0,0,0,.25)"/>
+                            </a-input>
+                        </a-form-item>
+                        <a-form-item>
+                            <a-button block @click="login" :loading="loading">{{ i18n "login" }}</a-button>
+                        </a-form-item>
+                        <a-form-item>
+
+                            <a-row justify="center" class="selectLang">
+                                <a-col :span="4"><span>Language : </span></a-col>
+
+                                <a-col :span="6">
+                                    <a-select
+                                            ref="selectLang"
+                                            v-model="lang"
+                                            @change="setLang(lang)"
+                                    >
+                                        <a-select-option  :value="l.value" label="China" v-for="l in supportLangs" >
+                                            <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                                            &nbsp;&nbsp;<span v-text="l.name"></span>
+                                        </a-select-option>
+                                    </a-select>
+                                </a-col>
+
+                            </a-row>
+
+
+
+                        </a-form-item>
+                    </a-form>
+                </a-col>
+            </a-row>
+        </a-layout-content>
+    </transition>
+</a-layout>
+{{template "js" .}}
+<script>
+    const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
+    const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
+    const deg = RandomUtil.randomIntRange(0, 360);
+    const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
+    document.querySelector('#app').style.background = background;
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            loading: false,
+            user: new User(),
+            lang : ""
+        },
+        created(){
+          this.lang = getLang();
+        },
+        methods: {
+            async login() {
+                this.loading = true;
+                const msg = await HttpUtil.post('/login', this.user);
+                this.loading = false;
+                if (msg.success) {
+                    location.href = basePath + 'xui/';
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>

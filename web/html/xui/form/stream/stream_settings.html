@@ -1,0 +1,45 @@
+{{define "form/streamSettings"}}
+<!-- select stream network -->
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "transmission" }}'>
+        <a-select v-model="inbound.stream.network" @change="streamNetworkChange">
+            <a-select-option value="tcp">tcp</a-select-option>
+            <a-select-option value="kcp">kcp</a-select-option>
+            <a-select-option value="ws">ws</a-select-option>
+            <a-select-option value="http">http</a-select-option>
+            <a-select-option value="quic">quic</a-select-option>
+            <a-select-option value="grpc">grpc</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
+
+<!-- tcp -->
+<template v-if="inbound.stream.network === 'tcp'">
+    {{template "form/streamTCP"}}
+</template>
+
+<!-- kcp -->
+<template v-if="inbound.stream.network === 'kcp'">
+    {{template "form/streamKCP"}}
+</template>
+
+<!-- ws -->
+<template v-if="inbound.stream.network === 'ws'">
+    {{template "form/streamWS"}}
+</template>
+
+<!-- http -->
+<template v-if="inbound.stream.network === 'http'">
+    {{template "form/streamHTTP"}}
+</template>
+
+<!-- quic -->
+<template v-if="inbound.stream.network === 'quic'">
+    {{template "form/streamQUIC"}}
+</template>
+
+<!-- grpc -->
+<template v-if="inbound.stream.network === 'grpc'">
+    {{template "form/streamGRPC"}}
+</template>
+{{end}}

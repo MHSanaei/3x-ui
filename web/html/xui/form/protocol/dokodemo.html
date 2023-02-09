@@ -1,0 +1,17 @@
+{{define "form/dokodemo"}}
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "pages.inbounds.targetAddress"}}'>
+        <a-input v-model.trim="inbound.settings.address"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.destinationPort"}}'>
+        <a-input type="number" v-model.number="inbound.settings.port"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.network"}}'>
+        <a-select v-model="inbound.settings.network" style="width: 100px;">
+            <a-select-option value="tcp,udp">tcp+udp</a-select-option>
+            <a-select-option value="tcp">tcp</a-select-option>
+            <a-select-option value="udp">udp</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
+{{end}}

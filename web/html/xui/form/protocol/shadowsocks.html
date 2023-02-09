@@ -1,0 +1,19 @@
+{{define "form/shadowsocks"}}
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "encryption" }}'>
+        <a-select v-model="inbound.settings.method" style="width: 165px;">
+            <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label='{{ i18n "password" }}'>
+        <a-input v-model.trim="inbound.settings.password"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
+        <a-select v-model="inbound.settings.network" style="width: 100px;">
+            <a-select-option value="tcp,udp">tcp+udp</a-select-option>
+            <a-select-option value="tcp">tcp</a-select-option>
+            <a-select-option value="udp">udp</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
+{{end}}

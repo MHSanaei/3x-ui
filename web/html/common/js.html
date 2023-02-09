@@ -1,0 +1,22 @@
+{{define "js"}}
+<script src="{{ .base_path }}assets/vue@2.6.12/vue.min.js"></script>
+<script src="{{ .base_path }}assets/moment/moment.min.js"></script>
+<script src="{{ .base_path }}assets/ant-design-vue@1.7.2/antd.min.js"></script>
+<script src="{{ .base_path }}assets/base64/base64.min.js"></script>
+<script src="{{ .base_path }}assets/axios/axios.min.js"></script>
+<script src="{{ .base_path }}assets/qs/qs.min.js"></script>
+<script src="{{ .base_path }}assets/qrcode/qrious.min.js"></script>
+<script src="{{ .base_path }}assets/clipboard/clipboard.min.js"></script>
+<script src="{{ .base_path }}assets/uri/URI.min.js"></script>
+<script src="{{ .base_path }}assets/js/axios-init.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/util/common.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/util/date-util.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/util/utils.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/xray.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/models.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/langs.js"></script>
+<script>
+    const basePath = '{{ .base_path }}';
+    axios.defaults.baseURL = basePath;
+</script>
+{{end}}

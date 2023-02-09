@@ -1,0 +1,16 @@
+{{define "form/sniffing"}}
+<a-form layout="inline">
+  <a-form-item>
+            <span slot="label">
+                sniffing
+                <a-tooltip>
+                    <template slot="title">
+                        <span >{{ i18n "pages.inbounds.noRecommendKeepDefault" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </span>
+    <a-switch v-model="inbound.sniffing.enabled"></a-switch>
+  </a-form-item>
+</a-form>
+{{end}}

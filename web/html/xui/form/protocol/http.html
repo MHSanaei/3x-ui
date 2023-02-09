@@ -1,0 +1,10 @@
+{{define "form/http"}}
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "username"}}'>
+        <a-input v-model.trim="inbound.settings.accounts[0].user"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "password" }}'>
+        <a-input v-model.trim="inbound.settings.accounts[0].pass"></a-input>
+    </a-form-item>
+</a-form>
+{{end}}

@@ -1,0 +1,12 @@
+{{define "form/streamHTTP"}}
+<a-form layout="inline">
+    <a-form-item label='{{ i18n "path" }}'>
+        <a-input v-model.trim="inbound.stream.http.path"></a-input>
+    </a-form-item>
+    <a-form-item label="host">
+        <a-row v-for="(host, index) in inbound.stream.http.host">
+            <a-input v-model.trim="inbound.stream.http.host[index]"></a-input>
+        </a-row>
+    </a-form-item>
+</a-form>
+{{end}}

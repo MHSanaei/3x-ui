@@ -1,0 +1,178 @@
+{{define "inboundModal"}}
+<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
+         :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
+         :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
+    {{template "form/inbound"}}
+</a-modal>
+<script>
+
+    const inModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        confirm: null,
+        inbound: new Inbound(),
+        dbInbound: new DBInbound(),
+        ok() {
+            ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
+        },
+        show({ title='', okText='{{ i18n "sure" }}', inbound=null, dbInbound=null, confirm=(inbound, dbInbound)=>{}, isEdit=false  }) {
+            this.title = title;
+            this.okText = okText;
+            if (inbound) {
+                this.inbound = Inbound.fromJson(inbound.toJson());
+            } else {
+                this.inbound = new Inbound();
+            }
+            if (dbInbound) {
+                this.dbInbound = new DBInbound(dbInbound);
+            } else {
+                this.dbInbound = new DBInbound();
+            }
+            this.confirm = confirm;
+            this.visible = true;
+            this.isEdit = isEdit;
+        },
+        close() {
+            inModal.visible = false;
+            inModal.loading(false);
+        },
+        loading(loading) {
+            inModal.confirmLoading = loading;
+        },
+    };
+
+    const protocols = {
+        VMESS: Protocols.VMESS,
+        VLESS: Protocols.VLESS,
+        TROJAN: Protocols.TROJAN,
+        SHADOWSOCKS: Protocols.SHADOWSOCKS,
+        DOKODEMO: Protocols.DOKODEMO,
+        SOCKS: Protocols.SOCKS,
+        HTTP: Protocols.HTTP,
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#inbound-modal',
+        data: {
+            inModal: inModal,
+            Protocols: protocols,
+            SSMethods: SSMethods,
+            get inbound() {
+                return inModal.inbound;
+            },
+            get dbInbound() {
+                return inModal.dbInbound;
+            },
+            get isEdit() {
+                return inModal.isEdit;
+            }
+        },
+        methods: {
+            streamNetworkChange(oldValue) {
+                if (oldValue === 'kcp') {
+                    this.inModal.inbound.tls = false;
+                }
+            },
+            addClient(protocol, clients) {
+                switch (protocol) {
+                    case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
+                    case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
+                    case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
+                    default: return null;
+                }
+            },
+            removeClient(index, clients) {
+                clients.splice(index, 1);
+            },
+
+            async resetClientTraffic(client,event) {
+                const msg = await HttpUtil.post('/xui/inbound/resetClientTraffic/'+ client.email);
+                if (!msg.success) {
+                    return;
+                }
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == client.email){ 
+                                clientStats[key]['up'] = 0
+                                clientStats[key]['down'] = 0
+                            }
+                        }
+                    }
+                }
+            },
+            isExpiry(index) {
+                return this.inbound.isExpiry(index)
+            },
+            getUpStats(email) {
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == email)
+                                return clientStats[key]['up']
+
+                        }
+                    }
+                }
+
+            },
+            getDownStats(email) {
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == email)
+                                return clientStats[key]['down']
+
+                        }
+                    }
+                }
+            },
+            isClientEnable(email) {
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == email)
+                                return clientStats[key]['enable']
+
+                        }
+                    }
+                }
+            },
+
+            getHeaderText(email) {
+                if(email == "")
+                    return "Add Client"
+                
+                return email + (this.isClientEnable(email) == true ? ' Active' : ' Deactive')
+            },
+
+            getHeaderStyle(email) {
+                return (this.isClientEnable(email) == true ? '' : 'deactive-client')
+            },
+
+            getNewEmail(client) {
+                var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
+                var string = '';
+                var len = 6 + Math.floor(Math.random() * 5)
+                for(var ii=0; ii<len; ii++){
+                    string += chars[Math.floor(Math.random() * chars.length)];
+                }
+                client.email = string + "@gmail.com"
+            }
+        },
+    });
+
+</script>
+{{end}}
