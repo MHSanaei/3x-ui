@@ -161,7 +161,7 @@ class AllSetting {
 
     constructor(data) {
         this.webListen = "";
-        this.webPort = 54321;
+        this.webPort = 2053;
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
@@ -171,7 +171,7 @@ class AllSetting {
         this.tgRunTime = "";
         this.xrayTemplateConfig = "";
 
-        this.timeLocation = "Asia/Shanghai";
+        this.timeLocation = "Asia/Tehran";
 
         if (data == null) {
             return
