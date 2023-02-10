@@ -7,7 +7,6 @@ require (
 	github.com/Workiva/go-datastructures v1.0.53
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.1
-	github.com/go-cmd/cmd v1.4.1
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/nicksnyder/go-i18n/v2 v2.2.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
@@ -18,7 +17,7 @@ require (
 	golang.org/x/text v0.6.0
 	google.golang.org/grpc v1.53.0
 	gorm.io/driver/sqlite v1.3.6
-	gorm.io/gorm v1.23.8
+	gorm.io/gorm v1.24.5
 )
 
 require (
