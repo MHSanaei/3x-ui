@@ -1,6 +1,8 @@
 # 3x-ui
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
+xray panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
+
 # Install & Upgrade
 
 ```
@@ -13,6 +15,8 @@ apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
+
+**If you think this project is helpful to you, you may wish to give a** :star2: 
 
 # Default settings
 
@@ -57,5 +61,13 @@ After you set ssl on settings
 ![3](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/3.png)
 ![4](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/4.png)
 
+# a special thanks to
+- [vaxilu](https://github.com/vaxilu/)
+- [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
+- [diditra](https://github.com/diditra/)
+- [FranzKafkaYu](https://github.com/FranzKafkaYu)
+- [alireza0](https://github.com/alireza0/)
 
+## Stargazers over time
 
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
