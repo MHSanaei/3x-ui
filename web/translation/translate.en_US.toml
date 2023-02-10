@@ -31,17 +31,18 @@
 "host" = "host"
 "path" = "path"
 "camouflage" = "camouflage"
-"turnOn" = "turn on"
-"closure" = "closure"
+"enabled" = "enabled"
+"disabled" = "disabled"
 "domainName" = "domain name"
 "additional" = "alter"
 "monitor" = "Listen IP"
-"certificate" = "certificat"
+"certificate" = "certificate"
 "fail" = "fail"
 "success" = " success"
 "getVersion" = "get version"
 "install" = "install"
 "used" = "used"
+"clients" = "clients"
 
 [menu]
 "dashboard" = "System Status"
@@ -82,7 +83,6 @@
 "xraySwitchVersionDialog" = "switch xray version"
 "xraySwitchVersionDialogDesc" = "whether to switch the xray version to"
 "dontRefreshh" = "Installation is in progress, please do not refresh this page"
-
 
 [pages.inbounds]
 "title" = "Inbounds"

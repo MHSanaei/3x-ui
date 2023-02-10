@@ -17,7 +17,7 @@
 "hour" = "ساعت"
 "day" = "روز"
 "check" = "چک کردن"
-"indefinitely" = "نامحدود"
+"indefinite" = "نامحدود"
 "unlimited" = "نامحدود"
 "none" = "هیچ"
 "qrCode" = "QR کد"
@@ -31,8 +31,8 @@
 "host" = "آدرس"
 "path" = "مسیر"
 "camouflage" = "استتار"
-"enabled" = "فعال"
-"disabled" = "disabled"
+"enabled" = "فعال شد"
+"disabled" = "غیرفعال شد"
 "domainName" = "آدرس دامنه"
 "additional" = "آی دی جایگزین"
 "monitor" = "آی پی اتصال"
@@ -41,6 +41,7 @@
 "success" = " موفق"
 "getVersion" = "دریافت ورژن"
 "install" = "نصب"
+"used" = "استفاده شده"
 "clients" = "کاربران"
 
 [menu]
@@ -123,7 +124,8 @@
 "publicKeyContent" = "محتوای Certificate.crt"
 "keyPath" = "مسیر فایل Private.key"
 "keyContent" = "محتوای Private.key"
-"clickOnQRcode" = "برای کپی بر روی کد تصویری کلیک کنید"
+"client" = "کاربر"
+"uid" = "UID"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
