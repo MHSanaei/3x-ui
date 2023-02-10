@@ -25,11 +25,11 @@
 </template>
 
 <template v-if="inbound.tls || inbound.xtls">
-    <p v-if="inbound.tls">tls: <a-tag color="green">{{ i18n "turnOn" }}</a-tag></p>
-    <p v-if="inbound.xtls">xtls: <a-tag color="green">{{ i18n "turnOn" }}</a-tag></p>
+    <p v-if="inbound.tls">tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag></p>
+    <p v-if="inbound.xtls">xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag></p>
 </template>
 <template v-else>
-    <p>tls: <a-tag color="red">{{ i18n "closure" }}</a-tag></p>
+    <p>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag></p>
 </template>
 <p v-if="inbound.tls">
     tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>

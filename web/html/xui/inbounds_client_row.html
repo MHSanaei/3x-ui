@@ -7,7 +7,7 @@
     <a-tag v-if="client._totalGB === 0" color="blue">{{ i18n "used" }}: [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]]</a-tag>
     <a-tag v-if="client._totalGB > 0 && !isTrafficExhausted(record, client.email)" color="green">{{ i18n "used" }}: [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]] / [[client._totalGB]]GB</a-tag>
     <a-tag v-if="client._totalGB > 0 && isTrafficExhausted(record, client.email)" color="red">{{ i18n "used" }}: [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]] / [[client._totalGB]]GB</a-tag>
-</template>                                    
+</template>
 <template slot="expiryTime" slot-scope="text, client, index">
     <template v-if="client._expiryTime > 0">
         <a-tag v-if="isExpiry(record, index)" color="red">
