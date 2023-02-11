@@ -54,7 +54,7 @@
                                  style="margin-top: 20px"
                                  @change="() => getDBInbounds()">
                             <template slot="action" slot-scope="text, dbInbound">
-                                <a-icon type="edit" @click="openEditInbound(dbInbound)"></a-icon>
+                                <a-icon type="edit" style="font-size: 25px" @click="openEditInbound(dbInbound)"></a-icon>
                                 <a-dropdown :trigger="['click']">
                                     <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
                                     <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)">
