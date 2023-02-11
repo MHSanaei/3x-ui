@@ -1545,7 +1545,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomSeq(10), flow = XTLS_FLOW_CONTROL.DIRECT, email='', totalGB=0, expiryTime='') {
+    constructor(password=RandomUtil.randomSeq(10), flow ='', email='', totalGB=0, expiryTime='') {
         super();
         this.password = password;
         this.flow = flow;
