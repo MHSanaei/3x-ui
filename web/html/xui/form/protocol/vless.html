@@ -12,7 +12,7 @@
                     Email
                     <a-tooltip>
                         <template slot="title">
-                            The email must be completely unique
+                            The Email Must Be Completely Unique
                         </template>
                         <!--Renew Svg Icon-->
                         <svg 
@@ -23,7 +23,7 @@
                 <a-input v-model.trim="vless.email"></a-input>
             </a-form-item>
         </a-form>
-        <a-form-item label="id">
+        <a-form-item label="ID">
             <a-input v-model.trim="vless.id"></a-input>
         </a-form-item>
 		<a-form-item v-if="inbound.xtls" label="flow">
@@ -71,7 +71,7 @@
         <a-form layout="inline">
             <a-tooltip v-if="vless._totalGB > 0">
                 <template slot="title">
-                    reset traffic
+                   {{ i18n "pages.inbounds.resetTraffic" }}
                 </template>
                 <span style="color: #FF4D4F">
                     <a-icon type="delete" @click="resetClientTraffic(vless,$event)"></a-icon>
@@ -118,7 +118,7 @@
     </a-form>
 
 <a-form layout="inline">
-    <a-form-item label="fallbacks">
+    <a-form-item label="Fallbacks">
         <a-row>
             <a-button type="primary" size="small"
                       @click="inbound.settings.addFallback()">
@@ -135,19 +135,19 @@
         <a-icon type="delete" @click="() => inbound.settings.delFallback(index)"
                 style="color: rgb(255, 77, 79);cursor: pointer;"/>
     </a-divider>
-    <a-form-item label="name">
+    <a-form-item label="Name">
         <a-input v-model="fallback.name"></a-input>
     </a-form-item>
-    <a-form-item label="alpn">
+    <a-form-item label="Alpn">
         <a-input v-model="fallback.alpn"></a-input>
     </a-form-item>
-    <a-form-item label="path">
+    <a-form-item label="Path">
         <a-input v-model="fallback.path"></a-input>
     </a-form-item>
-    <a-form-item label="dest">
+    <a-form-item label="Dest">
         <a-input v-model="fallback.dest"></a-input>
     </a-form-item>
-    <a-form-item label="xver">
+    <a-form-item label="xVer">
         <a-input type="number" v-model.number="fallback.xver"></a-input>
     </a-form-item>
     <a-divider v-if="inbound.settings.fallbacks.length - 1 === index"/>

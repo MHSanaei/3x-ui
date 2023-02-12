@@ -1,7 +1,6 @@
 .idea
 tmp
-bin/xray-darwin-arm64
-bin/config.json
+bin/
 dist/
 x-ui-*.tar.gz
 /x-ui

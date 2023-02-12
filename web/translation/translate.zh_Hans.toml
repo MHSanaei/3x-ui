@@ -10,7 +10,6 @@
 "remark" = "备注"
 "enable" = "启用"
 "protocol" = "协议"
-
 "loading" = "加载中"
 "second" = "秒"
 "minute" = "分钟"
@@ -43,6 +42,9 @@
 "install" = "安装"
 "used" = "用过的"
 "clients" = "客户端"
+"search" = "搜索"
+"usage" = "用法"
+"info" = "细节"
 
 [menu]
 "dashboard" = "系统状态"

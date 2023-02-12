@@ -1,8 +1,20 @@
-{{define "form/client_row"}}
+{{define "client_row"}}
+<template slot="actions" slot-scope="text, client, index">
+    <a-dropdown>
+        <a-icon @click="e => e.preventDefault()" type="menu"></a-icon>
+        <template #overlay>
+          <a-menu>
+            <a-menu-item v-if="record.hasLink()" @click="showQrcode(record,index);"><a-icon type="qrcode"></a-icon>{{ i18n "qrCode" }}</a-menu-item>
+            <a-menu-item @click="showInfo(record,index);"><a-icon type="info-circle"></a-icon>{{ i18n "info" }}</a-menu-item>
+            <a-menu-item @click="resetClientTraffic(client,record,$event)" v-if="client.email != ''"><a-icon type="retweet"></a-icon>{{ i18n "pages.inbounds.resetTraffic" }}</a-menu-item>
+          </a-menu>
+        </template>
+    </a-dropdown>
+</template>
 <template slot="client" slot-scope="text, client">
     [[ client.email ]]
-    <a-tag v-if="!isClientEnabled(record, client.email)" color="red"> expired</a-tag>
-</template>                                    
+    <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "disabled" }}</a-tag>
+</template>                                  
 <template slot="traffic" slot-scope="text, client">
     <a-tag v-if="client._totalGB === 0" color="blue">{{ i18n "used" }}: [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]]</a-tag>
     <a-tag v-if="client._totalGB > 0 && !isTrafficExhausted(record, client.email)" color="green">{{ i18n "used" }}: [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]] / [[client._totalGB]]GB</a-tag>

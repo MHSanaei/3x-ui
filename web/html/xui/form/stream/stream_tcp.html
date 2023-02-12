@@ -1,19 +1,19 @@
 {{define "form/streamTCP"}}
 <!-- tcp type -->
 <a-form layout="inline">
-    <a-form-item label="acceptProxyProtocol">
+    <a-form-item label="AcceptProxyProtocol">
         <a-switch v-model="inbound.stream.tcp.acceptProxyProtocol"></a-switch>
     </a-form-item>
-    <a-form-item label="http camouflage">
+    <a-form-item label="HTTP Camouflage">
         <a-switch
-                :checked="inbound.stream.tcp.type === 'http'"
-                @change="checked => inbound.stream.tcp.type = checked ? 'http' : 'none'">
+                :checked="inbound.stream.tcp.type === 'HTTP'"
+                @change="checked => inbound.stream.tcp.type = checked ? 'HTTP' : 'none'">
         </a-switch>
     </a-form-item>
 </a-form>
 
 <!-- tcp request -->
-<a-form v-if="inbound.stream.tcp.type === 'http'"
+<a-form v-if="inbound.stream.tcp.type === 'HTTP'"
         layout="inline">
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestVersion" }}'>
         <a-input v-model.trim="inbound.stream.tcp.request.version"></a-input>
@@ -50,7 +50,7 @@
 </a-form>
 
 <!-- tcp response -->
-<a-form v-if="inbound.stream.tcp.type === 'http'"
+<a-form v-if="inbound.stream.tcp.type === 'HTTP'"
         layout="inline">
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.responseVersion" }}'>
         <a-input v-model.trim="inbound.stream.tcp.response.version"></a-input>

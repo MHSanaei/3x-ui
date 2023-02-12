@@ -1,9 +1,65 @@
 {{define "inboundInfoModal"}}
-{{template "component/inboundInfo"}}
-<a-modal id="inbound-info-modal" v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}' @ok="infoModal.ok"
-         :closable="true" :mask-closable="true"
-         ok-text='{{ i18n "pages.inbounds.copyLink"}}' cancel-text='{{ i18n "close" }}' :ok-button-props="infoModal.okBtnPros">
-    <inbound-info :db-inbound="dbInbound" :inbound="inbound"></inbound-info>
+<a-modal id="inbound-info-modal" v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
+         :closable="true"
+         :mask-closable="true"
+         :footer="null"
+         >
+    <table style="margin-bottom: 10px; width: 100%;">
+        <tr><td>
+            <table>
+                <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="green">[[ dbInbound.protocol ]]</a-tag></td></tr>
+                <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag color="blue">[[ dbInbound.address ]]</a-tag></td></tr>
+                <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag color="green">[[ dbInbound.port ]]</a-tag></td></tr>
+            </table>
+        </td>
+        <td v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+            <table>
+                <tr>
+                    <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
+                </tr>
+            <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
+                <tr v-if="inbound.host"><td>{{ i18n "host" }}</td><td><a-tag color="green">[[ inbound.host ]]</a-tag></td></tr>
+                <tr v-else><td>{{ i18n "host" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+            
+                <tr v-if="inbound.path"><td>{{ i18n "path" }}</td><td><a-tag color="green">[[ inbound.path ]]</a-tag></td></tr>
+                <tr v-else><td>{{ i18n "path" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+            </template>
+            
+            <template v-if="inbound.isQuic">
+                <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.quicSecurity ]]</a-tag></td></tr>
+                <tr><td>quic {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.quicKey ]]</a-tag></td></tr>
+                <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag color="green">[[ inbound.quicType ]]</a-tag></td></tr>
+            </template>
+            
+            <template v-if="inbound.isKcp">
+                <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.kcpType ]]</a-tag></td></tr>
+                <tr><td>kcp {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.kcpSeed ]]</a-tag></td></tr>
+            </template>
+            
+            <template v-if="inbound.isGrpc">
+                <tr><td>grpc serviceName</td><td><a-tag color="green">[[ inbound.serviceName ]]</a-tag></td></tr>
+            </template>
+            </table>
+        </td></tr>
+            <tr colspan="2">
+                <td v-if="inbound.tls">
+                    tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                    tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                </td>
+                <td v-else-if="inbound.xtls">
+                    xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                    xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                </td>
+                <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
+            </td>
+        </tr>
+    </table>
+    <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
+    <template v-if="dbInbound.hasLink()">
+        <p>Client URL:</p>
+        <p>[[ infoModal.link ]]</p>
+        <button class="btn" id="copy-url-link"><a-icon type="snippets"></a-icon>{{ i18n "copy" }}</button>
+    </template>
 </a-modal>
 <script>
 
@@ -12,31 +68,22 @@
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
         clipboard: null,
-        okBtnPros: {
-            attrs: {
-                id: "inbound-info-modal-ok-btn",
-                style: "",
-            },
-        },
-        show(dbInbound) {
+        link: null,
+        index: 0,
+        show(dbInbound, index=0) {
+            this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
+            this.link = dbInbound.genLink(index);
             this.visible = true;
-
-            if (dbInbound.hasLink()) {
-                this.okBtnPros.attrs.style = "";
-            } else {
-                this.okBtnPros.attrs.style = "display: none";
-            }
-
-            if (this.clipboard == null) {
-                infoModalApp.$nextTick(() => {
-                    this.clipboard = new ClipboardJS(`#${this.okBtnPros.attrs.id}`, {
-                        text: () => this.dbInbound.genLink(),
+            infoModalApp.$nextTick(() => {
+                if (this.clipboard === null) {
+                    this.clipboard = new ClipboardJS('#copy-url-link', {
+                        text: () => this.link,
                     });
                     this.clipboard.on('success', () => app.$message.success('{{ i18n "copySuccess" }}'));
-                });
-            }
+                }
+            });
         },
         close() {
             infoModal.visible = false;
@@ -55,6 +102,27 @@
                 return this.infoModal.inbound;
             }
         },
+        methods: {
+            setQrCode(elmentId,index) {
+                content = infoModal.inbound.genLink(infoModal.dbInbound.address,infoModal.dbInbound.remark,index)
+
+                new QRious({
+                        element: document.querySelector('#'+elmentId),
+                        size: 260,
+                        value: content,
+                    });
+            },
+            copyTextToClipboard(elmentId,content) {
+                this.infoModal.clipboard = new ClipboardJS('#' + elmentId, {
+                        text: () => content,
+                    });
+                this.infoModal.clipboard.on('success', () => { 
+                    app.$message.success('{{ i18n "copySuccess" }}')
+                    this.infoModal.clipboard.destroy();
+                });
+            }
+        },
+        
     });
 
 </script>

@@ -42,6 +42,9 @@
 "install" = "Install"
 "used" = "Used"
 "clients" = "Clients"
+"search" = "Search"
+"usage" = "Usage"
+"info" = "Details"
 
 [menu]
 "dashboard" = "System Status"
@@ -56,8 +59,8 @@
 
 [pages.login.toasts]
 "invalidFormData" = "Input Data Format Is Invalid"
-"emptyUsername" = "please Enter Username"
-"emptyPassword" = "please Enter Password"
+"emptyUsername" = "Please Enter Username"
+"emptyPassword" = "Please Enter Password"
 "wrongUsernameOrPassword" = "invalid username or password"
 "successLogin" = "Login"
 
@@ -112,7 +115,7 @@
 "targetAddress" = "Target Address"
 "disableInsecureEncryption" = "Disable insecure encryption"
 "monitorDesc" = "Leave blank by default"
-"meansNoLimit" = "means no limit"
+"meansNoLimit" = "Means No Limit"
 "totalFlow" = "Total Traffic"
 "leaveBlankToNeverExpire" = "Leave blank to never expire"
 "noRecommendKeepDefault" = "There are no special requirements to keep the default"
@@ -125,22 +128,23 @@
 "client" = "Client"
 "uid" = "UID"
 
+
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "request header"
-"name" = "name"
-"value" = "value"
+"requestHeader" = "Request Header"
+"name" = "Name"
+"value" = "Value"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "request version"
-"requestMethod" = "request method"
-"requestPath" = "request path"
-"responseVersion" = "response version"
-"responseStatus" = "response status"
-"responseStatusDescription" = "response status description"
-"responseHeader" = "response header"
+"requestVersion" = "Request Version"
+"requestMethod" = "Request Method"
+"requestPath" = "Request Path"
+"responseVersion" = "Response Version"
+"responseStatus" = "Response Status"
+"responseStatusDescription" = "Response Status Description"
+"responseHeader" = "Response Header"
 
 [pages.inbounds.stream.quic]
 "encryption" = "Encryption"
