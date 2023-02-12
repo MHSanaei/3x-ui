@@ -13,25 +13,25 @@
     <a-form-item label='{{ i18n "password" }}'>
         <a-input v-model.number="inbound.stream.kcp.seed"></a-input>
     </a-form-item>
-    <a-form-item label="mtu">
+    <a-form-item label="MTU">
         <a-input type="number" v-model.number="inbound.stream.kcp.mtu"></a-input>
     </a-form-item>
-    <a-form-item label="tti (ms)">
+    <a-form-item label="TTI (ms)">
         <a-input type="number" v-model.number="inbound.stream.kcp.tti"></a-input>
     </a-form-item>
-    <a-form-item label="uplink capacity (MB/S)">
+    <a-form-item label="Uplink Capacity (MB/S)">
         <a-input type="number" v-model.number="inbound.stream.kcp.upCap"></a-input>
     </a-form-item>
-    <a-form-item label="downlink capacity (MB/S)">
+    <a-form-item label="Downlink Capacity (MB/S)">
         <a-input type="number" v-model.number="inbound.stream.kcp.downCap"></a-input>
     </a-form-item>
-    <a-form-item label="congestion">
+    <a-form-item label="Congestion">
         <a-switch v-model="inbound.stream.kcp.congestion"></a-switch>
     </a-form-item>
-    <a-form-item label="read buffer size (MB)">
+    <a-form-item label="Read Buffer Size (MB)">
         <a-input type="number" v-model.number="inbound.stream.kcp.readBuffer"></a-input>
     </a-form-item>
-    <a-form-item label="write buffer size (MB)">
+    <a-form-item label="Write Buffer Size (MB)">
         <a-input type="number" v-model.number="inbound.stream.kcp.writeBuffer"></a-input>
     </a-form-item>
 </a-form>

@@ -1,28 +1,28 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
 <a-form layout="inline" v-if="inbound.canSetTls()">
-    <a-form-item label="tls">
+    <a-form-item label="TLS">
         <a-switch v-model="inbound.tls">
         </a-switch>
     </a-form-item>
-    <a-form-item v-if="inbound.canEnableXTls()" label="xtls">
+    <a-form-item v-if="inbound.canEnableXTls()" label="XTLS">
         <a-switch v-model="inbound.xtls"></a-switch>
     </a-form-item>
 </a-form>
 
 <!-- tls settings -->
 <a-form v-if="inbound.tls || inbound.xtls"layout="inline">
-    <a-form-item label="minVersion">
+    <a-form-item label="MinVersion">
         <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px">
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label="maxVersion">
+    <a-form-item label="MaxVersion">
         <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px">
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label="cipherSuites">
+    <a-form-item label="CipherSuites">
         <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px">
             <a-select-option value="">auto</a-select-option>
             <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
@@ -31,7 +31,7 @@
     <a-form-item label='{{ i18n "domainName" }}'>
         <a-input v-model.trim="inbound.stream.tls.server"></a-input>
     </a-form-item>
-    <a-form-item label="alpn">
+    <a-form-item label="Alpn">
         <a-input v-model.trim="inbound.stream.tls.alpn"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "certificate" }}'>

@@ -11,7 +11,7 @@
                     Email
                     <a-tooltip>
                         <template slot="title">
-                            The email must be completely unique
+                            The Email Must Be Completely Unique
                         </template>
                         <!--Renew Svg Icon-->
                         <svg 
@@ -22,7 +22,7 @@
                 <a-input v-model.trim="vmess.email"></a-input>
             </a-form-item>
         </a-form>
-        <a-form-item label="id">
+        <a-form-item label="ID">
             <a-input v-model.trim="vmess.id"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "additional" }} ID'>
@@ -56,7 +56,7 @@
         <a-form layout="inline">
             <a-tooltip v-if="vmess._totalGB > 0">
                 <template slot="title">
-                    reset traffic
+                  {{ i18n "pages.inbounds.resetTraffic" }}
                 </template>
                 <span style="color: #FF4D4F">
                     <a-icon type="delete" @click="resetClientTraffic(vmess,$event)"></a-icon>

@@ -10,7 +10,6 @@
 "remark" = "نام"
 "enable" = "فعال"
 "protocol" = "پروتکل"
-
 "loading" = "در حال بروزرسانی..."
 "second" = "ثانیه"
 "minute" = "دقیقه"
@@ -43,6 +42,9 @@
 "install" = "نصب"
 "used" = "استفاده شده"
 "clients" = "کاربران"
+"search" = "جستجو"
+"usage" = "استفاده"
+"info" = "جزئیات"
 
 [menu]
 "dashboard" = "وضعیت سیستم"
