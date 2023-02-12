@@ -1039,7 +1039,8 @@ class Inbound extends XrayCommonClass {
                 address = this.stream.tls.server;
             }
         }
-
+		
+		remark = this.settings.vmesses[clientIndex].email ?? remark;
         let obj = {
             v: '2',
             ps: remark,
@@ -1062,6 +1063,7 @@ class Inbound extends XrayCommonClass {
         const port = this.port;
         const type = this.stream.network;
         const params = new Map();
+		remark = settings.vlesses[clientIndex].email ?? remark;
         params.set("type", this.stream.network);
         if (this.xtls) {
             params.set("security", "xtls");
@@ -1154,6 +1156,7 @@ class Inbound extends XrayCommonClass {
         const port = this.port;
         const type = this.stream.network;
         const params = new Map();
+		remark = settings.trojans[clientIndex].email ?? remark;
         params.set("type", this.stream.network);
         if (this.xtls) {
             params.set("security", "xtls");
@@ -1215,7 +1218,7 @@ class Inbound extends XrayCommonClass {
         if (this.xtls) {
             params.set("flow", this.settings.trojans[clientIndex].flow);
         }
-        const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}#${encodeURIComponent(remark+"-"+settings.trojans[clientIndex].email)}`;
+        const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}#${encodeURIComponent(remark)}`;
         const url = new URL(link);
         for (const [key, value] of params) {
             url.searchParams.set(key, value)
