@@ -160,11 +160,6 @@
         width: 40,
         scopedSlots: { customRender: 'enable' },
     }, {
-        title: "Id",
-        align: 'center',
-        dataIndex: "id",
-        width: 30,
-    }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
         align: 'center',
         width: 60,
@@ -197,18 +192,19 @@
     }];
 
     const innerColumns = [
-        { title: '', width: 50, scopedSlots: { customRender: 'actions' } },
+        { title: '', width: 20, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 100, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'UID', width: 150, dataIndex: "id" },
+		
     ];
 
     const innerTrojanColumns = [
-        { title: '', width: 50, scopedSlots: { customRender: 'actions' } },
+        { title: '', width: 20, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 100, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'Password', width: 150, dataIndex: "password" },
     ];
 
@@ -258,7 +254,18 @@
                     this.searchedInbounds.splice(0, this.searchedInbounds.length);
                     this.dbInbounds.forEach(inbound => {
                         if (ObjectUtil.deepSearch(inbound, key)) {
-                            this.searchedInbounds.push(inbound);
+                            const newInbound = new DBInbound(inbound);
+                            const inboundSettings = JSON.parse(inbound.settings);
+                            if (inboundSettings.hasOwnProperty('clients')){
+                                const searchedSettings = { "clients": [] };
+                                inboundSettings.clients.forEach(client => {
+                                    if (ObjectUtil.deepSearch(client, key)){
+                                        searchedSettings.clients.push(client);
+                                    }
+                                });
+                                newInbound.settings = Inbound.Settings.fromJson(inbound.protocol, searchedSettings);
+                            }
+                            this.searchedInbounds.push(newInbound);
                         }
                     });
                 }

@@ -1,9 +1,11 @@
 {{define "inboundInfoModal"}}
-<a-modal id="inbound-info-modal" v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
-         :closable="true"
-         :mask-closable="true"
-         :footer="null"
-         >
+<a-modal id="inbound-info-modal"
+    v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
+    :closable="true"
+    :mask-closable="true"
+    :footer="null"
+    width="600px"
+    >
     <table style="margin-bottom: 10px; width: 100%;">
         <tr><td>
             <table>
@@ -55,11 +57,47 @@
         </tr>
     </table>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-    <template v-if="dbInbound.hasLink()">
-        <p>Client URL:</p>
+    <table style="margin-bottom: 10px; width: 100%;">
+        <tr><th>[[ Object.keys(infoModal.clientSettings)[0] ]]</th><th>[[ Object.keys(infoModal.clientSettings)[1] ]]</th><th>[[ Object.keys(infoModal.clientSettings)[2] ]]</th></tr>
+        <tr>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[0] ]]</a-tag></td>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[1] ]]</a-tag></td>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[2] ]]</a-tag></td>
+        </tr>
+    </table>
+    <table style="margin-bottom: 10px; width: 100%;">
+            <tr><th>{{ i18n "usage" }}</th><th>{{ i18n "pages.inbounds.totalFlow" }}</th><th>{{ i18n "pages.inbounds.expireDate" }}</th><th>{{ i18n "enable" }}</th></tr>    
+        <tr>
+            <td>
+                <a-tag :color="statsColor(infoModal.clientStats)">
+                    [[ sizeFormat(infoModal.clientStats['up']) ]] / 
+                    [[ sizeFormat(infoModal.clientStats['down']) ]]
+                    ([[ sizeFormat(infoModal.clientStats['up'] + infoModal.clientStats['down']) ]])
+                </a-tag>
+            </td>
+            <td>
+                <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">[[ sizeFormat(infoModal.clientSettings.totalGB) ]]</a-tag>
+                <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+            </td>
+            <td>
+                <template v-if="infoModal.clientSettings.expiryTime > 0">
+                    <a-tag :color="infoModal.isExpired ? 'red' : 'blue'">
+                        [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
+                    </a-tag>
+                </template>
+                <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+            </td>
+            <td>
+                <a-tag v-if="infoModal.clientStats.enable" color="blue">{{ i18n "enabled" }}</a-tag>
+                <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
+            </td>
+        </tr>
+    </table>
+    <div v-if="dbInbound.hasLink()">
+        <a-divider>URL</a-divider>
         <p>[[ infoModal.link ]]</p>
-        <button class="btn" id="copy-url-link"><a-icon type="snippets"></a-icon>{{ i18n "copy" }}</button>
-    </template>
+        <button class="ant-btn ant-btn-primary" id="copy-url-link"><a-icon type="snippets"></a-icon>{{ i18n "copy" }}</button>
+    </div>
 </a-modal>
 <script>
 
@@ -67,14 +105,32 @@
         visible: false,
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
+        clientSettings: new Inbound.Settings(),
+        clientStats: [],
+        upStats: 0,
+        downStats: 0,
         clipboard: null,
         link: null,
         index: 0,
+        isExpired: false,
         show(dbInbound, index=0) {
             this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
             this.link = dbInbound.genLink(index);
+            this.clientSettings = Object.values(JSON.parse(this.inbound.settings).clients)[index];
+            this.clientStats = dbInbound.clientStats;
+            this.isExpired = this.inbound.isExpiry(index);
+            if(dbInbound.clientStats.length > 0)
+            {
+                for (const key in dbInbound.clientStats) {
+                    if (Object.hasOwnProperty.call(dbInbound.clientStats, key)) {
+                        if(dbInbound.clientStats[key]['email'] == this.clientSettings.email)
+                            this.clientStats = dbInbound.clientStats[key];
+
+                    }
+                }
+            }
             this.visible = true;
             infoModalApp.$nextTick(() => {
                 if (this.clipboard === null) {
@@ -89,7 +145,6 @@
             infoModal.visible = false;
         },
     };
-
     const infoModalApp = new Vue({
         delimiters: ['[[', ']]'],
         el: '#inbound-info-modal',
@@ -105,7 +160,6 @@
         methods: {
             setQrCode(elmentId,index) {
                 content = infoModal.inbound.genLink(infoModal.dbInbound.address,infoModal.dbInbound.remark,index)
-
                 new QRious({
                         element: document.querySelector('#'+elmentId),
                         size: 260,
@@ -120,10 +174,13 @@
                     app.$message.success('{{ i18n "copySuccess" }}')
                     this.infoModal.clipboard.destroy();
                 });
+            },
+            statsColor(stats) {
+                if(stats['total'] === 0) return 'blue'
+                else if(stats['total'] > 0 && (stats['down']+stats['up']) < stats['total']) return 'cyan'
+                else return 'red'
             }
         },
-        
     });
-
 </script>
 {{end}}
