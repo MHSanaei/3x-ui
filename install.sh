@@ -163,7 +163,6 @@ install_x-ui() {
     echo -e "x-ui enable       - Enable    x-ui on system startup"
     echo -e "x-ui disable      - Disable   x-ui on system startup"
     echo -e "x-ui log          - Check     x-ui logs"
-    echo -e "x-ui v2-ui        - Migrate   v2-ui Account data to x-ui"
     echo -e "x-ui update       - Update    x-ui"
     echo -e "x-ui install      - Install   x-ui"
     echo -e "x-ui uninstall    - Uninstall x-ui"
