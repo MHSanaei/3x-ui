@@ -1,15 +1,8 @@
 {{define "client_row"}}
 <template slot="actions" slot-scope="text, client, index">
-    <a-dropdown>
-        <a-icon @click="e => e.preventDefault()" type="menu"></a-icon>
-        <template #overlay>
-          <a-menu>
-            <a-menu-item v-if="record.hasLink()" @click="showQrcode(record,index);"><a-icon type="qrcode"></a-icon>{{ i18n "qrCode" }}</a-menu-item>
-            <a-menu-item @click="showInfo(record,index);"><a-icon type="info-circle"></a-icon>{{ i18n "info" }}</a-menu-item>
-            <a-menu-item @click="resetClientTraffic(client,record,$event)" v-if="client.email != ''"><a-icon type="retweet"></a-icon>{{ i18n "pages.inbounds.resetTraffic" }}</a-menu-item>
-          </a-menu>
-        </template>
-    </a-dropdown>
+<a-icon v-if="record.hasLink()" style="font-size: 26px" type="qrcode" @click="showQrcode(record,index);"></a-icon>&nbsp;&nbsp;
+<a-icon v-if="client.email != ''" style="font-size: 26px" type="retweet" @click="resetClientTraffic(client,record,$event)"></a-icon>&nbsp;&nbsp;
+<a-icon type="info-circle" style="font-size: 26px" @click="showInfo(record,index);"></a-icon>
 </template>
 <template slot="client" slot-scope="text, client">
     [[ client.email ]]

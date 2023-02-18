@@ -6,6 +6,7 @@ import (
 	"sync"
 	"x-ui/logger"
 	"x-ui/xray"
+
 	"go.uber.org/atomic"
 )
 
@@ -50,6 +51,7 @@ func (s *XrayService) GetXrayVersion() string {
 	}
 	return p.GetVersion()
 }
+
 func RemoveIndex(s []interface{}, index int) []interface{} {
 	return append(s[:index], s[index+1:]...)
 }
@@ -79,25 +81,24 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		// get settings clients
 		settings := map[string]interface{}{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients, ok :=  settings["clients"].([]interface{})
+		clients, ok := settings["clients"].([]interface{})
 		if ok {
 			// check users active or not
 
 			clientStats := inbound.ClientStats
 			for _, clientTraffic := range clientStats {
-				
+
 				for index, client := range clients {
 					c := client.(map[string]interface{})
 					if c["email"] == clientTraffic.Email {
-						if ! clientTraffic.Enable {
-							clients = RemoveIndex(clients,index)
-							logger.Info("Remove Inbound User",c["email"] ,"due the expire or traffic limit")
+						if !clientTraffic.Enable {
+							clients = RemoveIndex(clients, index)
+							logger.Info("Remove Inbound User", c["email"], "due the expire or traffic limit")
 
 						}
 
 					}
 				}
-		
 
 			}
 			settings["clients"] = clients
@@ -105,7 +106,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			if err != nil {
 				return nil, err
 			}
-		
+
 			inbound.Settings = string(modifiedSettings)
 		}
 		inboundConfig := inbound.GenXrayInboundConfig()

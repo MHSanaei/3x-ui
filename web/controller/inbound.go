@@ -2,13 +2,14 @@ package controller
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"strconv"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/web/global"
 	"x-ui/web/service"
 	"x-ui/web/session"
+
+	"github.com/gin-gonic/gin"
 )
 
 type InboundController struct {
@@ -30,9 +31,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/update/:id", a.updateInbound)
-
 	g.POST("/resetClientTraffic/:email", a.resetClientTraffic)
-	
 
 }
 
@@ -53,7 +52,7 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
 	if err != nil {
-		jsonMsg(c, I18n(c , "pages.inbounds.toasts.obtain"), err)
+		jsonMsg(c, I18n(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	jsonObj(c, inbounds, nil)
@@ -61,12 +60,12 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18n(c , "get"), err)
+		jsonMsg(c, I18n(c, "get"), err)
 		return
 	}
 	inbound, err := a.inboundService.GetInbound(id)
 	if err != nil {
-		jsonMsg(c, I18n(c , "pages.inbounds.toasts.obtain"), err)
+		jsonMsg(c, I18n(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	jsonObj(c, inbound, nil)
@@ -76,7 +75,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
-		jsonMsg(c, I18n(c , "pages.inbounds.addTo"), err)
+		jsonMsg(c, I18n(c, "pages.inbounds.addTo"), err)
 		return
 	}
 	user := session.GetLoginUser(c)
@@ -84,7 +83,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	inbound.Enable = true
 	inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	inbound, err = a.inboundService.AddInbound(inbound)
-	jsonMsgObj(c, I18n(c , "pages.inbounds.addTo"), inbound, err)
+	jsonMsgObj(c, I18n(c, "pages.inbounds.addTo"), inbound, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -93,11 +92,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18n(c , "delete"), err)
+		jsonMsg(c, I18n(c, "delete"), err)
 		return
 	}
 	err = a.inboundService.DelInbound(id)
-	jsonMsgObj(c, I18n(c , "delete"), id, err)
+	jsonMsgObj(c, I18n(c, "delete"), id, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -106,7 +105,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 func (a *InboundController) updateInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18n(c , "pages.inbounds.revise"), err)
+		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
 		return
 	}
 	inbound := &model.Inbound{
@@ -114,11 +113,11 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	}
 	err = c.ShouldBind(inbound)
 	if err != nil {
-		jsonMsg(c, I18n(c , "pages.inbounds.revise"), err)
+		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
 		return
 	}
 	inbound, err = a.inboundService.UpdateInbound(inbound)
-	jsonMsgObj(c, I18n(c , "pages.inbounds.revise"), inbound, err)
+	jsonMsgObj(c, I18n(c, "pages.inbounds.revise"), inbound, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}

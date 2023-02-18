@@ -152,13 +152,18 @@
     const columns = [{
         title: '{{ i18n "pages.inbounds.operate" }}',
         align: 'center',
-        width: 40,
+        width: 50,
         scopedSlots: { customRender: 'action' },
     }, {
         title: '{{ i18n "pages.inbounds.enable" }}',
         align: 'center',
         width: 40,
         scopedSlots: { customRender: 'enable' },
+    }, {
+        title: "Id",
+        align: 'center',
+        dataIndex: "id",
+        width: 20,
     }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
         align: 'center',
@@ -192,8 +197,8 @@
     }];
 
     const innerColumns = [
-        { title: '', width: 20, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
+        { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'UID', width: 150, dataIndex: "id" },
@@ -201,15 +206,15 @@
     ];
 
     const innerTrojanColumns = [
-        { title: '', width: 20, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
+        { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'Password', width: 150, dataIndex: "password" },
     ];
 
     const innerOneColumns = [
-        { title: '', width: 50, scopedSlots: { customRender: 'actions' } },
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
     ];
 
     const app = new Vue({
@@ -276,7 +281,7 @@
                         this.showQrcode(dbInbound);
                         break;
                     case "edit":
-                        this.openEditInbound(dbInbound);
+                        this.openEditInbound(dbInbound.id);
                         break;
                     case "resetTraffic":
                         this.resetTraffic(dbInbound);
@@ -299,7 +304,8 @@
                     isEdit: false
                 });
             },
-            openEditInbound(dbInbound) {
+            openEditInbound(dbInbound_id) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInbound_id);
                 const inbound = dbInbound.toInbound();
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.modifyInbound"}}',
