@@ -68,7 +68,7 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 
 	versions, err := a.serverService.GetXrayVersions()
 	if err != nil {
-		jsonMsg(c, I18n(c , "getVersion"), err)
+		jsonMsg(c, I18n(c, "getVersion"), err)
 		return
 	}
 
@@ -81,5 +81,5 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 func (a *ServerController) installXray(c *gin.Context) {
 	version := c.Param("version")
 	err := a.serverService.UpdateXray(version)
-	jsonMsg(c, I18n(c , "install") + " xray", err)
+	jsonMsg(c, I18n(c, "install")+" xray", err)
 }

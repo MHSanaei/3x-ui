@@ -21,7 +21,7 @@ import (
 	"x-ui/web/network"
 	"x-ui/web/service"
 
-	"github.com/BurntSushi/toml"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
@@ -271,7 +271,7 @@ func (s *Server) initI18n(engine *gin.Engine) error {
 		})
 	}
 
-	engine.FuncMap["i18n"]  = I18n;
+	engine.FuncMap["i18n"] = I18n
 
 	engine.Use(func(c *gin.Context) {
 		//accept := c.GetHeader("Accept-Language")
@@ -286,7 +286,7 @@ func (s *Server) initI18n(engine *gin.Engine) error {
 
 		localizer = i18n.NewLocalizer(bundle, lang)
 		c.Set("localizer", localizer)
-		c.Set("I18n" , I18n)
+		c.Set("I18n", I18n)
 		c.Next()
 	})
 
@@ -298,19 +298,19 @@ func (s *Server) startTask() {
 	if err != nil {
 		logger.Warning("start xray failed:", err)
 	}
-	// 每 30 秒检查一次 xray 是否在运行
+	// Check whether xray is running every 30 seconds
 	s.cron.AddJob("@every 30s", job.NewCheckXrayRunningJob())
 
 	go func() {
 		time.Sleep(time.Second * 5)
-		// 每 10 秒统计一次流量，首次启动延迟 5 秒，与重启 xray 的时间错开
+		// Statistics every 10 seconds, start the delay for 5 seconds for the first time, and staggered with the time to restart xray
 		s.cron.AddJob("@every 10s", job.NewXrayTrafficJob())
 	}()
 
-	// 每 30 秒检查一次 inbound 流量超出和到期的情况
+	// Check the inbound traffic every 30 seconds that the traffic exceeds and expires
 	s.cron.AddJob("@every 30s", job.NewCheckInboundJob())
 
-	// 每一天提示一次流量情况,上海时间8点30
+	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotenabled()
 	if (err == nil) && (isTgbotenabled) {
@@ -320,7 +320,7 @@ func (s *Server) startTask() {
 			runtime = "@daily"
 		}
 		logger.Infof("Tg notify enabled,run at %s", runtime)
-		entry, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob())
+		_, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob())
 		if err != nil {
 			logger.Warning("Add NewStatsNotifyJob error", err)
 			return
@@ -333,7 +333,7 @@ func (s *Server) startTask() {
 }
 
 func (s *Server) Start() (err error) {
-	//这是一个匿名函数，没没有函数名
+	//This is an anonymous function, no function name
 	defer func() {
 		if err != nil {
 			s.Stop()

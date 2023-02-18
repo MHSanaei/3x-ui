@@ -136,6 +136,16 @@ class RandomUtil {
             return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
         });
     }
+    
+    static randomText() {
+        var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
+        var string = '';
+        var len = 6 + Math.floor(Math.random() * 5)
+        for(var ii=0; ii<len; ii++){
+            string += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return string;
+    }
 }
 
 class ObjectUtil {

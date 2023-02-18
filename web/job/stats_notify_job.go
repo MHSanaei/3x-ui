@@ -8,6 +8,7 @@ import (
 	"x-ui/logger"
 	"x-ui/util/common"
 	"x-ui/web/service"
+
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -54,7 +55,7 @@ func (j *StatsNotifyJob) SendMsgToTgbot(msg string) {
 	bot.Send(info)
 }
 
-//Here run is a interface method of Job interface
+// Here run is a interface method of Job interface
 func (j *StatsNotifyJob) Run() {
 	if !j.xrayService.IsXrayRunning() {
 		return
@@ -94,14 +95,14 @@ func (j *StatsNotifyJob) Run() {
 	}
 	info += fmt.Sprintf("IP:%s\r\n \r\n", ip)
 
-	//get traffic
+	// get traffic
 	inbouds, err := j.inboundService.GetAllInbounds()
 	if err != nil {
 		logger.Warning("StatsNotifyJob run failed:", err)
 		return
 	}
-	//NOTE:If there no any sessions here,need to notify here
-	//TODO:分节点推送,自动转化格式
+	// NOTE:If there no any sessions here,need to notify here
+	// TODO:Sub-node push, automatic conversion format
 	for _, inbound := range inbouds {
 		info += fmt.Sprintf("Node name:%s\r\nPort:%d\r\nUpload↑:%s\r\nDownload↓:%s\r\nTotal:%s\r\n", inbound.Remark, inbound.Port, common.FormatTraffic(inbound.Up), common.FormatTraffic(inbound.Down), common.FormatTraffic((inbound.Up + inbound.Down)))
 		if inbound.ExpiryTime == 0 {
@@ -119,7 +120,7 @@ func (j *StatsNotifyJob) UserLoginNotify(username string, ip string, time string
 		return
 	}
 	var msg string
-	//get hostname
+	// Get hostname
 	name, err := os.Hostname()
 	if err != nil {
 		fmt.Println("get hostname error:", err)
@@ -136,11 +137,10 @@ func (j *StatsNotifyJob) UserLoginNotify(username string, ip string, time string
 	j.SendMsgToTgbot(msg)
 }
 
-
 var numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
-    tgbotapi.NewInlineKeyboardRow(
-        tgbotapi.NewInlineKeyboardButtonData("Get Usage", "get_usage"),
-    ),
+	tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData("Get Usage", "get_usage"),
+	),
 )
 
 func (j *StatsNotifyJob) OnReceive() *StatsNotifyJob {
@@ -156,13 +156,13 @@ func (j *StatsNotifyJob) OnReceive() *StatsNotifyJob {
 	}
 	bot.Debug = false
 	u := tgbotapi.NewUpdate(0)
-    u.Timeout = 10
+	u.Timeout = 10
 
-    updates := bot.GetUpdatesChan(u)
+	updates := bot.GetUpdatesChan(u)
 
-    for update := range updates {
-        if update.Message == nil { 
-			
+	for update := range updates {
+		if update.Message == nil {
+
 			if update.CallbackQuery != nil {
 				// Respond to the callback query, telling Telegram to show the user
 				// a message with the data received.
@@ -170,60 +170,60 @@ func (j *StatsNotifyJob) OnReceive() *StatsNotifyJob {
 				if _, err := bot.Request(callback); err != nil {
 					logger.Warning(err)
 				}
-	
+
 				// And finally, send a message containing the data received.
 				msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
 
 				switch update.CallbackQuery.Data {
-					case "get_usage":
-						msg.Text = "for get your usage send command like this : \n <code>/usage uuid | id</code> \n example : <code>/usage fc3239ed-8f3b-4151-ff51-b183d5182142</code>"
-						msg.ParseMode = "HTML"
-					}
+				case "get_usage":
+					msg.Text = "for get your usage send command like this : \n <code>/usage uuid | id</code> \n example : <code>/usage fc3239ed-8f3b-4151-ff51-b183d5182142</code>"
+					msg.ParseMode = "HTML"
+				}
 				if _, err := bot.Send(msg); err != nil {
 					logger.Warning(err)
 				}
 			}
-		
-            continue
-        }
 
-        if !update.Message.IsCommand() { // ignore any non-command Messages
-            continue
-        }
+			continue
+		}
 
-        // Create a new MessageConfig. We don't have text yet,
-        // so we leave it empty.
-        msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		if !update.Message.IsCommand() { // ignore any non-command Messages
+			continue
+		}
 
-        // Extract the command from the Message.
-        switch update.Message.Command() {
-        case "help":
-            msg.Text = "What you need?"
+		// Create a new MessageConfig. We don't have text yet,
+		// so we leave it empty.
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+
+		// Extract the command from the Message.
+		switch update.Message.Command() {
+		case "help":
+			msg.Text = "What you need?"
 			msg.ReplyMarkup = numericKeyboard
-        case "start":
-            msg.Text = "Hi :) \n What you need?"
-			msg.ReplyMarkup = numericKeyboard
-
-        case "status":
-            msg.Text = "bot is ok."
-
-        case "usage":
-            msg.Text = j.getClientUsage(update.Message.CommandArguments())
-        default:
-            msg.Text = "I don't know that command, /help"
+		case "start":
+			msg.Text = "Hi :) \n What you need?"
 			msg.ReplyMarkup = numericKeyboard
 
-        }
+		case "status":
+			msg.Text = "bot is ok."
 
-        if _, err := bot.Send(msg); err != nil {
-            logger.Warning(err)
-        }
-    }
+		case "usage":
+			msg.Text = j.getClientUsage(update.Message.CommandArguments())
+		default:
+			msg.Text = "I don't know that command, /help"
+			msg.ReplyMarkup = numericKeyboard
+
+		}
+
+		if _, err := bot.Send(msg); err != nil {
+			logger.Warning(err)
+		}
+	}
 	return j
 
 }
 func (j *StatsNotifyJob) getClientUsage(id string) string {
-	traffic , err := j.inboundService.GetClientTrafficById(id)
+	traffic, err := j.inboundService.GetClientTrafficById(id)
 	if err != nil {
 		logger.Warning(err)
 		return "something wrong!"
@@ -241,8 +241,8 @@ func (j *StatsNotifyJob) getClientUsage(id string) string {
 		total = fmt.Sprintf("%s", common.FormatTraffic((traffic.Total)))
 	}
 	output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
-	traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
-	total, expiryTime)
-	
+		traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
+		total, expiryTime)
+
 	return output
 }
