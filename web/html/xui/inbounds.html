@@ -54,7 +54,7 @@
                                  style="margin-top: 20px"
                                  @change="() => getDBInbounds()">
                             <template slot="action" slot-scope="text, dbInbound">
-                                <a-icon type="edit" style="font-size: 25px" @click="openEditInbound(dbInbound)"></a-icon>
+                                <a-icon type="edit" style="font-size: 25px" @click="openEditInbound(dbInbound.id);"></a-icon>
                                 <a-dropdown :trigger="['click']">
                                     <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
                                     <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)">
@@ -152,7 +152,7 @@
     const columns = [{
         title: '{{ i18n "pages.inbounds.operate" }}',
         align: 'center',
-        width: 50,
+        width: 60,
         scopedSlots: { customRender: 'action' },
     }, {
         title: '{{ i18n "pages.inbounds.enable" }}',
@@ -163,16 +163,16 @@
         title: "Id",
         align: 'center',
         dataIndex: "id",
-        width: 20,
+        width: 30,
     }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
         align: 'center',
-        width: 60,
+        width: 80,
         dataIndex: "remark",
     }, {
         title: '{{ i18n "pages.inbounds.protocol" }}',
         align: 'center',
-        width: 40,
+        width: 50,
         scopedSlots: { customRender: 'protocol' },
     }, {
         title: '{{ i18n "pages.inbounds.port" }}',
@@ -199,18 +199,18 @@
     const innerColumns = [
         { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'UID', width: 150, dataIndex: "id" },
+        { title: 'UID', width: 120, dataIndex: "id" },
 		
     ];
 
     const innerTrojanColumns = [
         { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 80, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'Password', width: 150, dataIndex: "password" },
+        { title: 'Password', width: 100, dataIndex: "password" },
     ];
 
     const innerOneColumns = [
