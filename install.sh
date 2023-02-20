@@ -35,8 +35,6 @@ if [[ $arch == "x86_64" || $arch == "x64" || $arch == "amd64" ]]; then
     arch="amd64"
 elif [[ $arch == "aarch64" || $arch == "arm64" ]]; then
     arch="arm64"
-elif [[ $arch == "s390x" ]]; then
-    arch="s390x"
 else
     arch="amd64"
     echo -e "${red} Failed to check system arch, will use default arch: ${arch}${plain}"
@@ -60,16 +58,16 @@ if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
 fi
 
 if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        echo -e "${red} Please use CentOS 7 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -le 8 ]]; then
+        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        echo -e "${red} Please use Ubuntu 16 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 20 ]]; then
+        echo -e "${red} Please use Ubuntu 20 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red} Please use Debian 8 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 10 ]]; then
+        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 fi
 
@@ -98,7 +96,21 @@ config_after_install() {
         /usr/local/x-ui/x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
     else
-        echo -e "${red}Canceled, will use the default settings.${plain}"
+        echo -e "${red}cancel...${plain}"
+        if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
+            local usernameTemp=$(head -c 6 /dev/urandom | base64)
+            local passwordTemp=$(head -c 6 /dev/urandom | base64)
+            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
+            echo -e "this is a fresh installation,will generate random login info for security concerns:"
+            echo -e "###############################################"
+            echo -e "${green}user name:${usernameTemp}${plain}"
+            echo -e "${green}user password:${passwordTemp}${plain}"
+            echo -e "${red}web port:${portTemp}${plain}"
+            echo -e "###############################################"
+            echo -e "${red}if you forgot your login info,you can type x-ui and then type 7 to check after installation${plain}"
+        else
+            echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 7 to check${plain}"
+        fi
     fi
 }
 

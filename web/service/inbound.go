@@ -238,9 +238,9 @@ func (s *InboundService) AddTraffic(traffics []*xray.Traffic) (err error) {
 	for _, traffic := range traffics {
 		if traffic.IsInbound {
 			err = tx.Where("tag = ?", traffic.Tag).
-				UpdateColumn("up", gorm.Expr("up + ?", traffic.Up)).
-				UpdateColumn("down", gorm.Expr("down + ?", traffic.Down)).
-				Error
+				UpdateColumns(map[string]interface{}{
+					"up":   gorm.Expr("up + ?", traffic.Up),
+					"down": gorm.Expr("down + ?", traffic.Down)}).Error
 			if err != nil {
 				return
 			}
@@ -298,11 +298,12 @@ func (s *InboundService) AddClientTraffic(traffics []*xray.ClientTraffic) (err e
 			}
 		}
 		if tx.Where("inbound_id = ?", inbound.Id).Where("email = ?", traffic.Email).
-			UpdateColumn("enable", true).
-			UpdateColumn("expiry_time", traffic.ExpiryTime).
-			UpdateColumn("total", traffic.Total).
-			UpdateColumn("up", gorm.Expr("up + ?", traffic.Up)).
-			UpdateColumn("down", gorm.Expr("down + ?", traffic.Down)).RowsAffected == 0 {
+			UpdateColumns(map[string]interface{}{
+				"enable":      true,
+				"expiry_time": traffic.ExpiryTime,
+				"total":       traffic.Total,
+				"up":          gorm.Expr("up + ?", traffic.Up),
+				"down":        gorm.Expr("down + ?", traffic.Down)}).RowsAffected == 0 {
 			err = tx.Create(traffic).Error
 		}
 
@@ -374,8 +375,7 @@ func (s *InboundService) ResetClientTraffic(clientEmail string) error {
 
 	result := db.Model(xray.ClientTraffic{}).
 		Where("email = ?", clientEmail).
-		Update("up", 0).
-		Update("down", 0)
+		Updates(map[string]interface{}{"up": 0, "down": 0})
 
 	err := result.Error
 
