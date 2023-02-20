@@ -1,6 +1,7 @@
 {{define "form/vless"}}
 <a-form layout="inline">
-<a-collapse activeKey="0" v-for="(vless, index) in inbound.settings.vlesses"
+<label>{{ i18n "clients"}}</label>
+<a-collapse activeKey="0"  v-for="(vless, index) in inbound.settings.vlesses"
 :key="`vless-${index}`">
 
     <a-collapse-panel :class="getHeaderStyle(vless.email)" :header="getHeaderText(vless.email)">
@@ -26,20 +27,20 @@
         <a-form-item label="ID">
             <a-input v-model.trim="vless.id"></a-input>
         </a-form-item>
-		<a-form-item v-if="inbound.xtls" label="flow">
+		<a-form-item v-if="inbound.xtls" label="Flow">
             <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 150px">
-                <a-select-option value="" selected>none</a-select-option>
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="flow" layout="inline">
+        <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow" layout="inline">
             <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 150px">
-                <a-select-option value="" selected>none</a-select-option>
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item v-if="inbound.tls" label="utls" layout="inline">
-                <a-select v-model="inbound.settings.vlesses[index].fingerprint" label="utls" style="width: 150px">
+        <a-form-item v-if="inbound.tls" label="uTLS" layout="inline">
+                <a-select v-model="inbound.settings.vlesses[index].fingerprint" label="uTLS" style="width: 150px">
                     <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
                 </a-select>
         </a-form-item>
@@ -71,7 +72,7 @@
         <a-form layout="inline">
             <a-tooltip v-if="vless._totalGB > 0">
                 <template slot="title">
-                   {{ i18n "pages.inbounds.resetTraffic" }}
+                    {{ i18n "pages.inbounds.resetTraffic" }}
                 </template>
                 <span style="color: #FF4D4F">
                     <a-icon type="delete" @click="resetClientTraffic(vless,$event)"></a-icon>
@@ -79,43 +80,26 @@
             </a-tooltip>
             <a-tag color="blue">[[ sizeFormat(getUpStats(vless.email)) ]] / [[ sizeFormat(getDownStats(vless.email)) ]]</a-tag>
             <a-tag v-if="vless._totalGB > 0" color="red">used : [[ sizeFormat(getUpStats(vless.email) + getDownStats(vless.email)) ]]</a-tag>
-            <a-tag>
-                <svg
-    
-                    @click="addClient(inbound.protocol,vless, inbound.settings.vlesses)"
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 22 22"
-                    width="22"
-                    height="22"
-                    class="mt-2 cursor-pointer"
-                    >
+
+            <a-tag v-show="inbound.settings.vlesses.length > 1" @click="removeClient(index, inbound.settings.vlesses)">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" width="22" height="22" class="mt-2 cursor-pointer">
                     <path fill="none" d="M0 0h24v24H0z" />
-                    <path
-                    fill="green"
-                    d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+                    <path fill="#EC4899"
+                    d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm0-9.414l2.828-2.829 1.415 1.415L13.414 12l2.829 2.828-1.415 1.415L12 13.414l-2.828 2.829-1.415-1.415L10.586 12 7.757 9.172l1.415-1.415L12 10.586z"
                     />
                 </svg>
             </a-tag>
-            <a-tag v-show="inbound.settings.vlesses.length > 1">
-                <svg
-                @click="removeClient(index, inbound.settings.vlesses)"
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 22 22"
-                width="22"
-                height="22"
-                class="mt-2 cursor-pointer"
-                >
-                <path fill="none" d="M0 0h24v24H0z" />
-                <path
-                fill="#EC4899"
-                d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm0-9.414l2.828-2.829 1.415 1.415L13.414 12l2.829 2.828-1.415 1.415L12 13.414l-2.828 2.829-1.415-1.415L10.586 12 7.757 9.172l1.415-1.415L12 10.586z"
-                />
-                </svg>
-            </a-tag>
         </a-form>
-
-
-    </a-form>
+    </a-collapse-panel>
+</a-collapse>
+<a-tag @click="addClient(inbound.protocol, inbound.settings.vlesses)">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="ml-2 cursor-pointer">
+        <path fill="none" d="M0 0h24v24H0z" />
+        <path fill="green"
+        d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+        />
+    </svg>
+</a-tag>
 
 <a-form layout="inline">
     <a-form-item label="Fallbacks">

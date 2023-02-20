@@ -21,8 +21,7 @@ certbot renew --dry-run
 # Default settings
 
 - Port: 2053
-- user: admin
-- password: admin
+- username and password will be generated randomly you can see them after you install it (x-ui "7")
 - database path: /etc/x-ui/x-ui.db
 
 before you set ssl on settings
@@ -53,6 +52,8 @@ After you set ssl on settings
 
 # suggestion system
 - Ubuntu 20.04+
+- Debian 10
+- CentOS 8
 
 # pic
 

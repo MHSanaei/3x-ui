@@ -48,7 +48,7 @@
 
 [menu]
 "dashboard" = "وضعیت سیستم"
-"inbounds" = "سروریس ها" 
+"inbounds" = "سرویس ها" 
 "setting" = "تنظیمات پنل"
 "logout" = "خروج"
 "link" = "دیگر"

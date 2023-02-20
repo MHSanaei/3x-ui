@@ -179,7 +179,7 @@ class ObjectUtil {
                 }
             }
         } else {
-            return obj.toString().indexOf(key) >= 0;
+            return obj.toString().toLowerCase().indexOf(key.toLowerCase()) >= 0;
         }
         return false;
     }

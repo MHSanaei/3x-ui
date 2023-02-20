@@ -77,7 +77,7 @@
                     this.inModal.inbound.tls = false;
                 }
             },
-            addClient(protocol,value, clients) {
+            addClient(protocol, clients) {
                 switch (protocol) {
                     case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
                     case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
@@ -88,7 +88,6 @@
             removeClient(index, clients) {
                 clients.splice(index, 1);
             },
-
             async resetClientTraffic(client,event) {
                 const msg = await HttpUtil.post('/xui/inbound/resetClientTraffic/'+ client.email);
                 if (!msg.success) {
@@ -122,7 +121,6 @@
                         }
                     }
                 }
-
             },
             getDownStats(email) {
                 clientStats = this.inbound.clientStats
@@ -138,30 +136,18 @@
                 }
             },
             isClientEnable(email) {
-                clientStats = this.inbound.clientStats
-                if(clientStats.length > 0)
-                {
-                    for (const key in clientStats) {
-                        if (Object.hasOwnProperty.call(clientStats, key)) {
-                            if(clientStats[key]['email'] == email)
-                                return clientStats[key]['enable']
-
-                        }
-                    }
-                }
+                clientStats = this.dbInbound.clientStats ? this.dbInbound.clientStats.find(stats => stats.email === email) : null
+                return clientStats ? clientStats['enable'] : true
             },
-
             getHeaderText(email) {
                 if(email == "")
                     return "Add Client"
                 
                 return email + (this.isClientEnable(email) == true ? ' Active' : ' Deactive')
             },
-
             getHeaderStyle(email) {
                 return (this.isClientEnable(email) == true ? '' : 'deactive-client')
             },
-
             getNewEmail(client) {
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
                 var string = '';

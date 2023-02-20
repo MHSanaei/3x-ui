@@ -367,7 +367,7 @@ show_status() {
     check_status
     case $? in
     0)
-        echo -e "Panel state: ${green}Runing${plain}"
+        echo -e "Panel state: ${green}Running${plain}"
         show_enable_status
         ;;
     1)
@@ -402,7 +402,7 @@ check_xray_status() {
 show_xray_status() {
     check_xray_status
     if [[ $? == 0 ]]; then
-        echo -e "xray state: ${green}Runing${plain}"
+        echo -e "xray state: ${green}Running${plain}"
     else
         echo -e "xray state: ${red}Not Running${plain}"
     fi
@@ -449,11 +449,14 @@ install_acme() {
 
 #method for standalone mode
 ssl_cert_issue_standalone() {
-    #install acme first
-    install_acme
-    if [ $? -ne 0 ]; then
-        LOGE "install acme failed,please check logs"
-        exit 1
+    #check for acme.sh first
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        echo "acme.sh could not be found. we will install it"
+        install_acme
+        if [ $? -ne 0 ]; then
+            LOGE "install acme failed, please check logs"
+            exit 1
+        fi
     fi
     #install socat second
     if [[ x"${release}" == x"centos" ]]; then
@@ -636,7 +639,7 @@ show_usage() {
 
 show_menu() {
     echo -e "
-  ${green}3x-ui Panel Management Script${plain}
+  ${green}3X-ui Panel Management Script${plain}
   ${green}0.${plain} Exit Script
 ————————————————
   ${green}1.${plain} Install x-ui
