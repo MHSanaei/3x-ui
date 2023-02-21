@@ -58,15 +58,15 @@ if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
 fi
 
 if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 8 ]]; then
+    if [[ ${os_version} -le 7 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
+    if [[ ${os_version} -lt 18 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 10 ]]; then
+    if [[ ${os_version} -lt 9 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 fi
