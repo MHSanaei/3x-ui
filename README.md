@@ -36,39 +36,25 @@ before you set ssl on settings
 After you set ssl on settings 
 - https://yourdomain:2053/xui
 
-**for enable traffic for users you should do :**
+# Enable Traffic For Users:
 
-**xray Configuration :**
-```json
-  "policy": {
-    "levels": {
-      "0": {
-        "statsUserUplink": true,
-        "statsUserDownlink": true
-      }
-    },
+**copy and paste to xray Configuration :** (you don't need to do this if you have fresh install)
+- [for enable traffic](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic.txt)
+- [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
 
-    "system": {
-      "statsInboundDownlink": true,
-      "statsInboundUplink": true
-    }
-  },
-  "routing": {
-```
-
-# suggestion system
+# Suggestion System
 - Ubuntu 20.04+
-- Debian 10
-- CentOS 8
+- Debian 10+
+- CentOS 8+
 
-# pic
+# Pictures
 
 ![1](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/1.png)
 ![2](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/2.png)
 ![3](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/3.png)
 ![4](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/4.png)
 
-# a special thanks to
+# A Special Thanks To
 - [vaxilu](https://github.com/vaxilu/)
 - [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
 - [diditra](https://github.com/diditra/)
