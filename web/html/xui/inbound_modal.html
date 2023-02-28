@@ -88,6 +88,30 @@
             removeClient(index, clients) {
                 clients.splice(index, 1);
             },
+            async getDBClientIps(email,event) {
+
+                const msg = await HttpUtil.post('/xui/inbound/clientIps/'+ email);
+                if (!msg.success) {
+                    return;
+                }
+                try {
+                    ips = JSON.parse(msg.obj)
+                    ips = ips.join(",")
+                    event.target.value = ips
+                } catch (error) {
+                    // text
+                    event.target.value = msg.obj
+
+                }
+
+            },
+            async clearDBClientIps(email,event) {
+                const msg = await HttpUtil.post('/xui/inbound/clearClientIps/'+ email);
+                if (!msg.success) {
+                    return;
+                }
+                event.target.value = ""
+            },
             async resetClientTraffic(client,event) {
                 const msg = await HttpUtil.post('/xui/inbound/resetClientTraffic/'+ client.email);
                 if (!msg.success) {

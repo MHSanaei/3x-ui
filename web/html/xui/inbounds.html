@@ -45,6 +45,7 @@
                     <a-card hoverable>
                         <div slot="title">
                              <a-button type="primary" @click="openAddInbound">Add Inbound</a-button>
+							 <a-button type="primary" @click="exportAllLinks" class="copy-btn">Export Links</a-button>
                         </div>
 						<a-input v-model.lazy="searchKey" placeholder="{{ i18n "search" }}" autofocus style="max-width: 300px"></a-input>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
@@ -371,6 +372,18 @@
                     },
                 });
             },
+			exportAllLinks() {
+                    let copyText = '';
+                    for (const dbInbound of this.dbInbounds) {
+                        copyText += dbInbound.genInboundLinks
+                    }
+                    const clipboard = new ClipboardJS('.copy-btn', {
+                        text: function () {
+                            return copyText;
+                        }
+                    });
+                    clipboard.on('success', () => { this.$message.success('Export Links succeed'); });
+                },
             delInbound(dbInbound) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',

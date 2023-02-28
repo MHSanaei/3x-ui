@@ -22,6 +22,39 @@
                 </span>
                 <a-input v-model.trim="vmess.email"></a-input>
             </a-form-item>
+			<a-form-item>
+                <span slot="label">
+                    IP Count Limit
+                    <a-tooltip>
+                        <template slot="title">
+                            disable inbound if more than entered count (0 for disable limit ip)
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+              <a-input type="number" v-model.number="vmess.limitIp" min="0" ></a-input>
+            </a-form-item>
+            <a-form-item v-if="vmess.email && vmess.limitIp > 0 && isEdit">
+                <span slot="label">
+                    IP Log 
+                    <a-tooltip>
+                        <template slot="title">
+                            IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                    <a-tooltip>
+                        <template slot="title">
+                            clear the log
+                        </template>
+                        <span style="color: #FF4D4F">
+                            <a-icon type="delete" @click="clearDBClientIps(vmess.email,$event)"></a-icon>
+                        </span>
+                    </a-tooltip>
+                </span>
+                <a-textarea readonly @click="getDBClientIps(vmess.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 0.5, maxRows: 10 }">
+                </a-textarea>
+            </a-form-item>
         </a-form>
         <a-form-item label="ID">
             <a-input v-model.trim="vmess.id"></a-input>

@@ -22,7 +22,7 @@ jobs:
           mv xui-release x-ui
           mkdir bin
           cd bin
-          wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-64.zip
+          wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-linux-64.zip
           unzip Xray-linux-64.zip
           rm -f Xray-linux-64.zip geoip.dat geosite.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
@@ -40,3 +40,4 @@ jobs:
           file: x-ui-linux-amd64.tar.gz
           asset_name: x-ui-linux-amd64.tar.gz
           prerelease: true
+          overwrite: true

@@ -369,7 +369,29 @@ func (s *InboundService) UpdateClientStat(inboundId int, inboundSettings string)
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	return tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error
 }
+func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error) {
+	db := database.GetDB()
+	InboundClientIps := &model.InboundClientIps{}
+	err := db.Model(model.InboundClientIps{}).Where("client_email = ?", clientEmail).First(InboundClientIps).Error
+	if err != nil {
+		return "", err
+	}
+	return InboundClientIps.Ips, nil
+}
+func (s *InboundService) ClearClientIps(clientEmail string) (error) {
+	db := database.GetDB()
 
+	result := db.Model(model.InboundClientIps{}).
+		Where("client_email = ?", clientEmail).
+		Update("ips", "")
+	err := result.Error
+
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (s *InboundService) ResetClientTraffic(clientEmail string) error {
 	db := database.GetDB()
 

@@ -22,6 +22,41 @@
                 </span>
                 <a-input v-model.trim="trojan.email"></a-input>
             </a-form-item>
+			<a-form-item>
+                <span slot="label">
+                    IP Count Limit
+                    <a-tooltip>
+                        <template slot="title">
+                            disable inbound if more than entered count (0 for disable limit ip)
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input type="number" v-model.number="trojan.limitIp" min="0" ></a-input>
+            </a-form-item>
+            <a-form-item v-if="trojan.email && trojan.limitIp > 0 && isEdit">
+                <span slot="label">
+                    IP log
+                    <a-tooltip>
+                        <template slot="title">
+                            IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                    <a-tooltip>
+                        <template slot="title">
+                            clear the log
+                        </template>
+                        <span style="color: #FF4D4F">
+                            <a-icon type="delete" @click="clearDBClientIps(trojan.email,$event)"></a-icon>
+                        </span>
+                    </a-tooltip>
+                </span>
+                <a-form layout="block">
+                    <a-textarea readonly @click="getDBClientIps(trojan.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 0.5, maxRows: 10 }">
+                    </a-textarea>
+                </a-form>
+            </a-form-item>
         </a-form>
         <a-form-item label="Password">
             <a-input v-model.trim="trojan.password"></a-input>

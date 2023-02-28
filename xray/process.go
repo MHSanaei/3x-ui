@@ -162,7 +162,7 @@ func (p *process) Start() (err error) {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
 
-	cmd := exec.Command(GetBinaryPath(), "-c", configPath)
+	cmd := exec.Command(GetBinaryPath(), "-c", configPath, "-restrictedIPsPath", "./bin/blockedIPs")
 	p.cmd = cmd
 
 	stdReader, err := cmd.StdoutPipe()
