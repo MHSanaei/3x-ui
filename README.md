@@ -38,7 +38,7 @@ After you set ssl on settings
 
 # Enable Traffic For Users:
 
-**copy and paste to xray Configuration :** (you don't need to do this if you have fresh install)
+**copy and paste to xray Configuration :** (you don't need to do this if you have a fresh install)
 - [for enable traffic](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic.txt)
 - [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
 
