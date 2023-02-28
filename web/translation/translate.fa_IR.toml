@@ -54,7 +54,7 @@
 "link" = "دیگر"
 
 [pages.login]
-"title" = "ورود به سیستم X-UI"
+"title" = "ورود به سیستم"
 "loginAgain" = "مدت زمان استفاده به اتمام رسیده ، لطفا دوباره وارد شوید"
 
 [pages.login.toasts]

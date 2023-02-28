@@ -101,6 +101,7 @@ Object.freeze(XTLS_FLOW_CONTROL);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(TLS_VERSION_OPTION);
 Object.freeze(TLS_CIPHER_OPTION);
+Object.freeze(UTLS_FINGERPRINT);
 
 class XrayCommonClass {
 
@@ -1065,7 +1066,6 @@ class Inbound extends XrayCommonClass {
         params.set("type", this.stream.network);
         if (this.xtls) {
             params.set("security", "xtls");
-            address = this.stream.tls.server;
         } else {
             params.set("security", this.stream.security);
         }
@@ -1119,7 +1119,10 @@ class Inbound extends XrayCommonClass {
                 address = this.stream.tls.server;
                 params.set("sni", address);
             }
-			params.set("flow", this.settings.vlesses[clientIndex].flow);
+			if (this.settings.vlesses[clientIndex].flow === "xtls-rprx-vision") {
+                params.set("flow", this.settings.vlesses[clientIndex].flow);
+            }
+            params.set("fp", this.settings.vlesses[clientIndex].fingerprint);
         }
 
         if (this.xtls) {
@@ -1135,7 +1138,7 @@ class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genSSLink(address = '', remark = '') {
+    genSSLink(address = '', remark = '',clientIndex) {
         let settings = this.settings;
         const server = this.stream.tls.server;
         if (!ObjectUtil.isEmpty(server)) {
@@ -1245,6 +1248,22 @@ class Inbound extends XrayCommonClass {
             default: return '';
         }
     }
+    genInboundLinks(address = '', remark = '') {
+    let link = '';
+    JSON.parse(this.settings)
+    switch (this.protocol) {
+        case Protocols.VMESS:
+        case Protocols.VLESS:
+        case Protocols.TROJAN:
+            JSON.parse(this.settings).clients.forEach((client,index) => {
+                link += this.genLink(address, remark, index) + '\r\n';
+            });
+            return link;
+        case Protocols.SHADOWSOCKS:
+            return (this.genSSLink(address, remark) + '\r\n');
+        default: return '';
+    }
+}
 
     static fromJson(json={}) {
         return new Inbound(
@@ -1359,11 +1378,12 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     }
 };
 Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
-    constructor(id=RandomUtil.randomUUID(), alterId=0, email=RandomUtil.randomText(), totalGB=0, expiryTime='') {
+    constructor(id=RandomUtil.randomUUID(), alterId=0, email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime='') {
         super();
         this.id = id;
         this.alterId = alterId;
         this.email = email;
+        this.limitIp = limitIp;
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
     }
@@ -1373,6 +1393,7 @@ Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
             json.id,
             json.alterId,
             json.email,
+            json.limitIp,
             json.totalGB,
             json.expiryTime,
 
@@ -1441,11 +1462,12 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 };
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
 
-    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomText(), totalGB=0, fingerprint = UTLS_FINGERPRINT.UTLS_CHROME, expiryTime='') {
+    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, fingerprint = UTLS_FINGERPRINT.UTLS_CHROME, expiryTime='') {
         super();
         this.id = id;
         this.flow = flow;
         this.email = email;
+        this.limitIp = limitIp;
         this.totalGB = totalGB;
         this.fingerprint = fingerprint;
         this.expiryTime = expiryTime;
@@ -1457,6 +1479,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.id,
             json.flow,
             json.email,
+            json.limitIp,
             json.totalGB,
             json.fingerprint,
             json.expiryTime,
@@ -1557,11 +1580,12 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomSeq(10), flow ='', email=RandomUtil.randomText(), totalGB=0, expiryTime='') {
+    constructor(password=RandomUtil.randomSeq(10), flow ='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime='') {
         super();
         this.password = password;
         this.flow = flow;
         this.email = email;
+        this.limitIp = limitIp;
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
     }
@@ -1571,6 +1595,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             password: this.password,
             flow: this.flow,
             email: this.email,
+            limitIp: this.limitIp,
             totalGB: this.totalGB,
             expiryTime: this.expiryTime,
         };
@@ -1581,6 +1606,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.password,
             json.flow,
             json.email,
+            json.limitIp,
             json.totalGB,
             json.expiryTime,
 
