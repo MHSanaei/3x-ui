@@ -408,6 +408,36 @@ show_xray_status() {
     fi
 }
 
+update_geo() {
+    systemctl stop x-ui
+    cd /usr/local/x-ui/bin
+
+#    rm -f geoip.dat geosite.dat
+#    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+#    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+    
+	echo "downloading geoip.dat..."
+    curl -o ./geoip.dat.tmp -sL https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+	if [ $? -ne 0 ]; then
+      echo -e "failed to download latest geoip.dat, ${red}not updating!${plain}"
+    else
+      mv ./geoip.dat.tmp ./geoip.dat
+      echo -e "geoip.dat ${green}updated${plain}"
+    fi
+
+	echo "downloading geosite.dat..."
+    curl -o ./geosite.dat.tmp -sL https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+	if [ $? -ne 0 ]; then
+      echo -e "failed to download latest geosite.dat, ${red}not updating!${plain}"
+    else
+      mv ./geosite.dat.tmp ./geosite.dat
+      echo -e "geosite.dat ${green}updated${plain}"
+    fi
+
+        systemctl start x-ui
+#        echo "Geosite and Geoip have been updated successfully！"
+}
+
 #this will be an entrance for ssl cert issue
 #here we can provide two different methods to issue cert
 #first.standalone mode second.DNS API mode
@@ -662,9 +692,12 @@ show_menu() {
 ————————————————
   ${green}15.${plain} Enable BBR 
   ${green}16.${plain} Issuse Certs
- "
+————————————————
+  ${green}17.${plain} Update Geosite and Geoip
+
+"
     show_status
-    echo && read -p "Please enter your selection [0-16]: " num
+    echo && read -p "Please enter your selection [0-17]: " num
 
     case "${num}" in
     0)
@@ -718,8 +751,11 @@ show_menu() {
     16)
         ssl_cert_issue
         ;;
+    17)
+        update_geo
+        ;;
     *)
-        LOGE "Please enter the correct number [0-16]"
+        LOGE "Please enter the correct number [0-17]"
         ;;
     esac
 }
