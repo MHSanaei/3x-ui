@@ -41,14 +41,13 @@ else
     LOGE "check system OS failed,please contact with author! \n" && exit 1
 fi
 
-
+# os version
 os_version=""
 os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
-
 if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        LOGE "please use CentOS 7 or higher version! \n" && exit 1
+    if [[ ${os_version} -le 7 ]]; then
+        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
     if [[ ${os_version} -lt 16 ]]; then
