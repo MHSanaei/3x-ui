@@ -46,6 +46,7 @@ After you set ssl on settings
 - Ubuntu 20.04+
 - Debian 10+
 - CentOS 8+
+- Fedora 29+
 
 # Pictures
 
