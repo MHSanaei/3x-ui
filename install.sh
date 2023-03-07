@@ -11,22 +11,24 @@ cur_dir=$(pwd)
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error：${plain} Please run this script with root privilege \n " && exit 1
 
 # check os
-if [[ -f /etc/redhat-release ]]; then
-    release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
+if cat /etc/issue | grep -Eqi "debian"; then
     release="debian"
 elif cat /etc/issue | grep -Eqi "ubuntu"; then
     release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+elif cat /etc/issue | grep -Eqi "centos"; then
     release="centos"
+elif cat /etc/issue | grep -Eqi "fedora"; then
+    release="fedora"
 elif cat /proc/version | grep -Eqi "debian"; then
     release="debian"
 elif cat /proc/version | grep -Eqi "ubuntu"; then
     release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+elif cat /proc/version | grep -Eqi "centos"; then
     release="centos"
+elif cat /proc/version | grep -Eqi "fedora"; then
+    release="fedora"
 else
-    echo -e "${red} Check system OS failed, please contact the author! ${plain}\n" && exit 1
+    LOGE "check system OS failed,please contact with author! \n" && exit 1
 fi
 
 arch=$(arch)
@@ -47,27 +49,27 @@ if [ $(getconf WORD_BIT) != '32' ] && [ $(getconf LONG_BIT) != '64' ]; then
     exit -1
 fi
 
-os_version=""
-
 # os version
-if [[ -f /etc/os-release ]]; then
-    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
-    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
-fi
+os_version=""
+os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
 if [[ x"${release}" == x"centos" ]]; then
     if [[ ${os_version} -le 7 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red} Please use Ubuntu 20 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 16 ]]; then
+        LOGE "please use Ubuntu 16 or higher version！\n" && exit 1
     fi
+    
+elif [[ x"${release}" == x"fedora" ]]; then
+    if [[ ${os_version} -lt 29 ]]; then
+        LOGE "please use Fedora 29 or higher version！\n" && exit 1
+    fi
+
 elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 8 ]]; then
+        LOGE "please use Debian 8 or higher version！\n" && exit 1
     fi
 fi
 
