@@ -20,48 +20,76 @@ function LOGI() {
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
-# check os
+# Check OS and set release variable
 if [[ -f /etc/redhat-release ]]; then
-    release="centos"
-elif cat /etc/issue | grep -Eqi "debian"; then
+    if grep -Eqi "CentOS" /etc/redhat-release; then
+        release="centos"
+    elif grep -Eqi "Fedora" /etc/redhat-release; then
+        release="fedora"
+    fi
+elif grep -Eqi "debian" /etc/issue; then
     release="debian"
-elif cat /etc/issue | grep -Eqi "ubuntu"; then
+elif grep -Eqi "ubuntu" /etc/issue; then
     release="ubuntu"
-elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+elif grep -Eqi "centos" /etc/issue; then
     release="centos"
-elif cat /proc/version | grep -Eqi "debian"; then
+elif grep -Eqi "debian" /proc/version; then
     release="debian"
-elif cat /proc/version | grep -Eqi "ubuntu"; then
+elif grep -Eqi "ubuntu" /proc/version; then
     release="ubuntu"
-elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+elif grep -Eqi "centos" /proc/version; then
     release="centos"
+elif grep -Eqi "fedora" /proc/version; then
+    release="fedora"
 else
-    LOGE "check system OS failed,please contact with author! \n" && exit 1
+    echo "Failed to check the system OS, please contact the author!" >&2
+    exit 1
 fi
+
+echo "The OS release is: $release"
 
 os_version=""
 
 # os version
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-fi
-if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
+elif [[ -f /etc/lsb-release ]]; then
     os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
+elif [[ -f /etc/fedora-release ]]; then
+    os_version=$(awk -F'[= ]+' '/release/{print $3}' /etc/fedora-release)
 fi
 
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 6 ]]; then
-        LOGE "please use CentOS 7 or higher version! \n" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 16 ]]; then
-        LOGE "please use Ubuntu 16 or higher version！\n" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        LOGE "please use Debian 8 or higher version！\n" && exit 1
-    fi
-fi
+case "${release}" in
+    centos)
+        if [[ ${os_version} -le 8 ]]; then
+            echo "Please use CentOS 8 or higher version!"
+            exit 2
+        fi
+        ;;
+    ubuntu)
+        if [[ ${os_version} -lt 20 ]]; then
+            echo "Please use Ubuntu 20 or higher version!"
+            exit 2
+        fi
+        ;;
+    debian)
+        if [[ ${os_version} -lt 10 ]]; then
+            echo "Please use Debian 10 or higher version!"
+            exit 2
+        fi
+        ;;
+    fedora)
+        if [[ ${os_version} -lt 29 ]]; then
+            echo "Please use Fedora 29 or higher version!"
+            exit 2
+        fi
+        ;;
+    *)
+        echo "Unknown release type '${release}'"
+        exit 2
+        ;;
+esac
+
 
 confirm() {
     if [[ $# > 1 ]]; then
@@ -288,17 +316,41 @@ show_log() {
     fi
 }
 
-migrate_v2_ui() {
-    /usr/local/x-ui/x-ui v2-ui
+enable_bbr() {
 
-    before_show_menu
-}
+if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
+  echo -e "${green}BBR is already enabled!${plain}"
+  exit 0
+fi
 
-install_bbr() {
-    # temporary workaround for installing bbr
-    bash <(curl -L -s https://raw.githubusercontent.com/teddysun/across/master/bbr.sh)
-    echo ""
-    before_show_menu
+# Check the OS and install necessary packages
+if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
+  sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
+  sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
+  sudo dnf -y update && sudo dnf -y install ca-certificates
+elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
+  sudo yum -y update && sudo yum -y install ca-certificates
+else
+  echo "Unsupported operating system. Please check the script and install the necessary packages manually."
+  exit 1
+fi
+
+# Enable BBR
+echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+
+# Apply changes
+sudo sysctl -p
+
+# Verify that BBR is enabled
+if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
+  echo -e "${green}BBR has been enabled successfully.${plain}"
+else
+  echo -e "${red}Failed to enable BBR. Please check your system configuration.${plain}"
+fi
+
 }
 
 update_shell() {
@@ -713,7 +765,7 @@ show_menu() {
         check_install && disable
         ;;
     15)
-        install_bbr
+        enable_bbr
         ;;
     16)
         ssl_cert_issue
