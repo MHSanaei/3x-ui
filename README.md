@@ -27,7 +27,7 @@ certbot renew --dry-run
 # Default settings
 
 - Port: 2053
-- username and password will be generated randomly you can see them after you install it (x-ui "7")
+- username and password will be generated randomly if you skip to modify your own security(x-ui "7")
 - database path: /etc/x-ui/x-ui.db
 
 before you set ssl on settings
@@ -39,13 +39,14 @@ After you set ssl on settings
 # Enable Traffic For Users:
 
 **copy and paste to xray Configuration :** (you don't need to do this if you have a fresh install)
-- [for enable traffic](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic.txt)
-- [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
+- [for enable traffic](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic.txt)
+- [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
 
 # Suggestion System
 - Ubuntu 20.04+
 - Debian 10+
 - CentOS 8+
+- Fedora 29+
 
 # Pictures
 

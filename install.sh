@@ -10,9 +10,12 @@ cur_dir=$(pwd)
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error：${plain} Please run this script with root privilege \n " && exit 1
 
-# check os
+# Check OS
 if [[ -f /etc/redhat-release ]]; then
     release="centos"
+    if grep -q "Fedora" /etc/redhat-release; then
+        release="fedora"
+    fi
 elif cat /etc/issue | grep -Eqi "debian"; then
     release="debian"
 elif cat /etc/issue | grep -Eqi "ubuntu"; then
@@ -25,6 +28,8 @@ elif cat /proc/version | grep -Eqi "ubuntu"; then
     release="ubuntu"
 elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
     release="centos"
+elif grep -q "Fedora" /etc/*-release; then
+    release="fedora"
 else
     echo -e "${red} Check system OS failed, please contact the author! ${plain}\n" && exit 1
 fi
@@ -49,7 +54,7 @@ fi
 
 os_version=""
 
-# os version
+# get OS version
 if [[ -f /etc/os-release ]]; then
     os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
@@ -57,18 +62,28 @@ if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
     os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
 fi
 
-if [[ x"${release}" == x"centos" ]]; then
-    if [[ ${os_version} -le 7 ]]; then
-        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red} Please use Ubuntu 20 or higher ${plain}\n" && exit 1
-    fi
-elif [[ x"${release}" == x"debian" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
-    fi
+# set minimum version number for each OS
+case ${release} in
+    centos)
+        min_version=8
+        ;;
+    ubuntu)
+        min_version=20
+        ;;
+    debian)
+        min_version=10
+        ;;
+    fedora)
+        min_version=29
+        ;;
+    *)
+        echo -e "${red} Unsupported OS ${plain}\n" && exit 1
+        ;;
+esac
+
+# check if OS version meets minimum version requirement
+if [[ ${os_version} -lt ${min_version} ]]; then
+    echo -e "${red} Please use ${release^} ${min_version} or higher ${plain}\n" && exit 1
 fi
 
 install_base() {
