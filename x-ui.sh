@@ -21,26 +21,12 @@ function LOGI() {
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
 # Check OS and set release variable
-if [[ -f /etc/redhat-release ]]; then
-    if grep -Eqi "CentOS" /etc/redhat-release; then
-        release="centos"
-    elif grep -Eqi "Fedora" /etc/redhat-release; then
-        release="fedora"
-    fi
-elif grep -Eqi "debian" /etc/issue; then
-    release="debian"
-elif grep -Eqi "ubuntu" /etc/issue; then
-    release="ubuntu"
-elif grep -Eqi "centos" /etc/issue; then
-    release="centos"
-elif grep -Eqi "debian" /proc/version; then
-    release="debian"
-elif grep -Eqi "ubuntu" /proc/version; then
-    release="ubuntu"
-elif grep -Eqi "centos" /proc/version; then
-    release="centos"
-elif grep -Eqi "fedora" /proc/version; then
-    release="fedora"
+if [[ -f /etc/os-release ]]; then
+    source /etc/os-release
+    release=$ID
+elif [[ -f /usr/lib/os-release ]]; then
+    source /usr/lib/os-release
+    release=$ID
 else
     echo "Failed to check the system OS, please contact the author!" >&2
     exit 1
@@ -48,47 +34,29 @@ fi
 
 echo "The OS release is: $release"
 
+
 os_version=""
+os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
-# os version
-if [[ -f /etc/os-release ]]; then
-    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
-elif [[ -f /etc/lsb-release ]]; then
-    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
-elif [[ -f /etc/fedora-release ]]; then
-    os_version=$(awk -F'[= ]+' '/release/{print $3}' /etc/fedora-release)
+if [[ x"${release}" == x"centos" ]]; then
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" ==  "ubuntu" ]]; then
+    if [[ ${os_version} -lt 20 ]]; then
+        echo -e "${red}please use Ubuntu 20 or higher version！${plain}\n" && exit 1
+    fi
+
+elif [[ x"${release}" == "fedora" ]]; then
+    if [[ ${os_version} -lt 36 ]]; then
+        echo -e "${red}please use Fedora 36 or higher version！${plain}\n" && exit 1
+    fi
+
+elif [[ x"${release}" == "debian" ]]; then
+    if [[ ${os_version} -lt 10 ]]; then
+        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
+    fi
 fi
-
-case "${release}" in
-    centos)
-        if [[ ${os_version} -le 8 ]]; then
-            echo "Please use CentOS 8 or higher version!"
-            exit 2
-        fi
-        ;;
-    ubuntu)
-        if [[ ${os_version} -lt 20 ]]; then
-            echo "Please use Ubuntu 20 or higher version!"
-            exit 2
-        fi
-        ;;
-    debian)
-        if [[ ${os_version} -lt 10 ]]; then
-            echo "Please use Debian 10 or higher version!"
-            exit 2
-        fi
-        ;;
-    fedora)
-        if [[ ${os_version} -lt 29 ]]; then
-            echo "Please use Fedora 29 or higher version!"
-            exit 2
-        fi
-        ;;
-    *)
-        echo "Unknown release type '${release}'"
-        exit 2
-        ;;
-esac
 
 
 confirm() {
@@ -122,7 +90,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -141,7 +109,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         exit 0
@@ -354,7 +322,7 @@ fi
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/mhsanaei/3x-ui/raw/main/x-ui.sh
+    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script，Please check whether the machine can connect Github"
@@ -709,8 +677,8 @@ show_menu() {
   ${green}11.${plain} Check x-ui Status
   ${green}12.${plain} Check x-ui Logs
 ————————————————
-  ${green}13.${plain} Enable x-ui On Sysyem Startup
-  ${green}14.${plain} Disabel x-ui On Sysyem Startup
+  ${green}13.${plain} Enable x-ui On System Startup
+  ${green}14.${plain} Disabel x-ui On System Startup
 ————————————————
   ${green}15.${plain} Enable BBR 
   ${green}16.${plain} Issuse Certs
