@@ -62,7 +62,8 @@ elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
-    
+else
+    echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
 fi
 
 
