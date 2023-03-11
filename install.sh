@@ -44,21 +44,21 @@ fi
 os_version=""
 os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
-if [[ x"${release}" == x"centos" ]]; then
+if [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
-elif [[ x"${release}" ==  "ubuntu" ]]; then
+elif [[ "${release}" ==  "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
         echo -e "${red}please use Ubuntu 20 or higher version！${plain}\n" && exit 1
     fi
 
-elif [[ x"${release}" == "fedora" ]]; then
+elif [[ "${release}" == "fedora" ]]; then
     if [[ ${os_version} -lt 36 ]]; then
         echo -e "${red}please use Fedora 36 or higher version！${plain}\n" && exit 1
     fi
 
-elif [[ x"${release}" == "debian" ]]; then
+elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
@@ -67,7 +67,7 @@ fi
 
 
 install_base() {
-    if [[ x"${release}" == x"centos" ]]; then
+    if [[ "${release}" == "centos" ]]; then
         yum install wget curl tar -y
     else
         apt install wget curl tar -y
