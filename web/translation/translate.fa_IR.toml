@@ -71,6 +71,8 @@
 "hard" = "حافظه دیسک"
 "xrayStatus" = "وضعیت Xray"
 "xraySwitch" = "تغییر ورژن"
+"restartXray" = "راه اندازی مجدد"
+"stopXray" = "توقف"
 "xraySwitchClick" = "ورژن مورد نظر را انتخاب کنید"
 "xraySwitchClickDesk" = "لطفا با دقت انتخاب کنید ، در صورت انتخاب اشتباه امکان قطعی سیستم وجود دارد ."
 "operationHours" = "ساعت فعال"
@@ -88,6 +90,7 @@
 
 
 [pages.inbounds]
+"export" = "استخراج لینکها"
 "title" = "کاربران"
 "totalDownUp" = "جمع آپلود/دانلود"
 "totalUsage" = "جمع کل"

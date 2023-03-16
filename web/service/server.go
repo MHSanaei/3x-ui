@@ -198,6 +198,30 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	return versions, nil
 }
 
+func (s *ServerService) StopXrayService() (string error) {
+
+        err := s.xrayService.StopXray()
+                if err != nil {
+                        logger.Error("stop xray failed:", err)
+                        return err
+                }
+
+	return nil
+}
+
+func (s *ServerService) RestartXrayService() (string error) {
+
+        s.xrayService.StopXray()
+        defer func() {
+                err := s.xrayService.RestartXray(true)
+                if err != nil {
+                        logger.Error("start xray failed:", err)
+		}
+        }()
+
+	return nil
+}
+
 func (s *ServerService) downloadXRay(version string) (string, error) {
 	osName := runtime.GOOS
 	arch := runtime.GOARCH

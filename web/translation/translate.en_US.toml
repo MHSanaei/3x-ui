@@ -71,6 +71,8 @@
 "hard" = "Hard Disk"
 "xrayStatus" = "Xray Status"
 "xraySwitch" = "Switch Version"
+"restartXray" = "Restart"
+"stopXray" = "Stop"
 "xraySwitchClick" = "Click on the version you want to switch"
 "xraySwitchClickDesk" = "Please choose carefully, older versions may have incompatible configurations"
 "operationHours" = "Operation Hours"
@@ -87,6 +89,7 @@
 "dontRefreshh" = "Installation is in progress, please do not refresh this page"
 
 [pages.inbounds]
+"export" = "Export"
 "title" = "Inbounds"
 "totalDownUp" = "Total Uploads/Downloads"
 "totalUsage" = "Total Usage"
@@ -121,10 +124,10 @@
 "noRecommendKeepDefault" = "There are no special requirements to keep the default"
 "certificatePath" = "Certificate File Path"
 "certificateContent" = "Certificate File Content"
-"publicKeyPath" = "Public Key File Path"
+"publicKeyPath" = "Public Key Path"
 "publicKeyContent" = "public Key Content"
-"keyPath" = "Key File Path"
-"keyContent" = "Key Content"
+"keyPath" = "Private key Path"
+"keyContent" = "Private Key Content"
 "client" = "Client"
 "uid" = "UID"
 

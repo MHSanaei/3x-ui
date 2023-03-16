@@ -155,7 +155,7 @@ class DBInbound {
         }
     }
 
-    genLink(clientIndex = 0) {
+    genLink(clientIndex) {
         const inbound = this.toInbound();
         return inbound.genLink(this.address, this.remark, clientIndex);
     }
