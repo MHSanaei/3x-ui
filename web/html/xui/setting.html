@@ -20,14 +20,14 @@
         display: block;
     }
 
-    .ant-tabs-top-bar {
+	:not(.ant-card-dark)>.ant-tabs-top-bar {
         background: white;
     }
 </style>
 <body>
 <a-layout id="app" v-cloak>
     {{ template "commonSider" . }}
-    <a-layout id="content-layout">
+    <a-layout id="content-layout" :style="siderDrawer.isDarkTheme ? bgDarkStyle : ''">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip="loading">
                 <a-space direction="vertical">
@@ -35,17 +35,17 @@
                         <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.setting.save" }}</a-button>
                         <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.setting.restartPanel" }}</a-button>
                     </a-space>
-                    <a-tabs default-active-key="1">
+                    <a-tabs default-active-key="1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <a-tab-pane key="1" tab='{{ i18n "pages.setting.panelConfig"}}'>
 
-                            <a-list item-layout="horizontal" style="background: white">
+                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
                                 <a-list-item>
-                                    <a-row  style="padding: 20px">
+                                    <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
                                             <a-list-item-meta title="Language"/>
                                         </a-col>
@@ -58,7 +58,7 @@
                                                         @change="setLang(lang)"
                                                         style="width: 100%"
                                                 >
-                                                    <a-select-option  :value="l.value" label="China" v-for="l in supportLangs" >
+                                                    <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
                                                         <span role="img" aria-label="l.name" v-text="l.icon"></span>
                                                         &nbsp;&nbsp;<span v-text="l.name"></span>
                                                     </a-select-option>
@@ -71,7 +71,7 @@
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="2" tab='{{ i18n "pages.setting.userSetting"}}'>
-                            <a-form style="background: white; padding: 20px">
+                            <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
                                 <a-form-item label='{{ i18n "pages.setting.oldUsername"}}'>
                                     <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
                                 </a-form-item>
@@ -93,12 +93,12 @@
                             </a-form>
                         </a-tab-pane>
                         <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
-                            <a-list item-layout="horizontal" style="background: white">
+                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigTemplate"}}' desc='{{ i18n "pages.setting.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="4" tab='{{ i18n "pages.setting.TGReminder"}}'>
-                            <a-list item-layout="horizontal" style="background: white">
+                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}'  v-model="allSetting.tgBotEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}'  v-model="allSetting.tgBotToken"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model.number="allSetting.tgBotChatId"></setting-list-item>
@@ -106,7 +106,7 @@
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="5" tab='{{ i18n "pages.setting.otherSetting"}}'>
-                            <a-list item-layout="horizontal" style="background: white">
+                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.timeZonee"}}' desc='{{ i18n "pages.setting.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
                             </a-list>
                         </a-tab-pane>

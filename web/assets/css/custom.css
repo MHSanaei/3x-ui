@@ -150,3 +150,64 @@
     color:rgb(255, 255, 255) !important;
     background-color: rgb(255, 127, 127);
 }
+
+.ant-card-dark {
+    color: hsla(0,0%,100%,.65);
+    background-color: #1a212a;
+    border-color:rgba(0,0,0,.09);
+}
+
+.ant-card-dark:hover {
+    border-color: #e8e8e8;
+}
+
+.ant-card-dark .ant-table-thead th {
+    color: hsla(0,0%,100%,.65);
+    background-color: #1b202b;
+}
+
+.ant-card-dark .ant-table-tbody tr td,
+.ant-card-dark .ant-modal-title {
+    color: hsla(0,0%,100%,.65);
+}
+
+.ant-card-dark .ant-collapse-content {
+    background-color: #1a212a;
+}
+
+.ant-card-dark .ant-list-item-meta-title,
+.ant-card-dark .ant-list-item-meta-description,
+.ant-card-dark .ant-form-item-label>label,
+.ant-card-dark .ant-form-item,
+.ant-card-dark .ant-divider-inner-text,
+.ant-card-dark .ant-collapse>.ant-collapse-item>.ant-collapse-header {
+    color: hsla(0,0%,100%,.65);
+}
+
+.ant-card-dark .ant-table-tbody>tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td {
+    background-color: #004488;
+}
+
+.ant-card-dark tbody .ant-table-expanded-row {
+    color: hsla(0,0%,100%,.65);
+    background-color: #023366; 
+}
+
+.ant-card-dark .ant-input,
+.ant-card-dark .ant-input-number,
+.ant-card-dark .ant-select-selection {
+    background-color: #023366;
+    color: hsla(0,0%,100%,.65);
+}
+
+.ant-card-dark .ant-collapse-item {
+    background-color: #1b202b;
+    color: hsla(0,0%,100%,.65);
+}
+
+.ant-card-dark .ant-modal-content,
+.ant-card-dark .ant-modal-body,
+.ant-card-dark .ant-modal-header {
+    color: hsla(0,0%,100%,.65);
+    background-color: #242c3a; 
+}

@@ -11,11 +11,15 @@
     .ant-col-sm-24 {
         margin-top: 10px;
     }
+
+    .ant-table-row-expand-icon {
+        color: rgba(0,0,0,.65);
+    }
 </style>
 <body>
 <a-layout id="app" v-cloak>
     {{ template "commonSider" . }}
-    <a-layout id="content-layout">
+    <a-layout id="content-layout" :style="siderDrawer.isDarkTheme ? bgDarkStyle : ''">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip="loading">
                 <transition name="list" appear>
@@ -24,7 +28,7 @@
                     </a-tag>
                 </transition>
                 <transition name="list" appear>
-                    <a-card hoverable style="margin-bottom: 20px;">
+                    <a-card hoverable style="margin-bottom: 20px;" :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <a-row>
                             <a-col :xs="24" :sm="24" :lg="12">
                                 {{ i18n "pages.inbounds.totalDownUp" }}：
@@ -38,11 +42,17 @@
                                 {{ i18n "pages.inbounds.inboundCount" }}：
                                 <a-tag color="green">[[ dbInbounds.length ]]</a-tag>
                             </a-col>
+                            <a-col :xs="24" :sm="24" :lg="12">
+                                {{ i18n "clients" }}:
+                                <a-tag color="green">[[ total.clients ]]</a-tag>
+                                <a-tag color="blue">{{ i18n "enabled" }} [[ total.active ]]</a-tag>
+                                <a-tag color="red">{{ i18n "disabled" }} [[ total.deactive ]]</a-tag>
+                            </a-col>
                         </a-row>
                     </a-card>
                 </transition>
                 <transition name="list" appear>
-                    <a-card hoverable>
+                    <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <div slot="title">
                              <a-button type="primary" @click="openAddInbound">Add Inbound</a-button>
 							 <a-button type="primary" @click="exportAllLinks" class="copy-btn">Export Links</a-button>
@@ -67,6 +77,12 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
+                                         <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess">
+                                            <a-menu-item key="export">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export"}}
+                                            </a-menu-item>
+                                        </template>
                                         <a-menu-item key="resetTraffic">
                                             <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                                         </a-menu-item>
@@ -202,7 +218,7 @@
         { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'UID', width: 120, dataIndex: "id" },
+        { title: 'UID', width: 150, dataIndex: "id" },
 		
     ];
 
@@ -280,6 +296,9 @@
                 switch (action.key) {
                     case "qrcode":
                         this.showQrcode(dbInbound);
+                        break;
+                    case "export":
+                        this.inboundLinks(dbInbound.id);
                         break;
                     case "edit":
                         this.openEditInbound(dbInbound.id);
@@ -372,18 +391,6 @@
                     },
                 });
             },
-			exportAllLinks() {
-                    let copyText = '';
-                    for (const dbInbound of this.dbInbounds) {
-                        copyText += dbInbound.genInboundLinks
-                    }
-                    const clipboard = new ClipboardJS('.copy-btn', {
-                        text: function () {
-                            return copyText;
-                        }
-                    });
-                    clipboard.on('success', () => { this.$message.success('Export Links succeed'); });
-                },
             delInbound(dbInbound) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',
@@ -393,7 +400,15 @@
                     onOk: () => this.submit('/xui/inbound/del/' + dbInbound.id),
                 });
             },
-            showQrcode(dbInbound, clientIndex) {
+			getClients(protocol, clientSettings) {
+                switch(protocol){
+                    case Protocols.VMESS: return clientSettings.vmesses;
+                    case Protocols.VLESS: return clientSettings.vlesses;
+                    case Protocols.TROJAN: return clientSettings.trojans;
+                    default: return null;
+                }
+            },
+             showQrcode(dbInbound, clientIndex) {
                 const link = dbInbound.genLink(clientIndex);
                 qrModal.show('{{ i18n "qrCode"}}', link, dbInbound);
             },
@@ -451,60 +466,34 @@
                 return dbInbound.toInbound().isExpiry(index)
             },
             getUpStats(dbInbound, email) {
-                clientStats = dbInbound.clientStats
-                if(clientStats.length > 0)
-                {
-                    for (const key in clientStats) {
-                        if (Object.hasOwnProperty.call(clientStats, key)) {
-                            if(clientStats[key]['email'] == email)
-                                return clientStats[key]['up']
-
-                        }
-                    }
-                }
-
+                if(email.length == 0) return 0
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
+                return clientStats ? clientStats.up : 0
             },
             getDownStats(dbInbound, email) {
-                clientStats = dbInbound.clientStats
-                if(clientStats.length > 0)
-                {
-                    for (const key in clientStats) {
-                        if (Object.hasOwnProperty.call(clientStats, key)) {
-                            if(clientStats[key]['email'] == email)
-                                return clientStats[key]['down']
-
-                        }
-                    }
-                }
+                if(email.length == 0) return 0
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
+                return clientStats ? clientStats.down : 0
             },
             isTrafficExhausted(dbInbound, email) {
-                clientStats = dbInbound.clientStats
-                if(clientStats.length > 0)
-                {
-                    for (const key in clientStats) {
-                        if (Object.hasOwnProperty.call(clientStats, key)) {
-                            if(clientStats[key]['email'] == email)
-                                return clientStats[key]['down']+clientStats[key]['up'] > clientStats[key]['total']
-
-                        }
-                    }
+                if(email.length == 0) return false
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
+                return clientStats ? clientStats.down + clientStats.up > clientStats.total : false
+            },
+            inboundLinks(dbInboundId) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                txtModal.show('{{ i18n "pages.inbounds.export"}}',dbInbound.genInboundLinks,dbInbound.remark);
+            },
+			exportAllLinks() {
+                let copyText = '';
+                for (const dbInbound of this.dbInbounds) {
+                    copyText += dbInbound.genInboundLinks
                 }
+                txtModal.show('{{ i18n "pages.inbounds.export"}}',copyText,'All-Inbounds');
             },
             isClientEnabled(dbInbound, email) {
-                clientStats = dbInbound.clientStats
-                if(clientStats.length > 0)
-                {
-                    for (const key in clientStats) {
-                        if (Object.hasOwnProperty.call(clientStats, key)) {
-                            if(clientStats[key]['email'] == email)
-                                return clientStats[key]['enable']
-
-                        }
-                    }
-                }
-                 else{
-                    return true
-                }
+                clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null
+                return clientStats ? clientStats['enable'] : true
             },
         },
         watch: {
@@ -518,13 +507,32 @@
         computed: {
             total() {
                 let down = 0, up = 0;
-                for (let i = 0; i < this.dbInbounds.length; ++i) {
-                    down += this.dbInbounds[i].down;
-                    up += this.dbInbounds[i].up;
-                }
+				let clients = 0, active = 0, deactive = 0;
+                this.dbInbounds.forEach(dbInbound => {
+                    down += dbInbound.down;
+                    up += dbInbound.up;
+                    inbound = dbInbound.toInbound();
+                    clients = this.getClients(dbInbound.protocol, inbound.settings);
+                    if(clients){
+                        if(dbInbound.enable){
+                            isClientEnable = false;
+                            clients.forEach(client => {
+                                isClientEnable = client.email == "" ? true: this.isClientEnabled(dbInbound,client.email);
+                                isClientEnable ? active++ : deactive++;
+                            });
+                        } else {
+                            deactive += clients.length;
+                        }
+                    } else {
+                        dbInbound.enable ? active++ : deactive++;
+                    }
+                });
                 return {
                     down: down,
                     up: up,
+                    clients: active + deactive,
+                    active: active,
+                    deactive: deactive,
                 };
             }
         },
