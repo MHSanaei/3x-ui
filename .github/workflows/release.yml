@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3.3.0
       - name: Set up Go
-        uses: actions/setup-go@v3.5.0
+        uses: actions/setup-go@v4.0.0
         with:
           go-version: 'stable'
       - name: build linux amd64 version
