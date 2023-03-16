@@ -3,6 +3,7 @@
     v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
     :closable="true"
     :mask-closable="true"
+	:class="siderDrawer.isDarkTheme ? darkClass : ''"
     :footer="null"
     width="600px"
     >

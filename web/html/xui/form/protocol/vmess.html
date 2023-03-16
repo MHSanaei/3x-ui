@@ -1,6 +1,6 @@
 {{define "form/vmess"}}
 <a-form layout="inline">
-<label>{{ i18n "clients"}}</label>
+<label style="color: green;">{{ i18n "clients"}}</label>
 <a-collapse activeKey="0"  v-for="(vmess, index) in inbound.settings.vmesses"
 :key="`vmess-${index}`">
     <a-collapse-panel :class="getHeaderStyle(vmess.email)" :header="getHeaderText(vmess.email)">
@@ -20,8 +20,14 @@
                             xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"> <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> </svg>
                     </a-tooltip>
                 </span>
-                <a-input v-model.trim="vmess.email"></a-input>
+                <a-input v-model.trim="vmess.email" style="width: 150px;"></a-input>
             </a-form-item>
+			<a-form-item label="ID">
+				<a-input v-model.trim="vmess.id" style="width: 300px;" ></a-input>
+			</a-form-item>
+			<a-form-item label='{{ i18n "additional" }} ID'>
+				<a-input type="number" v-model.number="vmess.alterId"></a-input>
+			</a-form-item>
 			<a-form-item>
                 <span slot="label">
                     IP Count Limit
@@ -32,7 +38,7 @@
                         <a-icon type="question-circle" theme="filled"></a-icon>
                     </a-tooltip>
                 </span>
-              <a-input type="number" v-model.number="vmess.limitIp" min="0" ></a-input>
+              <a-input type="number" v-model.number="vmess.limitIp" min="0" style="width: 70px;" ></a-input>
             </a-form-item>
             <a-form-item v-if="vmess.email && vmess.limitIp > 0 && isEdit">
                 <span slot="label">
@@ -52,16 +58,10 @@
                         </span>
                     </a-tooltip>
                 </span>
-                <a-textarea readonly @click="getDBClientIps(vmess.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 0.5, maxRows: 10 }">
+                <a-textarea readonly @click="getDBClientIps(vmess.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 2, maxRows: 10 }">
                 </a-textarea>
             </a-form-item>
         </a-form>
-        <a-form-item label="ID">
-            <a-input v-model.trim="vmess.id"></a-input>
-        </a-form-item>
-        <a-form-item label='{{ i18n "additional" }} ID'>
-            <a-input type="number" v-model.number="vmess.alterId"></a-input>
-        </a-form-item>
         <a-form-item>
             <span slot="label">
                 <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)

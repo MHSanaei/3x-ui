@@ -275,15 +275,18 @@ func (s *InboundService) AddClientTraffic(traffics []*xray.ClientTraffic) (err e
 
 	for _, traffic := range traffics {
 		inbound := &model.Inbound{}
-
-		err := txInbound.Where("settings like ?", "%"+traffic.Email+"%").First(inbound).Error
-		traffic.InboundId = inbound.Id
+		client := &xray.ClientTraffic{}
+		err := tx.Where("email = ?", traffic.Email).First(client).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
-				// delete removed client record
-				clientErr := s.DelClientStat(tx, traffic.Email)
-				logger.Warning(err, traffic.Email, clientErr)
-
+				logger.Warning(err, traffic.Email)
+			}
+			continue
+		}
+		err = txInbound.Where("id=?", client.InboundId).First(inbound).Error
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				logger.Warning(err, traffic.Email)
 			}
 			continue
 		}
