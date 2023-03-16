@@ -70,6 +70,8 @@
 "hard" = "硬盘"
 "xrayStatus" = "xray 状态"
 "xraySwitch" = "切换版本"
+"restartXray" = "重新开始"
+"stopXray" = "停止"
 "xraySwitchClick" = "点击你想切换的版本"
 "xraySwitchClickDesk" = "请谨慎选择，旧版本可能配置不兼容"
 "operationHours" = "运行时间"
@@ -87,6 +89,7 @@
 
 
 [pages.inbounds]
+"export" = "导出链接"
 "title" = "入站列表"
 "totalDownUp" = "总上传 / 下载"
 "totalUsage" = "总用量"

@@ -5,13 +5,22 @@
         <a-switch v-model="inbound.tls">
         </a-switch>
     </a-form-item>
-    <a-form-item v-if="inbound.canEnableXTls()" label="XTLS">
-        <a-switch v-model="inbound.xtls"></a-switch>
+    <a-form-item v-if="inbound.canEnableXTLS()" label="XTLS">
+        <a-switch v-model="inbound.XTLS"></a-switch>
     </a-form-item>
 </a-form>
 
 <!-- tls settings -->
-<a-form v-if="inbound.tls || inbound.xtls"layout="inline">
+<a-form v-if="inbound.tls || inbound.XTLS"layout="inline">
+    <a-form-item label="SNI" placeholder="Server Name Indication" v-if="inbound.tls">
+        <a-input v-model.trim="inbound.stream.tls.settings[0].serverName"></a-input>
+    </a-form-item>
+    <a-form-item label="CipherSuites">
+        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px">
+            <a-select-option value="">auto</a-select-option>
+            <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
     <a-form-item label="MinVersion">
         <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px">
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
@@ -22,17 +31,20 @@
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label="CipherSuites">
-        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px">
-            <a-select-option value="">auto</a-select-option>
-            <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
+        <a-form-item label="uTLS" v-if="inbound.tls" >
+            <a-select v-model="inbound.stream.tls.settings[0].fingerprint" style="width: 135px">
+                <a-select-option value=''>None</a-select-option>
+                <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
     <a-form-item label='{{ i18n "domainName" }}'>
         <a-input v-model.trim="inbound.stream.tls.server"></a-input>
     </a-form-item>
-    <a-form-item label="Alpn">
-        <a-input v-model.trim="inbound.stream.tls.alpn"></a-input>
+    <a-form-item label="Alpn" placeholder="http/1.1,h2" v-if="inbound.tls">
+        <a-select v-model="inbound.stream.tls.alpn[0]" style="width:200px">
+            <a-select-option value=''>auto</a-select-option>
+            <a-select-option v-for="key in ALPN_OPTION" :value="key">[[ key ]]</a-select-option>
+        </a-select>
     </a-form-item>
     <a-form-item label='{{ i18n "certificate" }}'>
         <a-radio-group v-model="inbound.stream.tls.certs[0].useFile" button-style="solid">
@@ -42,18 +54,18 @@
     </a-form-item>
     <template v-if="inbound.stream.tls.certs[0].useFile">
         <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
-            <a-input v-model.trim="inbound.stream.tls.certs[0].certFile"></a-input>
+            <a-input v-model.trim="inbound.stream.tls.certs[0].certFile" style="width:300px;"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
-            <a-input v-model.trim="inbound.stream.tls.certs[0].keyFile"></a-input>
+            <a-input v-model.trim="inbound.stream.tls.certs[0].keyFile" style="width:300px;"></a-input>
         </a-form-item>
     </template>
     <template v-else>
         <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-            <a-input type="textarea" :rows="2" v-model="inbound.stream.tls.certs[0].cert"></a-input>
+            <a-input type="textarea" :rows="3" style="width:300px;" v-model="inbound.stream.tls.certs[0].cert"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-            <a-input type="textarea" :rows="2" v-model="inbound.stream.tls.certs[0].key"></a-input>
+            <a-input type="textarea" :rows="3" style="width:300px;" v-model="inbound.stream.tls.certs[0].key"></a-input>
         </a-form-item>
     </template>
 </a-form>
