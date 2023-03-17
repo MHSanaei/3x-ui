@@ -120,12 +120,12 @@
                     event.target.value = msg.obj
                 }
             },
-            async clearDBClientIps(email,event) {
+            async clearDBClientIps(email) {
                 const msg = await HttpUtil.post('/xui/inbound/clearClientIps/'+ email);
                 if (!msg.success) {
                     return;
                 }
-                event.target.value = ""
+                document.getElementById("clientIPs").value = ""
             },
         },
     });
