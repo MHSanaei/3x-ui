@@ -160,5 +160,5 @@ func (s *XrayService) SetToNeedRestart() {
 }
 
 func (s *XrayService) IsNeedRestartAndSetFalse() bool {
-	return isNeedXrayRestart.CAS(true, false)
+	return isNeedXrayRestart.CompareAndSwap(true, false)
 }

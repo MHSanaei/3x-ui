@@ -1,7 +1,7 @@
 {{define "form/streamQUIC"}}
 <a-form layout="inline">
     <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
-        <a-select v-model="inbound.stream.quic.security" style="width: 165px;">
+        <a-select v-model="inbound.stream.quic.security" style="width: 165px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="none">none</a-select-option>
             <a-select-option value="aes-128-gcm">aes-128-gcm</a-select-option>
             <a-select-option value="chacha20-poly1305">chacha20-poly1305</a-select-option>
@@ -11,7 +11,7 @@
         <a-input v-model.trim="inbound.stream.quic.key"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "camouflage" }}'>
-        <a-select v-model="inbound.stream.quic.type" style="width: 280px;">
+        <a-select v-model="inbound.stream.quic.type" style="width: 280px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="none">none（not camouflage）</a-select-option>
             <a-select-option value="srtp">srtp（camouflage video call）</a-select-option>
             <a-select-option value="utp">utp（camouflage BT download）</a-select-option>
