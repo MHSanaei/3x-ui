@@ -1,9 +1,10 @@
 # 3x-ui
 ![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)
 ![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total)
+![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)
+![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+
 
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
@@ -42,6 +43,58 @@ After you set ssl on settings
 - [for enable traffic](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic.txt)
 - [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
 
+# Features
+
+- System Status Monitoring
+- Search within all inbounds and clients
+- Support Dark/Light theme UI
+- Support multi-user multi-protocol, web page visualization operation
+- Supported protocols: vmess, vless, trojan, shadowsocks, dokodemo-door, socks, http
+- Support for configuring more transport configurations
+- Traffic statistics, limit traffic, limit expiration time
+- Customizable xray configuration templates
+- Support https access panel (self-provided domain name + ssl certificate)
+- Support one-click SSL certificate application and automatic renewal
+- For more advanced configuration items, please refer to the panel
+
+# Tg robot use
+
+X-UI supports daily traffic notification, panel login reminder and other functions through the Tg robot. To use the Tg robot, you need to apply for the specific application tutorial. You can refer to the [blog](https://coderfan.net/how-to-use-telegram-bot-to-alarm-you-when-someone-login-into-your-vps.html)
+Set the robot-related parameters in the panel background, including:
+
+- Tg robot Token
+- Tg robot ChatId
+- Tg robot cycle runtime, in crontab syntax
+- Tg robot Expiration threshold
+- Tg robot Traffic threshold
+- Tg robot Enable send backup in cycle runtime
+- Tg robot Enable CPU usage alarm threshold
+
+Reference syntax:
+
+- @hourly // hourly notification
+- @daily // Daily notification (00:00 in the morning)
+- @every 8h // notify every 8 hours
+
+# Telegram Bot Features
+
+- Report periodic
+- Login notification
+- CPU threshold notification
+- Threshold for Expiration time and Traffic to report in advance
+- Support client report if client's telegram username is added to the end of `email` like 'test123@telegram_username'
+- Support telegram traffic report searched with UID (VMESS/VLESS) or Password (TROJAN) - anonymously
+- Menu based bot
+- Search client by email ( only admin )
+- Check all inbounds
+- Check server status
+- Check Exhausted users
+- Receive backup by request and in periodic reports
+
+# A Special Thanks To
+- [alireza0](https://github.com/alireza0/)
+- [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
+
 # Suggestion System
 - Ubuntu 20.04+
 - Debian 10+
@@ -50,18 +103,10 @@ After you set ssl on settings
 
 # Pictures
 
-![1](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/1.png)
-![2](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/2.png)
-![3](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/3.png)
-![4](https://raw.githubusercontent.com/MHSanaei/3x-ui/main/media/4.png)
-
-# A Special Thanks To
-- [vaxilu](https://github.com/vaxilu/)
-- [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
-- [diditra](https://github.com/diditra/)
-- [FranzKafkaYu](https://github.com/FranzKafkaYu)
-- [alireza0](https://github.com/alireza0/)
-
+![1](./media/1.png)
+![2](./media/2.png)
+![3](./media/3.png)
+![4](./media/4.png)
 
 ## Stargazers over time
 
