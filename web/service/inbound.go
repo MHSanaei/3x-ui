@@ -188,7 +188,7 @@ func (s *InboundService) DelInbound(id int) error {
 		return err
 	}
 	for _, client := range clients {
-		err := db.Where("client_email = ?", client.Email).Delete(model.InboundClientIps{}).Error
+		err := s.DelClientIPs(db, client.Email)
 		if err != nil {
 			return err
 		}
@@ -523,11 +523,11 @@ func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail 
 }
 
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
-	return tx.Where("client_email = ?", email).Delete(xray.ClientTraffic{}).Error
+	return tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error
 }
 
 func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
-	return tx.Where("email = ?", email).Delete(model.InboundClientIps{}).Error
+	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) error {
