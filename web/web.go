@@ -21,11 +21,11 @@ import (
 	"x-ui/web/network"
 	"x-ui/web/service"
 
-	"github.com/pelletier/go-toml/v2"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
+	"github.com/pelletier/go-toml/v2"
 	"github.com/robfig/cron/v3"
 	"golang.org/x/text/language"
 )
@@ -88,7 +88,7 @@ type Server struct {
 
 	xrayService    service.XrayService
 	settingService service.SettingService
-	inboundService service.InboundService
+	tgbotService   service.Tgbot
 
 	cron *cron.Cron
 
@@ -309,7 +309,7 @@ func (s *Server) startTask() {
 
 	// Check the inbound traffic every 30 seconds that the traffic exceeds and expires
 	s.cron.AddJob("@every 30s", job.NewCheckInboundJob())
-
+	
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
@@ -328,8 +328,13 @@ func (s *Server) startTask() {
 			logger.Warning("Add NewStatsNotifyJob error", err)
 			return
 		}
-		// listen for TG bot income messages
-		go job.NewStatsNotifyJob().OnReceive()
+
+		// Check CPU load and alarm to TgBot if threshold passes
+		cpuThreshold, err := s.settingService.GetTgCpu()
+		if (err == nil) && (cpuThreshold > 0) {
+			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
+		}
+
 	} else {
 		s.cron.Remove(entry)
 	}
@@ -406,6 +411,12 @@ func (s *Server) Start() (err error) {
 		s.httpServer.Serve(listener)
 	}()
 
+	isTgbotenabled, err := s.settingService.GetTgbotenabled()
+	if (err == nil) && (isTgbotenabled) {
+		tgBot := s.tgbotService.NewTgbot()
+		tgBot.Start()
+	}
+
 	return nil
 }
 
@@ -414,6 +425,9 @@ func (s *Server) Stop() error {
 	s.xrayService.StopXray()
 	if s.cron != nil {
 		s.cron.Stop()
+	}
+	if s.tgbotService.IsRunnging() {
+		s.tgbotService.Stop()
 	}
 	var err1 error
 	var err2 error
