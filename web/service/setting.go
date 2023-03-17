@@ -31,8 +31,12 @@ var defaultValueMap = map[string]string{
 	"timeLocation":       "Asia/Tehran",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
-	"tgBotChatId":        "0",
-	"tgRunTime":          "",
+	"tgBotChatId":        "",
+	"tgRunTime":          "@daily",
+	"tgBotBackup":        "false",
+	"tgExpireDiff":       "0",
+	"tgTrafficDiff":      "0",
+	"tgCpu":              "0",
 }
 
 type SettingService struct {
@@ -202,28 +206,60 @@ func (s *SettingService) SetTgBotToken(token string) error {
 	return s.setString("tgBotToken", token)
 }
 
-func (s *SettingService) GetTgBotChatId() (int, error) {
-	return s.getInt("tgBotChatId")
+func (s *SettingService) GetTgBotChatId() (string, error) {
+	return s.getString("tgBotChatId")
 }
 
-func (s *SettingService) SetTgBotChatId(chatId int) error {
-	return s.setInt("tgBotChatId", chatId)
-}
-
-func (s *SettingService) SetTgbotenabled(value bool) error {
-	return s.setBool("tgBotEnable", value)
+func (s *SettingService) SetTgBotChatId(chatIds string) error {
+	return s.setString("tgBotChatId", chatIds)
 }
 
 func (s *SettingService) GetTgbotenabled() (bool, error) {
 	return s.getBool("tgBotEnable")
 }
 
-func (s *SettingService) SetTgbotRuntime(time string) error {
-	return s.setString("tgRunTime", time)
+func (s *SettingService) SetTgbotenabled(value bool) error {
+	return s.setBool("tgBotEnable", value)
 }
 
 func (s *SettingService) GetTgbotRuntime() (string, error) {
 	return s.getString("tgRunTime")
+}
+
+func (s *SettingService) SetTgbotRuntime(time string) error {
+	return s.setString("tgRunTime", time)
+}
+
+func (s *SettingService) GetTgBotBackup() (bool, error) {
+	return s.getBool("tgBotBackup")
+}
+
+func (s *SettingService) SetTgBotBackup(value bool) error {
+	return s.setBool("tgBotBackup", value)
+}
+
+func (s *SettingService) GetTgExpireDiff() (int, error) {
+	return s.getInt("tgExpireDiff")
+}
+
+func (s *SettingService) SetTgExpireDiff(value int) error {
+	return s.setInt("tgExpireDiff", value)
+}
+
+func (s *SettingService) GetTgTrafficDiff() (int, error) {
+	return s.getInt("tgTrafficDiff")
+}
+
+func (s *SettingService) SetTgTrafficDiff(value int) error {
+	return s.setInt("tgTrafficDiff", value)
+}
+
+func (s *SettingService) GetTgCpu() (int, error) {
+	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) SetTgCpu(value int) error {
+	return s.setInt("tgCpu", value)
 }
 
 func (s *SettingService) GetPort() (int, error) {

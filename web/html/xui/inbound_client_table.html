@@ -1,0 +1,44 @@
+{{define "client_table"}}
+<template slot="actions" slot-scope="text, client, index">
+    <a-tooltip>
+        <template slot="title">{{ i18n "qrCode" }}</template>
+        <a-icon style="font-size: 24px;" type="qrcode" v-if="record.hasLink()" @click="showQrcode(record,index);"></a-icon>
+    </a-tooltip>
+    <a-tooltip>
+        <template slot="title">{{ i18n "pages.client.edit" }}</template>
+        <a-icon style="font-size: 24px;" type="edit" @click="openEditClient(record.id,client);"></a-icon>
+    </a-tooltip>
+    <a-tooltip>
+        <template slot="title">{{ i18n "info" }}</template>
+        <a-icon style="font-size: 24px;" type="info-circle" @click="showInfo(record,index);"></a-icon>
+    </a-tooltip>
+    <a-tooltip>
+        <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
+        <a-icon style="font-size: 24px;" type="retweet" @click="resetClientTraffic(client,record.id)" v-if="client.email.length > 0"></a-icon>
+    </a-tooltip>
+    <a-tooltip>
+        <template slot="title"><span style="color: #FF4D4F"> {{ i18n "delete"}}</span></template>
+        <a-icon style="font-size: 24px;" type="delete" v-if="isRemovable(record.id)" @click="delClient(record.id,client)"></a-icon>
+    </a-tooltip>
+</template>
+<template slot="client" slot-scope="text, client">
+    [[ client.email ]]
+    <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "disabled" }}</a-tag>
+</template>                                    
+<template slot="traffic" slot-scope="text, client">
+    <a-tag color="blue">[[ sizeFormat(getUpStats(record, client.email)) ]] / [[ sizeFormat(getDownStats(record, client.email)) ]]</a-tag>
+    <template v-if="client._totalGB > 0">
+        <a-tag v-if="isTrafficExhausted(record, client.email)" color="red">[[client._totalGB]]GB</a-tag>
+        <a-tag v-else color="cyan">[[client._totalGB]]GB</a-tag>
+    </template>
+    <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+</template>                                    
+<template slot="expiryTime" slot-scope="text, client, index">
+    <template v-if="client._expiryTime > 0">
+        <a-tag :color="isExpiry(record, index)? 'red' : 'blue'">
+            [[ DateUtil.formatMillis(client._expiryTime) ]]
+        </a-tag>
+    </template>
+    <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+</template>
+{{end}}
