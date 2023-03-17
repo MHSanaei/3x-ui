@@ -1284,18 +1284,18 @@ class Inbound extends XrayCommonClass {
         switch (this.protocol) {
             case Protocols.VMESS:
                 if (this.settings.vmesses[clientIndex].email != ""){
-                    remark = this.settings.vmesses[clientIndex].email
+                    remark += '-' + this.settings.vmesses[clientIndex].email
                 }
                 return this.genVmessLink(address, remark, clientIndex);
             case Protocols.VLESS:
                 if (this.settings.vlesses[clientIndex].email != ""){
-                    remark = this.settings.vlesses[clientIndex].email
+                    remark += '-' + this.settings.vlesses[clientIndex].email
                 }
                 return this.genVLESSLink(address, remark, clientIndex);
             case Protocols.SHADOWSOCKS: return this.genSSLink(address, remark);
             case Protocols.TROJAN:
                 if (this.settings.trojans[clientIndex].email != ""){
-                    remark = this.settings.trojans[clientIndex].email
+                    remark += '-' + this.settings.trojans[clientIndex].email
                 }
                 return this.genTrojanLink(address, remark, clientIndex);
             default: return '';
