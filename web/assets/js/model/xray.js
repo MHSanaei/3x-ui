@@ -794,18 +794,6 @@ class Inbound extends XrayCommonClass {
         return this.network === "http";
     }
 
-    isInboundEmpty() {
-        if (this.protocol == Protocols.VMESS && this.settings.vmesses.length == 0) {
-            return true;
-        } else if (this.protocol == Protocols.VLESS && this.settings.vlesses.length == 0) {
-            return true;
-        } else if (this.protocol == Protocols.TROJAN && this.settings.trojans.length == 0) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     // VMess & VLess
     get uuid() {
         switch (this.protocol) {
@@ -1170,23 +1158,19 @@ class Inbound extends XrayCommonClass {
                 else{
                    params.set("sni", address);
                 }
-                if (type === "tcp") {
+               if (type === "tcp" && this.settings.vlesses[clientIndex].flow.length > 0) {
                     params.set("flow", this.settings.vlesses[clientIndex].flow);
                 }
 			}
         }
 		
-		if (this.stream.security === 'xtls') {
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
-                if (this.stream.tls.settings[0]['serverName'] !== ''){
-                    params.set("sni", this.stream.tls.settings[0]['serverName']);
-                }
-                else{
-                   params.set("sni", address);
-                }
-                if (type === "tcp") {
-                    params.set("flow", this.settings.vlesses[clientIndex].flow);
+		 if (this.xtls) {
+            if (this.stream.security === 'xtls') {
+                if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+                    address = this.stream.tls.server;
+                    if (type === "tcp") {
+                        params.set("flow", this.settings.vlesses[clientIndex].flow);
+                    }
                 }
 			}
         }
@@ -1281,13 +1265,7 @@ class Inbound extends XrayCommonClass {
 		if (this.stream.security === 'xtls') {
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
-                if (this.stream.tls.settings[0]['serverName'] !== ''){
-                    params.set("sni", this.stream.tls.settings[0]['serverName']);
-                }
-                else{
-                   params.set("sni", address);
-                }
-                if (type === "tcp") {
+                 if (type === "tcp" && this.settings.trojans[clientIndex].flow.length > 0) {
                     params.set("flow", this.settings.trojans[clientIndex].flow);
                 }
 			}
@@ -1306,18 +1284,18 @@ class Inbound extends XrayCommonClass {
         switch (this.protocol) {
             case Protocols.VMESS:
                 if (this.settings.vmesses[clientIndex].email != ""){
-                    remark += '-' + this.settings.vmesses[clientIndex].email
+                    remark = this.settings.vmesses[clientIndex].email
                 }
                 return this.genVmessLink(address, remark, clientIndex);
             case Protocols.VLESS:
                 if (this.settings.vlesses[clientIndex].email != ""){
-                    remark += '-' + this.settings.vlesses[clientIndex].email
+                    remark = this.settings.vlesses[clientIndex].email
                 }
                 return this.genVLESSLink(address, remark, clientIndex);
             case Protocols.SHADOWSOCKS: return this.genSSLink(address, remark);
             case Protocols.TROJAN:
                 if (this.settings.trojans[clientIndex].email != ""){
-                    remark += '-' + this.settings.trojans[clientIndex].email
+                    remark = this.settings.trojans[clientIndex].email
                 }
                 return this.genTrojanLink(address, remark, clientIndex);
             default: return '';
@@ -1652,7 +1630,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomSeq(10), flow ='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime='') {
+    constructor(password=RandomUtil.randomSeq(10), flow='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime='') {
         super();
         this.password = password;
         this.flow = flow;
@@ -1779,11 +1757,12 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 };
 
 Inbound.DokodemoSettings = class extends Inbound.Settings {
-    constructor(protocol, address, port, network='tcp,udp') {
+    constructor(protocol, address, port, network='tcp,udp', followRedirect=false) {
         super(protocol);
         this.address = address;
         this.port = port;
         this.network = network;
+		this.followRedirect = followRedirect;
     }
 
     static fromJson(json={}) {
@@ -1792,6 +1771,7 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
             json.address,
             json.port,
             json.network,
+			json.followRedirect,
         );
     }
 
@@ -1800,6 +1780,7 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
             address: this.address,
             port: this.port,
             network: this.network,
+			followRedirect: this.followRedirect,
         };
     }
 };
