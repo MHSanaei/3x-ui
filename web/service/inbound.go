@@ -179,6 +179,20 @@ func (s *InboundService) DelInbound(id int) error {
 	if err != nil {
 		return err
 	}
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return err
+	}
+	clients, err := s.getClients(inbound)
+	if err != nil {
+		return err
+	}
+	for _, client := range clients {
+		err := s.DelClientIPs(db, client.Email)
+		if err != nil {
+			return err
+		}
+	}
 	return db.Delete(model.Inbound{}, id).Error
 }
 
@@ -286,6 +300,12 @@ func (s *InboundService) DelInboundClient(inbound *model.Inbound, email string) 
 
 	oldInbound.Settings = inbound.Settings
 
+	err = s.DelClientIPs(db, email)
+	if err != nil {
+		logger.Error("Error in delete client IPs")
+		return err
+	}
+
 	return db.Save(oldInbound).Error
 }
 
@@ -319,12 +339,26 @@ func (s *InboundService) UpdateInboundClient(inbound *model.Inbound, index int) 
 
 	if len(clients[index].Email) > 0 {
 		if len(oldClients[index].Email) > 0 {
-			s.UpdateClientStat(oldClients[index].Email, &clients[index])
+			err = s.UpdateClientStat(oldClients[index].Email, &clients[index])
+			if err != nil {
+				return err
+			}
+			err = s.UpdateClientIPs(db, oldClients[index].Email, clients[index].Email)
+			if err != nil {
+				return err
+			}
 		} else {
 			s.AddClientStat(inbound.Id, &clients[index])
 		}
 	} else {
-		s.DelClientStat(db, oldClients[index].Email)
+		err = s.DelClientStat(db, oldClients[index].Email)
+		if err != nil {
+			return err
+		}
+		err = s.DelClientIPs(db, oldClients[index].Email)
+		if err != nil {
+			return err
+		}
 	}
 	return db.Save(oldInbound).Error
 }
@@ -483,8 +517,18 @@ func (s *InboundService) UpdateClientStat(email string, client *model.Client) er
 	}
 	return nil
 }
+
+func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail string) error {
+	return tx.Model(model.InboundClientIps{}).Where("client_email = ?", oldEmail).Update("client_email", newEmail).Error
+}
+
 func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 	return tx.Where("email = ?", email).Delete(xray.ClientTraffic{}).Error
+}
+
+func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
+	logger.Warning(email)
+	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) error {
@@ -567,6 +611,7 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	}
 	return traffic, err
 }
+
 func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error) {
 	db := database.GetDB()
 	InboundClientIps := &model.InboundClientIps{}
@@ -576,14 +621,13 @@ func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error)
 	}
 	return InboundClientIps.Ips, nil
 }
-func (s *InboundService) ClearClientIps(clientEmail string) (error) {
+func (s *InboundService) ClearClientIps(clientEmail string) error {
 	db := database.GetDB()
 
 	result := db.Model(model.InboundClientIps{}).
 		Where("client_email = ?", clientEmail).
 		Update("ips", "")
 	err := result.Error
-
 
 	if err != nil {
 		return err
