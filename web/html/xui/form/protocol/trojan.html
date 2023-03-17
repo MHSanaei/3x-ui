@@ -31,29 +31,6 @@
                 </span>
                 <a-input type="number" v-model.number="client.limitIp" min="0"  style="width: 70px;" ></a-input>
 		</a-form-item>
-		<a-form-item v-if="client.email && client.limitIp > 0 && isEdit">
-                <span slot="label">
-                    IP log
-                    <a-tooltip>
-                        <template slot="title">
-                            IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                    <a-tooltip>
-                        <template slot="title">
-                            clear the log
-                        </template>
-                        <span style="color: #FF4D4F">
-                            <a-icon type="delete" @click="clearDBClientIps(client.email,$event)"></a-icon>
-                        </span>
-                    </a-tooltip>
-                </span>
-                <a-form layout="block">
-                    <a-textarea readonly @click="getDBClientIps(client.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 2, maxRows: 10 }">
-                    </a-textarea>
-                </a-form>
-		</a-form-item>
         <a-form-item v-if="inbound.xtls" label="Flow">
             <a-select v-model="client.flow" style="width: 150px">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
