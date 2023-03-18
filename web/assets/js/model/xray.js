@@ -1097,11 +1097,6 @@ class Inbound extends XrayCommonClass {
         const params = new Map();
         params.set("type", this.stream.network);
 		params.set("security", this.stream.security);
-        if (this.XTLS) {
-            params.set("security", "xtls");
-        } else {
-            params.set("security", this.stream.security);
-        }
         switch (type) {
             case "tcp":
                 const tcp = this.stream.tcp;
@@ -1147,30 +1142,25 @@ class Inbound extends XrayCommonClass {
                 break;
         }
 
-        if (this.stream.security === 'tls') {
+        if (this.tls) {
+            params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
+            params.set("alpn", this.stream.tls.alpn[0]);
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
-                params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
-                params.set("alpn", this.stream.tls.alpn[0]);
-                if (this.stream.tls.settings[0]['serverName'] !== ''){
-                    params.set("sni", this.stream.tls.settings[0]['serverName']);
-                }
-                else{
-                   params.set("sni", address);
-                }
-               if (type === "tcp" && this.settings.vlesses[clientIndex].flow.length > 0) {
-                    params.set("flow", this.settings.vlesses[clientIndex].flow);
-                }
 			}
+			if (this.stream.tls.settings[0]['serverName'] !== ''){
+                params.set("sni", this.stream.tls.settings[0]['serverName']);
+            }
+            if (type === "tcp" && this.settings.vlesses[clientIndex].flow.length > 0) {
+                params.set("flow", this.settings.vlesses[clientIndex].flow);
+            }
         }
 		
 		 if (this.xtls) {
-            if (this.stream.security === 'xtls') {
-                if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                    address = this.stream.tls.server;
-                    if (type === "tcp") {
-                        params.set("flow", this.settings.vlesses[clientIndex].flow);
-                    }
+            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+                address = this.stream.tls.server;
+                if (type === "tcp") {
+                    params.set("flow", this.settings.vlesses[clientIndex].flow);
                 }
 			}
         }
@@ -1203,6 +1193,8 @@ class Inbound extends XrayCommonClass {
         const port = this.port;
         const type = this.stream.network;
         const params = new Map();
+		params.set("type", this.stream.network);
+        params.set("security", this.stream.security);
         switch (type) {
             case "tcp":
                 const tcp = this.stream.tcp;
@@ -1248,21 +1240,18 @@ class Inbound extends XrayCommonClass {
                 break;
         }
 
-        if (this.stream.security === 'tls') {
+        if (this.tls) {
+            params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
+            params.set("alpn", this.stream.tls.alpn[0]);
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
-                params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
-                params.set("alpn", this.stream.tls.alpn[0]);
-                if (this.stream.tls.settings[0]['serverName'] !== ''){
-                    params.set("sni", this.stream.tls.settings[0]['serverName']);
                 }
-                else{
-                   params.set("sni", address);
-                }
+            if (this.stream.tls.settings[0]['serverName'] !== ''){
+                params.set("sni", this.stream.tls.settings[0]['serverName']);
 			}
         }
 		
-		if (this.stream.security === 'xtls') {
+		if (this.xtls) {
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
                  if (type === "tcp" && this.settings.trojans[clientIndex].flow.length > 0) {

@@ -32,15 +32,13 @@
             }
             this.visible = true;
             qrModalApp.$nextTick(() => {
-                if (this.clipboard === null) {
-                    this.clipboard = new ClipboardJS('#qr-modal-ok-btn', {
-                        text: () => this.copyText,
-                    });
-                    this.clipboard.on('success', () => {
-                        app.$message.success('{{ i18n "copied" }}')
-                        this.clipboard.destroy();
-                    });
-                }
+                this.clipboard = new ClipboardJS('#qr-modal-ok-btn', {
+                    text: () => this.copyText,
+                });
+                this.clipboard.on('success', () => {
+                    app.$message.success('{{ i18n "copied" }}')
+                    this.clipboard.destroy();
+                });
                 if (this.qrcode === null) {
                     this.qrcode = new QRious({
                         element: document.querySelector('#qrCode'),
