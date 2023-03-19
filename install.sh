@@ -98,8 +98,8 @@ config_after_install() {
             /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "this is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
-            echo -e "${green}user name:${usernameTemp}${plain}"
-            echo -e "${green}user password:${passwordTemp}${plain}"
+            echo -e "${green}username:${usernameTemp}${plain}"
+            echo -e "${green}password:${passwordTemp}${plain}"
             echo -e "###############################################"
             echo -e "${red}if you forgot your login info,you can type x-ui and then type 7 to check after installation${plain}"
         else
