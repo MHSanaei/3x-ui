@@ -1156,13 +1156,10 @@ class Inbound extends XrayCommonClass {
             }
         }
 		
-		 if (this.xtls) {
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
+		 if (this.XTLS) {
                 if (type === "tcp") {
                     params.set("flow", this.settings.vlesses[clientIndex].flow);
                 }
-			}
         }
 
         const link = `vless://${uuid}@${address}:${port}`;
@@ -1245,19 +1242,16 @@ class Inbound extends XrayCommonClass {
             params.set("alpn", this.stream.tls.alpn[0]);
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
-                }
-            if (this.stream.tls.settings[0]['serverName'] !== ''){
-                params.set("sni", this.stream.tls.settings[0]['serverName']);
 			}
+			if (this.stream.tls.settings[0]['serverName'] !== ''){
+                params.set("sni", this.stream.tls.settings[0]['serverName']);
+            }
         }
 		
-		if (this.xtls) {
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
-                 if (type === "tcp" && this.settings.trojans[clientIndex].flow.length > 0) {
+		if (this.XTLS) {
+                if (type === "tcp" && this.settings.trojans[clientIndex].flow.length > 0) {
                     params.set("flow", this.settings.trojans[clientIndex].flow);
                 }
-			}
         }
         
         const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}#${encodeURIComponent(remark)}`;
