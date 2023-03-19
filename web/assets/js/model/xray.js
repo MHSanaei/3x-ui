@@ -1157,10 +1157,8 @@ class Inbound extends XrayCommonClass {
         }
 		
 		 if (this.XTLS) {
-                if (type === "tcp") {
                     params.set("flow", this.settings.vlesses[clientIndex].flow);
-                }
-        }
+				}
 
         const link = `vless://${uuid}@${address}:${port}`;
         const url = new URL(link);
@@ -1249,10 +1247,8 @@ class Inbound extends XrayCommonClass {
         }
 		
 		if (this.XTLS) {
-                if (type === "tcp" && this.settings.trojans[clientIndex].flow.length > 0) {
                     params.set("flow", this.settings.trojans[clientIndex].flow);
-                }
-        }
+			}
         
         const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}#${encodeURIComponent(remark)}`;
         const url = new URL(link);
