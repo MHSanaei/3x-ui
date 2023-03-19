@@ -1157,8 +1157,11 @@ class Inbound extends XrayCommonClass {
         }
 		
 		 if (this.XTLS) {
-                    params.set("flow", this.settings.vlesses[clientIndex].flow);
+				if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+				address = this.stream.tls.server;
 				}
+			params.set("flow", this.settings.vlesses[clientIndex].flow);
+			}
 
         const link = `vless://${uuid}@${address}:${port}`;
         const url = new URL(link);
@@ -1246,8 +1249,11 @@ class Inbound extends XrayCommonClass {
             }
         }
 		
-		if (this.XTLS) {
-                    params.set("flow", this.settings.trojans[clientIndex].flow);
+		 if (this.XTLS) {
+				if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+				address = this.stream.tls.server;
+				}
+			params.set("flow", this.settings.trojans[clientIndex].flow);
 			}
         
         const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}#${encodeURIComponent(remark)}`;
