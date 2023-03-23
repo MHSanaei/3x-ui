@@ -1,7 +1,7 @@
 {{define "textModal"}}
 <a-modal id="text-modal" v-model="txtModal.visible" :title="txtModal.title"
          :closable="true" ok-text='{{ i18n "copy" }}' cancel-text='{{ i18n "close" }}'
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+		 :class="siderDrawer.isDarkTheme ? darkClass : ''"
          :ok-button-props="{attrs:{id:'txt-modal-ok-btn'}}">
     <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" type="primary" style="margin-bottom: 10px;"
               :href="'data:application/text;charset=utf-8,' + encodeURIComponent(txtModal.content)" :download="txtModal.fileName">
@@ -32,6 +32,7 @@
                     });
                     this.clipboard.on('success', () => app.$message.success('{{ i18n "copied" }}'));
                 }
+               
             });
         },
         close: function () {
@@ -40,7 +41,7 @@
     };
 
     const textModalApp = new Vue({
-        delimiters: ['[[', ']]'],
+    	delimiters: ['[[', ']]'],
         el: '#text-modal',
         data: {
             txtModal: txtModal,

@@ -2,12 +2,11 @@ package controller
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
 	"time"
 	"x-ui/web/entity"
 	"x-ui/web/service"
 	"x-ui/web/session"
-
-	"github.com/gin-gonic/gin"
 )
 
 type updateUserForm struct {

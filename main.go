@@ -136,7 +136,7 @@ func updateTgbotEnableSts(status bool) {
 	return
 }
 
-func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime string) {
+func updateTgbotSetting(tgBotToken string, tgBotChatid int, tgBotRuntime string) {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println(err)
@@ -165,7 +165,7 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 		}
 	}
 
-	if tgBotChatid != "" {
+	if tgBotChatid != 0 {
 		err := settingService.SetTgBotChatId(tgBotChatid)
 		if err != nil {
 			fmt.Println(err)
@@ -224,7 +224,7 @@ func main() {
 	var username string
 	var password string
 	var tgbottoken string
-	var tgbotchatid string
+	var tgbotchatid int
 	var enabletgbot bool
 	var tgbotRuntime string
 	var reset bool
@@ -236,7 +236,7 @@ func main() {
 	settingCmd.StringVar(&password, "password", "", "set login password")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegrame bot token")
 	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegrame bot cron time")
-	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegrame bot chat id")
+	settingCmd.IntVar(&tgbotchatid, "tgbotchatid", 0, "set telegrame bot chat id")
 	settingCmd.BoolVar(&enabletgbot, "enabletgbot", false, "enable telegram bot notify")
 
 	oldUsage := flag.Usage
@@ -287,7 +287,7 @@ func main() {
 		if show {
 			showSetting(show)
 		}
-		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
+		if (tgbottoken != "") || (tgbotchatid != 0) || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
 		}
 	default:

@@ -136,7 +136,7 @@ class RandomUtil {
             return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
         });
     }
-
+    
     static randomText() {
         var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
         var string = '';

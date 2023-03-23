@@ -8,7 +8,7 @@
         <a-switch v-model="dbInbound.enable"></a-switch>
     </a-form-item>
     <a-form-item label='{{ i18n "protocol" }}'>
-        <a-select v-model="inbound.protocol" style="width: 160px;" :disabled="isEdit" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.protocol" style="width: 160px;">
             <a-select-option v-for="p in Protocols" :key="p" :value="p">[[ p ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -50,7 +50,6 @@
             </a-tooltip>
         </span>
         <a-date-picker :show-time="{ format: 'HH:mm' }" format="YYYY-MM-DD HH:mm"
-                       :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
                        v-model="dbInbound._expiryTime" style="width: 300px;"></a-date-picker>
     </a-form-item>
 </a-form>

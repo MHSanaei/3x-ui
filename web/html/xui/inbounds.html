@@ -11,10 +11,6 @@
     .ant-col-sm-24 {
         margin-top: 10px;
     }
-
-    .ant-table-row-expand-icon {
-        color: rgba(0,0,0,.65);
-    }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -31,15 +27,15 @@
                     <a-card hoverable style="margin-bottom: 20px;" :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <a-row>
                             <a-col :xs="24" :sm="24" :lg="12">
-                                {{ i18n "pages.inbounds.totalDownUp" }}:
+                                {{ i18n "pages.inbounds.totalDownUp" }}：
                                 <a-tag color="green">[[ sizeFormat(total.up) ]] / [[ sizeFormat(total.down) ]]</a-tag>
                             </a-col>
                             <a-col :xs="24" :sm="24" :lg="12">
-                                {{ i18n "pages.inbounds.totalUsage" }}:
+                                {{ i18n "pages.inbounds.totalUsage" }}：
                                 <a-tag color="green">[[ sizeFormat(total.up + total.down) ]]</a-tag>
                             </a-col>
                             <a-col :xs="24" :sm="24" :lg="12">
-                                {{ i18n "pages.inbounds.inboundCount" }}:
+                                {{ i18n "pages.inbounds.inboundCount" }}：
                                 <a-tag color="green">[[ dbInbounds.length ]]</a-tag>
                             </a-col>
                             <a-col :xs="24" :sm="24" :lg="12">
@@ -54,10 +50,10 @@
                 <transition name="list" appear>
                     <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <div slot="title">
-                            <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
-                            <a-button type="primary" icon="export" @click="exportAllLinks">{{ i18n "pages.inbounds.export" }}</a-button>
+                             <a-button type="primary" @click="openAddInbound">Add Inbound</a-button>
+							 <a-button type="primary" @click="exportAllLinks" class="copy-btn">Export Links</a-button>
                         </div>
-                        <a-input v-model.lazy="searchKey" placeholder="{{ i18n "search" }}" autofocus style="max-width: 300px"></a-input>
+						<a-input v-model.lazy="searchKey" placeholder="{{ i18n "search" }}" autofocus style="max-width: 300px"></a-input>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :loading="spinning" :scroll="{ x: 1300 }"
@@ -67,8 +63,8 @@
                             <template slot="action" slot-scope="text, dbInbound">
                                 <a-icon type="edit" style="font-size: 25px" @click="openEditInbound(dbInbound.id);"></a-icon>
                                 <a-dropdown :trigger="['click']">
-                                     <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
-                                    <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)" :theme="siderDrawer.theme" style="border: 1px solid rgba(255, 255, 255, 0.65);">
+                                    <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
+                                    <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)">
                                         <a-menu-item v-if="dbInbound.isSS" key="qrcode">
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
@@ -77,24 +73,10 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess">
-                                            <a-menu-item key="addClient">
-                                                <a-icon type="user"></a-icon>
-                                                {{ i18n "pages.client.add"}}
-                                            </a-menu-item>
-                                            <a-menu-item key="addBulkClient">
-                                                <a-icon type="team"></a-icon>
-                                                {{ i18n "pages.client.bulk"}}
-                                            </a-menu-item>
+                                         <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess">
                                             <a-menu-item key="export">
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}}
-                                            </a-menu-item>
-                                        </template>
-                                        <template v-else>
-                                            <a-menu-item key="showInfo">
-                                                <a-icon type="info-circle"></a-icon>
-                                                {{ i18n "info"}}
                                             </a-menu-item>
                                         </template>
                                         <a-menu-item key="resetTraffic">
@@ -128,7 +110,7 @@
                                 <template v-else>{{ i18n "none" }}</template>
                             </template>
                             <template slot="enable" slot-scope="text, dbInbound">
-                                <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
+                                <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound)"></a-switch>
                             </template>
                             <template slot="expiryTime" slot-scope="text, dbInbound">
                                 <template v-if="dbInbound.expiryTime > 0">
@@ -149,7 +131,7 @@
                                 :data-source="getInboundClients(record)"
                                 :pagination="false"
                                 >
-                                    {{template "client_table"}}
+                                    {{template "client_row"}}
                                 </a-table>
                                 <a-table
                                 v-else-if="record.protocol === Protocols.TROJAN"
@@ -158,7 +140,16 @@
                                 :data-source="getInboundClients(record)"
                                 :pagination="false"
                                 >
-                                    {{template "client_table"}}
+                                    {{template "client_row"}}
+                                </a-table>
+                                <a-table
+                                v-else
+                                :row-key="client => client.id"
+                                :columns="innerOneColumns"
+                                :data-source="record"
+                                :pagination="false"
+                                >
+                                    {{template "client_row"}}
                                 </a-table>
                             </template>
                         </a-table>
@@ -182,7 +173,7 @@
         width: 40,
         scopedSlots: { customRender: 'enable' },
     }, {
-        title: "ID",
+        title: "Id",
         align: 'center',
         dataIndex: "id",
         width: 30,
@@ -206,7 +197,7 @@
         align: 'center',
         width: 150,
         scopedSlots: { customRender: 'traffic' },
-    }, {
+    },{
         title: '{{ i18n "pages.inbounds.transportConfig" }}',
         align: 'center',
         width: 60,
@@ -219,18 +210,24 @@
     }];
 
     const innerColumns = [
-        { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'UID', width: 150, dataIndex: "id" },
+		
     ];
+
     const innerTrojanColumns = [
-        { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'Password', width: 100, dataIndex: "password" },
+    ];
+
+    const innerOneColumns = [
+        { title: '', width: 70, scopedSlots: { customRender: 'actions' } },
     ];
 
     const app = new Vue({
@@ -256,7 +253,6 @@
                     return;
                 }
                 this.setInbounds(msg.obj);
-                this.searchKey = '';
             },
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
@@ -297,26 +293,17 @@
                     case "qrcode":
                         this.showQrcode(dbInbound);
                         break;
-                    case "showInfo":
-                        this.showInfo(dbInbound);
+                    case "export":
+                        this.inboundLinks(dbInbound.id);
                         break;
                     case "edit":
                         this.openEditInbound(dbInbound.id);
                         break;
-                    case "addClient":
-                        this.openAddClient(dbInbound.id)
-                        break;
-                    case "addBulkClient":
-                        this.openAddBulkClient(dbInbound.id)
-                        break;
-                    case "export":
-                        this.inboundLinks(dbInbound.id);
-                        break;
                     case "resetTraffic":
-                        this.resetTraffic(dbInbound.id);
+                        this.resetTraffic(dbInbound);
                         break;
                     case "delete":
-                        this.delInbound(dbInbound.id);
+                        this.delInbound(dbInbound);
                         break;
                 }
             },
@@ -333,8 +320,8 @@
                     isEdit: false
                 });
             },
-            openEditInbound(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+            openEditInbound(dbInbound_id) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInbound_id);
                 const inbound = dbInbound.toInbound();
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.modifyInbound"}}',
@@ -363,10 +350,9 @@
                     port: inbound.port,
                     protocol: inbound.protocol,
                     settings: inbound.settings.toString(),
+                    streamSettings: inbound.stream.toString(),
+                    sniffing: inbound.canSniffing() ? inbound.sniffing.toString() : '{}',
                 };
-                if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
-                if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
-
                 await this.submit('/xui/inbound/add', data, inModal);
             },
             async updateInbound(inbound, dbInbound) {
@@ -382,80 +368,15 @@
                     port: inbound.port,
                     protocol: inbound.protocol,
                     settings: inbound.settings.toString(),
+                    streamSettings: inbound.stream.toString(),
+                    sniffing: inbound.canSniffing() ? inbound.sniffing.toString() : '{}',
                 };
-                if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
-                if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
-
                 await this.submit(`/xui/inbound/update/${dbInbound.id}`, data, inModal);
             },
-            openAddClient(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                clientModal.show({
-                    title: '{{ i18n "pages.client.add"}}',
-                    okText: '{{ i18n "pages.client.submitAdd"}}',
-                    dbInbound: dbInbound,
-                    confirm: async (inbound, dbInbound, index) => {
-                        clientModal.loading();
-                        await this.addClient(inbound, dbInbound);
-                        clientModal.close();
-                    },
-                    isEdit: false
-                });
-            },
-            openAddBulkClient(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                clientsBulkModal.show({
-                    title: '{{ i18n "pages.client.bulk"}} ' + dbInbound.remark,
-                    okText: '{{ i18n "pages.client.bulk"}}',
-                    dbInbound: dbInbound,
-                    confirm: async (inbound, dbInbound) => {
-                        clientsBulkModal.loading();
-                        await this.addClient(inbound, dbInbound);
-                        clientsBulkModal.close();
-                    },
-                });
-            },
-            openEditClient(dbInboundId, client) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                clients = this.getInboundClients(dbInbound);
-                index = this.findIndexOfClient(clients, client);
-                clientModal.show({
-                    title: '{{ i18n "pages.client.edit"}}',
-                    okText: '{{ i18n "pages.client.submitEdit"}}',
-                    dbInbound: dbInbound,
-                    index: index,
-                    confirm: async (inbound, dbInbound, index) => {
-                        clientModal.loading();
-                        await this.updateClient(inbound, dbInbound, index);
-                        clientModal.close();
-                    },
-                    isEdit: true
-                });
-            },
-            findIndexOfClient(clients,client) {
-                firstKey = Object.keys(client)[0];
-                return clients.findIndex(c => c[firstKey] === client[firstKey]);
-            },
-            async addClient(inbound, dbInbound) {
-                const data = {
-                    id: dbInbound.id,
-                    settings: inbound.settings.toString(),
-                };
-                await this.submit('/xui/inbound/addClient', data);
-            },
-            async updateClient(inbound, dbInbound, index) {
-                const data = {
-                    id: dbInbound.id,
-                    settings: inbound.settings.toString(),
-                };
-                await this.submit(`/xui/inbound/updateClient/${index}`, data);
-            },
-            resetTraffic(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+            resetTraffic(dbInbound) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => {
@@ -466,37 +387,16 @@
                     },
                 });
             },
-            delInbound(dbInboundId) {
+            delInbound(dbInbound) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
                     okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/del/' + dbInboundId),
+                    onOk: () => this.submit('/xui/inbound/del/' + dbInbound.id),
                 });
             },
-            delClient(dbInboundId,client) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                newDbInbound = new DBInbound(dbInbound);
-                inbound = newDbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
-                index = this.findIndexOfClient(clients, client);
-                clients.splice(index, 1);
-                const data = {
-                    id: dbInboundId,
-                    settings: inbound.settings.toString(),
-                };
-                this.$confirm({
-                    title: '{{ i18n "pages.inbounds.deleteInbound"}}',
-                    content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
-                    okText: '{{ i18n "delete"}}',
-                    cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/delClient/' + client.email, data),
-                });
-            },
-            getClients(protocol, clientSettings) {
+			getClients(protocol, clientSettings) {
                 switch(protocol){
                     case Protocols.VMESS: return clientSettings.vmesses;
                     case Protocols.VLESS: return clientSettings.vlesses;
@@ -504,19 +404,18 @@
                     default: return null;
                 }
             },
-            showQrcode(dbInbound, clientIndex) {
+             showQrcode(dbInbound, clientIndex) {
                 const link = dbInbound.genLink(clientIndex);
                 qrModal.show('{{ i18n "qrCode"}}', link, dbInbound);
             },
             showInfo(dbInbound, index) {
                 infoModal.show(dbInbound, index);
             },
-            switchEnable(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                this.submit(`/xui/inbound/update/${dbInboundId}`, dbInbound);
+            switchEnable(dbInbound) {
+                this.submit(`/xui/inbound/update/${dbInbound.id}`, dbInbound);
             },
-            async submit(url, data) {
-                const msg = await HttpUtil.postWithModal(url, data);
+            async submit(url, data, modal) {
+                const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
@@ -530,15 +429,34 @@
                     return dbInbound.toInbound().settings.trojans
                 }
             },
-            resetClientTraffic(client,dbInboundId) {
+            resetClientTraffic(client,inbound,event) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/' + dbInboundId + '/resetClientTraffic/'+ client.email),
-                })
+                    onOk: () => {
+                        this.resetClTraffic(client,inbound,event);
+                    },
+                });
+            },
+            async resetClTraffic(client,inbound,event) {
+                const msg = await HttpUtil.post('/xui/inbound/resetClientTraffic/'+ client.email);
+                if (!msg.success) {
+                    return;
+                }
+                clientStats = inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == client.email){ 
+                                clientStats[key]['up'] = 0
+                                clientStats[key]['down'] = 0
+                            }
+                        }
+                    }
+                }
             },
             isExpiry(dbInbound, index) {
                 return dbInbound.toInbound().isExpiry(index)
@@ -558,13 +476,6 @@
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email)
                 return clientStats ? clientStats.down + clientStats.up > clientStats.total : false
             },
-            isClientEnabled(dbInbound, email) {
-                clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null
-                return clientStats ? clientStats['enable'] : true
-            },
-            isRemovable(dbInbound_id){
-                return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInbound_id)).length > 1
-            },
             inboundLinks(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 txtModal.show('{{ i18n "pages.inbounds.export"}}',dbInbound.genInboundLinks,dbInbound.remark);
@@ -575,6 +486,10 @@
                     copyText += dbInbound.genInboundLinks
                 }
                 txtModal.show('{{ i18n "pages.inbounds.export"}}',copyText,'All-Inbounds');
+            },
+            isClientEnabled(dbInbound, email) {
+                clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null
+                return clientStats ? clientStats['enable'] : true
             },
         },
         watch: {
@@ -588,7 +503,7 @@
         computed: {
             total() {
                 let down = 0, up = 0;
-                let clients = 0, active = 0, deactive = 0;
+				let clients = 0, active = 0, deactive = 0;
                 this.dbInbounds.forEach(dbInbound => {
                     down += dbInbound.down;
                     up += dbInbound.up;
@@ -626,7 +541,5 @@
 {{template "qrcodeModal"}}
 {{template "textModal"}}
 {{template "inboundInfoModal"}}
-{{template "clientsModal"}}
-{{template "clientsBulkModal"}}
 </body>
 </html>

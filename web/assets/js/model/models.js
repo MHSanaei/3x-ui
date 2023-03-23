@@ -36,8 +36,7 @@ class DBInbound {
         this.remark = "";
         this.enable = true;
         this.expiryTime = 0;
-        this.limitIp = 0;
-
+        this.iplimit = 0;
         this.listen = "";
         this.port = 0;
         this.protocol = "";
@@ -110,6 +109,10 @@ class DBInbound {
     get isExpiry() {
         return this.expiryTime < new Date().getTime();
     }
+	get isDBInboundEmpty() {
+        const inbound = this.toInbound();
+        return inbound.isInboundEmpty();
+    }
 
     toInbound() {
         let settings = {};
@@ -156,7 +159,6 @@ class DBInbound {
         const inbound = this.toInbound();
         return inbound.genLink(this.address, this.remark, clientIndex);
     }
-    
 	get genInboundLinks() {
         const inbound = this.toInbound();
         return inbound.genInboundLinks(this.address, this.remark);
@@ -173,12 +175,8 @@ class AllSetting {
         this.webBasePath = "/";
         this.tgBotEnable = false;
         this.tgBotToken = "";
-        this.tgBotChatId = "";
-        this.tgRunTime = "@daily";
-        this.tgBotBackup = false;
-        this.tgExpireDiff = "";
-        this.tgTrafficDiff = "";
-        this.tgCpu = "";
+        this.tgBotChatId = 0;
+        this.tgRunTime = "";
         this.xrayTemplateConfig = "";
 
         this.timeLocation = "Asia/Tehran";

@@ -33,10 +33,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
-	g.POST("/addClient/", a.addInboundClient)
-	g.POST("/delClient/:email", a.delInboundClient)
-	g.POST("/updateClient/:index", a.updateInboundClient)
-	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
+	g.POST("/resetClientTraffic/:email", a.resetClientTraffic)
 
 }
 
@@ -127,7 +124,6 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 		a.xrayService.SetToNeedRestart()
 	}
 }
-
 func (a *InboundController) getClientIps(c *gin.Context) {
 	email := c.Param("email")
 
@@ -148,85 +144,13 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 	}
 	jsonMsg(c, "Log Cleared", nil)
 }
-func (a *InboundController) addInboundClient(c *gin.Context) {
-	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
-
-	err = a.inboundService.AddInboundClient(inbound)
-	if err != nil {
-		jsonMsg(c, "something worng!", err)
-		return
-	}
-	jsonMsg(c, "Client added", nil)
-	if err == nil {
-		a.xrayService.SetToNeedRestart()
-	}
-}
-
-func (a *InboundController) delInboundClient(c *gin.Context) {
-	email := c.Param("email")
-	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
-
-	err = a.inboundService.DelInboundClient(inbound, email)
-	if err != nil {
-		jsonMsg(c, "something worng!", err)
-		return
-	}
-	jsonMsg(c, "Client deleted", nil)
-	if err == nil {
-		a.xrayService.SetToNeedRestart()
-	}
-}
-
-func (a *InboundController) updateInboundClient(c *gin.Context) {
-	index, err := strconv.Atoi(c.Param("index"))
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
-
-	inbound := &model.Inbound{}
-	err = c.ShouldBind(inbound)
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
-
-	err = a.inboundService.UpdateInboundClient(inbound, index)
-	if err != nil {
-		jsonMsg(c, "something worng!", err)
-		return
-	}
-	jsonMsg(c, "Client updated", nil)
-	if err == nil {
-		a.xrayService.SetToNeedRestart()
-	}
-}
-
 func (a *InboundController) resetClientTraffic(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
 	email := c.Param("email")
 
-	err = a.inboundService.ResetClientTraffic(id, email)
+	err := a.inboundService.ResetClientTraffic(email)
 	if err != nil {
 		jsonMsg(c, "something worng!", err)
 		return
 	}
 	jsonMsg(c, "traffic reseted", nil)
-	if err == nil {
-		a.xrayService.SetToNeedRestart()
-	}
 }

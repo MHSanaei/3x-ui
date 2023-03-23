@@ -1,6 +1,6 @@
 {{define "form/socks"}}
 <a-form layout="inline">
-<!--    <a-form-item label="Password authentication">-->
+<!--    <a-form-item label="密码认证">-->
     <a-form-item label='{{ i18n "password" }}'>
         <a-switch :checked="inbound.settings.auth === 'password'"
                   @change="checked => inbound.settings.auth = checked ? 'password' : 'noauth'"></a-switch>

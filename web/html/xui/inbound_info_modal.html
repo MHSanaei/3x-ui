@@ -3,7 +3,7 @@
     v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
     :closable="true"
     :mask-closable="true"
-    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+	:class="siderDrawer.isDarkTheme ? darkClass : ''"
     :footer="null"
     width="600px"
     >
@@ -44,7 +44,7 @@
             </template>
             </table>
         </td></tr>
-            <tr colspan="2" v-if="dbInbound.hasLink()">
+            <tr colspan="2">
                 <td v-if="inbound.tls">
                     tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                     tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
@@ -57,20 +57,20 @@
             </td>
         </tr>
     </table>
-    <template v-if="infoModal.clientSettings">
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <table style="margin-bottom: 10px; width: 100%;">
+        <tr><th>[[ Object.keys(infoModal.clientSettings)[0] ]]</th><th>[[ Object.keys(infoModal.clientSettings)[1] ]]</th><th>[[ Object.keys(infoModal.clientSettings)[2] ]]</th></tr>
         <tr>
-            <th v-for="col in Object.keys(infoModal.clientSettings).slice(0, 3)">[[ col ]]</th>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[0] ]]</a-tag></td>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[1] ]]</a-tag></td>
+            <td><a-tag color="green">[[ Object.values(infoModal.clientSettings)[2] ]]</a-tag></td>
         </tr>
-        <tr>
-            <td v-for="col in Object.values(infoModal.clientSettings).slice(0, 3)"><a-tag color="green">[[ col ]]</a-tag></td>
     </table>
     <table style="margin-bottom: 10px; width: 100%;">
             <tr><th>{{ i18n "usage" }}</th><th>{{ i18n "pages.inbounds.totalFlow" }}</th><th>{{ i18n "pages.inbounds.expireDate" }}</th><th>{{ i18n "enable" }}</th></tr>    
         <tr>
             <td>
-                <a-tag v-if="infoModal.clientStats" :color="statsColor(infoModal.clientStats)">
+                <a-tag :color="statsColor(infoModal.clientStats)">
                     [[ sizeFormat(infoModal.clientStats['up']) ]] / 
                     [[ sizeFormat(infoModal.clientStats['down']) ]]
                     ([[ sizeFormat(infoModal.clientStats['up'] + infoModal.clientStats['down']) ]])
@@ -89,72 +89,11 @@
                 <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
             </td>
             <td>
-                <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
+                <a-tag v-if="infoModal.clientStats.enable" color="blue">{{ i18n "enabled" }}</a-tag>
                 <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
             </td>
         </tr>
     </table>
-    </template>
-    <template v-else>
-        <a-divider></a-divider>
-        <table v-if="inbound.protocol == Protocols.SHADOWSOCKS" style="margin-bottom: 10px; width: 100%;">
-            <tr>
-                <th>{{ i18n "encryption" }}</th>
-                <th>{{ i18n "password" }}</th>
-                <th>{{ i18n "pages.inbounds.network" }}</th>
-            </tr><tr>
-                <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
-                <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
-            </tr>
-        </table>
-        <table v-if="inbound.protocol == Protocols.DOKODEMO" style="margin-bottom: 10px; width: 100%;">
-            <tr>
-                <th>{{ i18n "pages.inbounds.targetAddress" }}</th>
-                <th>{{ i18n "pages.inbounds.destinationPort" }}</th>
-                <th>{{ i18n "pages.inbounds.network" }}</th>
-                <th>FollowRedirect</th>
-            </tr><tr>
-                <td><a-tag color="green">[[ inbound.settings.address ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.port ]]</a-tag></td>
-                <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.followRedirect ]]</a-tag></td>
-            </tr>
-        </table>
-        </table>
-        <table v-if="inbound.protocol == Protocols.SOCKS" style="margin-bottom: 10px; width: 100%;">
-            <tr>
-                <th>{{ i18n "password" }} Auth</th>
-                <th>{{ i18n "pages.inbounds.enable" }} udp</th>
-                <th>IP</th>
-            </tr><tr>
-                <td><a-tag color="green">[[ inbound.settings.auth ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.udp]]</a-tag></td>
-                <td><a-tag color="green">[[ inbound.settings.ip ]]</a-tag></td>
-            </tr><tr v-if="inbound.settings.auth == 'password'">
-                <td> </td>
-                <td>{{ i18n "username" }}</td>
-                <td>{{ i18n "password" }}</td>
-            </tr><tr v-for="account,index in inbound.settings.accounts">
-                <td><a-tag color="green">[[ index ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
-                <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
-            </tr>
-        </table>
-        </table>
-        <table v-if="inbound.protocol == Protocols.HTTP" style="margin-bottom: 10px; width: 100%;">
-            <tr>
-                <th> </th>
-                <th>{{ i18n "username" }}</th>
-                <th>{{ i18n "password" }}</th>
-            </tr><tr v-for="account,index in inbound.settings.accounts">
-                <td><a-tag color="green">[[ index ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
-                <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
-            </tr>
-        </table>
-        </table>
-    </template>
     <div v-if="dbInbound.hasLink()">
         <a-divider>URL</a-divider>
         <p>[[ infoModal.link ]]</p>
@@ -167,31 +106,39 @@
         visible: false,
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
-        settings: null,
         clientSettings: new Inbound.Settings(),
         clientStats: [],
         upStats: 0,
         downStats: 0,
         clipboard: null,
         link: null,
-        index: null,
+        index: 0,
         isExpired: false,
-        show(dbInbound, index) {
+        show(dbInbound, index=0) {
             this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
             this.link = dbInbound.genLink(index);
-            this.settings = JSON.parse(this.inbound.settings);
-            this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
+            this.clientSettings = Object.values(JSON.parse(this.inbound.settings).clients)[index];
+            this.clientStats = dbInbound.clientStats;
             this.isExpired = this.inbound.isExpiry(index);
-            this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+            if(dbInbound.clientStats.length > 0)
+            {
+                for (const key in dbInbound.clientStats) {
+                    if (Object.hasOwnProperty.call(dbInbound.clientStats, key)) {
+                        if(dbInbound.clientStats[key]['email'] == this.clientSettings.email)
+                            this.clientStats = dbInbound.clientStats[key];
+
+                    }
+                }
+            }
             this.visible = true;
             infoModalApp.$nextTick(() => {
                 if (this.clipboard === null) {
                     this.clipboard = new ClipboardJS('#copy-url-link', {
                         text: () => this.link,
                     });
-                    this.clipboard.on('success', () => app.$message.success('{{ i18n "copied" }}'));
+                    this.clipboard.on('success', () => app.$message.success('{{ i18n "copySuccess" }}'));
                 }
             });
         },
@@ -199,7 +146,6 @@
             infoModal.visible = false;
         },
     };
-
     const infoModalApp = new Vue({
         delimiters: ['[[', ']]'],
         el: '#inbound-info-modal',
@@ -210,33 +156,32 @@
             },
             get inbound() {
                 return this.infoModal.inbound;
-            },
-            get isEnable() {
-                if(infoModal.clientStats){
-                    return infoModal.clientStats.enable;
-                }
-                return infoModal.dbInbound.isEnable;
             }
         },
         methods: {
+            setQrCode(elmentId,index) {
+                content = infoModal.inbound.genLink(infoModal.dbInbound.address,infoModal.dbInbound.remark,index)
+                new QRious({
+                        element: document.querySelector('#'+elmentId),
+                        size: 260,
+                        value: content,
+                    });
+            },
             copyTextToClipboard(elmentId,content) {
                 this.infoModal.clipboard = new ClipboardJS('#' + elmentId, {
                         text: () => content,
                     });
                 this.infoModal.clipboard.on('success', () => { 
-                    app.$message.success('{{ i18n "copied" }}')
+                    app.$message.success('{{ i18n "copySuccess" }}')
                     this.infoModal.clipboard.destroy();
                 });
             },
             statsColor(stats) {
-                if(!stats) return 'blue'
                 if(stats['total'] === 0) return 'blue'
                 else if(stats['total'] > 0 && (stats['down']+stats['up']) < stats['total']) return 'cyan'
                 else return 'red'
             }
         },
-        
     });
-
 </script>
 {{end}}

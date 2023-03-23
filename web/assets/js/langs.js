@@ -4,7 +4,7 @@ supportLangs = [
        value : "en-US",
        icon : "🇺🇸"
     },
-    {
+	{
         name : "Farsi",
         value : "fa_IR",
         icon : "🇮🇷"

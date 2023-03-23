@@ -13,14 +13,14 @@
 </a-menu-item>
 <!--<a-menu-item key="{{ .base_path }}xui/clients">-->
 <!--    <a-icon type="laptop"></a-icon>-->
-<!--    <span>Client</span>-->
+<!--    <span>client</span>-->
 <!--</a-menu-item>-->
 <a-sub-menu>
     <template slot="title">
         <a-icon type="link"></a-icon>
         <span>{{ i18n "menu.link"}}</span>
     </template>
-     <a-menu-item key="https://github.com/mhsanaei/3x-ui/">
+    <a-menu-item key="https://github.com/mhsanaei/3x-ui/">
         <a-icon type="github"></a-icon>
         <span>Github</span>
     </a-menu-item>
@@ -41,7 +41,7 @@
     <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
-            <a-switch :default-checked="siderDrawer.isDarkTheme"
+            <a-switch size="small" :default-checked="siderDrawer.isDarkTheme"
             checked-children="☀"
             un-checked-children="🌙"
             @change="siderDrawer.changeTheme()"></a-switch>
@@ -55,12 +55,11 @@
 <a-drawer id="sider-drawer" placement="left" :closable="false"
           @close="siderDrawer.close()"
           :visible="siderDrawer.visible"
-          :wrap-class-name="siderDrawer.isDarkTheme ? 'ant-drawer-dark' : ''"
           :wrap-style="{ padding: 0 }">
     <div class="drawer-handle" @click="siderDrawer.change()" slot="handle">
         <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
     </div>
-    <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
+    <a-menu mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
             <a-switch :default-checked="siderDrawer.isDarkTheme"
@@ -69,17 +68,19 @@
             @change="siderDrawer.changeTheme()"></a-switch>
         </a-menu-item>
     </a-menu>
-    <a-menu :theme="siderDrawer.theme" mode="inline" :selected-keys="['{{ .request_uri }}']"
+    <a-menu mode="inline" :selected-keys="['{{ .request_uri }}']"
         @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
         {{template "menuItems" .}}
     </a-menu>
 </a-drawer>
 <script>
+
+
     const darkClass = "ant-card-dark";
     const bgDarkStyle = "background-color: #242c3a";
     const siderDrawer = {
         visible: false,
-        collapsed: false,
+		collapsed: false,
         isDarkTheme: localStorage.getItem("dark-mode") === 'true' ? true : false,
         show() {
             this.visible = true;
@@ -89,7 +90,7 @@
         },
         change() {
             this.visible = !this.visible;
-        },
+		 },
         toggleCollapsed() {
             this.collapsed = !this.collapsed;
         },

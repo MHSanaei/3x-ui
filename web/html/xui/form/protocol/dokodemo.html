@@ -7,14 +7,11 @@
         <a-input type="number" v-model.number="inbound.settings.port"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.network"}}'>
-        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.settings.network" style="width: 100px;">
             <a-select-option value="tcp,udp">tcp+udp</a-select-option>
             <a-select-option value="tcp">tcp</a-select-option>
             <a-select-option value="udp">udp</a-select-option>
         </a-select>
-    </a-form-item>
-    <a-form-item label="FollowRedirect">
-        <a-switch v-model="inbound.settings.followRedirect"></a-switch>
     </a-form-item>
 </a-form>
 {{end}}

@@ -143,7 +143,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	} else {
 		logger.Warning("can not find io counters")
 	}
-
+	
 	status.TcpCount, err = sys.GetTCPCount()
 	if err != nil {
 		logger.Warning("get tcp connections failed:", err)
@@ -153,7 +153,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	if err != nil {
 		logger.Warning("get udp connections failed:", err)
 	}
-
+	
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
 		status.Xray.ErrorMsg = ""

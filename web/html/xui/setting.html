@@ -20,7 +20,7 @@
         display: block;
     }
 
-    :not(.ant-card-dark)>.ant-tabs-top-bar {
+	:not(.ant-card-dark)>.ant-tabs-top-bar {
         background: white;
     }
 </style>
@@ -40,7 +40,7 @@
 
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
@@ -56,7 +56,6 @@
                                                         ref="selectLang"
                                                         v-model="lang"
                                                         @change="setLang(lang)"
-                                                        :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
                                                         style="width: 100%"
                                                 >
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
@@ -88,28 +87,13 @@
                                              style="max-width: 300px"></a-input>
                                 </a-form-item>
                                 <a-form-item>
-<!--                                    <a-button type="primary" @click="updateUser">Revise</a-button>-->
+<!--                                    <a-button type="primary" @click="updateUser">update</a-button>-->
                                     <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
                                 </a-form-item>
                             </a-form>
                         </a-tab-pane>
                         <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
-                                <a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
-                                <a-collapse>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigInbounds"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigInbounds"}}' desc='{{ i18n "pages.setting.xrayConfigInboundsDesc"}}' v-model ="inboundSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigOutbounds"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigOutbounds"}}' desc='{{ i18n "pages.setting.xrayConfigOutboundsDesc"}}' v-model ="outboundSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigRoutings"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigRoutings"}}' desc='{{ i18n "pages.setting.xrayConfigRoutingsDesc"}}' v-model ="routingRuleSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                </a-collapse>
-                                <a-divider>{{ i18n "pages.setting.completeTemplate"}}</a-divider>
                                 <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigTemplate"}}' desc='{{ i18n "pages.setting.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                             </a-list>
                         </a-tab-pane>
@@ -119,10 +103,6 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}'  v-model="allSetting.tgBotToken"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model.number="allSetting.tgBotChatId"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}'  v-model="allSetting.tgRunTime"></setting-list-item>
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}'  v-model="allSetting.tgBotBackup"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyExpireTimeDiff" }}' desc='{{ i18n "pages.setting.tgNotifyExpireTimeDiffDesc" }}'  v-model="allSetting.tgExpireDiff" :min="0"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyTrafficDiff" }}' desc='{{ i18n "pages.setting.tgNotifyTrafficDiffDesc" }}'  v-model="allSetting.tgTrafficDiff" :min="0"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyCpu" }}' desc='{{ i18n "pages.setting.tgNotifyCpuDesc" }}'  v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="5" tab='{{ i18n "pages.setting.otherSetting"}}'>
@@ -209,102 +189,6 @@
                 this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
             }
         },
-        computed: {
-            templateSettings: {
-                get: function () { return this.allSetting.xrayTemplateConfig ? JSON.parse(this.allSetting.xrayTemplateConfig) : null ; },
-                set: function (newValue) { this.allSetting.xrayTemplateConfig = JSON.stringify(newValue, null, 2) },
-            },
-            inboundSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.inbounds = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
-                },
-            },
-            outboundSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.outbounds, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.outbounds = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
-                },
-            },
-            routingRuleSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.routing.rules = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
-                },
-            },
-            torrentSettings: {
-                get: function () {
-                    torrentFilter = false
-                    if(this.templateSettings != null){
-                        this.templateSettings.routing.rules.forEach(routingRule => {
-                            if(routingRule.hasOwnProperty("protocol")){
-                                if (routingRule.protocol[0] === "bittorrent" && routingRule.outboundTag == "blocked"){
-                                    torrentFilter = true
-                                }
-                            }
-                        });
-                    }
-                    return torrentFilter
-                },
-                set: function (newValue) {
-                    newTemplateSettings = JSON.parse(this.allSetting.xrayTemplateConfig);
-                    if (newValue){
-                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"protocol\": [\"bittorrent\"],\"type\": \"field\"}"))
-                    }
-                    else {
-                        newTemplateSettings.routing.rules = [];
-                        this.templateSettings.routing.rules.forEach(routingRule => {
-                            if (routingRule.hasOwnProperty('protocol')){
-                                if (routingRule.protocol[0] === "bittorrent" && routingRule.outboundTag == "blocked"){
-                                    return;
-                                }
-                            }
-                            newTemplateSettings.routing.rules.push(routingRule);
-                        });
-                    }
-                    this.templateSettings = newTemplateSettings
-                },
-            },
-            privateIpSettings: {
-                get: function () {
-                    localIpFilter = false
-                    if(this.templateSettings != null){
-                        this.templateSettings.routing.rules.forEach(routingRule => {
-                            if(routingRule.hasOwnProperty("ip")){
-                                if (routingRule.ip[0] === "geoip:private" && routingRule.outboundTag == "blocked"){
-                                    localIpFilter = true
-                                }
-                            }
-                        });
-                    }
-                    return localIpFilter
-                },
-                set: function (newValue) {
-                    newTemplateSettings = JSON.parse(this.allSetting.xrayTemplateConfig);
-                    if (newValue){
-                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"ip\": [\"geoip:private\"],\"type\": \"field\"}"))
-                    }
-                    else {
-                        newTemplateSettings.routing.rules = [];
-                        this.templateSettings.routing.rules.forEach(routingRule => {
-                            if (routingRule.hasOwnProperty('ip')){
-                                if (routingRule.ip[0] === "geoip:private" && routingRule.outboundTag == "blocked"){
-                                    return;
-                                }
-                            }
-                            newTemplateSettings.routing.rules.push(routingRule);
-                        });
-                    }
-                    this.templateSettings = newTemplateSettings
-                },
-            },
-        }
     });
 
 </script>

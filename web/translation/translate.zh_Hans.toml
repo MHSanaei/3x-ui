@@ -10,8 +10,6 @@
 "remark" = "备注"
 "enable" = "启用"
 "protocol" = "协议"
-"search" = "搜尋"
-
 "loading" = "加载中"
 "second" = "秒"
 "minute" = "分钟"
@@ -22,7 +20,6 @@
 "unlimited" = "无限制"
 "none" = "无"
 "qrCode" = "二维码"
-"info" = "更多信息"
 "edit" = "编辑"
 "delete" = "删除"
 "reset" = "重置"
@@ -43,8 +40,11 @@
 "success" = "成功"
 "getVersion" = "获取版本"
 "install" = "安装"
+"used" = "用过的"
 "clients" = "客户端"
+"search" = "搜索"
 "usage" = "用法"
+"info" = "细节"
 
 [menu]
 "dashboard" = "系统状态"
@@ -69,9 +69,9 @@
 "memory" = "内存"
 "hard" = "硬盘"
 "xrayStatus" = "xray 状态"
-"stopXray" = "停止 Xray"
-"restartXray" = "重启 Xray"
 "xraySwitch" = "切换版本"
+"restartXray" = "重新开始"
+"stopXray" = "停止"
 "xraySwitchClick" = "点击你想切换的版本"
 "xraySwitchClickDesk" = "请谨慎选择，旧版本可能配置不兼容"
 "operationHours" = "运行时间"
@@ -87,7 +87,9 @@
 "xraySwitchVersionDialogDesc" = "是否切换 xray 版本至"
 "dontRefreshh" = "安装中，请不要刷新此页面"
 
+
 [pages.inbounds]
+"export" = "导出链接"
 "title" = "入站列表"
 "totalDownUp" = "总上传 / 下载"
 "totalUsage" = "总用量"
@@ -126,22 +128,9 @@
 "publicKeyContent" = "公钥内容"
 "keyPath" = "密钥文件路径"
 "keyContent" = "密钥内容"
-"clickOnQRcode" = "点击二维码复制"
 "client" = "客户"
-"export" = "导出链接"
+"uid" = "UID"
 
-[pages.client]
-"add" = "添加客户端"
-"edit" = "编辑客户"
-"submitAdd" = "添加客户端"
-"submitEdit" = "保存修改"
-"clientCount" = "客户数量"
-"bulk" = "批量创建"
-"method" = "方法"
-"first" = "第一"
-"last" = "最后"
-"prefix" = "前缀"
-"postfix" = "后缀"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"
@@ -162,6 +151,7 @@
 
 [pages.inbounds.stream.quic]
 "encryption" = "加密"
+
 
 [pages.setting]
 "title" = "设置"
@@ -187,36 +177,16 @@
 "currentPassword" = "原密码"
 "newUsername" = "新用户名"
 "newPassword" = "新密码"
-"advancedTemplate" = "高级模板部件"
-"completeTemplate" = "Xray 配置的完整模板"
-"xrayConfigTemplate" = "xray 配置模板"
-"xrayConfigTemplateDesc" = "以该模型为基础生成最终的xray配置文件，重新启动面板生成效率"
-"xrayConfigTorrent" = "禁止使用 bittorrent"
-"xrayConfigTorrentDesc" = "更改配置模板避免用户使用bittorrent，重启面板生效"
-"xrayConfigPrivateIp" = "禁止私人 ip 范围连接"
-"xrayConfigPrivateIpDesc" = "更改配置模板以避免连接私有 IP 范围，重启面板生效"
-"xrayConfigInbounds" = "入站配置"
-"xrayConfigInboundsDesc" = "更改配置模板接受特殊客户端，重启面板生效"
-"xrayConfigOutbounds" = "出站配置"
-"xrayConfigOutboundsDesc" = "更改配置模板定义此服务器的传出方式，重启面板生效"
-"xrayConfigRoutings" = "路由规则配置"
-"xrayConfigRoutingsDesc" = "更改配置模板为该服务器定义路由规则，重启面板生效"
+"xrayConfigTemplate" = "xray 配置模版"
+"xrayConfigTemplateDesc" = "以该模版为基础生成最终的 xray 配置文件，重启面板生效"
 "telegramBotEnable" = "启用电报机器人"
 "telegramBotEnableDesc" = "重启面板生效"
 "telegramToken" = "电报机器人TOKEN"
 "telegramTokenDesc" = "重启面板生效"
-"telegramChatId" = "以逗号分隔的多个 chatID 重启面板生效"
+"telegramChatId" = "电报机器人ChatId"
 "telegramChatIdDesc" = "重启面板生效"
 "telegramNotifyTime" = "电报机器人通知时间"
 "telegramNotifyTimeDesc" = "采用Crontab定时格式,重启面板生效"
-"tgNotifyBackup" = "数据库备份"
-"tgNotifyBackupDesc" = "正在发送数据库备份文件和报告通知。重启面板生效"
-"tgNotifyExpireTimeDiff" = "剩余时间阈值"
-"tgNotifyExpireTimeDiffDesc" = "这个 talegram bot 会在到期前给你发送通知（单位：天）"
-"tgNotifyTrafficDiff" = "剩余流量阈值"
-"tgNotifyTrafficDiffDesc" = "这个 talegram bot 会在流量结束前给你发送通知（单位：GB）"
-"tgNotifyCpu" = "CPU 百分比警报阈值"
-"tgNotifyCpuDesc" = "如果 CPU 使用率超过此百分比（单位：%），此 talegram bot 将向您发送通知"
 "timeZonee" = "时区"
 "timeZoneDesc" = "定时任务按照该时区的时间运行，重启面板生效"
 

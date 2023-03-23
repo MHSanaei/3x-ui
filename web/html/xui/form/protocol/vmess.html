@@ -1,7 +1,11 @@
 {{define "form/vmess"}}
 <a-form layout="inline">
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vmesses.slice(0,1)" v-if="!isEdit">    
-    <a-collapse-panel header="{{ i18n "pages.inbounds.client" }}">
+<label style="color: green;">{{ i18n "clients"}}</label>
+<a-collapse activeKey="0"  v-for="(vmess, index) in inbound.settings.vmesses"
+:key="`vmess-${index}`">
+    <a-collapse-panel :class="getHeaderStyle(vmess.email)" :header="getHeaderText(vmess.email)">
+        <a-tag v-if="isExpiry(index) || ((getUpStats(vmess.email) + getDownStats(vmess.email)) > vmess.totalGB && vmess.totalGB != 0)" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+
         <a-form layout="inline">
             <a-form-item>
                 <span slot="label">
@@ -10,30 +14,54 @@
                         <template slot="title">
                             The Email Must Be Completely Unique
                         </template>
-                        <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
+                        <!--Renew Svg Icon-->
+                        <svg 
+                            @click="getNewEmail(vmess)"
+                            xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"> <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> </svg>
                     </a-tooltip>
                 </span>
-                <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
+                <a-input v-model.trim="vmess.email" style="width: 150px;"></a-input>
             </a-form-item>
-        </a-form>
-        <a-form-item label="ID">
-            <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
-        </a-form-item>
-        <a-form-item label='{{ i18n "additional" }} ID'>
-            <a-input type="number" v-model.number="client.alterId" style="width: 70px;"></a-input>
-        </a-form-item>
-		<a-form-item>
+			<a-form-item label="ID">
+				<a-input v-model.trim="vmess.id" style="width: 300px;" ></a-input>
+			</a-form-item>
+			<a-form-item label='{{ i18n "additional" }} ID'>
+				<a-input type="number" v-model.number="vmess.alterId"></a-input>
+			</a-form-item>
+			<a-form-item>
                 <span slot="label">
                     IP Count Limit
                     <a-tooltip>
                         <template slot="title">
-                            Disable inbound if more than entered count (0 for disable limit ip)
+                            disable inbound if more than entered count (0 for disable limit ip)
                         </template>
                         <a-icon type="question-circle" theme="filled"></a-icon>
                     </a-tooltip>
                 </span>
-                <a-input type="number" v-model.number="client.limitIp" min="0" style="width: 70px;"></a-input>
-		</a-form-item>
+              <a-input type="number" v-model.number="vmess.limitIp" min="0" style="width: 70px;" ></a-input>
+            </a-form-item>
+            <a-form-item v-if="vmess.email && vmess.limitIp > 0 && isEdit">
+                <span slot="label">
+                    IP Log 
+                    <a-tooltip>
+                        <template slot="title">
+                            IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                    <a-tooltip>
+                        <template slot="title">
+                            clear the log
+                        </template>
+                        <span style="color: #FF4D4F">
+                            <a-icon type="delete" @click="clearDBClientIps(vmess.email,$event)"></a-icon>
+                        </span>
+                    </a-tooltip>
+                </span>
+                <a-textarea readonly @click="getDBClientIps(vmess.email,$event)" placeholder="Click To Get IPs"  :auto-size="{ minRows: 2, maxRows: 10 }">
+                </a-textarea>
+            </a-form-item>
+        </a-form>
         <a-form-item>
             <span slot="label">
                 <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)
@@ -44,7 +72,7 @@
                     <a-icon type="question-circle" theme="filled"></a-icon>
                 </a-tooltip>
             </span>
-            <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+            <a-input-number v-model="vmess._totalGB" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item>
             <span slot="label">
@@ -57,22 +85,43 @@
                 </a-tooltip>
             </span>
             <a-date-picker :show-time="{ format: 'HH:mm' }" format="YYYY-MM-DD HH:mm"
-                           v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
+                           v-model="vmess._expiryTime" style="width: 300px;"></a-date-picker>
         </a-form-item>
+        <a-form layout="inline">
+            <a-tooltip v-if="vmess._totalGB > 0">
+                <template slot="title">
+                    {{ i18n "pages.inbounds.resetTraffic" }}
+                </template>
+                <span style="color: #FF4D4F">
+                    <a-icon type="delete" @click="resetClientTraffic(vmess,$event)"></a-icon>
+                </span>
+            </a-tooltip>
+            <a-tag color="blue">[[ sizeFormat(getUpStats(vmess.email)) ]] / [[ sizeFormat(getDownStats(vmess.email)) ]]</a-tag>
+            <a-tag v-if="vmess._totalGB > 0" color="red">used : [[ sizeFormat(getUpStats(vmess.email) + getDownStats(vmess.email)) ]]</a-tag>
+                <a-tag v-show="inbound.settings.vmesses.length > 1" @click="removeClient(index, inbound.settings.vmesses)">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 22 22" width="22" height="22" class="mt-2 cursor-pointer">
+                        <path fill="none" d="M0 0h24v24H0z" />
+                        <path fill="#EC4899"
+                        d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm0-9.414l2.828-2.829 1.415 1.415L13.414 12l2.829 2.828-1.415 1.415L12 13.414l-2.828 2.829-1.415-1.415L10.586 12 7.757 9.172l1.415-1.415L12 10.586z"
+                        />
+                    </svg>
+            </a-tag>
+        </a-form>
+
+
     </a-collapse-panel>
+
 </a-collapse>
-<a-collapse v-else>
-    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vmesses.length">
-        <table width="100%">
-                <tr class="client-table-header">
-                <th v-for="col in Object.keys(inbound.settings.vmesses[0]).slice(0, 3)">[[ col ]]</th>
-            </tr>
-            <tr v-for="(client, index) in inbound.settings.vmesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
-                <td v-for="col in Object.values(client).slice(0, 3)">[[ col ]]</td>
-            </tr>
-        </table>
-    </a-collapse-panel>
-</a-collapse>
+
+<a-tag @click="addClient(inbound.protocol, inbound.settings.vmesses)">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" class="ml-2 cursor-pointer">
+        <path fill="none" d="M0 0h24v24H0z" />
+        <path fill="green"
+        d="M11 11V7h2v4h4v2h-4v4h-2v-4H7v-2h4zm1 11C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16z"
+        />
+    </svg>
+</a-tag>
+
 <a-form layout="inline">
     <a-form-item label='{{ i18n "pages.inbounds.disableInsecureEncryption" }}'>
         <a-switch v-model.number="inbound.settings.disableInsecure"></a-switch>

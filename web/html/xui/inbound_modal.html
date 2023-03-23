@@ -1,7 +1,7 @@
 {{define "inboundModal"}}
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
          :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+		 :class="siderDrawer.isDarkTheme ? darkClass : ''"
          :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
     {{template "form/inbound"}}
 </a-modal>
@@ -89,21 +89,93 @@
             removeClient(index, clients) {
                 clients.splice(index, 1);
             },
+            async getDBClientIps(email, event) {
+              const msg = await HttpUtil.post('/xui/inbound/clientIps/' + email);
+              if (!msg.success) {
+                return;
+              }
+              try {
+                let ips = JSON.parse(msg.obj);
+                ips = ips.join(",");
+                event.target.value = ips;
+              } catch (error) {
+                event.target.value = msg.obj;
+              }
+            },
+            async clearDBClientIps(email,event) {
+                const msg = await HttpUtil.post('/xui/inbound/clearClientIps/'+ email);
+                if (!msg.success) {
+                    return;
+                }
+                event.target.value = ""
+            },
+            async resetClientTraffic(client, event) {
+              const msg = await HttpUtil.post(`/xui/inbound/resetClientTraffic/${client.email}`);
+              if (!msg.success) {
+                return;
+              }
+              const clientStats = this.inbound.clientStats;
+              if (clientStats.length > 0) {
+				for (let i = 0; i < clientStats.length; i++) {
+                if (clientStats[i].email === client.email) {
+                clientStats[i].up = 0;
+                clientStats[i].down = 0;
+                break; // Stop looping once we've found the matching client.
+                            
+                        }
+                    }
+                }
+            },
             isExpiry(index) {
                 return this.inbound.isExpiry(index)
+            },
+            getUpStats(email) {
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == email)
+                                return clientStats[key]['up']
+
+                        }
+                    }
+                }
+            },
+            getDownStats(email) {
+                clientStats = this.inbound.clientStats
+                if(clientStats.length > 0)
+                {
+                    for (const key in clientStats) {
+                        if (Object.hasOwnProperty.call(clientStats, key)) {
+                            if(clientStats[key]['email'] == email)
+                                return clientStats[key]['down']
+
+                        }
+                    }
+                }
             },
             isClientEnable(email) {
                 clientStats = this.dbInbound.clientStats ? this.dbInbound.clientStats.find(stats => stats.email === email) : null
                 return clientStats ? clientStats['enable'] : true
             },
+            getHeaderText(email) {
+                if(email == "")
+                    return "Add Client"
+                
+                return email + (this.isClientEnable(email) == true ? ' Active' : ' Deactive')
+            },
+            getHeaderStyle(email) {
+                return (this.isClientEnable(email) == true ? '' : 'deactive-client')
+            },
             getNewEmail(client) {
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
                 var string = '';
-                var len = 6 + Math.floor(Math.random() * 5);
+                var len = 7 + Math.floor(Math.random() * 5)
                 for(var ii=0; ii<len; ii++){
                     string += chars[Math.floor(Math.random() * chars.length)];
                 }
-                client.email = string;
+                client.email = string
             }
         },
     });
