@@ -476,7 +476,7 @@ class GrpcStreamSettings extends XrayCommonClass {
 }
 
 class TlsStreamSettings extends XrayCommonClass {
-    constructor(serverName = '', minVersion = TLS_VERSION_OPTION.TLS12, maxVersion = TLS_VERSION_OPTION.TLS13,
+    constructor(serverName = '', minVersion = TLS_VERSION_OPTION.TLS10, maxVersion = TLS_VERSION_OPTION.TLS12,
         cipherSuites = '',
         certificates = [new TlsStreamSettings.Cert()], alpn=[''] ,settings=[new TlsStreamSettings.Settings()]) {
         super();
