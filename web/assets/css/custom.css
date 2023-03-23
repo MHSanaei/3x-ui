@@ -188,7 +188,8 @@
 
 .ant-card-dark .ant-collapse-content,
 .ant-card-dark .ant-calendar,
-.ant-card-dark .ant-table-placeholder {
+.ant-card-dark .ant-table-placeholder,
+.ant-card-dark .ant-input-group-addon {
     color: hsla(0,0%,100%,.65);
     background-color: #262f3d;
 }
