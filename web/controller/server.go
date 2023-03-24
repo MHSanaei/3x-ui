@@ -1,11 +1,10 @@
 package controller
 
 import (
+	"github.com/gin-gonic/gin"
 	"time"
 	"x-ui/web/global"
 	"x-ui/web/service"
-
-	"github.com/gin-gonic/gin"
 )
 
 type ServerController struct {
@@ -38,7 +37,6 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
-	g.POST("/logs", a.getLogs)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -89,13 +87,13 @@ func (a *ServerController) installXray(c *gin.Context) {
 }
 
 func (a *ServerController) stopXrayService(c *gin.Context) {
-	a.lastGetStatusTime = time.Now()
+        a.lastGetStatusTime = time.Now()
 	err := a.serverService.StopXrayService()
 	if err != nil {
 		jsonMsg(c, "", err)
 		return
 	}
-	jsonMsg(c, "Xray stoped", err)
+	jsonMsg(c, "Xray stoped",err)
 
 }
 func (a *ServerController) restartXrayService(c *gin.Context) {
@@ -104,15 +102,6 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 		jsonMsg(c, "", err)
 		return
 	}
-	jsonMsg(c, "Xray restarted", err)
+	jsonMsg(c, "Xray restarted",err)
 
-}
-
-func (a *ServerController) getLogs(c *gin.Context) {
-	logs, err := a.serverService.GetLogs()
-	if err != nil {
-		jsonMsg(c, I18n(c, "getLogs"), err)
-		return
-	}
-	jsonObj(c, logs, nil)
 }
