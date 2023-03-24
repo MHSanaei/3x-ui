@@ -40,7 +40,7 @@
 
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
@@ -117,7 +117,7 @@
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}'  v-model="allSetting.tgBotEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}'  v-model="allSetting.tgBotToken"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model="allSetting.tgBotChatId"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model="allSetting.tgBotChatId"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}'  v-model="allSetting.tgRunTime"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}'  v-model="allSetting.tgBotBackup"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyExpireTimeDiff" }}' desc='{{ i18n "pages.setting.tgNotifyExpireTimeDiffDesc" }}'  v-model="allSetting.tgExpireDiff" :min="0"></setting-list-item>
