@@ -117,7 +117,7 @@
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}'  v-model="allSetting.tgBotEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}'  v-model="allSetting.tgBotToken"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model.number="allSetting.tgBotChatId"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model="allSetting.tgBotChatId"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}'  v-model="allSetting.tgRunTime"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}'  v-model="allSetting.tgBotBackup"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyExpireTimeDiff" }}' desc='{{ i18n "pages.setting.tgNotifyExpireTimeDiffDesc" }}'  v-model="allSetting.tgExpireDiff" :min="0"></setting-list-item>
