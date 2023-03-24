@@ -88,8 +88,6 @@
                             <a-tag color="blue" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
                             <a-tag color="blue" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
                             <a-tag color="blue" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
-							<a-tag color="blue" style="cursor: pointer;" @click="openLogs">Logs</a-tag>
-							<a-tag color="green">3x-ui v{{ .cur_ver }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -170,6 +168,13 @@
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
+                        </a-card>
+                    </a-col>
+					<a-col :sm="24" :md="12">
+                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+							 x-ui: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">3x-ui v{{ .cur_ver }}</a-tag></a>
+							<a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">Telegram</a-tag></a>
+							<a-tag color="blue" style="cursor: pointer;" @click="openLogs">Log Reports</a-tag>
                         </a-card>
                     </a-col>
                 </a-row>
