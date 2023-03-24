@@ -156,6 +156,16 @@
     padding:16px;
 }
 
+.ant-menu-dark,
+.ant-menu-dark .ant-menu-sub,
+.ant-layout-header,
+.ant-layout-sider-dark,
+.ant-layout-sider-zero-width-trigger,
+.ant-dropdown-menu-dark,.ant-dropdown-menu-dark .ant-dropdown-menu,
+.ant-menu-dark.ant-menu-horizontal>.ant-menu-item,.ant-menu-dark.ant-menu-horizontal>.ant-menu-submenu {
+    background:#161b22
+}
+
 .ant-card-dark {
     color: hsla(0,0%,100%,.65);
     background-color: #1a212a;
@@ -178,9 +188,10 @@
 
 .ant-card-dark .ant-collapse-content,
 .ant-card-dark .ant-calendar,
-.ant-card-dark .ant-table-placeholder {
+.ant-card-dark .ant-table-placeholder,
+.ant-card-dark .ant-input-group-addon {
     color: hsla(0,0%,100%,.65);
-    background-color: #1a212a;
+    background-color: #262f3d;
 }
 
 .ant-card-dark .ant-list-item-meta-title,
@@ -198,7 +209,8 @@
 .ant-card-dark .ant-calendar-year-select,
 .ant-card-dark .ant-calendar-date,
 .ant-card-dark .ant-collapse>.ant-collapse-item>.ant-collapse-header,
-.ant-card-dark .ant-empty-normal {
+.ant-card-dark .ant-empty-normal,
+.ant-card-dark .ant-checkbox+span {
     color: hsla(0,0%,100%,.65);
 }
 
@@ -210,7 +222,7 @@
 
 .ant-card-dark tbody .ant-table-expanded-row {
     color: hsla(0,0%,100%,.65);
-    background-color: #023366; 
+    background-color: #1a212a; 
 }
 
 .ant-card-dark .ant-input,
@@ -219,7 +231,7 @@
 .ant-card-dark .ant-select-dropdown-menu-item-selected,
 .ant-card-dark .ant-select-selection {
     color: hsla(0,0%,100%,.65);
-    background-color: #023366;
+    background-color: #2e3b52;
 }
 
 .ant-card-dark .ant-collapse-item {
@@ -232,7 +244,7 @@
 .ant-card-dark .ant-modal-header,
 .ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
     color: hsla(0,0%,100%,.65);
-    background-color: #242c3a; 
+    background-color: #222a37;
 }
 
 .client-table-header {
@@ -244,7 +256,7 @@
 }
 
 .ant-card-dark .client-table-header {
-    background-color:  #023366;
+    background-color:  #1a212a;
     color: hsla(0,0%,100%,.65);
 }
 
@@ -266,4 +278,62 @@
 .ant-drawer-dark .drawer-handle {
     background-color: #1a212a;
     border: 1px solid hsla(0,0%,100%,.30);
+}
+
+.ant-card-dark .ant-tag-blue {
+    color: #3c9ae8;
+    background: #111d2c;
+    border-color: #15395b;
+}
+
+.ant-card-dark .ant-tag-green {
+    color: #6abe39;
+    background: #162312;
+    border-color: #274916;
+}
+
+.ant-card-dark .ant-tag-cyan {
+    color: #33bcb7;
+    background: #112123;
+    border-color: #144848;
+}
+
+.ant-card-dark .ant-tag-red {
+    color: #e84749;
+    background: #2a1215;
+    border-color: #58181c;
+}
+
+.ant-card-dark .ant-tag-orange {
+    color: #e89a3c;
+    background: #2b1d11;
+    border-color: #593815;
+}
+
+.ant-card-dark .ant-table-row-expand-icon,
+.ant-card-dark .ant-checkbox-inner {
+    background: none;
+}
+
+.ant-card-dark .ant-switch-checked {
+    background-color: #0c61b0;
+}
+
+.ant-card-dark .ant-btn,
+.ant-card-dark .ant-radio-button-wrapper {
+    color: hsla(0,0%,100%,.65);
+    background: none;
+    border: 1px solid hsla(0,0%,100%,.65);
+}
+
+.ant-card-dark .ant-radio-button-wrapper:hover {
+    color: #177ddc;
+}
+
+.ant-card-dark .ant-btn-primary {
+    color:  hsla(0,0%,100%,.65);
+    background-color: #073763;
+    border-color: #1890ff;
+    text-shadow: 0 -1px 0 rgba(0,0,0,.12);
+    box-shadow: 0 2px 0 rgba(0,0,0,.045);
 }
