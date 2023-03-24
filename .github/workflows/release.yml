@@ -6,7 +6,7 @@ jobs:
     name: build x-ui amd64 version
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3.4.0
+      - uses: actions/checkout@v3.5.0
       - name: Set up Go
         uses: actions/setup-go@v4.0.0
         with:
