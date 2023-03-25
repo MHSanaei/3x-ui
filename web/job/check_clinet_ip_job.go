@@ -154,14 +154,16 @@ func GetInboundClientIps(clientEmail string) (*model.InboundClientIps, error) {
 	}
 	return InboundClientIps, nil
 }
-func addInboundClientIps(clientEmail string,ips []string) error {
+func addInboundClientIps(clientEmail string, ips []string) error {
 	inboundClientIps := &model.InboundClientIps{}
-    jsonIps, err := json.Marshal(ips)
+	jsonIps, err := json.Marshal(ips)
 	checkError(err)
+
+	// Trim any leading/trailing whitespace from clientEmail
+	clientEmail = strings.TrimSpace(clientEmail)
 
 	inboundClientIps.ClientEmail = clientEmail
 	inboundClientIps.Ips = string(jsonIps)
-	
 
 	db := database.GetDB()
 	tx := db.Begin()
