@@ -1,0 +1,56 @@
+name: Issue Report
+description: "Create a report to help us improve."
+body:
+  - type:  checkboxes
+    id: terms
+    attributes:
+      label: Welcome
+      options:
+        - label: Yes, I'm using the latest major release. Only such installations are supported.
+          required: true
+        - label: Yes, I'm using the supported system. Only such systems are supported.
+          required: true
+        - label: Yes, I have read all WIKI document,nothing can help me in my problem.
+          required: true
+        - label: Yes, I've searched similar issues on GitHub and didn't find any.
+          required: true
+        - label: Yes, I've included all information below (version, config, log, etc).
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Description of the problem,screencshot would be good 
+      placeholder: Your problem description
+    validations:
+      required: true
+
+  - type: textarea
+    id: version
+    attributes:
+      label: Version of 3x-ui
+      value: |-
+        <details>
+
+        ```console
+        # Paste here
+        ```
+
+        </details>
+    validations:
+      required: true
+
+  - type: textarea
+    id: log
+    attributes:
+      label: x-ui log reports or xray log
+      value: |-
+        <details>
+
+        ```console
+        # paste log here
+        ```
+
+        </details>
+    validations:
+      required: true
