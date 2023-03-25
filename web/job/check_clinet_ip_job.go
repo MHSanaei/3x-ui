@@ -247,46 +247,45 @@ func GetInboundByEmail(clientEmail string) (*model.Inbound, error) {
 	return inbounds, nil
 }
 
-func LimitDevice(){
-	
-	localIp,err := LocalIP()
-	checkError(err)
+func LimitDevice() {
+    var destIp, destPort, srcIp, srcPort string
+    
+    localIp,err := LocalIP()
+    checkError(err)
 
-	c := cmd.NewCmd("bash","-c","ss --tcp | grep -E '" + IPsToRegex(localIp) + "'| awk '{if($1==\"ESTAB\") print $4,$5;}'","| sort | uniq -c | sort -nr | head")
+    c := cmd.NewCmd("bash","-c","ss --tcp | grep -E '" + IPsToRegex(localIp) + "'| awk '{if($1==\"ESTAB\") print $4,$5;}'","| sort | uniq -c | sort -nr | head")
 
-	<-c.Start()
-	if len(c.Status().Stdout) > 0 {
-		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
-		portRegx, _ := regexp.Compile(`(?:(:))([0-9]..[^.][0-9]+)`)
+    <-c.Start()
+    if len(c.Status().Stdout) > 0 {
+        ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
+        portRegx, _ := regexp.Compile(`(?:(:))([0-9]..[^.][0-9]+)`)
 
-		for _, row := range c.Status().Stdout {
-			
-			data := strings.Split(row," ")
-			
-			destIp,destPort,srcIp,srcPort := "","","",""
- 
+        for _, row := range c.Status().Stdout {
 
-			destIp = string(ipRegx.FindString(data[0]))
+            data := strings.Split(row," ")
 
-			destPort = portRegx.FindString(data[0])
-			destPort = strings.Replace(destPort,":","",-1)
-			
-			
-			srcIp = string(ipRegx.FindString(data[1]))
+            if len(data) < 2 {
+                continue // Skip this row if it doesn't have at least two elements
+            }
 
-			srcPort = portRegx.FindString(data[1])
-			srcPort = strings.Replace(srcPort,":","",-1)
+            destIp = string(ipRegx.FindString(data[0]))
+            destPort = portRegx.FindString(data[0])
+            destPort = strings.Replace(destPort,":","",-1)
 
-			if(contains(disAllowedIps,srcIp)){
-				dropCmd := cmd.NewCmd("bash","-c","ss -K dport = " + srcPort)
-				dropCmd.Start()
+            srcIp = string(ipRegx.FindString(data[1]))
+            srcPort = portRegx.FindString(data[1])
+            srcPort = strings.Replace(srcPort,":","",-1)
 
-				logger.Debug("request droped : ",srcIp,srcPort,"to",destIp,destPort)
-			} 
-		}
-	}
+            if contains(disAllowedIps,srcIp){
+                dropCmd := cmd.NewCmd("bash","-c","ss -K dport = " + srcPort)
+                dropCmd.Start()
 
+                logger.Debug("request droped : ",srcIp,srcPort,"to",destIp,destPort)
+            }
+        }
+    }
 }
+
 
 func LocalIP() ([]string, error) {
 	// get machine ips
