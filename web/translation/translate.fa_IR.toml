@@ -74,8 +74,8 @@
 "xraySwitch" = "تغییر ورژن"
 "xraySwitchClick" = "ورژن مورد نظر را انتخاب کنید"
 "xraySwitchClickDesk" = "لطفا با دقت انتخاب کنید ، در صورت انتخاب اشتباه امکان قطعی سیستم وجود دارد ."
-"operationHours" = "ساعت فعال"
-"operationHoursDesc" = "ساعت فعال بعد از شروع سیستم"
+"operationHours" = "مدت فعالیت"
+"operationHoursDesc" = "مدت فعالیت سیستم بعد از روشن شدن"
 "systemLoad" = "بار روی سیستم"
 "connectionCount" = "تعداد کانکشن ها"
 "connectionCountDesc" = "تعداد کانکشن ها برای کل شبکه"
@@ -83,7 +83,7 @@
 "downSpeed" = "سرعت دانلود در حال حاضر سیستم"
 "totalSent" = "جمع کل ترافیک آپلود مصرفی"
 "totalReceive" = "جمع کل ترافیک دانلود مصرفی"
-"xraySwitchVersionDialog" = "تغییر ورژن Xray"
+"xraySwitchVersionDialog" = "تغییر ورژن"
 "xraySwitchVersionDialogDesc" = "آیا از تغییر ورژن مطمئن هستین"
 "dontRefreshh" = "در حال نصب ، لطفا رفرش نکنید "
 
@@ -128,7 +128,7 @@
 "keyContent" = "محتوای Private.key"
 "clickOnQRcode" = "برای کپی بر روی کد تصویری کلیک کنید"
 "client" = "کاربر"
-"export" = "استخراج لینک‌ها"
+"export" = "استخراج لینکها"
 
 [pages.client]
 "add" = "کاربر جدید"
