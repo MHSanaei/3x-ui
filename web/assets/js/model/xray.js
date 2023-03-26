@@ -1160,7 +1160,7 @@ class Inbound extends XrayCommonClass {
         }
 		
 		if (this.XTLS) {
-            params.set("security", "tls");
+            params.set("security", "xtls");
             params.set("alpn", this.stream.tls.alpn);
             if(this.stream.tls.settings[0].allowInsecure){
                 params.set("allowInsecure", "1");
@@ -1261,7 +1261,7 @@ class Inbound extends XrayCommonClass {
         }
 		
 		if (this.XTLS) {
-            params.set("security", "tls");
+            params.set("security", "xtls");
             params.set("alpn", this.stream.tls.alpn);
             if(this.stream.tls.settings[0].allowInsecure){
                 params.set("allowInsecure", "1");
