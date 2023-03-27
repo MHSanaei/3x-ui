@@ -96,6 +96,9 @@
                                         <a-menu-item key="resetTraffic">
                                             <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                                         </a-menu-item>
+										<a-menu-item key="clone">
+                                            <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.Clone"}}
+                                        </a-menu-item>
                                         <a-menu-item key="delete">
                                             <span style="color: #FF4D4F">
                                                 <a-icon type="delete"></a-icon> {{ i18n "delete"}}
@@ -311,10 +314,46 @@
                     case "resetTraffic":
                         this.resetTraffic(dbInbound.id);
                         break;
+					case "clone":
+                        this.openCloneInbound(dbInbound);
+                        break;
                     case "delete":
                         this.delInbound(dbInbound.id);
                         break;
                 }
+            },
+			openCloneInbound(dbInbound) {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.cloneInbound"}} ' + dbInbound.remark,
+                    content: '{{ i18n "pages.inbounds.cloneInboundContent"}}',
+                    okText: '{{ i18n "pages.inbounds.cloneInboundOk"}}',
+                    cancelText: '{{ i18n "cancel" }}',
+                    onOk: () => {
+                        const baseInbound = dbInbound.toInbound();
+                        dbInbound.up = 0;
+                        dbInbound.down = 0;
+                        this.cloneInbound(baseInbound, dbInbound);
+                    },
+                });
+            },
+            async cloneInbound(baseInbound, dbInbound) {
+                const inbound = new Inbound();
+                const data = {
+                    up: dbInbound.up,
+                    down: dbInbound.down,
+                    total: dbInbound.total,
+                    remark: dbInbound.remark + " - Cloned",
+                    enable: dbInbound.enable,
+                    expiryTime: dbInbound.expiryTime,
+
+                    listen: inbound.listen,
+                    port: inbound.port,
+                    protocol: baseInbound.protocol,
+                    settings: inbound.settings.toString(),
+                    streamSettings: baseInbound.stream.toString(),
+                    sniffing: baseInbound.canSniffing() ? baseInbound.sniffing.toString() : '{}',
+                };
+                await this.submit('/xui/inbound/add', data, inModal);
             },
             openAddInbound() {
                 inModal.show({
