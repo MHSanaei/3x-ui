@@ -129,6 +129,15 @@
 "clickOnQRcode" = "点击二维码复制"
 "client" = "客户"
 "export" = "导出链接"
+"Clone" = "克隆"
+"cloneInbound" = "创造"
+"cloneInboundContent" = "此入站的所有项目除 Port、Listening IP、Clients 将应用于克隆"
+"cloneInboundOk" = "从创建克隆"
+"resetAllTraffic" = "重置所有入站流量"
+"resetAllTrafficTitle" = "重置所有入站流量"
+"resetAllTrafficContent" = "您确定要重置所有入站流量吗？"
+"resetAllTrafficOkText" = "确认"
+"resetAllTrafficCancelText" = "取消"
 
 [pages.client]
 "add" = "添加客户端"
