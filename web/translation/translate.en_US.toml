@@ -129,6 +129,15 @@
 "clickOnQRcode" = "Click on QR Code to Copy"
 "client" = "Client"
 "export" = "Export links"
+"Clone" = "Clone"
+"cloneInbound" = "Create"
+"cloneInboundContent" = "All items of this inbound except Port, Listening IP, Clients will be applied to the clone"
+"cloneInboundOk" = "Creating a clone from"
+"resetAllTraffic" = "Reset All Inbounds Traffic"
+"resetAllTrafficTitle" = "Reset all inbounds traffic"
+"resetAllTrafficContent" = "Are you sure to reset all inbounds traffic ?"
+"resetAllTrafficOkText" = "Confirm"
+"resetAllTrafficCancelText" = "Cancel"
 
 [pages.client]
 "add" = "Add client"
