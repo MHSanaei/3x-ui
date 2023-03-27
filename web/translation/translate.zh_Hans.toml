@@ -129,6 +129,10 @@
 "clickOnQRcode" = "点击二维码复制"
 "client" = "客户"
 "export" = "导出链接"
+"Clone" = "克隆"
+"cloneInbound" = "创造"
+"cloneInboundContent" = "此入站的所有项目除 Port、Listening IP、Clients 将应用于克隆"
+"cloneInboundOk" = "从创建克隆"
 
 [pages.client]
 "add" = "添加客户端"
