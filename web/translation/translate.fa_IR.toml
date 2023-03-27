@@ -133,6 +133,11 @@
 "cloneInbound" = "ایجاد"
 "cloneInboundContent" = "همه موارد این ورودی بجز پورت ، ای پی و کلاینت ها روی کلون اعمال خواهند شد"
 "cloneInboundOk" = "ساختن یک کلون از"
+"resetAllTraffic" = "ریست ترافیک کل ورودی ها"
+"resetAllTrafficTitle" = "ریست ترافیک کل ورودی ها"
+"resetAllTrafficContent" = "آیا مطمئن هستید که تمام ترافیک ورودی ها را ریست می کنید؟"
+"resetAllTrafficOkText" = "بله"
+"resetAllTrafficCancelText" = "انصراف"
 
 
 [pages.client]
