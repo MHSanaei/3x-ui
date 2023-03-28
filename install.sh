@@ -113,7 +113,7 @@ install_x-ui() {
     cd /usr/local/
 
     if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/MosaIssei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}Failed to fetch x-ui version, it maybe due to Github API restrictions, please try it later${plain}"
             exit 1
@@ -126,7 +126,7 @@ install_x-ui() {
         fi
     else
         last_version=$1
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
+        url="https://github.com/MosaIssei/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
         echo -e "Begining to install x-ui $1"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz ${url}
         if [[ $? -ne 0 ]]; then
