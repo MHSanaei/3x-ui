@@ -13,7 +13,7 @@ xray panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
 # Install & Upgrade
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/mosaissei/3x-ui/master/install.sh)
 ```
 ## Install custom version
 To install your desired version you can add the version to the end of install command. Example for ver `v1.0.9`:
