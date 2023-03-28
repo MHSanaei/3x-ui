@@ -40,4 +40,4 @@ jobs:
           file: x-ui-linux-amd64.tar.gz
           asset_name: x-ui-linux-amd64.tar.gz
           prerelease: true
-          overwrite: true
+          overwrite: false
