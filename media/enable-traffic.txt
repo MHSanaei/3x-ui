@@ -3,7 +3,6 @@
     "loglevel": "warning", 
     "access": "./access.log"
   },
- 
   "api": {
     "services": [
       "HandlerService",
@@ -47,7 +46,6 @@
     }
   },
   "routing": {
-    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "inboundTag": [
@@ -58,8 +56,7 @@
       },
       {
         "ip": [
-          "geoip:private",
-          "geoip:ir"
+          "geoip:private"
         ],
         "outboundTag": "blocked",
         "type": "field"

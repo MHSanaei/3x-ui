@@ -1,8 +1,8 @@
 # 3x-ui
-![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)
-![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)
-![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)
-![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)
+[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
+[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
+[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
+[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 
@@ -34,6 +34,7 @@ certbot renew --dry-run
 - Port: 2053
 - username and password will be generated randomly if you skip to modify your own security(x-ui "7")
 - database path: /etc/x-ui/x-ui.db
+- xray config path: /usr/local/x-ui/bin/config.json
 
 before you set ssl on settings
 - http:// ip or domain:2053/xui
@@ -44,8 +45,9 @@ After you set ssl on settings
 # Enable Traffic For Users:
 
 **copy and paste to xray Configuration :** (you don't need to do this if you have a fresh install)
-- [for enable traffic](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic.txt)
-- [for enable traffic+block all iran ip address](https://raw.githubusercontent.com/mhsanaei/3x-ui/main/media/for%20enable%20traffic%2Bblock%20all%20iran%20ip.txt)
+- [enable traffic](./media/enable-traffic.txt)
+- [enable traffic+block all IR IP address](./media/enable-traffic+block-IR-IP.txt)
+- [enable traffic+block all IR domain](./media/enable-traffic+block-IR-domain.txt)
 
 # Features
 
