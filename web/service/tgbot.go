@@ -117,14 +117,14 @@ func (t *Tgbot) answerCommand(message *tgbotapi.Message, chatId int64, isAdmin b
 	case "help":
 		msg = "This bot is providing you some specefic data from the server.\n\n Please choose:"
 	case "start":
-		msg = "Hello <i>" + message.From.FirstName + "</i> 👋"
+		msg = "سلام <i>" + message.From.FirstName + "</i> 👋"
 		if isAdmin {
 			hostname, _ := os.Hostname()
 			msg += "\nWelcome to <b>" + hostname + "</b> management bot"
 		}
-		msg += "\n\nI can do some magics for you, please choose:"
+		msg += "\n\nچه کمکی  میتونم بکنم:"
 	case "status":
-		msg = "bot is ok ✅"
+		msg = "ربات در حال کار می باشد✅"
 	case "usage":
 		if len(message.CommandArguments()) > 1 {
 			if isAdmin {
@@ -198,8 +198,8 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	)
 	var numericKeyboardClient = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Get Usage", "client_traffic"),
-			tgbotapi.NewInlineKeyboardButtonData("Commands", "client_commands"),
+			tgbotapi.NewInlineKeyboardButtonData("میزان استفاده", "client_traffic"),
+			tgbotapi.NewInlineKeyboardButtonData("کامند ها", "client_commands"),
 		),
 	)
 	msgConfig := tgbotapi.NewMessage(chatId, msg)
