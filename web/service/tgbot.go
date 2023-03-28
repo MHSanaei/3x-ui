@@ -371,7 +371,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 		return
 	}
 	if len(traffics) == 0 {
-		msg := "کاربری با نام کاربری شما پیدا نشد/nلطفا از پشتیبانی درخواست نمایدد/n/nنام کاربری شما : <b>@" + tgUserName + "</b>"
+		msg := "کاربری با نام کاربری شما پیدا نشد\nلطفا از پشتیبانی درخواست نمایدد\n\nنام کاربری شما : <b>@" + tgUserName + "</b>"
 		t.SendMsgToTgbot(chatId, msg)
 	}
 	for _, traffic := range traffics {
