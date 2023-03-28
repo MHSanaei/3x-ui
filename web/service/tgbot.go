@@ -388,7 +388,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 			total = common.FormatTraffic((traffic.Total))
 		}
 		Enable := ""
-		if traffic.Enable == "true"{
+		if traffic.Enable == true{
 			Enable = "بله"
 		} else {
 			Enable = "خیر"
