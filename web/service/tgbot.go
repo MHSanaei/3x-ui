@@ -393,7 +393,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 		} else {
 			Enable = "خیر"
 		}
-		output := fmt.Sprintf("💡 فعال: %t\r\n\n📧 نام: %s\r\n\n🔼 میزان آپلود↑: %s\r\n🔽 میزان دانلود↓: %s\r\n🔄 کل: %s / %s\r\n\n📅 تاریخ انقضاء: %s\r\n",
+		output := fmt.Sprintf("💡 فعال: %s\r\n\n📧 نام: %s\r\n\n🔼 میزان آپلود↑: %s\r\n🔽 میزان دانلود↓: %s\r\n🔄 کل: %s / %s\r\n\n📅 تاریخ انقضاء: %s\r\n",
 			Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 			total, expiryTime)
 		t.SendMsgToTgbot(chatId, output)
