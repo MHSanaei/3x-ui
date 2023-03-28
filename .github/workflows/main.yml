@@ -1,0 +1,43 @@
+name: Release 3X-ui
+on:
+  workflow_dispatch:
+jobs:
+ linuxamd64build:
+    name: build x-ui amd64 version
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3.5.0
+      - name: Set up Go
+        uses: actions/setup-go@v4.0.0
+        with:
+          go-version: 'stable'
+      - name: build linux amd64 version
+        run: |
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go
+          mkdir x-ui
+          cp xui-release x-ui/xui-release
+          cp x-ui.service x-ui/x-ui.service
+          cp x-ui.sh x-ui/x-ui.sh
+          cd x-ui
+          mv xui-release x-ui
+          mkdir bin
+          cd bin
+          wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-linux-64.zip
+          unzip Xray-linux-64.zip
+          rm -f Xray-linux-64.zip geoip.dat geosite.dat
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+          mv xray xray-linux-amd64
+          cd ..
+          cd ..
+      - name: package
+        run: tar -zcvf x-ui-linux-amd64.tar.gz x-ui
+      - name: upload
+        uses: svenstaro/upload-release-action@2.5.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: x-ui-linux-amd64.tar.gz
+          asset_name: x-ui-linux-amd64.tar.gz
+          prerelease: true
+          overwrite: true
