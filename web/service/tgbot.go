@@ -377,17 +377,17 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 	for _, traffic := range traffics {
 		expiryTime := ""
 		if traffic.ExpiryTime == 0 {
-			expiryTime = "♾Unlimited"
+			expiryTime = "♾نامحدود"
 		} else {
-			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
+			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02")
 		}
 		total := ""
 		if traffic.Total == 0 {
-			total = "♾Unlimited"
+			total = "♾نامحدود"
 		} else {
 			total = common.FormatTraffic((traffic.Total))
 		}
-		output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
+		output := fmt.Sprintf("💡 فعال: %t\r\n📧 نام: %s\r\n🔼 میزان آپلود↑: %s\r\n🔽 میزان دانلود↓: %s\r\n🔄 کل: %s / %s\r\n📅 تاریخ انقضاء: %s\r\n",
 			traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 			total, expiryTime)
 		t.SendMsgToTgbot(chatId, output)
