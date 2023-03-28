@@ -120,11 +120,15 @@ func (t *Tgbot) answerCommand(message *tgbotapi.Message, chatId int64, isAdmin b
 		msg = "سلام <i>" + message.From.FirstName + "</i> 👋"
 		if isAdmin {
 			hostname, _ := os.Hostname()
-			msg += "\nWelcome to <b>" + hostname + "</b> management bot"
+			msg += "\nخوش اومدی به ربات مدیریت <b>" + hostname + "</b>"
 		}
-		msg += "\n\nچه کمکی  میتونم بکنم:"
+		msg += "\n\nچه کمکی میتونم بکنم:"
 	case "status":
+		if isAdmin {
 		msg = "ربات در حال کار می باشد✅"
+		} else {
+			msg = "❗ کامند ناشناخته"
+		}
 	case "usage":
 		if len(message.CommandArguments()) > 1 {
 			if isAdmin {
@@ -139,10 +143,10 @@ func (t *Tgbot) answerCommand(message *tgbotapi.Message, chatId int64, isAdmin b
 		if isAdmin {
 			t.searchInbound(chatId, message.CommandArguments())
 		} else {
-			msg = "❗ Unknown command"
+			msg = "❗ کامند ناشناخته"
 		}
 	default:
-		msg = "❗ Unknown command"
+		msg = "❗  کامند ناشناخته"
 	}
 	t.SendAnswer(chatId, msg, isAdmin)
 }
