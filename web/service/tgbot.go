@@ -387,12 +387,18 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 		} else {
 			total = common.FormatTraffic((traffic.Total))
 		}
-		output := fmt.Sprintf("💡 فعال: %t\r\n📧 نام: %s\r\n🔼 میزان آپلود↑: %s\r\n🔽 میزان دانلود↓: %s\r\n🔄 کل: %s / %s\r\n📅 تاریخ انقضاء: %s\r\n",
-			traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
+		Enable := ""
+		if traffic.Enable == "true"{
+			Enable = "بله"
+		} else {
+			Enable = "خیر"
+		}
+		output := fmt.Sprintf("💡 فعال: %t\r\n\n📧 نام: %s\r\n\n🔼 میزان آپلود↑: %s\r\n🔽 میزان دانلود↓: %s\r\n🔄 کل: %s / %s\r\n\n📅 تاریخ انقضاء: %s\r\n",
+			Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 			total, expiryTime)
 		t.SendMsgToTgbot(chatId, output)
 	}
-	t.SendAnswer(chatId, "Please choose:", false)
+	t.SendAnswer(chatId, "یک گزینه را انتخاب کنید:", false)
 }
 
 func (t *Tgbot) searchClient(chatId int64, email string) {
