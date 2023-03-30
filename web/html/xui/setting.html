@@ -97,7 +97,9 @@
                             <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
-                                <a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
+                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRIp"}}' desc='{{ i18n "pages.setting.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
+								<setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRdomain"}}' desc='{{ i18n "pages.setting.xrayConfigIRdomainDesc"}}'  v-model="IRdomainSettings"></setting-list-item>
+								<a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
                                 <a-collapse>
                                     <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigInbounds"}}">
                                         <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigInbounds"}}' desc='{{ i18n "pages.setting.xrayConfigInboundsDesc"}}' v-model ="inboundSettings"></setting-list-item>
@@ -304,6 +306,73 @@
                     this.templateSettings = newTemplateSettings
                 },
             },
+			IRIpSettings: {
+                get: function () {
+                    localIpFilter = false
+                    if(this.templateSettings != null){
+                        this.templateSettings.routing.rules.forEach(routingRule => {
+                            if(routingRule.hasOwnProperty("ip")){
+                                if (routingRule.ip[0] === "geoip:ir" && routingRule.outboundTag == "blocked"){
+                                    localIpFilter = true
+                                }
+                            }
+                        });
+                    }
+                    return localIpFilter
+                },
+                set: function (newValue) {
+                    newTemplateSettings = JSON.parse(this.allSetting.xrayTemplateConfig);
+                    if (newValue){
+                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"ip\": [\"geoip:ir\"],\"type\": \"field\"}"))
+                    }
+                    else {
+                        newTemplateSettings.routing.rules = [];
+                        this.templateSettings.routing.rules.forEach(routingRule => {
+                            if (routingRule.hasOwnProperty('ip')){
+                                if (routingRule.ip[0] === "geoip:ir" && routingRule.outboundTag == "blocked"){
+                                    return;
+                                }
+                            }
+                            newTemplateSettings.routing.rules.push(routingRule);
+                        });
+                    }
+                    this.templateSettings = newTemplateSettings
+                },
+            },
+			IRdomainSettings: {
+                get: function () {
+                    localdomainFilter = false
+                    if(this.templateSettings != null){
+                        this.templateSettings.routing.rules.forEach(routingRule => {
+                            if(routingRule.hasOwnProperty("domain")){
+                                if (routingRule.domain[0] === "regexp:.+.ir$" && routingRule.outboundTag == "blocked"){
+                                    localdomainFilter = true
+                                }
+                            }
+                        });
+                    }
+                    return localdomainFilter
+                },
+                set: function (newValue) {
+                    newTemplateSettings = JSON.parse(this.allSetting.xrayTemplateConfig);
+                    if (newValue){
+                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"domain\": [\"regexp:.+.ir$\"],\"type\": \"field\"}"))
+                    }
+                    else {
+                        newTemplateSettings.routing.rules = [];
+                        this.templateSettings.routing.rules.forEach(routingRule => {
+                            if (routingRule.hasOwnProperty('domain')){
+                                if (routingRule.domain[0] === "regexp:.+.ir$" && routingRule.outboundTag == "blocked"){
+                                    return;
+                                }
+                            }
+                            newTemplateSettings.routing.rules.push(routingRule);
+                        });
+                    }
+                    this.templateSettings = newTemplateSettings
+                },
+            },
+			
         }
     });
 
