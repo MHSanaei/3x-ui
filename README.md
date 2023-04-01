@@ -62,6 +62,7 @@ After you set ssl on settings
 - Support https access panel (self-provided domain name + ssl certificate)
 - Support one-click SSL certificate application and automatic renewal
 - For more advanced configuration items, please refer to the panel
+- fix api routes (user setting will create with api)
 
 # Tg robot use
 
