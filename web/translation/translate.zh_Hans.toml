@@ -138,6 +138,13 @@
 "resetAllTrafficContent" = "您确定要重置所有入站流量吗？"
 "resetAllTrafficOkText" = "确认"
 "resetAllTrafficCancelText" = "取消"
+"IPLimit" = "IP限制"
+"IPLimitDesc" = "如果超过输入的计数则禁用入站（0 表示禁用限制 ip）"
+"Email" = "电子邮件"
+"EmailDesc" = "电子邮件必须完全唯"
+"IPLimitlog" = "IP日志"
+"IPLimitlogDesc" = "IP 历史日志 （通过IP限制禁用inbound之前，需要清空日志）"
+"IPLimitlogclear" = "清除日志"
 
 [pages.client]
 "add" = "添加客户端"

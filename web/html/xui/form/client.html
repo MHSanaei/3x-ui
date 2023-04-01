@@ -5,10 +5,10 @@
     </template>
     <a-form-item>
         <span slot="label">
-            Email
+            <span>{{ i18n "pages.inbounds.Email" }}</span>
             <a-tooltip>
                 <template slot="title">
-                    The Email Must Be Completely Unique
+                    <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
                 </template>
                 <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
             </a-tooltip>
@@ -26,10 +26,10 @@
     </a-form-item>
 	<a-form-item>
 		<span slot="label">
-			IP Count Limit
+			<span>{{ i18n "pages.inbounds.IPLimit" }}</span>
 			<a-tooltip>
 				<template slot="title">
-				Disable inbound if more than entered count (0 for disable limit ip)
+				<span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
 				</template>
 				<a-icon type="question-circle" theme="filled"></a-icon>
 			</a-tooltip>
@@ -38,16 +38,16 @@
 	</a-form-item>
 	<a-form-item v-if="client.email && client.limitIp > 0 && isEdit">
 		<span slot="label">
-			IP Log
+			<span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
 			<a-tooltip>
 				<template slot="title">
-				IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)
+				<span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
 				</template>
 				<a-icon type="question-circle" theme="filled"></a-icon>
 			</a-tooltip>
 			<a-tooltip>
 				<template slot="title">
-				Clear The Log
+				<span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
 				</template>
 				<span style="color: #FF4D4F">
 				<a-icon type="delete" @click="clearDBClientIps(client.email)"></a-icon>

@@ -138,6 +138,13 @@
 "resetAllTrafficContent" = "Are you sure to reset all inbounds traffic ?"
 "resetAllTrafficOkText" = "Confirm"
 "resetAllTrafficCancelText" = "Cancel"
+"IPLimit" = "IP Limit"
+"IPLimitDesc" = "disable inbound if more than entered count (0 for disable limit ip)"
+"Email" = "Email"
+"EmailDesc" = "The Email Must Be Completely Unique"
+"IPLimitlog" = "IP Log"
+"IPLimitlogDesc" = "IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)"
+"IPLimitlogclear" = "Clear The Log"
 
 [pages.client]
 "add" = "Add client"
@@ -188,7 +195,7 @@
 "panelPortDesc" = "Restart the panel to take effect"
 "publicKeyPath" = "Panel certificate public key file path"
 "publicKeyPathDesc" = "Fill in an absolute path starting with '/', restart the panel to take effect"
-"privateKeyPath" = "Panel certificate key file path"
+"privateKeyPath" = "Panel certificate private key file path"
 "privateKeyPathDesc" = "Fill in an absolute path starting with '/', restart the panel to take effect"
 "panelUrlPath" = "panel url root path"
 "panelUrlPathDesc" = "Must start with '/' and end with '/', restart the panel to take effect"

@@ -5,10 +5,10 @@
         <a-form layout="inline">
             <a-form-item>
                 <span slot="label">
-                    Email
+                    <span>{{ i18n "pages.inbounds.Email" }}</span>
                     <a-tooltip>
                         <template slot="title">
-                            The Email Must Be Completely Unique
+                            <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
                         </template>
                         <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
                     </a-tooltip>
@@ -21,10 +21,10 @@
         </a-form-item>
 		<a-form-item>
                 <span slot="label">
-                    IP Count Limit
+                    <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
                     <a-tooltip>
                         <template slot="title">
-                            disable inbound if more than entered count (0 for disable limit ip)
+                            <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
                         </template>
                         <a-icon type="question-circle" theme="filled"></a-icon>
                     </a-tooltip>
