@@ -454,6 +454,64 @@ ssl_cert_issue() {
     fi
 }
 
+open_ports() {
+
+  # Check if the firewall is inactive
+  if sudo ufw status | grep -q "Status: active"; then
+    echo "firewall is already active"
+  else
+    # Open the necessary ports
+    sudo ufw allow ssh
+    sudo ufw allow http
+    sudo ufw allow https
+    sudo ufw allow 2053/tcp
+
+    # Enable the firewall
+    sudo ufw --force enable
+  fi
+
+  # Prompt the user to enter a list of ports
+  read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
+
+  # Check if the input is valid
+  if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+     echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2; exit 1
+  fi
+
+  # Open the specified ports using ufw
+  IFS=',' read -ra PORT_LIST <<< "$ports"
+  for port in "${PORT_LIST[@]}"; do
+    if [[ $port == *-* ]]; then
+      # Split the range into start and end ports
+      start_port=$(echo $port | cut -d'-' -f1)
+      end_port=$(echo $port | cut -d'-' -f2)
+      # Loop through the range and open each port
+      for ((i=start_port; i<=end_port; i++)); do
+        sudo ufw allow $i
+      done
+    else
+      sudo ufw allow "$port"
+    fi
+  done
+
+  # Confirm that the ports are open
+  sudo ufw status | grep $ports
+}
+
+
+
+update_geo(){
+    systemctl stop x-ui
+    cd /usr/local/x-ui/bin
+    rm -f geoip.dat geosite.dat iran.dat
+    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+    wget -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
+    systemctl start x-ui
+    echo -e "${green}Geosite and Geoip have been updated successfully!${plain}"
+before_show_menu
+}
+
 install_acme() {
     cd ~
     LOGI "install acme..."
@@ -532,8 +590,8 @@ ssl_cert_issue_standalone() {
     fi
     #install cert
     ~/.acme.sh/acme.sh --installcert -d ${domain} --ca-file /root/cert/ca.cer \
-        --cert-file /root/cert/${domain}.cer --key-file /root/cert/${domain}.key \
-        --fullchain-file /root/cert/fullchain.cer
+        --cert-file /root/cert/${domain}.cer --key-file /root/cert/privkey.pem \
+        --fullchain-file /root/cert/fullchain.pem
 
     if [ $? -ne 0 ]; then
         LOGE "install certs failed,exit"
@@ -682,9 +740,11 @@ show_menu() {
 ————————————————
   ${green}15.${plain} Enable BBR 
   ${green}16.${plain} Issuse Certs
+  ${green}17.${plain} Update Geoip and Geosite
+  ${green}18.${plain} Enable Firewall and open Ports
  "
     show_status
-    echo && read -p "Please enter your selection [0-16]: " num
+    echo && read -p "Please enter your selection [0-18]: " num
 
     case "${num}" in
     0)
@@ -738,8 +798,14 @@ show_menu() {
     16)
         ssl_cert_issue
         ;;
+    17)
+        update_geo
+        ;;
+    18)
+        open_ports
+        ;;
     *)
-        LOGE "Please enter the correct number [0-16]"
+        LOGE "Please enter the correct number [0-18]"
         ;;
     esac
 }
