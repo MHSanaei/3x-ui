@@ -345,7 +345,7 @@
                     if(this.templateSettings != null){
                         this.templateSettings.routing.rules.forEach(routingRule => {
                             if(routingRule.hasOwnProperty("domain")){
-                                if ((routingRule.domain[0] === "regexp:.+.ir$" || routingRule.domain[0] === "ext:iran.dat:ir") && routingRule.outboundTag == "blocked") {
+                                if ((routingRule.domain[0] === "regexp:.+.ir$" || routingRule.domain[0] === "ext:iran.dat:ir" || routingRule.domain[0] === "ext:iran.dat:other") && routingRule.outboundTag == "blocked") {
                                     localdomainFilter = true
                                 }
                             }
@@ -356,13 +356,13 @@
                 set: function (newValue) {
                     newTemplateSettings = JSON.parse(this.allSetting.xrayTemplateConfig);
                     if (newValue){
-                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"domain\": [\"regexp:.+.ir$\", \"ext:iran.dat:ir\"],\"type\": \"field\"}"))
+                        newTemplateSettings.routing.rules.push(JSON.parse("{\"outboundTag\": \"blocked\",\"domain\": [\"regexp:.+.ir$\", \"ext:iran.dat:ir\", \"ext:iran.dat:other\"],\"type\": \"field\"}"))
                     }
                     else {
                         newTemplateSettings.routing.rules = [];
                         this.templateSettings.routing.rules.forEach(routingRule => {
                             if (routingRule.hasOwnProperty('domain')){
-                                if (routingRule.domain[0] === "regexp:.+.ir$" && routingRule.outboundTag == "blocked"){
+                                if ((routingRule.domain[0] === "regexp:.+.ir$" || routingRule.domain[0] === "ext:iran.dat:ir" || routingRule.domain[0] === "ext:iran.dat:other") && routingRule.outboundTag == "blocked"){
                                     return;
                                 }
                             }
