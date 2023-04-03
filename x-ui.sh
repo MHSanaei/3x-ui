@@ -677,20 +677,20 @@ ssl_cert_issue_by_cloudflare() {
             LOGE "issue cert failed,exit"
             rm -rf ~/.acme.sh/${CF_Domain}
             exit 1
-        else
-            LOGI "Certificate issued Successfully, Installing..."
-        fi
-        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
-            --key-file /root/cert/${CF_Domain}/privkey.pem \
-            --fullchain-file /root/cert/${CF_Domain}/fullchain.pem
+		else
+			LOGI "Certificate issued Successfully, Installing..."
+		fi
+		~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
+			--key-file /root/cert/${CF_Domain}/privkey.pem \
+			--fullchain-file /root/cert/${CF_Domain}/fullchain.pem
 
-        if [ $? -ne 0 ]; then
-            LOGE "install cert failed,exit"
-            rm -rf ~/.acme.sh/${CF_Domain}
-            exit 1
-        else
-            LOGI "Certificate installed Successfully,Turning on automatic updates..."
-        fi
+		if [ $? -ne 0 ]; then
+			LOGE "install cert failed,exit"
+			rm -rf ~/.acme.sh/${CF_Domain}
+			exit 1
+		else
+			LOGI "Certificate installed Successfully,Turning on automatic updates..."
+		fi
 		~/.acme.sh/acme.sh --upgrade --auto-upgrade
 		if [ $? -ne 0 ]; then
 			LOGE "auto renew failed, certs details:"
@@ -706,6 +706,25 @@ ssl_cert_issue_by_cloudflare() {
         show_menu
     fi
 }
+google_recaptcha() {
+  curl -O https://raw.githubusercontent.com/jinwyp/one_click_script/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
+  echo ""
+  before_show_menu
+}
+
+run_speedtest() {
+    # Check if Speedtest is already installed
+    if ! command -v speedtest &> /dev/null; then
+        # If not installed, install it
+        sudo apt-get update && sudo apt-get install -y curl
+        curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+        sudo apt-get install -y speedtest
+    fi
+
+    # Run Speedtest
+    speedtest
+}
+
 
 show_usage() {
     echo "x-ui control menu usages: "
@@ -751,9 +770,11 @@ show_menu() {
   ${green}16.${plain} Apply for an SSL Certificate
   ${green}17.${plain} Update Geo Files
   ${green}18.${plain} Active Firewall and open ports
+  ${green}19.${plain} Fixing Google reCAPTCHA
+  ${green}20.${plain} Speedtest by Ookla
  "
     show_status
-    echo && read -p "Please enter your selection [0-18]: " num
+    echo && read -p "Please enter your selection [0-20]: " num
 
     case "${num}" in
     0)
@@ -813,8 +834,14 @@ show_menu() {
     18)
         open_ports
         ;;
+    19)
+        google_recaptcha
+        ;;
+	20)
+        run_speedtest
+        ;;
     *)
-        LOGE "Please enter the correct number [0-18]"
+        LOGE "Please enter the correct number [0-20]"
         ;;
     esac
 }
