@@ -46,6 +46,7 @@
     }
   },
   "routing": {
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "inboundTag": [
