@@ -156,6 +156,9 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
+	
+	// Add favicon
+	engine.StaticFile("/favicon.ico", "web/assets/favicon.ico")
 
 	secret, err := s.settingService.GetSecret()
 	if err != nil {
