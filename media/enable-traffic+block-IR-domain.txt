@@ -46,6 +46,7 @@
     }
   },
   "routing": {
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "inboundTag": [
@@ -55,8 +56,8 @@
         "type": "field"
       },
       {
-        "domain": [
-          "regexp:.+.ir$"
+        "ip": [
+          "geoip:private"
         ],
         "outboundTag": "blocked",
         "type": "field"
@@ -70,8 +71,10 @@
       },
       {
         "outboundTag": "blocked",
-        "ip": [
-          "geoip:private"
+        "domain": [
+          "regexp:.+.ir$",
+          "ext:iran.dat:ir",
+          "ext:iran.dat:other"
         ],
         "type": "field"
       }

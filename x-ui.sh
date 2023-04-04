@@ -454,6 +454,64 @@ ssl_cert_issue() {
     fi
 }
 
+open_ports() {
+
+  # Check if the firewall is inactive
+  if sudo ufw status | grep -q "Status: active"; then
+    echo "firewall is already active"
+  else
+    # Open the necessary ports
+    sudo ufw allow ssh
+    sudo ufw allow http
+    sudo ufw allow https
+    sudo ufw allow 2053/tcp
+
+    # Enable the firewall
+    sudo ufw --force enable
+  fi
+
+  # Prompt the user to enter a list of ports
+  read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
+
+  # Check if the input is valid
+  if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+     echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2; exit 1
+  fi
+
+  # Open the specified ports using ufw
+  IFS=',' read -ra PORT_LIST <<< "$ports"
+  for port in "${PORT_LIST[@]}"; do
+    if [[ $port == *-* ]]; then
+      # Split the range into start and end ports
+      start_port=$(echo $port | cut -d'-' -f1)
+      end_port=$(echo $port | cut -d'-' -f2)
+      # Loop through the range and open each port
+      for ((i=start_port; i<=end_port; i++)); do
+        sudo ufw allow $i
+      done
+    else
+      sudo ufw allow "$port"
+    fi
+  done
+
+  # Confirm that the ports are open
+  sudo ufw status | grep $ports
+}
+
+
+
+update_geo(){
+    systemctl stop x-ui
+    cd /usr/local/x-ui/bin
+    rm -f geoip.dat geosite.dat iran.dat
+    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+    wget -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
+    systemctl start x-ui
+    echo -e "${green}Geosite and Geoip have been updated successfully!${plain}"
+before_show_menu
+}
+
 install_acme() {
     cd ~
     LOGI "install acme..."
@@ -490,14 +548,7 @@ ssl_cert_issue_standalone() {
     else
         LOGI "install socat succeed..."
     fi
-    #creat a directory for install cert
-    certPath=/root/cert
-    if [ ! -d "$certPath" ]; then
-        mkdir $certPath
-    else
-        rm -rf $certPath
-        mkdir $certPath
-    fi
+
     #get the domain here,and we need verify it
     local domain=""
     read -p "please input your domain:" domain
@@ -512,6 +563,16 @@ ssl_cert_issue_standalone() {
     else
         LOGI "your domain is ready for issuing cert now..."
     fi
+	
+	#create a directory for install cert
+	certPath="/root/cert/${domain}"
+	if [ ! -d "$certPath" ]; then
+		mkdir -p "$certPath"
+	else
+		rm -rf "$certPath"
+		mkdir -p "$certPath"
+	fi
+	
     #get needed port here
     local WebPort=80
     read -p "please choose which port do you use,default will be 80 port:" WebPort
@@ -531,9 +592,9 @@ ssl_cert_issue_standalone() {
         LOGE "issue certs succeed,installing certs..."
     fi
     #install cert
-    ~/.acme.sh/acme.sh --installcert -d ${domain} --ca-file /root/cert/ca.cer \
-        --cert-file /root/cert/${domain}.cer --key-file /root/cert/${domain}.key \
-        --fullchain-file /root/cert/fullchain.cer
+    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+        --key-file /root/cert/${domain}/privkey.pem \
+        --fullchain-file /root/cert/${domain}/fullchain.pem
 
     if [ $? -ne 0 ]; then
         LOGE "install certs failed,exit"
@@ -542,17 +603,18 @@ ssl_cert_issue_standalone() {
     else
         LOGI "install certs succeed,enable auto renew..."
     fi
-    ~/.acme.sh/acme.sh --upgrade --auto-upgrade
-    if [ $? -ne 0 ]; then
-        LOGE "auto renew failed,certs details:"
-        ls -lah cert
-        chmod 755 $certPath
-        exit 1
-    else
-        LOGI "auto renew succeed,certs details:"
-        ls -lah cert
-        chmod 755 $certPath
-    fi
+	
+	~/.acme.sh/acme.sh --upgrade --auto-upgrade
+	if [ $? -ne 0 ]; then
+		LOGE "auto renew failed, certs details:"
+		ls -lah cert/*
+		chmod 755 $certPath/*
+		exit 1
+	else
+		LOGI "auto renew succeed, certs details:"
+		ls -lah cert/*
+		chmod 755 $certPath/*
+	fi
 
 }
 
@@ -573,13 +635,7 @@ ssl_cert_issue_by_cloudflare() {
         CF_Domain=""
         CF_GlobalKey=""
         CF_AccountEmail=""
-        certPath=/root/cert
-        if [ ! -d "$certPath" ]; then
-            mkdir $certPath
-        else
-            rm -rf $certPath
-            mkdir $certPath
-        fi
+        
         LOGD "please input your domain:"
         read -p "Input your domain here:" CF_Domain
         LOGD "your domain is:${CF_Domain},check it..."
@@ -593,6 +649,16 @@ ssl_cert_issue_by_cloudflare() {
         else
             LOGI "your domain is ready for issuing cert now..."
         fi
+		
+		#create a directory for install cert
+		certPath="/root/cert/${CF_Domain}"
+		if [ ! -d "$certPath" ]; then
+			mkdir -p "$certPath"
+		else
+			rm -rf "$certPath"
+			mkdir -p "$certPath"
+		fi
+	
         LOGD "please inout your cloudflare global API key:"
         read -p "Input your key here:" CF_GlobalKey
         LOGD "your cloudflare global API key is:${CF_GlobalKey}"
@@ -611,34 +677,72 @@ ssl_cert_issue_by_cloudflare() {
             LOGE "issue cert failed,exit"
             rm -rf ~/.acme.sh/${CF_Domain}
             exit 1
-        else
-            LOGI "Certificate issued Successfully, Installing..."
-        fi
-        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
-            --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
-            --fullchain-file /root/cert/fullchain.cer
-        if [ $? -ne 0 ]; then
-            LOGE "install cert failed,exit"
-            rm -rf ~/.acme.sh/${CF_Domain}
-            exit 1
-        else
-            LOGI "Certificate installed Successfully,Turning on automatic updates..."
-        fi
-        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
-        if [ $? -ne 0 ]; then
-            LOGE "Auto update setup Failed, script exiting..."
-            ls -lah cert
-            chmod 755 $certPath
-            exit 1
-        else
-            LOGI "The certificate is installed and auto-renewal is turned on, Specific information is as follows"
-            ls -lah cert
-            chmod 755 $certPath
-        fi
+		else
+			LOGI "Certificate issued Successfully, Installing..."
+		fi
+		~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
+			--key-file /root/cert/${CF_Domain}/privkey.pem \
+			--fullchain-file /root/cert/${CF_Domain}/fullchain.pem
+
+		if [ $? -ne 0 ]; then
+			LOGE "install cert failed,exit"
+			rm -rf ~/.acme.sh/${CF_Domain}
+			exit 1
+		else
+			LOGI "Certificate installed Successfully,Turning on automatic updates..."
+		fi
+		~/.acme.sh/acme.sh --upgrade --auto-upgrade
+		if [ $? -ne 0 ]; then
+			LOGE "auto renew failed, certs details:"
+			ls -lah cert/*
+			chmod 755 $certPath/*
+			exit 1
+		else
+			LOGI "auto renew succeed, certs details:"
+			ls -lah cert/*
+			chmod 755 $certPath/*
+		fi
     else
         show_menu
     fi
 }
+google_recaptcha() {
+  curl -O https://raw.githubusercontent.com/jinwyp/one_click_script/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
+  echo ""
+  before_show_menu
+}
+
+run_speedtest() {
+    # Check if Speedtest is already installed
+    if ! command -v speedtest &> /dev/null; then
+        # If not installed, install it
+        if command -v dnf &> /dev/null; then
+            sudo dnf install -y curl
+            curl -s https://install.speedtest.net/app/cli/install.rpm.sh | sudo bash
+            sudo dnf install -y speedtest
+        elif command -v yum &> /dev/null; then
+            sudo yum install -y curl
+            curl -s https://install.speedtest.net/app/cli/install.rpm.sh | sudo bash
+            sudo yum install -y speedtest
+        elif command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y curl
+            curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+            sudo apt-get install -y speedtest
+        elif command -v apt &> /dev/null; then
+            sudo apt update && sudo apt install -y curl
+            curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+            sudo apt install -y speedtest
+        else
+            echo "Error: Package manager not found. You may need to install Speedtest manually."
+            return 1
+        fi
+    fi
+
+    # Run Speedtest
+    speedtest
+}
+
+
 
 show_usage() {
     echo "x-ui control menu usages: "
@@ -681,10 +785,14 @@ show_menu() {
   ${green}14.${plain} Disabel x-ui On System Startup
 ————————————————
   ${green}15.${plain} Enable BBR 
-  ${green}16.${plain} Issuse Certs
+  ${green}16.${plain} Apply for an SSL Certificate
+  ${green}17.${plain} Update Geo Files
+  ${green}18.${plain} Active Firewall and open ports
+  ${green}19.${plain} Fixing Google reCAPTCHA
+  ${green}20.${plain} Speedtest by Ookla
  "
     show_status
-    echo && read -p "Please enter your selection [0-16]: " num
+    echo && read -p "Please enter your selection [0-20]: " num
 
     case "${num}" in
     0)
@@ -738,8 +846,20 @@ show_menu() {
     16)
         ssl_cert_issue
         ;;
+    17)
+        update_geo
+        ;;
+    18)
+        open_ports
+        ;;
+    19)
+        google_recaptcha
+        ;;
+	20)
+        run_speedtest
+        ;;
     *)
-        LOGE "Please enter the correct number [0-16]"
+        LOGE "Please enter the correct number [0-20]"
         ;;
     esac
 }
