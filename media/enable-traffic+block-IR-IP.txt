@@ -1,6 +1,6 @@
 {
   "log": {
-    "loglevel": "warning", 
+    "loglevel": "warning",
     "access": "./access.log"
   },
   "api": {
@@ -56,17 +56,23 @@
         "type": "field"
       },
       {
-        "ip": [
-          "geoip:private",
-          "geoip:ir"
-        ],
         "outboundTag": "blocked",
+        "protocol": [
+          "bittorrent"
+        ],
         "type": "field"
       },
       {
         "outboundTag": "blocked",
-        "protocol": [
-          "bittorrent"
+        "ip": [
+          "geoip:private"
+        ],
+        "type": "field"
+      },
+      {
+        "outboundTag": "blocked",
+        "ip": [
+          "geoip:ir"
         ],
         "type": "field"
       }
