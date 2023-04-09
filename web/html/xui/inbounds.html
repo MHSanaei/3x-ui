@@ -41,8 +41,24 @@
                             <a-col :xs="24" :sm="24" :lg="12">
                                 {{ i18n "clients" }}:
                                 <a-tag color="green">[[ total.clients ]]</a-tag>
-                                <a-tag color="blue">{{ i18n "enabled" }} [[ total.active ]]</a-tag>
-                                <a-tag color="red">{{ i18n "disabled" }} [[ total.deactive ]]</a-tag>
+                                <a-popover title="{{ i18n "disabled" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <template slot="content">
+                                        <p v-for="clientEmail in total.deactive">[[ clientEmail ]]</p>
+                                    </template>
+                                    <a-tag v-if="total.deactive.length">[[ total.deactive.length ]]</a-tag>
+                                </a-popover>
+                                <a-popover title="{{ i18n "depleted" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <template slot="content">
+                                        <p v-for="clientEmail in total.depleted">[[ clientEmail ]]</p>
+                                    </template>
+                                    <a-tag color="red" v-if="total.depleted.length">[[ total.depleted.length ]]</a-tag>
+                                </a-popover>
+                                <a-popover title="{{ i18n "depletingSoon" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <template slot="content">
+                                        <p v-for="clientEmail in total.expiring">[[ clientEmail ]]</p>
+                                    </template>
+                                    <a-tag color="orange" v-if="total.expiring.length">[[ total.expiring.length ]]</a-tag>
+                                </a-popover>
                             </a-col>
                         </a-row>
                     </a-card>
@@ -52,7 +68,7 @@
                         <div slot="title">
                             <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
                             <a-button type="primary" icon="export" @click="exportAllLinks">{{ i18n "pages.inbounds.export" }}</a-button>
-							<a-button type="primary" icon="reload" @click="resetAllTraffic">{{ i18n "pages.inbounds.resetAllTraffic" }}</a-button>
+                            <a-button type="primary" icon="reload" @click="resetAllTraffic">{{ i18n "pages.inbounds.resetAllTraffic" }}</a-button>
                         </div>
                         <a-input v-model.lazy="searchKey" placeholder="{{ i18n "search" }}" autofocus style="max-width: 300px"></a-input>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
@@ -64,8 +80,8 @@
                             <template slot="action" slot-scope="text, dbInbound">
                                 <a-icon type="edit" style="font-size: 25px" @click="openEditInbound(dbInbound.id);"></a-icon>
                                 <a-dropdown :trigger="['click']">
-                                     <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
-                                    <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)" :theme="siderDrawer.theme" style="border: 1px solid rgba(255, 255, 255, 0.65);">
+                                    <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
+                                    <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)" :theme="siderDrawer.theme">
                                         <a-menu-item v-if="dbInbound.isSS" key="qrcode">
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
@@ -76,12 +92,16 @@
                                         </a-menu-item>
                                         <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess">
                                             <a-menu-item key="addClient">
-                                                <a-icon type="user"></a-icon>
+                                                <a-icon type="user-add"></a-icon>
                                                 {{ i18n "pages.client.add"}}
                                             </a-menu-item>
                                             <a-menu-item key="addBulkClient">
-                                                <a-icon type="team"></a-icon>
+                                                <a-icon type="usergroup-add"></a-icon>
                                                 {{ i18n "pages.client.bulk"}}
+                                            </a-menu-item>
+                                            <a-menu-item key="resetClients">
+                                                <a-icon type="file-done"></a-icon>
+                                                {{ i18n "pages.inbounds.resetAllClientTraffics"}}
                                             </a-menu-item>
                                             <a-menu-item key="export">
                                                 <a-icon type="export"></a-icon>
@@ -97,7 +117,7 @@
                                         <a-menu-item key="resetTraffic">
                                             <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                                         </a-menu-item>
-										<a-menu-item key="clone">
+                                        <a-menu-item key="clone">
                                             <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.Clone"}}
                                         </a-menu-item>
                                         <a-menu-item key="delete">
@@ -109,7 +129,35 @@
                                 </a-dropdown>
                             </template>
                             <template slot="protocol" slot-scope="text, dbInbound">
-                                <a-tag color="blue">[[ dbInbound.protocol ]]</a-tag>
+                                <a-tag style="margin:0;" color="blue">[[ dbInbound.protocol ]]</a-tag>
+                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                                    <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXTLS" color="cyan">XTLS</a-tag>
+                                </template>
+                            </template>
+                            <template slot="clients" slot-scope="text, dbInbound">
+                                <template v-if="clientCount[dbInbound.id]">
+                                    <a-tag style="margin:0;" color="green">[[ clientCount[dbInbound.id].clients ]]</a-tag>
+                                    <a-popover title="{{ i18n "disabled" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                        <template slot="content">
+                                            <p v-for="clientEmail in clientCount[dbInbound.id].deactive">[[ clientEmail ]]</p>
+                                        </template>
+                                        <a-tag style="margin:0; padding: 0 2px;" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
+                                    </a-popover>
+                                    <a-popover title="{{ i18n "depleted" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                        <template slot="content">
+                                            <p v-for="clientEmail in clientCount[dbInbound.id].depleted">[[ clientEmail ]]</p>
+                                        </template>
+                                        <a-tag style="margin:0; padding: 0 2px;" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
+                                    </a-popover>
+                                    <a-popover title="{{ i18n "depletingSoon" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                        <template slot="content">
+                                            <p v-for="clientEmail in clientCount[dbInbound.id].expiring">[[ clientEmail ]]</p>
+                                        </template>
+                                        <a-tag style="margin:0; padding: 0 2px;" color="orange" v-if="clientCount[dbInbound.id].expiring.length">[[ clientCount[dbInbound.id].expiring.length ]]</a-tag>
+                                    </a-popover>
+                                </template>
                             </template>
                             <template slot="traffic" slot-scope="text, dbInbound">
                                 <a-tag color="blue">[[ sizeFormat(dbInbound.up) ]] / [[ sizeFormat(dbInbound.down) ]]</a-tag>
@@ -118,14 +166,6 @@
                                     <a-tag v-else color="red">[[ sizeFormat(dbInbound.total) ]]</a-tag>
                                 </template>
                                 <a-tag v-else color="green">{{ i18n "unlimited" }}</a-tag>
-                            </template>
-                            <template slot="stream" slot-scope="text, dbInbound, index">
-                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-                                    <a-tag color="green">[[ inbounds[index].stream.network ]]</a-tag>
-                                    <a-tag v-if="inbounds[index].stream.isTls" color="blue">tls</a-tag>
-                                    <a-tag v-if="inbounds[index].stream.isXTls" color="blue">xtls</a-tag>
-                                </template>
-                                <template v-else>{{ i18n "none" }}</template>
                             </template>
                             <template slot="enable" slot-scope="text, dbInbound">
                                 <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
@@ -192,25 +232,25 @@
         width: 80,
         dataIndex: "remark",
     }, {
-        title: '{{ i18n "pages.inbounds.protocol" }}',
-        align: 'center',
-        width: 50,
-        scopedSlots: { customRender: 'protocol' },
-    }, {
         title: '{{ i18n "pages.inbounds.port" }}',
         align: 'center',
         dataIndex: "port",
         width: 40,
     }, {
+        title: '{{ i18n "pages.inbounds.protocol" }}',
+        align: 'left',
+        width: 70,
+        scopedSlots: { customRender: 'protocol' },
+    }, {
+        title: '{{ i18n "clients" }}',
+        align: 'left',
+        width: 50,
+        scopedSlots: { customRender: 'clients' },
+    }, {
         title: '{{ i18n "pages.inbounds.traffic" }}↑|↓',
         align: 'center',
-        width: 150,
+        width: 120,
         scopedSlots: { customRender: 'traffic' },
-    }, {
-        title: '{{ i18n "pages.inbounds.transportConfig" }}',
-        align: 'center',
-        width: 60,
-        scopedSlots: { customRender: 'stream' },
     }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
         align: 'center',
@@ -220,15 +260,18 @@
 
     const innerColumns = [
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 70, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'UID', width: 150, dataIndex: "id" },
+        { title: 'UID', width: 120, dataIndex: "id" },
     ];
+
     const innerTrojanColumns = [
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.client" }}', width: 60, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 100, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 70, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'Password', width: 100, dataIndex: "password" },
     ];
@@ -243,6 +286,11 @@
             dbInbounds: [],
             searchKey: '',
             searchedInbounds: [],
+            expireDiff: 0,
+            trafficDiff: 0,
+            defaultCert: '',
+            defaultKey: '',
+            clientCount: {},
         },
         methods: {
             loading(spinning=true) {
@@ -258,16 +306,65 @@
                 this.setInbounds(msg.obj);
                 this.searchKey = '';
             },
+            async getDefaultSettings() {
+                this.loading();
+                const msg = await HttpUtil.post('/xui/setting/defaultSettings');
+                this.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                this.expireDiff = msg.obj.expireDiff * 86400000;
+                this.trafficDiff = msg.obj.trafficDiff * 1073741824;
+                this.defaultCert = msg.obj.defaultCert;
+                this.defaultKey = msg.obj.defaultKey;
+            },
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
                 this.dbInbounds.splice(0);
                 this.searchedInbounds.splice(0);
                 for (const inbound of dbInbounds) {
                     const dbInbound = new DBInbound(inbound);
-                    this.inbounds.push(dbInbound.toInbound());
+                    to_inbound = dbInbound.toInbound()
+                    this.inbounds.push(to_inbound);
                     this.dbInbounds.push(dbInbound);
                     this.searchedInbounds.push(dbInbound);
+                    if([Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN].includes(inbound.protocol) ){
+                        this.clientCount[inbound.id] = this.getClientCounts(inbound,to_inbound);
+                    }
                 }
+            },
+            getClientCounts(dbInbound,inbound){
+                let clientCount = 0,active = [], deactive = [], depleted = [], expiring = [];
+                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                clientStats = dbInbound.clientStats
+                now = new Date().getTime()
+                if(clients){
+                    clientCount = clients.length;
+                    if(dbInbound.enable){
+                        clients.forEach(client => {
+                            client.enable ? active.push(client.email) : deactive.push(client.email);
+                        });
+                        clientStats.forEach(client => {
+                            if(!client.enable) {
+                                depleted.push(client.email);
+                            } else {
+                                if ((client.expiryTime > 0 && (client.expiryTime-now < this.expireDiff)) ||
+                                (client.total > 0 && (client.total-client.up+client.down < this.trafficDiff ))) expiring.push(client.email);
+                            }
+                        });
+                    } else {
+                        clients.forEach(client => {
+                            deactive.push(client.email);
+                        });
+                    }
+                }
+                return {
+                    clients: clientCount,
+                    active: active,
+                    deactive: deactive,
+                    depleted: depleted,
+                    expiring: expiring,
+                };
             },
             searchInbounds(key) {
                 if (ObjectUtil.isEmpty(key)) {
@@ -315,7 +412,10 @@
                     case "resetTraffic":
                         this.resetTraffic(dbInbound.id);
                         break;
-					case "clone":
+                    case "resetClients":
+                        this.resetAllClientTraffics(dbInbound.id);
+                        break;
+                    case "clone":
                         this.openCloneInbound(dbInbound);
                         break;
                     case "delete":
@@ -477,7 +577,7 @@
                     id: dbInbound.id,
                     settings: inbound.settings.toString(),
                 };
-                await this.submit('/xui/inbound/addClient', data);
+                await this.submit('/xui/inbound/addClient/', data);
             },
             async updateClient(inbound, dbInbound, index) {
                 const data = {
@@ -501,22 +601,6 @@
                         this.updateInbound(inbound, dbInbound);
                     },
                 });
-            },
-			resetAllTraffic() {
-                    this.$confirm({
-                        title: '{{ i18n "pages.inbounds.resetAllTrafficTitle"}}',
-                        content: '{{ i18n "pages.inbounds.resetAllTrafficContent"}}',
-                        okText: '{{ i18n "pages.inbounds.resetAllTrafficOkText"}}',
-                        cancelText: '{{ i18n "pages.inbounds.resetAllTrafficCancelText"}}',
-                        onOk: async () => {
-                            for (const dbInbound of this.dbInbounds) {
-                                const inbound = dbInbound.toInbound();
-                                dbInbound.up = 0;
-                                dbInbound.down = 0;
-                                this.updateInbound(inbound, dbInbound);
-                            }
-                        },
-                    });
             },
             delInbound(dbInboundId) {
                 this.$confirm({
@@ -567,6 +651,16 @@
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 this.submit(`/xui/inbound/update/${dbInboundId}`, dbInbound);
             },
+            async switchEnableClient(dbInboundId, client) {
+                this.loading()
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                inbound = dbInbound.toInbound();
+                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                index = this.findIndexOfClient(clients, client);
+                clients[index].enable = ! clients[index].enable
+                await this.updateClient(inbound, dbInbound, index);
+                this.loading(false);
+            },
             async submit(url, data) {
                 const msg = await HttpUtil.postWithModal(url, data);
                 if (msg.success) {
@@ -590,6 +684,26 @@
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/xui/inbound/' + dbInboundId + '/resetClientTraffic/'+ client.email),
+                })
+            },
+            resetAllTraffic() {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.resetAllTrafficTitle"}}',
+                    content: '{{ i18n "pages.inbounds.resetAllTrafficContent"}}',
+                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    okText: '{{ i18n "reset"}}',
+                    cancelText: '{{ i18n "cancel"}}',
+                    onOk: () => this.submit('/xui/inbound/resetAllTraffics'),
+                });
+            },
+            resetAllClientTraffics(dbInboundId) {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.resetAllClientTrafficTitle"}}',
+                    content: '{{ i18n "pages.inbounds.resetAllClientTrafficContent"}}',
+                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    okText: '{{ i18n "reset"}}',
+                    cancelText: '{{ i18n "cancel"}}',
+                    onOk: () => this.submit('/xui/inbound/resetAllClientTraffics/' + dbInboundId),
                 })
             },
             isExpiry(dbInbound, index) {
@@ -635,37 +749,30 @@
             }, 500)
         },
         mounted() {
+            this.getDefaultSettings();
             this.getDBInbounds();
         },
         computed: {
             total() {
                 let down = 0, up = 0;
-                let clients = 0, active = 0, deactive = 0;
+                let clients = 0, deactive = [], depleted = [], expiring = [];
                 this.dbInbounds.forEach(dbInbound => {
                     down += dbInbound.down;
                     up += dbInbound.up;
-                    inbound = dbInbound.toInbound();
-                    clients = this.getClients(dbInbound.protocol, inbound.settings);
-                    if(clients){
-                        if(dbInbound.enable){
-                            isClientEnable = false;
-                            clients.forEach(client => {
-                                isClientEnable = client.email == "" ? true: this.isClientEnabled(dbInbound,client.email);
-                                isClientEnable ? active++ : deactive++;
-                            });
-                        } else {
-                            deactive += clients.length;
-                        }
-                    } else {
-                        dbInbound.enable ? active++ : deactive++;
+                    if (this.clientCount[dbInbound.id]) {
+                        clients += this.clientCount[dbInbound.id].clients;
+                        deactive = deactive.concat(this.clientCount[dbInbound.id].deactive);
+                        depleted = depleted.concat(this.clientCount[dbInbound.id].depleted);
+                        expiring = expiring.concat(this.clientCount[dbInbound.id].expiring);
                     }
                 });
                 return {
                     down: down,
                     up: up,
-                    clients: active + deactive,
-                    active: active,
+                    clients: clients,
                     deactive: deactive,
+                    depleted: depleted,
+                    expiring: expiring,
                 };
             }
         },

@@ -33,6 +33,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/setting")
 
 	g.POST("/all", a.getAllSetting)
+	g.POST("/defaultSettings", a.getDefaultSettings)
 	g.POST("/update", a.updateSetting)
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
@@ -45,6 +46,36 @@ func (a *SettingController) getAllSetting(c *gin.Context) {
 		return
 	}
 	jsonObj(c, allSetting, nil)
+}
+
+func (a *SettingController) getDefaultSettings(c *gin.Context) {
+	expireDiff, err := a.settingService.GetExpireDiff()
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		return
+	}
+	trafficDiff, err := a.settingService.GetTrafficDiff()
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		return
+	}
+	defaultCert, err := a.settingService.GetCertFile()
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		return
+	}
+	defaultKey, err := a.settingService.GetKeyFile()
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		return
+	}
+	result := map[string]interface{}{
+		"expireDiff":  expireDiff,
+		"trafficDiff": trafficDiff,
+		"defaultCert": defaultCert,
+		"defaultKey":  defaultKey,
+	}
+	jsonObj(c, result, nil)
 }
 
 func (a *SettingController) updateSetting(c *gin.Context) {

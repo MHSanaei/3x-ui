@@ -79,6 +79,8 @@ Set the robot-related parameters in the panel background, including:
 
 Reference syntax:
 
+- 30 * * * * * //Notify at the 30s of each point
+- 0 */10 * * * * //Notify at the first second of each 10 minutes
 - @hourly // hourly notification
 - @daily // Daily notification (00:00 in the morning)
 - @every 8h // notify every 8 hours
@@ -89,13 +91,13 @@ Reference syntax:
 - Login notification
 - CPU threshold notification
 - Threshold for Expiration time and Traffic to report in advance
-- Support client report if client's telegram username is added to the end of `email` like 'test123@telegram_username'
+- Support client report menu if client's telegram username added to the user's configurations
 - Support telegram traffic report searched with UID (VMESS/VLESS) or Password (TROJAN) - anonymously
 - Menu based bot
 - Search client by email ( only admin )
 - Check all inbounds
 - Check server status
-- Check Exhausted users
+- Check depleted users
 - Receive backup by request and in periodic reports
 
 # A Special Thanks To

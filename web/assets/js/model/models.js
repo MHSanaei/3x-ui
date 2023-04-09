@@ -171,13 +171,13 @@ class AllSetting {
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
+        this.expireDiff = "";
+        this.trafficDiff = "";
         this.tgBotEnable = false;
         this.tgBotToken = "";
         this.tgBotChatId = "";
         this.tgRunTime = "@daily";
         this.tgBotBackup = false;
-        this.tgExpireDiff = "";
-        this.tgTrafficDiff = "";
         this.tgCpu = "";
         this.xrayTemplateConfig = "";
 
