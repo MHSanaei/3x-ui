@@ -33,6 +33,9 @@ import (
 //go:embed assets/*
 var assetsFS embed.FS
 
+//go:embed assets/favicon.ico
+var favicon []byte
+
 //go:embed html/*
 var htmlFS embed.FS
 
@@ -85,6 +88,7 @@ type Server struct {
 	server *controller.ServerController
 	xui    *controller.XUIController
 	api    *controller.APIController
+	sub    *controller.SUBController
 
 	xrayService    service.XrayService
 	settingService service.SettingService
@@ -156,9 +160,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
-	
+
 	// Add favicon
-	engine.StaticFile("/favicon.ico", "web/assets/favicon.ico")
+	engine.GET("/favicon.ico", func(c *gin.Context) {
+		c.Data(200, "image/x-icon", favicon)
+	})
 
 	secret, err := s.settingService.GetSecret()
 	if err != nil {
@@ -211,6 +217,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.server = controller.NewServerController(g)
 	s.xui = controller.NewXUIController(g)
 	s.api = controller.NewAPIController(g)
+	s.sub = controller.NewSUBController(g)
 
 	return engine, nil
 }
@@ -312,7 +319,7 @@ func (s *Server) startTask() {
 
 	// Check the inbound traffic every 30 seconds that the traffic exceeds and expires
 	s.cron.AddJob("@every 30s", job.NewCheckInboundJob())
-	
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 

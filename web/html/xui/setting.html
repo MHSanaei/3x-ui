@@ -44,6 +44,8 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.setting.expireTimeDiff" }}' desc='{{ i18n "pages.setting.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.setting.trafficDiff" }}' desc='{{ i18n "pages.setting.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
                                 <a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
@@ -122,8 +124,6 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model="allSetting.tgBotChatId"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}'  v-model="allSetting.tgRunTime"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}'  v-model="allSetting.tgBotBackup"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyExpireTimeDiff" }}' desc='{{ i18n "pages.setting.tgNotifyExpireTimeDiffDesc" }}'  v-model="allSetting.tgExpireDiff" :min="0"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyTrafficDiff" }}' desc='{{ i18n "pages.setting.tgNotifyTrafficDiffDesc" }}'  v-model="allSetting.tgTrafficDiff" :min="0"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyCpu" }}' desc='{{ i18n "pages.setting.tgNotifyCpuDesc" }}'  v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
                             </a-list>
                         </a-tab-pane>

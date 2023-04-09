@@ -327,11 +327,11 @@ func (s *ServerService) UpdateXray(version string) error {
 
 }
 
-func (s *ServerService) GetLogs() ([]string, error) {
+func (s *ServerService) GetLogs(count string) ([]string, error) {
 	// Define the journalctl command and its arguments
 	var cmdArgs []string
 	if runtime.GOOS == "linux" {
-		cmdArgs = []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", "100"}
+		cmdArgs = []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count}
 	} else {
 		return []string{"Unsupported operating system"}, nil
 	}
