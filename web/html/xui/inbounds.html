@@ -349,7 +349,7 @@
                                 depleted.push(client.email);
                             } else {
                                 if ((client.expiryTime > 0 && (client.expiryTime-now < this.expireDiff)) ||
-                                (client.total > 0 && (client.total-client.up+client.down < this.trafficDiff ))) expiring.push(client.email);
+                                (client.total > 0 && (client.total-(client.up+client.down) < this.trafficDiff ))) expiring.push(client.email);
                             }
                         });
                     } else {

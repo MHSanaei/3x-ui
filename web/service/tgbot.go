@@ -536,14 +536,14 @@ func (t *Tgbot) getExhausted() string {
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if (inbound.ExpiryTime > 0 && (inbound.ExpiryTime-now < exDiff)) ||
-				(inbound.Total > 0 && (inbound.Total-inbound.Up+inbound.Down < trDiff)) {
+				(inbound.Total > 0 && (inbound.Total-(inbound.Up+inbound.Down) < trDiff)) {
 				exhaustedInbounds = append(exhaustedInbounds, *inbound)
 			}
 			if len(inbound.ClientStats) > 0 {
 				for _, client := range inbound.ClientStats {
 					if client.Enable {
 						if (client.ExpiryTime > 0 && (client.ExpiryTime-now < exDiff)) ||
-							(client.Total > 0 && (client.Total-client.Up+client.Down < trDiff)) {
+							(client.Total > 0 && (client.Total-(client.Up+client.Down) < trDiff)) {
 							exhaustedClients = append(exhaustedClients, client)
 						}
 					} else {
