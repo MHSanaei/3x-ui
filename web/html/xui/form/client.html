@@ -27,6 +27,12 @@
     <a-form-item label='{{ i18n "additional" }} ID' v-if="inbound.protocol === Protocols.VMESS">
         <a-input type="number" v-model.number="client.alterId" style="width: 70px;"></a-input>
     </a-form-item>
+	<a-form-item label="Subscription" v-if="client.email">
+        <a-input v-model.trim="client.subId"></a-input>
+    </a-form-item>
+    <a-form-item label="Telegram Username" v-if="client.email">
+        <a-input v-model.trim="client.tgId"></a-input>
+    </a-form-item>
 	<a-form-item>
 		<span slot="label">
 			<span>{{ i18n "pages.inbounds.IPLimit" }}</span>
@@ -62,12 +68,6 @@
 			</a-textarea>
 		</a-form>
 	</a-form-item>
-    <a-form-item label="Subscription" v-if="client.email">
-        <a-input v-model.trim="client.subId"></a-input>
-    </a-form-item>
-    <a-form-item label="Telegram Username" v-if="client.email">
-        <a-input v-model.trim="client.tgId"></a-input>
-    </a-form-item>
     <a-form-item v-if="inbound.XTLS" label="Flow">
         <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="">{{ i18n "none" }}</a-select-option>
