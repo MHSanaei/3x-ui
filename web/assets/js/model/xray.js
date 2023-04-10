@@ -106,7 +106,6 @@ Object.freeze(XTLS_FLOW_CONTROL);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(TLS_VERSION_OPTION);
 Object.freeze(TLS_CIPHER_OPTION);
-Object.freeze(UTLS_FINGERPRINT);
 Object.freeze(ALPN_OPTION);
 
 class XrayCommonClass {
@@ -177,7 +176,6 @@ class TcpStreamSettings extends XrayCommonClass {
         this.type = type;
         this.request = request;
         this.response = response;
-        this.acceptProxyProtocol = acceptProxyProtocol;
     }
 
     static fromJson(json={}) {
@@ -185,9 +183,8 @@ class TcpStreamSettings extends XrayCommonClass {
         if (!header) {
             header = {};
         }
-        return new TcpStreamSettings(
+        return new TcpStreamSettings(json.acceptProxyProtocol,
             header.type,
-            json.acceptProxyProtocol,
             TcpStreamSettings.TcpRequest.fromJson(header.request),
             TcpStreamSettings.TcpResponse.fromJson(header.response),
         );
@@ -201,7 +198,6 @@ class TcpStreamSettings extends XrayCommonClass {
                 request: this.type === 'http' ? this.request.toJson() : undefined,
                 response: this.type === 'http' ? this.response.toJson() : undefined,
             },
-            acceptProxyProtocol: this.acceptProxyProtocol,
         };
     }
 }
@@ -994,6 +990,7 @@ class Inbound extends XrayCommonClass {
             case Protocols.VMESS:
             case Protocols.VLESS:
             case Protocols.TROJAN:
+            case Protocols.SHADOWSOCKS:
                 return true;
             default:
                 return false;
