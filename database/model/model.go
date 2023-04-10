@@ -80,7 +80,7 @@ type Client struct {
 	LimitIP    int    `json:"limitIp"`
 	TotalGB    int64  `json:"totalGB" form:"totalGB"`
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"`
-	Enable     bool   `json:"enable" from:"enable"`
-	TgID       string `json:"tgId" from:"tgId"`
-	SubID      string `json:"subId" from:"subId"`
+	Enable     bool   `json:"enable" form:"enable"`
+	TgID       string `json:"tgId" form:"tgId"`
+	SubID      string `json:"subId" form:"subId"`
 }
