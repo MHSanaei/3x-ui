@@ -152,6 +152,8 @@
 "IPLimitlogDesc" = "IPs history Log (before enabling inbound after it has been disabled by IP limit, you should clear the log)"
 "IPLimitlogclear" = "Clear The Log"
 "setDefaultCert" = "Set cert from panel"
+"XTLSdec" = "Xray core needs to be 1.7.5 and below"
+"Realitydec" = "Xray core needs to be 1.8.0 and above"
 
 [pages.client]
 "add" = "Add client"
