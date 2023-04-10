@@ -17,7 +17,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/xui/API/inbounds")
 	g.Use(a.checkLogin)
 
-	g.POST("/list", a.getAllInbounds)
+	g.GET("/list", a.getAllInbounds)
 	g.GET("/get/:id", a.getSingleInbound)
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
