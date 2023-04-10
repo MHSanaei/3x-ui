@@ -134,6 +134,7 @@
                                     <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXTLS" color="cyan">XTLS</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="cyan">Reality</a-tag>
                                 </template>
                             </template>
                             <template slot="clients" slot-scope="text, dbInbound">
@@ -239,7 +240,7 @@
     }, {
         title: '{{ i18n "pages.inbounds.protocol" }}',
         align: 'left',
-        width: 70,
+        width: 80,
         scopedSlots: { customRender: 'protocol' },
     }, {
         title: '{{ i18n "clients" }}',

@@ -91,6 +91,9 @@ const UTLS_FINGERPRINT = {
     UTLS_RANDOMIZED: "randomized",
 };
 
+const bytesToHex = e => Array.from(e).map(e => e.toString(16).padStart(2, 0)).join('');
+const hexToBytes = e => new Uint8Array(e.match(/[0-9a-f]{2}/gi).map(e => parseInt(e, 16)));
+
 const ALPN_OPTION = {
     H3: "h3",
     H2: "h2",
@@ -596,10 +599,62 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
     }
 };
 
+class RealityStreamSettings extends XrayCommonClass {
+    constructor(show = false,xver = 0, fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, dest = 'github.io:443',  serverNames = 'github.io,www.github.io,', privateKey = RandomUtil.randomX25519PrivateKey(), publicKey = '', minClient = '',
+        maxClient = '', maxTimediff = 0, shortIds = RandomUtil.randowShortId()) {
+        super();
+        this.show = show;
+        this.xver = xver;
+        this.fingerprint = fingerprint;
+        this.dest = dest;
+        this.serverNames = serverNames instanceof Array ? serverNames.join(",") : serverNames;
+        this.privateKey = privateKey;
+        this.publicKey = RandomUtil.randomX25519PublicKey(this.privateKey);
+        this.minClient = minClient;
+        this.maxClient = maxClient;
+        this.maxTimediff = maxTimediff;
+        this.shortIds = shortIds instanceof Array ? shortIds.join(",") : shortIds;
+        
+    }
+
+    static fromJson(json = {}) {
+        return new RealityStreamSettings(
+            json.show,
+            json.xver,
+            json.fingerprint,
+            json.dest,
+            json.serverNames,
+            json.privateKey,
+            json.publicKey,
+            json.minClient,
+            json.maxClient,
+            json.maxTimediff,
+            json.shortIds  
+        );
+
+    }
+    toJson() {
+        return {
+            show: this.show,
+            xver: this.xver,
+            fingerprint: this.fingerprint,
+            dest: this.dest,
+            serverNames: this.serverNames.split(/,|，|\s+/),
+            privateKey: this.privateKey,
+            publicKey: this.publicKey,
+            minClient: this.minClient,
+            maxClient: this.maxClient,
+            maxTimediff: this.maxTimediff,
+            shortIds: this.shortIds.split(/,|，|\s+/)
+        };
+    }
+}
+
 class StreamSettings extends XrayCommonClass {
     constructor(network='tcp',
                 security='none',
                 tlsSettings=new TlsStreamSettings(),
+                realitySettings = new RealityStreamSettings(),
                 tcpSettings=new TcpStreamSettings(),
                 kcpSettings=new KcpStreamSettings(),
                 wsSettings=new WsStreamSettings(),
@@ -611,6 +666,7 @@ class StreamSettings extends XrayCommonClass {
         this.network = network;
         this.security = security;
         this.tls = tlsSettings;
+        this.reality = realitySettings;
         this.tcp = tcpSettings;
         this.kcp = kcpSettings;
         this.ws = wsSettings;
@@ -643,17 +699,34 @@ class StreamSettings extends XrayCommonClass {
         }
     }
 
-    static fromJson(json={}) {
-        let tls;
-        if (json.security === "xtls") {
-            tls = TlsStreamSettings.fromJson(json.XTLSSettings);
+    //for Reality
+    get isReality() {
+        return this.security === "reality";
+    }
+
+    set isReality(isReality) {
+        if (isReality) {
+            this.security = "reality";
         } else {
+            this.security = "none";
+        }
+    }
+    
+    static fromJson(json = {}) {
+        let tls, reality;
+        if (json.security === "xtls") {
+            tls = TlsStreamSettings.fromJson(json.xtlsSettings);
+        } else if (json.security === "tls") {
             tls = TlsStreamSettings.fromJson(json.tlsSettings);
+        }
+        if (json.security === "reality") {
+            reality = RealityStreamSettings.fromJson(json.realitySettings)
         }
         return new StreamSettings(
             json.network,
             json.security,
             tls,
+            reality,
             TcpStreamSettings.fromJson(json.tcpSettings),
             KcpStreamSettings.fromJson(json.kcpSettings),
             WsStreamSettings.fromJson(json.wsSettings),
@@ -671,6 +744,7 @@ class StreamSettings extends XrayCommonClass {
             tlsSettings: this.isTls ? this.tls.toJson() : undefined,
             XTLSSettings: this.isXTLS ? this.tls.toJson() : undefined,
             tcpSettings: network === 'tcp' ? this.tcp.toJson() : undefined,
+            realitySettings: this.isReality ? this.reality.toJson() : undefined,
             kcpSettings: network === 'kcp' ? this.kcp.toJson() : undefined,
             wsSettings: network === 'ws' ? this.ws.toJson() : undefined,
             httpSettings: network === 'http' ? this.http.toJson() : undefined,
@@ -743,6 +817,8 @@ class Inbound extends XrayCommonClass {
 
     set tls(isTls) {
         if (isTls) {
+            this.xtls = false;
+            this.reality = false;
             this.stream.security = 'tls';
         } else {
             this.stream.security = 'none';
@@ -755,9 +831,29 @@ class Inbound extends XrayCommonClass {
 
     set XTLS(isXTLS) {
         if (isXTLS) {
+            this.xtls = false;
+            this.reality = false;
             this.stream.security = 'xtls';
         } else {
             this.stream.security = 'none';
+        }
+    }
+
+    //for Reality
+    get reality() {
+        if (this.stream.security === "reality") {
+            return this.network === "tcp" || this.network === "grpc" || this.network === "http";
+        }
+        return false;
+    }
+
+    set reality(isReality) {
+        if (isReality) {
+            this.tls = false;
+            this.xtls = false;
+            this.stream.security = "reality";
+        } else {
+            this.stream.security = "none";
         }
     }
 
@@ -957,9 +1053,19 @@ class Inbound extends XrayCommonClass {
         }
     }
 
+    canEnableReality() {
+        switch (this.protocol) {
+            case Protocols.VLESS:
+                break;
+            default:
+                return false;
+        }
+        return this.network === "tcp" || this.network === "grpc" || this.network === "http";
+    }
+
     //this is used for xtls-rprx-vision
     canEnableTlsFlow() {
-        if ((this.stream.security === 'tls') && (this.network === "tcp")) {
+        if (((this.stream.security === 'tls') || (this.stream.security === 'reality')) && (this.network === "tcp")) {
             switch (this.protocol) {
                 case Protocols.VLESS:
                     return true;
@@ -1169,6 +1275,26 @@ class Inbound extends XrayCommonClass {
             params.set("flow", this.settings.vlesses[clientIndex].flow);
         }
 
+        if (this.reality) {
+            params.set("security", "reality");
+            if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
+                params.set("sni", this.stream.reality.serverNames.split(/,|，|\s+/)[0]);
+            }
+            if (this.stream.reality.publicKey != "") {
+                //params.set("pbk", Ed25519.getPublicKey(this.stream.reality.privateKey));
+                params.set("pbk", this.stream.reality.publicKey);
+            }
+            if (this.stream.network === 'tcp') {
+                params.set("flow", this.settings.vlesses[clientIndex].flow);
+            }
+            if (this.stream.reality.shortIds != "") {
+                params.set("sid", this.stream.reality.shortIds);
+            }
+            if (this.stream.reality.fingerprint != "") {
+                params.set("fp", this.stream.reality.fingerprint);
+            }
+        }
+        
         const link = `vless://${uuid}@${address}:${port}`;
         const url = new URL(link);
         for (const [key, value] of params) {

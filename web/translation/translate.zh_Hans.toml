@@ -150,6 +150,8 @@
 "IPLimitlogDesc" = "IP 历史日志 （通过IP限制禁用inbound之前，需要清空日志）"
 "IPLimitlogclear" = "清除日志"
 "setDefaultCert" = "从面板设置证书"
+"XTLSdec" = "Xray核心需要1.7.5及以下版本"
+"Realitydec" = "Xray核心需要1.8.0及以上版本"
 
 [pages.client]
 "add" = "添加客户端"
