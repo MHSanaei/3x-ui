@@ -269,6 +269,35 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
+	if security == "reality" {
+		params["security"] = "reality"
+		realitySetting, _ := stream["realitySettings"].(map[string]interface{})
+		realitySettings, _ := searchKey(realitySetting, "settings")
+		if realitySetting != nil {
+			if sniValue, ok := searchKey(realitySettings, "serverName"); ok {
+				params["sni"], _ = sniValue.(string)
+			}
+			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
+				params["pbk"], _ = pbkValue.(string)
+			}
+			if sidValue, ok := searchKey(realitySettings, "shortIds"); ok {
+				params["sid"], _ = sidValue.(string)
+			}
+			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
+				params["fp"], _ = fpValue.(string)
+			}
+		}
+
+		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
+			params["flow"] = clients[clientIndex].Flow
+		}
+
+		serverName, _ := realitySetting["serverName"].(string)
+		if serverName != "" {
+			address = serverName
+		}
+	}
+
 	if security == "xtls" {
 		params["security"] = "xtls"
 		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
