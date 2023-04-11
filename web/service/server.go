@@ -13,6 +13,7 @@ import (
 	"runtime"
 	"strings"
 	"time"
+	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/sys"
 	"x-ui/xray"
@@ -348,4 +349,44 @@ func (s *ServerService) GetLogs(count string) ([]string, error) {
 	lines := strings.Split(out.String(), "\n")
 
 	return lines, nil
+}
+
+func (s *ServerService) GetConfigJson() (interface{}, error) {
+	// Open the file for reading
+	file, err := os.Open(xray.GetConfigPath())
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Read the file contents
+	fileContents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var jsonData interface{}
+	err = json.Unmarshal(fileContents, &jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonData, nil
+}
+
+func (s *ServerService) GetDb() ([]byte, error) {
+	// Open the file for reading
+	file, err := os.Open(config.GetDBPath())
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	// Read the file contents
+	fileContents, err := io.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return fileContents, nil
 }
