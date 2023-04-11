@@ -300,7 +300,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	if security == "xtls" {
 		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
+		xtlsSetting, _ := stream["XTLSSettings"].(map[string]interface{})
 		alpns, _ := xtlsSetting["alpn"].([]interface{})
 		var alpn []string
 		for _, a := range alpns {
@@ -310,15 +310,15 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params["alpn"] = strings.Join(alpn, ",")
 		}
 
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
+		XTLSSettings, _ := searchKey(xtlsSetting, "settings")
 		if xtlsSetting != nil {
-			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
+			if sniValue, ok := searchKey(XTLSSettings, "serverName"); ok {
 				params["sni"], _ = sniValue.(string)
 			}
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
+			if fpValue, ok := searchKey(XTLSSettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
 			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
+			if insecure, ok := searchKey(XTLSSettings, "allowInsecure"); ok {
 				if insecure.(bool) {
 					params["allowInsecure"] = "1"
 				}
@@ -444,7 +444,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	if security == "xtls" {
 		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
+		xtlsSetting, _ := stream["XTLSSettings"].(map[string]interface{})
 		alpns, _ := xtlsSetting["alpn"].([]interface{})
 		var alpn []string
 		for _, a := range alpns {
@@ -454,15 +454,15 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			params["alpn"] = strings.Join(alpn, ",")
 		}
 
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
+		XTLSSettings, _ := searchKey(xtlsSetting, "settings")
 		if xtlsSetting != nil {
-			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
+			if sniValue, ok := searchKey(XTLSSettings, "serverName"); ok {
 				params["sni"], _ = sniValue.(string)
 			}
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
+			if fpValue, ok := searchKey(XTLSSettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
 			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
+			if insecure, ok := searchKey(XTLSSettings, "allowInsecure"); ok {
 				if insecure.(bool) {
 					params["allowInsecure"] = "1"
 				}
