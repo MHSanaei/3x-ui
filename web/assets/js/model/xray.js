@@ -600,8 +600,20 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
 };
 
 class RealityStreamSettings extends XrayCommonClass {
-    constructor(show = false,xver = 0, fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, dest = 'github.io:443',  serverNames = 'github.io,www.github.io,', privateKey = RandomUtil.randomX25519PrivateKey(), publicKey = '', minClient = '',
-        maxClient = '', maxTimediff = 0, shortIds = RandomUtil.randowShortId()) {
+    
+    constructor(
+        show = false,xver = 0,
+        fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX,
+        dest = 'yahoo.com:443',
+        serverNames = 'yahoo.com,www.yahoo.com',
+        privateKey = RandomUtil.randomX25519PrivateKey(),
+        publicKey = '',
+        minClient = '',
+        maxClient = '',
+        maxTimediff = 0,
+        shortIds = RandomUtil.randowShortId() 
+        )   
+        {
         super();
         this.show = show;
         this.xver = xver;
@@ -613,11 +625,9 @@ class RealityStreamSettings extends XrayCommonClass {
         this.minClient = minClient;
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
-        this.shortIds = shortIds instanceof Array ? shortIds.join(",") : shortIds;
-        
-    }
-
-    static fromJson(json = {}) {
+        this.shortIds = shortIds instanceof Array ? shortIds.join(",") : shortIds; 
+        }
+        static fromJson(json = {}) {
         return new RealityStreamSettings(
             json.show,
             json.xver,
@@ -631,9 +641,8 @@ class RealityStreamSettings extends XrayCommonClass {
             json.maxTimediff,
             json.shortIds  
         );
-
-    }
-    toJson() {
+        }
+        toJson() {
         return {
             show: this.show,
             xver: this.xver,
@@ -646,22 +655,22 @@ class RealityStreamSettings extends XrayCommonClass {
             maxClient: this.maxClient,
             maxTimediff: this.maxTimediff,
             shortIds: this.shortIds.split(/,|，|\s+/)
-        };
+            };
+        }
     }
-}
 
 class StreamSettings extends XrayCommonClass {
     constructor(network='tcp',
-                security='none',
-                tlsSettings=new TlsStreamSettings(),
-                realitySettings = new RealityStreamSettings(),
-                tcpSettings=new TcpStreamSettings(),
-                kcpSettings=new KcpStreamSettings(),
-                wsSettings=new WsStreamSettings(),
-                httpSettings=new HttpStreamSettings(),
-                quicSettings=new QuicStreamSettings(),
-                grpcSettings=new GrpcStreamSettings(),
-                ) {
+        security='none',
+        tlsSettings=new TlsStreamSettings(),
+        realitySettings = new RealityStreamSettings(),
+        tcpSettings=new TcpStreamSettings(),
+        kcpSettings=new KcpStreamSettings(),
+        wsSettings=new WsStreamSettings(),
+        httpSettings=new HttpStreamSettings(),
+        quicSettings=new QuicStreamSettings(),
+        grpcSettings=new GrpcStreamSettings(),
+        ) {
         super();
         this.network = network;
         this.security = security;
@@ -1056,6 +1065,7 @@ class Inbound extends XrayCommonClass {
     canEnableReality() {
         switch (this.protocol) {
             case Protocols.VLESS:
+            case Protocols.TROJAN:
                 break;
             default:
                 return false;
@@ -1377,6 +1387,26 @@ class Inbound extends XrayCommonClass {
             if (this.stream.tls.settings[0]['serverName'] !== ''){
                 params.set("sni", this.stream.tls.settings[0]['serverName']);
 			}
+        }
+
+        if (this.reality) {
+            params.set("security", "reality");
+            if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
+                params.set("sni", this.stream.reality.serverNames.split(/,|，|\s+/)[0]);
+            }
+            if (this.stream.reality.publicKey != "") {
+                //params.set("pbk", Ed25519.getPublicKey(this.stream.reality.privateKey));
+                params.set("pbk", this.stream.reality.publicKey);
+            }
+            if (this.stream.network === 'tcp') {
+                params.set("flow", this.settings.trojans[clientIndex].flow);
+            }
+            if (this.stream.reality.shortIds != "") {
+                params.set("sid", this.stream.reality.shortIds);
+            }
+            if (this.stream.reality.fingerprint != "") {
+                params.set("fp", this.stream.reality.fingerprint);
+            }
         }
 
 		if (this.XTLS) {
