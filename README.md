@@ -102,7 +102,7 @@ Reference syntax:
 
 # A Special Thanks To
 - [alireza0](https://github.com/alireza0/)
-- [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
+- [FranzKafkaYu](https://github.com/FranzKafkaYu)
 
 # Suggestion System
 - Ubuntu 20.04+
