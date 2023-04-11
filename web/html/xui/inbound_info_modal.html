@@ -240,7 +240,7 @@
                 return infoModal.dbInbound.isEnable;
             },
             get subBase() {
-                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port:"") + "/sub/";
+                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port:"") + basePath + "sub/";
             },
             get tgBase() {
                 return "https://t.me/"
