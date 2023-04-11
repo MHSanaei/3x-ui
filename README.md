@@ -100,6 +100,28 @@ Reference syntax:
 - Check depleted users
 - Receive backup by request and in periodic reports
 
+
+## API routes
+
+- `/login` with `PUSH` user data: `{username: '', password: ''}` for login
+- `/xui/API/inbounds` base for following actions:
+
+| Method | Path | Action |
+| ------------- | ------------- | ------------- |
+| GET | "/list" | Get all inbounds |
+| GET | "/get/:id" | Get inbound with inbound.id |
+| POST | "/add" | Add inbound |
+| POST | "/del/:id" | Delete Inbound |
+| POST | "/update/:id" | Update Inbound |
+| POST | "/clientIps/:email" | Client Ip address |
+| POST | "/clearClientIps/:email" | Clear Client Ip address |
+| POST | "/addClient/" | Add Client to inbound |
+| POST | "/delClient/:email" | Delete Client |
+| POST | "/updateClient/:index" | Update Client |
+| POST | "/:id/resetClientTraffic/:email" | Reset Client's Traffic |
+| POST | "/resetAllTraffics" | Reset traffics of all inbounds |
+| POST | "/resetAllClientTraffics/:id" | Reset traffics of all clients in an inbound |
+
 # A Special Thanks To
 - [alireza0](https://github.com/alireza0/)
 - [FranzKafkaYu](https://github.com/FranzKafkaYu)
