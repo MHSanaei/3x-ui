@@ -715,7 +715,7 @@ class StreamSettings extends XrayCommonClass {
     static fromJson(json = {}) {
         let tls, reality;
         if (json.security === "xtls") {
-            tls = TlsStreamSettings.fromJson(json.xtlsSettings);
+            tls = TlsStreamSettings.fromJson(json.XTLSSettings);
         } else if (json.security === "tls") {
             tls = TlsStreamSettings.fromJson(json.tlsSettings);
         }
