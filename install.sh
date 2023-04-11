@@ -66,32 +66,16 @@ else
     echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
 fi
 
-# This function installs the base packages required for most scripts
 install_base() {
-    # Store the package names in a variable for easy modification
-    local packages="wget curl tar"
-
-    # Check for the package managers and install the packages if they are not already installed
-    if ! command -v wget >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1 || ! command -v tar >/dev/null 2>&1; then
-        if command -v apt >/dev/null 2>&1; then
-            apt-get update && apt-get install -y $packages
-        elif command -v dnf >/dev/null 2>&1; then
-            dnf install -y $packages
-        elif command -v yum >/dev/null 2>&1; then
-            yum install -y $packages
-        else
-            echo "ERROR: No package managers found. Please install wget, curl, and tar manually."
-            return 1
-        fi
-
-        # Print a confirmation message after the installation is complete
-        echo "The following packages have been successfully installed: $packages"
-    else
-        # Print a message confirming that the packages are already installed
-        echo "The following packages are already installed: $packages"
-    fi
+    case "${release}" in
+        centos|fedora)
+            yum install -y -q wget curl tar
+            ;;
+        *)
+            apt install -y -q wget curl tar
+            ;;
+    esac
 }
-
 
 #This function will be called when user installed x-ui out of sercurity
 config_after_install() {
