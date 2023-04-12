@@ -49,7 +49,7 @@
                     tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                     tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
                 </td>
-                <td v-else-if="inbound.xtls">
+                <td v-else-if="inbound.XTLS">
                     xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                     xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
                 </td>
@@ -59,13 +59,25 @@
     </table>
     <template v-if="infoModal.clientSettings">
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-	<table style="margin-bottom: 10px;">
+    <table style="margin-bottom: 10px;">
         <tr v-for="col,index in Object.keys(infoModal.clientSettings).slice(0, 3)">
             <td>[[ col ]]</td>
-            <td><a-tag color="green">[[ infoModal.clientSettings[col] ]]</a-tag></td>    
-	</table>
+            <td><a-tag color="green">[[ infoModal.clientSettings[col] ]]</a-tag></td>
+        </tr>
+        <tr>
+            <td>{{ i18n "status" }}</td>
+            <td>
+                <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
+                <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
+                <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
+            </td>
+        </tr>
+    </table>
     <table style="margin-bottom: 10px; width: 100%;">
-            <tr><th>{{ i18n "usage" }}</th><th>{{ i18n "pages.inbounds.totalFlow" }}</th><th>{{ i18n "pages.inbounds.expireDate" }}</th><th>{{ i18n "enable" }}</th></tr>    
+            <tr>
+                <th>{{ i18n "usage" }}</th>
+                <th>{{ i18n "pages.inbounds.totalFlow" }}</th>
+                <th>{{ i18n "pages.inbounds.expireDate" }}</th>
         <tr>
             <td>
                 <a-tag v-if="infoModal.clientStats" :color="statsColor(infoModal.clientStats)">
@@ -84,12 +96,19 @@
                         [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
                     </a-tag>
                 </template>
+                <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="cyan">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</a-tag>
                 <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
             </td>
-            <td>
-                <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
-                <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
-            </td>
+        </tr>
+    </table>
+    <table v-if="infoModal.clientSettings.subId + infoModal.clientSettings.tgId" style="margin-bottom: 10px;">
+        <tr v-if="infoModal.clientSettings.subId">
+            <td>Subscription link</td>
+            <td><a :href="[[ subBase + infoModal.clientSettings.subId ]]" target="_blank">[[ subBase + infoModal.clientSettings.subId ]]</a></td>
+        </tr>
+        <tr v-if="infoModal.clientSettings.tgId">
+            <td>Telegram Username</td>
+            <td><a :href="[[ tgBase + infoModal.clientSettings.tgId ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></td>
         </tr>
     </table>
     </template>
@@ -160,13 +179,12 @@
     </div>
 </a-modal>
 <script>
-
     const infoModal = {
         visible: false,
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
         settings: null,
-        clientSettings: new Inbound.Settings(),
+        clientSettings: null,
         clientStats: [],
         upStats: 0,
         downStats: 0,
@@ -209,12 +227,24 @@
             get inbound() {
                 return this.infoModal.inbound;
             },
-            get isEnable() {
+            get isActive() {
                 if(infoModal.clientStats){
                     return infoModal.clientStats.enable;
                 }
                 return infoModal.dbInbound.isEnable;
-            }
+            },
+            get isEnable() {
+                if(infoModal.clientSettings){
+                    return infoModal.clientSettings.enable;
+                }
+                return infoModal.dbInbound.isEnable;
+            },
+            get subBase() {
+                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port:"") + basePath + "sub/";
+            },
+            get tgBase() {
+                return "https://t.me/"
+            },
         },
         methods: {
             copyTextToClipboard(elmentId,content) {

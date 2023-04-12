@@ -394,11 +394,16 @@ func (s *InboundService) AddClientTraffic(traffics []*xray.ClientTraffic) (err e
 	if len(traffics) == 0 {
 		return nil
 	}
-	db := database.GetDB()
-	dbInbound := db.Model(model.Inbound{})
 
+	traffics, err = s.adjustTraffics(traffics)
+	if err != nil {
+		return err
+	}
+
+	db := database.GetDB()
 	db = db.Model(xray.ClientTraffic{})
 	tx := db.Begin()
+
 	defer func() {
 		if err != nil {
 			tx.Rollback()
@@ -406,7 +411,20 @@ func (s *InboundService) AddClientTraffic(traffics []*xray.ClientTraffic) (err e
 			tx.Commit()
 		}
 	}()
+
+	err = tx.Save(traffics).Error
+	if err != nil {
+		logger.Warning("AddClientTraffic update data ", err)
+	}
+
+	return nil
+}
+
+func (s *InboundService) adjustTraffics(traffics []*xray.ClientTraffic) (full_traffics []*xray.ClientTraffic, err error) {
+	db := database.GetDB()
+	dbInbound := db.Model(model.Inbound{})
 	txInbound := dbInbound.Begin()
+
 	defer func() {
 		if err != nil {
 			txInbound.Rollback()
@@ -415,52 +433,68 @@ func (s *InboundService) AddClientTraffic(traffics []*xray.ClientTraffic) (err e
 		}
 	}()
 
-	for _, traffic := range traffics {
+	for traffic_index, traffic := range traffics {
 		inbound := &model.Inbound{}
-		client := &xray.ClientTraffic{}
-		err := tx.Where("email = ?", traffic.Email).First(client).Error
+		client_traffic := &xray.ClientTraffic{}
+		err := db.Model(xray.ClientTraffic{}).Where("email = ?", traffic.Email).First(client_traffic).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				logger.Warning(err, traffic.Email)
 			}
 			continue
 		}
+		client_traffic.Up += traffic.Up
+		client_traffic.Down += traffic.Down
 
-		err = txInbound.Where("id=?", client.InboundId).First(inbound).Error
+		err = txInbound.Where("id=?", client_traffic.InboundId).First(inbound).Error
 		if err != nil {
 			if err == gorm.ErrRecordNotFound {
 				logger.Warning(err, traffic.Email)
-
 			}
 			continue
 		}
-		// get settings clients
-		settings := map[string][]model.Client{}
-		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients := settings["clients"]
-		for _, client := range clients {
-			if traffic.Email == client.Email {
-				traffic.ExpiryTime = client.ExpiryTime
-				traffic.Total = client.TotalGB
+		// get clients
+		clients, err := s.getClients(inbound)
+		needUpdate := false
+		if err == nil {
+			for client_index, client := range clients {
+				if traffic.Email == client.Email {
+					if client.ExpiryTime < 0 {
+						clients[client_index].ExpiryTime = (time.Now().Unix() * 1000) - client.ExpiryTime
+						needUpdate = true
+					}
+					client_traffic.ExpiryTime = client.ExpiryTime
+					client_traffic.Total = client.TotalGB
+					break
+				}
 			}
 		}
-		if tx.Where("inbound_id = ? and email = ?", inbound.Id, traffic.Email).
-			UpdateColumns(map[string]interface{}{
-				"enable":      true,
-				"expiry_time": traffic.ExpiryTime,
-				"total":       traffic.Total,
-				"up":          gorm.Expr("up + ?", traffic.Up),
-				"down":        gorm.Expr("down + ?", traffic.Down)}).RowsAffected == 0 {
-			err = tx.Create(traffic).Error
+
+		if needUpdate {
+			settings := map[string]interface{}{}
+			json.Unmarshal([]byte(inbound.Settings), &settings)
+
+			// Convert clients to []interface to update clients in settings
+			var clientsInterface []interface{}
+			for _, c := range clients {
+				clientsInterface = append(clientsInterface, interface{}(c))
+			}
+
+			settings["clients"] = clientsInterface
+			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				return nil, err
+			}
+
+			err = txInbound.Where("id=?", inbound.Id).Update("settings", string(modifiedSettings)).Error
+			if err != nil {
+				return nil, err
+			}
 		}
 
-		if err != nil {
-			logger.Warning("AddClientTraffic update data ", err)
-			continue
-		}
-
+		traffics[traffic_index] = client_traffic
 	}
-	return
+	return traffics, nil
 }
 
 func (s *InboundService) DisableInvalidInbounds() (int64, error) {
@@ -545,11 +579,58 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) error {
 	}
 	return nil
 }
-func (s *InboundService) GetClientTrafficTgBot(tguname string) (traffic []*xray.ClientTraffic, err error) {
-	db := database.GetDB()
-	var traffics []*xray.ClientTraffic
 
-	err = db.Model(xray.ClientTraffic{}).Where("email like ?", "%@"+tguname).Find(&traffics).Error
+func (s *InboundService) ResetAllClientTraffics(id int) error {
+	db := database.GetDB()
+
+	result := db.Model(xray.ClientTraffic{}).
+		Where("inbound_id = ?", id).
+		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
+
+	err := result.Error
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InboundService) ResetAllTraffics() error {
+	db := database.GetDB()
+
+	result := db.Model(model.Inbound{}).
+		Where("user_id > ?", 0).
+		Updates(map[string]interface{}{"up": 0, "down": 0})
+
+	err := result.Error
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTraffic, error) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tguname)).Find(&inbounds).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	var emails []string
+	for _, inbound := range inbounds {
+		clients, err := s.getClients(inbound)
+		if err != nil {
+			logger.Error("Unable to get clients from inbound")
+		}
+		for _, client := range clients {
+			if client.TgID == tguname {
+				emails = append(emails, client.Email)
+			}
+		}
+	}
+	var traffics []*xray.ClientTraffic
+	err = db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			logger.Warning(err)

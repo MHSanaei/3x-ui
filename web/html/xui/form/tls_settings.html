@@ -1,11 +1,32 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
 <a-form layout="inline" v-if="inbound.canSetTls()">
-    <a-form-item label="TLS">
+    <a-form-item v-if="inbound.canEnableTls()" label="TLS">
         <a-switch v-model="inbound.tls">
         </a-switch>
     </a-form-item>
-    <a-form-item v-if="inbound.canEnableXTLS()" label="XTLS">
+    <a-form-item v-if="inbound.canEnableReality()">
+        <span slot="label">
+            Reality
+            <a-tooltip>
+                <template slot="title">
+                  <span>{{ i18n "pages.inbounds.Realitydec" }}</span>
+                </template>
+                <a-icon type="question-circle" theme="filled"></a-icon>
+            </a-tooltip>
+        </span>
+        <a-switch v-model="inbound.reality"></a-switch>
+    </a-form-item>
+    <a-form-item v-if="inbound.canEnableXTLS()">
+        <span slot="label">
+            XTLS
+            <a-tooltip>
+                <template slot="title">
+                  <span>{{ i18n "pages.inbounds.XTLSdec" }}</span>
+                </template>
+                <a-icon type="question-circle" theme="filled"></a-icon>
+            </a-tooltip>
+        </span>
         <a-switch v-model="inbound.XTLS"></a-switch>
     </a-form-item>
 </a-form>
@@ -61,6 +82,7 @@
         <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
             <a-input v-model.trim="inbound.stream.tls.certs[0].keyFile" style="width:300px;"></a-input>
         </a-form-item>
+        <a-button @click="setDefaultCertData">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
     </template>
     <template v-else>
         <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
@@ -70,5 +92,34 @@
             <a-input type="textarea" :rows="3" style="width:300px;" v-model="inbound.stream.tls.certs[0].key"></a-input>
         </a-form-item>
     </template>
+</a-form>
+<a-form v-else-if="inbound.reality" layout="inline">
+    <a-form-item label="show">
+        <a-switch v-model="inbound.stream.reality.show">
+        </a-switch>
+    </a-form-item>
+    <a-form-item label="xver">
+        <a-input type="number" v-model.number="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input>
+    </a-form-item>
+    <a-form-item label="uTLS" >
+        <a-select v-model="inbound.stream.reality.fingerprint" style="width: 135px">
+            <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+	<a-form-item label="dest">
+        <a-input v-model.trim="inbound.stream.reality.dest" style="width: 360px"></a-input>
+    </a-form-item>
+    <a-form-item label="serverNames">
+        <a-input v-model.trim="inbound.stream.reality.serverNames" style="width: 360px"></a-input>
+    </a-form-item>
+    <a-form-item label="privateKey">
+        <a-input v-model.trim="inbound.stream.reality.privateKey" style="width: 360px"></a-input>
+    </a-form-item>
+    <a-form-item label="publicKey">
+        <a-input v-model.trim="inbound.stream.reality.publicKey" style="width: 360px"></a-input>
+    </a-form-item>
+    <a-form-item label="shortIds">
+        <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
+    </a-form-item>
 </a-form>
 {{end}}

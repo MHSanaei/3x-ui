@@ -21,9 +21,12 @@
         <a-icon style="font-size: 24px;" type="delete" v-if="isRemovable(record.id)" @click="delClient(record.id,client)"></a-icon>
     </a-tooltip>
 </template>
+<template slot="enable" slot-scope="text, client, index">
+    <a-switch v-model="client.enable" @change="switchEnableClient(record.id,client)"></a-switch>
+</template>   
 <template slot="client" slot-scope="text, client">
     [[ client.email ]]
-    <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "disabled" }}</a-tag>
+    <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "depleted" }}</a-tag>
 </template>                                    
 <template slot="traffic" slot-scope="text, client">
     <a-tag color="blue">[[ sizeFormat(getUpStats(record, client.email)) ]] / [[ sizeFormat(getDownStats(record, client.email)) ]]</a-tag>
@@ -34,11 +37,12 @@
     <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
 </template>                                    
 <template slot="expiryTime" slot-scope="text, client, index">
-    <template v-if="client._expiryTime > 0">
+    <template v-if="client.expiryTime > 0">
         <a-tag :color="isExpiry(record, index)? 'red' : 'blue'">
             [[ DateUtil.formatMillis(client._expiryTime) ]]
         </a-tag>
     </template>
+    <a-tag v-else-if="client.expiryTime < 0" color="cyan">[[ client._expiryTime ]] {{ i18n "pages.client.days" }}</a-tag>
     <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
 </template>
 {{end}}

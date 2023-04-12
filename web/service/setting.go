@@ -28,14 +28,14 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
+	"expireDiff":         "0",
+	"trafficDiff":        "0",
 	"timeLocation":       "Asia/Tehran",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
 	"tgBotChatId":        "",
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
-	"tgExpireDiff":       "0",
-	"tgTrafficDiff":      "0",
 	"tgCpu":              "0",
 }
 
@@ -238,22 +238,6 @@ func (s *SettingService) SetTgBotBackup(value bool) error {
 	return s.setBool("tgBotBackup", value)
 }
 
-func (s *SettingService) GetTgExpireDiff() (int, error) {
-	return s.getInt("tgExpireDiff")
-}
-
-func (s *SettingService) SetTgExpireDiff(value int) error {
-	return s.setInt("tgExpireDiff", value)
-}
-
-func (s *SettingService) GetTgTrafficDiff() (int, error) {
-	return s.getInt("tgTrafficDiff")
-}
-
-func (s *SettingService) SetTgTrafficDiff(value int) error {
-	return s.setInt("tgTrafficDiff", value)
-}
-
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
 }
@@ -276,6 +260,22 @@ func (s *SettingService) GetCertFile() (string, error) {
 
 func (s *SettingService) GetKeyFile() (string, error) {
 	return s.getString("webKeyFile")
+}
+
+func (s *SettingService) GetExpireDiff() (int, error) {
+	return s.getInt("expireDiff")
+}
+
+func (s *SettingService) SetExpireDiff(value int) error {
+	return s.setInt("expireDiff", value)
+}
+
+func (s *SettingService) GetTrafficDiff() (int, error) {
+	return s.getInt("trafficDiff")
+}
+
+func (s *SettingService) SetgetTrafficDiff(value int) error {
+	return s.setInt("trafficDiff", value)
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {
