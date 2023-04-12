@@ -61,7 +61,7 @@ fi
 
 confirm() {
     if [[ $# > 1 ]]; then
-        echo && read -p "$1 [Default$2]: " temp
+        echo && read -p "$1 [Default $2]: " temp
         if [[ x"${temp}" == x"" ]]; then
             temp=$2
         fi
