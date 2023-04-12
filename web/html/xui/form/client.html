@@ -15,6 +15,9 @@
         </span>
         <a-input v-model.trim="client.email" style="width: 150px;" ></a-input>
     </a-form-item>
+    <a-form-item label="{{ i18n "pages.inbounds.enable" }}">
+        <a-switch v-model="client.enable"></a-switch>
+    </a-form-item>
     <a-form-item label="Password" v-if="inbound.protocol === Protocols.TROJAN">
         <a-input v-model.trim="client.password" style="width: 150px;" ></a-input>
     </a-form-item>
@@ -23,6 +26,12 @@
     </a-form-item>
     <a-form-item label='{{ i18n "additional" }} ID' v-if="inbound.protocol === Protocols.VMESS">
         <a-input type="number" v-model.number="client.alterId" style="width: 70px;"></a-input>
+    </a-form-item>
+	<a-form-item label="Subscription" v-if="client.email">
+        <a-input v-model.trim="client.subId"></a-input>
+    </a-form-item>
+    <a-form-item label="Telegram Username" v-if="client.email">
+        <a-input v-model.trim="client.tgId"></a-input>
     </a-form-item>
 	<a-form-item>
 		<span slot="label">
@@ -60,7 +69,7 @@
 		</a-form>
 	</a-form-item>
     <a-form-item v-if="inbound.XTLS" label="Flow">
-        <a-select v-model="client.flow" style="width: 150px">
+        <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="">{{ i18n "none" }}</a-select-option>
             <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
         </a-select>
@@ -83,7 +92,7 @@
         </span>
         <a-input-number v-model="client._totalGB":min="0" style="width: 70px;"></a-input-number>
         <template v-if="isEdit && clientStats">
-            	{{ i18n "usage" }}: 
+            <span>{{ i18n "usage" }}:</span>
             <a-tag :color="statsColor">
                 [[ sizeFormat(clientStats.up) ]] / 
                 [[ sizeFormat(clientStats.down) ]]
@@ -91,7 +100,13 @@
             </a-tag>
         </template>
     </a-form-item>
-    <a-form-item>
+    <a-form-item label="{{ i18n "pages.client.delayedStart" }}">
+        <a-switch v-model="clientModal.delayedStart" @click="client._expiryTime=0"></a-switch>
+    </a-form-item>
+    <a-form-item label="{{ i18n "pages.client.expireDays" }}" v-if="clientModal.delayedStart">
+        <a-input type="number" v-model.number="delayedExpireDays" :min="0"></a-input>
+    </a-form-item>
+    <a-form-item v-else>
         <span slot="label">
             <span >{{ i18n "pages.inbounds.expireDate" }}</span>
             <a-tooltip>
@@ -102,8 +117,8 @@
             </a-tooltip>
         </span>
         <a-date-picker :show-time="{ format: 'HH:mm' }" format="YYYY-MM-DD HH:mm"
-						:dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"	
-                        v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
+                       :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                       v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
         <a-tag color="red" v-if="isExpiry">Expired</a-tag>
     </a-form-item>
 </a-form>

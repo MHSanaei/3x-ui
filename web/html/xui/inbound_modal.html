@@ -96,6 +96,10 @@
                 clientStats = this.dbInbound.clientStats ? this.dbInbound.clientStats.find(stats => stats.email === email) : null
                 return clientStats ? clientStats['enable'] : true
             },
+            setDefaultCertData(){
+                inModal.inbound.stream.tls.certs[0].certFile = app.defaultCert;
+                inModal.inbound.stream.tls.certs[0].keyFile = app.defaultKey;
+            },
             getNewEmail(client) {
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
                 var string = '';

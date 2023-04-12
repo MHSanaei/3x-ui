@@ -79,6 +79,8 @@ Set the robot-related parameters in the panel background, including:
 
 Reference syntax:
 
+- 30 * * * * * //Notify at the 30s of each point
+- 0 */10 * * * * //Notify at the first second of each 10 minutes
 - @hourly // hourly notification
 - @daily // Daily notification (00:00 in the morning)
 - @every 8h // notify every 8 hours
@@ -89,18 +91,40 @@ Reference syntax:
 - Login notification
 - CPU threshold notification
 - Threshold for Expiration time and Traffic to report in advance
-- Support client report if client's telegram username is added to the end of `email` like 'test123@telegram_username'
+- Support client report menu if client's telegram username added to the user's configurations
 - Support telegram traffic report searched with UID (VMESS/VLESS) or Password (TROJAN) - anonymously
 - Menu based bot
 - Search client by email ( only admin )
 - Check all inbounds
 - Check server status
-- Check Exhausted users
+- Check depleted users
 - Receive backup by request and in periodic reports
+
+
+## API routes
+
+- `/login` with `PUSH` user data: `{username: '', password: ''}` for login
+- `/xui/API/inbounds` base for following actions:
+
+| Method | Path | Action |
+| ------------- | ------------- | ------------- |
+| GET | "/list" | Get all inbounds |
+| GET | "/get/:id" | Get inbound with inbound.id |
+| POST | "/add" | Add inbound |
+| POST | "/del/:id" | Delete Inbound |
+| POST | "/update/:id" | Update Inbound |
+| POST | "/clientIps/:email" | Client Ip address |
+| POST | "/clearClientIps/:email" | Clear Client Ip address |
+| POST | "/addClient/" | Add Client to inbound |
+| POST | "/delClient/:email" | Delete Client |
+| POST | "/updateClient/:index" | Update Client |
+| POST | "/:id/resetClientTraffic/:email" | Reset Client's Traffic |
+| POST | "/resetAllTraffics" | Reset traffics of all inbounds |
+| POST | "/resetAllClientTraffics/:id" | Reset traffics of all clients in an inbound |
 
 # A Special Thanks To
 - [alireza0](https://github.com/alireza0/)
-- [HexaSoftwareTech](https://github.com/HexaSoftwareTech/)
+- [FranzKafkaYu](https://github.com/FranzKafkaYu)
 
 # Suggestion System
 - Ubuntu 20.04+

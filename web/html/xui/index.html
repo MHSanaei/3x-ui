@@ -76,18 +76,9 @@
                 <a-row>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
-                            {{ i18n "pages.index.xrayStatus" }}:
-                            <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
-                            <a-tooltip v-if="status.xray.state === State.Error">
-                                <template slot="title">
-                                    <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
-                                </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
-                            <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">[[ status.xray.version ]]</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
-                            <a-tag color="blue" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
+                            3x-ui: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                            Xray: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
+                            Telegram: <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -100,6 +91,29 @@
                                 </template>
                                 <a-icon type="question-circle" theme="filled"></a-icon>
                             </a-tooltip>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                            {{ i18n "pages.index.xrayStatus" }}:
+                            <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
+                            <a-tooltip v-if="status.xray.state === State.Error">
+                                <template slot="title">
+                                    <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
+                                </template>
+                                <a-icon type="question-circle" theme="filled"></a-icon>
+                            </a-tooltip>
+                            <a-tag color="blue" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
+                            <a-tag color="blue" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                            {{ i18n "menu.link" }}:
+                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">Log Reports</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">Config</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="getBackup">Backup</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -170,13 +184,6 @@
                             </a-row>
                         </a-card>
                     </a-col>
-					<a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
-							 3x-ui: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-							<a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">Telegram</a-tag></a>
-							<a-tag color="blue" style="cursor: pointer;" @click="openLogs">Log Reports</a-tag>
-                        </a-card>
-                    </a-col>
                 </a-row>
             </transition>
         </a-layout-content>
@@ -199,14 +206,34 @@
              :class="siderDrawer.isDarkTheme ? darkClass : ''"
              width="800px"
              footer="">
-        <table style="margin: 0px; width: 100%; background-color: black; color: hsla(0,0%,100%,.65);">
-            <tr v-for="log , index in logModal.logs">
-                <td style="vertical-align: top;">[[ index ]]</td><td>[[ log ]]</td>
-            </tr>
-        </table>
+        <a-form layout="inline">
+            <a-form-item label="Count">
+                <a-select v-model="logModal.rows"
+                style="width: 80px"
+                @change="openLogs(logModal.rows)"
+                :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                    <a-select-option value="10">10</a-select-option>
+                    <a-select-option value="20">20</a-select-option>
+                    <a-select-option value="50">50</a-select-option>
+                    <a-select-option value="100">100</a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item>
+                <button class="ant-btn ant-btn-primary" @click="openLogs(logModal.rows)"><a-icon type="sync"></a-icon> Reload</button>
+            </a-form-item>
+            <a-form-item>
+                <a-button type="primary" style="margin-bottom: 10px;"
+                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs)" download="x-ui.log">
+                    {{ i18n "download" }} x-ui.log
+                </a-button>
+            </a-form-item>
+       </a-form>
+        <a-input type="textarea" v-model="logModal.logs" disabled="true"
+                :autosize="{ minRows: 10, maxRows: 22}"></a-input>
     </a-modal>
 </a-layout>
 {{template "js" .}}
+{{template "textModal"}}
 <script>
 
     const State = {
@@ -301,9 +328,11 @@
     const logModal = {
         visible: false,
         logs: '',
-        show(logs) {
+        rows: 20,
+        show(logs, rows) {
             this.visible = true;
-            this.logs = logs;
+            this.rows = rows;
+            this.logs = logs.join("\n");
         },
         hide() {
             this.visible = false;
@@ -377,14 +406,26 @@
                     return;
                 }
             },
-            async openLogs(){
+            async openLogs(rows){
                 this.loading(true);
-                const msg = await HttpUtil.post('server/logs');
+                const msg = await HttpUtil.post('server/logs/'+rows);
                 this.loading(false);
                 if (!msg.success) {
                     return;
                 }
-                logModal.show(msg.obj);
+                logModal.show(msg.obj,rows);
+            },
+            async openConfig(){
+                this.loading(true);
+                const msg = await HttpUtil.post('server/getConfigJson');
+                this.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                txtModal.show('config.json',JSON.stringify(msg.obj, null, 2),'config.json');
+            },
+            getBackup(){
+                window.location = basePath + 'server/getDb';
             }
         },
         async mounted() {

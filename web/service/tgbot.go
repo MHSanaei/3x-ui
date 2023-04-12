@@ -160,14 +160,14 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 		t.SendMsgToTgbot(callbackQuery.From.ID, t.getServerUsage())
 	case "inbounds":
 		t.SendMsgToTgbot(callbackQuery.From.ID, t.getInboundUsages())
-	case "exhausted_soon":
+	case "deplete_soon":
 		t.SendMsgToTgbot(callbackQuery.From.ID, t.getExhausted())
 	case "get_backup":
 		t.sendBackup(callbackQuery.From.ID)
 	case "client_traffic":
 		t.getClientUsage(callbackQuery.From.ID, callbackQuery.From.UserName)
 	case "client_commands":
-		t.SendMsgToTgbot(callbackQuery.From.ID, "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UID|Passowrd]</code>\r\n \r\nUse UID for vmess and vless and Password for Trojan.")
+		t.SendMsgToTgbot(callbackQuery.From.ID, "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UID|Passowrd]</code>\r\n \r\nUse UID for vmess/vless and Password for Trojan.")
 	case "commands":
 		t.SendMsgToTgbot(callbackQuery.From.ID, "Search for a client email:\r\n<code>/usage email</code>\r\n \r\nSearch for inbounds (with client stats):\r\n<code>/inbound [remark]</code>")
 	}
@@ -190,7 +190,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Get Inbounds", "inbounds"),
-			tgbotapi.NewInlineKeyboardButtonData("Exhausted soon", "exhausted_soon"),
+			tgbotapi.NewInlineKeyboardButtonData("Deplete soon", "deplete_soon"),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("Commands", "commands"),
@@ -363,6 +363,11 @@ func (t *Tgbot) getInboundUsages() string {
 }
 
 func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
+	if len(tgUserName) == 0 {
+		msg := "Your configuration is not found!\nYou should configure your telegram username and ask Admin to add it to your configuration."
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserName)
 	if err != nil {
 		logger.Warning(err)
@@ -373,11 +378,14 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 	if len(traffics) == 0 {
 		msg := "Your configuration is not found!\nPlease ask your Admin to use your telegram username in your configuration(s).\n\nYour username: <b>@" + tgUserName + "</b>"
 		t.SendMsgToTgbot(chatId, msg)
+		return
 	}
 	for _, traffic := range traffics {
 		expiryTime := ""
 		if traffic.ExpiryTime == 0 {
 			expiryTime = "♾Unlimited"
+		} else if traffic.ExpiryTime < 0 {
+			expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
 		} else {
 			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 		}
@@ -412,6 +420,8 @@ func (t *Tgbot) searchClient(chatId int64, email string) {
 		expiryTime := ""
 		if traffic.ExpiryTime == 0 {
 			expiryTime = "♾Unlimited"
+		} else if traffic.ExpiryTime < 0 {
+			expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
 		} else {
 			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 		}
@@ -450,6 +460,8 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 			expiryTime := ""
 			if traffic.ExpiryTime == 0 {
 				expiryTime = "♾Unlimited"
+			} else if traffic.ExpiryTime < 0 {
+				expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
 			} else {
 				expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 			}
@@ -483,6 +495,8 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 	expiryTime := ""
 	if traffic.ExpiryTime == 0 {
 		expiryTime = "♾Unlimited"
+	} else if traffic.ExpiryTime < 0 {
+		expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
 	} else {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	}
@@ -507,13 +521,13 @@ func (t *Tgbot) getExhausted() string {
 	var disabledInbounds []model.Inbound
 	var disabledClients []xray.ClientTraffic
 	output := ""
-	TrafficThreshold, err := t.settingService.GetTgTrafficDiff()
+	TrafficThreshold, err := t.settingService.GetTrafficDiff()
 	if err == nil && TrafficThreshold > 0 {
 		trDiff = int64(TrafficThreshold) * 1073741824
 	}
-	ExpireThreshold, err := t.settingService.GetTgExpireDiff()
+	ExpireThreshold, err := t.settingService.GetExpireDiff()
 	if err == nil && ExpireThreshold > 0 {
-		exDiff = int64(ExpireThreshold) * 84600000
+		exDiff = int64(ExpireThreshold) * 86400000
 	}
 	inbounds, err := t.inboundService.GetAllInbounds()
 	if err != nil {
@@ -522,14 +536,14 @@ func (t *Tgbot) getExhausted() string {
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if (inbound.ExpiryTime > 0 && (inbound.ExpiryTime-now < exDiff)) ||
-				(inbound.Total > 0 && (inbound.Total-inbound.Up+inbound.Down < trDiff)) {
+				(inbound.Total > 0 && (inbound.Total-(inbound.Up+inbound.Down) < trDiff)) {
 				exhaustedInbounds = append(exhaustedInbounds, *inbound)
 			}
 			if len(inbound.ClientStats) > 0 {
 				for _, client := range inbound.ClientStats {
 					if client.Enable {
 						if (client.ExpiryTime > 0 && (client.ExpiryTime-now < exDiff)) ||
-							(client.Total > 0 && (client.Total-client.Up+client.Down < trDiff)) {
+							(client.Total > 0 && (client.Total-(client.Up+client.Down) < trDiff)) {
 							exhaustedClients = append(exhaustedClients, client)
 						}
 					} else {
@@ -541,7 +555,7 @@ func (t *Tgbot) getExhausted() string {
 			disabledInbounds = append(disabledInbounds, *inbound)
 		}
 	}
-	output += fmt.Sprintf("Exhausted Inbounds count:\r\n🛑 Disabled: %d\r\n🔜 Exhaust soon: %d\r\n \r\n", len(disabledInbounds), len(exhaustedInbounds))
+	output += fmt.Sprintf("Exhausted Inbounds count:\r\n🛑 Disabled: %d\r\n🔜 Deplete soon: %d\r\n \r\n", len(disabledInbounds), len(exhaustedInbounds))
 	if len(exhaustedInbounds) > 0 {
 		output += "Exhausted Inbounds:\r\n"
 		for _, inbound := range exhaustedInbounds {
@@ -553,13 +567,15 @@ func (t *Tgbot) getExhausted() string {
 			}
 		}
 	}
-	output += fmt.Sprintf("Exhausted Clients count:\r\n🛑 Disabled: %d\r\n🔜 Exhaust soon: %d\r\n \r\n", len(disabledClients), len(exhaustedClients))
+	output += fmt.Sprintf("Exhausted Clients count:\r\n🛑 Exhausted: %d\r\n🔜 Deplete soon: %d\r\n \r\n", len(disabledClients), len(exhaustedClients))
 	if len(exhaustedClients) > 0 {
 		output += "Exhausted Clients:\r\n"
 		for _, traffic := range exhaustedClients {
 			expiryTime := ""
 			if traffic.ExpiryTime == 0 {
 				expiryTime = "♾Unlimited"
+			} else if traffic.ExpiryTime < 0 {
+				expiryTime += fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
 			} else {
 				expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 			}

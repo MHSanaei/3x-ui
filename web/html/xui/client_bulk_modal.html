@@ -10,8 +10,7 @@
                 <a-select-option :value="1">Random+Prefix</a-select-option>
                 <a-select-option :value="2">Random+Prefix+Num</a-select-option>
                 <a-select-option :value="3">Random+Prefix+Num+Postfix</a-select-option>
-                <a-select-option :value="4">Random+Prefix+Num@Telegram Username</a-select-option>
-                <a-select-option :value="5">Prefix+Num+Postfix [ BE CAREFUL! ]</a-select-option>
+                <a-select-option :value="4">Prefix+Num+Postfix [ BE CAREFUL! ]</a-select-option>
             </a-select>
         </a-form-item><br />
         <a-form-item v-if="clientsBulkModal.emailMethod>1">
@@ -27,14 +26,18 @@
             <a-input v-model="clientsBulkModal.emailPrefix" style="width: 120px"></a-input>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.emailMethod>2">
-            <span slot="label" v-if="clientsBulkModal.emailMethod == 4">tg_uname</span>
-            <span slot="label" v-else>{{ i18n "pages.client.postfix" }}</span>
+            <span slot="label">{{ i18n "pages.client.postfix" }}</span>
             <a-input v-model="clientsBulkModal.emailPostfix" style="width: 120px"></a-input>
         </a-form-item>
-
         <a-form-item v-if="clientsBulkModal.emailMethod < 2">
             <span slot="label">{{ i18n "pages.client.clientCount" }}</span>
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
+        </a-form-item>
+        <a-form-item label="Subscription">
+            <a-input v-model.trim="clientsBulkModal.subId"></a-input>
+        </a-form-item>
+        <a-form-item label="Telegram ID">
+            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
         </a-form-item>
         <a-form-item>
             <span slot="label">
@@ -48,7 +51,13 @@
             </span>
         <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
-        <a-form-item>
+        <a-form-item label="{{ i18n "pages.client.delayedStart" }}">
+            <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
+        </a-form-item>
+        <a-form-item label="{{ i18n "pages.client.expireDays" }}" v-if="clientsBulkModal.delayedStart">
+            <a-input type="number" v-model.number="delayedExpireDays" :min="0"></a-input>
+        </a-form-item>
+        <a-form-item v-else>
             <span slot="label">
                 <span >{{ i18n "pages.inbounds.expireDate" }}</span>
                 <a-tooltip>
@@ -83,6 +92,9 @@
         lastNum: 1,
         emailPrefix: "",
         emailPostfix: "",
+        subId: "",
+        tgId: "",
+        delayedStart: false,
         ok() {
             method=clientsBulkModal.emailMethod;
             if(method>1){
@@ -94,11 +106,13 @@
             }
             prefix = (method>0 && clientsBulkModal.emailPrefix.length>0) ? clientsBulkModal.emailPrefix : "";
             useNum=(method>1);
-            postfix = (method>2 && clientsBulkModal.emailPostfix.length>0) ? (method == 4 ? "@" : "") + clientsBulkModal.emailPostfix : "";
+            postfix = (method>2 && clientsBulkModal.emailPostfix.length>0) ? clientsBulkModal.emailPostfix : "";
             for (let i = start; i < end; i++) {
                 newClient = clientsBulkModal.newClient(clientsBulkModal.dbInbound.protocol);
-                if(method==5) newClient.email = "";
+                if(method==4) newClient.email = "";
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
+                newClient.subId = clientsBulkModal.subId;
+                newClient.tgId = clientsBulkModal.tgId;
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
                 clientsBulkModal.clients.push(newClient);
@@ -112,16 +126,18 @@
             this.confirm = confirm;
             this.quantity = 1;
             this.totalGB = 0;
-            this.expiryTime = '';
+            this.expiryTime = 0;
             this.emailMethod= 0;
             this.firstNum= 1;
             this.lastNum= 1;
             this.emailPrefix= "";
             this.emailPostfix= "";
-
+            this.subId= "";
+            this.tgId= "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.clients = this.getClients(this.inbound.protocol, this.inbound.settings);
+            this.delayedStart = false;
         },
         getClients(protocol, clientSettings) {
             switch(protocol){
@@ -155,6 +171,12 @@
             clientsBulkModal,
             get inbound() {
                 return this.clientsBulkModal.inbound;
+            },
+            get delayedExpireDays() {
+                return this.clientsBulkModal.expiryTime < 0 ? this.clientsBulkModal.expiryTime / -86400000 : 0;
+            },
+            set delayedExpireDays(days){
+                this.clientsBulkModal.expiryTime = -86400000 * days;
             },
         },
     });

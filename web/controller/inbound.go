@@ -37,6 +37,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/delClient/:email", a.delInboundClient)
 	g.POST("/updateClient/:index", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
+	g.POST("/resetAllTraffics", a.resetAllTraffics)
+	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
 
 }
 
@@ -131,7 +133,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 func (a *InboundController) getClientIps(c *gin.Context) {
 	email := c.Param("email")
 
-	ips , err := a.inboundService.GetInboundClientIps(email)
+	ips, err := a.inboundService.GetInboundClientIps(email)
 	if err != nil {
 		jsonObj(c, "No IP Record", nil)
 		return
@@ -229,4 +231,28 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+func (a *InboundController) resetAllTraffics(c *gin.Context) {
+	err := a.inboundService.ResetAllTraffics()
+	if err != nil {
+		jsonMsg(c, "something worng!", err)
+		return
+	}
+	jsonMsg(c, "All traffics reseted", nil)
+}
+
+func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
+		return
+	}
+
+	err = a.inboundService.ResetAllClientTraffics(id)
+	if err != nil {
+		jsonMsg(c, "something worng!", err)
+		return
+	}
+	jsonMsg(c, "All traffics of client reseted", nil)
 }

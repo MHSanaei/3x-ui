@@ -455,6 +455,14 @@ ssl_cert_issue() {
 }
 
 open_ports() {
+if ! command -v ufw &> /dev/null
+then
+    echo "ufw firewall is not installed. Installing now..."
+    sudo apt-get update
+    sudo apt-get install -y ufw
+else
+    echo "ufw firewall is already installed"
+fi
 
   # Check if the firewall is inactive
   if sudo ufw status | grep -q "Status: active"; then

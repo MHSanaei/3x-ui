@@ -38,7 +38,9 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
-	g.POST("/logs", a.getLogs)
+	g.POST("/logs/:count", a.getLogs)
+	g.POST("/getConfigJson", a.getConfigJson)
+	g.GET("/getDb", a.getDb)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -109,10 +111,34 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 }
 
 func (a *ServerController) getLogs(c *gin.Context) {
-	logs, err := a.serverService.GetLogs()
+	count := c.Param("count")
+	logs, err := a.serverService.GetLogs(count)
 	if err != nil {
 		jsonMsg(c, I18n(c, "getLogs"), err)
 		return
 	}
 	jsonObj(c, logs, nil)
+}
+
+func (a *ServerController) getConfigJson(c *gin.Context) {
+	configJson, err := a.serverService.GetConfigJson()
+	if err != nil {
+		jsonMsg(c, I18n(c, "getLogs"), err)
+		return
+	}
+	jsonObj(c, configJson, nil)
+}
+
+func (a *ServerController) getDb(c *gin.Context) {
+	db, err := a.serverService.GetDb()
+	if err != nil {
+		jsonMsg(c, I18n(c, "getLogs"), err)
+		return
+	}
+	// Set the headers for the response
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename=xui.db")
+
+	// Write the file contents to the response
+	c.Writer.Write(db)
 }
