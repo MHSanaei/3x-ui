@@ -271,17 +271,18 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySetting, _ := stream["realitySettings"].(map[string]interface{})
-		realitySettings, _ := searchKey(realitySetting, "settings")
-		if realitySetting != nil {
-			if sniValue, ok := searchKey(realitySettings, "serverName"); ok {
-				params["sni"], _ = sniValue.(string)
+		realitySettings, _ := stream["realitySettings"].(map[string]interface{})
+		if realitySettings != nil {
+			if sniValue, ok := searchKey(realitySettings, "serverNames"); ok {
+				sNames, _ := sniValue.([]interface{})
+				params["sni"], _ = sNames[0].(string)
 			}
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
 			if sidValue, ok := searchKey(realitySettings, "shortIds"); ok {
-				params["sid"], _ = sidValue.(string)
+				shortIds, _ := sidValue.([]interface{})
+				params["sid"], _ = shortIds[0].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
@@ -290,11 +291,6 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
 			params["flow"] = clients[clientIndex].Flow
-		}
-
-		serverName, _ := realitySetting["serverName"].(string)
-		if serverName != "" {
-			address = serverName
 		}
 	}
 
@@ -444,25 +440,26 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySetting, _ := stream["realitySettings"].(map[string]interface{})
-		realitySettings, _ := searchKey(realitySetting, "settings")
-		if realitySetting != nil {
-			if sniValue, ok := searchKey(realitySettings, "serverName"); ok {
-				params["sni"], _ = sniValue.(string)
+		realitySettings, _ := stream["realitySettings"].(map[string]interface{})
+		if realitySettings != nil {
+			if sniValue, ok := searchKey(realitySettings, "serverNames"); ok {
+				sNames, _ := sniValue.([]interface{})
+				params["sni"], _ = sNames[0].(string)
 			}
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
 			if sidValue, ok := searchKey(realitySettings, "shortIds"); ok {
-				params["sid"], _ = sidValue.(string)
+				shortIds, _ := sidValue.([]interface{})
+				params["sid"], _ = shortIds[0].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
 			}
 		}
-		serverName, _ := realitySetting["serverName"].(string)
-		if serverName != "" {
-			address = serverName
+
+		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
+			params["flow"] = clients[clientIndex].Flow
 		}
 	}
 
