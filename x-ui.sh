@@ -726,19 +726,19 @@ run_speedtest() {
         # If not installed, install it
         if command -v dnf &> /dev/null; then
             sudo dnf install -y curl
-            curl -s https://install.speedtest.net/app/cli/install.rpm.sh | sudo bash
+            curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh | sudo bash
             sudo dnf install -y speedtest
         elif command -v yum &> /dev/null; then
             sudo yum install -y curl
-            curl -s https://install.speedtest.net/app/cli/install.rpm.sh | sudo bash
+            curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh | sudo bash
             sudo yum install -y speedtest
         elif command -v apt-get &> /dev/null; then
             sudo apt-get update && sudo apt-get install -y curl
-            curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+            curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
             sudo apt-get install -y speedtest
         elif command -v apt &> /dev/null; then
             sudo apt update && sudo apt install -y curl
-            curl -s https://install.speedtest.net/app/cli/install.deb.sh | sudo bash
+            curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
             sudo apt install -y speedtest
         else
             echo "Error: Package manager not found. You may need to install Speedtest manually."
