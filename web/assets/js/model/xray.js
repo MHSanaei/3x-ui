@@ -480,7 +480,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 maxVersion = TLS_VERSION_OPTION.TLS13,
                 cipherSuites = '',
                 certificates=[new TlsStreamSettings.Cert()],
-                alpn=[],
+                alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=[new TlsStreamSettings.Settings()]) {
         super();
         this.server = serverName;
