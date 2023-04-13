@@ -433,7 +433,7 @@ func (s *InboundService) adjustTraffics(traffics []*xray.ClientTraffic) (full_tr
 		}
 	}()
 
-	for traffic_index, traffic := range traffics {
+	for _, traffic := range traffics {
 		inbound := &model.Inbound{}
 		client_traffic := &xray.ClientTraffic{}
 		err := db.Model(xray.ClientTraffic{}).Where("email = ?", traffic.Email).First(client_traffic).Error
@@ -492,9 +492,9 @@ func (s *InboundService) adjustTraffics(traffics []*xray.ClientTraffic) (full_tr
 			}
 		}
 
-		traffics[traffic_index] = client_traffic
+		full_traffics = append(full_traffics, client_traffic)
 	}
-	return traffics, nil
+	return full_traffics, nil
 }
 
 func (s *InboundService) DisableInvalidInbounds() (int64, error) {
