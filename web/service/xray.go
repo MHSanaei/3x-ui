@@ -69,6 +69,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 
 	s.inboundService.DisableInvalidClients()
+	s.inboundService.RemoveOrphanedTraffics()
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
