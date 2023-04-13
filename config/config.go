@@ -45,6 +45,22 @@ func IsDebug() bool {
 	return os.Getenv("XUI_DEBUG") == "true"
 }
 
+func GetBinFolderPath() string {
+	binFolderPath := os.Getenv("XUI_BIN_FOLDER")
+	if binFolderPath == "" {
+		binFolderPath = "bin"
+	}
+	return binFolderPath
+}
+
+func GetDBFolderPath() string {
+	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
+	if dbFolderPath == "" {
+		dbFolderPath = "/etc/x-ui"
+	}
+	return dbFolderPath
+}
+
 func GetDBPath() string {
-	return fmt.Sprintf("/etc/%s/%s.db", GetName(), GetName())
+	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
