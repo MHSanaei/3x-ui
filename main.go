@@ -97,7 +97,7 @@ func showSetting(show bool) {
 		settingService := service.SettingService{}
 		port, err := settingService.GetPort()
 		if err != nil {
-			fmt.Println("get current port fialed,error info:", err)
+			fmt.Println("get current port failed,error info:", err)
 		}
 		userService := service.UserService{}
 		userModel, err := userService.GetFirstUser()
@@ -109,7 +109,7 @@ func showSetting(show bool) {
 		if (username == "") || (userpasswd == "") {
 			fmt.Println("current username or password is empty")
 		}
-		fmt.Println("current pannel settings as follows:")
+		fmt.Println("current panel settings as follows:")
 		fmt.Println("username:", username)
 		fmt.Println("userpasswd:", userpasswd)
 		fmt.Println("port:", port)
@@ -234,9 +234,9 @@ func main() {
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
 	settingCmd.StringVar(&username, "username", "", "set login username")
 	settingCmd.StringVar(&password, "password", "", "set login password")
-	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegrame bot token")
-	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegrame bot cron time")
-	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegrame bot chat id")
+	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegram bot token")
+	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegram bot cron time")
+	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegram bot chat id")
 	settingCmd.BoolVar(&enabletgbot, "enabletgbot", false, "enable telegram bot notify")
 
 	oldUsage := flag.Usage

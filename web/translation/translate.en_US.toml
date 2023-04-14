@@ -41,7 +41,7 @@
 "domainName" = "Domain name"
 "additional" = "Alter"
 "monitor" = "Listen IP"
-"certificate" = "Certificat"
+"certificate" = "Certificate"
 "fail" = "Fail"
 "success" = " Success"
 "getVersion" = "Get version"

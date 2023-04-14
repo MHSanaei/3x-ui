@@ -790,7 +790,7 @@ show_menu() {
   ${green}12.${plain} Check x-ui Logs
 ————————————————
   ${green}13.${plain} Enable x-ui On System Startup
-  ${green}14.${plain} Disabel x-ui On System Startup
+  ${green}14.${plain} Disable x-ui On System Startup
 ————————————————
   ${green}15.${plain} Enable BBR 
   ${green}16.${plain} Apply for an SSL Certificate
