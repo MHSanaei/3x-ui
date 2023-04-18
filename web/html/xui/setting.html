@@ -157,18 +157,87 @@
     {{template "component/setting"}}
     <script>
 
-    const app = new Vue({
-        delimiters: ['[[', ']]'],
-        el: '#app',
-        data: {
-            siderDrawer,
-            spinning: false,
-            oldAllSetting: new AllSetting(),
-            allSetting: new AllSetting(),
-            saveBtnDisable: true,
-            user: {},
-            lang : getLang()
-        },
+const app = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#app',
+            data: {
+                siderDrawer,
+                spinning: false,
+                oldAllSetting: new AllSetting(),
+                allSetting: new AllSetting(),
+                saveBtnDisable: true,
+                user: {},
+                lang: getLang(),
+                ipv4Settings: {
+                    tag: "IPv4",
+                    protocol: "freedom",
+                    settings: {
+                        domainStrategy: "UseIPv4"
+                    }
+                },
+                warpSettings: {
+                    tag: "WARP",
+                    protocol: "socks",
+                    settings: {
+                        servers: [
+                            {
+                                address: "127.0.0.1",
+                                port: 40000
+                            }
+                        ]
+                    }
+                },
+                settingsData: {
+                    protocols: {
+                        bittorrent: ["bittorrent"],
+                    },
+                    ips: {
+                        local: ["geoip:private"],
+                        google: ["geoip:google"],
+                        cn: ["geoip:cn"],
+                        ir: ["geoip:ir"],
+                    },
+                    domains: {
+                        ads: [
+                            "geosite:category-ads-all",
+                            "geosite:category-ads",
+                            "geosite:google-ads",
+                            "geosite:spotify-ads"
+                        ],
+                        porn: ["geosite:category-porn"],
+                        openai: ["geosite:openai"],
+                        google: ["geosite:google"],
+                        spotify: ["geosite:spotify"],
+                        netflix: ["geosite:netflix"],
+                        cn: ["geosite:cn"],
+                        ir: [
+                            "regexp:.*\\.ir$",
+                            "ext:iran.dat:ir",
+                            "ext:iran.dat:other",
+                            "geosite:category-ir",
+                            "bank",
+                            "tapsi",
+                            "snapp",
+                            "blogfa",
+                            "digikala",
+                            "Torob.com",
+                            "sheypoor.com",
+                            "Tgju.org",
+                            "sb24.com",
+                            "tebyan.net",
+                            "beytoote.com",
+                            "telewebion.com",
+                            "Film2movie.ws",
+                            "Setare.com",
+                            "Filimo.com",
+                            "downloadha.com",
+                            "P30download.com",
+                            "Sarzamindownload.com",
+                            "Sanjesh.org"
+                        ]
+                    },
+                }
+            },
         methods: {
             loading(spinning = true) {
                 this.spinning = spinning;
