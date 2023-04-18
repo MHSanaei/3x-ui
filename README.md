@@ -108,7 +108,7 @@ If you want to use routing to WARP follow steps as below:
 - Support one-click SSL certificate application and automatic renewal
 - For more advanced configuration items, please refer to the panel
 - Fix api routes (user setting will create with api)
-- Support to change switch config by different type of items provided in panel
+- Support to change configs by different items provided in panel
 
 # Tg robot use
 
