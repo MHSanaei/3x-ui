@@ -36,15 +36,15 @@ jobs:
           cd ..
           cd ..
       - name: package
-        run: tar -zcvf x-ui-linux-amd64.tar.gz x-ui
+        run: tar -zcvf 3x-ui-linux-amd64.tar.gz x-ui
       - name: upload
         uses: svenstaro/upload-release-action@2.5.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: x-ui-linux-amd64.tar.gz
-          asset_name: x-ui-linux-amd64.tar.gz
-          prerelease: true
+          file: 3x-ui-linux-amd64.tar.gz
+          asset_name: 3x-ui-linux-amd64.tar.gz
+          prerelease: false
           overwrite: true
   linuxarm64build:
     name: build x-ui arm64 version
@@ -78,13 +78,13 @@ jobs:
           cd ..
           cd ..
       - name: package
-        run: tar -zcvf x-ui-linux-arm64.tar.gz x-ui
+        run: tar -zcvf 3x-ui-linux-arm64.tar.gz x-ui
       - name: upload
         uses: svenstaro/upload-release-action@2.5.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: x-ui-linux-arm64.tar.gz
-          asset_name: x-ui-linux-arm64.tar.gz
-          prerelease: true
+          file: 3x-ui-linux-arm64.tar.gz
+          asset_name: 3x-ui-linux-arm64.tar.gz
+          prerelease: false
           overwrite: true
