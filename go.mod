@@ -14,7 +14,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.7
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.23.3
-	github.com/xtls/xray-core v1.8.0
+	github.com/xtls/xray-core v1.8.1
 	go.uber.org/atomic v1.10.0
 	golang.org/x/text v0.9.0
 	google.golang.org/grpc v1.54.0
