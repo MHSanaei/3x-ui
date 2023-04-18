@@ -2,6 +2,7 @@ package service
 
 import (
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -40,6 +41,15 @@ var defaultValueMap = map[string]string{
 }
 
 type SettingService struct {
+}
+
+func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
+	var jsonData interface{}
+	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
 }
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
