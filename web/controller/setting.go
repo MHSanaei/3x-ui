@@ -37,6 +37,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update", a.updateSetting)
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
+	g.GET("/getDefaultJsonConfig", a.getDefaultJsonConfig)
 }
 
 func (a *SettingController) getAllSetting(c *gin.Context) {
@@ -46,6 +47,15 @@ func (a *SettingController) getAllSetting(c *gin.Context) {
 		return
 	}
 	jsonObj(c, allSetting, nil)
+}
+
+func (a *SettingController) getDefaultJsonConfig(c *gin.Context) {
+	defaultJsonConfig, err := a.settingService.GetDefaultJsonConfig()
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		return
+	}
+	jsonObj(c, defaultJsonConfig, nil)
 }
 
 func (a *SettingController) getDefaultSettings(c *gin.Context) {
