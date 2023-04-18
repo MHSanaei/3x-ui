@@ -89,16 +89,16 @@ config_after_install() {
         read -p "Please set up the panel port:" config_port
         echo -e "${yellow}Your panel port is:${config_port}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
-        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
+        /usr/local/3x-ui/3x-ui setting -username ${config_account} -password ${config_password}
         echo -e "${yellow}Account name and password set successfully!${plain}"
-        /usr/local/x-ui/x-ui setting -port ${config_port}
+        /usr/local/3x-ui/3x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
     else
         echo -e "${red}cancel...${plain}"
-        if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
+        if [[ ! -f "/etc/3x-ui/3x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
+            /usr/local/3x-ui/3x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "this is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
             echo -e "${green}username:${usernameTemp}${plain}"
@@ -112,44 +112,44 @@ config_after_install() {
 }
 
 install_x-ui() {
-    systemctl stop x-ui
+    systemctl stop 3x-ui
     cd /usr/local/
 
     if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/FakharzadehH/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}Failed to fetch x-ui version, it maybe due to Github API restrictions, please try it later${plain}"
             exit 1
         fi
         echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz
+        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-${arch}.tar.gz https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
+        url="https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/x-ui-linux-${arch}.tar.gz"
         echo -e "Begining to install x-ui $1"
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-${arch}.tar.gz ${url}
+        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-${arch}.tar.gz ${url}
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Download x-ui $1 failed,please check the version exists${plain}"
             exit 1
         fi
     fi
 
-    if [[ -e /usr/local/x-ui/ ]]; then
-        rm /usr/local/x-ui/ -rf
+    if [[ -e /usr/local/3x-ui/ ]]; then
+        rm /usr/local/3x-ui/ -rf
     fi
 
-    tar zxvf x-ui-linux-${arch}.tar.gz
-    rm x-ui-linux-${arch}.tar.gz -f
-    cd x-ui
-    chmod +x x-ui bin/xray-linux-${arch}
-    cp -f x-ui.service /etc/systemd/system/
-    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    chmod +x /usr/local/x-ui/x-ui.sh
-    chmod +x /usr/bin/x-ui
+    tar zxvf 3x-ui-linux-${arch}.tar.gz
+    rm 3x-ui-linux-${arch}.tar.gz -f
+    cd 3x-ui
+    chmod +x 3x-ui bin/xray-linux-${arch}
+    cp -f 3x-ui.service /etc/systemd/system/
+    wget --no-check-certificate -O /usr/bin/3x-ui https://raw.githubusercontent.com/FakharzadehH/3x-ui/main/x-ui.sh
+    chmod +x /usr/local/3x-ui/x-ui.sh
+    chmod +x /usr/bin/3x-ui
     config_after_install
     #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
     #echo -e "Please make sure that this port is not occupied by other procedures,${yellow} And make sure that port 2053 has been released${plain}"
@@ -158,8 +158,8 @@ install_x-ui() {
     #echo -e "If it is updated panel, access the panel in your previous way"
     #echo -e ""
     systemctl daemon-reload
-    systemctl enable x-ui
-    systemctl start x-ui
+    systemctl enable 3x-ui
+    systemctl start 3x-ui
     echo -e "${green}x-ui ${last_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "x-ui control menu usages: "
