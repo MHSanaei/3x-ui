@@ -55,9 +55,7 @@ func GetBinFolderPath() string {
 
 func GetDBFolderPath() string {
 	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
-	if dbFolderPath == "" {
-		dbFolderPath = "/etc/x-ui"
-	}
+	dbFolderPath = "/etc/3x-ui"
 	return dbFolderPath
 }
 
