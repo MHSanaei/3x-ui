@@ -24,121 +24,138 @@
         background: white;
     }
 </style>
-<body>
-<a-layout id="app" v-cloak>
-    {{ template "commonSider" . }}
-    <a-layout id="content-layout" :style="siderDrawer.isDarkTheme ? bgDarkStyle : ''">
-        <a-layout-content>
-            <a-spin :spinning="spinning" :delay="500" tip="loading">
-                <a-space direction="vertical">
-                    <a-space direction="horizontal">
-                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.setting.save" }}</a-button>
-                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.setting.restartPanel" }}</a-button>
-                    </a-space>
-                    <a-tabs default-active-key="1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
-                        <a-tab-pane key="1" tab='{{ i18n "pages.setting.panelConfig"}}'>
 
-                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.expireTimeDiff" }}' desc='{{ i18n "pages.setting.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.trafficDiff" }}' desc='{{ i18n "pages.setting.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
-                                <a-list-item>
-                                    <a-row style="padding: 20px">
-                                        <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta title="Language"/>
-                                        </a-col>
-                                        <a-col :lg="24" :xl="12">
-                                            <template>
-                                                <a-select
+<body>
+    <a-layout id="app" v-cloak>
+        {{ template "commonSider" . }}
+        <a-layout id="content-layout" :style="siderDrawer.isDarkTheme ? bgDarkStyle : ''">
+            <a-layout-content>
+                <a-spin :spinning="spinning" :delay="500" tip="loading">
+                    <a-space direction="vertical">
+                        <a-space direction="horizontal">
+                            <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.setting.save" }}</a-button>
+                            <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.setting.restartPanel" }}</a-button>
+                        </a-space>
+
+                        <a-tabs default-active-key="1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                            <a-tab-pane key="1" tab='{{ i18n "pages.setting.panelConfig"}}'>
+                                <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.setting.expireTimeDiff" }}' desc='{{ i18n "pages.setting.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.setting.trafficDiff" }}' desc='{{ i18n "pages.setting.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
+                                    <a-list-item>
+                                        <a-row style="padding: 20px">
+                                            <a-col :lg="24" :xl="12">
+                                                <a-list-item-meta title="Language" />
+                                            </a-col>
+
+                                            <a-col :lg="24" :xl="12">
+                                                <template>
+                                                    <a-select
                                                         ref="selectLang"
                                                         v-model="lang"
                                                         @change="setLang(lang)"
                                                         :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
                                                         style="width: 100%"
-                                                >
-                                                    <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
-                                                        &nbsp;&nbsp;<span v-text="l.name"></span>
-                                                    </a-select-option>
-                                                </a-select>
-                                            </template>
-                                        </a-col>
-                                    </a-row>
-                                </a-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="2" tab='{{ i18n "pages.setting.userSetting"}}'>
-                            <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
-                                <a-form-item label='{{ i18n "pages.setting.oldUsername"}}'>
-                                    <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label='{{ i18n "pages.setting.currentPassword"}}'>
-                                    <a-input type="password" v-model="user.oldPassword"
-                                             style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label='{{ i18n "pages.setting.newUsername"}}'>
-                                    <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item label='{{ i18n "pages.setting.newPassword"}}'>
-                                    <a-input type="password" v-model="user.newPassword"
-                                             style="max-width: 300px"></a-input>
-                                </a-form-item>
-                                <a-form-item>
-<!--                                    <a-button type="primary" @click="updateUser">Revise</a-button>-->
-                                    <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
-                                </a-form-item>
-                            </a-form>
-                        </a-tab-pane>
-                        <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
-                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRIp"}}' desc='{{ i18n "pages.setting.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
-								<setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRdomain"}}' desc='{{ i18n "pages.setting.xrayConfigIRdomainDesc"}}'  v-model="IRdomainSettings"></setting-list-item>
-								<a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
-                                <a-collapse>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigInbounds"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigInbounds"}}' desc='{{ i18n "pages.setting.xrayConfigInboundsDesc"}}' v-model ="inboundSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigOutbounds"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigOutbounds"}}' desc='{{ i18n "pages.setting.xrayConfigOutboundsDesc"}}' v-model ="outboundSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                    <a-collapse-panel header="{{ i18n "pages.setting.xrayConfigRoutings"}}">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigRoutings"}}' desc='{{ i18n "pages.setting.xrayConfigRoutingsDesc"}}' v-model ="routingRuleSettings"></setting-list-item>
-                                    </a-collapse-panel>
-                                </a-collapse>
-                                <a-divider>{{ i18n "pages.setting.completeTemplate"}}</a-divider>
-                                <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigTemplate"}}' desc='{{ i18n "pages.setting.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="4" tab='{{ i18n "pages.setting.TGReminder"}}'>
-                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}'  v-model="allSetting.tgBotEnable"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}'  v-model="allSetting.tgBotToken"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}'  v-model="allSetting.tgBotChatId"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}'  v-model="allSetting.tgRunTime"></setting-list-item>
-                                <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}'  v-model="allSetting.tgBotBackup"></setting-list-item>
-                                <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyCpu" }}' desc='{{ i18n "pages.setting.tgNotifyCpuDesc" }}'  v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                        <a-tab-pane key="5" tab='{{ i18n "pages.setting.otherSetting"}}'>
-                            <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                <setting-list-item type="text" title='{{ i18n "pages.setting.timeZonee"}}' desc='{{ i18n "pages.setting.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
-                            </a-list>
-                        </a-tab-pane>
-                    </a-tabs>
-                </a-space>
-            </a-spin>
-        </a-layout-content>
+                                                    >
+                                                        <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
+                                                            <span role="img" aria-label="l.name" v-text="l.icon"></span>&nbsp;&nbsp;<span v-text="l.name"></span>
+                                                        </a-select-option>
+                                                    </a-select>
+                                                </template>
+                                            </a-col>
+                                        </a-row>
+                                    </a-list-item>
+                                </a-list>
+                            </a-tab-pane>
+
+                            <a-tab-pane key="2" tab='{{ i18n "pages.setting.userSetting"}}'>
+                                <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
+                                    <a-form-item label='{{ i18n "pages.setting.oldUsername"}}'>
+                                        <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
+                                    </a-form-item>
+                                    <a-form-item label='{{ i18n "pages.setting.currentPassword"}}'>
+                                        <a-input type="password" v-model="user.oldPassword" style="max-width: 300px"></a-input>
+                                    </a-form-item>
+                                    <a-form-item label='{{ i18n "pages.setting.newUsername"}}'>
+                                        <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
+                                    </a-form-item>
+                                    <a-form-item label='{{ i18n "pages.setting.newPassword"}}'>
+                                        <a-input type="password" v-model="user.newPassword" style="max-width: 300px"></a-input>
+                                    </a-form-item>
+                                    <a-form-item>
+                                        <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                                    </a-form-item>
+                                </a-form>
+                            </a-tab-pane>
+
+                            <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
+                                <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
+                                    <a-divider>{{ i18n "pages.setting.generalConfigs"}}</a-divider>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigAds"}}' desc='{{ i18n "pages.setting.xrayConfigAdsDesc"}}'  v-model="AdsSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPorn"}}' desc='{{ i18n "pages.setting.xrayConfigPornDesc"}}'  v-model="PornSettings"></setting-list-item>
+                                    <a-divider>{{ i18n "pages.setting.countryConfigs"}}</a-divider>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRIp"}}' desc='{{ i18n "pages.setting.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRDomain"}}' desc='{{ i18n "pages.setting.xrayConfigIRDomainDesc"}}'  v-model="IRDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigChinaIp"}}' desc='{{ i18n "pages.setting.xrayConfigChinaIpDesc"}}'  v-model="ChinaIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigChinaDomain"}}' desc='{{ i18n "pages.setting.xrayConfigChinaDomainDesc"}}'  v-model="ChinaDomainSettings"></setting-list-item>
+                                    <a-divider>{{ i18n "pages.setting.ipv4Configs"}}</a-divider>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleIPv4Desc"}}'  v-model="GoogleIPv4Settings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixIPv4Desc"}}'  v-model="NetflixIPv4Settings"></setting-list-item>
+                                    <a-divider>{{ i18n "pages.setting.warpConfigs"}}</a-divider>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleWARPDesc"}}'  v-model="GoogleWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.setting.xrayConfigOpenAIWARPDesc"}}'  v-model="OpenAIWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixWARPDesc"}}'  v-model="NetflixWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.setting.xrayConfigSpotifyWARPDesc"}}'  v-model="SpotifyWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRWARP"}}' desc='{{ i18n "pages.setting.xrayConfigIRWARPDesc"}}'  v-model="IRWARPSettings"></setting-list-item>
+                                    <a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
+                                    <a-collapse>
+                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigInbounds"}}'>
+                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigInbounds"}}' desc='{{ i18n "pages.setting.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
+                                        </a-collapse-panel>
+                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigOutbounds"}}'>
+                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigOutbounds"}}' desc='{{ i18n "pages.setting.xrayConfigOutboundsDesc"}}' v-model="outboundSettings"></setting-list-item>
+                                        </a-collapse-panel>
+                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigRoutings"}}'>
+                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigRoutings"}}' desc='{{ i18n "pages.setting.xrayConfigRoutingsDesc"}}' v-model="routingRuleSettings"></setting-list-item>
+                                        </a-collapse-panel>
+                                    </a-collapse>
+                                    <a-divider>{{ i18n "pages.setting.completeTemplate"}}</a-divider>
+                                    <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigTemplate"}}' desc='{{ i18n "pages.setting.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
+                                </a-list>
+                            </a-tab-pane>
+
+                            <a-tab-pane key="4" tab='{{ i18n "pages.setting.TGReminder"}}'>
+                                <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}' v-model="allSetting.tgBotChatId"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}' v-model="allSetting.tgRunTime"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyCpu" }}' desc='{{ i18n "pages.setting.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
+                                </a-list>
+                            </a-tab-pane>
+
+                            <a-tab-pane key="5" tab='{{ i18n "pages.setting.otherSetting"}}'>
+                                <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
+                                    <setting-list-item type="text" title='{{ i18n "pages.setting.timeZonee"}}' desc='{{ i18n "pages.setting.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
+                                </a-list>
+                            </a-tab-pane>
+                        </a-tabs>
+                    </a-space>
+                </a-spin>
+            </a-layout-content>
+        </a-layout>
     </a-layout>
-</a-layout>
-{{template "js" .}}
-{{template "component/setting"}}
-<script>
+    {{template "js" .}}
+    {{template "component/setting"}}
+    <script>
 
     const app = new Vue({
         delimiters: ['[[', ']]'],
