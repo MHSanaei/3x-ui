@@ -103,12 +103,24 @@
                                     <a-divider>{{ i18n "pages.setting.basicTemplate"}}</a-divider>
                                     <a-collapse>
                                         <a-collapse-panel header='{{ i18n "pages.setting.generalConfigs"}}'>
+                                            <a-row :xs="24" :sm="24" :lg="12">
+                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    {{ i18n "pages.setting.generalConfigsDesc" }}
+                                                </h2>
+                                            </a-row>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigAds"}}' desc='{{ i18n "pages.setting.xrayConfigAdsDesc"}}'  v-model="AdsSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPorn"}}' desc='{{ i18n "pages.setting.xrayConfigPornDesc"}}'  v-model="PornSettings"></setting-list-item>
                                         </a-collapse-panel>
                                         <a-collapse-panel header='{{ i18n "pages.setting.countryConfigs"}}'>
+                                            <a-row :xs="24" :sm="24" :lg="12">
+                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    {{ i18n "pages.setting.countryConfigsDesc" }}
+                                                </h2>
+                                            </a-row>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRIp"}}' desc='{{ i18n "pages.setting.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRDomain"}}' desc='{{ i18n "pages.setting.xrayConfigIRDomainDesc"}}'  v-model="IRDomainSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigChinaIp"}}' desc='{{ i18n "pages.setting.xrayConfigChinaIpDesc"}}'  v-model="ChinaIpSettings"></setting-list-item>
@@ -117,10 +129,22 @@
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigRussiaDomain"}}' desc='{{ i18n "pages.setting.xrayConfigRussiaDomainDesc"}}'  v-model="RussiaDomainSettings"></setting-list-item>
                                         </a-collapse-panel>
                                         <a-collapse-panel header='{{ i18n "pages.setting.ipv4Configs"}}'>
+                                            <a-row :xs="24" :sm="24" :lg="12">
+                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    {{ i18n "pages.setting.ipv4ConfigsDesc" }}
+                                                </h2>
+                                            </a-row>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleIPv4Desc"}}'  v-model="GoogleIPv4Settings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixIPv4Desc"}}'  v-model="NetflixIPv4Settings"></setting-list-item>
                                         </a-collapse-panel>
                                         <a-collapse-panel header='{{ i18n "pages.setting.warpConfigs"}}'>
+                                            <a-row :xs="24" :sm="24" :lg="12">
+                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    {{ i18n "pages.setting.warpConfigsDesc" }}
+                                                </h2>
+                                            </a-row>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleWARPDesc"}}'  v-model="GoogleWARPSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.setting.xrayConfigOpenAIWARPDesc"}}'  v-model="OpenAIWARPSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixWARPDesc"}}'  v-model="NetflixWARPSettings"></setting-list-item>
