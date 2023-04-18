@@ -67,26 +67,7 @@
           "regexp:.*\\.ir$",
           "ext:iran.dat:ir",
           "ext:iran.dat:other",
-          "geosite:category-ir",
-          "bank",
-          "tapsi",
-          "snapp",
-          "blogfa",
-          "digikala",
-          "Torob.com",
-          "sheypoor.com",
-          "Tgju.org",
-          "sb24.com",
-          "tebyan.net",
-          "beytoote.com",
-          "telewebion.com",
-          "Film2movie.ws",
-          "Setare.com",
-          "Filimo.com",
-          "downloadha.com",
-          "P30download.com",
-          "Sarzamindownload.com",
-          "Sanjesh.org"
+          "geosite:category-ir"
         ]
       }
     ]
