@@ -196,6 +196,7 @@ const app = new Vue({
                         google: ["geoip:google"],
                         cn: ["geoip:cn"],
                         ir: ["geoip:ir"],
+                        ru: ["geoip:ru"],
                     },
                     domains: {
                         ads: [
@@ -210,30 +211,13 @@ const app = new Vue({
                         spotify: ["geosite:spotify"],
                         netflix: ["geosite:netflix"],
                         cn: ["geosite:cn"],
+                        ru: ["geosite:category-ru-gov"],
                         ir: [
                             "regexp:.*\\.ir$",
                             "ext:iran.dat:ir",
                             "ext:iran.dat:other",
-                            "geosite:category-ir",
-                            "bank",
-                            "tapsi",
-                            "snapp",
-                            "blogfa",
-                            "digikala",
-                            "Torob.com",
-                            "sheypoor.com",
-                            "Tgju.org",
-                            "sb24.com",
-                            "tebyan.net",
-                            "beytoote.com",
-                            "telewebion.com",
-                            "Film2movie.ws",
-                            "Setare.com",
-                            "Filimo.com",
-                            "downloadha.com",
-                            "P30download.com",
-                            "Sarzamindownload.com",
-                            "Sanjesh.org"
+                            "ext:iran.dat:ads",
+                            "geosite:category-ir"
                         ]
                     },
                 }
