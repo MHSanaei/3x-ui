@@ -18,12 +18,12 @@ jobs:
       - name: build linux amd64 version
         run: |
           CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go
-          mkdir x-ui
-          cp xui-release x-ui/xui-release
-          cp 3x-ui.service x-ui/3x-ui.service
-          cp x-ui.sh x-ui/x-ui.sh
-          cd x-ui
-          mv xui-release x-ui
+          mkdir 3x-ui
+          cp xui-release 3x-ui/xui-release
+          cp 3x-ui.service 3x-ui/3x-ui.service
+          cp x-ui.sh 3x-ui/x-ui.sh
+          cd 3x-ui
+          mv xui-release 3x-ui
           mkdir bin
           cd bin
           wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-linux-64.zip
@@ -60,12 +60,12 @@ jobs:
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
           CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -o xui-release -v main.go
-          mkdir x-ui
-          cp xui-release x-ui/xui-release
-          cp 3x-ui.service x-ui/3x-ui.service
-          cp x-ui.sh x-ui/x-ui.sh
-          cd x-ui
-          mv xui-release x-ui
+          mkdir 3x-ui
+          cp xui-release 3x-ui/xui-release
+          cp 3x-ui.service 3x-ui/3x-ui.service
+          cp x-ui.sh 3x-ui/x-ui.sh
+          cd 3x-ui
+          mv xui-release 3x-ui
           mkdir bin
           cd bin
           wget https://github.com/mhsanaei/xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
