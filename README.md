@@ -8,7 +8,7 @@
 
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
-**If you think this project is helpful to you, you may wish to give a** :star2: 
+**If you think this project is helpful to you, you may wish to give a** :star2:
 
 xray panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
 
@@ -33,7 +33,6 @@ apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
-
 
 # Default settings
 
@@ -74,7 +73,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - [traffic + Block all Iran IP address](./media/configs/traffic+block-iran-ip.json)
 - [traffic + Block all Iran Domains](./media/configs/traffic+block-iran-domains.json)
 - [traffic + Block Ads + Use IPv4 for Google](./media/configs/traffic+block-ads+ipv4-google.json)
-- [traffic + Block Ads + Route Iran domains + Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP](./media/configs/traffic+block-ads+warp-global+iran-domains.json)
+- [traffic + Block Ads + Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP](./media/configs/traffic+block-ads+warp.json)
 
 # [WARP Configuration](https://github.com/fscarmen/warp) (Optional)
 
@@ -86,13 +85,12 @@ If you want to use routing to WARP follow steps as below:
    curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
    ```
 
-2. [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp-global+iran-domains.json) or Turn on the config you need in panel
+2. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
 
    Config Features:
 
    - Block Ads
    - Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP
-   - Route Iran Domains to WARP
    - Fix Google 403 error
 
 # Features
@@ -183,6 +181,7 @@ Reference syntax:
 # Buy Me a Coffee
 
 [![](https://img.shields.io/badge/Wallet-USDT__TRC20-green.svg)](#)
+
 ```
 TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC
 ```
