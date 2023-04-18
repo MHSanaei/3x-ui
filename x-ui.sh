@@ -17,6 +17,7 @@ function LOGE() {
 function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
@@ -34,7 +35,6 @@ fi
 
 echo "The OS release is: $release"
 
-
 os_version=""
 os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
@@ -44,20 +44,17 @@ if [[ "${release}" == "centos" ]]; then
     fi
 elif [[ "${release}" ==  "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red}please use Ubuntu 20 or higher version！${plain}\n" && exit 1
+        echo -e "${red}please use Ubuntu 20 or higher version! ${plain}\n" && exit 1
     fi
-
 elif [[ "${release}" == "fedora" ]]; then
     if [[ ${os_version} -lt 36 ]]; then
-        echo -e "${red}please use Fedora 36 or higher version！${plain}\n" && exit 1
+        echo -e "${red}please use Fedora 36 or higher version! ${plain}\n" && exit 1
     fi
-
 elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 fi
-
 
 confirm() {
     if [[ $# > 1 ]]; then
@@ -133,7 +130,7 @@ uninstall() {
     rm /usr/local/x-ui/ -rf
 
     echo ""
-    echo -e "Uninstalled Successfully，If you want to remove this script，then after exiting the script run ${green}rm /usr/bin/x-ui -f${plain} to delete it."
+    echo -e "Uninstalled Successfully, If you want to remove this script, then after exiting the script run ${green}rm /usr/bin/x-ui -f${plain} to delete it."
     echo ""
 
     if [[ $# == 0 ]]; then
@@ -150,12 +147,12 @@ reset_user() {
         return 0
     fi
     /usr/local/x-ui/x-ui setting -username admin -password admin
-    echo -e "Username and password have been reset to ${green}admin${plain}，Please restart the panel now."
+    echo -e "Username and password have been reset to ${green}admin${plain}, Please restart the panel now."
     confirm_restart
 }
 
 reset_config() {
-    confirm "Are you sure you want to reset all panel settings，Account data will not be lost，Username and password will not change" "n"
+    confirm "Are you sure you want to reset all panel settings, Account data will not be lost, Username and password will not change" "n"
     if [[ $? != 0 ]]; then
         if [[ $# == 0 ]]; then
             show_menu
@@ -163,14 +160,14 @@ reset_config() {
         return 0
     fi
     /usr/local/x-ui/x-ui setting -reset
-    echo -e "All panel settings have been reset to default，Please restart the panel now，and use the default ${green}2053${plain} Port to Access the web Panel"
+    echo -e "All panel settings have been reset to default, Please restart the panel now, and use the default ${green}2053${plain} Port to Access the web Panel"
     confirm_restart
 }
 
 check_config() {
     info=$(/usr/local/x-ui/x-ui setting -show true)
     if [[ $? != 0 ]]; then
-        LOGE "get current settings error,please check logs"
+        LOGE "get current settings error, please check logs"
         show_menu
     fi
     LOGI "${info}"
@@ -183,7 +180,7 @@ set_port() {
         before_show_menu
     else
         /usr/local/x-ui/x-ui setting -port ${port}
-        echo -e "The port is set，Please restart the panel now，and use the new port ${green}${port}${plain} to access web panel"
+        echo -e "The port is set, Please restart the panel now, and use the new port ${green}${port}${plain} to access web panel"
         confirm_restart
     fi
 }
@@ -192,7 +189,7 @@ start() {
     check_status
     if [[ $? == 0 ]]; then
         echo ""
-        LOGI "Panel is running，No need to start again，If you need to restart, please select restart"
+        LOGI "Panel is running, No need to start again, If you need to restart, please select restart"
     else
         systemctl start x-ui
         sleep 2
@@ -200,7 +197,7 @@ start() {
         if [[ $? == 0 ]]; then
             LOGI "x-ui Started Successfully"
         else
-            LOGE "panel Failed to start，Probably because it takes longer than two seconds to start，Please check the log information later"
+            LOGE "panel Failed to start, Probably because it takes longer than two seconds to start, Please check the log information later"
         fi
     fi
 
@@ -213,7 +210,7 @@ stop() {
     check_status
     if [[ $? == 1 ]]; then
         echo ""
-        LOGI "Panel stopped，No need to stop again!"
+        LOGI "Panel stopped, No need to stop again!"
     else
         systemctl stop x-ui
         sleep 2
@@ -221,7 +218,7 @@ stop() {
         if [[ $? == 1 ]]; then
             LOGI "x-ui and xray stopped successfully"
         else
-            LOGE "Panel stop failed，Probably because the stop time exceeds two seconds，Please check the log information later"
+            LOGE "Panel stop failed, Probably because the stop time exceeds two seconds, Please check the log information later"
         fi
     fi
 
@@ -237,7 +234,7 @@ restart() {
     if [[ $? == 0 ]]; then
         LOGI "x-ui and xray Restarted successfully"
     else
-        LOGE "Panel restart failed，Probably because it takes longer than two seconds to start，Please check the log information later"
+        LOGE "Panel restart failed, Probably because it takes longer than two seconds to start, Please check the log information later"
     fi
     if [[ $# == 0 ]]; then
         before_show_menu
@@ -285,51 +282,49 @@ show_log() {
 }
 
 enable_bbr() {
+    if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
+        echo -e "${green}BBR is already enabled!${plain}"
+        exit 0
+    fi
 
-if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
-  echo -e "${green}BBR is already enabled!${plain}"
-  exit 0
-fi
+    # Check the OS and install necessary packages
+    if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
+        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
+        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
+        sudo dnf -y update && sudo dnf -y install ca-certificates
+    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
+        sudo yum -y update && sudo yum -y install ca-certificates
+    else
+        echo "Unsupported operating system. Please check the script and install the necessary packages manually."
+        exit 1
+    fi
 
-# Check the OS and install necessary packages
-if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
-  sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
-  sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
-  sudo dnf -y update && sudo dnf -y install ca-certificates
-elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
-  sudo yum -y update && sudo yum -y install ca-certificates
-else
-  echo "Unsupported operating system. Please check the script and install the necessary packages manually."
-  exit 1
-fi
+    # Enable BBR
+    echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
 
-# Enable BBR
-echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+    # Apply changes
+    sudo sysctl -p
 
-# Apply changes
-sudo sysctl -p
-
-# Verify that BBR is enabled
-if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
-  echo -e "${green}BBR has been enabled successfully.${plain}"
-else
-  echo -e "${red}Failed to enable BBR. Please check your system configuration.${plain}"
-fi
-
+    # Verify that BBR is enabled
+    if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
+        echo -e "${green}BBR has been enabled successfully.${plain}"
+    else
+        echo -e "${red}Failed to enable BBR. Please check your system configuration.${plain}"
+    fi
 }
 
 update_shell() {
     wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
-        LOGE "Failed to download script，Please check whether the machine can connect Github"
+        LOGE "Failed to download script, Please check whether the machine can connect Github"
         before_show_menu
     else
         chmod +x /usr/bin/x-ui
-        LOGI "Upgrade script succeeded，Please rerun the script" && exit 0
+        LOGI "Upgrade script succeeded, Please rerun the script" && exit 0
     fi
 }
 
@@ -359,7 +354,7 @@ check_uninstall() {
     check_status
     if [[ $? != 2 ]]; then
         echo ""
-        LOGE "Panel installed，Please do not reinstall"
+        LOGE "Panel installed, Please do not reinstall"
         if [[ $# == 0 ]]; then
             before_show_menu
         fi
@@ -455,69 +450,76 @@ ssl_cert_issue() {
 }
 
 open_ports() {
-if ! command -v ufw &> /dev/null
-then
-    echo "ufw firewall is not installed. Installing now..."
-    sudo apt-get update
-    sudo apt-get install -y ufw
-else
-    echo "ufw firewall is already installed"
-fi
-
-  # Check if the firewall is inactive
-  if sudo ufw status | grep -q "Status: active"; then
-    echo "firewall is already active"
-  else
-    # Open the necessary ports
-    sudo ufw allow ssh
-    sudo ufw allow http
-    sudo ufw allow https
-    sudo ufw allow 2053/tcp
-
-    # Enable the firewall
-    sudo ufw --force enable
-  fi
-
-  # Prompt the user to enter a list of ports
-  read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
-
-  # Check if the input is valid
-  if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
-     echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2; exit 1
-  fi
-
-  # Open the specified ports using ufw
-  IFS=',' read -ra PORT_LIST <<< "$ports"
-  for port in "${PORT_LIST[@]}"; do
-    if [[ $port == *-* ]]; then
-      # Split the range into start and end ports
-      start_port=$(echo $port | cut -d'-' -f1)
-      end_port=$(echo $port | cut -d'-' -f2)
-      # Loop through the range and open each port
-      for ((i=start_port; i<=end_port; i++)); do
-        sudo ufw allow $i
-      done
+    if ! command -v ufw &> /dev/null
+    then
+        echo "ufw firewall is not installed. Installing now..."
+        sudo apt-get update
+        sudo apt-get install -y ufw
     else
-      sudo ufw allow "$port"
+        echo "ufw firewall is already installed"
     fi
-  done
 
-  # Confirm that the ports are open
-  sudo ufw status | grep $ports
+    # Check if the firewall is inactive
+    if sudo ufw status | grep -q "Status: active"; then
+        echo "firewall is already active"
+    else
+        # Open the necessary ports
+        sudo ufw allow ssh
+        sudo ufw allow http
+        sudo ufw allow https
+        sudo ufw allow 2053/tcp
+
+        # Enable the firewall
+        sudo ufw --force enable
+    fi
+
+    # Prompt the user to enter a list of ports
+    read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
+
+    # Check if the input is valid
+    if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+        echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2; exit 1
+    fi
+
+    # Open the specified ports using ufw
+    IFS=',' read -ra PORT_LIST <<< "$ports"
+    for port in "${PORT_LIST[@]}"; do
+        if [[ $port == *-* ]]; then
+        # Split the range into start and end ports
+        start_port=$(echo $port | cut -d'-' -f1)
+        end_port=$(echo $port | cut -d'-' -f2)
+        # Loop through the range and open each port
+        for ((i=start_port; i<=end_port; i++)); do
+            sudo ufw allow $i
+        done
+        else
+        sudo ufw allow "$port"
+        fi
+    done
+
+    # Confirm that the ports are open
+    sudo ufw status | grep $ports
 }
 
+update_geo() {
+    local defaultBinFolder="/usr/local/x-ui/bin"
+    read -p "Please enter x-ui bin folder path. Leave blank for default. (Default: '${defaultBinFolder}')" binFolder
+    binFolder=${binFolder:-${defaultBinFolder}}
+    if [[ ! -d ${binFolder} ]]; then
+        LOGE "Folder ${binFolder} not exists!"
+        LOGI "making bin folder: ${binFolder}..."
+        mkdir -p ${binFolder}
+    fi
 
-
-update_geo(){
     systemctl stop x-ui
-    cd /usr/local/x-ui/bin
+    cd ${binFolder}
     rm -f geoip.dat geosite.dat iran.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
     wget -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
     systemctl start x-ui
-    echo -e "${green}Geosite and Geoip have been updated successfully!${plain}"
-before_show_menu
+    echo -e "${green}Geosite.dat + Geoip.dat + Iran.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
+    before_show_menu
 }
 
 install_acme() {
@@ -714,10 +716,11 @@ ssl_cert_issue_by_cloudflare() {
         show_menu
     fi
 }
+
 google_recaptcha() {
-  curl -O https://raw.githubusercontent.com/jinwyp/one_click_script/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
-  echo ""
-  before_show_menu
+    curl -O https://raw.githubusercontent.com/jinwyp/one_click_script/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
+    echo ""
+    before_show_menu
 }
 
 run_speedtest() {
