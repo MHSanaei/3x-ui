@@ -36,7 +36,7 @@ jobs:
           cd ..
           cd ..
       - name: package
-        run: tar -zcvf 3x-ui-linux-amd64.tar.gz x-ui
+        run: tar -zcvf 3x-ui-linux-amd64.tar.gz 3x-ui
       - name: upload
         uses: svenstaro/upload-release-action@2.5.0
         with:
@@ -78,7 +78,7 @@ jobs:
           cd ..
           cd ..
       - name: package
-        run: tar -zcvf 3x-ui-linux-arm64.tar.gz x-ui
+        run: tar -zcvf 3x-ui-linux-arm64.tar.gz 3x-ui
       - name: upload
         uses: svenstaro/upload-release-action@2.5.0
         with:
