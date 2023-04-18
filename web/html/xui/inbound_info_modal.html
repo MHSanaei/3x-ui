@@ -49,9 +49,13 @@
                     tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                     tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
                 </td>
-                <td v-else-if="inbound.XTLS">
+                <td v-else-if="inbound.xtls">
                     xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                     xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                </td>
+                <td v-else-if="inbound.reality">
+                    reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                    reality {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
                 </td>
                 <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
             </td>

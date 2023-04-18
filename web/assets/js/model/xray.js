@@ -49,6 +49,7 @@ const XTLS_FLOW_CONTROL = {
 
 const TLS_FLOW_CONTROL = {
     VISION: "xtls-rprx-vision",
+    VISION_UDP443: "xtls-rprx-vision-udp443",
 };
 
 const TLS_VERSION_OPTION = {
@@ -90,9 +91,6 @@ const UTLS_FINGERPRINT = {
     UTLS_RANDOM: "random",
     UTLS_RANDOMIZED: "randomized",
 };
-
-const bytesToHex = e => Array.from(e).map(e => e.toString(16).padStart(2, 0)).join('');
-const hexToBytes = e => new Uint8Array(e.match(/[0-9a-f]{2}/gi).map(e => parseInt(e, 16)));
 
 const ALPN_OPTION = {
     H3: "h3",
@@ -481,7 +479,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 cipherSuites = '',
                 certificates=[new TlsStreamSettings.Cert()],
                 alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
-                settings=[new TlsStreamSettings.Settings()]) {
+                settings=new TlsStreamSettings.Settings()) {
         super();
         this.server = serverName;
         this.minVersion = minVersion;
@@ -508,8 +506,7 @@ class TlsStreamSettings extends XrayCommonClass {
         }
 
 		if (!ObjectUtil.isEmpty(json.settings)) {
-            let values = json.settings[0];
-            settings = [new TlsStreamSettings.Settings(values.allowInsecure , values.fingerprint, values.serverName)];
+            settings = new TlsStreamSettings.Settings(json.settings.allowInsecure , json.settings.fingerprint, json.settings.serverName);
         }
         return new TlsStreamSettings(
             json.serverName,
@@ -530,7 +527,7 @@ class TlsStreamSettings extends XrayCommonClass {
             cipherSuites: this.cipherSuites,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
             alpn: this.alpn,
-            settings: TlsStreamSettings.toJsonArray(this.settings),
+            settings: this.settings,
         };
     }
 }
@@ -598,71 +595,204 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
         };
     }
 };
+class XtlsStreamSettings extends XrayCommonClass {
+    constructor(serverName='',
+                certificates=[new XtlsStreamSettings.Cert()],
+                alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
+                settings=new XtlsStreamSettings.Settings()) {
+        super();
+        this.server = serverName;
+        this.certs = certificates;
+        this.alpn = alpn;
+        this.settings = settings;
+    }
+
+    addCert(cert) {
+        this.certs.push(cert);
+    }
+
+    removeCert(index) {
+        this.certs.splice(index, 1);
+    }
+
+    static fromJson(json={}) {
+        let certs;
+        let settings;
+        if (!ObjectUtil.isEmpty(json.certificates)) {
+            certs = json.certificates.map(cert => XtlsStreamSettings.Cert.fromJson(cert));
+        }
+
+		if (!ObjectUtil.isEmpty(json.settings)) {
+            settings = new XtlsStreamSettings.Settings(json.settings.allowInsecure , json.settings.serverName);
+        }
+        return new XtlsStreamSettings(
+            json.serverName,
+            certs,
+            json.alpn,
+            settings,
+        );
+    }
+
+    toJson() {
+        return {
+            serverName: this.server,
+            certificates: XtlsStreamSettings.toJsonArray(this.certs),
+            alpn: this.alpn,
+            settings: this.settings,
+        };
+    }
+}
+
+XtlsStreamSettings.Cert = class extends XrayCommonClass {
+    constructor(useFile=true, certificateFile='', keyFile='', certificate='', key='') {
+        super();
+        this.useFile = useFile;
+        this.certFile = certificateFile;
+        this.keyFile = keyFile;
+        this.cert = certificate instanceof Array ? certificate.join('\n') : certificate;
+        this.key = key instanceof Array ? key.join('\n') : key;
+    }
+
+    static fromJson(json={}) {
+        if ('certificateFile' in json && 'keyFile' in json) {
+            return new XtlsStreamSettings.Cert(
+                true,
+                json.certificateFile,
+                json.keyFile,
+            );
+        } else {
+            return new XtlsStreamSettings.Cert(
+                false, '', '',
+                json.certificate.join('\n'),
+                json.key.join('\n'),
+            );
+        }
+    }
+
+    toJson() {
+        if (this.useFile) {
+            return {
+                certificateFile: this.certFile,
+                keyFile: this.keyFile,
+            };
+        } else {
+            return {
+                certificate: this.cert.split('\n'),
+                key: this.key.split('\n'),
+            };
+        }
+    }
+};
+
+XtlsStreamSettings.Settings = class extends XrayCommonClass {
+    constructor(allowInsecure = false, serverName = '') {
+        super();
+        this.allowInsecure = allowInsecure;
+        this.serverName = serverName;
+    }
+    static fromJson(json = {}) {
+        return new XtlsStreamSettings.Settings(
+            json.allowInsecure,
+            json.servername,
+        );
+    }
+    toJson() {
+        return {
+            allowInsecure: this.allowInsecure,
+            serverName: this.serverName,
+        };
+    }
+};
 
 class RealityStreamSettings extends XrayCommonClass {
     
     constructor(
         show = false,xver = 0,
-        fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX,
         dest = 'yahoo.com:443',
         serverNames = 'yahoo.com,www.yahoo.com',
-        privateKey = RandomUtil.randomX25519PrivateKey(),
-        publicKey = '',
+        privateKey = '',
         minClient = '',
         maxClient = '',
         maxTimediff = 0,
-        shortIds = RandomUtil.randowShortId() 
-        )   
-        {
+        shortIds = RandomUtil.randowShortId(),
+        settings= new RealityStreamSettings.Settings()
+        ){
         super();
         this.show = show;
         this.xver = xver;
-        this.fingerprint = fingerprint;
         this.dest = dest;
         this.serverNames = serverNames instanceof Array ? serverNames.join(",") : serverNames;
         this.privateKey = privateKey;
-        this.publicKey = RandomUtil.randomX25519PublicKey(this.privateKey);
         this.minClient = minClient;
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
         this.shortIds = shortIds instanceof Array ? shortIds.join(",") : shortIds; 
+        this.settings = settings;
+    }
+
+    static fromJson(json = {}) {
+        let settings;
+		if (!ObjectUtil.isEmpty(json.settings)) {
+            settings = new RealityStreamSettings.Settings(json.settings.publicKey , json.settings.fingerprint, json.settings.serverName);
         }
-        static fromJson(json = {}) {
         return new RealityStreamSettings(
             json.show,
             json.xver,
-            json.fingerprint,
             json.dest,
             json.serverNames,
             json.privateKey,
-            json.publicKey,
             json.minClient,
             json.maxClient,
             json.maxTimediff,
-            json.shortIds  
+            json.shortIds,
+            json.settings,
         );
-        }
-        toJson() {
+
+    }
+    toJson() {
         return {
             show: this.show,
             xver: this.xver,
-            fingerprint: this.fingerprint,
             dest: this.dest,
-            serverNames: this.serverNames.split(/,|，|\s+/),
+            serverNames: this.serverNames.split(","),
             privateKey: this.privateKey,
-            publicKey: this.publicKey,
             minClient: this.minClient,
             maxClient: this.maxClient,
             maxTimediff: this.maxTimediff,
-            shortIds: this.shortIds.split(/,|，|\s+/)
-            };
-        }
+            shortIds: this.shortIds.split(","),
+            settings: this.settings,
+        };
     }
+}
+
+RealityStreamSettings.Settings = class extends XrayCommonClass {
+    constructor(publicKey = '', fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, serverName = '') {
+        super();
+        this.publicKey = publicKey;
+        this.fingerprint = fingerprint;
+        this.serverName = serverName;
+    }
+    static fromJson(json = {}) {
+        return new RealityStreamSettings.Settings(
+            json.publicKey,
+            json.fingerprint,
+            json.serverName,
+        );
+    }
+    toJson() {
+        return {
+            publicKey: this.publicKey,
+            fingerprint: this.fingerprint,
+            serverName: this.serverName,
+        };
+    }
+};
 
 class StreamSettings extends XrayCommonClass {
     constructor(network='tcp',
         security='none',
         tlsSettings=new TlsStreamSettings(),
+        xtlsSettings=new XtlsStreamSettings(),
         realitySettings = new RealityStreamSettings(),
         tcpSettings=new TcpStreamSettings(),
         kcpSettings=new KcpStreamSettings(),
@@ -675,6 +805,7 @@ class StreamSettings extends XrayCommonClass {
         this.network = network;
         this.security = security;
         this.tls = tlsSettings;
+        this.xtls = xtlsSettings;
         this.reality = realitySettings;
         this.tcp = tcpSettings;
         this.kcp = kcpSettings;
@@ -685,7 +816,7 @@ class StreamSettings extends XrayCommonClass {
     }
 
     get isTls() {
-        return this.security === 'tls';
+        return this.security === "tls";
     }
 
     set isTls(isTls) {
@@ -696,12 +827,12 @@ class StreamSettings extends XrayCommonClass {
         }
     }
 
-    get isXTLS() {
+    get isXtls() {
         return this.security === "xtls";
     }
 
-    set isXTLS(isXTLS) {
-        if (isXTLS) {
+    set isXtls(isXtls) {
+        if (isXtls) {
             this.security = 'xtls';
         } else {
             this.security = 'none';
@@ -715,27 +846,19 @@ class StreamSettings extends XrayCommonClass {
 
     set isReality(isReality) {
         if (isReality) {
-            this.security = "reality";
+            this.security = 'reality';
         } else {
-            this.security = "none";
+            this.security = 'none';
         }
     }
-    
-    static fromJson(json = {}) {
-        let tls, reality;
-        if (json.security === "xtls") {
-            tls = TlsStreamSettings.fromJson(json.XTLSSettings);
-        } else if (json.security === "tls") {
-            tls = TlsStreamSettings.fromJson(json.tlsSettings);
-        }
-        if (json.security === "reality") {
-            reality = RealityStreamSettings.fromJson(json.realitySettings)
-        }
+
+    static fromJson(json={}) {
         return new StreamSettings(
             json.network,
             json.security,
-            tls,
-            reality,
+            TlsStreamSettings.fromJson(json.tlsSettings),
+            XtlsStreamSettings.fromJson(json.xtlsSettings),
+            RealityStreamSettings.fromJson(json.realitySettings),
             TcpStreamSettings.fromJson(json.tcpSettings),
             KcpStreamSettings.fromJson(json.kcpSettings),
             WsStreamSettings.fromJson(json.wsSettings),
@@ -751,9 +874,9 @@ class StreamSettings extends XrayCommonClass {
             network: network,
             security: this.security,
             tlsSettings: this.isTls ? this.tls.toJson() : undefined,
-            XTLSSettings: this.isXTLS ? this.tls.toJson() : undefined,
-            tcpSettings: network === 'tcp' ? this.tcp.toJson() : undefined,
+            xtlsSettings: this.isXtls ? this.xtls.toJson() : undefined,
             realitySettings: this.isReality ? this.reality.toJson() : undefined,
+            tcpSettings: network === 'tcp' ? this.tcp.toJson() : undefined,
             kcpSettings: network === 'kcp' ? this.kcp.toJson() : undefined,
             wsSettings: network === 'ws' ? this.ws.toJson() : undefined,
             httpSettings: network === 'http' ? this.http.toJson() : undefined,
@@ -826,22 +949,18 @@ class Inbound extends XrayCommonClass {
 
     set tls(isTls) {
         if (isTls) {
-            this.xtls = false;
-            this.reality = false;
             this.stream.security = 'tls';
         } else {
             this.stream.security = 'none';
         }
     }
 
-    get XTLS() {
+    get xtls() {
         return this.stream.security === 'xtls';
     }
 
-    set XTLS(isXTLS) {
-        if (isXTLS) {
-            this.xtls = false;
-            this.reality = false;
+    set xtls(isXtls) {
+        if (isXtls) {
             this.stream.security = 'xtls';
         } else {
             this.stream.security = 'none';
@@ -850,19 +969,14 @@ class Inbound extends XrayCommonClass {
 
     //for Reality
     get reality() {
-        if (this.stream.security === "reality") {
-            return this.network === "tcp" || this.network === "grpc" || this.network === "http";
-        }
-        return false;
+        return this.stream.security === 'reality';
     }
 
     set reality(isReality) {
         if (isReality) {
-            this.tls = false;
-            this.xtls = false;
-            this.stream.security = "reality";
+            this.stream.security = 'reality';
         } else {
-            this.stream.security = "none";
+            this.stream.security = 'none';
         }
     }
 
@@ -969,7 +1083,7 @@ class Inbound extends XrayCommonClass {
     }
 
     get serverName() {
-        if (this.stream.isTls || this.stream.isXTLS) {
+        if (this.stream.isTls || this.stream.isXtls || this.stream.isReality) {
             return this.stream.tls.server;
         }
         return "";
@@ -1070,7 +1184,14 @@ class Inbound extends XrayCommonClass {
             default:
                 return false;
         }
-        return this.network === "tcp" || this.network === "grpc" || this.network === "http";
+        switch (this.network) {
+            case "tcp":
+            case "http":
+            case "grpc":
+                return true;
+            default:
+                return false;
+        }
     }
 
     //this is used for xtls-rprx-vision
@@ -1090,7 +1211,7 @@ class Inbound extends XrayCommonClass {
         return this.canEnableTls();
     }
 
-    canEnableXTLS() {
+    canEnableXtls() {
         switch (this.protocol) {
             case Protocols.VLESS:
             case Protocols.TROJAN:
@@ -1195,10 +1316,10 @@ class Inbound extends XrayCommonClass {
             host: host,
             path: path,
             tls: this.stream.security,
-            sni: this.stream.tls.settings[0]['serverName'],
-            fp: this.stream.tls.settings[0]['fingerprint'],
+            sni: this.stream.tls.settings.serverName,
+            fp: this.stream.tls.settings.fingerprint,
             alpn: this.stream.tls.alpn.join(','),
-            allowInsecure: this.stream.tls.settings[0].allowInsecure,
+            allowInsecure: this.stream.tls.settings.allowInsecure,
         };
         return 'vmess://' + base64(JSON.stringify(obj, null, 2));
     }
@@ -1257,54 +1378,54 @@ class Inbound extends XrayCommonClass {
 
         if (this.tls) {
             params.set("security", "tls");
-            params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
+            params.set("fp" , this.stream.tls.settings.fingerprint);
             params.set("alpn", this.stream.tls.alpn);
-            if(this.stream.tls.settings[0].allowInsecure){
+            if(this.stream.tls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
 			}
-            if (this.stream.tls.settings[0]['serverName'] !== ''){
-                params.set("sni", this.stream.tls.settings[0]['serverName']);
+            if (this.stream.tls.settings.serverName !== ''){
+                params.set("sni", this.stream.tls.settings.serverName);
             }
             if (type === "tcp" && this.settings.vlesses[clientIndex].flow.length > 0) {
                 params.set("flow", this.settings.vlesses[clientIndex].flow);
             }
         }
 
-        if (this.XTLS) {
+        if (this.xtls) {
             params.set("security", "xtls");
-            params.set("alpn", this.stream.tls.alpn);
-            if(this.stream.tls.settings[0].allowInsecure){
+            params.set("alpn", this.stream.xtls.alpn);
+            if(this.stream.xtls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
-            }
+            if (!ObjectUtil.isEmpty(this.stream.xtls.server)) {
+                address = this.stream.xtls.server;
+			}
             params.set("flow", this.settings.vlesses[clientIndex].flow);
         }
 
         if (this.reality) {
             params.set("security", "reality");
+            params.set("pbk", this.stream.reality.settings.publicKey);
             if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
-                params.set("sni", this.stream.reality.serverNames.split(/,|，|\s+/)[0]);
-            }
-            if (this.stream.reality.publicKey != "") {
-                //params.set("pbk", Ed25519.getPublicKey(this.stream.reality.privateKey));
-                params.set("pbk", this.stream.reality.publicKey);
+                params.set("sni", this.stream.reality.serverNames.split(",")[0]);
             }
             if (this.stream.network === 'tcp') {
                 params.set("flow", this.settings.vlesses[clientIndex].flow);
             }
             if (this.stream.reality.shortIds != "") {
-                params.set("sid", this.stream.reality.shortIds);
+                params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (this.stream.reality.fingerprint != "") {
-                params.set("fp", this.stream.reality.fingerprint);
+            if (this.stream.reality.settings.fingerprint != "") {
+                params.set("fp", this.stream.reality.settings.fingerprint);
+            }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
+                address = this.stream.reality.settings.serverName;
             }
         }
-        
+
         const link = `vless://${uuid}@${address}:${port}`;
         const url = new URL(link);
         for (const [key, value] of params) {
@@ -1376,47 +1497,47 @@ class Inbound extends XrayCommonClass {
 
         if (this.tls) {
             params.set("security", "tls");
-            params.set("fp" , this.stream.tls.settings[0]['fingerprint']);
+            params.set("fp" , this.stream.tls.settings.fingerprint);
             params.set("alpn", this.stream.tls.alpn);
-            if(this.stream.tls.settings[0].allowInsecure){
+            if(this.stream.tls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
                 address = this.stream.tls.server;
             }
-            if (this.stream.tls.settings[0]['serverName'] !== ''){
-                params.set("sni", this.stream.tls.settings[0]['serverName']);
+            if (this.stream.tls.settings.serverName !== ''){
+                params.set("sni", this.stream.tls.settings.serverName);
 			}
         }
 
         if (this.reality) {
             params.set("security", "reality");
+            params.set("pbk", this.stream.reality.settings.publicKey);
             if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
-                params.set("sni", this.stream.reality.serverNames.split(/,|，|\s+/)[0]);
+                params.set("sni", this.stream.reality.serverNames.split(",")[0]);
             }
-            if (this.stream.reality.publicKey != "") {
-                //params.set("pbk", Ed25519.getPublicKey(this.stream.reality.privateKey));
-                params.set("pbk", this.stream.reality.publicKey);
-            }
-            if (this.stream.network === 'tcp') {
-                params.set("flow", this.settings.trojans[clientIndex].flow);
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
+                address = this.stream.reality.settings.serverName;
             }
             if (this.stream.reality.shortIds != "") {
-                params.set("sid", this.stream.reality.shortIds);
+                params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (this.stream.reality.fingerprint != "") {
-                params.set("fp", this.stream.reality.fingerprint);
+            if (this.stream.reality.settings.fingerprint != "") {
+                params.set("fp", this.stream.reality.settings.fingerprint);
+            }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
+                address = this.stream.reality.settings.serverName;
             }
         }
 
-		if (this.XTLS) {
+		if (this.xtls) {
             params.set("security", "xtls");
-            params.set("alpn", this.stream.tls.alpn);
-            if(this.stream.tls.settings[0].allowInsecure){
+            params.set("alpn", this.stream.xtls.alpn);
+            if(this.stream.xtls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
             if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
+                address = this.stream.xtls.server;
 			}
             params.set("flow", this.settings.trojans[clientIndex].flow);
         }
