@@ -8,6 +8,8 @@
 
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
+**If you think this project is helpful to you, you may wish to give a** :star2: 
+
 xray panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
 
 # Install & Upgrade
@@ -27,7 +29,7 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-**If you think this project is helpful to you, you may wish to give a** :star2: 
+
 
 # Default settings
 
@@ -131,6 +133,13 @@ Reference syntax:
 - Debian 10+
 - CentOS 8+
 - Fedora 36+
+
+# Buy Me a Coffee
+
+[![](https://img.shields.io/badge/Wallet-USDT__TRC20-green.svg)](#)
+```
+TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC
+```
 
 # Pictures
 
