@@ -1,5 +1,6 @@
 .idea
 tmp
+backup/
 bin/
 dist/
 x-ui-*.tar.gz
@@ -9,4 +10,5 @@ x-ui-*.tar.gz
 main
 release/
 access.log
+error.log
 .cache
