@@ -125,7 +125,6 @@
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.setting.xrayConfigOpenAIWARPDesc"}}'  v-model="OpenAIWARPSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixWARPDesc"}}'  v-model="NetflixWARPSettings"></setting-list-item>
                                             <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.setting.xrayConfigSpotifyWARPDesc"}}'  v-model="SpotifyWARPSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRWARP"}}' desc='{{ i18n "pages.setting.xrayConfigIRWARPDesc"}}'  v-model="IRWARPSettings"></setting-list-item>
                                         </a-collapse-panel>
                                     </a-collapse>
 
@@ -669,23 +668,6 @@
                             outboundTag: "WARP",
                             property: "domain",
                             data: this.settingsData.domains.spotify
-                        });
-                    },
-                },
-                IRWARPSettings: {
-                    get: function () {
-                        return this.templateRuleGetter({
-                            outboundTag: "WARP",
-                            property: "domain",
-                            data: this.settingsData.domains.ir
-                        });
-                    },
-                    set: function (newValue) {
-                        this.templateRuleSetter({
-                            newValue,
-                            outboundTag: "WARP",
-                            property: "domain",
-                            data: this.settingsData.domains.ir
                         });
                     },
                 },

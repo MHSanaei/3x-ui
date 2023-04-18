@@ -43,6 +43,14 @@
         loading(loading) {
             inModal.confirmLoading = loading;
         },
+        getClients(protocol, clientSettings) {
+            switch(protocol){
+                case Protocols.VMESS: return clientSettings.vmesses;
+                case Protocols.VLESS: return clientSettings.vlesses;
+                case Protocols.TROJAN: return clientSettings.trojans;
+                default: return null;
+            }
+        },
     };
 
     const protocols = {
@@ -62,6 +70,7 @@
             inModal: inModal,
             Protocols: protocols,
             SSMethods: SSMethods,
+            delayedStart: false,
             get inbound() {
                 return inModal.inbound;
             },
@@ -70,35 +79,39 @@
             },
             get isEdit() {
                 return inModal.isEdit;
-            }
+            },
+            get client() {
+                return inModal.getClients(this.inbound.protocol, this.inbound.settings)[0];
+            },
+            get delayedExpireDays() {
+                return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
+            },
+            set delayedExpireDays(days){
+                this.client.expiryTime = -86400000 * days;
+            },
         },
         methods: {
-            streamNetworkChange(oldValue) {
-                if (oldValue === 'kcp') {
-                    this.inModal.inbound.tls = false;
+            streamNetworkChange() {
+                if (!inModal.inbound.canSetTls()) {
+                    this.inModal.inbound.stream.security = 'none';
                 }
-            },
-            addClient(protocol, clients) {
-                switch (protocol) {
-                    case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
-                    case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
-                    case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
-                    default: return null;
+                if (!inModal.inbound.canEnableReality()) {
+                    this.inModal.inbound.reality = false;
                 }
-            },
-            removeClient(index, clients) {
-                clients.splice(index, 1);
-            },
-            isExpiry(index) {
-                return this.inbound.isExpiry(index)
-            },
-            isClientEnable(email) {
-                clientStats = this.dbInbound.clientStats ? this.dbInbound.clientStats.find(stats => stats.email === email) : null
-                return clientStats ? clientStats['enable'] : true
             },
             setDefaultCertData(){
                 inModal.inbound.stream.tls.certs[0].certFile = app.defaultCert;
                 inModal.inbound.stream.tls.certs[0].keyFile = app.defaultKey;
+            },
+            async getNewX25519Cert(){
+                inModal.loading(true);
+                const msg = await HttpUtil.post('/server/getNewX25519Cert');
+                inModal.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                inModal.inbound.stream.reality.privateKey = msg.obj.privateKey;
+                inModal.inbound.stream.reality.settings.publicKey = msg.obj.publicKey;
             },
             getNewEmail(client) {
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';

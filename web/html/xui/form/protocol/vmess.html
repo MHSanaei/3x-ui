@@ -1,7 +1,7 @@
 {{define "form/vmess"}}
 <a-form layout="inline">
 <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vmesses.slice(0,1)" v-if="!isEdit">    
-    <a-collapse-panel header="{{ i18n "pages.inbounds.client" }}">
+    <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
         <a-form layout="inline">
             <a-form-item>
                 <span slot="label">

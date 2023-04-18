@@ -246,6 +246,11 @@
     background-color: #2e3b52;
 }
 
+.ant-card-dark .ant-select-disabled .ant-select-selection {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #242c3a;
+}
+
 .ant-card-dark .ant-collapse-item {
     color: hsla(0,0%,100%,.65);
     background-color: #161b22;

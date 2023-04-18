@@ -94,26 +94,6 @@ const shortIdSeq = [
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 ];
 
-const x25519Map = new Map(
-    [
-        ['EH2FWe-Ij_FFAa2u9__-aiErLvVIneP601GOCdlyPWw', "goY3OtfaA4UYbiz7Hn0NysI5QJrK0VT_Chg6RLgUPQU"],
-        ['cKI_6DoMSP1IepeWWXrG3G9nkehl94KYBhagU50g2U0', "VigpKFbSLnHLzBWobZaS1IBmw--giJ51w92y723ajnU"],
-        ['qM2SNyK3NyHB6deWpEP3ITyCGKQFRTna_mlKP0w1QH0', "HYyIGuyNFslmcnNT7mrDdmuXwn4cm7smE_FZbYguKHQ"],
-        ['qCWg5GMEDFd3n1nxDswlIpOHoPUXMLuMOIiLUVzubkI', "rJFC3dUjJxMnVZiUGzmf_LFsJUwFWY-CU5RQgFOHCWM"],
-        ['4NOBxDrEsOhNI3Y3EnVIy_TN-uyBoAjQw6QM0YsOi0s', "CbcY9qc4YuMDJDyyL0OITlU824TBg1O84ClPy27e2RM"],
-        ['eBvFb0M4HpSOwWjtXV8zliiEs_hg56zX4a2LpuuqpEI', "CjulQ2qVIky7ImIfysgQhNX7s_drGLheCGSkVHcLZhc"],
-        ['yEpOzQV04NNcycWVeWtRNTzv5TS-ynTuKRacZCH-6U8', "O9RSr5gSdok2K_tobQnf_scyKVqnCx6C4Jrl7_rCZEQ"],
-        ['CNt6TAUVCwqM6xIBHyni0K3Zqbn2htKQLvLb6XDgh0s', "d9cGLVBrDFS02L2OvkqyqwFZ1Ux3AHs28ehl4Rwiyl0"],
-        ['EInKw-6Wr0rAHXlxxDuZU5mByIzcD3Z-_iWPzXlUL1k', "LlYD2nNVAvyjNvjZGZh4R8PkMIwkc6EycPTvR2LE0nQ"],
-        ['GKIKo7rcXVyle-EUHtGIDtYnDsI6osQmOUl3DTJRAGc', "VcqHivYGGoBkcxOI6cSSjQmneltstkb2OhvO53dyhEM"],
-        ['-FVDzv68IC17fJVlNDlhrrgX44WeBfbhwjWpCQVXGHE', "PGG2EYOvsFt2lAQTD7lqHeRxz2KxvllEDKcUrtizPBU"],
-        ['0H3OJEYEu6XW7woqy7cKh2vzg6YHkbF_xSDTHKyrsn4', "mzevpYbS8kXengBY5p7tt56QE4tS3lwlwRemmkcQeyc"],
-        ['8F8XywN6ci44ES6em2Z0fYYxyptB9uaXY9Hc1WSSPE4', "qCZUdWQZ2H33vWXnOkG8NpxBeq3qn5QWXlfCOWBNkkc"],
-        ['IN0dqfkC10dj-ifRHrg2PmmOrzYs697ajGMwcLbu-1g', "2UW_EO3r7uczPGUUlpJBnMDpDmWUHE2yDzCmXS4sckE"],
-        ['uIcmks5rAhvBe4dRaJOdeSqgxLGGMZhsGk4J4PEKL2s', "F9WJV_74IZp0Ide4hWjiJXk9FRtBUBkUr3mzU-q1lzk"],
-    ]
-);
-
 class RandomUtil {
 
     static randomIntRange(min, max) {
@@ -170,26 +150,6 @@ class RandomUtil {
         });
     }
 
-    static randowShortId() {
-        let str = '';
-        str += this.randomShortIdSeq(8)
-        return str;
-    }
-
-    static randomX25519PrivateKey() {
-        let num = x25519Map.size;
-        let index = this.randomInt(num);
-        let cntr = 0;
-        for (let key of x25519Map.keys()) {
-            if (cntr++ === index) {
-                return key;
-            }
-        }
-    }
-
-    static randomX25519PublicKey(key) {
-        return x25519Map.get(key)
-    }
     static randomText() {
         var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
         var string = '';
@@ -198,6 +158,12 @@ class RandomUtil {
             string += chars[Math.floor(Math.random() * chars.length)];
         }
         return string;
+    }
+
+    static randowShortId() {
+        let str = '';
+        str += this.randomShortIdSeq(8)
+        return str;
     }
 }
 

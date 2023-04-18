@@ -33,6 +33,30 @@
             <span slot="label">{{ i18n "pages.client.clientCount" }}</span>
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
+        <a-form-item>
+            <span slot="label">
+                <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                    <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </span>
+            <a-input type="number" v-model.number="clientsBulkModal.limitIp" min="0" style="width: 70px;" ></a-input>
+        </a-form-item>
+        <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
+            <a-select v-model="clientsBulkModal.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                <a-select-option value="">{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item v-if="clientsBulkModal.inbound.canEnableTlsFlow()" label="Flow" layout="inline">
+            <a-select v-model="clientsBulkModal.flow" style="width: 150px">
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
         <a-form-item label="Subscription">
             <a-input v-model.trim="clientsBulkModal.subId"></a-input>
         </a-form-item>
@@ -51,10 +75,10 @@
             </span>
         <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
-        <a-form-item label="{{ i18n "pages.client.delayedStart" }}">
+        <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
         </a-form-item>
-        <a-form-item label="{{ i18n "pages.client.expireDays" }}" v-if="clientsBulkModal.delayedStart">
+        <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientsBulkModal.delayedStart">
             <a-input type="number" v-model.number="delayedExpireDays" :min="0"></a-input>
         </a-form-item>
         <a-form-item v-else>
@@ -83,9 +107,9 @@
         confirm: null,
         dbInbound: new DBInbound(),
         inbound: new Inbound(),
-        clients: [],
         quantity: 1,
         totalGB: 0,
+        limitIp: 0,
         expiryTime: '',
         emailMethod: 0,
         firstNum: 1,
@@ -94,8 +118,10 @@
         emailPostfix: "",
         subId: "",
         tgId: "",
+        flow: "",
         delayedStart: false,
         ok() {
+            clients = [];
             method=clientsBulkModal.emailMethod;
             if(method>1){
                 start=clientsBulkModal.firstNum;
@@ -113,11 +139,18 @@
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
                 newClient.subId = clientsBulkModal.subId;
                 newClient.tgId = clientsBulkModal.tgId;
+                newClient.limitIp = clientsBulkModal.limitIp;
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
-                clientsBulkModal.clients.push(newClient);
+                if(clientsBulkModal.inbound.canEnableTlsFlow()){
+                    newClient.flow = clientsBulkModal.flow;
+                }
+                if(clientsBulkModal.inbound.xtls){
+                    newClient.flow = clientsBulkModal.flow;
+                }
+                clients.push(newClient);
             }
-            ObjectUtil.execute(clientsBulkModal.confirm, clientsBulkModal.inbound, clientsBulkModal.dbInbound);
+            ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
         },
         show({ title='', okText='{{ i18n "sure" }}', dbInbound=null, confirm=(inbound, dbInbound)=>{} }) {
             this.visible = true;
@@ -128,15 +161,16 @@
             this.totalGB = 0;
             this.expiryTime = 0;
             this.emailMethod= 0;
+            this.limitIp= 0;
             this.firstNum= 1;
             this.lastNum= 1;
             this.emailPrefix= "";
             this.emailPostfix= "";
             this.subId= "";
             this.tgId= "";
+            this.flow= "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
-            this.clients = this.getClients(this.inbound.protocol, this.inbound.settings);
             this.delayedStart = false;
         },
         getClients(protocol, clientSettings) {
