@@ -271,6 +271,15 @@ const app = new Vue({
                         location.reload();
                     }
                 },
+                async resetXrayConfigToDefault() {
+                    this.loading(true);
+                    const msg = await HttpUtil.get("/xui/setting/getDefaultJsonConfig");
+                    this.loading(false);
+                    if (msg.success) {
+                        this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
+                        this.saveBtnDisable = true;
+                    }
+                },
                 checkRequiredOutbounds() {
                     const newTemplateSettings = this.templateSettings;
                     const haveIPv4Outbounds = newTemplateSettings.outbounds.some((o) => o?.tag === "IPv4");
