@@ -79,13 +79,19 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 If you want to use routing to WARP follow steps as below:
 
-1. Install WARP on **socks proxy mode**:
+1. If you already installed warp, you can uninstall using below command:
+
+   ```sh
+   warp u
+   ```
+
+2. Install WARP on **socks proxy mode**:
 
    ```sh
    curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
    ```
 
-2. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
+3. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
 
    Config Features:
 
