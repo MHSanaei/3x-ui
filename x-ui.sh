@@ -717,8 +717,8 @@ ssl_cert_issue_by_cloudflare() {
     fi
 }
 
-google_recaptcha() {
-    curl -O https://raw.githubusercontent.com/jinwyp/one_click_script/master/install_kernel.sh && chmod +x ./install_kernel.sh && ./install_kernel.sh
+warp_fixchatgpt() {
+    curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
     echo ""
     before_show_menu
 }
@@ -799,7 +799,7 @@ show_menu() {
   ${green}16.${plain} Apply for an SSL Certificate
   ${green}17.${plain} Update Geo Files
   ${green}18.${plain} Active Firewall and open ports
-  ${green}19.${plain} Fixing Google reCAPTCHA
+  ${green}19.${plain} Install WARP
   ${green}20.${plain} Speedtest by Ookla
  "
     show_status
@@ -864,7 +864,7 @@ show_menu() {
         open_ports
         ;;
     19)
-        google_recaptcha
+        warp_fixchatgpt
         ;;
 	20)
         run_speedtest
