@@ -398,7 +398,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 			if err != nil {
 				return err
 			}
-			err = s.UpdateClientIPs(db, oldClients[index].Email, clients[index].Email)
+			err = s.UpdateClientIPs(db, oldClients[index].Email, clients[0].Email)
 			if err != nil {
 				return err
 			}
