@@ -266,11 +266,18 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) error {
 	if err != nil {
 		return err
 	}
-	existEmail, err := s.checkEmailsExistForClients(clients)
+
+	var settings map[string]interface{}
+	err = json.Unmarshal([]byte(data.Settings), &settings)
 	if err != nil {
 		return err
 	}
 
+	interfaceClients := settings["clients"].([]interface{})
+	existEmail, err := s.checkEmailsExistForClients(clients)
+	if err != nil {
+		return err
+	}
 	if existEmail != "" {
 		return common.NewError("Duplicate email:", existEmail)
 	}
@@ -280,21 +287,18 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) error {
 		return err
 	}
 
-	var settings map[string]interface{}
-	err = json.Unmarshal([]byte(oldInbound.Settings), &settings)
+	var oldSettings map[string]interface{}
+	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 	if err != nil {
 		return err
 	}
 
-	oldClients := settings["clients"].([]interface{})
-	var newClients []interface{}
-	for _, client := range clients {
-		newClients = append(newClients, client)
-	}
+	oldClients := oldSettings["clients"].([]interface{})
+	oldClients = append(oldClients, interfaceClients...)
 
-	settings["clients"] = append(oldClients, newClients...)
+	oldSettings["clients"] = oldClients
 
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -341,6 +345,14 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 		return err
 	}
 
+	var settings map[string]interface{}
+	err = json.Unmarshal([]byte(data.Settings), &settings)
+	if err != nil {
+		return err
+	}
+
+	inerfaceClients := settings["clients"].([]interface{})
+
 	oldInbound, err := s.GetInbound(data.Id)
 	if err != nil {
 		return err
@@ -361,20 +373,18 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 		}
 	}
 
-	var settings map[string]interface{}
-	err = json.Unmarshal([]byte(oldInbound.Settings), &settings)
+	var oldSettings map[string]interface{}
+	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 	if err != nil {
 		return err
 	}
 
-	settingsClients := settings["clients"].([]interface{})
-	var newClients []interface{}
-	newClients = append(newClients, clients[0])
-	settingsClients[index] = newClients[0]
+	settingsClients := oldSettings["clients"].([]interface{})
+	settingsClients[index] = inerfaceClients[0]
 
-	settings["clients"] = settingsClients
+	oldSettings["clients"] = settingsClients
 
-	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
 		return err
 	}
