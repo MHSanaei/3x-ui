@@ -658,8 +658,8 @@
                 inbound = dbInbound.toInbound();
                 clients = this.getClients(dbInbound.protocol, inbound.settings);
                 index = this.findIndexOfClient(clients, client);
-                clients[index].enable = ! clients[index].enable
-                await this.updateClient(inbound, dbInbound, index);
+                clients[index].enable = !clients[index].enable;
+                await this.updateClient(clients[index],dbInboundId, index);
                 this.loading(false);
             },
             async submit(url, data) {

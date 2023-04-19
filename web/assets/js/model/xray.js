@@ -853,6 +853,7 @@ class StreamSettings extends XrayCommonClass {
     }
 
     static fromJson(json={}) {
+
         return new StreamSettings(
             json.network,
             json.security,
@@ -1412,13 +1413,13 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
                 params.set("sni", this.stream.reality.serverNames.split(",")[0]);
             }
-            if (this.stream.network === 'tcp') {
+            if (this.stream.network === 'tcp' && !ObjectUtil.isEmpty(this.settings.vlesses[clientIndex].flow)) {
                 params.set("flow", this.settings.vlesses[clientIndex].flow);
             }
-            if (this.stream.reality.shortIds != "") {
+            if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (this.stream.reality.settings.fingerprint != "") {
+            if (!ObjectUtil.isEmpty(this.stream.reality.fingerprint)) {
                 params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
@@ -1519,10 +1520,10 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
                 address = this.stream.reality.settings.serverName;
             }
-            if (this.stream.reality.shortIds != "") {
+            if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (this.stream.reality.settings.fingerprint != "") {
+            if (!ObjectUtil.isEmpty(this.stream.reality.fingerprint)) {
                 params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
