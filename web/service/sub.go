@@ -313,21 +313,29 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySettings, _ := stream["realitySettings"].(map[string]interface{})
-		if realitySettings != nil {
-			if sniValue, ok := searchKey(realitySettings, "serverNames"); ok {
+		realitySetting, _ := stream["realitySettings"].(map[string]interface{})
+		realitySettings, _ := searchKey(realitySetting, "settings")
+		if realitySetting != nil {
+			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
 				sNames, _ := sniValue.([]interface{})
 				params["sni"], _ = sNames[0].(string)
 			}
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
-			if sidValue, ok := searchKey(realitySettings, "shortIds"); ok {
+			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
 				shortIds, _ := sidValue.([]interface{})
 				params["sid"], _ = shortIds[0].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
+				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
+					params["fp"] = fp
+				}
+			}
+			if serverName, ok := searchKey(realitySettings, "serverName"); ok {
+				if sname, ok := serverName.(string); ok && len(sname) > 0 {
+					address = sname
+				}
 			}
 		}
 
@@ -482,9 +490,10 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySettings, _ := stream["realitySettings"].(map[string]interface{})
-		if realitySettings != nil {
-			if sniValue, ok := searchKey(realitySettings, "serverNames"); ok {
+		realitySetting, _ := stream["realitySettings"].(map[string]interface{})
+		realitySettings, _ := searchKey(realitySetting, "settings")
+		if realitySetting != nil {
+			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
 				sNames, _ := sniValue.([]interface{})
 				params["sni"], _ = sNames[0].(string)
 			}
@@ -496,7 +505,14 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				params["sid"], _ = shortIds[0].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
+				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
+					params["fp"] = fp
+				}
+			}
+			if serverName, ok := searchKey(realitySettings, "serverName"); ok {
+				if sname, ok := serverName.(string); ok && len(sname) > 0 {
+					address = sname
+				}
 			}
 		}
 
