@@ -1419,7 +1419,7 @@ class Inbound extends XrayCommonClass {
             if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (!ObjectUtil.isEmpty(this.stream.reality.fingerprint)) {
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.fingerprint)) {
                 params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
@@ -1523,7 +1523,7 @@ class Inbound extends XrayCommonClass {
             if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
             }
-            if (!ObjectUtil.isEmpty(this.stream.reality.fingerprint)) {
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.fingerprint)) {
                 params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
