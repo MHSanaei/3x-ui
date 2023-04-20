@@ -290,6 +290,9 @@ func main() {
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
 		}
+		if enabletgbot {
+			updateTgbotEnableSts(enabletgbot)
+		}
 	default:
 		fmt.Println("except 'run' or 'v2-ui' or 'setting' subcommands")
 		fmt.Println()
