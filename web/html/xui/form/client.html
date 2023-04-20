@@ -98,6 +98,10 @@
                 [[ sizeFormat(clientStats.down) ]]
                 ([[ sizeFormat(clientStats.up + clientStats.down) ]])
             </a-tag>
+            <a-tooltip>
+                <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
+                <a-icon type="retweet" @click="resetClientTraffic(client.email,clientStats.inboundId,$event.target)" v-if="client.email.length > 0"></a-icon>
+            </a-tooltip>
         </template>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
