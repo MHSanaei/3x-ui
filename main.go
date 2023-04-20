@@ -51,8 +51,8 @@ func runWebServer() {
 	}
 
 	sigCh := make(chan os.Signal, 1)
-	//信号量捕获处理
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGKILL)
+	// Trap shutdown signals
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
 	for {
 		sig := <-sigCh
 
