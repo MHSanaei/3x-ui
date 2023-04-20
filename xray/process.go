@@ -45,6 +45,10 @@ func GetGeoipPath() string {
 	return config.GetBinFolderPath() + "/geoip.dat"
 }
 
+func GetIranPath() string {
+	return config.GetBinFolderPath() + "/iran.dat"
+}
+
 func GetBlockedIPsPath() string {
 	return config.GetBinFolderPath() + "/blockedIPs"
 }
