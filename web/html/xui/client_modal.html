@@ -144,6 +144,24 @@
                 }
                 document.getElementById("clientIPs").value = ""
             },
+            resetClientTraffic(email,dbInboundId,iconElement) {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.resetTraffic"}}',
+                    content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
+                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    okText: '{{ i18n "reset"}}',
+                    cancelText: '{{ i18n "cancel"}}',
+                    onOk: async () => {
+                        iconElement.disabled = true;
+                        const msg = await HttpUtil.postWithModal('/xui/inbound/' + dbInboundId + '/resetClientTraffic/'+ email);
+                        if (msg.success) {
+                            this.clientModal.clientStats.up = 0;
+                            this.clientModal.clientStats.down = 0;
+                        }
+                        iconElement.disabled = false;
+                    },
+                })
+            },
         },
     });
 </script>
