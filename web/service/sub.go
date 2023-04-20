@@ -66,13 +66,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 			}
 		}
 	}
-	header = fmt.Sprintf("upload=%d;download=%d", traffic.Up, traffic.Down)
-	if traffic.Total > 0 {
-		header = header + fmt.Sprintf(";total=%d", traffic.Total)
-	}
-	if traffic.ExpiryTime > 0 {
-		header = header + fmt.Sprintf(";expire=%d", traffic.ExpiryTime)
-	}
+	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return result, header, nil
 }
 

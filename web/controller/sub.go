@@ -39,7 +39,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		}
 
 		// Add subscription-userinfo
-		c.Writer.Header().Set("subscription-userinfo", header)
+		c.Writer.Header().Set("Subscription-Userinfo", header)
 
 		c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
 	}
