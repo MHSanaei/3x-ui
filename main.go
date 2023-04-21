@@ -204,6 +204,24 @@ func updateSetting(port int, username string, password string) {
 	}
 }
 
+func removeSecret() {
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	userService := service.UserService{}
+	err = userService.RemoveUserSecret()
+	if err != nil {
+		fmt.Println(err)
+	}
+	settingService := service.SettingService{}
+	err = settingService.SetSecretStatus(false)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		runWebServer()
@@ -229,6 +247,7 @@ func main() {
 	var tgbotRuntime string
 	var reset bool
 	var show bool
+	var remove_secret bool
 	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "show current settings")
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
@@ -289,6 +308,9 @@ func main() {
 		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
+		}
+		if remove_secret {
+			removeSecret()
 		}
 		if enabletgbot {
 			updateTgbotEnableSts(enabletgbot)

@@ -38,6 +38,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
 	"tgCpu":              "0",
+	"secretEnable":       "false",
 }
 
 type SettingService struct {
@@ -129,7 +130,13 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	return db.Where("1 = 1").Delete(model.Setting{}).Error
+	err := db.Where("1 = 1").Delete(model.Setting{}).Error
+	if err != nil {
+		return err
+	}
+	return db.Model(model.User{}).
+		Where("1 = 1").
+		Update("login_secret", "").Error
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -286,6 +293,14 @@ func (s *SettingService) GetTrafficDiff() (int, error) {
 
 func (s *SettingService) SetgetTrafficDiff(value int) error {
 	return s.setInt("trafficDiff", value)
+}
+
+func (s *SettingService) GetSecretStatus() (bool, error) {
+	return s.getBool("secretEnable")
+}
+
+func (s *SettingService) SetSecretStatus(value bool) error {
+	return s.setBool("secretEnable", value)
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

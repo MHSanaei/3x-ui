@@ -56,6 +56,14 @@ elif [[ "${release}" == "debian" ]]; then
     fi
 fi
 
+arch3xui() {
+    case "$(uname -m)" in
+        x86_64 | x64 | amd64 ) echo 'amd64' ;;
+        armv8 | arm64 | aarch64 ) echo 'arm64' ;;
+        * ) echo -e "${red} Unsupported CPU architecture!${plain}" && exit 1 ;;
+    esac
+}
+
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default$2]: " temp
@@ -98,18 +106,49 @@ install() {
 }
 
 update() {
-    confirm "This function will forcefully reinstall the latest version, and the data will not be lost. Do you want to continue?" "n"
-    if [[ $? != 0 ]]; then
-        LOGE "Cancelled"
-        if [[ $# == 0 ]]; then
-            before_show_menu
+    read -rp "This function will update the X-UI panel to the latest version. Data will not be lost. Whether to continues? [Y/N]: " yn
+    if [[ $yn =~ "Y"|"y" ]]; then
+        systemctl stop x-ui
+        if [[ -e /usr/local/x-ui/ ]]; then
+            cd
+            rm -rf /usr/local/x-ui/
         fi
-        return 0
-    fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
-    if [[ $? == 0 ]]; then
-        LOGI "Update is complete, Panel has automatically restarted "
-        exit 0
+        
+        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/') || last_version=$(curl -sm8 https://raw.githubusercontent.com/MHSanaei/3x-ui/main/config/version)
+        if [[ -z "$last_version" ]]; then
+            echo -e "${red}Detecting the X-UI version failed, please make sure your server can connect to the GitHub API ${plain}"
+            exit 1
+        fi
+        
+        echo -e "${yellow}The latest version of X-UI is: ${last_version}, starting update...${plain}"
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Download the X-UI failure, please make sure your server can connect and download the files from github ${plain}"
+            exit 1
+        fi
+        
+        cd /usr/local/
+        tar zxvf x-ui-linux-$(arch3xui).tar.gz
+        rm -f x-ui-linux-$(arch3xui).tar.gz
+        
+        cd x-ui
+        chmod +x x-ui bin/xray-linux-$(arch3xui)
+        cp -f x-ui.service /etc/systemd/system/
+        
+        wget -N --no-check-certificate https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh -O /usr/bin/x-ui
+        chmod +x /usr/local/x-ui/x-ui.sh
+        chmod +x /usr/bin/x-ui
+        
+        systemctl daemon-reload
+        systemctl enable x-ui >/dev/null 2>&1
+        systemctl start x-ui
+        systemctl restart x-ui
+        
+        echo -e "${green}The update is completed, and the X-UI panel has been automatically restarted ${plain}"
+        exit 1
+    else
+        echo -e "${red}The upgrade X-UI panel has been canceled! ${plain}"
+        exit 1
     fi
 }
 
@@ -139,15 +178,23 @@ uninstall() {
 }
 
 reset_user() {
-    confirm "Reset your username and password to admin?" "n"
+    confirm "Are you sure to reset the username and password of the panel?" "n"
     if [[ $? != 0 ]]; then
         if [[ $# == 0 ]]; then
             show_menu
         fi
         return 0
     fi
-    /usr/local/x-ui/x-ui setting -username admin -password admin
-    echo -e "Username and password have been reset to ${green}admin${plain}, Please restart the panel now."
+    read -rp "Please set the login username [default is a random username]: " config_account
+    [[ -z $config_account ]] && config_account=$(date +%s%N | md5sum | cut -c 1-8)
+    read -rp "Please set the login password [default is a random password]: " config_password
+    [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
+    /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
+    /usr/local/x-ui/x-ui setting -remove_secret >/dev/null 2>&1
+    echo -e "Panel login username has been reset to: ${green} ${config_account} ${plain}"
+    echo -e "Panel login password has been reset to: ${green} ${config_password} ${plain}"
+    echo -e "${yellow} Panel login secret token disabled ${plain}"
+    echo -e "${green} Please use the new login username and password to access the X-UI panel. Also remember them! ${plain}"
     confirm_restart
 }
 
@@ -781,7 +828,7 @@ show_menu() {
   ${green}2.${plain} Update x-ui
   ${green}3.${plain} Uninstall x-ui
 ————————————————
-  ${green}4.${plain} Reset Username And Password
+  ${green}4.${plain} Reset Username & Password & Secret Token
   ${green}5.${plain} Reset Panel Settings
   ${green}6.${plain} Change Panel Port
   ${green}7.${plain} View Current Panel Settings

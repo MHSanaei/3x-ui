@@ -91,8 +91,39 @@
                                         <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
                                     </a-form-item>
                                 </a-form>
+                                <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
+                                    <a-list-item style="padding: 20px">
+                                       <a-row>
+                                         <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.setting.loginSecurity" }}' description='{{ i18n "pages.setting.loginSecurityDesc" }}'/>
+                                         </a-col>
+                                         <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                                            </template>
+                                         </a-col>
+                                       </a-row>
+                                    </a-list-item>
+                                    <a-list-item style="padding: 20px">
+                                      <a-row>
+                                        <a-col :lg="24" :xl="12">
+                                          <a-list-item-meta title='{{ i18n "pages.setting.secretToken" }}' description='{{ i18n "pages.setting.secretTokenDesc" }}'/>
+                                
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                           <svg 
+                                                  @click="getNewSecret"
+                                                  xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"> <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> 
+                                           </svg>
+                                           <template>
+                                               <a-textarea type="text" id='token' :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+                                           </template>
+                                        </a-col>
+                                      </a-row>
+                                    </a-list-item>
+                                    <a-button type="primary" @click="updateSecret">{{ i18n "confirm" }}</a-button>
+                                </a-form>
                             </a-tab-pane>
-
                             <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
                                 <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
                                     <a-divider>{{ i18n "pages.setting.actions"}}</a-divider>
@@ -205,7 +236,7 @@
                 oldAllSetting: new AllSetting(),
                 allSetting: new AllSetting(),
                 saveBtnDisable: true,
-                user: {},
+                user: new User(),
                 lang: getLang(),
                 ipv4Settings: {
                     tag: "IPv4",
@@ -262,31 +293,33 @@
                 }
             },
             methods: {
-                loading(spinning = true) {
-                    this.spinning = spinning;
+                loading(spinning = true , obj) {
+                if(obj == null)
+                  this.spinning = spinning;
                 },
                 async getAllSetting() {
-                    this.loading(true);
+                    this.loading(true,{});
                     const msg = await HttpUtil.post("/xui/setting/all");
-                    this.loading(false);
+                    this.loading(false,null);
                     if (msg.success) {
                         this.oldAllSetting = new AllSetting(msg.obj);
                         this.allSetting = new AllSetting(msg.obj);
                         this.saveBtnDisable = true;
                     }
+                    await this.getUserSecret();
                 },
                 async updateAllSetting() {
-                    this.loading(true);
+                    this.loading(true,{});
                     const msg = await HttpUtil.post("/xui/setting/update", this.allSetting);
-                    this.loading(false);
+                    this.loading(false,null);
                     if (msg.success) {
                         await this.getAllSetting();
                     }
                 },
                 async updateUser() {
-                    this.loading(true);
+                    this.loading(true,{});
                     const msg = await HttpUtil.post("/xui/setting/updateUser", this.user);
-                    this.loading(false);
+                    this.loading(false,null);
                     if (msg.success) {
                         this.user = {};
                     }
@@ -301,19 +334,54 @@
                             onOk: () => resolve(),
                         });
                     });
-                    this.loading(true);
+                    this.loading(true,{});
                     const msg = await HttpUtil.post("/xui/setting/restartPanel");
-                    this.loading(false);
+                    this.loading(false,null);
                     if (msg.success) {
-                        this.loading(true);
+                        this.loading(true,{});
                         await PromiseUtil.sleep(5000);
                         location.reload();
                     }
                 },
+                async getUserSecret(){
+                const user_msg = await HttpUtil.post("/xui/setting/getUserSecret", this.user);
+                if (user_msg.success){
+                    this.user = user_msg.obj;
+                }
+                this.loading(false);
+            },
+            async updateSecret(){
+                this.loading(true,{});
+                const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
+                if (msg.success){
+                    this.user = msg.obj;
+                }
+                this.loading(false,null);
+                await this.updateAllSetting();
+            },
+            async getNewSecret(){
+                this.loading(true,{});
+                await PromiseUtil.sleep(1000);
+                var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
+                var string = '';
+                var len = 64;
+                for(var ii=0; ii<len; ii++){
+                    string += chars[Math.floor(Math.random() * chars.length)];
+                }
+                this.user.loginSecret = string;
+                document.getElementById('token').value =this.user.loginSecret; 
+                this.loading(false,null);
+            },
+            async toggleToken(value){
+                if(value)
+                  this.getNewSecret();
+                else 
+                  this.user.loginSecret = "";
+            },
                 async resetXrayConfigToDefault() {
-                    this.loading(true);
+                    this.loading(true,{});
                     const msg = await HttpUtil.get("/xui/setting/getDefaultJsonConfig");
-                    this.loading(false);
+                    this.loading(false,null);
                     if (msg.success) {
                         this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
                         this.saveBtnDisable = true;

@@ -57,6 +57,11 @@
                                 <a-icon slot="prefix" type="lock" style="color: rgba(0,0,0,.25)"/>
                             </a-input>
                         </a-form-item>
+                        <a-form-item v-if="secretEnable">
+                            <a-input type="text" placeholder='{{ i18n "secretToken" }}' v-model.trim="user.loginSecret" @keydown.enter.native="login">
+                            <a-icon slot="prefix" type="key" style="color: rgba(0,0,0,.25)"/>
+                        </a-input>
+                        </a-form-item>
                         <a-form-item>
                             <a-button block @click="login" :loading="loading">{{ i18n "login" }}</a-button>
                         </a-form-item>
@@ -98,10 +103,12 @@
         data: {
             loading: false,
             user: new User(),
+            secretEnable: false,
             lang : ""
         },
         created(){
           this.lang = getLang();
+          this.secretEnable = this.getSecretStatus();
         },
         methods: {
             async login() {
@@ -110,6 +117,15 @@
                 this.loading = false;
                 if (msg.success) {
                     location.href = basePath + 'xui/';
+                }
+            },
+            async getSecretStatus() {
+                this.loading= true;
+                const msg = await HttpUtil.post('/getSecretStatus');
+                this.loading = false;
+                if (msg.success){
+                    this.secretEnable = msg.obj;
+                    return msg.obj;
                 }
             }
         }
