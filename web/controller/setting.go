@@ -17,6 +17,10 @@ type updateUserForm struct {
 	NewPassword string `json:"newPassword" form:"newPassword"`
 }
 
+type updateSecretForm struct {
+	LoginSecret string `json:"loginSecret" form:"loginSecret"`
+}
+
 type SettingController struct {
 	settingService service.SettingService
 	userService    service.UserService
@@ -38,6 +42,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultJsonConfig)
+	g.POST("/updateUserSecret", a.updateSecret)
+	g.POST("/getUserSecret", a.getUserSecret)
 }
 
 func (a *SettingController) getAllSetting(c *gin.Context) {
@@ -127,4 +133,26 @@ func (a *SettingController) updateUser(c *gin.Context) {
 func (a *SettingController) restartPanel(c *gin.Context) {
 	err := a.panelService.RestartPanel(time.Second * 3)
 	jsonMsg(c, I18n(c, "pages.setting.restartPanel"), err)
+}
+
+func (a *SettingController) updateSecret(c *gin.Context) {
+	form := &updateSecretForm{}
+	err := c.ShouldBind(form)
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.setting.toasts.modifySetting"), err)
+	}
+	user := session.GetLoginUser(c)
+	err = a.userService.UpdateUserSecret(user.Id, form.LoginSecret)
+	if err == nil {
+		user.LoginSecret = form.LoginSecret
+		session.SetLoginUser(c, user)
+	}
+	jsonMsg(c, I18n(c, "pages.setting.toasts.modifyUser"), err)
+}
+func (a *SettingController) getUserSecret(c *gin.Context) {
+	loginUser := session.GetLoginUser(c)
+	user := a.userService.GetUserSecret(loginUser.Id)
+	if user != nil {
+		jsonObj(c, user, nil)
+	}
 }

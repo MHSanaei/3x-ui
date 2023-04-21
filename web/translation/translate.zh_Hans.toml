@@ -48,6 +48,7 @@
 "install" = "安装"
 "clients" = "客户端"
 "usage" = "用法"
+"secretToken" = "秘密令牌"
 
 [menu]
 "dashboard" = "系统状态"
@@ -286,6 +287,10 @@
 "tgNotifyCpuDesc" = "如果 CPU 使用率超过此百分比（单位：%），此 talegram bot 将向您发送通知"
 "timeZonee" = "时区"
 "timeZoneDesc" = "定时任务按照该时区的时间运行，重启面板生效"
+"loginSecurity" = "登录安全"
+"loginSecurityDesc" = "在用户登录页面中切换附加步骤"
+"secretToken" = "秘密令牌"
+"secretTokenDesc" = "复制此秘密令牌并将其保存在安全的地方；没有这个你将无法登录。这也无法从 x-ui 命令工具中恢复" 
 
 [pages.setting.toasts]
 "modifySetting" = "修改设置"

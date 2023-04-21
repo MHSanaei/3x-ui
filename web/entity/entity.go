@@ -42,6 +42,7 @@ type AllSetting struct {
 	TgCpu              int    `json:"tgCpu" form:"tgCpu"`
 	XrayTemplateConfig string `json:"xrayTemplateConfig" form:"xrayTemplateConfig"`
 	TimeLocation       string `json:"timeLocation" form:"timeLocation"`
+	SecretEnable       bool   `json:"secretEnable" form:"secretEnable"`
 }
 
 func (s *AllSetting) CheckValid() error {

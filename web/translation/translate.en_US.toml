@@ -48,6 +48,7 @@
 "install" = "Install"
 "clients" = "Clients"
 "usage" = "Usage"
+"secretToken" = "Secret token"
 
 [menu]
 "dashboard" = "System Status"
@@ -288,6 +289,10 @@
 "tgNotifyCpuDesc" = "This telegram bot will send you a notification if CPU usage is more than this percentage (unit:%)"
 "timeZonee" = "Time Zone"
 "timeZoneDesc" = "The scheduled task runs according to the time in the time zone, and restarts the panel to take effect"
+"loginSecurity" = "Login security"
+"loginSecurityDesc" = "Toggle additional step in user login page"
+"secretToken" = "Secret Token"
+"secretTokenDesc" = "Copy this secret token and keep it in a safe place; without this you won't be able to login. This can not be recovered from x-ui command tool neither" 
 
 [pages.setting.toasts]
 "modifySetting" = "Modify setting"

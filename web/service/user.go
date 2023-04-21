@@ -25,12 +25,12 @@ func (s *UserService) GetFirstUser() (*model.User, error) {
 	return user, nil
 }
 
-func (s *UserService) CheckUser(username string, password string) *model.User {
+func (s *UserService) CheckUser(username string, password string, secret string) *model.User {
 	db := database.GetDB()
 
 	user := &model.User{}
 	err := db.Model(model.User{}).
-		Where("username = ? and password = ?", username, password).
+		Where("username = ? and password = ? and login_secret = ?", username, password, secret).
 		First(user).
 		Error
 	if err == gorm.ErrRecordNotFound {
@@ -48,6 +48,35 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 		Where("id = ?", id).
 		Updates(map[string]interface{}{"username": username, "password": password}).
 		Error
+}
+
+func (s *UserService) UpdateUserSecret(id int, secret string) error {
+	db := database.GetDB()
+	return db.Model(model.User{}).
+		Where("id = ?", id).
+		Update("login_secret", secret).
+		Error
+}
+
+func (s *UserService) RemoveUserSecret() error {
+	db := database.GetDB()
+	return db.Model(model.User{}).
+		Where("1 = 1").
+		Update("login_secret", "").
+		Error
+}
+
+func (s *UserService) GetUserSecret(id int) *model.User {
+	db := database.GetDB()
+	user := &model.User{}
+	err := db.Model(model.User{}).
+		Where("id = ?", id).
+		First(user).
+		Error
+	if err == gorm.ErrRecordNotFound {
+		return nil
+	}
+	return user
 }
 
 func (s *UserService) UpdateFirstUser(username string, password string) error {

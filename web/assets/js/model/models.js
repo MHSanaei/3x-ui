@@ -3,6 +3,7 @@ class User {
     constructor() {
         this.username = "";
         this.password = "";
+        this.LoginSecret = "";
     }
 }
 
@@ -180,6 +181,7 @@ class AllSetting {
         this.tgBotBackup = false;
         this.tgCpu = "";
         this.xrayTemplateConfig = "";
+        this.secretEnable = false;
 
         this.timeLocation = "Asia/Tehran";
 
