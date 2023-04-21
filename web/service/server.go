@@ -323,6 +323,10 @@ func (s *ServerService) UpdateXray(version string) error {
 	if err != nil {
 		return err
 	}
+	err = copyZipFile("iran.dat", xray.GetIranPath())
+	if err != nil {
+		return err
+	}
 
 	return nil
 
