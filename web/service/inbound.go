@@ -710,7 +710,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic []*xray.
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
 
-	err = db.Model(xray.ClientTraffic{}).Where("email like ?", "%"+email+"%").Find(&traffics).Error
+	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			logger.Warning(err)
