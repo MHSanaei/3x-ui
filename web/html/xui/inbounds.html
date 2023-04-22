@@ -133,26 +133,26 @@
                                 <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
                                     <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
-                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXTLS" color="cyan">XTLS</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXtls" color="cyan">XTLS</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="cyan">Reality</a-tag>
                                 </template>
                             </template>
                             <template slot="clients" slot-scope="text, dbInbound">
                                 <template v-if="clientCount[dbInbound.id]">
                                     <a-tag style="margin:0;" color="green">[[ clientCount[dbInbound.id].clients ]]</a-tag>
-                                    <a-popover title="{{ i18n "disabled" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].deactive">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
                                     </a-popover>
-                                    <a-popover title="{{ i18n "depleted" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].depleted">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
                                     </a-popover>
-                                    <a-popover title="{{ i18n "depletingSoon" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                    <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].expiring">[[ clientEmail ]]</p>
                                         </template>
@@ -531,9 +531,9 @@
                     title: '{{ i18n "pages.client.add"}}',
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
-                    confirm: async (inbound, dbInbound, index) => {
+                    confirm: async (clients, dbInboundId) => {
                         clientModal.loading();
-                        await this.addClient(inbound, dbInbound);
+                        await this.addClient(clients, dbInboundId);
                         clientModal.close();
                     },
                     isEdit: false
@@ -545,9 +545,9 @@
                     title: '{{ i18n "pages.client.bulk"}} ' + dbInbound.remark,
                     okText: '{{ i18n "pages.client.bulk"}}',
                     dbInbound: dbInbound,
-                    confirm: async (inbound, dbInbound) => {
+                    confirm: async (clients, dbInboundId) => {
                         clientsBulkModal.loading();
-                        await this.addClient(inbound, dbInbound);
+                        await this.addClient(clients, dbInboundId);
                         clientsBulkModal.close();
                     },
                 });
@@ -561,9 +561,9 @@
                     okText: '{{ i18n "pages.client.submitEdit"}}',
                     dbInbound: dbInbound,
                     index: index,
-                    confirm: async (inbound, dbInbound, index) => {
+                    confirm: async (client, dbInboundId, index) => {
                         clientModal.loading();
-                        await this.updateClient(inbound, dbInbound, index);
+                        await this.updateClient(client, dbInboundId, index);
                         clientModal.close();
                     },
                     isEdit: true
@@ -573,17 +573,17 @@
                 firstKey = Object.keys(client)[0];
                 return clients.findIndex(c => c[firstKey] === client[firstKey]);
             },
-            async addClient(inbound, dbInbound) {
+            async addClient(clients, dbInboundId) {
                 const data = {
-                    id: dbInbound.id,
-                    settings: inbound.settings.toString(),
+                    id: dbInboundId,
+                    settings: '{"clients": [' + clients.toString() +']}',
                 };
-                await this.submit('/xui/inbound/addClient/', data);
+                await this.submit(`/xui/inbound/addClient`, data);
             },
-            async updateClient(inbound, dbInbound, index) {
+            async updateClient(client, dbInboundId, index) {
                 const data = {
-                    id: dbInbound.id,
-                    settings: inbound.settings.toString(),
+                    id: dbInboundId,
+                    settings: '{"clients": [' + client.toString() +']}',
                 };
                 await this.submit(`/xui/inbound/updateClient/${index}`, data);
             },
@@ -658,8 +658,8 @@
                 inbound = dbInbound.toInbound();
                 clients = this.getClients(dbInbound.protocol, inbound.settings);
                 index = this.findIndexOfClient(clients, client);
-                clients[index].enable = ! clients[index].enable
-                await this.updateClient(inbound, dbInbound, index);
+                clients[index].enable = !clients[index].enable;
+                await this.updateClient(clients[index],dbInboundId, index);
                 this.loading(false);
             },
             async submit(url, data) {

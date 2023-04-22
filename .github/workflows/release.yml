@@ -10,11 +10,11 @@ jobs:
     name: build x-ui amd64 version
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3.5.1
+      - uses: actions/checkout@v3.5.2
       - name: Set up Go
         uses: actions/setup-go@v4.0.0
         with:
-          go-version: 'stable'
+          go-version: "stable"
       - name: build linux amd64 version
         run: |
           CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go
@@ -28,7 +28,7 @@ jobs:
           cd bin
           wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-linux-64.zip
           unzip Xray-linux-64.zip
-          rm -f Xray-linux-64.zip geoip.dat geosite.dat
+          rm -f Xray-linux-64.zip geoip.dat geosite.dat iran.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
@@ -50,11 +50,11 @@ jobs:
     name: build x-ui arm64 version
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3.5.1
+      - uses: actions/checkout@v3.5.2
       - name: Set up Go
         uses: actions/setup-go@v4.0.0
         with:
-          go-version: 'stable'
+          go-version: "stable"
       - name: build linux arm64 version
         run: |
           sudo apt-get update
@@ -70,7 +70,7 @@ jobs:
           cd bin
           wget https://github.com/mhsanaei/xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
           unzip Xray-linux-arm64-v8a.zip
-          rm -f Xray-linux-arm64-v8a.zip geoip.dat geosite.dat
+          rm -f Xray-linux-arm64-v8a.zip geoip.dat geosite.dat iran.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat

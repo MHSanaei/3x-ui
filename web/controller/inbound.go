@@ -33,7 +33,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
-	g.POST("/addClient/", a.addInboundClient)
+	g.POST("/addClient", a.addInboundClient)
 	g.POST("/delClient/:email", a.delInboundClient)
 	g.POST("/updateClient/:index", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
@@ -76,6 +76,16 @@ func (a *InboundController) getInbound(c *gin.Context) {
 		return
 	}
 	jsonObj(c, inbound, nil)
+}
+
+func (a *InboundController) getClientTraffics(c *gin.Context) {
+	email := c.Param("email")
+	clientTraffics, err := a.inboundService.GetClientTrafficByEmail(email)
+	if err != nil {
+		jsonMsg(c, "Error getting traffics", err)
+		return
+	}
+	jsonObj(c, clientTraffics, nil)
 }
 
 func (a *InboundController) addInbound(c *gin.Context) {
@@ -151,19 +161,19 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 	jsonMsg(c, "Log Cleared", nil)
 }
 func (a *InboundController) addInboundClient(c *gin.Context) {
-	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
+	data := &model.Inbound{}
+	err := c.ShouldBind(data)
 	if err != nil {
 		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
 		return
 	}
 
-	err = a.inboundService.AddInboundClient(inbound)
+	err = a.inboundService.AddInboundClient(data)
 	if err != nil {
 		jsonMsg(c, "something worng!", err)
 		return
 	}
-	jsonMsg(c, "Client added", nil)
+	jsonMsg(c, "Client(s) added", nil)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
