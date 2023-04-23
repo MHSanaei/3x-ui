@@ -46,13 +46,13 @@
             <a-input type="number" v-model.number="clientsBulkModal.limitIp" min="0" style="width: 70px;" ></a-input>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
-            <a-select v-model="clientsBulkModal.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.inbound.canEnableTlsFlow()" label="Flow" layout="inline">
-            <a-select v-model="clientsBulkModal.flow" style="width: 150px">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
