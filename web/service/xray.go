@@ -69,7 +69,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 
 	s.inboundService.DisableInvalidClients()
-	s.inboundService.RemoveOrphanedTraffics()
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
@@ -124,7 +123,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 
 			settings["clients"] = final_clients
-			modifiedSettings, err := json.Marshal(settings)
+			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return nil, err
 			}

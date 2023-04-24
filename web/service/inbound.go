@@ -528,14 +528,17 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 				if err != nil {
 					return nil, err
 				}
+
 				inbounds[inbound_index].Settings = string(modifiedSettings)
+			}
 		}
 		err = tx.Save(inbounds).Error
 		if err != nil {
 			logger.Warning("AddClientTraffic update inbounds ", err)
 			logger.Error(inbounds)
-		}	
+		}
 	}
+
 	return dbClientTraffics, nil
 }
 
@@ -777,4 +780,44 @@ func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) 
 		return nil, err
 	}
 	return inbounds, nil
+}
+func (s *InboundService) MigrationRequirements() {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan"}).Find(&inbounds).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return
+	}
+	for inbound_index := range inbounds {
+		settings := map[string]interface{}{}
+		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
+		clients, ok := settings["clients"].([]interface{})
+		if ok {
+			var newClients []interface{}
+			for client_index := range clients {
+				c := clients[client_index].(map[string]interface{})
+
+				// Add email='' if it is not exists
+				if _, ok := c["email"]; !ok {
+					c["email"] = ""
+				}
+
+				// Remove "flow": "xtls-rprx-direct"
+				if _, ok := c["flow"]; ok {
+					if c["flow"] == "xtls-rprx-direct" {
+						c["flow"] = ""
+					}
+				}
+				newClients = append(newClients, interface{}(c))
+			}
+			settings["clients"] = newClients
+			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+			if err != nil {
+				return
+			}
+
+			inbounds[inbound_index].Settings = string(modifiedSettings)
+		}
+	}
+	db.Save(inbounds)
 }

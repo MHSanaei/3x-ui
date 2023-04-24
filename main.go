@@ -204,6 +204,19 @@ func updateSetting(port int, username string, password string) {
 	}
 }
 
+func migrateDb() {
+	inboundService := service.InboundService{}
+
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Start migrating database...")
+	inboundService.MigrationRequirements()
+	inboundService.RemoveOrphanedTraffics()
+	fmt.Println("Migration done!")
+}
+
 func removeSecret() {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
@@ -265,6 +278,7 @@ func main() {
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
 		fmt.Println("    v2-ui          migrate form v2-ui")
+		fmt.Println("    migrate        migrate form other/old x-ui")
 		fmt.Println("    setting        set settings")
 	}
 
@@ -282,6 +296,8 @@ func main() {
 			return
 		}
 		runWebServer()
+	case "migrate":
+		migrateDb()
 	case "v2-ui":
 		err := v2uiCmd.Parse(os.Args[2:])
 		if err != nil {
