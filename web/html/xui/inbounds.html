@@ -70,7 +70,7 @@
                             <a-button type="primary" icon="export" @click="exportAllLinks">{{ i18n "pages.inbounds.export" }}</a-button>
                             <a-button type="primary" icon="reload" @click="resetAllTraffic">{{ i18n "pages.inbounds.resetAllTraffic" }}</a-button>
                         </div>
-                        <a-input v-model.lazy="searchKey" placeholder="{{ i18n "search" }}" autofocus style="max-width: 300px"></a-input>
+                        <a-input v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus style="max-width: 300px"></a-input>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :loading="spinning" :scroll="{ x: 1300 }"
@@ -426,7 +426,7 @@
             },
 			openCloneInbound(dbInbound) {
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.cloneInbound"}} ' + dbInbound.remark,
+                    title: '{{ i18n "pages.inbounds.cloneInbound"}}' + dbInbound.remark,
                     content: '{{ i18n "pages.inbounds.cloneInboundContent"}}',
                     okText: '{{ i18n "pages.inbounds.cloneInboundOk"}}',
                     cancelText: '{{ i18n "cancel" }}',
@@ -615,22 +615,14 @@
             },
             delClient(dbInboundId,client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                newDbInbound = new DBInbound(dbInbound);
-                inbound = newDbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
-                index = this.findIndexOfClient(clients, client);
-                clients.splice(index, 1);
-                const data = {
-                    id: dbInboundId,
-                    settings: inbound.settings.toString(),
-                };
+                clientId = dbInbound.protocol == "trojan" ? client.password : client.id;
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
                     class: siderDrawer.isDarkTheme ? darkClass : '',
                     okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/delClient/' + client.email, data),
+                    onOk: () => this.submit(`/xui/inbound/${dbInboundId}/delClient/${clientId}`),
                 });
             },
             getClients(protocol, clientSettings) {

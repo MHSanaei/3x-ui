@@ -314,28 +314,56 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) error {
 	return db.Save(oldInbound).Error
 }
 
-func (s *InboundService) DelInboundClient(inbound *model.Inbound, email string) error {
-	db := database.GetDB()
-	err := s.DelClientStat(db, email)
-	if err != nil {
-		logger.Error("Delete stats Data Error")
-		return err
-	}
-
-	oldInbound, err := s.GetInbound(inbound.Id)
+func (s *InboundService) DelInboundClient(inboundId int, clientId string) error {
+	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
 		logger.Error("Load Old Data Error")
 		return err
 	}
+	var settings map[string]interface{}
+	err = json.Unmarshal([]byte(oldInbound.Settings), &settings)
+	if err != nil {
+		return err
+	}
 
-	oldInbound.Settings = inbound.Settings
+	email := ""
+	client_key := "id"
+	if oldInbound.Protocol == "trojan" {
+		client_key = "password"
+	}
+
+	inerfaceClients := settings["clients"].([]interface{})
+	var newClients []interface{}
+	for _, client := range inerfaceClients {
+		c := client.(map[string]interface{})
+		c_id := c[client_key].(string)
+		if c_id == clientId {
+			email = c["email"].(string)
+		} else {
+			newClients = append(newClients, client)
+		}
+	}
+
+	settings["clients"] = newClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	oldInbound.Settings = string(newSettings)
+
+	db := database.GetDB()
+	err = s.DelClientStat(db, email)
+	if err != nil {
+		logger.Error("Delete stats Data Error")
+		return err
+	}
 
 	err = s.DelClientIPs(db, email)
 	if err != nil {
 		logger.Error("Error in delete client IPs")
 		return err
 	}
-
 	return db.Save(oldInbound).Error
 }
 

@@ -166,7 +166,7 @@ Reference syntax:
 | `POST` | `"/clientIps/:email"`              | Client Ip address                           |
 | `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
 | `POST` | `"/addClient/"`                    | Add Client to inbound                       |
-| `POST` | `"/delClient/:email"`              | Delete Client                               |
+| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by UID/Password as clientId   |
 | `POST` | `"/updateClient/:index"`           | Update Client                               |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
