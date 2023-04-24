@@ -34,7 +34,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
-	g.POST("/delClient/:email", a.delInboundClient)
+	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:index", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
@@ -155,7 +155,7 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 
 	err := a.inboundService.ClearClientIps(email)
 	if err != nil {
-		jsonMsg(c, "修改", err)
+		jsonMsg(c, "Revise", err)
 		return
 	}
 	jsonMsg(c, "Log Cleared", nil)
@@ -180,15 +180,14 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 }
 
 func (a *InboundController) delInboundClient(c *gin.Context) {
-	email := c.Param("email")
-	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
+	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
 		return
 	}
+	clientId := c.Param("clientId")
 
-	err = a.inboundService.DelInboundClient(inbound, email)
+	err = a.inboundService.DelInboundClient(id, clientId)
 	if err != nil {
 		jsonMsg(c, "something worng!", err)
 		return
