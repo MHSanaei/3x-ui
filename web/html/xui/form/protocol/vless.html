@@ -19,6 +19,12 @@
         <a-form-item label="ID">
             <a-input v-model.trim="client.id"  style="width: 300px;" ></a-input>
         </a-form-item>
+        <a-form-item label="Subscription" v-if="client.email">
+            <a-input v-model.trim="client.subId"></a-input>
+        </a-form-item>
+        <a-form-item label="Telegram Username" v-if="client.email">
+            <a-input v-model.trim="client.tgId"></a-input>
+        </a-form-item>
 		<a-form-item>
             <span slot="label">
                 <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
