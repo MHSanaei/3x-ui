@@ -1009,7 +1009,7 @@ class Inbound extends XrayCommonClass {
         return this.network === "grpc";
     }
 
-    get isH2() {
+    get isHttp() {
         return this.network === "http";
     }
 
@@ -1095,7 +1095,7 @@ class Inbound extends XrayCommonClass {
             return this.stream.tcp.request.getHeader("Host");
         } else if (this.isWs) {
             return this.stream.ws.getHeader("Host");
-        } else if (this.isH2) {
+        } else if (this.isHttp) {
             return this.stream.http.host[0];
         }
         return null;
@@ -1106,7 +1106,7 @@ class Inbound extends XrayCommonClass {
             return this.stream.tcp.request.path[0];
         } else if (this.isWs) {
             return this.stream.ws.path;
-        } else if (this.isH2) {
+        } else if (this.isHttp) {
             return this.stream.http.path[0];
         }
         return null;
