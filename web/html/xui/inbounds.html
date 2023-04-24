@@ -41,19 +41,19 @@
                             <a-col :xs="24" :sm="24" :lg="12">
                                 {{ i18n "clients" }}:
                                 <a-tag color="green">[[ total.clients ]]</a-tag>
-                                <a-popover title="{{ i18n "disabled" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.deactive">[[ clientEmail ]]</p>
                                     </template>
                                     <a-tag v-if="total.deactive.length">[[ total.deactive.length ]]</a-tag>
                                 </a-popover>
-                                <a-popover title="{{ i18n "depleted" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.depleted">[[ clientEmail ]]</p>
                                     </template>
                                     <a-tag color="red" v-if="total.depleted.length">[[ total.depleted.length ]]</a-tag>
                                 </a-popover>
-                                <a-popover title="{{ i18n "depletingSoon" }}" :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
+                                <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="siderDrawer.isDarkTheme ? 'ant-dark' : ''">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.expiring">[[ clientEmail ]]</p>
                                     </template>
