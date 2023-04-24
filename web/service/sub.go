@@ -352,9 +352,6 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
 		if xtlsSetting != nil {
-			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
-				params["sni"], _ = sniValue.(string)
-			}
 			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
 			}
@@ -529,9 +526,6 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
 		if xtlsSetting != nil {
-			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
-				params["sni"], _ = sniValue.(string)
-			}
 			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
 				params["fp"], _ = fpValue.(string)
 			}

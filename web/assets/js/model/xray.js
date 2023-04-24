@@ -1409,6 +1409,7 @@ class Inbound extends XrayCommonClass {
 
         if (this.reality) {
             params.set("security", "reality");
+            params.set("fp", this.stream.reality.settings.fingerprint);
             params.set("pbk", this.stream.reality.settings.publicKey);
             if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
                 params.set("sni", this.stream.reality.serverNames.split(",")[0]);
@@ -1418,9 +1419,6 @@ class Inbound extends XrayCommonClass {
             }
             if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
-            }
-            if (!ObjectUtil.isEmpty(this.stream.reality.settings.fingerprint)) {
-                params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
                 address = this.stream.reality.settings.serverName;
@@ -1513,18 +1511,13 @@ class Inbound extends XrayCommonClass {
 
         if (this.reality) {
             params.set("security", "reality");
+            params.set("fp", this.stream.reality.settings.fingerprint);
             params.set("pbk", this.stream.reality.settings.publicKey);
             if (!ObjectUtil.isArrEmpty(this.stream.reality.serverNames)) {
                 params.set("sni", this.stream.reality.serverNames.split(",")[0]);
             }
-            if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
-                address = this.stream.reality.settings.serverName;
-            }
             if (this.stream.reality.shortIds.length > 0) {
                 params.set("sid", this.stream.reality.shortIds.split(",")[0]);
-            }
-            if (!ObjectUtil.isEmpty(this.stream.reality.settings.fingerprint)) {
-                params.set("fp", this.stream.reality.settings.fingerprint);
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
                 address = this.stream.reality.settings.serverName;
@@ -1537,7 +1530,7 @@ class Inbound extends XrayCommonClass {
             if(this.stream.xtls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+            if (!ObjectUtil.isEmpty(this.stream.xtls.server)) {
                 address = this.stream.xtls.server;
 			}
             params.set("flow", this.settings.trojans[clientIndex].flow);
