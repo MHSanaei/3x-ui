@@ -868,6 +868,19 @@ func (s *InboundService) MigrationRequirements() {
 
 			inbounds[inbound_index].Settings = string(modifiedSettings)
 		}
+		modelClients, err := s.getClients(inbounds[inbound_index])
+		if err != nil {
+			return
+		}
+		for _, modelClient := range modelClients {
+			if len(modelClient.Email) > 0 {
+				var count int64
+				db.Model(xray.ClientTraffic{}).Where("email = ?", modelClient.Email).Count(&count)
+				if count == 0 {
+					s.AddClientStat(inbounds[inbound_index].Id, &modelClient)
+				}
+			}
+		}
 	}
 	db.Save(inbounds)
 }
