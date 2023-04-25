@@ -68,7 +68,7 @@
                         <div slot="title">
                             <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
                             <a-dropdown :trigger="['click']">
-                                <a-button type="primary" icon="menu">General Actions</a-button>
+                                <a-button type="primary" icon="menu">{{ i18n "pages.inbounds.generalActions" }}</a-button>
                                 <a-menu slot="overlay" @click="a => generalActions(a)" :theme="siderDrawer.theme">
                                     <a-menu-item key="export">
                                         <a-icon type="export"></a-icon>

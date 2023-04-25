@@ -107,6 +107,7 @@
 "expireDate" = "到期时间"
 "resetTraffic" = "重置流量"
 "addInbound" = "添加入"
+"generalActions" = "通用操作"
 "addTo" = "添加"
 "revise" = "修改"
 "modifyInbound" = "修改入站"
