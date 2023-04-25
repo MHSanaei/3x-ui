@@ -367,7 +367,7 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) error 
 	return db.Save(oldInbound).Error
 }
 
-func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) error {
+func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) error {
 	clients, err := s.getClients(data)
 	if err != nil {
 		return err
@@ -391,7 +391,23 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 		return err
 	}
 
-	if len(clients[0].Email) > 0 && clients[0].Email != oldClients[index].Email {
+	oldEmail := ""
+	clientIndex := 0
+	for index, oldClient := range oldClients {
+		oldClientId := ""
+		if oldInbound.Protocol == "trojan" {
+			oldClientId = oldClient.Password
+		} else {
+			oldClientId = oldClient.ID
+		}
+		if clientId == oldClientId {
+			oldEmail = oldClient.Email
+			clientIndex = index
+			break
+		}
+	}
+
+	if len(clients[0].Email) > 0 && clients[0].Email != oldEmail {
 		existEmail, err := s.checkEmailsExistForClients(clients)
 		if err != nil {
 			return err
@@ -406,10 +422,8 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 	if err != nil {
 		return err
 	}
-
 	settingsClients := oldSettings["clients"].([]interface{})
-	settingsClients[index] = inerfaceClients[0]
-
+	settingsClients[clientIndex] = inerfaceClients[0]
 	oldSettings["clients"] = settingsClients
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
@@ -421,12 +435,12 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 	db := database.GetDB()
 
 	if len(clients[0].Email) > 0 {
-		if len(oldClients[index].Email) > 0 {
-			err = s.UpdateClientStat(oldClients[index].Email, &clients[0])
+		if len(oldEmail) > 0 {
+			err = s.UpdateClientStat(oldEmail, &clients[0])
 			if err != nil {
 				return err
 			}
-			err = s.UpdateClientIPs(db, oldClients[index].Email, clients[0].Email)
+			err = s.UpdateClientIPs(db, oldEmail, clients[0].Email)
 			if err != nil {
 				return err
 			}
@@ -434,11 +448,11 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, index int) err
 			s.AddClientStat(data.Id, &clients[0])
 		}
 	} else {
-		err = s.DelClientStat(db, oldClients[index].Email)
+		err = s.DelClientStat(db, oldEmail)
 		if err != nil {
 			return err
 		}
-		err = s.DelClientIPs(db, oldClients[index].Email)
+		err = s.DelClientIPs(db, oldEmail)
 		if err != nil {
 			return err
 		}
@@ -667,8 +681,15 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) error {
 func (s *InboundService) ResetAllClientTraffics(id int) error {
 	db := database.GetDB()
 
+	whereText := "inbound_id "
+	if id == -1 {
+		whereText += " > ?"
+	} else {
+		whereText += " = ?"
+	}
+
 	result := db.Model(xray.ClientTraffic{}).
-		Where("inbound_id = ?", id).
+		Where(whereText, id).
 		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
 
 	err := result.Error
@@ -724,7 +745,7 @@ func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTr
 	return traffics, err
 }
 
-func (s *InboundService) GetClientTrafficByEmail(email string) (traffic []*xray.ClientTraffic, err error) {
+func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
 
@@ -735,7 +756,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic []*xray.
 			return nil, err
 		}
 	}
-	return traffics, err
+	return traffics[0], err
 }
 
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
@@ -809,6 +830,7 @@ func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) 
 	}
 	return inbounds, nil
 }
+
 func (s *InboundService) MigrationRequirements() {
 	db := database.GetDB()
 	var inbounds []*model.Inbound

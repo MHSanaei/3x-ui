@@ -35,7 +35,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
-	g.POST("/updateClient/:index", a.updateInboundClient)
+	g.POST("/updateClient/:clientId", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
@@ -199,20 +199,16 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 }
 
 func (a *InboundController) updateInboundClient(c *gin.Context) {
-	index, err := strconv.Atoi(c.Param("index"))
-	if err != nil {
-		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
-		return
-	}
+	clientId := c.Param("clientId")
 
 	inbound := &model.Inbound{}
-	err = c.ShouldBind(inbound)
+	err := c.ShouldBind(inbound)
 	if err != nil {
 		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
 		return
 	}
 
-	err = a.inboundService.UpdateInboundClient(inbound, index)
+	err = a.inboundService.UpdateInboundClient(inbound, clientId)
 	if err != nil {
 		jsonMsg(c, "something worng!", err)
 		return

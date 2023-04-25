@@ -561,9 +561,9 @@
                     okText: '{{ i18n "pages.client.submitEdit"}}',
                     dbInbound: dbInbound,
                     index: index,
-                    confirm: async (client, dbInboundId, index) => {
+                    confirm: async (client, dbInboundId, clientId) => {
                         clientModal.loading();
-                        await this.updateClient(client, dbInboundId, index);
+                        await this.updateClient(client, dbInboundId, clientId);
                         clientModal.close();
                     },
                     isEdit: true
@@ -580,12 +580,12 @@
                 };
                 await this.submit(`/xui/inbound/addClient`, data);
             },
-            async updateClient(client, dbInboundId, index) {
+            async updateClient(client, dbInboundId, clientId) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + client.toString() +']}',
                 };
-                await this.submit(`/xui/inbound/updateClient/${index}`, data);
+                await this.submit(`/xui/inbound/updateClient/${clientId}`, data);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
