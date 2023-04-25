@@ -20,10 +20,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.2.8`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.3.0`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.2.8
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.3.0
 ```
 
 # SSL
@@ -33,6 +33,8 @@ apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
+or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
+
 
 # Default settings
 
@@ -134,6 +136,7 @@ Reference syntax:
 - 0 \*/10 \* \* \* \* //Notify at the first second of each 10 minutes
 - @hourly // hourly notification
 - @daily // Daily notification (00:00 in the morning)
+- @weekly // weekly notification
 - @every 8h // notify every 8 hours
 
 # Telegram Bot Features
@@ -160,17 +163,19 @@ Reference syntax:
 | :----: | ---------------------------------- | ------------------------------------------- |
 | `GET`  | `"/list"`                          | Get all inbounds                            |
 | `GET`  | `"/get/:id"`                       | Get inbound with inbound.id                 |
+| `GET`  | `"/getClientTraffics/:email"`      | Get Client Traffics with email              |
 | `POST` | `"/add"`                           | Add inbound                                 |
 | `POST` | `"/del/:id"`                       | Delete Inbound                              |
 | `POST` | `"/update/:id"`                    | Update Inbound                              |
 | `POST` | `"/clientIps/:email"`              | Client Ip address                           |
 | `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
-| `POST` | `"/addClient/"`                    | Add Client to inbound                       |
+| `POST` | `"/addClient"`                     | Add Client to inbound                       |
 | `POST` | `"/:id/delClient/:clientId"`       | Delete Client by UID/Password as clientId   |
-| `POST` | `"/updateClient/:index"`           | Update Client                               |
+| `POST` | `"/updateClient/:clientId"`        | Update Client by UID/Password as clientId   |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
+| `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
 
 # A Special Thanks To
 

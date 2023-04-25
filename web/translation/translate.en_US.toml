@@ -107,6 +107,7 @@
 "expireDate" = "Expire date"
 "resetTraffic" = "Reset traffic"
 "addInbound" = "Add Inbound"
+"generalActions" = "General Actions"
 "addTo" = "Create"
 "revise" = "Update"
 "modifyInbound" = "Modify InBound"
