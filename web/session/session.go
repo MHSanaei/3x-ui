@@ -2,9 +2,10 @@ package session
 
 import (
 	"encoding/gob"
+	"x-ui/database/model"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"x-ui/database/model"
 )
 
 const (
@@ -18,6 +19,15 @@ func init() {
 func SetLoginUser(c *gin.Context, user *model.User) error {
 	s := sessions.Default(c)
 	s.Set(loginUser, user)
+	return s.Save()
+}
+
+func SetMaxAge(c *gin.Context, maxAge int) error {
+	s := sessions.Default(c)
+	s.Options(sessions.Options{
+		Path:   "/",
+		MaxAge: maxAge,
+	})
 	return s.Save()
 }
 

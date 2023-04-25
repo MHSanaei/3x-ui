@@ -172,6 +172,7 @@ class AllSetting {
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
+        this.sessionMaxAge = "";
         this.expireDiff = "";
         this.trafficDiff = "";
         this.tgBotEnable = false;

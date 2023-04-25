@@ -281,6 +281,8 @@
 "telegramNotifyTimeDesc" = "Using Crontab timing format. Restart the panel to take effect"
 "tgNotifyBackup" = "Database backup"
 "tgNotifyBackupDesc" = "Sending database backup file with report notification. Restart the panel to take effect"
+"sessionMaxAge" = "Session maximum age"
+"sessionMaxAgeDesc" = "The time that you can stay login (unit: minute)"
 "expireTimeDiff" = "Exhaustion time threshold"
 "expireTimeDiffDesc" = "Detect exhaustion before expiration (unit:day)"
 "trafficDiff" = "Exhaustion traffic threshold"
