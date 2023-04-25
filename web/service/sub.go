@@ -590,7 +590,11 @@ func searchHost(headers interface{}) string {
 			switch v.(type) {
 			case []interface{}:
 				hosts, _ := v.([]interface{})
-				return hosts[0].(string)
+				if len(hosts) > 0 {
+					return hosts[0].(string)
+				} else {
+					return ""
+				}
 			case interface{}:
 				return v.(string)
 			}
