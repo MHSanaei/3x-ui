@@ -9,7 +9,7 @@
                 <a-input :value="value" @input="$emit('input', $event.target.value)"></a-input>
             </template>
             <template v-else-if="type === 'number'">
-                <a-input type="number" :value="value" @input="$emit('input', $event.target.value)"></a-input>
+                <a-input type="number" :value="value" @input="$emit('input', $event.target.value)" :min="min"></a-input>
             </template>
             <template v-else-if="type === 'textarea'">
                 <a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 10 }"></a-textarea>
@@ -25,7 +25,7 @@
 {{define "component/setting"}}
 <script>
     Vue.component('setting-list-item', {
-        props: ["type", "title", "desc", "value"],
+        props: ["type", "title", "desc", "value", "min"],
         template: `{{template "component/settingListItem"}}`,
     });
 </script>

@@ -29,6 +29,7 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
+	"sessionMaxAge":      "0",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"timeLocation":       "Asia/Tehran",
@@ -251,16 +252,8 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 	return s.getBool("tgBotBackup")
 }
 
-func (s *SettingService) SetTgBotBackup(value bool) error {
-	return s.setBool("tgBotBackup", value)
-}
-
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
-}
-
-func (s *SettingService) SetTgCpu(value int) error {
-	return s.setInt("tgCpu", value)
 }
 
 func (s *SettingService) GetPort() (int, error) {
@@ -283,16 +276,12 @@ func (s *SettingService) GetExpireDiff() (int, error) {
 	return s.getInt("expireDiff")
 }
 
-func (s *SettingService) SetExpireDiff(value int) error {
-	return s.setInt("expireDiff", value)
-}
-
 func (s *SettingService) GetTrafficDiff() (int, error) {
 	return s.getInt("trafficDiff")
 }
 
-func (s *SettingService) SetgetTrafficDiff(value int) error {
-	return s.setInt("trafficDiff", value)
+func (s *SettingService) GetSessionMaxAge() (int, error) {
+	return s.getInt("sessionMaxAge")
 }
 
 func (s *SettingService) GetSecretStatus() (bool, error) {

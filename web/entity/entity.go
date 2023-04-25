@@ -32,6 +32,7 @@ type AllSetting struct {
 	WebCertFile        string `json:"webCertFile" form:"webCertFile"`
 	WebKeyFile         string `json:"webKeyFile" form:"webKeyFile"`
 	WebBasePath        string `json:"webBasePath" form:"webBasePath"`
+	SessionMaxAge      int    `json:"sessionMaxAge" form:"sessionMaxAge"`
 	ExpireDiff         int    `json:"expireDiff" form:"expireDiff"`
 	TrafficDiff        int    `json:"trafficDiff" form:"trafficDiff"`
 	TgBotEnable        bool   `json:"tgBotEnable" form:"tgBotEnable"`

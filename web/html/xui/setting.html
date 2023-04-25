@@ -45,6 +45,7 @@
                                     <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                     <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                     <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.setting.sessionMaxAge" }}' desc='{{ i18n "pages.setting.sessionMaxAgeDesc" }}'  v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
                                     <setting-list-item type="number" title='{{ i18n "pages.setting.expireTimeDiff" }}' desc='{{ i18n "pages.setting.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                                     <setting-list-item type="number" title='{{ i18n "pages.setting.trafficDiff" }}' desc='{{ i18n "pages.setting.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
                                     <a-list-item>
