@@ -1,5 +1,5 @@
 # 3x-ui
-
+#  [آموزش کامل در کانال یوتیوب کلیک کنید](https://YouTube.com/@IR-Tech)
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
 [![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
