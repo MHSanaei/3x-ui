@@ -17,13 +17,14 @@
         inbound: new Inbound(),
         clients: [],
         clientStats: [],
+        oldClientId: "",
         index: null,
         clientIps: null,
         isExpired: false,
         delayedStart: false,
         ok() {
             if(clientModal.isEdit){
-                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.index);
+                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
             } else {
                 ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
             }
@@ -39,12 +40,13 @@
             this.index = index === null ? this.clients.length : index;
             this.isExpired = isEdit ? this.inbound.isExpiry(this.index) : false;
             this.delayedStart = false;
-            if (!isEdit){
-                this.addClient(this.inbound.protocol, this.clients);
-            } else {
+            if (isEdit){
                 if (this.clients[index].expiryTime < 0){
                     this.delayedStart = true;
                 }
+                this.oldClientId = this.dbInbound.protocol == "trojan" ? this.clients[index].password : this.clients[index].id;
+            } else {
+                this.addClient(this.inbound.protocol, this.clients);
             }
             this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
             this.confirm = confirm;

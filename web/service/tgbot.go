@@ -404,38 +404,36 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 }
 
 func (t *Tgbot) searchClient(chatId int64, email string) {
-	traffics, err := t.inboundService.GetClientTrafficByEmail(email)
+	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
 		logger.Warning(err)
 		msg := "❌ Something went wrong!"
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	if len(traffics) == 0 {
+	if traffic == nil {
 		msg := "No result!"
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	for _, traffic := range traffics {
-		expiryTime := ""
-		if traffic.ExpiryTime == 0 {
-			expiryTime = "♾Unlimited"
-		} else if traffic.ExpiryTime < 0 {
-			expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
-		} else {
-			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
-		}
-		total := ""
-		if traffic.Total == 0 {
-			total = "♾Unlimited"
-		} else {
-			total = common.FormatTraffic((traffic.Total))
-		}
-		output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
-			traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
-			total, expiryTime)
-		t.SendMsgToTgbot(chatId, output)
+	expiryTime := ""
+	if traffic.ExpiryTime == 0 {
+		expiryTime = "♾Unlimited"
+	} else if traffic.ExpiryTime < 0 {
+		expiryTime = fmt.Sprintf("%d days", traffic.ExpiryTime/-86400000)
+	} else {
+		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	}
+	total := ""
+	if traffic.Total == 0 {
+		total = "♾Unlimited"
+	} else {
+		total = common.FormatTraffic((traffic.Total))
+	}
+	output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
+		traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
+		total, expiryTime)
+	t.SendMsgToTgbot(chatId, output)
 }
 
 func (t *Tgbot) searchInbound(chatId int64, remark string) {
