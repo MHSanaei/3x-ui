@@ -193,7 +193,7 @@ Reference syntax:
 [![](https://img.shields.io/badge/Wallet-USDT__TRC20-green.svg)](#)
 
 ```
-TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC
+TTCfN7wiME62NefFgeYQfR8sCs6BDBJm2A
 ```
 
 # Pictures
