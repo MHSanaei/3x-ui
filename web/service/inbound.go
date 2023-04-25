@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 	"x-ui/database"
 	"x-ui/database/model"
@@ -712,6 +713,84 @@ func (s *InboundService) ResetAllTraffics() error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (s *InboundService) DelDepletedClients(id int) (err error) {
+	db := database.GetDB()
+	tx := db.Begin()
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	whereText := "inbound_id "
+	if id < 0 {
+		whereText += "> ?"
+	} else {
+		whereText += "= ?"
+	}
+
+	depletedClients := []xray.ClientTraffic{}
+	err = db.Model(xray.ClientTraffic{}).Where(whereText+" and enable = ?", id, false).Select("inbound_id, GROUP_CONCAT(email) as email").Group("inbound_id").Find(&depletedClients).Error
+	if err != nil {
+		return err
+	}
+
+	for _, depletedClient := range depletedClients {
+		emails := strings.Split(depletedClient.Email, ",")
+		oldInbound, err := s.GetInbound(depletedClient.InboundId)
+		if err != nil {
+			return err
+		}
+		var oldSettings map[string]interface{}
+		err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+		if err != nil {
+			return err
+		}
+
+		oldClients := oldSettings["clients"].([]interface{})
+		var newClients []interface{}
+		for _, client := range oldClients {
+			deplete := false
+			c := client.(map[string]interface{})
+			for _, email := range emails {
+				if email == c["email"].(string) {
+					deplete = true
+					break
+				}
+			}
+			if !deplete {
+				newClients = append(newClients, client)
+			}
+		}
+		if len(newClients) > 0 {
+			oldSettings["clients"] = newClients
+
+			newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
+			if err != nil {
+				return err
+			}
+
+			oldInbound.Settings = string(newSettings)
+			err = tx.Save(oldInbound).Error
+			if err != nil {
+				return err
+			}
+		} else {
+			// Delete inbound if no client remains
+			s.DelInbound(depletedClient.InboundId)
+		}
+	}
+
+	err = tx.Where(whereText+" and enable = ?", id, false).Delete(xray.ClientTraffic{}).Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

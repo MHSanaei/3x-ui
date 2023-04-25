@@ -82,6 +82,10 @@
                                         <a-icon type="file-done"></a-icon>
                                         {{ i18n "pages.inbounds.resetAllClientTraffics" }}
                                     </a-menu-item>
+                                    <a-menu-item key="delDepletedClients">
+                                        <a-icon type="rest"></a-icon>
+                                        {{ i18n "pages.inbounds.delDepletedClients" }}
+                                    </a-menu-item>
                                 </a-menu>
                             </a-dropdown>
                         </div>
@@ -121,6 +125,10 @@
                                             <a-menu-item key="export">
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}}
+                                            </a-menu-item>
+                                            <a-menu-item key="delDepletedClients">
+                                                <a-icon type="rest"></a-icon>
+                                                {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
                                         </template>
                                         <template v-else>
@@ -416,7 +424,8 @@
                     case "resetClients":
                         this.resetAllClientTraffics(-1);
                         break;
-                    case "":
+                    case "delDepletedClients":
+                        this.delDepletedClients(-1)
                         break;
                 }
             },
@@ -451,6 +460,9 @@
                         break;
                     case "delete":
                         this.delInbound(dbInbound.id);
+                        break;
+                    case "delDepletedClients":
+                        this.delDepletedClients(dbInbound.id)
                         break;
                 }
             },
@@ -728,6 +740,16 @@
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/xui/inbound/resetAllClientTraffics/' + dbInboundId),
+                })
+            },
+            delDepletedClients(dbInboundId) {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.delDepletedClientsTitle"}}',
+                    content: '{{ i18n "pages.inbounds.delDepletedClientsContent"}}',
+                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    okText: '{{ i18n "reset"}}',
+                    cancelText: '{{ i18n "cancel"}}',
+                    onOk: () => this.submit('/xui/inbound/delDepletedClients/' + dbInboundId),
                 })
             },
             isExpiry(dbInbound, index) {

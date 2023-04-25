@@ -39,6 +39,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
+	g.POST("/delDepletedClients/:id", a.delDepletedClients)
 
 }
 
@@ -170,7 +171,7 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 
 	err = a.inboundService.AddInboundClient(data)
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "Client(s) added", nil)
@@ -189,7 +190,7 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 
 	err = a.inboundService.DelInboundClient(id, clientId)
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "Client deleted", nil)
@@ -210,7 +211,7 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 
 	err = a.inboundService.UpdateInboundClient(inbound, clientId)
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "Client updated", nil)
@@ -229,7 +230,7 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 
 	err = a.inboundService.ResetClientTraffic(id, email)
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "traffic reseted", nil)
@@ -241,7 +242,7 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	err := a.inboundService.ResetAllTraffics()
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "All traffics reseted", nil)
@@ -256,8 +257,22 @@ func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 
 	err = a.inboundService.ResetAllClientTraffics(id)
 	if err != nil {
-		jsonMsg(c, "something worng!", err)
+		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
 	jsonMsg(c, "All traffics of client reseted", nil)
+}
+
+func (a *InboundController) delDepletedClients(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18n(c, "pages.inbounds.revise"), err)
+		return
+	}
+	err = a.inboundService.DelDepletedClients(id)
+	if err != nil {
+		jsonMsg(c, "Something went wrong!", err)
+		return
+	}
+	jsonMsg(c, "All delpeted clients are deleted", nil)
 }
