@@ -556,7 +556,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 				for client_index := range clients {
 					c := clients[client_index].(map[string]interface{})
 					for traffic_index := range dbClientTraffics {
-						if c["email"] == dbClientTraffics[traffic_index].Email {
+						if dbClientTraffics[traffic_index].ExpiryTime < 0 && c["email"] == dbClientTraffics[traffic_index].Email {
 							oldExpiryTime := c["expiryTime"].(float64)
 							newExpiryTime := (time.Now().Unix() * 1000) - int64(oldExpiryTime)
 							c["expiryTime"] = newExpiryTime
