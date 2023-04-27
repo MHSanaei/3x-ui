@@ -28,20 +28,6 @@ const SSMethods = {
 	BLAKE3_CHACHA20_POLY1305: '2022-blake3-chacha20-poly1305',
 };
 
-const RULE_IP = {
-    PRIVATE: 'geoip:private',
-    CN: 'geoip:cn',
-};
-
-const RULE_DOMAIN = {
-    ADS: 'geosite:category-ads',
-    ADS_ALL: 'geosite:category-ads-all',
-    CN: 'geosite:cn',
-    GOOGLE: 'geosite:google',
-    FACEBOOK: 'geosite:facebook',
-    SPEEDTEST: 'geosite:speedtest',
-};
-
 const XTLS_FLOW_CONTROL = {
     ORIGIN: "xtls-rprx-origin",
     DIRECT: "xtls-rprx-direct",
@@ -101,8 +87,6 @@ const ALPN_OPTION = {
 Object.freeze(Protocols);
 Object.freeze(VmessMethods);
 Object.freeze(SSMethods);
-Object.freeze(RULE_IP);
-Object.freeze(RULE_DOMAIN);
 Object.freeze(XTLS_FLOW_CONTROL);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(TLS_VERSION_OPTION);
@@ -1160,6 +1144,7 @@ class Inbound extends XrayCommonClass {
             case Protocols.VMESS:
             case Protocols.VLESS:
             case Protocols.TROJAN:
+            case Protocols.SHADOWSOCKS:
                 break;
             default:
                 return false;
