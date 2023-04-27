@@ -440,18 +440,26 @@ class QuicStreamSettings extends XrayCommonClass {
 }
 
 class GrpcStreamSettings extends XrayCommonClass {
-    constructor(serviceName="") {
+    constructor(
+        serviceName="",
+        multiMode=false
+        ) {
         super();
         this.serviceName = serviceName;
+        this.multiMode = multiMode;
     }
 
     static fromJson(json={}) {
-        return new GrpcStreamSettings(json.serviceName);
+        return new GrpcStreamSettings(
+            json.serviceName,
+            json.multiMode
+            );
     }
 
     toJson() {
         return {
             serviceName: this.serviceName,
+            multiMode: this.multiMode
         }
     }
 }
@@ -1246,50 +1254,6 @@ class Inbound extends XrayCommonClass {
         if (this.protocol !== Protocols.VMESS) {
             return '';
         }
-        let network = this.stream.network;
-        let type = 'none';
-        let host = '';
-        let path = '';
-        if (network === 'tcp') {
-            let tcp = this.stream.tcp;
-            type = tcp.type;
-            if (type === 'http') {
-                let request = tcp.request;
-                path = request.path.join(',');
-                let index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                if (index >= 0) {
-                    host = request.headers[index].value;
-                }
-            }
-        } else if (network === 'kcp') {
-            let kcp = this.stream.kcp;
-            type = kcp.type;
-            path = kcp.seed;
-        } else if (network === 'ws') {
-            let ws = this.stream.ws;
-            path = ws.path;
-            let index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
-            if (index >= 0) {
-                host = ws.headers[index].value;
-            }
-        } else if (network === 'http') {
-            network = 'h2';
-            path = this.stream.http.path;
-            host = this.stream.http.host.join(',');
-        } else if (network === 'quic') {
-            type = this.stream.quic.type;
-            host = this.stream.quic.security;
-            path = this.stream.quic.key;
-        } else if (network === 'grpc') {
-            path = this.stream.grpc.serviceName;
-        }
-
-        if (this.stream.security === 'tls') {
-            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
-                address = this.stream.tls.server;
-            }
-        }
-        
         let obj = {
             v: '2',
             ps: remark,
@@ -1297,16 +1261,66 @@ class Inbound extends XrayCommonClass {
             port: this.port,
             id: this.settings.vmesses[clientIndex].id,
             aid: this.settings.vmesses[clientIndex].alterId,
-            net: network,
-            type: type,
-            host: host,
-            path: path,
+            net: this.stream.network,
+            type: 'none',
             tls: this.stream.security,
-            sni: this.stream.tls.settings.serverName,
-            fp: this.stream.tls.settings.fingerprint,
-            alpn: this.stream.tls.alpn.join(','),
-            allowInsecure: this.stream.tls.settings.allowInsecure,
         };
+        let network = this.stream.network;
+        if (network === 'tcp') {
+            let tcp = this.stream.tcp;
+            obj.type = tcp.type;
+            if (tcp.type === 'http') {
+                let request = tcp.request;
+                obj.path = request.path.join(',');
+                let index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (index >= 0) {
+                    obj.host = request.headers[index].value;
+                }
+            }
+        } else if (network === 'kcp') {
+            let kcp = this.stream.kcp;
+            obj.type = kcp.type;
+            obj.path = kcp.seed;
+        } else if (network === 'ws') {
+            let ws = this.stream.ws;
+            obj.path = ws.path;
+            let index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
+            if (index >= 0) {
+                obj.host = ws.headers[index].value;
+            }
+        } else if (network === 'http') {
+            obj.net = 'h2';
+            obj.path = this.stream.http.path;
+            obj.host = this.stream.http.host.join(',');
+        } else if (network === 'quic') {
+            obj.type = this.stream.quic.type;
+            obj.host = this.stream.quic.security;
+            obj.path = this.stream.quic.key;
+        } else if (network === 'grpc') {
+            obj.path = this.stream.grpc.serviceName;
+            if (this.stream.grpc.multiMode){
+                obj.type = 'multi'
+            }
+        }
+
+        if (this.stream.security === 'tls') {
+            if (!ObjectUtil.isEmpty(this.stream.tls.server)) {
+                obj.add = this.stream.tls.server;
+            }
+            if (!ObjectUtil.isEmpty(this.stream.tls.settings.serverName)){
+                obj.sni = this.stream.tls.settings.serverName;
+            }
+            if (!ObjectUtil.isEmpty(this.stream.tls.settings.fingerprint)){
+                obj.fp = this.stream.tls.settings.fingerprint;
+            }
+            if (this.stream.tls.alpn.length>0){
+                obj.alpn = this.stream.tls.alpn.join(',');
+            }
+            if (this.stream.tls.settings.allowInsecure){
+                obj.allowInsecure = this.stream.tls.settings.allowInsecure;
+            }
+        }
+        
         return 'vmess://' + base64(JSON.stringify(obj, null, 2));
     }
 
@@ -1359,6 +1373,9 @@ class Inbound extends XrayCommonClass {
             case "grpc":
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
+                if(grpc.multiMode){
+                    params.set("mode", "multi");
+                }
                 break;
         }
 
@@ -1476,6 +1493,9 @@ class Inbound extends XrayCommonClass {
             case "grpc":
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
+                if(grpc.multiMode){
+                    params.set("mode", "multi");
+                }
                 break;
         }
 
