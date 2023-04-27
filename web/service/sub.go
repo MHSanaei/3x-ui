@@ -102,80 +102,89 @@ func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
-	address := s.address
 	if inbound.Protocol != model.VMess {
 		return ""
+	}
+	obj := map[string]interface{}{
+		"v":    "2",
+		"ps":   email,
+		"add":  s.address,
+		"port": inbound.Port,
+		"type": "none",
 	}
 	var stream map[string]interface{}
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	network, _ := stream["network"].(string)
-	typeStr := "none"
-	host := ""
-	path := ""
-	sni := ""
-	fp := ""
-	var alpn []string
-	allowInsecure := false
+	obj["net"] = network
 	switch network {
 	case "tcp":
 		tcp, _ := stream["tcpSettings"].(map[string]interface{})
 		header, _ := tcp["header"].(map[string]interface{})
-		typeStr, _ = header["type"].(string)
+		typeStr, _ := header["type"].(string)
+		obj["type"] = typeStr
 		if typeStr == "http" {
 			request := header["request"].(map[string]interface{})
 			requestPath, _ := request["path"].([]interface{})
-			path = requestPath[0].(string)
+			obj["path"] = requestPath[0].(string)
 			headers, _ := request["headers"].(map[string]interface{})
-			host = searchHost(headers)
+			obj["host"] = searchHost(headers)
 		}
 	case "kcp":
 		kcp, _ := stream["kcpSettings"].(map[string]interface{})
 		header, _ := kcp["header"].(map[string]interface{})
-		typeStr, _ = header["type"].(string)
-		path, _ = kcp["seed"].(string)
+		obj["type"], _ = header["type"].(string)
+		obj["path"], _ = kcp["seed"].(string)
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]interface{})
-		path = ws["path"].(string)
+		obj["path"] = ws["path"].(string)
 		headers, _ := ws["headers"].(map[string]interface{})
-		host = searchHost(headers)
+		obj["host"] = searchHost(headers)
 	case "http":
-		network = "h2"
+		obj["net"] = "h2"
 		http, _ := stream["httpSettings"].(map[string]interface{})
-		path, _ = http["path"].(string)
-		host = searchHost(http)
+		obj["path"], _ = http["path"].(string)
+		obj["host"] = searchHost(http)
 	case "quic":
 		quic, _ := stream["quicSettings"].(map[string]interface{})
 		header := quic["header"].(map[string]interface{})
-		typeStr, _ = header["type"].(string)
-		host, _ = quic["security"].(string)
-		path, _ = quic["key"].(string)
+		obj["type"], _ = header["type"].(string)
+		obj["host"], _ = quic["security"].(string)
+		obj["path"], _ = quic["key"].(string)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
-		path = grpc["serviceName"].(string)
+		obj["path"] = grpc["serviceName"].(string)
+		if grpc["multiMode"].(bool) {
+			obj["type"] = "multi"
+		}
 	}
 
 	security, _ := stream["security"].(string)
+	obj["tls"] = security
 	if security == "tls" {
 		tlsSetting, _ := stream["tlsSettings"].(map[string]interface{})
 		alpns, _ := tlsSetting["alpn"].([]interface{})
-		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
+		if len(alpns) > 0 {
+			var alpn []string
+			for _, a := range alpns {
+				alpn = append(alpn, a.(string))
+			}
+			obj["alpn"] = strings.Join(alpn, ",")
 		}
 		tlsSettings, _ := searchKey(tlsSetting, "settings")
 		if tlsSetting != nil {
 			if sniValue, ok := searchKey(tlsSettings, "serverName"); ok {
-				sni, _ = sniValue.(string)
+				obj["sni"], _ = sniValue.(string)
 			}
 			if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
-				fp, _ = fpValue.(string)
+				obj["fp"], _ = fpValue.(string)
 			}
 			if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
-				allowInsecure, _ = insecure.(bool)
+				obj["allowInsecure"], _ = insecure.(bool)
 			}
 		}
 		serverName, _ := tlsSetting["serverName"].(string)
 		if serverName != "" {
-			address = serverName
+			obj["add"] = serverName
 		}
 	}
 
@@ -187,24 +196,9 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			break
 		}
 	}
+	obj["id"] = clients[clientIndex].ID
+	obj["aid"] = clients[clientIndex].AlterIds
 
-	obj := map[string]interface{}{
-		"v":             "2",
-		"ps":            email,
-		"add":           address,
-		"port":          inbound.Port,
-		"id":            clients[clientIndex].ID,
-		"aid":           clients[clientIndex].AlterIds,
-		"net":           network,
-		"type":          typeStr,
-		"host":          host,
-		"path":          path,
-		"tls":           security,
-		"sni":           sni,
-		"fp":            fp,
-		"alpn":          strings.Join(alpn, ","),
-		"allowInsecure": allowInsecure,
-	}
 	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
 	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
 }
@@ -266,6 +260,9 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
+		if grpc["multiMode"].(bool) {
+			params["mode"] = "multi"
+		}
 	}
 
 	security, _ := stream["security"].(string)
@@ -444,6 +441,9 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
+		if grpc["multiMode"].(bool) {
+			params["mode"] = "multi"
+		}
 	}
 
 	security, _ := stream["security"].(string)

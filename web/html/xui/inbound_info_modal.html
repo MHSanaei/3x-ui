@@ -41,6 +41,7 @@
             
             <template v-if="inbound.isGrpc">
                 <tr><td>grpc serviceName</td><td><a-tag color="green">[[ inbound.serviceName ]]</a-tag></td></tr>
+                <tr><td>grpc multiMode</td><td><a-tag color="green">[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
             </template>
             </table>
         </td></tr>

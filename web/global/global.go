@@ -2,8 +2,9 @@ package global
 
 import (
 	"context"
-	"github.com/robfig/cron/v3"
 	_ "unsafe"
+
+	"github.com/robfig/cron/v3"
 )
 
 var webServer WebServer
