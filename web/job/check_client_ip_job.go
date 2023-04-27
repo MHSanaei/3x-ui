@@ -4,23 +4,22 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
-	ss "strings"
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/web/service"
 	"x-ui/xray"
-	// "strconv"
-	"github.com/go-cmd/cmd"
+
 	"net"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/go-cmd/cmd"
 )
 
 type CheckClientIpJob struct {
-	xrayService    service.XrayService
-	inboundService service.InboundService
+	xrayService service.XrayService
 }
 
 var job *CheckClientIpJob
@@ -36,7 +35,7 @@ func (j *CheckClientIpJob) Run() {
 	processLogFile()
 
 	// disAllowedIps = []string{"192.168.1.183","192.168.1.197"}
-	blockedIps := []byte(ss.Join(disAllowedIps, ","))
+	blockedIps := []byte(strings.Join(disAllowedIps, ","))
 	err := os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0755)
 	checkError(err)
 
@@ -58,7 +57,7 @@ func processLogFile() {
 		checkError(err)
 	}
 
-	lines := ss.Split(string(data), "\n")
+	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
 		emailRegx, _ := regexp.Compile(`email:.+`)
@@ -74,7 +73,7 @@ func processLogFile() {
 			if matchesEmail == "" {
 				continue
 			}
-			matchesEmail = ss.Split(matchesEmail, "email: ")[1]
+			matchesEmail = strings.Split(matchesEmail, "email: ")[1]
 
 			if InboundClientIps[matchesEmail] != nil {
 				if contains(InboundClientIps[matchesEmail], ip) {
@@ -92,14 +91,12 @@ func processLogFile() {
 
 	for clientEmail, ips := range InboundClientIps {
 		inboundClientIps, err := GetInboundClientIps(clientEmail)
-		sort.Sort(sort.StringSlice(ips))
+		sort.Strings(ips)
 		if err != nil {
 			addInboundClientIps(clientEmail, ips)
-
 		} else {
 			updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
-
 	}
 
 	// check if inbound connection is more than limited ip and drop connection
@@ -202,6 +199,8 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
 
+	var disAllowedIps []string // initialize the slice
+
 	for _, client := range clients {
 		if client.Email == clientEmail {
 
@@ -214,7 +213,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 		}
 	}
 	logger.Debug("disAllowedIps ", disAllowedIps)
-	sort.Sort(sort.StringSlice(disAllowedIps))
+	sort.Strings(disAllowedIps)
 
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
@@ -223,6 +222,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	}
 	return nil
 }
+
 func DisableInbound(id int) error {
 	db := database.GetDB()
 	result := db.Model(model.Inbound{}).
