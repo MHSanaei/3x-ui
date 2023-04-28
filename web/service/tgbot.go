@@ -198,8 +198,8 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	)
 	var numericKeyboardClient = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("Get Usage", "client_traffic"),
-			tgbotapi.NewInlineKeyboardButtonData("Commands", "client_commands"),
+			tgbotapi.NewInlineKeyboardButtonData("حجم", "client_traffic"),
+			tgbotapi.NewInlineKeyboardButtonData("دستور", "client_commands"),
 		),
 	)
 	msgConfig := tgbotapi.NewMessage(chatId, msg)
