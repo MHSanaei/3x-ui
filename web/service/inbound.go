@@ -830,12 +830,14 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 
 	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			logger.Warning(err)
-			return nil, err
-		}
+		logger.Warning(err)
+		return nil, err
 	}
-	return traffics[0], err
+	if len(traffics) > 0 {
+		return traffics[0], nil
+	}
+
+	return nil, nil
 }
 
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
