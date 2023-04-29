@@ -177,6 +177,8 @@ Reference syntax:
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
 | `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
 
+- [Postman Collection](https://gist.github.com/mehdikhody/9a862801a2e41f6b5fb6bbc7e1326044)
+
 # A Special Thanks To
 
 - [alireza0](https://github.com/alireza0/)
@@ -190,11 +192,8 @@ Reference syntax:
 
 # Buy Me a Coffee
 
-[![](https://img.shields.io/badge/Wallet-USDT__TRC20-green.svg)](#)
+- Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
-```
-TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC
-```
 
 # Pictures
 
