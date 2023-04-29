@@ -212,6 +212,7 @@
 .ant-card-dark .ant-modal-close,
 .ant-card-dark i,
 .ant-card-dark .ant-select-dropdown-menu-item,
+.ant-card-dark .ant-calendar-day-select,
 .ant-card-dark .ant-calendar-month-select,
 .ant-card-dark .ant-calendar-year-select,
 .ant-card-dark .ant-calendar-date,
@@ -226,7 +227,7 @@
 .ant-card-dark .ant-calendar-date:hover,
 .ant-card-dark .ant-select-dropdown-menu-item-active,
 .ant-card-dark li.ant-calendar-time-picker-select-option-selected {
-    background-color: #004488;
+    background-color: #11314d;
 }
 
 .ant-card-dark tbody .ant-table-expanded-row,
@@ -243,7 +244,7 @@
 .ant-card-dark .ant-select-selection,
 .ant-card-dark .ant-calendar-picker-clear {
     color: hsla(0,0%,100%,.65);
-    background-color: #2e3b52;
+    background-color: #193752;
 }
 
 .ant-card-dark .ant-select-disabled .ant-select-selection {
@@ -264,10 +265,17 @@
 
 .ant-card-dark .ant-modal-content,
 .ant-card-dark .ant-modal-body,
-.ant-card-dark .ant-modal-header,
-.ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
+.ant-card-dark .ant-modal-header {
     color: hsla(0,0%,100%,.65);
     background-color: #222a37;
+}
+
+.ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
+    background-color: #1668dc;
+}
+
+.ant-card-dark .ant-calendar-time-picker-select li:hover {
+    background: #1668dc;
 }
 
 .client-table-header {
