@@ -79,9 +79,15 @@ const UTLS_FINGERPRINT = {
 };
 
 const ALPN_OPTION = {
-    H3: "h3",
-    H2: "h2",
     HTTP1: "http/1.1",
+    H2: "h2",
+    H3: "h3",
+};
+
+const SNIFFING_OPTION = {
+    HTTP:    "http",
+    TLS:     "tls",
+    QUIC:    "quic",
 };
 
 Object.freeze(Protocols);
@@ -92,6 +98,7 @@ Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(TLS_VERSION_OPTION);
 Object.freeze(TLS_CIPHER_OPTION);
 Object.freeze(ALPN_OPTION);
+Object.freeze(SNIFFING_OPTION);
 
 class XrayCommonClass {
 

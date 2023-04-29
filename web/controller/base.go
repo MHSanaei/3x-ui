@@ -1,9 +1,10 @@
 package controller
 
 import (
-	"github.com/gin-gonic/gin"
 	"net/http"
 	"x-ui/web/session"
+
+	"github.com/gin-gonic/gin"
 )
 
 type BaseController struct {
