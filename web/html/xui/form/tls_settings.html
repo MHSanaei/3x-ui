@@ -37,7 +37,7 @@
         <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="CipherSuites">
-        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px">
+        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="">auto</a-select-option>
             <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
@@ -56,7 +56,8 @@
         <a-input v-model.trim="inbound.stream.tls.settings.serverName" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="uTLS">
-        <a-select v-model="inbound.stream.tls.settings.fingerprint" style="width: 170px">
+        <a-select v-model="inbound.stream.tls.settings.fingerprint"
+                  style="width: 170px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value=''>None</a-select-option>
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
@@ -142,7 +143,8 @@
         <a-input type="number" v-model.number="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input>
     </a-form-item>
     <a-form-item label="uTLS" >
-        <a-select v-model="inbound.stream.reality.settings.fingerprint" style="width: 135px">
+        <a-select v-model="inbound.stream.reality.settings.fingerprint" 
+                    style="width: 135px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
