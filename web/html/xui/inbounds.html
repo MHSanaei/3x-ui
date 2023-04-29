@@ -66,28 +66,42 @@
                 <transition name="list" appear>
                     <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
                         <div slot="title">
-                            <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
-                            <a-dropdown :trigger="['click']">
-                                <a-button type="primary" icon="menu">{{ i18n "pages.inbounds.generalActions" }}</a-button>
-                                <a-menu slot="overlay" @click="a => generalActions(a)" :theme="siderDrawer.theme">
-                                    <a-menu-item key="export">
-                                        <a-icon type="export"></a-icon>
-                                        {{ i18n "pages.inbounds.export" }}
-                                    </a-menu-item>
-                                    <a-menu-item key="resetInbounds">
-                                        <a-icon type="reload"></a-icon>
-                                        {{ i18n "pages.inbounds.resetAllTraffic" }}
-                                    </a-menu-item>
-                                    <a-menu-item key="resetClients">
-                                        <a-icon type="file-done"></a-icon>
-                                        {{ i18n "pages.inbounds.resetAllClientTraffics" }}
-                                    </a-menu-item>
-                                    <a-menu-item key="delDepletedClients">
-                                        <a-icon type="rest"></a-icon>
-                                        {{ i18n "pages.inbounds.delDepletedClients" }}
-                                    </a-menu-item>
-                                </a-menu>
-                            </a-dropdown>
+                            <a-row>
+                                <a-col :xs="24" :sm="24" :lg="12">
+                                    <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
+                                    <a-dropdown :trigger="['click']">
+                                        <a-button type="primary" icon="menu">{{ i18n "pages.inbounds.generalActions" }}</a-button>
+                                        <a-menu slot="overlay" @click="a => generalActions(a)" :theme="siderDrawer.theme">
+                                            <a-menu-item key="export">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export" }}
+                                            </a-menu-item>
+                                            <a-menu-item key="resetInbounds">
+                                                <a-icon type="reload"></a-icon>
+                                                {{ i18n "pages.inbounds.resetAllTraffic" }}
+                                            </a-menu-item>
+                                            <a-menu-item key="resetClients">
+                                                <a-icon type="file-done"></a-icon>
+                                                {{ i18n "pages.inbounds.resetAllClientTraffics" }}
+                                            </a-menu-item>
+                                            <a-menu-item key="delDepletedClients">
+                                                <a-icon type="rest"></a-icon>
+                                                {{ i18n "pages.inbounds.delDepletedClients" }}
+                                            </a-menu-item>
+                                        </a-menu>
+                                    </a-dropdown>
+                                </a-col>
+                                <a-col :xs="24" :sm="24" :lg="12" style="text-align: right;">
+                                    <a-select v-model="refreshInterval"
+                                              v-if="isRefreshEnabled"
+                                              @change="changeRefreshInterval"
+                                              :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                                        <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
+                                    </a-select>
+                                    <a-icon type="sync" :spin="isRefreshEnabled"></a-icon>
+                                    <a-switch v-model="isRefreshEnabled" @change="toggleRefresh"></a-switch>
+                                </a-col>
+                            </a-row>
                         </div>
                         <a-input v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus style="max-width: 300px"></a-input>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
@@ -315,25 +329,22 @@
             defaultCert: '',
             defaultKey: '',
             clientCount: {},
+            isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
+            refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
         },
         methods: {
             loading(spinning=true) {
                 this.spinning = spinning;
             },
             async getDBInbounds() {
-                this.loading();
                 const msg = await HttpUtil.post('/xui/inbound/list');
-                this.loading(false);
                 if (!msg.success) {
                     return;
                 }
                 this.setInbounds(msg.obj);
-                this.searchKey = '';
             },
             async getDefaultSettings() {
-                this.loading();
                 const msg = await HttpUtil.post('/xui/setting/defaultSettings');
-                this.loading(false);
                 if (!msg.success) {
                     return;
                 }
@@ -345,17 +356,16 @@
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
                 this.dbInbounds.splice(0);
-                this.searchedInbounds.splice(0);
                 for (const inbound of dbInbounds) {
                     const dbInbound = new DBInbound(inbound);
                     to_inbound = dbInbound.toInbound()
                     this.inbounds.push(to_inbound);
                     this.dbInbounds.push(dbInbound);
-                    this.searchedInbounds.push(dbInbound);
                     if([Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN].includes(inbound.protocol) ){
                         this.clientCount[inbound.id] = this.getClientCounts(inbound,to_inbound);
                     }
                 }
+                this.searchInbounds(this.searchKey);
             },
             getClientCounts(dbInbound,inbound){
                 let clientCount = 0,active = [], deactive = [], depleted = [], expiring = [];
@@ -788,6 +798,25 @@
                 }
                 txtModal.show('{{ i18n "pages.inbounds.export"}}',copyText,'All-Inbounds');
             },
+            async startDataRefreshLoop() {
+                while (this.isRefreshEnabled) {
+                try {
+                    await this.getDBInbounds();
+                } catch (e) {
+                    console.error(e);
+                }
+                await PromiseUtil.sleep(this.refreshInterval);
+                }
+            },
+            toggleRefresh() {
+                localStorage.setItem("isRefreshEnabled", this.isRefreshEnabled);
+                if (this.isRefreshEnabled) {
+                    this.startDataRefreshLoop();
+                }
+            },
+            changeRefreshInterval(){
+                localStorage.setItem("refreshInterval", this.refreshInterval);
+            },
         },
         watch: {
             searchKey: debounce(function (newVal) {
@@ -795,8 +824,15 @@
             }, 500)
         },
         mounted() {
+            this.loading();
             this.getDefaultSettings();
-            this.getDBInbounds();
+            if (this.isRefreshEnabled) {
+                this.startDataRefreshLoop();
+            }
+            else {
+                this.getDBInbounds();
+            }
+            this.loading(false);
         },
         computed: {
             total() {
@@ -823,7 +859,6 @@
             }
         },
     });
-
 </script>
 
 {{template "inboundModal"}}
