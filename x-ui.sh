@@ -59,13 +59,13 @@ fi
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default $2]: " temp
-        if [[ x"${temp}" == x"" ]]; then
+        if [[ "${temp}" == "" ]]; then
             temp=$2
         fi
     else
         read -p "$1 [y/n]: " temp
     fi
-    if [[ x"${temp}" == x"y" || x"${temp}" == x"Y" ]]; then
+    if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
         return 0
     else
         return 1
@@ -342,7 +342,7 @@ check_status() {
         return 2
     fi
     temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ x"${temp}" == x"running" ]]; then
+    if [[ "${temp}" == "running" ]]; then
         return 0
     else
         return 1
@@ -351,7 +351,7 @@ check_status() {
 
 check_enabled() {
     temp=$(systemctl is-enabled x-ui)
-    if [[ x"${temp}" == x"enabled" ]]; then
+    if [[ "${temp}" == "enabled" ]]; then
         return 0
     else
         return 1
@@ -428,32 +428,6 @@ show_xray_status() {
         echo -e "xray state: ${green}Running${plain}"
     else
         echo -e "xray state: ${red}Not Running${plain}"
-    fi
-}
-
-#this will be an entrance for ssl cert issue
-#here we can provide two different methods to issue cert
-#first.standalone mode second.DNS API mode
-ssl_cert_issue() {
-    local method=""
-    echo -E ""
-    LOGD "********Usage********"
-    LOGI "this shell script will use acme to help issue certs."
-    LOGI "here we provide two methods for issuing certs:"
-    LOGI "method 1:acme standalone mode,need to keep port:80 open"
-    LOGI "method 2:acme DNS API mode,need provide Cloudflare Global API Key"
-    LOGI "recommend method 2 first,if it fails,you can try method 1."
-    LOGI "certs will be installed in /root/cert directory"
-    read -p "please choose which method do you want,type 1 or 2": method
-    LOGI "you choosed method:${method}"
-
-    if [ "${method}" == "1" ]; then
-        ssl_cert_issue_standalone
-    elif [ "${method}" == "2" ]; then
-        ssl_cert_issue_by_cloudflare
-    else
-        LOGE "invalid input,please check it..."
-        exit 1
     fi
 }
 
@@ -544,7 +518,7 @@ install_acme() {
 }
 
 #method for standalone mode
-ssl_cert_issue_standalone() {
+ssl_cert_issue() {
     #check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         echo "acme.sh could not be found. we will install it"
@@ -555,7 +529,7 @@ ssl_cert_issue_standalone() {
         fi
     fi
     #install socat second
-    if [[ x"${release}" == x"centos" ]]; then
+    if [[ "${release}" == "centos" ]] || [[ "${release}" == "fedora" ]] ; then
         yum install socat -y
     else
         apt install socat -y
@@ -569,7 +543,7 @@ ssl_cert_issue_standalone() {
 
     #get the domain here,and we need verify it
     local domain=""
-    read -p "please input your domain:" domain
+    read -p "Please enter your domain name:" domain
     LOGD "your domain is:${domain},check it..."
     #here we need to judge whether there exists cert already
     local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
@@ -636,94 +610,6 @@ ssl_cert_issue_standalone() {
 
 }
 
-#method for DNS API mode
-ssl_cert_issue_by_cloudflare() {
-    echo -E ""
-    LOGD "******Preconditions******"
-    LOGI "1.need Cloudflare account associated email"
-    LOGI "2.need Cloudflare Global API Key"
-    LOGI "3.your domain use Cloudflare as resolver"
-    confirm "I have confirmed all these info above[y/n]" "y"
-    if [ $? -eq 0 ]; then
-        install_acme
-        if [ $? -ne 0 ]; then
-            LOGE "install acme failed,please check logs"
-            exit 1
-        fi
-        CF_Domain=""
-        CF_GlobalKey=""
-        CF_AccountEmail=""
-        
-        LOGD "please input your domain:"
-        read -p "Input your domain here:" CF_Domain
-        LOGD "your domain is:${CF_Domain},check it..."
-        #here we need to judge whether there exists cert already
-        local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
-        if [ ${currentCert} == ${CF_Domain} ]; then
-            local certInfo=$(~/.acme.sh/acme.sh --list)
-            LOGE "system already have certs here,can not issue again,current certs details:"
-            LOGI "$certInfo"
-            exit 1
-        else
-            LOGI "your domain is ready for issuing cert now..."
-        fi
-		
-		#create a directory for install cert
-		certPath="/root/cert/${CF_Domain}"
-		if [ ! -d "$certPath" ]; then
-			mkdir -p "$certPath"
-		else
-			rm -rf "$certPath"
-			mkdir -p "$certPath"
-		fi
-	
-        LOGD "please inout your cloudflare global API key:"
-        read -p "Input your key here:" CF_GlobalKey
-        LOGD "your cloudflare global API key is:${CF_GlobalKey}"
-        LOGD "please input your cloudflare account email:"
-        read -p "Input your email here:" CF_AccountEmail
-        LOGD "your cloudflare account email:${CF_AccountEmail}"
-        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-        if [ $? -ne 0 ]; then
-            LOGE "change the default CA to Lets'Encrypt failed,exit"
-            exit 1
-        fi
-        export CF_Key="${CF_GlobalKey}"
-        export CF_Email=${CF_AccountEmail}
-        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log
-        if [ $? -ne 0 ]; then
-            LOGE "issue cert failed,exit"
-            rm -rf ~/.acme.sh/${CF_Domain}
-            exit 1
-		else
-			LOGI "Certificate issued Successfully, Installing..."
-		fi
-		~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
-			--key-file /root/cert/${CF_Domain}/privkey.pem \
-			--fullchain-file /root/cert/${CF_Domain}/fullchain.pem
-
-		if [ $? -ne 0 ]; then
-			LOGE "install cert failed,exit"
-			rm -rf ~/.acme.sh/${CF_Domain}
-			exit 1
-		else
-			LOGI "Certificate installed Successfully,Turning on automatic updates..."
-		fi
-		~/.acme.sh/acme.sh --upgrade --auto-upgrade
-		if [ $? -ne 0 ]; then
-			LOGE "auto renew failed, certs details:"
-			ls -lah cert/*
-			chmod 755 $certPath/*
-			exit 1
-		else
-			LOGI "auto renew succeed, certs details:"
-			ls -lah cert/*
-			chmod 755 $certPath/*
-		fi
-    else
-        show_menu
-    fi
-}
 
 warp_fixchatgpt() {
     curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash

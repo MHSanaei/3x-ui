@@ -73,7 +73,7 @@ config_after_install() {
     /usr/local/x-ui/x-ui migrate
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]? ": config_confirm
-    if [[ x"${config_confirm}" == x"y" || x"${config_confirm}" == x"Y" ]]; then
+    if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
         read -p "Please set up your username:" config_account
         echo -e "${yellow}Your username will be:${config_account}${plain}"
         read -p "Please set up your password:" config_password
