@@ -1,23 +1,21 @@
 {{define "form/vless"}}
 <a-form layout="inline">
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vlesses.slice(0,1)" v-if="!isEdit">    
+<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vlesses.slice(0,1)" v-if="!isEdit">
     <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-        <a-form layout="inline">
-            <a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.Email" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
-                        </template>
-                        <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input v-model.trim="client.email" style="width: 150px;" ></a-input>
-            </a-form-item>
-        </a-form>
+        <a-form-item>
+            <span slot="label">
+                <span>{{ i18n "pages.inbounds.Email" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
+                    </template>
+                    <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
+                </a-tooltip>
+            </span>
+            <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
+        </a-form-item>
         <a-form-item label="ID">
-            <a-input v-model.trim="client.id"  style="width: 300px;" ></a-input>
+            <a-input v-model.trim="client.id"  style="width: 300px;"></a-input>
         </a-form-item>
         <a-form-item label="Subscription" v-if="client.email">
             <a-input v-model.trim="client.subId"></a-input>
@@ -25,7 +23,7 @@
         <a-form-item label="Telegram Username" v-if="client.email">
             <a-input v-model.trim="client.tgId"></a-input>
         </a-form-item>
-		<a-form-item>
+        <a-form-item>
             <span slot="label">
                 <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
                 <a-tooltip>
@@ -36,8 +34,8 @@
                 </a-tooltip>
             </span>
             <a-input type="number" v-model.number="client.limitIp" min="0"  style="width: 70px;" ></a-input>
-		</a-form-item>
-		<a-form-item v-if="inbound.xtls" label="Flow">
+        </a-form-item>
+        <a-form-item v-if="inbound.xtls" label="Flow">
             <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
@@ -75,7 +73,7 @@
                            :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
                            v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
         </a-form-item>
-    </a-collapse-panel>
+    </a-collapse-panel>     
 </a-collapse>
 <a-collapse v-else>
     <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vlesses.length">
@@ -100,7 +98,7 @@
             </a-row>
         </a-form-item>
     </a-form>
-
+    
     <!-- vless fallbacks -->
     <a-form v-for="(fallback, index) in inbound.settings.fallbacks" layout="inline">
         <a-divider>

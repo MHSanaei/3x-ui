@@ -1,21 +1,19 @@
 {{define "form/trojan"}}
 <a-form layout="inline">
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">  
+<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">
     <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-        <a-form layout="inline">
-            <a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.Email" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
-                        </template>
-                        <a-icon @click="getNewEmail(client)" type="sync"> </a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input v-model.trim="client.email" style="width: 150px;" ></a-input>
-            </a-form-item>
-        </a-form>
+        <a-form-item>
+            <span slot="label">
+                <span>{{ i18n "pages.inbounds.Email" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
+                    </template>
+                    <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
+                </a-tooltip>
+            </span>
+            <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
+        </a-form-item>
         <a-form-item label="Password">
             <a-input v-model.trim="client.password" style="width: 150px;"></a-input>
         </a-form-item>
@@ -25,18 +23,18 @@
         <a-form-item label="Telegram Username" v-if="client.email">
             <a-input v-model.trim="client.tgId"></a-input>
         </a-form-item>
-		<a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input type="number" v-model.number="client.limitIp" min="0"  style="width: 70px;" ></a-input>
-		</a-form-item>
+        <a-form-item>
+            <span slot="label">
+                <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </span>
+            <a-input type="number" v-model.number="client.limitIp" min="0"  style="width: 70px;" ></a-input>
+        </a-form-item>
         <a-form-item v-if="inbound.xtls" label="Flow">
             <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
@@ -66,7 +64,7 @@
                 </a-tooltip>
             </span>
             <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-							:dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                            :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
                             v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
         </a-form-item>
     </a-collapse-panel>

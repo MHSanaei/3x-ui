@@ -121,7 +121,7 @@
         <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
             <a-input v-model.trim="inbound.stream.xtls.certs[0].keyFile" style="width:300px;"></a-input>
         </a-form-item>
-        <a-button type="primary" icon="import" @click="setDefaultCertData">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
+        <a-button type="primary" icon="import" @click="setDefaultCertXtls">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
     </template>
     <template v-else>
         <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
