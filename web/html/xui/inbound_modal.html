@@ -103,6 +103,10 @@
                 inModal.inbound.stream.tls.certs[0].certFile = app.defaultCert;
                 inModal.inbound.stream.tls.certs[0].keyFile = app.defaultKey;
             },
+            setDefaultCertXtls(){
+                inModal.inbound.stream.xtls.certs[0].certFile = app.defaultCert;
+                inModal.inbound.stream.xtls.certs[0].keyFile = app.defaultKey;
+            },
             async getNewX25519Cert(){
                 inModal.loading(true);
                 const msg = await HttpUtil.post('/server/getNewX25519Cert');
