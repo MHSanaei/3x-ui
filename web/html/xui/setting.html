@@ -323,6 +323,7 @@
                     this.loading(false);
                     if (msg.success) {
                         this.user = {};
+                        window.location.replace("/logout")
                     }
                 },
                 async restartPanel() {
@@ -350,17 +351,18 @@
                     this.user = user_msg.obj;
                 }
                 this.loading(false);
-            },
-            async updateSecret(){
+                },
+                async updateSecret(){
                 this.loading(true);
                 const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
                 if (msg.success){
                     this.user = msg.obj;
+                    window.location.replace("/logout")
                 }
                 this.loading(false);
                 await this.updateAllSetting();
-            },
-            async getNewSecret(){
+                },
+                async getNewSecret(){
                 this.loading(true);
                 await PromiseUtil.sleep(1000);
                 var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
@@ -372,13 +374,13 @@
                 this.user.loginSecret = string;
                 document.getElementById('token').value =this.user.loginSecret; 
                 this.loading(false);
-            },
-            async toggleToken(value){
+                },
+                async toggleToken(value){
                 if(value)
                   this.getNewSecret();
                 else 
                   this.user.loginSecret = "";
-            },
+                },
                 async resetXrayConfigToDefault() {
                     this.loading(true);
                     const msg = await HttpUtil.get("/xui/setting/getDefaultJsonConfig");
