@@ -12,3 +12,4 @@ release/
 access.log
 error.log
 .cache
+/build/x-ui
