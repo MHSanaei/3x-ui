@@ -140,7 +140,7 @@
         </a-switch>
     </a-form-item>
     <a-form-item label="xVer">
-        <a-input type="number" v-model.number="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input>
+        <a-input-number v-model="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input-number>
     </a-form-item>
     <a-form-item label="uTLS" >
         <a-select v-model="inbound.stream.reality.settings.fingerprint" 
