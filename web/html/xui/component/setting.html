@@ -9,7 +9,7 @@
                 <a-input :value="value" @input="$emit('input', $event.target.value)"></a-input>
             </template>
             <template v-else-if="type === 'number'">
-                <a-input type="number" :value="value" @input="$emit('input', $event.target.value)" :min="min"></a-input>
+                <a-input-number :value="value" @change="value => $emit('input', value)" :min="min" style="width: 100%;"></a-input-number>
             </template>
             <template v-else-if="type === 'textarea'">
                 <a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 10 }"></a-textarea>
