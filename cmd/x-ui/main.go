@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/signal"
@@ -70,7 +70,10 @@ func runWebServer() {
 				return
 			}
 		default:
-			server.Stop()
+			err := server.Stop()
+			if err != nil {
+				return
+			}
 			return
 		}
 	}
@@ -235,109 +238,128 @@ func removeSecret() {
 	}
 }
 
+var vars struct {
+	showVersion          bool
+	dbPath               string
+	port                 int
+	username             string
+	password             string
+	tgbottoken           string
+	tgbotchatid          string
+	enableTelegramBot    bool
+	tgbotRuntime         string
+	resetSettings        bool
+	showSettings         bool
+	removeAllSecretsFlag bool
+}
+
 func main() {
-	if len(os.Args) < 2 {
-		runWebServer()
-		return
+	var rootCmd = &cobra.Command{
+		Use: "x-ui",
 	}
 
-	var showVersion bool
-	flag.BoolVar(&showVersion, "v", false, "show version")
-
-	runCmd := flag.NewFlagSet("run", flag.ExitOnError)
-
-	v2uiCmd := flag.NewFlagSet("v2-ui", flag.ExitOnError)
-	var dbPath string
-	v2uiCmd.StringVar(&dbPath, "db", fmt.Sprintf("%s/v2-ui.db", config.GetDBFolderPath()), "set v2-ui db file path")
-
-	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
-	var port int
-	var username string
-	var password string
-	var tgbottoken string
-	var tgbotchatid string
-	var enabletgbot bool
-	var tgbotRuntime string
-	var reset bool
-	var show bool
-	var remove_secret bool
-	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
-	settingCmd.BoolVar(&show, "show", false, "show current settings")
-	settingCmd.IntVar(&port, "port", 0, "set panel port")
-	settingCmd.StringVar(&username, "username", "", "set login username")
-	settingCmd.StringVar(&password, "password", "", "set login password")
-	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegram bot token")
-	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegram bot cron time")
-	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegram bot chat id")
-	settingCmd.BoolVar(&enabletgbot, "enabletgbot", false, "enable telegram bot notify")
-
-	oldUsage := flag.Usage
-	flag.Usage = func() {
-		oldUsage()
-		fmt.Println()
-		fmt.Println("Commands:")
-		fmt.Println("    run            run web panel")
-		fmt.Println("    v2-ui          migrate form v2-ui")
-		fmt.Println("    migrate        migrate form other/old x-ui")
-		fmt.Println("    setting        set settings")
+	var runCmd = &cobra.Command{
+		Use:   "run",
+		Short: "Run the web server",
+		Run: func(cmd *cobra.Command, args []string) {
+			runWebServer()
+		},
 	}
 
-	flag.Parse()
-	if showVersion {
-		fmt.Println(config.GetVersion())
-		return
+	var migrateCmd = &cobra.Command{
+		Use:   "migrate",
+		Short: "Migrate from other/old x-ui",
+		Run: func(cmd *cobra.Command, args []string) {
+			migrateDb()
+		},
 	}
 
-	switch os.Args[1] {
-	case "run":
-		err := runCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		runWebServer()
-	case "migrate":
-		migrateDb()
-	case "v2-ui":
-		err := v2uiCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		err = v2ui.MigrateFromV2UI(dbPath)
-		if err != nil {
-			fmt.Println("migrate from v2-ui failed:", err)
-		}
-	case "setting":
-		err := settingCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		if reset {
+	var v2uiCmd = &cobra.Command{
+		Use:   "v2-ui",
+		Short: "Migrate from v2-ui",
+		Run: func(cmd *cobra.Command, args []string) {
+			dbPath, _ := cmd.Flags().GetString("db")
+			err := v2ui.MigrateFromV2UI(dbPath)
+			if err != nil {
+				fmt.Println("migrate from v2-ui failed:", err)
+			}
+		},
+	}
+
+	v2uiCmd.Flags().String("db", fmt.Sprintf("%s/v2-ui.db", config.GetDBFolderPath()), "set v2-ui db file path")
+
+	var settingCmd = &cobra.Command{
+		Use:   "setting",
+		Short: "Set settings",
+	}
+
+	var resetCmd = &cobra.Command{
+		Use:   "reset",
+		Short: "Reset all settings",
+		Run: func(cmd *cobra.Command, args []string) {
 			resetSetting()
-		} else {
+		},
+	}
+
+	var showCmd = &cobra.Command{
+		Use:   "show",
+		Short: "Show current settings",
+		Run: func(cmd *cobra.Command, args []string) {
+			showSetting(true)
+		},
+	}
+
+	var updateCmd = &cobra.Command{
+		Use:   "update",
+		Short: "Update settings",
+		Run: func(cmd *cobra.Command, args []string) {
+			port, _ := cmd.Flags().GetInt("port")
+			username, _ := cmd.Flags().GetString("username")
+			password, _ := cmd.Flags().GetString("password")
 			updateSetting(port, username, password)
-		}
-		if show {
-			showSetting(show)
-		}
-		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
-			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
-		}
-		if remove_secret {
-			removeSecret()
-		}
-		if enabletgbot {
-			updateTgbotEnableSts(enabletgbot)
-		}
-	default:
-		fmt.Println("except 'run' or 'v2-ui' or 'setting' subcommands")
-		fmt.Println()
-		runCmd.Usage()
-		fmt.Println()
-		v2uiCmd.Usage()
-		fmt.Println()
-		settingCmd.Usage()
+		},
+	}
+
+	updateCmd.Flags().Int("port", 0, "set panel port")
+	updateCmd.Flags().String("username", "", "set login username")
+	updateCmd.Flags().String("password", "", "set login password")
+
+	var tgbotCmd = &cobra.Command{
+		Use:   "tgbot",
+		Short: "Update telegram bot settings",
+		Run: func(cmd *cobra.Command, args []string) {
+			tgbottoken, _ := cmd.Flags().GetString("tgbottoken")
+			tgbotchatid, _ := cmd.Flags().GetString("tgbotchatid")
+			tgbotRuntime, _ := cmd.Flags().GetString("tgbotRuntime")
+			enabletgbot, _ := cmd.Flags().GetBool("enabletgbot")
+			remove_secret, _ := cmd.Flags().GetBool("remove_secret")
+
+			if tgbottoken != "" || tgbotchatid != "" || tgbotRuntime != "" {
+				updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
+			}
+
+			if remove_secret {
+				removeSecret()
+			}
+
+			if enabletgbot {
+				updateTgbotEnableSts(enabletgbot)
+			}
+		},
+	}
+
+	tgbotCmd.Flags().String("tgbottoken", "", "set telegram bot token")
+	tgbotCmd.Flags().String("tgbotchatid", "", "set telegram bot chat id")
+	tgbotCmd.Flags().String("tgbotRuntime", "", "set telegram bot cron time")
+	tgbotCmd.Flags().Bool("enabletgbot", false, "enable telegram bot notify")
+	tgbotCmd.Flags().Bool("remove_secret", false, "remove secret")
+
+	settingCmd.AddCommand(resetCmd, showCmd, updateCmd, tgbotCmd)
+
+	rootCmd.AddCommand(runCmd, migrateCmd, v2uiCmd, settingCmd)
+
+	if err := rootCmd.Execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 }
