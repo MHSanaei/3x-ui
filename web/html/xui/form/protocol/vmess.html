@@ -15,7 +15,7 @@
             <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "additional" }} ID'>
-            <a-input type="number" v-model.number="client.alterId" style="width: 70px;"></a-input>
+            <a-input-number v-model="client.alterId" style="width: 70px;"></a-input-number>
         </a-form-item>
         <a-form-item label="ID">
             <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
@@ -36,11 +36,11 @@
                     <a-icon type="question-circle" theme="filled"></a-icon>
                 </a-tooltip>
             </span>
-            <a-input type="number" v-model.number="client.limitIp" min="0" style="width: 70px;"></a-input>
+            <a-input-number v-model="client.limitIp" min="0" style="width: 70px;"></a-input-number>
         </a-form-item>
         <a-form-item>
             <span slot="label">
-                <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)
+                <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
                 <a-tooltip>
                     <template slot="title">
                         0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -67,7 +67,7 @@
     </a-collapse-panel>     
 </a-collapse>
 <a-collapse v-else>
-    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vmesses.length">
+    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount" }}: ' + inbound.settings.vmesses.length">
         <table width="100%">
                 <tr class="client-table-header">
                 <th v-for="col in Object.keys(inbound.settings.vmesses[0]).slice(0, 3)">[[ col ]]</th>
