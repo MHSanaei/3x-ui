@@ -664,6 +664,36 @@ func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
 	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
+func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry_time int64) error {
+	db := database.GetDB()
+
+	result := db.Model(xray.ClientTraffic{}).
+		Where("email = ?", clientEmail).
+		Updates(map[string]interface{}{"enable": true, "expiry_time": expiry_time})
+
+	err := result.Error
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
+	db := database.GetDB()
+
+	result := db.Model(xray.ClientTraffic{}).
+		Where("email = ?", clientEmail).
+		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
+
+	err := result.Error
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) error {
 	db := database.GetDB()
 
