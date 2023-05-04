@@ -154,6 +154,9 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
+			case "refresh_client":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Refreshed successfully.", email))
+				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
 			case "admin_cancel":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("❌ %s : Operation canceled.", email))
 				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
@@ -175,6 +178,9 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("♾ Unlimited", "reset_expire_days_confirm "+email+" 0"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("1 Mounth", "reset_expire_days_confirm "+email+" 30"),
@@ -199,7 +205,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				if !err {
 					days, error := strconv.Atoi(dataArray[2])
 					if error == nil {
-						t.inboundService.ResetClientExpiryTimeByEmail(email, int64(-(days * 24 * 60 * 60000)))
+						var date int64 = 0
+						if days > 0 {
+							date = int64(-(days * 24 * 60 * 60000))
+						}
+						t.inboundService.ResetClientExpiryTimeByEmail(email, date)
 						t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Expire days reset successfully.", email))
 						t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
 					} else {
@@ -505,7 +515,10 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 		total, expiryTime)
 	var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("🔄 Reset Traffic", "reset_traffic "+email),
+			tgbotapi.NewInlineKeyboardButtonData("🔄 Refresh", "refresh_client "+email),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📈 Reset Traffic", "reset_traffic "+email),
 		),
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("📅 Reset Expire Days", "reset_expire_days "+email),
