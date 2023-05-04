@@ -166,7 +166,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("✅ Confirm Reset?", "reset_traffic_confirm "+email),
+						tgbotapi.NewInlineKeyboardButtonData("✅ Confirm Reset Traffic?", "reset_traffic_confirm "+email),
 					),
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -183,16 +183,16 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 						tgbotapi.NewInlineKeyboardButtonData("♾ Unlimited", "reset_expire_days_confirm "+email+" 0"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("1 Mounth", "reset_expire_days_confirm "+email+" 30"),
-						tgbotapi.NewInlineKeyboardButtonData("2 Mounth", "reset_expire_days_confirm "+email+" 60"),
+						tgbotapi.NewInlineKeyboardButtonData("1 Month", "reset_expire_days_confirm "+email+" 30"),
+						tgbotapi.NewInlineKeyboardButtonData("2 Month", "reset_expire_days_confirm "+email+" 60"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("3 Mounth", "reset_expire_days_confirm "+email+" 90"),
-						tgbotapi.NewInlineKeyboardButtonData("6 Mounth", "reset_expire_days_confirm "+email+" 180"),
+						tgbotapi.NewInlineKeyboardButtonData("3 Month", "reset_expire_days_confirm "+email+" 90"),
+						tgbotapi.NewInlineKeyboardButtonData("6 Month", "reset_expire_days_confirm "+email+" 180"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("9 Mounth", "reset_expire_days_confirm "+email+" 270"),
-						tgbotapi.NewInlineKeyboardButtonData("12 Mounth", "reset_expire_days_confirm "+email+" 360"),
+						tgbotapi.NewInlineKeyboardButtonData("9 Month", "reset_expire_days_confirm "+email+" 270"),
+						tgbotapi.NewInlineKeyboardButtonData("12 Month", "reset_expire_days_confirm "+email+" 360"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("10 Days", "reset_expire_days_confirm "+email+" 10"),
