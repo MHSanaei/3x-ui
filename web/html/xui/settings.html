@@ -141,8 +141,8 @@
 
                                     <a-divider>{{ i18n "pages.settings.templates.title"}}</a-divider>
 
-                                    <a-tabs default-active-key="tpl-1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
-                                        <a-tab-pane key="tpl-1" tab='{{ i18n "pages.settings.templates.basicTemplate"}}'>
+                                    <a-tabs default-active-key="tpl-1" :class="siderDrawer.isDarkTheme ? darkClass : ''" style="padding: 0 20px;">
+                                        <a-tab-pane key="tpl-1" tab='{{ i18n "pages.settings.templates.basicTemplate"}}' style="padding-top: 20px;">
                                             <a-collapse>
                                                 <a-collapse-panel header='{{ i18n "pages.settings.templates.generalConfigs"}}'>
                                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -194,7 +194,7 @@
                                                 </a-collapse-panel>
                                             </a-collapse>
                                         </a-tab-pane>
-                                        <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}'>
+                                        <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
                                             <a-collapse>
                                                 <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}'>
                                                     <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
@@ -207,7 +207,7 @@
                                                 </a-collapse-panel>
                                             </a-collapse>
                                         </a-tab-pane>
-                                        <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.completeTemplate"}}'>
+                                        <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
                                             <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigTemplate"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                                         </a-tab-pane>
                                     </a-tabs>

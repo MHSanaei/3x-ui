@@ -93,12 +93,13 @@
                                 </a-col>
                                 <a-col :xs="24" :sm="24" :lg="12" style="text-align: right;">
                                     <a-select v-model="refreshInterval"
+                                              style="width: 65px;"
                                               v-if="isRefreshEnabled"
                                               @change="changeRefreshInterval"
                                               :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                                         <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
                                     </a-select>
-                                    <a-icon type="sync" :spin="isRefreshEnabled"></a-icon>
+                                    <a-icon type="sync" :spin="isRefreshEnabled" style="margin: 0 5px;"></a-icon>
                                     <a-switch v-model="isRefreshEnabled" @change="toggleRefresh"></a-switch>
                                 </a-col>
                             </a-row>
@@ -155,7 +156,7 @@
                                             <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                                         </a-menu-item>
                                         <a-menu-item key="clone">
-                                            <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.Clone"}}
+                                            <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.clone"}}
                                         </a-menu-item>
                                         <a-menu-item key="delete">
                                             <span style="color: #FF4D4F">
@@ -478,7 +479,7 @@
             },
 			openCloneInbound(dbInbound) {
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.cloneInbound"}}' + dbInbound.remark,
+                    title: '{{ i18n "pages.inbounds.cloneInbound"}} \"' + dbInbound.remark + '\"',
                     content: '{{ i18n "pages.inbounds.cloneInboundContent"}}',
                     okText: '{{ i18n "pages.inbounds.cloneInboundOk"}}',
                     cancelText: '{{ i18n "cancel" }}',
@@ -512,7 +513,7 @@
             openAddInbound() {
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.addInbound"}}',
-                    okText: '{{ i18n "pages.inbounds.addTo"}}',
+                    okText: '{{ i18n "pages.inbounds.create"}}',
                     cancelText: '{{ i18n "close" }}',
                     confirm: async (inbound, dbInbound) => {
                         inModal.loading();
@@ -527,7 +528,7 @@
                 const inbound = dbInbound.toInbound();
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.modifyInbound"}}',
-                    okText: '{{ i18n "pages.inbounds.revise"}}',
+                    okText: '{{ i18n "pages.inbounds.update"}}',
                     cancelText: '{{ i18n "close" }}',
                     inbound: inbound,
                     dbInbound: dbInbound,

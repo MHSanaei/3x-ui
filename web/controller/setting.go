@@ -49,7 +49,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 func (a *SettingController) getAllSetting(c *gin.Context) {
 	allSetting, err := a.settingService.GetAllSetting()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	jsonObj(c, allSetting, nil)
@@ -58,7 +58,7 @@ func (a *SettingController) getAllSetting(c *gin.Context) {
 func (a *SettingController) getDefaultJsonConfig(c *gin.Context) {
 	defaultJsonConfig, err := a.settingService.GetDefaultJsonConfig()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
@@ -67,22 +67,22 @@ func (a *SettingController) getDefaultJsonConfig(c *gin.Context) {
 func (a *SettingController) getDefaultSettings(c *gin.Context) {
 	expireDiff, err := a.settingService.GetExpireDiff()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	trafficDiff, err := a.settingService.GetTrafficDiff()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	defaultCert, err := a.settingService.GetCertFile()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	defaultKey, err := a.settingService.GetKeyFile()
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.getSetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
 	result := map[string]interface{}{
@@ -98,27 +98,27 @@ func (a *SettingController) updateSetting(c *gin.Context) {
 	allSetting := &entity.AllSetting{}
 	err := c.ShouldBind(allSetting)
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.modifySetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
 	err = a.settingService.UpdateAllSetting(allSetting)
-	jsonMsg(c, I18n(c, "pages.setting.toasts.modifySetting"), err)
+	jsonMsg(c, I18n(c, "pages.settings.toasts.modifySettings"), err)
 }
 
 func (a *SettingController) updateUser(c *gin.Context) {
 	form := &updateUserForm{}
 	err := c.ShouldBind(form)
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.modifySetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
 	user := session.GetLoginUser(c)
 	if user.Username != form.OldUsername || user.Password != form.OldPassword {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.modifyUser"), errors.New(I18n(c, "pages.setting.toasts.originalUserPassIncorrect")))
+		jsonMsg(c, I18n(c, "pages.settings.toasts.modifyUser"), errors.New(I18n(c, "pages.settings.toasts.originalUserPassIncorrect")))
 		return
 	}
 	if form.NewUsername == "" || form.NewPassword == "" {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.modifyUser"), errors.New(I18n(c, "pages.setting.toasts.userPassMustBeNotEmpty")))
+		jsonMsg(c, I18n(c, "pages.settings.toasts.modifyUser"), errors.New(I18n(c, "pages.settings.toasts.userPassMustBeNotEmpty")))
 		return
 	}
 	err = a.userService.UpdateUser(user.Id, form.NewUsername, form.NewPassword)
@@ -127,19 +127,19 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		user.Password = form.NewPassword
 		session.SetLoginUser(c, user)
 	}
-	jsonMsg(c, I18n(c, "pages.setting.toasts.modifyUser"), err)
+	jsonMsg(c, I18n(c, "pages.settings.toasts.modifyUser"), err)
 }
 
 func (a *SettingController) restartPanel(c *gin.Context) {
 	err := a.panelService.RestartPanel(time.Second * 3)
-	jsonMsg(c, I18n(c, "pages.setting.restartPanel"), err)
+	jsonMsg(c, I18n(c, "pages.settings.restartPanel"), err)
 }
 
 func (a *SettingController) updateSecret(c *gin.Context) {
 	form := &updateSecretForm{}
 	err := c.ShouldBind(form)
 	if err != nil {
-		jsonMsg(c, I18n(c, "pages.setting.toasts.modifySetting"), err)
+		jsonMsg(c, I18n(c, "pages.settings.toasts.modifySettings"), err)
 	}
 	user := session.GetLoginUser(c)
 	err = a.userService.UpdateUserSecret(user.Id, form.LoginSecret)
@@ -147,7 +147,7 @@ func (a *SettingController) updateSecret(c *gin.Context) {
 		user.LoginSecret = form.LoginSecret
 		session.SetLoginUser(c, user)
 	}
-	jsonMsg(c, I18n(c, "pages.setting.toasts.modifyUser"), err)
+	jsonMsg(c, I18n(c, "pages.settings.toasts.modifyUser"), err)
 }
 func (a *SettingController) getUserSecret(c *gin.Context) {
 	loginUser := session.GetLoginUser(c)
