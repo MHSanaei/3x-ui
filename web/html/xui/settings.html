@@ -33,21 +33,22 @@
                 <a-spin :spinning="spinning" :delay="500" tip="loading">
                     <a-space direction="vertical">
                         <a-space direction="horizontal">
-                            <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.setting.save" }}</a-button>
-                            <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.setting.restartPanel" }}</a-button>
+                            <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
+                            <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
                         </a-space>
 
-                        <a-tabs default-active-key="1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
-                            <a-tab-pane key="1" tab='{{ i18n "pages.setting.panelConfig"}}'>
+                        <a-tabs default-active-key="1" :class="siderDrawer.isDarkTheme ? darkClass : ''" style="padding-bottom: 40px;">
+                            <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
                                 <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.panelListeningIP"}}' desc='{{ i18n "pages.setting.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
-                                    <setting-list-item type="number" title='{{ i18n "pages.setting.panelPort"}}' desc='{{ i18n "pages.setting.panelPortDesc"}}' v-model.number="allSetting.webPort"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.publicKeyPath"}}' desc='{{ i18n "pages.setting.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.privateKeyPath"}}' desc='{{ i18n "pages.setting.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.panelUrlPath"}}' desc='{{ i18n "pages.setting.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
-                                    <setting-list-item type="number" title='{{ i18n "pages.setting.sessionMaxAge" }}' desc='{{ i18n "pages.setting.sessionMaxAgeDesc" }}'  v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
-                                    <setting-list-item type="number" title='{{ i18n "pages.setting.expireTimeDiff" }}' desc='{{ i18n "pages.setting.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
-                                    <setting-list-item type="number" title='{{ i18n "pages.setting.trafficDiff" }}' desc='{{ i18n "pages.setting.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="0"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.publicKeyPath"}}' desc='{{ i18n "pages.settings.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}'  v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}'  v-model="allSetting.expireDiff" :min="0"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}'  v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.timeZone"}}' desc='{{ i18n "pages.settings.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
                                     <a-list-item>
                                         <a-row style="padding: 20px">
                                             <a-col :lg="24" :xl="12">
@@ -74,148 +75,153 @@
                                 </a-list>
                             </a-tab-pane>
 
-                            <a-tab-pane key="2" tab='{{ i18n "pages.setting.userSetting"}}'>
-                                <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
-                                    <a-form-item label='{{ i18n "pages.setting.oldUsername"}}'>
-                                        <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
-                                    </a-form-item>
-                                    <a-form-item label='{{ i18n "pages.setting.currentPassword"}}'>
-                                        <a-input type="password" v-model="user.oldPassword" style="max-width: 300px"></a-input>
-                                    </a-form-item>
-                                    <a-form-item label='{{ i18n "pages.setting.newUsername"}}'>
-                                        <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
-                                    </a-form-item>
-                                    <a-form-item label='{{ i18n "pages.setting.newPassword"}}'>
-                                        <a-input type="password" v-model="user.newPassword" style="max-width: 300px"></a-input>
-                                    </a-form-item>
-                                    <a-form-item>
-                                        <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
-                                    </a-form-item>
-                                </a-form>
-                                <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
-                                    <a-list-item style="padding: 20px">
-                                       <a-row>
-                                         <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta title='{{ i18n "pages.setting.loginSecurity" }}' description='{{ i18n "pages.setting.loginSecurityDesc" }}'/>
-                                         </a-col>
-                                         <a-col :lg="24" :xl="12">
-                                            <template>
-                                                <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                                            </template>
-                                         </a-col>
-                                       </a-row>
-                                    </a-list-item>
-                                    <a-list-item style="padding: 20px">
-                                      <a-row>
-                                        <a-col :lg="24" :xl="12">
-                                          <a-list-item-meta title='{{ i18n "pages.setting.secretToken" }}' description='{{ i18n "pages.setting.secretTokenDesc" }}'/>
-                                
-                                        </a-col>
-                                        <a-col :lg="24" :xl="12">
-                                           <svg 
-                                                  @click="getNewSecret"
-                                                  xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"> <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> 
-                                           </svg>
-                                           <template>
-                                               <a-textarea type="text" id='token' :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
-                                           </template>
-                                        </a-col>
-                                      </a-row>
-                                    </a-list-item>
-                                    <a-button type="primary" @click="updateSecret">{{ i18n "confirm" }}</a-button>
-                                </a-form>
+                            <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding-top: 10px;">
+                                <a-tabs default-active-key="sec-1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                                    <a-tab-pane key="sec-1" tab='{{ i18n "pages.settings.security.admin"}}'>
+                                        <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
+                                            <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
+                                                <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
+                                            </a-form-item>
+                                            <a-form-item label='{{ i18n "pages.settings.currentPassword"}}'>
+                                                <a-input type="password" v-model="user.oldPassword" style="max-width: 300px"></a-input>
+                                            </a-form-item>
+                                            <a-form-item label='{{ i18n "pages.settings.newUsername"}}'>
+                                                <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
+                                            </a-form-item>
+                                            <a-form-item label='{{ i18n "pages.settings.newPassword"}}'>
+                                                <a-input type="password" v-model="user.newPassword" style="max-width: 300px"></a-input>
+                                            </a-form-item>
+                                            <a-form-item>
+                                                <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                                            </a-form-item>
+                                        </a-form>
+                                    </a-tab-pane>
+                                    <a-tab-pane key="sec-2" tab='{{ i18n "pages.settings.security.secret"}}'>
+                                        <a-form :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65); padding: 20px;': 'background: white; padding: 20px;'">
+                                            <a-list-item style="padding: 20px">
+                                                <a-row>
+                                                    <a-col :lg="24" :xl="12">
+                                                        <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}' description='{{ i18n "pages.settings.security.loginSecurityDesc" }}'/>
+                                                    </a-col>
+                                                    <a-col :lg="24" :xl="12">
+                                                        <template>
+                                                            <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                                                        </template>
+                                                    </a-col>
+                                                </a-row>
+                                            </a-list-item>
+                                            <a-list-item style="padding: 20px">
+                                                <a-row>
+                                                    <a-col :lg="24" :xl="12">
+                                                        <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}' description='{{ i18n "pages.settings.security.secretTokenDesc" }}'/>
+                                                    </a-col>
+                                                    <a-col :lg="24" :xl="12">
+                                                        <svg 
+                                                            @click="getNewSecret"
+                                                            xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"> <path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> 
+                                                        </svg>
+                                                        <template>
+                                                            <a-textarea type="text" id='token' :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+                                                        </template>
+                                                    </a-col>
+                                                </a-row>
+                                            </a-list-item>
+                                            <a-button type="primary" @click="updateSecret">{{ i18n "confirm" }}</a-button>
+                                        </a-form>
+                                    </a-tab-pane>
+                                </a-tabs>
                             </a-tab-pane>
-                            <a-tab-pane key="3" tab='{{ i18n "pages.setting.xrayConfiguration"}}'>
+
+                            <a-tab-pane key="3" tab='{{ i18n "pages.settings.xrayConfiguration"}}'>
                                 <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                    <a-divider>{{ i18n "pages.setting.actions"}}</a-divider>
+                                    <a-divider>{{ i18n "pages.settings.actions"}}</a-divider>
                                     <a-space direction="horizontal" style="padding: 0 20px">
-                                        <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.setting.resetDefaultConfig" }}</a-button>
+                                        <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
                                     </a-space>
 
-                                    <a-divider>{{ i18n "pages.setting.basicTemplate"}}</a-divider>
-                                    <a-collapse>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.generalConfigs"}}'>
-                                            <a-row :xs="24" :sm="24" :lg="12">
-                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                                    {{ i18n "pages.setting.generalConfigsDesc" }}
-                                                </h2>
-                                            </a-row>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigTorrent"}}' desc='{{ i18n "pages.setting.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.setting.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigAds"}}' desc='{{ i18n "pages.setting.xrayConfigAdsDesc"}}'  v-model="AdsSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigPorn"}}' desc='{{ i18n "pages.setting.xrayConfigPornDesc"}}'  v-model="PornSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.countryConfigs"}}'>
-                                            <a-row :xs="24" :sm="24" :lg="12">
-                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                                    {{ i18n "pages.setting.countryConfigsDesc" }}
-                                                </h2>
-                                            </a-row>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRIp"}}' desc='{{ i18n "pages.setting.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigIRDomain"}}' desc='{{ i18n "pages.setting.xrayConfigIRDomainDesc"}}'  v-model="IRDomainSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigChinaIp"}}' desc='{{ i18n "pages.setting.xrayConfigChinaIpDesc"}}'  v-model="ChinaIpSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigChinaDomain"}}' desc='{{ i18n "pages.setting.xrayConfigChinaDomainDesc"}}'  v-model="ChinaDomainSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigRussiaIp"}}' desc='{{ i18n "pages.setting.xrayConfigRussiaIpDesc"}}'  v-model="RussiaIpSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigRussiaDomain"}}' desc='{{ i18n "pages.setting.xrayConfigRussiaDomainDesc"}}'  v-model="RussiaDomainSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.ipv4Configs"}}'>
-                                            <a-row :xs="24" :sm="24" :lg="12">
-                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                                    {{ i18n "pages.setting.ipv4ConfigsDesc" }}
-                                                </h2>
-                                            </a-row>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleIPv4Desc"}}'  v-model="GoogleIPv4Settings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixIPv4Desc"}}'  v-model="NetflixIPv4Settings"></setting-list-item>
-                                        </a-collapse-panel>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.warpConfigs"}}'>
-                                            <a-row :xs="24" :sm="24" :lg="12">
-                                                <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                                    {{ i18n "pages.setting.warpConfigsDesc" }}
-                                                </h2>
-                                            </a-row>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.setting.xrayConfigGoogleWARPDesc"}}'  v-model="GoogleWARPSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.setting.xrayConfigOpenAIWARPDesc"}}'  v-model="OpenAIWARPSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.setting.xrayConfigNetflixWARPDesc"}}'  v-model="NetflixWARPSettings"></setting-list-item>
-                                            <setting-list-item type="switch" title='{{ i18n "pages.setting.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.setting.xrayConfigSpotifyWARPDesc"}}'  v-model="SpotifyWARPSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                    </a-collapse>
+                                    <a-divider>{{ i18n "pages.settings.templates.title"}}</a-divider>
 
-                                    <a-divider>{{ i18n "pages.setting.advancedTemplate"}}</a-divider>
-                                    <a-collapse>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigInbounds"}}'>
-                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigInbounds"}}' desc='{{ i18n "pages.setting.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigOutbounds"}}'>
-                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigOutbounds"}}' desc='{{ i18n "pages.setting.xrayConfigOutboundsDesc"}}' v-model="outboundSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                        <a-collapse-panel header='{{ i18n "pages.setting.xrayConfigRoutings"}}'>
-                                            <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigRoutings"}}' desc='{{ i18n "pages.setting.xrayConfigRoutingsDesc"}}' v-model="routingRuleSettings"></setting-list-item>
-                                        </a-collapse-panel>
-                                    </a-collapse>
-
-                                    <a-divider>{{ i18n "pages.setting.completeTemplate"}}</a-divider>
-                                    <setting-list-item type="textarea" title='{{ i18n "pages.setting.xrayConfigTemplate"}}' desc='{{ i18n "pages.setting.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
+                                    <a-tabs default-active-key="tpl-1" :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                                        <a-tab-pane key="tpl-1" tab='{{ i18n "pages.settings.templates.basicTemplate"}}'>
+                                            <a-collapse>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.generalConfigs"}}'>
+                                                    <a-row :xs="24" :sm="24" :lg="12">
+                                                        <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                            <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                            {{ i18n "pages.settings.templates.generalConfigsDesc" }}
+                                                        </h2>
+                                                    </a-row>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigTorrent"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTorrentDesc"}}'  v-model="torrentSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPrivateIpDesc"}}'  v-model="privateIpSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigAds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigAdsDesc"}}'  v-model="AdsSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPorn"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPornDesc"}}'  v-model="PornSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.countryConfigs"}}'>
+                                                    <a-row :xs="24" :sm="24" :lg="12">
+                                                        <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                            <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                            {{ i18n "pages.settings.templates.countryConfigsDesc" }}
+                                                        </h2>
+                                                    </a-row>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigIRIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigIRIpDesc"}}'  v-model="IRIpSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigIRDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigIRDomainDesc"}}'  v-model="IRDomainSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigChinaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigChinaIpDesc"}}'  v-model="ChinaIpSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigChinaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigChinaDomainDesc"}}'  v-model="ChinaDomainSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigRussiaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRussiaIpDesc"}}'  v-model="RussiaIpSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigRussiaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRussiaDomainDesc"}}'  v-model="RussiaDomainSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.ipv4Configs"}}'>
+                                                    <a-row :xs="24" :sm="24" :lg="12">
+                                                        <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                            <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                            {{ i18n "pages.settings.templates.ipv4ConfigsDesc" }}
+                                                        </h2>
+                                                    </a-row>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.settings.templates.xrayConfigGoogleIPv4Desc"}}'  v-model="GoogleIPv4Settings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixIPv4Desc"}}'  v-model="NetflixIPv4Settings"></setting-list-item>
+                                                </a-collapse-panel>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.warpConfigs"}}'>
+                                                    <a-row :xs="24" :sm="24" :lg="12">
+                                                        <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
+                                                            <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                            {{ i18n "pages.settings.templates.warpConfigsDesc" }}
+                                                        </h2>
+                                                    </a-row>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigGoogleWARPDesc"}}'  v-model="GoogleWARPSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigOpenAIWARPDesc"}}'  v-model="OpenAIWARPSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixWARPDesc"}}'  v-model="NetflixWARPSettings"></setting-list-item>
+                                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARPDesc"}}'  v-model="SpotifyWARPSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                            </a-collapse>
+                                        </a-tab-pane>
+                                        <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}'>
+                                            <a-collapse>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}'>
+                                                    <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigOutbounds"}}'>
+                                                    <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigOutbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigOutboundsDesc"}}' v-model="outboundSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                                <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigRoutings"}}'>
+                                                    <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigRoutings"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRoutingsDesc"}}' v-model="routingRuleSettings"></setting-list-item>
+                                                </a-collapse-panel>
+                                            </a-collapse>
+                                        </a-tab-pane>
+                                        <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.completeTemplate"}}'>
+                                            <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigTemplate"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
+                                        </a-tab-pane>
+                                    </a-tabs>
                                 </a-list>
                             </a-tab-pane>
 
-                            <a-tab-pane key="4" tab='{{ i18n "pages.setting.TGReminder"}}'>
+                            <a-tab-pane key="4" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
                                 <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.telegramBotEnable" }}' desc='{{ i18n "pages.setting.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramToken"}}' desc='{{ i18n "pages.setting.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramChatId"}}' desc='{{ i18n "pages.setting.telegramChatIdDesc"}}' v-model="allSetting.tgBotChatId"></setting-list-item>
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.telegramNotifyTime"}}' desc='{{ i18n "pages.setting.telegramNotifyTimeDesc"}}' v-model="allSetting.tgRunTime"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.setting.tgNotifyBackup" }}' desc='{{ i18n "pages.setting.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
-                                    <setting-list-item type="number" title='{{ i18n "pages.setting.tgNotifyCpu" }}' desc='{{ i18n "pages.setting.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
-                                </a-list>
-                            </a-tab-pane>
-
-                            <a-tab-pane key="5" tab='{{ i18n "pages.setting.otherSetting"}}'>
-                                <a-list item-layout="horizontal" :style="siderDrawer.isDarkTheme ? 'color: hsla(0,0%,100%,.65);': 'background: white;'">
-                                    <setting-list-item type="text" title='{{ i18n "pages.setting.timeZonee"}}' desc='{{ i18n "pages.setting.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.telegramBotEnable" }}' desc='{{ i18n "pages.settings.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.telegramToken"}}' desc='{{ i18n "pages.settings.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.telegramChatId"}}' desc='{{ i18n "pages.settings.telegramChatIdDesc"}}' v-model="allSetting.tgBotChatId"></setting-list-item>
+                                    <setting-list-item type="text" title='{{ i18n "pages.settings.telegramNotifyTime"}}' desc='{{ i18n "pages.settings.telegramNotifyTimeDesc"}}' v-model="allSetting.tgRunTime"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyBackup" }}' desc='{{ i18n "pages.settings.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
+                                    <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
                                 </a-list>
                             </a-tab-pane>
                         </a-tabs>
@@ -294,9 +300,8 @@
                 }
             },
             methods: {
-                loading(spinning = true , obj) {
-                if(obj == null)
-                  this.spinning = spinning;
+                loading(spinning = true, obj) {
+                    if (obj == null) this.spinning = spinning;
                 },
                 async getAllSetting() {
                     this.loading(true);
@@ -329,8 +334,8 @@
                 async restartPanel() {
                     await new Promise(resolve => {
                         this.$confirm({
-                            title: '{{ i18n "pages.setting.restartPanel" }}',
-                            content: '{{ i18n "pages.setting.restartPanelDesc" }}',
+                            title: '{{ i18n "pages.settings.restartPanel" }}',
+                            content: '{{ i18n "pages.settings.restartPanelDesc" }}',
                             okText: '{{ i18n "sure" }}',
                             cancelText: '{{ i18n "cancel" }}',
                             onOk: () => resolve(),
@@ -345,41 +350,39 @@
                         location.reload();
                     }
                 },
-                async getUserSecret(){
-                const user_msg = await HttpUtil.post("/xui/setting/getUserSecret", this.user);
-                if (user_msg.success){
-                    this.user = user_msg.obj;
-                }
-                this.loading(false);
+                async getUserSecret() {
+                    const user_msg = await HttpUtil.post("/xui/setting/getUserSecret", this.user);
+                    if (user_msg.success) {
+                        this.user = user_msg.obj;
+                    }
+                    this.loading(false);
                 },
-                async updateSecret(){
-                this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
-                if (msg.success){
-                    this.user = msg.obj;
-                    window.location.replace("/logout")
-                }
-                this.loading(false);
-                await this.updateAllSetting();
+                async updateSecret() {
+                    this.loading(true);
+                    const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
+                    if (msg.success) {
+                        this.user = msg.obj;
+                        window.location.replace("/logout")
+                    }
+                    this.loading(false);
+                    await this.updateAllSetting();
                 },
-                async getNewSecret(){
-                this.loading(true);
-                await PromiseUtil.sleep(1000);
-                var chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890';
-                var string = '';
-                var len = 64;
-                for(var ii=0; ii<len; ii++){
-                    string += chars[Math.floor(Math.random() * chars.length)];
-                }
-                this.user.loginSecret = string;
-                document.getElementById('token').value =this.user.loginSecret; 
-                this.loading(false);
+                async getNewSecret() {
+                    this.loading(true);
+                    await PromiseUtil.sleep(1000);
+                    var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+                    var string = "";
+                    var len = 64;
+                    for (var ii = 0; ii < len; ii++) {
+                        string += chars[Math.floor(Math.random() * chars.length)];
+                    }
+                    this.user.loginSecret = string;
+                    document.getElementById("token").value = this.user.loginSecret;
+                    this.loading(false);
                 },
-                async toggleToken(value){
-                if(value)
-                  this.getNewSecret();
-                else 
-                  this.user.loginSecret = "";
+                async toggleToken(value) {
+                    if (value) this.getNewSecret();
+                    else this.user.loginSecret = "";
                 },
                 async resetXrayConfigToDefault() {
                     this.loading(true);
