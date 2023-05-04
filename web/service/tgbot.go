@@ -31,6 +31,7 @@ type Tgbot struct {
 	inboundService InboundService
 	settingService SettingService
 	serverService  ServerService
+	xrayService    XrayService
 	lastStatus     *Status
 }
 
@@ -171,9 +172,14 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
 			case "reset_traffic_confirm":
-				t.inboundService.ResetClientTrafficByEmail(email)
-				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Traffic reset successfully.", email))
-				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+				resetError := t.inboundService.ResetClientTrafficByEmail(email)
+				if resetError == nil {
+					t.xrayService.SetToNeedRestart()
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Traffic reset successfully.", email))
+					t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+				} else {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+				}
 			case "reset_expire_days":
 				var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
@@ -184,15 +190,15 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 					),
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("1 Month", "reset_expire_days_confirm "+email+" 30"),
-						tgbotapi.NewInlineKeyboardButtonData("2 Month", "reset_expire_days_confirm "+email+" 60"),
+						tgbotapi.NewInlineKeyboardButtonData("2 Months", "reset_expire_days_confirm "+email+" 60"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("3 Month", "reset_expire_days_confirm "+email+" 90"),
-						tgbotapi.NewInlineKeyboardButtonData("6 Month", "reset_expire_days_confirm "+email+" 180"),
+						tgbotapi.NewInlineKeyboardButtonData("3 Months", "reset_expire_days_confirm "+email+" 90"),
+						tgbotapi.NewInlineKeyboardButtonData("6 Months", "reset_expire_days_confirm "+email+" 180"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("9 Month", "reset_expire_days_confirm "+email+" 270"),
-						tgbotapi.NewInlineKeyboardButtonData("12 Month", "reset_expire_days_confirm "+email+" 360"),
+						tgbotapi.NewInlineKeyboardButtonData("9 Months", "reset_expire_days_confirm "+email+" 270"),
+						tgbotapi.NewInlineKeyboardButtonData("12 Months", "reset_expire_days_confirm "+email+" 360"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("10 Days", "reset_expire_days_confirm "+email+" 10"),
@@ -203,15 +209,18 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 			case "reset_expire_days_confirm":
 				err := len(dataArray) < 3
 				if !err {
-					days, error := strconv.Atoi(dataArray[2])
-					if error == nil {
+					days, err2 := strconv.Atoi(dataArray[2])
+					if err2 == nil {
 						var date int64 = 0
 						if days > 0 {
 							date = int64(-(days * 24 * 60 * 60000))
 						}
-						t.inboundService.ResetClientExpiryTimeByEmail(email, date)
-						t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Expire days reset successfully.", email))
-						t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+						resetError := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
+						if resetError == nil {
+							t.xrayService.SetToNeedRestart()
+							t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Expire days reset successfully.", email))
+							t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+						}
 					} else {
 						err = true
 					}
