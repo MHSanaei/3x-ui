@@ -405,3 +405,17 @@
 .ant-dark .ant-popover-placement-top>.ant-popover-content>.ant-popover-arrow {
     border-color: transparent #2e3b52 #2e3b52 transparent;
 }
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #11141a57;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #11141a66;
+    border-radius: 20px;
+}
