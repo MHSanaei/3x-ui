@@ -33,8 +33,8 @@ apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
-or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
 
+or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
 
 # Default settings
 
@@ -116,6 +116,7 @@ If you want to use routing to WARP follow steps as below:
 - For more advanced configuration items, please refer to the panel
 - Fix api routes (user setting will create with api)
 - Support to change configs by different items provided in panel
+- Support export/import database from panel
 
 # Tg robot use
 
@@ -193,7 +194,6 @@ Reference syntax:
 # Buy Me a Coffee
 
 - Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
-
 
 # Pictures
 
