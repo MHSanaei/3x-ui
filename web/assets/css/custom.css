@@ -180,7 +180,11 @@
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    /* box-shadow: 0 2px 8px rgba(255,255,255,.15); */
+    /* box-shadow: 0 3px 12px -0.8px #0000005c; */
+}
+
+.ant-card-bordered:hover {
+    box-shadow: 0 3px 12px -0.8px #0000005c;
 }
 
 .ant-card-dark .ant-table-thead th {
