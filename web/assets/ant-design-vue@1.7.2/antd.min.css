@@ -1262,10 +1262,10 @@ to{transform:scale(1.6);opacity:0}
 @supports (-moz-appearance:meterbar) and (background-blend-mode:difference,normal){
 .ant-radio{vertical-align:text-bottom}
 }
-.ant-card{box-sizing:border-box;margin:auto 5px 3px auto;padding:0;color:rgba(0,0,0,.65);font-size:14px;font-variant:tabular-nums;line-height:1.5;list-style:none;font-feature-settings:"tnum";position:relative;background:#fff;border-radius:2px;transition:all .3s}
+.ant-card{box-sizing:border-box;margin:auto 10px 3px auto;padding:0;color:rgba(0,0,0,.65);font-size:14px;font-variant:tabular-nums;line-height:1.5;list-style:none;font-feature-settings:"tnum";position:relative;background:#fff;border-radius:2px;transition:all .3s}
 .ant-card-hoverable{cursor:pointer}
 .ant-card-hoverable:hover{border-color:rgba(0,0,0,.09);box-shadow:0 2px 8px rgba(0,0,0,.09)}
-.ant-card-bordered{/*! border:1px solid #e8e8e8; *//*! box-shadow: 0px 6px 0px 0px rgb(15, 197, 254); *//*! box-shadow: 0 4px 5px 0 rgba(170, 179, 217, 0.33); */backdrop-filter:blur(7px) saturate(200%);background-color:#fff;border:0 solid rgba(255,255,255,0);box-shadow:0 3px 7.985px -.985px #9aafee}
+.ant-card-bordered{/*! border:1px solid #e8e8e8; *//*! box-shadow: 0px 6px 0px 0px rgb(15, 197, 254); *//*! box-shadow: 0 4px 5px 0 rgba(170, 179, 217, 0.33); */backdrop-filter:blur(7px) saturate(200%);background-color:#fff;border:0 solid rgba(255,255,255,0);box-shadow:0 1px 7px -1px #0000005c}
 .ant-card-head{min-height:48px;margin-bottom:-1px;padding:0 24px;color:rgba(0,0,0,.85);font-weight:500;font-size:16px;background:0 0;border-bottom:1px solid #e8e8e8;border-radius:2px 2px 0 0;zoom:1}
 .ant-card-head:after,.ant-card-head:before{display:table;content:""}
 .ant-card-head:after{clear:both}
