@@ -11,7 +11,7 @@
 }
 
 .ant-card {
-    border-radius: 30px;
+    border-radius: 10px;
 }
 
 .ant-card-hoverable {
@@ -169,7 +169,7 @@
 .ant-layout-sider-zero-width-trigger,
 .ant-dropdown-menu-dark,.ant-dropdown-menu-dark .ant-dropdown-menu,
 .ant-menu-dark.ant-menu-horizontal>.ant-menu-item,.ant-menu-dark.ant-menu-horizontal>.ant-menu-submenu {
-    background:#161b22
+    background:#1A202B
 }
 
 .ant-card-dark {
@@ -180,7 +180,11 @@
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    /* box-shadow: 0 2px 8px rgba(255,255,255,.15); */
+    /* box-shadow: 0 3px 12px -0.8px #0000005c; */
+}
+
+.ant-card-bordered:hover {
+    box-shadow: 0 3px 12px -0.8px #0000005c;
 }
 
 .ant-card-dark .ant-table-thead th {
@@ -400,4 +404,18 @@
 
 .ant-dark .ant-popover-placement-top>.ant-popover-content>.ant-popover-arrow {
     border-color: transparent #2e3b52 #2e3b52 transparent;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #11141a57;
+    border-radius: 20px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #11141a66;
+    border-radius: 20px;
 }
