@@ -1,0 +1,13 @@
+# Example config file for X-UI
+
+# The log level for the application
+log_level: info
+
+# Whether debugging mode is enabled
+debug: false
+
+# The folder where binary files are stored
+bin_folder: bin
+
+# The folder where the database file is stored
+db_folder: /etc/x-ui

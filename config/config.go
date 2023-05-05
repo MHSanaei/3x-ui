@@ -3,8 +3,10 @@ package config
 import (
 	_ "embed"
 	"fmt"
-	"os"
 	"strings"
+	"x-ui/logger"
+
+	"github.com/spf13/viper"
 )
 
 //go:embed version
@@ -34,7 +36,7 @@ func GetLogLevel() LogLevel {
 	if IsDebug() {
 		return Debug
 	}
-	logLevel := os.Getenv("XUI_LOG_LEVEL")
+	logLevel := viper.GetString("XUI_LOG_LEVEL")
 	if logLevel == "" {
 		return Info
 	}
@@ -42,11 +44,11 @@ func GetLogLevel() LogLevel {
 }
 
 func IsDebug() bool {
-	return os.Getenv("XUI_DEBUG") == "true"
+	return viper.GetBool("XUI_DEBUG")
 }
 
 func GetBinFolderPath() string {
-	binFolderPath := os.Getenv("XUI_BIN_FOLDER")
+	binFolderPath := viper.GetString("XUI_BIN_FOLDER")
 	if binFolderPath == "" {
 		binFolderPath = "bin"
 	}
@@ -54,7 +56,7 @@ func GetBinFolderPath() string {
 }
 
 func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
+	dbFolderPath := viper.GetString("XUI_DB_FOLDER")
 	if dbFolderPath == "" {
 		dbFolderPath = "/etc/x-ui"
 	}
@@ -63,4 +65,15 @@ func GetDBFolderPath() string {
 
 func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+}
+
+func init() {
+	viper.SetConfigName("config")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("/etc/x-ui")
+	viper.AutomaticEnv()
+	err := viper.ReadInConfig()
+	if err != nil {
+		logger.Debug("Error reading config file: %s\n", err)
+	}
 }
