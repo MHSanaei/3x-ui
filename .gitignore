@@ -11,4 +11,3 @@ main
 release/
 access.log
 error.log
-.cache
