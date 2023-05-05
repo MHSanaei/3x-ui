@@ -996,7 +996,7 @@ to{transform:scale(0) translate(50%,-50%);opacity:0}
 .ant-menu-horizontal .ant-menu-item,.ant-menu-horizontal .ant-menu-submenu{margin-top:-1px}
 .ant-menu-horizontal>.ant-menu-item-active,.ant-menu-horizontal>.ant-menu-item:hover,.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title:hover{background-color:transparent}
 .ant-menu-item-selected,.ant-menu-item-selected>a,.ant-menu-item-selected>a:hover{color:#1890ff}
-.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected{background:linear-gradient(-20deg,#080c0e71 0,#020e1c5e 100%);color:#fff}
+.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected{background:linear-gradient(-20deg,#1013168c 0,#040e1a59 100%);color:#fff}
 .ant-menu-vertical-right{border-left:1px solid #e8e8e8}
 .ant-menu-vertical-left.ant-menu-sub,.ant-menu-vertical-right.ant-menu-sub,.ant-menu-vertical.ant-menu-sub{min-width:160px;padding:0;border-right:0;transform-origin:0 0}
 .ant-menu-vertical-left.ant-menu-sub .ant-menu-item,.ant-menu-vertical-right.ant-menu-sub .ant-menu-item,.ant-menu-vertical.ant-menu-sub .ant-menu-item{left:0;margin-left:0;border-right:0}
@@ -1081,7 +1081,6 @@ to{transform:scale(0) translate(50%,-50%);opacity:0}
 .ant-menu-dark .ant-menu-item-selected{color:#fff;border-right:0}
 .ant-menu-dark .ant-menu-item-selected:after{border-right:0}
 .ant-menu-dark .ant-menu-item-selected .anticon,.ant-menu-dark .ant-menu-item-selected .anticon+span,.ant-menu-dark .ant-menu-item-selected>a,.ant-menu-dark .ant-menu-item-selected>a:hover{color:#fff}
-.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-selected,.ant-menu.ant-menu-dark .ant-menu-item-selected{background-color:#1890ff}
 .ant-menu-dark .ant-menu-item-disabled,.ant-menu-dark .ant-menu-item-disabled>a,.ant-menu-dark .ant-menu-submenu-disabled,.ant-menu-dark .ant-menu-submenu-disabled>a{color:hsla(0,0%,100%,.35)!important;opacity:.8}
 .ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title{color:hsla(0,0%,100%,.35)!important}
 .ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:after,.ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:before,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:after,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:before{background:hsla(0,0%,100%,.35)!important}
