@@ -4,7 +4,7 @@
     <a-form-item label="AcceptProxyProtocol">
         <a-switch v-model="inbound.stream.tcp.acceptProxyProtocol"></a-switch>
     </a-form-item>
-    <a-form-item label="HTTP {{ i18n "camouflage" }}">
+    <a-form-item label='HTTP {{ i18n "camouflage" }}'>
         <a-switch
                 :checked="inbound.stream.tcp.type === 'http'"
                 @change="checked => inbound.stream.tcp.type = checked ? 'http' : 'none'">

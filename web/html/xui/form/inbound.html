@@ -25,11 +25,11 @@
         <a-input v-model.trim="inbound.listen"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
-        <a-input type="number" v-model.number="inbound.port"></a-input>
+        <a-input-number v-model="inbound.port"></a-input-number>
     </a-form-item>
     <a-form-item>
         <span slot="label">
-            <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)
+            <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
             <a-tooltip>
                 <template slot="title">
                     0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>

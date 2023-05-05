@@ -105,9 +105,10 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VMess {
 		return ""
 	}
+	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
 	obj := map[string]interface{}{
 		"v":    "2",
-		"ps":   email,
+		"ps":   remark,
 		"add":  s.address,
 		"port": inbound.Port,
 		"type": "none",
@@ -380,7 +381,8 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	url.Fragment = email
+	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
+	url.Fragment = remark
 	return url.String()
 }
 
@@ -558,7 +560,8 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	url.Fragment = email
+	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
+	url.Fragment = remark
 	return url.String()
 }
 
