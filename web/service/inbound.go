@@ -679,21 +679,22 @@ func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.Cl
 	return nil, nil, nil
 }
 
-func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (*xray.ClientTraffic, error) {
-	traffic, inbound, err := s.GetClientInboundByEmail(clientEmail)
+func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, error) {
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
-	if inbound == nil || traffic == nil {
-		return nil, common.NewError("Inbound Not Found For Email:", clientEmail)
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
 	}
 
 	oldClients, err := s.getClients(inbound)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 
 	clientId := ""
+	clientOldEnabled := false
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
@@ -702,45 +703,44 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (*xray.Cl
 			} else {
 				clientId = oldClient.ID
 			}
+			clientOldEnabled = oldClient.Enable
 			break
 		}
 	}
 
 	if len(clientId) == 0 {
-		return nil, common.NewError("Client Not Found For Email:", clientEmail)
+		return false, common.NewError("Client Not Found For Email:", clientEmail)
 	}
-
-	traffic.Enable = !traffic.Enable
 
 	var settings map[string]interface{}
 	err = json.Unmarshal([]byte(inbound.Settings), &settings)
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	clients := settings["clients"].([]interface{})
 	var newClients []interface{}
 	for client_index := range clients {
 		c := clients[client_index].(map[string]interface{})
 		if c["email"] == clientEmail {
-			c["enable"] = traffic.Enable
+			c["enable"] = !clientOldEnabled
 			newClients = append(newClients, interface{}(c))
 		}
 	}
 	settings["clients"] = newClients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return nil, err
+		return false, err
 	}
 	inbound.Settings = string(modifiedSettings)
-	return traffic, s.UpdateInboundClient(inbound, clientId)
+	return !clientOldEnabled, s.UpdateInboundClient(inbound, clientId)
 }
 
 func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int) error {
-	traffic, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return err
 	}
-	if inbound == nil || traffic == nil {
+	if inbound == nil {
 		return common.NewError("Inbound Not Found For Email:", clientEmail)
 	}
 
@@ -790,11 +790,11 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 }
 
 func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry_time int64) error {
-	traffic, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
 		return err
 	}
-	if inbound == nil || traffic == nil {
+	if inbound == nil {
 		return common.NewError("Inbound Not Found For Email:", clientEmail)
 	}
 

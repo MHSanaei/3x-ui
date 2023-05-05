@@ -296,10 +296,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, "✅ %s : Get IP Log.")
 				t.searchClientIps(callbackQuery.From.ID, email)
 			case "toggle_enable":
-				trrafic, err := t.inboundService.ToggleClientEnableByEmail(email)
+				enabled, err := t.inboundService.ToggleClientEnableByEmail(email)
 				if err == nil {
 					t.xrayService.SetToNeedRestart()
-					if trrafic.Enable {
+					if enabled {
 						t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Enabled successfully.", email))
 					} else {
 						t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Disabled successfully.", email))
@@ -583,7 +583,7 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 	if err != nil || len(ips) == 0 {
 		ips = "No IP Record"
 	}
-	output := fmt.Sprintf("📧 Email: %s\r\n🔢 IPs: \r\n%s\r\n", email, ips)
+	output := fmt.Sprintf("📧 Email: %s\r\n🔢 IPs: \r\n\r\n%s\r\n", email, ips)
 	var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("🔄 Refresh", "ips_refresh "+email),
@@ -644,7 +644,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 			tgbotapi.NewInlineKeyboardButtonData("🔢 IP Limit", "ip_limit "+email),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("💡 Enable / Disable", "toggle_enable "+email),
+			tgbotapi.NewInlineKeyboardButtonData("🔘 Enable / Disable", "toggle_enable "+email),
 		),
 	)
 	if len(messageID) > 0 {
