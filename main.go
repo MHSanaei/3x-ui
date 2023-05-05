@@ -16,8 +16,6 @@ import (
 	"x-ui/web/global"
 	"x-ui/web/service"
 
-	"github.com/spf13/cobra"
-
 	"github.com/op/go-logging"
 )
 
