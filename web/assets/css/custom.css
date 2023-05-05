@@ -177,6 +177,7 @@
     background-color: #1a212a;
     border-color:rgba(0,0,0,.09);
     border-radius: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .ant-card-dark:hover {
