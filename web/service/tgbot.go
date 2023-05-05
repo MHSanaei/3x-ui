@@ -31,6 +31,7 @@ type Tgbot struct {
 	inboundService InboundService
 	settingService SettingService
 	serverService  ServerService
+	xrayService    XrayService
 	lastStatus     *Status
 }
 
@@ -148,6 +149,87 @@ func (t *Tgbot) answerCommand(message *tgbotapi.Message, chatId int64, isAdmin b
 }
 
 func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bool) {
+
+	if isAdmin {
+		dataArray := strings.Split(callbackQuery.Data, " ")
+		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
+			email := dataArray[1]
+			switch dataArray[0] {
+			case "refresh_client":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Refreshed successfully.", email))
+				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+			case "admin_cancel":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("❌ %s : Operation canceled.", email))
+				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+			case "reset_traffic":
+				var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("✅ Confirm Reset Traffic?", "reset_traffic_confirm "+email),
+					),
+				)
+				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
+			case "reset_traffic_confirm":
+				err := t.inboundService.ResetClientTrafficByEmail(email)
+				if err == nil {
+					t.xrayService.SetToNeedRestart()
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Traffic reset successfully.", email))
+					t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+				} else {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+				}
+			case "reset_expire_days":
+				var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("♾ Unlimited", "reset_expire_days_confirm "+email+" 0"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("1 Month", "reset_expire_days_confirm "+email+" 30"),
+						tgbotapi.NewInlineKeyboardButtonData("2 Months", "reset_expire_days_confirm "+email+" 60"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("3 Months", "reset_expire_days_confirm "+email+" 90"),
+						tgbotapi.NewInlineKeyboardButtonData("6 Months", "reset_expire_days_confirm "+email+" 180"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("9 Months", "reset_expire_days_confirm "+email+" 270"),
+						tgbotapi.NewInlineKeyboardButtonData("12 Months", "reset_expire_days_confirm "+email+" 360"),
+					),
+					tgbotapi.NewInlineKeyboardRow(
+						tgbotapi.NewInlineKeyboardButtonData("10 Days", "reset_expire_days_confirm "+email+" 10"),
+						tgbotapi.NewInlineKeyboardButtonData("20 Days", "reset_expire_days_confirm "+email+" 20"),
+					),
+				)
+				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
+			case "reset_expire_days_confirm":
+				if len(dataArray) == 3 {
+					days, err := strconv.Atoi(dataArray[2])
+					if err == nil {
+						var date int64 = 0
+						if days > 0 {
+							date = int64(-(days * 24 * 60 * 60000))
+						}
+						err := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
+						if err == nil {
+							t.xrayService.SetToNeedRestart()
+							t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Expire days reset successfully.", email))
+							t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+							return
+						}
+					}
+				}
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+			}
+			return
+		}
+	}
+
 	// Respond to the callback query, telling Telegram to show the user
 	// a message with the data received.
 	callback := tgbotapi.NewCallback(callbackQuery.ID, callbackQuery.Data)
@@ -215,7 +297,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	}
 }
 
-func (t *Tgbot) SendMsgToTgbot(tgid int64, msg string) {
+func (t *Tgbot) SendMsgToTgbot(tgid int64, msg string, inlineKeyboard ...tgbotapi.InlineKeyboardMarkup) {
 	var allMessages []string
 	limit := 2000
 	// paging message if it is big
@@ -236,6 +318,9 @@ func (t *Tgbot) SendMsgToTgbot(tgid int64, msg string) {
 	for _, message := range allMessages {
 		info := tgbotapi.NewMessage(tgid, message)
 		info.ParseMode = "HTML"
+		if len(inlineKeyboard) > 0 {
+			info.ReplyMarkup = inlineKeyboard[0]
+		}
 		_, err := bot.Send(info)
 		if err != nil {
 			logger.Warning("Error sending telegram message :", err)
@@ -403,7 +488,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string) {
 	t.SendAnswer(chatId, "Please choose:", false)
 }
 
-func (t *Tgbot) searchClient(chatId int64, email string) {
+func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
 		logger.Warning(err)
@@ -433,7 +518,22 @@ func (t *Tgbot) searchClient(chatId int64, email string) {
 	output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
 		traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 		total, expiryTime)
-	t.SendMsgToTgbot(chatId, output)
+	var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("🔄 Refresh", "refresh_client "+email),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📈 Reset Traffic", "reset_traffic "+email),
+		),
+		tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData("📅 Reset Expire Days", "reset_expire_days "+email),
+		),
+	)
+	if len(messageID) > 0 {
+		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
+	} else {
+		t.SendMsgToTgbot(chatId, output, inlineKeyboard)
+	}
 }
 
 func (t *Tgbot) searchInbound(chatId int64, remark string) {
@@ -606,5 +706,30 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	_, err = bot.Send(msg)
 	if err != nil {
 		logger.Warning("Error in uploading config.json: ", err)
+	}
+}
+
+func (t *Tgbot) sendCallbackAnswerTgBot(id string, message string) {
+	callback := tgbotapi.NewCallback(id, message)
+	if _, err := bot.Request(callback); err != nil {
+		logger.Warning(err)
+	}
+}
+
+func (t *Tgbot) editMessageCallbackTgBot(chatId int64, messageID int, inlineKeyboard tgbotapi.InlineKeyboardMarkup) {
+	edit := tgbotapi.NewEditMessageReplyMarkup(chatId, messageID, inlineKeyboard)
+	if _, err := bot.Request(edit); err != nil {
+		logger.Warning(err)
+	}
+}
+
+func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlineKeyboard ...tgbotapi.InlineKeyboardMarkup) {
+	edit := tgbotapi.NewEditMessageText(chatId, messageID, text)
+	edit.ParseMode = "HTML"
+	if len(inlineKeyboard) > 0 {
+		edit.ReplyMarkup = &inlineKeyboard[0]
+	}
+	if _, err := bot.Request(edit); err != nil {
+		logger.Warning(err)
 	}
 }
