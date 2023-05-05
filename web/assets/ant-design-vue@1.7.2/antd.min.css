@@ -1388,7 +1388,7 @@ to{transform:scale(1.6);opacity:0}
 .ant-tabs-nav .ant-tabs-tab{position:relative;display:inline-block;box-sizing:border-box;height:100%;margin:0 32px 0 0;padding:12px 16px;text-decoration:none;cursor:pointer;transition:color .3s cubic-bezier(.645,.045,.355,1)}
 .ant-tabs-nav .ant-tabs-tab:before{position:absolute;top:-1px;left:0;width:100%;border-top:2px solid transparent;border-radius:4px 4px 0 0;transition:all .3s;content:"";pointer-events:none}
 .ant-tabs-nav .ant-tabs-tab:last-child{margin-right:0}
-.ant-tabs-nav .ant-tabs-tab:hover{color:#40a9ff}
+.ant-tabs-nav .ant-tabs-tab:hover{color:rgb(0 150 112)}
 .ant-tabs-nav .ant-tabs-tab:active{color:#096dd9}
 .ant-tabs-nav .ant-tabs-tab .anticon{margin-right:8px}
 .ant-tabs-nav .ant-tabs-tab-active{color:rgb(0 150 112);font-weight:500}
