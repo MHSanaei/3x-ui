@@ -409,20 +409,18 @@
 }
 
 ::-webkit-scrollbar {
-    width: 1.3em;
+    width: 0.7em;
 }
 
 ::-webkit-scrollbar-track {
-    background: #323e52;
-    
+    background: rgb(50 62 82 / 25%);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgb(179 179 179 / 80%);
+    background: rgb(133 133 133 / 80%);
     border-radius: 100vw;
-    border:0.3em solid #323e52
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #ffffff;
+    background: #919191;
 }
