@@ -152,6 +152,8 @@ func (a *ServerController) importDB(c *gin.Context) {
 		return
 	}
 	defer file.Close()
+	// Always restart Xray before return
+	defer a.serverService.RestartXrayService()
 	// Import it
 	err = a.serverService.ImportDB(file)
 	if err != nil {

@@ -411,6 +411,8 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 
 	// Save the file as temporary file
 	tempPath := fmt.Sprintf("%s.temp", config.GetDBPath())
+	// remove temp file before return
+	defer os.Remove(tempPath)
 	tempFile, err := os.Create(tempPath)
 	if err != nil {
 		return common.NewErrorf("Error creating temporary db file: %v", err)
@@ -420,59 +422,47 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	// Reset the file reader to the beginning
 	_, err = file.Seek(0, 0)
 	if err != nil {
-		defer os.Remove(tempPath)
 		return common.NewErrorf("Error resetting file reader: %v", err)
 	}
 
 	// Save temp file
 	_, err = io.Copy(tempFile, file)
 	if err != nil {
-		defer os.Remove(tempPath)
 		return common.NewErrorf("Error saving db: %v", err)
 	}
 
 	// Check if we can init db or not
 	err = database.InitDB(tempPath)
 	if err != nil {
-		defer os.Remove(tempPath)
 		return common.NewErrorf("Error checking db: %v", err)
 	}
 
-	// Stop Xray if its running
-	if s.xrayService.IsXrayRunning() {
-		err := s.StopXrayService()
-		if err != nil {
-			defer os.Remove(tempPath)
-			return common.NewErrorf("Failed to stop Xray: %v", err)
-		}
-	}
+	// Stop Xray
+	s.StopXrayService()
 
 	// Backup db for fallback
 	fallbackPath := fmt.Sprintf("%s.backup", config.GetDBPath())
+	// remove fallback file before return
+	defer os.Remove(fallbackPath)
 	err = os.Rename(config.GetDBPath(), fallbackPath)
 	if err != nil {
-		defer os.Remove(tempPath)
 		return common.NewErrorf("Error backup temporary db file: %v", err)
 	}
 
 	// Move temp to DB path
 	err = os.Rename(tempPath, config.GetDBPath())
 	if err != nil {
-		defer os.Remove(tempPath)
-		defer os.Rename(fallbackPath, config.GetDBPath())
+		os.Rename(fallbackPath, config.GetDBPath())
 		return common.NewErrorf("Error moving db file: %v", err)
 	}
 
 	// Migrate DB
 	err = database.InitDB(config.GetDBPath())
 	if err != nil {
-		defer os.Rename(fallbackPath, config.GetDBPath())
+		os.Rename(fallbackPath, config.GetDBPath())
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
 	s.inboundService.MigrateDB()
-
-	// remove fallback file
-	defer os.Remove(fallbackPath)
 
 	// Start Xray
 	err = s.RestartXrayService()
