@@ -33,7 +33,7 @@
                     <a-icon type="question-circle" theme="filled"></a-icon>
                 </a-tooltip>
             </span>
-            <a-input type="number" v-model.number="client.limitIp" min="0"  style="width: 70px;" ></a-input>
+            <a-input-number v-model="client.limitIp" min="0"  style="width: 70px;"></a-input-number>
         </a-form-item>
         <a-form-item v-if="inbound.xtls" label="Flow">
             <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
@@ -43,7 +43,7 @@
         </a-form-item>
         <a-form-item>
             <span slot="label">
-                <span >{{ i18n "pages.inbounds.totalFlow" }}</span>(GB)
+                <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
                 <a-tooltip>
                     <template slot="title">
                         0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -113,7 +113,7 @@
             <a-input v-model="fallback.dest"></a-input>
         </a-form-item>
         <a-form-item label="xVer">
-            <a-input type="number" v-model.number="fallback.xver"></a-input>
+            <a-input-number v-model="fallback.xver"></a-input-number>
         </a-form-item>
         <a-divider v-if="inbound.settings.fallbacks.length - 1 === index"/>
     </a-form>

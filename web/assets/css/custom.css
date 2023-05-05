@@ -180,7 +180,7 @@
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    box-shadow: 0 2px 8px rgba(255,255,255,.15);
+    /* box-shadow: 0 2px 8px rgba(255,255,255,.15); */
 }
 
 .ant-card-dark .ant-table-thead th {
@@ -234,6 +234,10 @@
 .ant-card-dark .ant-calendar-time-picker-inner {
     color: hsla(0,0%,100%,.65);
     background-color: #1a212a; 
+}
+
+.ant-input-number {
+    min-width: 100px;
 }
 
 .ant-card-dark .ant-input,
