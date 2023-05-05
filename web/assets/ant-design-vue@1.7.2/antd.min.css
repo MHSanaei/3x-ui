@@ -3676,7 +3676,7 @@ to{max-height:0;margin-bottom:0;padding-top:0;padding-bottom:0;opacity:0}
 .ant-progress-outer{display:inline-block;width:100%;margin-right:0;padding-right:0}
 .ant-progress-show-info .ant-progress-outer{margin-right:calc(-2em - 8px);padding-right:calc(2em + 8px)}
 .ant-progress-inner{position:relative;display:inline-block;width:100%;overflow:hidden;vertical-align:middle;background-color:#f5f5f5;border-radius:100px}
-.ant-progress-circle-trail{stroke:#f5f5f5}
+.ant-progress-circle-trail{stroke:#090b0e29}
 .ant-progress-circle-path{-webkit-animation:ant-progress-appear .3s;animation:ant-progress-appear .3s}
 .ant-progress-inner:not(.ant-progress-circle-gradient) .ant-progress-circle-path{stroke:#1890ff}
 .ant-progress-bg,.ant-progress-success-bg{position:relative;background-color:#1890ff;border-radius:100px;transition:all .4s cubic-bezier(.08,.82,.17,1) 0s}
