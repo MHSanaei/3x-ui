@@ -41,6 +41,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
+	g.POST("/importDB", a.importDB)
 	g.POST("/getNewX25519Cert", a.getNewX25519Cert)
 }
 
@@ -99,8 +100,8 @@ func (a *ServerController) stopXrayService(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, "Xray stoped", err)
-
 }
+
 func (a *ServerController) restartXrayService(c *gin.Context) {
 	err := a.serverService.RestartXrayService()
 	if err != nil {
@@ -108,7 +109,6 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, "Xray restarted", err)
-
 }
 
 func (a *ServerController) getLogs(c *gin.Context) {
@@ -142,6 +142,24 @@ func (a *ServerController) getDb(c *gin.Context) {
 
 	// Write the file contents to the response
 	c.Writer.Write(db)
+}
+
+func (a *ServerController) importDB(c *gin.Context) {
+	// Get the file from the request body
+	file, _, err := c.Request.FormFile("db")
+	if err != nil {
+		jsonMsg(c, "Error reading db file", err)
+		return
+	}
+	defer file.Close()
+	// Import it
+	err = a.serverService.ImportDB(file)
+	if err != nil {
+		jsonMsg(c, "", err)
+		return
+	}
+	a.lastGetStatusTime = time.Now()
+	jsonObj(c, "Import DB", nil)
 }
 
 func (a *ServerController) getNewX25519Cert(c *gin.Context) {

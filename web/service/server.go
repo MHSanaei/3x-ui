@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,7 +15,9 @@ import (
 	"strings"
 	"time"
 	"x-ui/config"
+	"x-ui/database"
 	"x-ui/logger"
+	"x-ui/util/common"
 	"x-ui/util/sys"
 	"x-ui/xray"
 
@@ -73,7 +76,8 @@ type Release struct {
 }
 
 type ServerService struct {
-	xrayService XrayService
+	xrayService    XrayService
+	inboundService InboundService
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
@@ -393,6 +397,91 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	}
 
 	return fileContents, nil
+}
+
+func (s *ServerService) ImportDB(file multipart.File) error {
+	// Check if the file is a SQLite database
+	isValidDb, err := database.IsSQLiteDB(file)
+	if err != nil {
+		return common.NewErrorf("Error checking db file format: %v", err)
+	}
+	if !isValidDb {
+		return common.NewError("Invalid db file format")
+	}
+
+	// Save the file as temporary file
+	tempPath := fmt.Sprintf("%s.temp", config.GetDBPath())
+	tempFile, err := os.Create(tempPath)
+	if err != nil {
+		return common.NewErrorf("Error creating temporary db file: %v", err)
+	}
+	defer tempFile.Close()
+
+	// Reset the file reader to the beginning
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		defer os.Remove(tempPath)
+		return common.NewErrorf("Error resetting file reader: %v", err)
+	}
+
+	// Save temp file
+	_, err = io.Copy(tempFile, file)
+	if err != nil {
+		defer os.Remove(tempPath)
+		return common.NewErrorf("Error saving db: %v", err)
+	}
+
+	// Check if we can init db or not
+	err = database.InitDB(tempPath)
+	if err != nil {
+		defer os.Remove(tempPath)
+		return common.NewErrorf("Error checking db: %v", err)
+	}
+
+	// Stop Xray if its running
+	if s.xrayService.IsXrayRunning() {
+		err := s.StopXrayService()
+		if err != nil {
+			defer os.Remove(tempPath)
+			return common.NewErrorf("Failed to stop Xray: %v", err)
+		}
+	}
+
+	// Backup db for fallback
+	fallbackPath := fmt.Sprintf("%s.backup", config.GetDBPath())
+	err = os.Rename(config.GetDBPath(), fallbackPath)
+	if err != nil {
+		defer os.Remove(tempPath)
+		return common.NewErrorf("Error backup temporary db file: %v", err)
+	}
+
+	// Move temp to DB path
+	err = os.Rename(tempPath, config.GetDBPath())
+	if err != nil {
+		defer os.Remove(tempPath)
+		defer os.Rename(fallbackPath, config.GetDBPath())
+		return common.NewErrorf("Error moving db file: %v", err)
+	}
+
+	// Migrate DB
+	err = database.InitDB(config.GetDBPath())
+	if err != nil {
+		defer os.Rename(fallbackPath, config.GetDBPath())
+		return common.NewErrorf("Error migrating db: %v", err)
+	}
+	s.inboundService.MigrationRequirements()
+	s.inboundService.RemoveOrphanedTraffics()
+
+	// remove fallback file
+	defer os.Remove(fallbackPath)
+
+	// Start Xray
+	err = s.RestartXrayService()
+	if err != nil {
+		return common.NewErrorf("Imported DB but Failed to start Xray: %v", err)
+	}
+
+	return nil
 }
 
 func (s *ServerService) GetNewX25519Cert() (interface{}, error) {
