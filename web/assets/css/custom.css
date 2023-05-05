@@ -177,7 +177,6 @@
     background-color: #1a212a;
     border-color:rgba(0,0,0,.09);
     border-radius: 1.5rem;
-    margin-bottom: 2rem;
 }
 
 .ant-card-dark:hover {
@@ -419,11 +418,11 @@
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #161b22;
+    background: rgb(179 179 179 / 80%);
     border-radius: 100vw;
     border:0.3em solid #323e52
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #11141a66;
+    background: #ffffff;
 }
