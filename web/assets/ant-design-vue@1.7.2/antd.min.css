@@ -1266,7 +1266,7 @@ to{transform:scale(1.6);opacity:0}
 .ant-card-hoverable{cursor:pointer}
 .ant-card-hoverable:hover{border-color:rgba(0,0,0,.09);box-shadow:0 2px 8px rgba(0,0,0,.09)}
 .ant-card-bordered{/*! border:1px solid #e8e8e8; *//*! box-shadow: 0px 6px 0px 0px rgb(15, 197, 254); *//*! box-shadow: 0 4px 5px 0 rgba(170, 179, 217, 0.33); */backdrop-filter:blur(7px) saturate(200%);background-color:#fff;border:0 solid rgba(255,255,255,0)/*;box-shadow:0 1px 7px -1px #0000005c*/}
-.ant-card-head{min-height:48px;margin-bottom:-1px;padding:0 24px;color:rgba(0,0,0,.85);font-weight:500;font-size:16px;background:0 0;border-bottom:2px solid rgb(50 62 82);border-radius:2px 2px 0 0;zoom:1}
+.ant-card-head{min-height:48px;margin-bottom:-1px;padding:0 24px;color:rgba(0,0,0,.85);font-weight:500;font-size:16px;background:0 0;border-bottom:2px solid rgb(155 155 155 / 15%);border-radius:2px 2px 0 0;zoom:1}
 .ant-card-head:after,.ant-card-head:before{display:table;content:""}
 .ant-card-head:after{clear:both}
 .ant-card-head-wrapper{display:flex;align-items:center}
@@ -4018,7 +4018,7 @@ to{transform:rotate(1turn) scale(.66667);transform-origin:50% 50%}
 .ant-table-thead>tr:first-child>th:first-child{border-top-left-radius:4px}
 .ant-table-thead>tr:first-child>th:last-child{border-top-right-radius:4px}
 .ant-table-thead>tr:not(:last-child)>th[colspan]{border-bottom:0}
-.ant-table-tbody>tr>td{border-bottom:2px solid rgb(50 62 82);transition:background .3s}
+.ant-table-tbody>tr>td{border-bottom:1px solid rgb(155 155 155 / 15%);transition:background .3s}
 .ant-table-tbody>tr.ant-table-row-hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td,.ant-table-tbody>tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td,.ant-table-thead>tr.ant-table-row-hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td,.ant-table-thead>tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td{background:#e6f7ff}
 .ant-table-tbody>tr.ant-table-row-selected>td.ant-table-column-sort,.ant-table-tbody>tr:hover.ant-table-row-selected>td,.ant-table-tbody>tr:hover.ant-table-row-selected>td.ant-table-column-sort,.ant-table-thead>tr.ant-table-row-selected>td.ant-table-column-sort,.ant-table-thead>tr:hover.ant-table-row-selected>td,.ant-table-thead>tr:hover.ant-table-row-selected>td.ant-table-column-sort{background:#fafafa}
 .ant-table-thead>tr:hover{background:0 0}
