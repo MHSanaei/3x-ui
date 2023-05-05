@@ -293,7 +293,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
 				}
 			case "ip_log":
-				t.sendCallbackAnswerTgBot(callbackQuery.ID, "✅ %s : Get IP Log.")
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Get IP Log.", email))
 				t.searchClientIps(callbackQuery.From.ID, email)
 			case "toggle_enable":
 				enabled, err := t.inboundService.ToggleClientEnableByEmail(email)
@@ -583,7 +583,7 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 	if err != nil || len(ips) == 0 {
 		ips = "No IP Record"
 	}
-	output := fmt.Sprintf("📧 Email: %s\r\n🔢 IPs: \r\n\r\n%s\r\n", email, ips)
+	output := fmt.Sprintf("📧 Email: %s\r\n🔢 IPs: \r\n%s\r\n", email, ips)
 	var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData("🔄 Refresh", "ips_refresh "+email),
