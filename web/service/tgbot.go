@@ -167,11 +167,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("✅ Confirm Reset Traffic?", "reset_traffic_confirm "+email),
+						tgbotapi.NewInlineKeyboardButtonData("✅ Confirm Reset Traffic?", "reset_traffic_c "+email),
 					),
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
-			case "reset_traffic_confirm":
+			case "reset_traffic_c":
 				err := t.inboundService.ResetClientTrafficByEmail(email)
 				if err == nil {
 					t.xrayService.SetToNeedRestart()
@@ -180,33 +180,33 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
 				}
-			case "reset_expire_days":
+			case "reset_exp":
 				var inlineKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 					tgbotapi.NewInlineKeyboardRow(
 						tgbotapi.NewInlineKeyboardButtonData("❌ Cancel Reset", "admin_cancel "+email),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("♾ Unlimited", "reset_expire_days_confirm "+email+" 0"),
+						tgbotapi.NewInlineKeyboardButtonData("♾ Unlimited", "reset_exp_c "+email+" 0"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("1 Month", "reset_expire_days_confirm "+email+" 30"),
-						tgbotapi.NewInlineKeyboardButtonData("2 Months", "reset_expire_days_confirm "+email+" 60"),
+						tgbotapi.NewInlineKeyboardButtonData("1 Month", "reset_exp_c "+email+" 30"),
+						tgbotapi.NewInlineKeyboardButtonData("2 Months", "reset_exp_c "+email+" 60"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("3 Months", "reset_expire_days_confirm "+email+" 90"),
-						tgbotapi.NewInlineKeyboardButtonData("6 Months", "reset_expire_days_confirm "+email+" 180"),
+						tgbotapi.NewInlineKeyboardButtonData("3 Months", "reset_exp_c "+email+" 90"),
+						tgbotapi.NewInlineKeyboardButtonData("6 Months", "reset_exp_c "+email+" 180"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("9 Months", "reset_expire_days_confirm "+email+" 270"),
-						tgbotapi.NewInlineKeyboardButtonData("12 Months", "reset_expire_days_confirm "+email+" 360"),
+						tgbotapi.NewInlineKeyboardButtonData("9 Months", "reset_exp_c "+email+" 270"),
+						tgbotapi.NewInlineKeyboardButtonData("12 Months", "reset_exp_c "+email+" 360"),
 					),
 					tgbotapi.NewInlineKeyboardRow(
-						tgbotapi.NewInlineKeyboardButtonData("10 Days", "reset_expire_days_confirm "+email+" 10"),
-						tgbotapi.NewInlineKeyboardButtonData("20 Days", "reset_expire_days_confirm "+email+" 20"),
+						tgbotapi.NewInlineKeyboardButtonData("10 Days", "reset_exp_c "+email+" 10"),
+						tgbotapi.NewInlineKeyboardButtonData("20 Days", "reset_exp_c "+email+" 20"),
 					),
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
-			case "reset_expire_days_confirm":
+			case "reset_exp_c":
 				if len(dataArray) == 3 {
 					days, err := strconv.Atoi(dataArray[2])
 					if err == nil {
@@ -526,7 +526,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 			tgbotapi.NewInlineKeyboardButtonData("📈 Reset Traffic", "reset_traffic "+email),
 		),
 		tgbotapi.NewInlineKeyboardRow(
-			tgbotapi.NewInlineKeyboardButtonData("📅 Reset Expire Days", "reset_expire_days "+email),
+			tgbotapi.NewInlineKeyboardButtonData("📅 Reset Expire Days", "reset_exp "+email),
 		),
 	)
 	if len(messageID) > 0 {
