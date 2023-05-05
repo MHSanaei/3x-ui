@@ -1356,6 +1356,7 @@ to{transform:scale(1.6);opacity:0}
 .ant-tabs .ant-tabs-card-bar.ant-tabs-bottom-bar .ant-tabs-tab{height:auto;border-top:0;border-bottom:1px solid #e8e8e8;border-radius:0 0 4px 4px}
 .ant-tabs .ant-tabs-card-bar.ant-tabs-bottom-bar .ant-tabs-tab-active{padding-top:1px;padding-bottom:0;color:#1890ff}
 .ant-tabs{box-sizing:border-box;margin:0;padding:0;color:rgba(0,0,0,.65);font-size:14px;font-variant:tabular-nums;line-height:1.5;list-style:none;font-feature-settings:"tnum";position:relative;overflow:hidden;zoom:1;border-radius: 10px;box-shadow: 0 1px 7px -1px #0000005c;transition: all .3s}
+.ant-tabs:hover {box-shadow: 0 3px 12px -0.8px #0000005c}
 .ant-tabs:after,.ant-tabs:before{display:table;content:""}
 .ant-tabs:after{clear:both}
 .ant-tabs-ink-bar{position:absolute;bottom:1px;left:0;z-index:1;box-sizing:border-box;width:0;height:2px;background-color:#1890ff;transform-origin:0 0}
