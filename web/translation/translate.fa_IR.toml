@@ -90,6 +90,13 @@
 "xraySwitchVersionDialog" = "تغییر ورژن"
 "xraySwitchVersionDialogDesc" = "آیا از تغییر ورژن مطمئن هستین"
 "dontRefresh" = "در حال نصب ، لطفا رفرش نکنید "
+"logs" = "گزارش ها"
+"config" = "تنظیمات"
+"backup" = "پشتیبان گیری"
+"backupTitle" = "پشتیبان گیری دیتابیس"
+"backupDescription" = "به یاد داشته باشید که قبل از وارد کردن یک دیتابیس جدید، نسخه پشتیبان تهیه کنید."
+"exportDatabase" = "دانلود دیتابیس"
+"importDatabase" = "آپلود دیتابیس"
 
 [pages.inbounds]
 "title" = "کاربران"

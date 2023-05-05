@@ -90,6 +90,13 @@
 "xraySwitchVersionDialog" = "切换 xray 版本"
 "xraySwitchVersionDialogDesc" = "是否切换 xray 版本至"
 "dontRefresh" = "安装中，请不要刷新此页面"
+"logs" = "日志"
+"config" = "配置"
+"backup" = "备份"
+"backupTitle" = "备份数据库"
+"backupDescription" = "请记住在导入新数据库之前进行备份。"
+"exportDatabase" = "下载数据库"
+"importDatabase" = "上传数据库"
 
 [pages.inbounds]
 "title" = "入站列表"
