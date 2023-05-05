@@ -1,6 +1,8 @@
 package database
 
 import (
+	"bytes"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -103,4 +105,14 @@ func GetDB() *gorm.DB {
 
 func IsNotFound(err error) bool {
 	return err == gorm.ErrRecordNotFound
+}
+
+func IsSQLiteDB(file io.Reader) (bool, error) {
+	signature := []byte("SQLite format 3\x00")
+	buf := make([]byte, len(signature))
+	_, err := file.Read(buf)
+	if err != nil {
+		return false, err
+	}
+	return bytes.Equal(buf, signature), nil
 }
