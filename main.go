@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/spf13/cobra"
 	"log"
 	"os"
 	"os/signal"
@@ -15,6 +14,8 @@ import (
 	"x-ui/web"
 	"x-ui/web/global"
 	"x-ui/web/service"
+
+	"github.com/spf13/cobra"
 
 	"github.com/op/go-logging"
 )
@@ -215,8 +216,7 @@ func migrateDb() {
 		log.Fatal(err)
 	}
 	fmt.Println("Start migrating database...")
-	inboundService.MigrationRequirements()
-	inboundService.RemoveOrphanedTraffics()
+	inboundService.MigrateDB()
 	fmt.Println("Migration done!")
 }
 
