@@ -11,7 +11,7 @@
 }
 
 .ant-card {
-    border-radius: 10px;
+    border-radius: 1.5rem;
 }
 
 .ant-card-hoverable {
@@ -176,11 +176,12 @@
     color: hsla(0,0%,100%,.65);
     background-color: #1a212a;
     border-color:rgba(0,0,0,.09);
+    border-radius: 1.5rem;
 }
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    /* box-shadow: 0 3px 12px -0.8px #0000005c; */
+    box-shadow: 0 1px 10px -1px rgb(154 175 238);
 }
 
 .ant-card-bordered:hover {
@@ -252,7 +253,8 @@
 .ant-card-dark .ant-select-selection,
 .ant-card-dark .ant-calendar-picker-clear {
     color: hsla(0,0%,100%,.65);
-    background-color: #193752;
+    background-color: rgb(46 59 82 / 50%);
+    border: 1px solid rgb(0 150 112 / 0%);
 }
 
 .ant-card-dark .ant-select-disabled .ant-select-selection {
@@ -332,9 +334,9 @@
 }
 
 .ant-card-dark .ant-tag-green {
-    color: #6abe39;
-    background: #162312;
-    border-color: #274916;
+    color: #37b998;
+    background: #101e1a;
+    border-color: #144237;
 }
 
 .ant-card-dark .ant-tag-cyan {
@@ -361,7 +363,7 @@
 }
 
 .ant-card-dark .ant-switch-checked {
-    background-color: #0c61b0;
+    background-color: #009670;
 }
 
 .ant-card-dark .ant-btn,
@@ -383,8 +385,8 @@
     box-shadow: 0 2px 0 rgba(255,255,255,.045);
 }
 .ant-card-dark .ant-btn-primary:hover {
-    background-color: #40a9ff;
-    border-color: #40a9ff;
+    background-color: #1a61b3;
+    border-color: #40a9ff00;
 }
 
 .ant-dark .ant-popover-content {
@@ -407,15 +409,20 @@
 }
 
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 1.3em;
+}
+
+::-webkit-scrollbar-track {
+    background: #323e52;
+    
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #11141a57;
-    border-radius: 20px;
+    background: #161b22;
+    border-radius: 100vw;
+    border:0.3em solid #323e52
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: #11141a66;
-    border-radius: 20px;
 }
