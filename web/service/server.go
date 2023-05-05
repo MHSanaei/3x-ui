@@ -469,8 +469,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		defer os.Rename(fallbackPath, config.GetDBPath())
 		return common.NewErrorf("Error migrating db: %v", err)
 	}
-	s.inboundService.MigrationRequirements()
-	s.inboundService.RemoveOrphanedTraffics()
+	s.inboundService.MigrateDB()
 
 	// remove fallback file
 	defer os.Remove(fallbackPath)
