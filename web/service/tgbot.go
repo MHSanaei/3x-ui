@@ -330,7 +330,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 	case "get_backup":
 		t.sendBackup(callbackQuery.From.ID)
 	case "client_traffic":
-		t.getClientUsage(callbackQuery.From.ID, callbackQuery.From.UserName, "#"+strconv.FormatInt(callbackQuery.From.ID, 10))
+		t.getClientUsage(callbackQuery.From.ID, callbackQuery.From.UserName, strconv.FormatInt(callbackQuery.From.ID, 10))
 	case "client_commands":
 		t.SendMsgToTgbot(callbackQuery.From.ID, "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UID|Password]</code>\r\n \r\nUse UID for vmess/vless and Password for Trojan.")
 	case "commands":
@@ -531,16 +531,7 @@ func (t *Tgbot) getInboundUsages() string {
 }
 
 func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string) {
-	if len(tgUserName) == 0 && len(tgUserID) == 0 {
-		msg := "Your configuration is not found!\nYou should configure your telegram username and ask Admin to add it to your configuration."
-		t.SendMsgToTgbot(chatId, msg)
-		return
-	}
-	userIdentifier := tgUserName
-	if len(userIdentifier) == 0 {
-		userIdentifier = tgUserID
-	}
-	traffics, err := t.inboundService.GetClientTrafficTgBot(userIdentifier)
+	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {
 		logger.Warning(err)
 		msg := "❌ Something went wrong!"
@@ -548,10 +539,21 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 		return
 	}
 	if len(traffics) == 0 {
-		if len(tgUserName) > 0 {
-			userIdentifier = "@" + tgUserName
+		if len(tgUserName) == 0 {
+			msg := "Your configuration is not found!\nPlease ask your Admin to use your telegram user id in your configuration(s).\n\nYour user id: <b>" + tgUserID + "</b>"
+			t.SendMsgToTgbot(chatId, msg)
+			return
 		}
-		msg := "Your configuration is not found!\nPlease ask your Admin to use your telegram username in your configuration(s).\n\nYour username: <b>" + userIdentifier + "</b>"
+		traffics, err = t.inboundService.GetClientTrafficTgBot(tgUserName)
+	}
+	if err != nil {
+		logger.Warning(err)
+		msg := "❌ Something went wrong!"
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
+	if len(traffics) == 0 {
+		msg := "Your configuration is not found!\nPlease ask your Admin to use your telegram username or user id in your configuration(s).\n\nYour username: <b>@" + tgUserName + "</b>\n\nYour user id: <b>" + tgUserID + "</b>"
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
