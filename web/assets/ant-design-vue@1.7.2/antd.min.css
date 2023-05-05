@@ -3303,7 +3303,7 @@ textarea.ant-input-number{max-width:100%;height:auto;min-height:32px;line-height
 .ant-list-footer,.ant-list-header{background:0 0}
 .ant-list-footer,.ant-list-header{padding-top:12px;padding-bottom:12px}
 .ant-list-empty{padding:16px 0;color:rgba(0,0,0,.45);font-size:12px;text-align:center}
-.ant-list-split .ant-list-item{border-bottom:1px solid rgb(50 62 82)}
+.ant-list-split .ant-list-item{border-bottom:1px solid rgb(153 153 153 / 20%)}
 .ant-list-split .ant-list-item:last-child{border-bottom:none}
 .ant-list-split .ant-list-header{border-bottom:1px solid #e8e8e8}
 .ant-list-loading .ant-list-spin-nested-loading{min-height:32px}
