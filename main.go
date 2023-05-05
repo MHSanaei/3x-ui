@@ -238,21 +238,6 @@ func removeSecret() {
 	}
 }
 
-var vars struct {
-	showVersion          bool
-	dbPath               string
-	port                 int
-	username             string
-	password             string
-	tgbottoken           string
-	tgbotchatid          string
-	enableTelegramBot    bool
-	tgbotRuntime         string
-	resetSettings        bool
-	showSettings         bool
-	removeAllSecretsFlag bool
-}
-
 func main() {
 	var rootCmd = &cobra.Command{
 		Use: "x-ui",
