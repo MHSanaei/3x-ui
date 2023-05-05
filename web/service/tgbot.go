@@ -172,8 +172,8 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
 			case "reset_traffic_confirm":
-				resetError := t.inboundService.ResetClientTrafficByEmail(email)
-				if resetError == nil {
+				err := t.inboundService.ResetClientTrafficByEmail(email)
+				if err == nil {
 					t.xrayService.SetToNeedRestart()
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Traffic reset successfully.", email))
 					t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
@@ -207,28 +207,24 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 				)
 				t.editMessageCallbackTgBot(callbackQuery.From.ID, callbackQuery.Message.MessageID, inlineKeyboard)
 			case "reset_expire_days_confirm":
-				err := len(dataArray) < 3
-				if !err {
-					days, err2 := strconv.Atoi(dataArray[2])
-					if err2 == nil {
+				if len(dataArray) == 3 {
+					days, err := strconv.Atoi(dataArray[2])
+					if err == nil {
 						var date int64 = 0
 						if days > 0 {
 							date = int64(-(days * 24 * 60 * 60000))
 						}
-						resetError := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
-						if resetError == nil {
+						err := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
+						if err == nil {
 							t.xrayService.SetToNeedRestart()
 							t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Expire days reset successfully.", email))
 							t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
+							return
 						}
-					} else {
-						err = true
 					}
 				}
-				if err {
-					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
-					t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
-				}
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+				t.searchClient(callbackQuery.From.ID, email, callbackQuery.Message.MessageID)
 			}
 			return
 		}
