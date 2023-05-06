@@ -56,7 +56,7 @@
         <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
         </a-form-item>
-        <a-form-item label='{{ i18n "pages.client.expireDays" }}'>
+        <a-form-item v-if="delayedStart" label='{{ i18n "pages.client.expireDays" }}'>
             <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item>
