@@ -165,6 +165,12 @@ class RandomUtil {
         str += this.randomShortIdSeq(8)
         return str;
     }
+    
+    static randomShadowsocksPassword(){
+        let array = new Uint8Array(32);
+        window.crypto.getRandomValues(array);
+        return btoa(String.fromCharCode.apply(null, array));
+    }
 }
 
 class ObjectUtil {

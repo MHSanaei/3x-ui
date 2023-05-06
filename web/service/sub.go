@@ -97,6 +97,8 @@ func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 		return s.genVlessLink(inbound, email)
 	case "trojan":
 		return s.genTrojanLink(inbound, email)
+	case "shadowsocks":
+		return s.genShadowsocksLink(inbound, email)
 	}
 	return ""
 }
@@ -563,6 +565,28 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
 	url.Fragment = remark
 	return url.String()
+}
+
+func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
+	address := s.address
+	if inbound.Protocol != model.Shadowsocks {
+		return ""
+	}
+	clients, _ := s.inboundService.getClients(inbound)
+
+	var settings map[string]interface{}
+	json.Unmarshal([]byte(inbound.Settings), &settings)
+	inboundPassword := settings["password"].(string)
+	method := settings["method"].(string)
+	clientIndex := -1
+	for i, client := range clients {
+		if client.Email == email {
+			clientIndex = i
+			break
+		}
+	}
+	encPart := fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	return fmt.Sprintf("ss://%s@%s:%d#%s", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port, clients[clientIndex].Email)
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {

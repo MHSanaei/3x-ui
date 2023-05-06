@@ -116,15 +116,11 @@
                                 <a-dropdown :trigger="['click']">
                                     <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
                                     <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)" :theme="siderDrawer.theme">
-                                        <a-menu-item v-if="dbInbound.isSS" key="qrcode">
-                                            <a-icon type="qrcode"></a-icon>
-                                            {{ i18n "qrCode" }}
-                                        </a-menu-item>
                                         <a-menu-item key="edit">
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess">
+                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || dbInbound.isSS">
                                             <a-menu-item key="addClient">
                                                 <a-icon type="user-add"></a-icon>
                                                 {{ i18n "pages.client.add"}}
@@ -168,7 +164,7 @@
                             </template>
                             <template slot="protocol" slot-scope="text, dbInbound">
                                 <a-tag style="margin:0;" color="blue">[[ dbInbound.protocol ]]</a-tag>
-                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan">
                                     <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXtls" color="cyan">XTLS</a-tag>
@@ -231,7 +227,7 @@
                                     {{template "client_table"}}
                                 </a-table>
                                 <a-table
-                                v-else-if="record.protocol === Protocols.TROJAN"
+                                v-else-if="record.protocol === Protocols.TROJAN || record.protocol === Protocols.SHADOWSOCKS"
                                 :row-key="client => client.id"
                                 :columns="innerTrojanColumns"
                                 :data-source="getInboundClients(record)"
@@ -671,7 +667,7 @@
             },
             delClient(dbInboundId,client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                clientId = dbInbound.protocol == "trojan" ? client.password : client.id;
+                clientId = this.getClientId(dbInbound.protocol,client);
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
@@ -686,7 +682,15 @@
                     case Protocols.VMESS: return clientSettings.vmesses;
                     case Protocols.VLESS: return clientSettings.vlesses;
                     case Protocols.TROJAN: return clientSettings.trojans;
+                    case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
                     default: return null;
+                }
+            },
+            getClientId(protocol, client) {
+                switch(protocol){
+                    case Protocols.TROJAN: return client.password;
+                    case Protocols.SHADOWSOCKS: return client.email;
+                    default: return client.id;
                 }
             },
             showQrcode(dbInbound, clientIndex) {
@@ -707,7 +711,7 @@
                 clients = this.getClients(dbInbound.protocol, inbound.settings);
                 index = this.findIndexOfClient(clients, client);
                 clients[index].enable = !clients[index].enable;
-                clientId = dbInbound.protocol == "trojan" ? clients[index].password : clients[index].id;
+                clientId = this.getClientId(dbInbound.protocol,clients[index]);
                 await this.updateClient(clients[index],dbInboundId, clientId);
                 this.loading(false);
             },
@@ -719,11 +723,13 @@
             },
             getInboundClients(dbInbound) {
                 if(dbInbound.protocol == Protocols.VLESS) {
-                    return dbInbound.toInbound().settings.vlesses
+                    return dbInbound.toInbound().settings.vlesses;
                 } else if(dbInbound.protocol == Protocols.VMESS) {
-                    return dbInbound.toInbound().settings.vmesses
+                    return dbInbound.toInbound().settings.vmesses;
                 } else if(dbInbound.protocol == Protocols.TROJAN) {
-                    return dbInbound.toInbound().settings.trojans
+                    return dbInbound.toInbound().settings.trojans;
+                } else if(dbInbound.protocol == Protocols.SHADOWSOCKS) {
+                    return dbInbound.toInbound().settings.shadowsockses;
                 }
             },
             resetClientTraffic(client,dbInboundId) {
