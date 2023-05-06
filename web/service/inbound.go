@@ -332,6 +332,9 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) error 
 	if oldInbound.Protocol == "trojan" {
 		client_key = "password"
 	}
+	if oldInbound.Protocol == "shadowsocks" {
+		client_key = "email"
+	}
 
 	inerfaceClients := settings["clients"].([]interface{})
 	var newClients []interface{}
@@ -398,6 +401,8 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		oldClientId := ""
 		if oldInbound.Protocol == "trojan" {
 			oldClientId = oldClient.Password
+		} else if oldInbound.Protocol == "shadowsocks" {
+			oldClientId = oldClient.Email
 		} else {
 			oldClientId = oldClient.ID
 		}

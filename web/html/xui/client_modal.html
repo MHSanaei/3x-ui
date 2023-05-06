@@ -44,7 +44,7 @@
                 if (this.clients[index].expiryTime < 0){
                     this.delayedStart = true;
                 }
-                this.oldClientId = this.dbInbound.protocol == "trojan" ? this.clients[index].password : this.clients[index].id;
+                this.oldClientId = this.getClientId(dbInbound.protocol,clients[index]);
             } else {
                 this.addClient(this.inbound.protocol, this.clients);
             }
@@ -56,7 +56,15 @@
                 case Protocols.VMESS: return clientSettings.vmesses;
                 case Protocols.VLESS: return clientSettings.vlesses;
                 case Protocols.TROJAN: return clientSettings.trojans;
+                case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
                 default: return null;
+            }
+        },
+        getClientId(protocol, client) {
+            switch(protocol){
+                case Protocols.TROJAN: return client.password;
+                case Protocols.SHADOWSOCKS: return client.email;
+                default: return client.id;
             }
         },
         addClient(protocol, clients) {
@@ -64,6 +72,7 @@
                 case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
                 case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
                 case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
+                case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks());
                 default: return null;
             }
         },
