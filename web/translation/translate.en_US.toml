@@ -90,6 +90,13 @@
 "xraySwitchVersionDialog" = "Switch Xray Version"
 "xraySwitchVersionDialogDesc" = "Are you sure you want to switch the Xray version to"
 "dontRefresh" = "Installation is in progress, please do not refresh this page."
+"logs" = "Logs"
+"config" = "Config"
+"backup" = "Backup"
+"backupTitle" = "Backup Database"
+"backupDescription" = "Remember to backup before importing a new database."
+"exportDatabase" = "Download Database"
+"importDatabase" = "Upload Database"
 
 [pages.inbounds]
 "title" = "Inbounds"

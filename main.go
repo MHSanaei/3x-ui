@@ -212,8 +212,7 @@ func migrateDb() {
 		log.Fatal(err)
 	}
 	fmt.Println("Start migrating database...")
-	inboundService.MigrationRequirements()
-	inboundService.RemoveOrphanedTraffics()
+	inboundService.MigrateDB()
 	fmt.Println("Migration done!")
 }
 

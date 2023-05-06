@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,7 +15,9 @@ import (
 	"strings"
 	"time"
 	"x-ui/config"
+	"x-ui/database"
 	"x-ui/logger"
+	"x-ui/util/common"
 	"x-ui/util/sys"
 	"x-ui/xray"
 
@@ -73,7 +76,8 @@ type Release struct {
 }
 
 type ServerService struct {
-	xrayService XrayService
+	xrayService    XrayService
+	inboundService InboundService
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
@@ -393,6 +397,106 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	}
 
 	return fileContents, nil
+}
+
+func (s *ServerService) ImportDB(file multipart.File) error {
+	// Check if the file is a SQLite database
+	isValidDb, err := database.IsSQLiteDB(file)
+	if err != nil {
+		return common.NewErrorf("Error checking db file format: %v", err)
+	}
+	if !isValidDb {
+		return common.NewError("Invalid db file format")
+	}
+
+	// Reset the file reader to the beginning
+	_, err = file.Seek(0, 0)
+	if err != nil {
+		return common.NewErrorf("Error resetting file reader: %v", err)
+	}
+
+	// Save the file as temporary file
+	tempPath := fmt.Sprintf("%s.temp", config.GetDBPath())
+	// Remove the existing fallback file (if any) before creating one
+	_, err = os.Stat(tempPath)
+	if err == nil {
+		errRemove := os.Remove(tempPath)
+		if errRemove != nil {
+			return common.NewErrorf("Error removing existing temporary db file: %v", errRemove)
+		}
+	}
+	// Create the temporary file
+	tempFile, err := os.Create(tempPath)
+	if err != nil {
+		return common.NewErrorf("Error creating temporary db file: %v", err)
+	}
+	defer tempFile.Close()
+
+	// Remove temp file before returning
+	defer os.Remove(tempPath)
+
+	// Save uploaded file to temporary file
+	_, err = io.Copy(tempFile, file)
+	if err != nil {
+		return common.NewErrorf("Error saving db: %v", err)
+	}
+
+	// Check if we can init db or not
+	err = database.InitDB(tempPath)
+	if err != nil {
+		return common.NewErrorf("Error checking db: %v", err)
+	}
+
+	// Stop Xray
+	s.StopXrayService()
+
+	// Backup the current database for fallback
+	fallbackPath := fmt.Sprintf("%s.backup", config.GetDBPath())
+	// Remove the existing fallback file (if any)
+	_, err = os.Stat(fallbackPath)
+	if err == nil {
+		errRemove := os.Remove(fallbackPath)
+		if errRemove != nil {
+			return common.NewErrorf("Error removing existing fallback db file: %v", errRemove)
+		}
+	}
+	// Move the current database to the fallback location
+	err = os.Rename(config.GetDBPath(), fallbackPath)
+	if err != nil {
+		return common.NewErrorf("Error backing up temporary db file: %v", err)
+	}
+
+	// Remove the temporary file before returning
+	defer os.Remove(fallbackPath)
+
+	// Move temp to DB path
+	err = os.Rename(tempPath, config.GetDBPath())
+	if err != nil {
+		errRename := os.Rename(fallbackPath, config.GetDBPath())
+		if errRename != nil {
+			return common.NewErrorf("Error moving db file and restoring fallback: %v", errRename)
+		}
+		return common.NewErrorf("Error moving db file: %v", err)
+	}
+
+	// Migrate DB
+	err = database.InitDB(config.GetDBPath())
+	if err != nil {
+		errRename := os.Rename(fallbackPath, config.GetDBPath())
+		if errRename != nil {
+			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
+		}
+		return common.NewErrorf("Error migrating db: %v", err)
+	}
+	s.inboundService.MigrateDB()
+
+	// Start Xray
+	err = s.RestartXrayService()
+	if err != nil {
+		return common.NewErrorf("Imported DB but Failed to start Xray: %v", err)
+	}
+
+	return nil
 }
 
 func (s *ServerService) GetNewX25519Cert() (interface{}, error) {

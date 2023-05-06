@@ -111,9 +111,9 @@
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
                             {{ i18n "menu.link" }}:
-                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">Log Reports</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">Config</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="getBackup">Backup</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -188,6 +188,7 @@
             </transition>
         </a-layout-content>
     </a-layout>
+
     <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}'
              :closable="true" @ok="() => versionModal.visible = false"
              :class="siderDrawer.isDarkTheme ? darkClass : ''"
@@ -201,6 +202,7 @@
             </a-tag>
         </template>
     </a-modal>
+
     <a-modal id="log-modal" v-model="logModal.visible" title="X-UI logs"
              :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
              :class="siderDrawer.isDarkTheme ? darkClass : ''"
@@ -227,10 +229,28 @@
                     {{ i18n "download" }} x-ui.log
                 </a-button>
             </a-form-item>
-       </a-form>
+        </a-form>
         <a-input type="textarea" v-model="logModal.logs" disabled="true"
                 :autosize="{ minRows: 10, maxRows: 22}"></a-input>
     </a-modal>
+
+    <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
+            :closable="true" :class="siderDrawer.isDarkTheme ? darkClass : ''"
+            @ok="() => backupModal.hide()" @cancel="() => backupModal.hide()">
+        <p style="color: inherit; font-size: 16px; padding: 4px 2px;">
+            <a-icon type="warning" style="color: inherit; font-size: 20px;"></a-icon>
+            [[ backupModal.description ]]
+        </p>
+        <a-space direction="horizontal" align="center" style="margin-bottom: 10px;">
+            <a-button type="primary" @click="exportDatabase()">
+                [[ backupModal.exportText ]]
+            </a-button>
+            <a-button type="primary" @click="importDatabase()">
+                [[ backupModal.importText ]]
+            </a-button>
+        </a-space>
+    </a-modal>
+
 </a-layout>
 {{template "js" .}}
 {{template "textModal"}}
@@ -339,6 +359,29 @@
         },
     };
 
+    const backupModal = {
+        visible: false,
+        title: '',
+        description: '',
+        exportText: '',
+        importText: '',
+        show({
+            title = '{{ i18n "pages.index.backupTitle" }}',
+            description = '{{ i18n "pages.index.backupDescription" }}',
+            exportText = '{{ i18n "pages.index.exportDatabase" }}',
+            importText = '{{ i18n "pages.index.importDatabase" }}',
+        }) {
+            this.title = title;
+            this.description = description;
+            this.exportText = exportText;
+            this.importText = importText;
+            this.visible = true;
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
@@ -347,6 +390,7 @@
             status: new Status(),
             versionModal,
             logModal,
+            backupModal,
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
         },
@@ -388,7 +432,6 @@
                     },
                 });
             },
-	        //here add stop xray function
             async stopXrayService() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/stopXrayService');
@@ -397,7 +440,6 @@
                     return;
                 }
             },
-            //here add restart xray function
             async restartXrayService() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/restartXrayService');
@@ -413,20 +455,60 @@
                 if (!msg.success) {
                     return;
                 }
-                logModal.show(msg.obj,rows);
+                logModal.show(msg.obj, rows);
             },
-            async openConfig(){
+            async openConfig() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/getConfigJson');
                 this.loading(false);
                 if (!msg.success) {
                     return;
                 }
-                txtModal.show('config.json',JSON.stringify(msg.obj, null, 2),'config.json');
+                txtModal.show('config.json', JSON.stringify(msg.obj, null, 2), 'config.json');
             },
-            getBackup(){
+            openBackup() {
+                backupModal.show({
+                    title: '{{ i18n "pages.index.backupTitle" }}',
+                    description: '{{ i18n "pages.index.backupDescription" }}',
+                    exportText: '{{ i18n "pages.index.exportDatabase" }}',
+                    importText: '{{ i18n "pages.index.importDatabase" }}',
+                });
+            },
+            exportDatabase() {
                 window.location = basePath + 'server/getDb';
-            }
+            },
+            importDatabase() {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.db';
+                fileInput.addEventListener('change', async (event) => {
+                    const dbFile = event.target.files[0];
+                    if (dbFile) {
+                        const formData = new FormData();
+                        formData.append('db', dbFile);
+                        backupModal.hide();
+                        this.loading(true);
+                        const uploadMsg = await HttpUtil.post('server/importDB', formData, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            }
+                        });
+                        this.loading(false);
+                        if (!uploadMsg.success) {
+                            return;
+                        }
+                        this.loading(true);
+                        const restartMsg = await HttpUtil.post("/xui/setting/restartPanel");
+                        this.loading(false);
+                        if (restartMsg.success) {
+                            this.loading(true);
+                            await PromiseUtil.sleep(5000);
+                            location.reload();
+                        }
+                    }
+                });
+                fileInput.click();
+            },
         },
         async mounted() {
             while (true) {
