@@ -99,7 +99,7 @@
                                               :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                                         <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
                                     </a-select>
-                                    <a-icon type="sync" :spin="isRefreshEnabled" style="margin: 0 5px;"></a-icon>
+                                    <a-icon type="sync" :spin="refreshing" @click="manualRefresh" style="margin: 0 5px;"></a-icon>
                                     <a-switch v-model="isRefreshEnabled" @change="toggleRefresh"></a-switch>
                                 </a-col>
                             </a-row>
@@ -331,6 +331,7 @@
             defaultKey: '',
             clientCount: {},
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
+            refreshing: false,
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
         },
         methods: {
@@ -338,11 +339,13 @@
                 this.spinning = spinning;
             },
             async getDBInbounds() {
+                this.refreshing = true;
                 const msg = await HttpUtil.post('/xui/inbound/list');
                 if (!msg.success) {
                     return;
                 }
                 this.setInbounds(msg.obj);
+                this.refreshing = false;
             },
             async getDefaultSettings() {
                 const msg = await HttpUtil.post('/xui/setting/defaultSettings');
@@ -817,6 +820,13 @@
             },
             changeRefreshInterval(){
                 localStorage.setItem("refreshInterval", this.refreshInterval);
+            },
+            async manualRefresh(){
+                if(!this.refreshing){
+                    this.spinning = true;
+                    await this.getDBInbounds();
+                    this.spinning = false;
+                }
             },
         },
         watch: {
