@@ -154,13 +154,15 @@ func (a *ServerController) importDB(c *gin.Context) {
 	defer file.Close()
 	// Always restart Xray before return
 	defer a.serverService.RestartXrayService()
+	defer func() {
+		a.lastGetStatusTime = time.Now()
+	}()
 	// Import it
 	err = a.serverService.ImportDB(file)
 	if err != nil {
 		jsonMsg(c, "", err)
 		return
 	}
-	a.lastGetStatusTime = time.Now()
 	jsonObj(c, "Import DB", nil)
 }
 
