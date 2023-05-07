@@ -34,6 +34,8 @@ COPY x-ui.sh /app/x-ui/x-ui.sh
 RUN apt-get update && apt-get install -y \
     wget \
     unzip \
+    tzdata \
+    ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app/x-ui/bin
@@ -49,7 +51,6 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
-RUN apt update && apt install tzdata ca-certificates
 
 # Set the entrypoint
 ENTRYPOINT ["/app/x-ui/xui-release"]
