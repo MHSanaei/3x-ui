@@ -49,7 +49,7 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
-RUN apt install tzdata ca-certificates
+RUN apt update && apt install tzdata ca-certificates
 
 # Set the entrypoint
 ENTRYPOINT ["/app/x-ui/xui-release"]
