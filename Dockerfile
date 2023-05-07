@@ -2,7 +2,8 @@
 ARG TARGETARCH
 ARG TARGETOS
 FROM golang:1.20 as builder
-
+ARG TARGETARCH
+ARG TARGETOS
 # Set up the working directory
 WORKDIR /app
 
@@ -20,7 +21,7 @@ RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o xui-release-
 FROM ubuntu:20.04
 
 ARG TARGETARCH
-
+ARG TARGETOS
 # Set up the working directory
 WORKDIR /app
 
