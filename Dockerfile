@@ -15,7 +15,7 @@ RUN go mod download
 COPY . .
 
 # Build the X-ui binary
-RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o xui-release-${TARGETARCH} -v main.go
+RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
 
 # Start a new stage using the base image
 FROM ubuntu:20.04
@@ -26,7 +26,7 @@ ARG TARGETOS
 WORKDIR /app
 
 # Copy the X-ui binary and required files from the builder stage
-COPY --from=builder /app/xui-release-${TARGETARCH} /app/x-ui/xui-release
+COPY --from=builder /app/xui-release-$TARGETARCH /app/x-ui/xui-release
 COPY x-ui.service /app/x-ui/x-ui.service
 COPY x-ui.sh /app/x-ui/x-ui.sh
 
@@ -45,7 +45,7 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat \
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat \
  && wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat \
- && mv xray xray-linux-${TARGETARCH}
+ && mv xray xray-linux-$TARGETARCH
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
