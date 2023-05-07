@@ -1362,7 +1362,7 @@ to{transform:scale(1.6);opacity:0}
 .ant-tabs:after,.ant-tabs:before{display:table;content:""}
 .ant-tabs:after{clear:both}
 .ant-tabs-ink-bar{position:absolute;bottom:1px;left:0;z-index:1;box-sizing:border-box;width:0;height:2px;background-color:#1890ff;transform-origin:0 0}
-.ant-tabs-bar{margin:0 0 16px;border-bottom:1px solid #e8e8e8;outline:0}
+.ant-tabs-bar{margin:1.5rem 1.5rem 0rem 1.5rem !important;border-bottom:2px solid rgb(153 153 153 / 20%);outline:0}
 .ant-tabs-bar,.ant-tabs-nav-container{transition:padding .3s cubic-bezier(.645,.045,.355,1)}
 .ant-tabs-nav-container{position:relative;box-sizing:border-box;margin-bottom:-1px;overflow:hidden;font-size:14px;line-height:1.5;white-space:nowrap;zoom:1}
 .ant-tabs-nav-container:after,.ant-tabs-nav-container:before{display:table;content:""}
@@ -3280,7 +3280,7 @@ textarea.ant-input-number{max-width:100%;height:auto;min-height:32px;line-height
 .ant-layout-sider-zero-width-trigger-right{left:-36px;border-radius:4px 0 0 4px}
 .ant-layout-sider-light{background:#fff}
 .ant-layout-sider-light .ant-layout-sider-trigger,.ant-layout-sider-light .ant-layout-sider-zero-width-trigger{color:rgba(0,0,0,.65);background:#fff}
-.ant-list{box-sizing:border-box;margin:0;padding:0;color:rgba(0,0,0,.65);font-size:14px;font-variant:tabular-nums;line-height:1.5;list-style:none;font-feature-settings:"tnum";position:relative}
+.ant-list{box-sizing:border-box;margin: 1.5em;padding:0;color:rgba(0,0,0,.65);font-size:14px;font-variant:tabular-nums;line-height:1.5;list-style:none;font-feature-settings:"tnum";position:relative}
 .ant-list *{outline:0}
 .ant-list-pagination{margin-top:24px;text-align:right}
 .ant-list-pagination .ant-pagination-options{text-align:left}
@@ -3305,7 +3305,7 @@ textarea.ant-input-number{max-width:100%;height:auto;min-height:32px;line-height
 .ant-list-footer,.ant-list-header{background:0 0}
 .ant-list-footer,.ant-list-header{padding-top:12px;padding-bottom:12px}
 .ant-list-empty{padding:16px 0;color:rgba(0,0,0,.45);font-size:12px;text-align:center}
-.ant-list-split .ant-list-item{border-bottom:1px solid #e8e8e8}
+.ant-list-split .ant-list-item{border-bottom:1px solid rgb(153 153 153 / 20%)}
 .ant-list-split .ant-list-item:last-child{border-bottom:none}
 .ant-list-split .ant-list-header{border-bottom:1px solid #e8e8e8}
 .ant-list-loading .ant-list-spin-nested-loading{min-height:32px}
