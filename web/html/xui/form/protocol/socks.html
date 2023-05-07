@@ -4,6 +4,7 @@
         <a-switch :checked="inbound.settings.auth === 'password'"
                   @change="checked => inbound.settings.auth = checked ? 'password' : 'noauth'"></a-switch>
     </a-form-item>
+    <br>
     <template v-if="inbound.settings.auth === 'password'">
         <a-form-item label='{{ i18n "username" }}'>
             <a-input v-model.trim="inbound.settings.accounts[0].user"></a-input>
@@ -12,6 +13,7 @@
             <a-input v-model.trim="inbound.settings.accounts[0].pass"></a-input>
         </a-form-item>
     </template>
+    <br>
     <a-form-item label='{{ i18n "pages.inbounds.enable" }} udp'>
         <a-switch v-model="inbound.settings.udp"></a-switch>
     </a-form-item>

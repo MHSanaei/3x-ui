@@ -165,8 +165,10 @@
 "IPLimitlogDesc" = "IP 历史日志 （通过IP限制禁用inbound之前，需要清空日志）"
 "IPLimitlogclear" = "清除日志"
 "setDefaultCert" = "从面板设置证书"
-"XTLSdec" = "Xray核心需要1.7.5"
-"Realitydec" = "Xray核心需要1.8.0及以上版本"
+"xtlsDesc" = "Xray核心需要1.7.5"
+"realityDesc" = "Xray核心需要1.8.0及以上版本"
+"telegramDesc" = "使用不带@的电报 ID 或聊天 ID（您可以在此处获取 @userinfobot）"
+"subscriptionDesc" = "您可以在详细信息上找到您的子链接，也可以对多个配置使用相同的名称"
 
 [pages.client]
 "add" = "添加客户端"
@@ -234,7 +236,7 @@
 "telegramToken" = "电报机器人TOKEN"
 "telegramTokenDesc" = "重启面板生效"
 "telegramChatId" = "以逗号分隔的多个 chatID 重启面板生效"
-"telegramChatIdDesc" = "重启面板生效"
+"telegramChatIdDesc" = "多个聊天 ID 以逗号分隔。使用@userinfobot 获取您的聊天 ID。重新启动面板以应用更改。"
 "telegramNotifyTime" = "电报机器人通知时间"
 "telegramNotifyTimeDesc" = "采用Crontab定时格式,重启面板生效"
 "tgNotifyBackup" = "数据库备份"

@@ -1,4 +1,5 @@
-# 3x-ui
+# 3x-ui 
+> **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
@@ -6,11 +7,12 @@
 [![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-> **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
+3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
 
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
-xray panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
+**Buy Me a Coffee :**
+ - Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
 # Install & Upgrade
 
@@ -20,10 +22,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.3.3`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.4.0`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.3.3
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.4.0
 ```
 
 # SSL
@@ -171,12 +173,18 @@ Reference syntax:
 | `POST` | `"/clientIps/:email"`              | Client Ip address                           |
 | `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
 | `POST` | `"/addClient"`                     | Add Client to inbound                       |
-| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by UID/Password as clientId   |
-| `POST` | `"/updateClient/:clientId"`        | Update Client by UID/Password as clientId   |
+| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId*                  |
+| `POST` | `"/updateClient/:clientId"`        | Update Client by clientId*                  |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
 | `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
+
+*- The field `clientId` should be filled by: 
+- `client.id` for VMESS and VLESS
+- `client.password` for TROJAN
+- `client.email` for Shadowsocks
+
 
 - [Postman Collection](https://gist.github.com/mehdikhody/9a862801a2e41f6b5fb6bbc7e1326044)
 
@@ -190,10 +198,6 @@ Reference syntax:
 - Debian 10+
 - CentOS 8+
 - Fedora 36+
-
-# Buy Me a Coffee
-
-- Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
 # Pictures
 

@@ -17,10 +17,28 @@
             <a-form-item label="ID">
                 <a-input v-model.trim="client.id"  style="width: 300px;"></a-input>
             </a-form-item>
-            <a-form-item label="Subscription" v-if="client.email">
+            <a-form-item v-if="client.email">
+                <span slot="label">
+                    Subscription
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
                 <a-input v-model.trim="client.subId"></a-input>
-            </a-form-item>
-            <a-form-item label="Telegram Username" v-if="client.email">
+        </a-form-item>
+            <a-form-item v-if="client.email">
+                <span slot="label">
+                    Telegram ID
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
                 <a-input v-model.trim="client.tgId"></a-input>
             </a-form-item>
             <a-form-item>
