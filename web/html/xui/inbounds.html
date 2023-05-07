@@ -260,7 +260,7 @@
         title: "ID",
         align: 'center',
         dataIndex: "id",
-        width: 30,
+        width: 40,
     }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
         align: 'center',
@@ -295,7 +295,7 @@
 
     const innerColumns = [
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 120, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
@@ -304,11 +304,11 @@
 
     const innerTrojanColumns = [
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 120, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'Password', width: 120, dataIndex: "password" },
+        { title: 'Password', width: 170, dataIndex: "password" },
     ];
 
     const app = new Vue({

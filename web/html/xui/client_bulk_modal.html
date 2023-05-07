@@ -33,6 +33,12 @@
             <span slot="label">{{ i18n "pages.client.clientCount" }}</span>
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
+        <a-form-item label="Subscription">
+            <a-input v-model.trim="clientsBulkModal.subId"></a-input>
+        </a-form-item>
+        <a-form-item label="Telegram ID">
+            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
+        </a-form-item>
         <a-form-item>
             <span slot="label">
                 <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
@@ -45,6 +51,7 @@
             </span>
             <a-input-number v-model="clientsBulkModal.limitIp" min="0"></a-input-number>
         </a-form-item>
+        <br>
         <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
             <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
@@ -56,12 +63,6 @@
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
-        </a-form-item>
-        <a-form-item label="Subscription">
-            <a-input v-model.trim="clientsBulkModal.subId"></a-input>
-        </a-form-item>
-        <a-form-item label="Telegram ID">
-            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
         </a-form-item>
         <a-form-item>
             <span slot="label">
@@ -75,9 +76,11 @@
             </span>
         <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
+        <br>
         <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
         </a-form-item>
+        <br>
         <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientsBulkModal.delayedStart">
             <a-input-number v-model="delayedExpireDays" :min="0"></a-input-number>
         </a-form-item>

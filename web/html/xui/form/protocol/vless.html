@@ -1,98 +1,102 @@
 {{define "form/vless"}}
-<a-form layout="inline">
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vlesses.slice(0,1)" v-if="!isEdit">
-    <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-        <a-form-item>
-            <span slot="label">
-                <span>{{ i18n "pages.inbounds.Email" }}</span>
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
-                    </template>
-                    <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
-        </a-form-item>
-        <a-form-item label="ID">
-            <a-input v-model.trim="client.id"  style="width: 300px;"></a-input>
-        </a-form-item>
-        <a-form-item label="Subscription" v-if="client.email">
-            <a-input v-model.trim="client.subId"></a-input>
-        </a-form-item>
-        <a-form-item label="Telegram Username" v-if="client.email">
-            <a-input v-model.trim="client.tgId"></a-input>
-        </a-form-item>
-        <a-form-item>
-            <span slot="label">
-                <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
-                    </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-input-number v-model="client.limitIp" min="0"  style="width: 70px;"></a-input-number>
-        </a-form-item>
-        <a-form-item v-if="inbound.xtls" label="Flow">
-            <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
-                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-                <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-            </a-select>
-        </a-form-item>
-        <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow" layout="inline">
-            <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
-                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-                <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-            </a-select>
-        </a-form-item>
-        <a-form-item>
-            <span slot="label">
-                <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
-                <a-tooltip>
-                    <template slot="title">
-                        0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
-                    </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
-        </a-form-item>
-        <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
-            <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
-        </a-form-item>
-        <a-form-item v-if="delayedStart" label='{{ i18n "pages.client.expireDays" }}'>
-            <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
-        </a-form-item>
-        <a-form-item>
-            <span slot="label">
-                <span >{{ i18n "pages.inbounds.expireDate" }}</span>
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
-                    </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                           :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
-                           v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
-        </a-form-item>
-    </a-collapse-panel>     
-</a-collapse>
-<a-collapse v-else>
-    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vlesses.length">
-        <table width="100%">
-            <tr class="client-table-header">
-                <th v-for="col in Object.keys(inbound.settings.vlesses[0]).slice(0, 3)">[[ col ]]</th>
-            </tr>
-            <tr v-for="(client, index) in inbound.settings.vlesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
-                <td v-for="col in Object.values(client).slice(0, 3)">[[ col ]]</td>
-            </tr>
-        </table>
-    </a-collapse-panel>
-</a-collapse>
+<a-form layout="inline" style="padding: 10px 0px;">
+    <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vlesses.slice(0,1)" v-if="!isEdit">
+        <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+            <a-form-item>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.Email" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
+                        </template>
+                        <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
+            </a-form-item>
+            <a-form-item label="ID">
+                <a-input v-model.trim="client.id"  style="width: 300px;"></a-input>
+            </a-form-item>
+            <a-form-item label="Subscription" v-if="client.email">
+                <a-input v-model.trim="client.subId"></a-input>
+            </a-form-item>
+            <a-form-item label="Telegram Username" v-if="client.email">
+                <a-input v-model.trim="client.tgId"></a-input>
+            </a-form-item>
+            <a-form-item>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input-number v-model="client.limitIp" min="0"></a-input-number>
+            </a-form-item>
+            <br>
+            <a-form-item v-if="inbound.xtls" label="Flow">
+                <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                    <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                    <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow">
+                <a-select v-model="inbound.settings.vlesses[index].flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                    <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                    <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item>
+                <span slot="label">
+                    <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                    <a-tooltip>
+                        <template slot="title">
+                            0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+            </a-form-item>
+            <br>
+            <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
+                <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
+            </a-form-item>
+            <br>
+            <a-form-item v-if="delayedStart" label='{{ i18n "pages.client.expireDays" }}'>
+                <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
+            </a-form-item>
+            <a-form-item v-else>
+                <span slot="label">
+                    <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+                               :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                               v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
+            </a-form-item>
+        </a-collapse-panel>     
+    </a-collapse>
+    <a-collapse v-else>
+        <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vlesses.length">
+            <table width="100%">
+                <tr class="client-table-header">
+                    <th v-for="col in Object.keys(inbound.settings.vlesses[0]).slice(0, 3)">[[ col ]]</th>
+                </tr>
+                <tr v-for="(client, index) in inbound.settings.vlesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+                    <td v-for="col in Object.values(client).slice(0, 3)">[[ col ]]</td>
+                </tr>
+            </table>
+        </a-collapse-panel>
+    </a-collapse>
+</a-form>
 <template v-if="inbound.isTcp">
     <a-form layout="inline">
         <a-form-item label="Fallbacks">
