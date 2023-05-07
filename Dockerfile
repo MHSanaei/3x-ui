@@ -45,7 +45,7 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat \
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat \
  && wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat \
- && mv xray xray-linux-\${TARGETARCH}
+ && mv xray xray-linux-${TARGETARCH}
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
