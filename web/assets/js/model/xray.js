@@ -939,7 +939,7 @@ class Inbound extends XrayCommonClass {
         this._protocol = protocol;
         this.settings = Inbound.Settings.getSettings(protocol);
         if (protocol === Protocols.TROJAN) {
-            this.tls = true;
+            this.tls = false;
         }
     }
 

@@ -3,6 +3,10 @@
     <template v-if="isEdit">
     <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
     </template>
+    <a-form-item label='{{ i18n "pages.inbounds.enable" }}'>
+        <a-switch v-model="client.enable"></a-switch>
+    </a-form-item>
+    <br>
     <a-form-item>
         <span slot="label">
             <span>{{ i18n "pages.inbounds.Email" }}</span>
@@ -13,17 +17,14 @@
                 <a-icon type="sync" @click="getNewEmail(client)"></a-icon>
             </a-tooltip>
         </span>
-        <a-input v-model.trim="client.email" style="width: 150px;" ></a-input>
-    </a-form-item>
-    <a-form-item label='{{ i18n "pages.inbounds.enable" }}'>
-        <a-switch v-model="client.enable"></a-switch>
+        <a-input v-model.trim="client.email" style="width: 200px;" ></a-input>
     </a-form-item>
     <a-form-item label="Password" v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
         <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS" @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
-        <a-input v-model.trim="client.password" style="width: 150px;" ></a-input>
+        <a-input v-model.trim="client.password" style="width: 300px;" ></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "additional" }} ID' v-if="inbound.protocol === Protocols.VMESS">
-        <a-input-number v-model="client.alterId" style="width: 70px;"></a-input-number>
+        <a-input-number v-model="client.alterId"></a-input-number>
     </a-form-item>
     <a-form-item label="ID" v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
         <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
@@ -44,7 +45,7 @@
 				<a-icon type="question-circle" theme="filled"></a-icon>
 			</a-tooltip>
 		</span>
-		<a-input-number v-model="client.limitIp" min="0" style="width: 70px;"></a-input-number>
+		<a-input-number v-model="client.limitIp" min="0"></a-input-number>
 	</a-form-item>
 	<a-form-item v-if="client.email && client.limitIp > 0 && isEdit">
 		<span slot="label">
@@ -69,13 +70,14 @@
 			</a-textarea>
 		</a-form>
 	</a-form-item>
+    <br>
     <a-form-item v-if="inbound.xtls" label="Flow">
         <a-select v-model="client.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="">{{ i18n "none" }}</a-select-option>
             <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow" layout="inline">
+    <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow">
         <a-select v-model="client.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
             <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
             <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
@@ -91,9 +93,9 @@
                 <a-icon type="question-circle" theme="filled"></a-icon>
             </a-tooltip>
         </span>
-        <a-input-number v-model="client._totalGB":min="0" style="width: 70px;"></a-input-number>
+        <a-input-number v-model="client._totalGB":min="0"></a-input-number>
         <template v-if="isEdit && clientStats">
-            <span>{{ i18n "usage" }}:</span>
+            <br><span> {{ i18n "usage" }}:</span>
             <a-tag :color="statsColor">
                 [[ sizeFormat(clientStats.up) ]] / 
                 [[ sizeFormat(clientStats.down) ]]
@@ -103,11 +105,13 @@
                 <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
                 <a-icon type="retweet" @click="resetClientTraffic(client.email,clientStats.inboundId,$event.target)" v-if="client.email.length > 0"></a-icon>
             </a-tooltip>
-        </template>
+        </template>        
     </a-form-item>
+    <br>
     <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
         <a-switch v-model="clientModal.delayedStart" @click="client._expiryTime=0"></a-switch>
     </a-form-item>
+    <br>
     <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientModal.delayedStart">
         <a-input-number v-model="delayedExpireDays" :min="0"></a-input-number>
     </a-form-item>
