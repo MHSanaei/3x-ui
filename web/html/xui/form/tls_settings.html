@@ -100,6 +100,9 @@
     <a-form-item label='{{ i18n "domainName" }}'>
         <a-input v-model.trim="inbound.stream.xtls.server"></a-input>
     </a-form-item>
+    <a-form-item label="SNI" placeholder="Server Name Indication">
+        <a-input v-model.trim="inbound.stream.xtls.settings.serverName" style="width: 250px"></a-input>
+    </a-form-item>
     <a-form-item label="Alpn">
         <a-checkbox-group v-model="inbound.stream.xtls.alpn" style="width:200px">
             <a-checkbox v-for="key in ALPN_OPTION" :value="key">[[ key ]]</a-checkbox>

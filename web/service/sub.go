@@ -360,6 +360,9 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 					params["allowInsecure"] = "1"
 				}
 			}
+			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
+				params["sni"], _ = sniValue.(string)
+			}
 		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
@@ -537,6 +540,9 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				if insecure.(bool) {
 					params["allowInsecure"] = "1"
 				}
+			}
+			if sniValue, ok := searchKey(xtlsSettings, "serverName"); ok {
+				params["sni"], _ = sniValue.(string)
 			}
 		}
 
