@@ -268,15 +268,15 @@
 
 .ant-dropdown-menu-dark,
 .ant-card-dark .ant-modal-content {
-    border: 1px solid rgba(255, 255, 255, 0.65);
-    box-shadow: 0 2px 8px rgba(255,255,255,.15);
+    border: 1px solid rgb(153 153 153 / 20%);
+    box-shadow: 0 1px 10px -1px #0000005c;
 }
 
 .ant-card-dark .ant-modal-content,
 .ant-card-dark .ant-modal-body,
 .ant-card-dark .ant-modal-header {
     color: hsla(0,0%,100%,.65);
-    background-color: #222a37;
+    background-color: #1a212a;
 }
 
 .ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
