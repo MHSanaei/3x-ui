@@ -1,8 +1,7 @@
 # Use the official Golang image as the base image
-FROM golang:1.20 as builder
-
 ARG TARGETARCH
 ARG TARGETOS
+FROM golang:1.20 as builder
 
 # Set up the working directory
 WORKDIR /app
@@ -49,6 +48,7 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
+RUN apt install tzdata ca-certificates
 
 # Set the entrypoint
-ENTRYPOINT ["/app/x-ui/x-ui.sh"]
+ENTRYPOINT ["/app/x-ui/xui-release"]
