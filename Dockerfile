@@ -48,6 +48,7 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
  && mv xray xray-linux-\${TARGETARCH}
 
 WORKDIR /app
+RUN chmod +x /app/x-ui/x-ui.sh
 
 # Set the entrypoint
 ENTRYPOINT ["/app/x-ui/x-ui.sh"]
