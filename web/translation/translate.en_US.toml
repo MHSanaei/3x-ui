@@ -167,8 +167,10 @@
 "IPLimitlogDesc" = "IPs history log (before enabling inbound after it has been disabled by IP limit, you should clear the log)."
 "IPLimitlogclear" = "Clear The Log"
 "setDefaultCert" = "Set cert from panel"
-"XTLSdec" = "Xray core needs to be 1.7.5"
-"Realitydec" = "Xray core needs to be 1.8.0 or higher."
+"xtlsDesc" = "Xray core needs to be 1.7.5"
+"realityDesc" = "Xray core needs to be 1.8.0 or higher."
+"telegramDesc" = "use Telegram ID without @ or chat IDs ( you can get it here @userinfobot )"
+"subscriptionDesc" = "you can find your sub link on Details, also ou can use the same name for several configurations"
 
 [pages.client]
 "add" = "Add Client"
@@ -236,7 +238,7 @@
 "telegramToken" = "Telegram Token"
 "telegramTokenDesc" = "Restart the panel to take effect."
 "telegramChatId" = "Telegram Admin Chat IDs"
-"telegramChatIdDesc" = "Multiple Chat IDs separated by comma. Restart the panel to apply changes."
+"telegramChatIdDesc" = "Multiple Chat IDs separated by comma. use @userinfobot to get your Chat IDs. Restart the panel to apply changes."
 "telegramNotifyTime" = "Telegram bot notification time"
 "telegramNotifyTimeDesc" = "Use Crontab timing format. Restart the panel to apply changes."
 "tgNotifyBackup" = "Database Backup"
