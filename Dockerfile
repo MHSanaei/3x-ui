@@ -13,7 +13,7 @@ RUN echo "GOOS=$TARGETOS GOARCH=$TARGETARCH" > /app/.env
 COPY . .
 
 # Build the X-ui binary
-RUN CGO_ENABLED=1 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
+RUN CGO_ENABLED=۰ GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
 
 # Start a new stage using the base image
 FROM ubuntu:20.04
