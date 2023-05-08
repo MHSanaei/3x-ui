@@ -205,6 +205,8 @@ Reference syntax:
 ![2](./media/2.png)
 ![3](./media/3.png)
 ![4](./media/4.png)
+![5](./media/5.png)
+![6](./media/6.png)
 
 ## Stargazers over time
 
