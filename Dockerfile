@@ -16,7 +16,7 @@ RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v mai
 FROM ubuntu:20.04
 # Set up the working directory
 WORKDIR /app
-
+ARG TARGETOS TARGETARCH
 # Copy the X-ui binary and required files from the builder stage
 COPY --from=builder /app/xui-release-$TARGETARCH /app/x-ui/xui-release
 COPY x-ui.service /app/x-ui/x-ui.service
