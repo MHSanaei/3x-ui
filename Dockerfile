@@ -62,7 +62,7 @@ RUN arch=$(uname -m) && \
         && mv xray xray-linux-amd64; \
     fi
 
-WORKDIR /app
+WORKDIR /app/x-ui
 RUN chmod +x /app/x-ui/x-ui.sh
 
 # Set the entrypoint
