@@ -13,7 +13,7 @@
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
 **Buy Me a Coffee :**
- - Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+ - Tron USDT (TRC20): `TTCfN7wiME62NefFgeYQfR8sCs6BDBJm2A`
 
 # Install & Upgrade
 
