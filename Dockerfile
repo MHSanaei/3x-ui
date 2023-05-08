@@ -52,7 +52,7 @@ RUN arch=$(uname -m) && \
         && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat \
         && wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat \
         && mv xray xray-linux-arm64; \
-    elif [ "$arch" = "amd64" ]; then \
+    elif [ "$arch" = "x86_64" ]; then \
         wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-linux-64.zip \
         && unzip Xray-linux-64.zip \
         && rm -f Xray-linux-64.zip geoip.dat geosite.dat iran.dat \
