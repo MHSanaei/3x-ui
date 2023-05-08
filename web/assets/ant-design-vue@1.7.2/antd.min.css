@@ -992,7 +992,7 @@ to{transform:scale(0) translate(50%,-50%);opacity:0}
 .ant-menu-item>.ant-badge>a{color:rgba(0,0,0,.65)}
 .ant-menu-item>.ant-badge>a:hover{color:#1890ff}
 .ant-menu-item-divider{height:1px;overflow:hidden;line-height:0;background-color:#e8e8e8}
-.ant-menu-item-active,.ant-menu-item:hover,.ant-menu-submenu-active,.ant-menu-submenu-title:hover,.ant-menu:not(.ant-menu-inline) .ant-menu-submenu-open{color:#fff;background-image: linear-gradient(90deg,#99999980 0,#8888889e 100%);border-radius: 0.5rem}
+.ant-menu-item-active,.ant-menu-item:hover,.ant-menu-submenu-active,.ant-menu-submenu-title:hover,.ant-menu:not(.ant-menu-inline) .ant-menu-submenu-open{color:#2d2d2d;background-image: linear-gradient(90deg,#99999980 0,#8888889e 100%);border-radius: 0.5rem}
 .ant-menu-horizontal .ant-menu-item,.ant-menu-horizontal .ant-menu-submenu{margin-top:-1px}
 .ant-menu-horizontal>.ant-menu-item-active,.ant-menu-horizontal>.ant-menu-item:hover,.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title:hover{background-color:transparent}
 .ant-menu-item-selected,.ant-menu-item-selected>a,.ant-menu-item-selected>a:hover{color:#1890ff}
