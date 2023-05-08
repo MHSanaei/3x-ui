@@ -1,4 +1,4 @@
-supportLangs = [
+const supportLangs = [
     {
        name : "English",
        value : "en-US",
@@ -13,6 +13,11 @@ supportLangs = [
         name : "汉语",
         value : "zh-Hans",
         icon : "🇨🇳"
+    },
+    {
+        name : "Russian",
+        value : "ru_RU",
+        icon : "🇷🇺"
     },
 ]
 
