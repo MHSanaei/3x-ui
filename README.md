@@ -15,7 +15,7 @@
 **Buy Me a Coffee :**
  - Tron USDT (TRC20): `TTCfN7wiME62NefFgeYQfR8sCs6BDBJm2A`
 
-# Install & Upgrade
+# نصب و ارتقا
 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/Ptechgithub/3x-ui/master/install.sh)
@@ -39,7 +39,7 @@ certbot renew --dry-run
 
 or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
 
-# Default settings
+# تنظیمات پیشفرض
 
 - Port: 2053
 - username and password will be generated randomly if you skip to modify your own security(x-ui "7")
