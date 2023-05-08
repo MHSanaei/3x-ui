@@ -335,7 +335,7 @@
                 this.loading(false);
                 if (msg.success) {
                     this.user = {};
-                    window.location.replace("/logout")
+                    window.location.replace(basePath + "logout")
                 }
             },
             async restartPanel() {
@@ -369,7 +369,7 @@
                 const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
                 if (msg.success) {
                     this.user = msg.obj;
-                    window.location.replace("/logout")
+                    window.location.replace(basePath + "logout")
                 }
                 this.loading(false);
                 await this.updateAllSetting();
