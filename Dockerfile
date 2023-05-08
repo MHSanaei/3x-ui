@@ -13,12 +13,10 @@ RUN echo "GOOS=$TARGETOS GOARCH=$TARGETARCH" > /app/.env
 COPY . .
 
 # Build the X-ui binary
-RUN CGO_ENABLED=۰ GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
 
 # Start a new stage using the base image
 FROM ubuntu:20.04
-ARG TARGETOS TARGETARCH
-RUN echo "TARGETOS=$TARGETOS TARGETARCH=$TARGETARCH"
 # Set up the working directory
 WORKDIR /app
 
@@ -45,7 +43,8 @@ RUN wget https://github.com/mhsanaei/Xray-core/releases/latest/download/Xray-lin
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat \
  && wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat \
  && wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat \
- && mv xray xray-linux-$TARGETARCH
+ && arch=(dpkg --print-architecture) \
+ && mv xray xray-linux-$arch
 
 WORKDIR /app
 RUN chmod +x /app/x-ui/x-ui.sh
