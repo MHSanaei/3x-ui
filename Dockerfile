@@ -1,18 +1,16 @@
 # Use the official Golang image as the base image
 FROM --platform=$BUILDPLATFORM golang:1.20 as builder
-ARG TARGETOS TARGETARCH
 # Set up the working directory
 WORKDIR /app
 
 # Copy the Go modules and download the dependencies
 COPY go.mod go.sum ./
 RUN go mod download
-RUN echo "GOOS=$TARGETOS GOARCH=$TARGETARCH" > /app/.env
 # Copy the source code
 COPY . .
-
+ARG TARGETOS TARGETARCH
 # Build the X-ui binary
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o xui-release-$TARGETARCH -v main.go
 
 # Start a new stage using the base image
 FROM ubuntu:20.04
@@ -21,7 +19,6 @@ WORKDIR /app
 
 # Copy the X-ui binary and required files from the builder stage
 COPY --from=builder /app/xui-release-$TARGETARCH /app/x-ui/xui-release
-COPY --from=builder /app/.env /app/x-ui/.env
 COPY x-ui.service /app/x-ui/x-ui.service
 COPY x-ui.sh /app/x-ui/x-ui.sh
 
