@@ -1,11 +1,11 @@
 {{define "clientsBulkModal"}}
 <a-modal id="client-bulk-modal" v-model="clientsBulkModal.visible" :title="clientsBulkModal.title" @ok="clientsBulkModal.ok"
          :confirm-loading="clientsBulkModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+         :class="themeSwitcher.darkCardClass"
          :ok-text="clientsBulkModal.okText" cancel-text='{{ i18n "close" }}'>
     <a-form layout="inline">
         <a-form-item label='{{ i18n "pages.client.method" }}'>
-            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid" style="width: 350px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid" style="width: 350px" :dropdown-class-name="themeSwitcher.darkCardClass">
                 <a-select-option :value="0">Random</a-select-option>
                 <a-select-option :value="1">Random+Prefix</a-select-option>
                 <a-select-option :value="2">Random+Prefix+Num</a-select-option>
@@ -71,20 +71,20 @@
         </a-form-item>
         <br>
         <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.inbound.canEnableTlsFlow()" label="Flow" layout="inline">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item>
             <span slot="label">
-                <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
                 <a-tooltip>
                     <template slot="title">
                         0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -104,7 +104,7 @@
         </a-form-item>
         <a-form-item v-else>
             <span slot="label">
-                <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+                <span>{{ i18n "pages.inbounds.expireDate" }}</span>
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
@@ -113,7 +113,7 @@
                 </a-tooltip>
             </span>
             <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                           :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                           :dropdown-class-name="themeSwitcher.darkCardClass"
                            v-model="clientsBulkModal.expiryTime" style="width: 300px;"></a-date-picker>
         </a-form-item>
     </a-form>
@@ -143,37 +143,42 @@
         delayedStart: false,
         ok() {
             clients = [];
-            method=clientsBulkModal.emailMethod;
-            if(method>1){
-                start=clientsBulkModal.firstNum;
-                end=clientsBulkModal.lastNum + 1;
+            method = clientsBulkModal.emailMethod;
+            if (method > 1) {
+                start = clientsBulkModal.firstNum;
+                end = clientsBulkModal.lastNum + 1;
             } else {
-                start=0;
-                end=clientsBulkModal.quantity;
+                start = 0;
+                end = clientsBulkModal.quantity;
             }
-            prefix = (method>0 && clientsBulkModal.emailPrefix.length>0) ? clientsBulkModal.emailPrefix : "";
-            useNum=(method>1);
-            postfix = (method>2 && clientsBulkModal.emailPostfix.length>0) ? clientsBulkModal.emailPostfix : "";
+            prefix = (method > 0 && clientsBulkModal.emailPrefix.length > 0) ? clientsBulkModal.emailPrefix : "";
+            useNum = (method > 1);
+            postfix = (method > 2 && clientsBulkModal.emailPostfix.length > 0) ? clientsBulkModal.emailPostfix : "";
             for (let i = start; i < end; i++) {
                 newClient = clientsBulkModal.newClient(clientsBulkModal.dbInbound.protocol);
-                if(method==4) newClient.email = "";
+                if (method == 4) newClient.email = "";
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
                 newClient.subId = clientsBulkModal.subId;
                 newClient.tgId = clientsBulkModal.tgId;
                 newClient.limitIp = clientsBulkModal.limitIp;
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
-                if(clientsBulkModal.inbound.canEnableTlsFlow()){
+                if (clientsBulkModal.inbound.canEnableTlsFlow()) {
                     newClient.flow = clientsBulkModal.flow;
                 }
-                if(clientsBulkModal.inbound.xtls){
+                if (clientsBulkModal.inbound.xtls) {
                     newClient.flow = clientsBulkModal.flow;
                 }
                 clients.push(newClient);
             }
             ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
         },
-        show({ title='', okText='{{ i18n "sure" }}', dbInbound=null, confirm=(inbound, dbInbound)=>{} }) {
+        show({
+            title = '',
+            okText = '{{ i18n "sure" }}',
+            dbInbound = null,
+            confirm = (inbound, dbInbound) => { }
+        }) {
             this.visible = true;
             this.title = title;
             this.okText = okText;
@@ -181,21 +186,21 @@
             this.quantity = 1;
             this.totalGB = 0;
             this.expiryTime = 0;
-            this.emailMethod= 0;
-            this.limitIp= 0;
-            this.firstNum= 1;
-            this.lastNum= 1;
-            this.emailPrefix= "";
-            this.emailPostfix= "";
-            this.subId= "";
-            this.tgId= "";
-            this.flow= "";
+            this.emailMethod = 0;
+            this.limitIp = 0;
+            this.firstNum = 1;
+            this.lastNum = 1;
+            this.emailPrefix = "";
+            this.emailPostfix = "";
+            this.subId = "";
+            this.tgId = "";
+            this.flow = "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;
         },
         getClients(protocol, clientSettings) {
-            switch(protocol){
+            switch (protocol) {
                 case Protocols.VMESS: return clientSettings.vmesses;
                 case Protocols.VLESS: return clientSettings.vlesses;
                 case Protocols.TROJAN: return clientSettings.trojans;
@@ -230,10 +235,11 @@
             get delayedExpireDays() {
                 return this.clientsBulkModal.expiryTime < 0 ? this.clientsBulkModal.expiryTime / -86400000 : 0;
             },
-            set delayedExpireDays(days){
+            set delayedExpireDays(days) {
                 this.clientsBulkModal.expiryTime = -86400000 * days;
             },
         },
     });
+
 </script>
 {{end}}
