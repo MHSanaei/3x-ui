@@ -64,14 +64,14 @@
                             </a-input>
                         </a-form-item>
                         <a-form-item>
-                            <a-input type="password" v-model.trim="user.password"
-                                     placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                                <a-icon slot="prefix" type="lock" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
-                            </a-input>
+                            <password-input icon="lock" v-model.trim="user.password"
+                                            placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
+                            </password-input>
                         </a-form-item>
                         <a-form-item v-if="secretEnable">
-                            <a-input type="text" placeholder='{{ i18n "secretToken" }}' v-model.trim="user.loginSecret" @keydown.enter.native="login">
-                            <a-icon slot="prefix" type="key" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
+                            <password-input icon="key" v-model.trim="user.loginSecret"
+                                            placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
+                            </password-input>
                         </a-input>
                         </a-form-item>
                         <a-form-item>
