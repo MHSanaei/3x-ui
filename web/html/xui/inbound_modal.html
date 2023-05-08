@@ -1,7 +1,7 @@
 {{define "inboundModal"}}
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
          :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+         :class="themeSwitcher.darkCardClass"
          :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
     {{template "form/inbound"}}
 </a-modal>
@@ -19,7 +19,7 @@
         ok() {
             ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
         },
-        show({ title='', okText='{{ i18n "sure" }}', inbound=null, dbInbound=null, confirm=(inbound, dbInbound)=>{}, isEdit=false  }) {
+        show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => {}, isEdit = false }) {
             this.title = title;
             this.okText = okText;
             if (inbound) {
@@ -44,7 +44,7 @@
             inModal.confirmLoading = loading;
         },
         getClients(protocol, clientSettings) {
-            switch(protocol){
+            switch (protocol) {
                 case Protocols.VMESS: return clientSettings.vmesses;
                 case Protocols.VLESS: return clientSettings.vlesses;
                 case Protocols.TROJAN: return clientSettings.trojans;
@@ -87,7 +87,7 @@
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
             },
-            set delayedExpireDays(days){
+            set delayedExpireDays(days) {
                 this.client.expiryTime = -86400000 * days;
             },
         },
@@ -100,15 +100,15 @@
                     this.inModal.inbound.reality = false;
                 }
             },
-            setDefaultCertData(){
+            setDefaultCertData() {
                 inModal.inbound.stream.tls.certs[0].certFile = app.defaultCert;
                 inModal.inbound.stream.tls.certs[0].keyFile = app.defaultKey;
             },
-            setDefaultCertXtls(){
+            setDefaultCertXtls() {
                 inModal.inbound.stream.xtls.certs[0].certFile = app.defaultCert;
                 inModal.inbound.stream.xtls.certs[0].keyFile = app.defaultKey;
             },
-            async getNewX25519Cert(){
+            async getNewX25519Cert() {
                 inModal.loading(true);
                 const msg = await HttpUtil.post('/server/getNewX25519Cert');
                 inModal.loading(false);
@@ -122,7 +122,7 @@
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
                 var string = '';
                 var len = 6 + Math.floor(Math.random() * 5);
-                for(var ii=0; ii<len; ii++){
+                for (var ii = 0; ii < len; ii++) {
                     string += chars[Math.floor(Math.random() * chars.length)];
                 }
                 client.email = string;

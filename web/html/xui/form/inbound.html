@@ -8,7 +8,7 @@
         <a-switch v-model="dbInbound.enable"></a-switch>
     </a-form-item>
     <a-form-item label='{{ i18n "protocol" }}'>
-        <a-select v-model="inbound.protocol" style="width: 160px;" :disabled="isEdit" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.protocol" style="width: 160px;" :disabled="isEdit" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="p in Protocols" :key="p" :value="p">[[ p ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -31,7 +31,7 @@
     <br>
     <a-form-item>
         <span slot="label">
-            <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+            <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
             <a-tooltip>
                 <template slot="title">
                     0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -43,7 +43,7 @@
     </a-form-item>
     <a-form-item>
         <span slot="label">
-            <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+            <span>{{ i18n "pages.inbounds.expireDate" }}</span>
             <a-tooltip>
                 <template slot="title">
                     <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
@@ -52,7 +52,7 @@
             </a-tooltip>
         </span>
         <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                       :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                       :dropdown-class-name="themeSwitcher.darkCardClass"
                        v-model="dbInbound._expiryTime" style="width: 300px;"></a-date-picker>
     </a-form-item>
 </a-form>
