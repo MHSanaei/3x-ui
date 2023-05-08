@@ -380,7 +380,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	}
 }
 
-func (t *Tgbot) SendMsgToTgbot(tgid int64, msg string, inlineKeyboard ...tgbotapi.InlineKeyboardMarku
+func (t *Tgbot) SendMsgToTgbot(tgid int64, msg string, inlineKeyboard ...tgbotapi.InlineKeyboardMarkup) {
 	var allMessages []string
 	limit := 2000
 	// paging message if it is big
