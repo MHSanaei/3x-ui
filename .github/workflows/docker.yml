@@ -36,16 +36,6 @@ jobs:
         with:
           context: .
           push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/amd64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-
-      - name: Build and push Docker image ARM64
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: .github/DockerfileARM
-          push: ${{ github.event_name != 'pull_request' }}
-          platforms: linux/arm64
+          platforms: linux/amd64, linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
