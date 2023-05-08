@@ -16,9 +16,9 @@ RUN if [ "$TARGETARCH" = "arm64" ]; then apt update && apt install gcc-aarch64-l
 
 # Build the X-ui binary
 RUN if [ "$TARGETARCH" = "arm64" ]; then \
-        TARGETARCH GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -o xui-release -v main.go; \
+       CGO_ENABLED=1 GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -o xui-release -v main.go; \
     elif [ "$TARGETARCH" = "amd64" ]; then \
-        TARGETARCH GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go; \
+       CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go; \
     fi
 
 # Start a new stage using the base image
