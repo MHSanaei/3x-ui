@@ -11,7 +11,6 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-ARG TARGETPARCH
 
 RUN if [ "$TARGETARCH" = "arm64" ]; then apt update && apt install gcc-aarch64-linux-gnu -y; fi
 
