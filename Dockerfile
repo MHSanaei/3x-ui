@@ -1,5 +1,4 @@
 # Use the official Golang image as the base image
-ARG TARGETOS TARGETARCH
 FROM --platform=$BUILDPLATFORM golang:1.20 as builder
 ARG TARGETOS TARGETARCH
 RUN echo "TARGETOS=$TARGETOS TARGETARCH=$TARGETARCH"
