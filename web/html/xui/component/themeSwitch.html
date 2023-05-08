@@ -1,0 +1,58 @@
+{{define "component/themeSwitchTemplate"}}
+<template>
+  <a-switch :default-checked="themeSwitcher.isDarkTheme"
+            checked-children="☀"
+            un-checked-children="🌙"
+            @change="themeSwitcher.toggleTheme()">
+  </a-switch>
+</template>
+{{end}}
+
+{{define "component/themeSwitcher"}}
+<script>
+  const colors = {
+    dark: {
+      bg: "#242c3a",
+      text: "hsla(0,0%,100%,.65)"
+    },
+    light: {
+      bg: '#f0f2f5',
+      text: "rgba(0, 0, 0, 0.7)",
+    }
+  }
+
+  function createThemeSwitcher() {
+    const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
+    const theme = isDarkTheme ? 'dark' : 'light';
+    return {
+      isDarkTheme,
+      bgStyle: `background: ${colors[theme].bg};`,
+      textStyle: `color: ${colors[theme].text};`,
+      darkClass: isDarkTheme ? 'ant-card-dark' : '',
+      darkCardClass: isDarkTheme ? 'ant-card-dark' : '',
+      darkDrawerClass: isDarkTheme ? 'ant-drawer-dark' : '',
+      get currentTheme() {
+        return this.isDarkTheme ? 'dark' : 'light';
+      },
+      toggleTheme() {
+        this.isDarkTheme = !this.isDarkTheme;
+        this.theme = this.isDarkTheme ? 'dark' : 'light';
+        localStorage.setItem('dark-mode', this.isDarkTheme);
+        this.bgStyle = `background: ${colors[this.theme].bg};`;
+        this.textStyle = `color: ${colors[this.theme].text};`;
+        this.darkClass = this.isDarkTheme ? 'ant-card-dark' : '';
+        this.darkCardClass = this.isDarkTheme ? 'ant-card-dark' : '';
+        this.darkDrawerClass = this.isDarkTheme ? 'ant-drawer-dark' : '';
+      },
+    };
+  }
+
+  const themeSwitcher = createThemeSwitcher();
+
+  Vue.component('theme-switch', {
+    props: [],
+    template: `{{template "component/themeSwitchTemplate"}}`,
+    data: () => ({ themeSwitcher }),
+  });
+</script>
+{{end}}

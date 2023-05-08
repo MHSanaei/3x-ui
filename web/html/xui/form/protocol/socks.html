@@ -17,8 +17,7 @@
     <a-form-item label='{{ i18n "pages.inbounds.enable" }} udp'>
         <a-switch v-model="inbound.settings.udp"></a-switch>
     </a-form-item>
-    <a-form-item v-if="inbound.settings.udp"
-                 label="IP">
+    <a-form-item v-if="inbound.settings.udp" label="IP">
         <a-input v-model.trim="inbound.settings.ip"></a-input>
     </a-form-item>
 </a-form>
