@@ -1,6 +1,6 @@
 # Use the official Golang image as the base image
 FROM --platform=$BUILDPLATFORM golang:1.20 as builder
-
+ARG TARGETOS TARGETARCH
 # Set up the working directory
 WORKDIR /app
 
@@ -13,12 +13,12 @@ COPY . .
 
 ARG TARGETPARCH
 
-RUN if [ "$TARGETPARCH" = "arm64" ]; then apt update && apt install gcc-aarch64-linux-gnu -y; fi
+RUN if [ "$TARGETARCH" = "arm64" ]; then apt update && apt install gcc-aarch64-linux-gnu -y; fi
 
 # Build the X-ui binary
-RUN if [ "$TARGETPARCH" = "arm64" ]; then \
+RUN if [ "$TARGETARCH" = "arm64" ]; then \
         GOOS=linux GOARCH=arm64 CC=aarch64-linux-gnu-gcc go build -o xui-release -v main.go; \
-    elif [ "$TARGETPARCH" = "amd64" ]; then \
+    elif [ "$TARGETARCH" = "amd64" ]; then \
         GOOS=linux GOARCH=amd64 go build -o xui-release -v main.go; \
     fi
 
