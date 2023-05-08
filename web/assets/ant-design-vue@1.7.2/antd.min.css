@@ -3532,9 +3532,9 @@ to{max-height:0;padding:0;opacity:0}
 .ant-modal-close{position:absolute;top:0;right:0;z-index:10;padding:0;color:rgba(0,0,0,.45);font-weight:700;line-height:1;text-decoration:none;background:0 0;border:0;outline:0;cursor:pointer;transition:color .3s}
 .ant-modal-close-x{display:block;width:56px;height:56px;font-size:16px;font-style:normal;line-height:56px;text-align:center;text-transform:none;text-rendering:auto}
 .ant-modal-close:focus,.ant-modal-close:hover{color:rgba(0,0,0,.75);text-decoration:none}
-.ant-modal-header{padding:16px 24px;color:rgba(0,0,0,.65);background:#fff;border-bottom:1px solid #e8e8e8;border-radius:4px 4px 0 0}
+.ant-modal-header{padding:16px 24px;color:rgba(0,0,0,.65);background:#fff;border-bottom:1px solid rgb(153 153 153 / 20%);border-radius:4px 4px 0 0;margin:.1rem .5rem 0 .5rem}
 .ant-modal-body{padding:24px;font-size:14px;line-height:1.5;word-wrap:break-word}
-.ant-modal-footer{padding:10px 16px;text-align:right;background:0 0;border-top:1px solid #e8e8e8;border-radius:0 0 4px 4px}
+.ant-modal-footer{padding:10px 16px;text-align:right;background:0 0;border-top:1px solid rgb(153 153 153 / 20%);border-radius:0 0 4px 4px;margin:0 .5rem 0 .5rem}
 .ant-modal-footer button+button{margin-bottom:0;margin-left:8px}
 .ant-modal.zoom-appear,.ant-modal.zoom-enter{transform:none;opacity:0;-webkit-animation-duration:.3s;animation-duration:.3s;-webkit-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none}
 .ant-modal-mask{position:fixed;top:0;right:0;bottom:0;left:0;z-index:1000;height:100%;background-color:rgba(0,0,0,.45);filter:alpha(opacity=50)}
