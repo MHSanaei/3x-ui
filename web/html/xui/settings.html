@@ -285,8 +285,14 @@
                         google: ["geosite:google"],
                         spotify: ["geosite:spotify"],
                         netflix: ["geosite:netflix"],
-                        cn: ["geosite:cn"],
-                        ru: ["geosite:category-ru-gov"],
+                        cn: [
+                            "geosite:cn",
+                            "regexp:.*\\.cn$"
+                            ],
+                        ru: [
+                            "geosite:category-gov-ru",
+                            "regexp:.*\\.ru$"
+                            ],
                         ir: [
                             "regexp:.*\\.ir$",
                             "ext:iran.dat:ir",
