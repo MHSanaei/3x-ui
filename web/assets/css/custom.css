@@ -11,7 +11,7 @@
 }
 
 .ant-card {
-    border-radius: 10px;
+    border-radius: 1.5rem;
 }
 
 .ant-card-hoverable {
@@ -180,11 +180,11 @@
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    /* box-shadow: 0 3px 12px -0.8px #0000005c; */
+    box-shadow: 0 1px 10px -1px rgb(154 175 238);
 }
 
 .ant-card-bordered:hover {
-    box-shadow: 0 3px 12px -0.8px #0000005c;
+    /*box-shadow: 0 3px 12px -0.8px #0000005c;*/
 }
 
 .ant-card-dark .ant-table-thead th {
@@ -264,12 +264,11 @@
 .ant-card-dark .ant-collapse-item {
     color: hsla(0,0%,100%,.65);
     background-color: #161b22;
+    border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .ant-dropdown-menu-dark,
 .ant-card-dark .ant-modal-content {
-    border: 1px solid rgb(153 153 153 / 20%);
-    box-shadow: 0 1px 10px -1px #0000005c;
 }
 
 .ant-card-dark .ant-modal-content,
@@ -280,7 +279,7 @@
 }
 
 .ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
-    background-color: #1668dc;
+    background-color: rgb(0 150 112);
 }
 
 .ant-card-dark .ant-calendar-time-picker-select li:hover {
@@ -333,9 +332,9 @@
 }
 
 .ant-card-dark .ant-tag-green {
-    color: #6abe39;
-    background: #162312;
-    border-color: #274916;
+    color: #37b998;
+    background: #101e1a;
+    border-color: #144237;
 }
 
 .ant-card-dark .ant-tag-cyan {
@@ -362,7 +361,7 @@
 }
 
 .ant-card-dark .ant-switch-checked {
-    background-color: #0c61b0;
+    background-color: #009670;
 }
 
 .ant-card-dark .ant-btn,
@@ -378,14 +377,14 @@
 
 .ant-card-dark .ant-btn-primary {
     color:  hsla(0,0%,100%,.65);
-    background-color: #073763;
-    border-color: #1890ff;
+    background-color: rgb(7 98 75 / 50%);
+    border-color: #009670;
     text-shadow: 0 -1px 0 rgba(255,255,255,.12);
     box-shadow: 0 2px 0 rgba(255,255,255,.045);
 }
 .ant-card-dark .ant-btn-primary:hover {
-    background-color: #40a9ff;
-    border-color: #40a9ff;
+    background-color: #009670;
+    border-color: #40a9ff00;
 }
 
 .ant-dark .ant-popover-content {
@@ -408,15 +407,18 @@
 }
 
 ::-webkit-scrollbar {
-    width: 10px;
+    width: 0.7em;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(50 62 82 / 25%);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #11141a57;
-    border-radius: 20px;
+    background: rgb(133 133 133 / 80%);
+    border-radius: 100vw;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #11141a66;
-    border-radius: 20px;
+    background: #919191;
 }
