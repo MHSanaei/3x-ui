@@ -330,7 +330,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *tgbotapi.CallbackQuery, isAdmin bo
 	case "get_backup":
 		t.sendBackup(callbackQuery.From.ID)
 	case "client_traffic":
-		t.getClientUsage(callbackQuery.From.ID, callbackQuery.From.UserName)
+		t.getClientUsage(callbackQuery.From.ID, callbackQuery.From.UserName, strconv.FormatInt(callbackQuery.From.ID, 10))
 	case "client_commands":
 		t.SendMsgToTgbot(callbackQuery.From.ID, "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UID|Password]</code>\r\n \r\nUse UID for vmess/vless and Password for Trojan.")
 	case "commands":
