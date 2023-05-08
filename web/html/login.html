@@ -18,6 +18,12 @@
         border-radius: 30px;
     }
 
+    .ant-input-group-addon {
+        border-radius: 0 30px 30px 0;
+        width: 50px;
+        font-size: 18px;
+    }
+
     .ant-input-affix-wrapper .ant-input-prefix {
         left: 23px;
     }
@@ -26,20 +32,26 @@
         padding-left: 50px;
     }
 
-    .selectLang{
+    .centered {
         display: flex;
         text-align: center;
+        align-items: center;
         justify-content: center;
+    }
+
+    .title {
+        font-size: 32px;
+        font-weight: bold;
     }
 
 </style>
 <body>
-<a-layout id="app" v-cloak>
+<a-layout id="app" v-cloak :class="themeSwitcher.darkClass">
     <transition name="list" appear>
         <a-layout-content>
             <a-row type="flex" justify="center">
                 <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
-                    <h1>{{ i18n "pages.login.title" }}</h1>
+                    <h1 class="title">{{ i18n "pages.login.title" }}</h1>
                 </a-col>
             </a-row>
             <a-row type="flex" justify="center">
@@ -48,40 +60,46 @@
                         <a-form-item>
                             <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
                                      @keydown.enter.native="login" autofocus>
-                                <a-icon slot="prefix" type="user" style="color: rgba(0,0,0,.25)"/>
+                                <a-icon slot="prefix" type="user" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
                             </a-input>
                         </a-form-item>
                         <a-form-item>
                             <a-input type="password" v-model.trim="user.password"
                                      placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                                <a-icon slot="prefix" type="lock" style="color: rgba(0,0,0,.25)"/>
+                                <a-icon slot="prefix" type="lock" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
                             </a-input>
                         </a-form-item>
                         <a-form-item v-if="secretEnable">
                             <a-input type="text" placeholder='{{ i18n "secretToken" }}' v-model.trim="user.loginSecret" @keydown.enter.native="login">
-                            <a-icon slot="prefix" type="key" style="color: rgba(0,0,0,.25)"/>
+                            <a-icon slot="prefix" type="key" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
                         </a-input>
                         </a-form-item>
                         <a-form-item>
                             <a-button block @click="login" :loading="loading">{{ i18n "login" }}</a-button>
                         </a-form-item>
                         <a-form-item>
-
-                            <a-row justify="center" class="selectLang">
-                                <a-col :span="5"><span>Language :</span></a-col>
-
-                                <a-col :span="7">
-                                    <a-select
-                                            ref="selectLang"
-                                            v-model="lang"
-                                            @change="setLang(lang)"
-                                    >
-                                        <a-select-option  :value="l.value" label="English" v-for="l in supportLangs" >
+                            <a-row justify="center" class="centered">
+                                <a-button type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
+                                          :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
+                                    [[ loading ? '' : '{{ i18n "login" }}' ]]
+                                </a-button>
+                            </a-row>
+                        </a-form-item>
+                        <a-form-item>
+                            <a-row justify="center" class="centered">
+                                <a-col :span="12">
+                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" :dropdown-class-name="themeSwitcher.darkCardClass">
+                                        <a-select-option :value="l.value" label="English" v-for="l in supportLangs">
                                             <span role="img" aria-label="l.name" v-text="l.icon"></span>
                                             &nbsp;&nbsp;<span v-text="l.name"></span>
                                         </a-select-option>
                                     </a-select>
                                 </a-col>
+                            </a-row>
+                        </a-form-item>
+                        <a-form-item>
+                            <a-row justify="center" class="centered">
+                                <theme-switch></theme-switch>
                             </a-row>
                         </a-form-item>
                     </a-form>
@@ -91,24 +109,23 @@
     </transition>
 </a-layout>
 {{template "js" .}}
+{{template "component/themeSwitcher" .}}
 <script>
-    const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
-    const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
-    const deg = RandomUtil.randomIntRange(0, 360);
-    const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
-    document.querySelector('#app').style.background = background;
+
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
+            themeSwitcher,
             loading: false,
             user: new User(),
             secretEnable: false,
-            lang : ""
+            lang: ""
         },
-        created(){
-          this.lang = getLang();
-          this.secretEnable = this.getSecretStatus();
+        created() {
+            this.updateBackground();
+            this.lang = getLang();
+            this.secretEnable = this.getSecretStatus();
         },
         methods: {
             async login() {
@@ -120,16 +137,29 @@
                 }
             },
             async getSecretStatus() {
-                this.loading= true;
+                this.loading = true;
                 const msg = await HttpUtil.post('/getSecretStatus');
                 this.loading = false;
-                if (msg.success){
+                if (msg.success) {
                     this.secretEnable = msg.obj;
                     return msg.obj;
                 }
-            }
-        }
+            },
+            updateBackground() {
+                const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
+                const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
+                const deg = RandomUtil.randomIntRange(0, 360);
+                const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
+                document.querySelector('#app').style.background = this.themeSwitcher.isDarkTheme ? colors.dark.bg : background;
+            },
+        },
+        watch: {
+            'themeSwitcher.isDarkTheme'(newVal, oldVal) {
+                this.updateBackground();
+            },
+        },
     });
+
 </script>
 </body>
 </html>
