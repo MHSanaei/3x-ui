@@ -27,10 +27,7 @@
     <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
-            <a-switch :default-checked="siderDrawer.isDarkTheme"
-            checked-children="☀"
-            un-checked-children="🌙"
-            @change="siderDrawer.changeTheme()"></a-switch>
+            <theme-switch></theme-switch>
         </a-menu-item>
     </a-menu>
     <a-menu :theme="siderDrawer.theme" mode="inline" :selected-keys="['{{ .request_uri }}']"
@@ -49,10 +46,7 @@
     <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
-            <a-switch :default-checked="siderDrawer.isDarkTheme"
-            checked-children="☀"
-            un-checked-children="🌙"
-            @change="siderDrawer.changeTheme()"></a-switch>
+            <theme-switch></theme-switch>
         </a-menu-item>
     </a-menu>
     <a-menu :theme="siderDrawer.theme" mode="inline" :selected-keys="['{{ .request_uri }}']"
@@ -61,12 +55,8 @@
     </a-menu>
 </a-drawer>
 <script>
-    const darkClass = "ant-card-dark";
-    const bgDarkStyle = "background-color: #242c3a";
     const siderDrawer = {
         visible: false,
-        collapsed: false,
-        isDarkTheme: localStorage.getItem("dark-mode") === 'false' ? false : true,
         show() {
             this.visible = true;
         },
@@ -76,17 +66,6 @@
         change() {
             this.visible = !this.visible;
         },
-        toggleCollapsed() {
-            this.collapsed = !this.collapsed;
-        },
-        changeTheme() {
-            this.isDarkTheme = ! this.isDarkTheme;
-            localStorage.setItem("dark-mode", this.isDarkTheme);
-        },
-        get theme() {
-            return this.isDarkTheme ? 'dark' : 'light';
-        }
     };
-
 </script>
 {{end}}
