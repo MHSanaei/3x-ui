@@ -75,9 +75,6 @@
                         </a-input>
                         </a-form-item>
                         <a-form-item>
-                            <a-button block @click="login" :loading="loading">{{ i18n "login" }}</a-button>
-                        </a-form-item>
-                        <a-form-item>
                             <a-row justify="center" class="centered">
                                 <a-button type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
                                           :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
