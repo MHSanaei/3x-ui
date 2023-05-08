@@ -55,14 +55,14 @@
             </a-form-item>
             <br>
             <a-form-item v-if="inbound.xtls" label="Flow">
-                <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="themeSwitcher.darkCardClass">
                     <a-select-option value="">{{ i18n "none" }}</a-select-option>
                     <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
                 </a-select>
             </a-form-item>
             <a-form-item>
                 <span slot="label">
-                    <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                    <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
                     <a-tooltip>
                         <template slot="title">
                             0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -82,7 +82,7 @@
             </a-form-item>
             <a-form-item v-else>
                 <span slot="label">
-                    <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+                    <span>{{ i18n "pages.inbounds.expireDate" }}</span>
                     <a-tooltip>
                         <template slot="title">
                             <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
@@ -91,7 +91,7 @@
                     </a-tooltip>
                 </span>
                 <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                                :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                                :dropdown-class-name="themeSwitcher.darkCardClass"
                                 v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
             </a-form-item>
         </a-collapse-panel>
@@ -113,8 +113,7 @@
     <a-form layout="inline">
         <a-form-item label="Fallbacks">
             <a-row>
-                <a-button type="primary" size="small"
-                        @click="inbound.settings.addTrojanFallback()">
+                <a-button type="primary" size="small" @click="inbound.settings.addTrojanFallback()">
                     +
                 </a-button>
             </a-row>

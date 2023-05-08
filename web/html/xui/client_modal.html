@@ -1,7 +1,7 @@
 {{define "clientsModal"}}
 <a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
          :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+         :class="themeSwitcher.darkCardClass"
          :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
     {{template "form/client"}}
 </a-modal>
@@ -23,13 +23,13 @@
         isExpired: false,
         delayedStart: false,
         ok() {
-            if(clientModal.isEdit){
+            if (clientModal.isEdit) {
                 ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
             } else {
                 ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
             }
         },
-        show({ title='', okText='{{ i18n "sure" }}', index=null, dbInbound=null, confirm=()=>{}, isEdit=false  }) {
+        show({ title = '', okText = '{{ i18n "sure" }}', index = null, dbInbound = null, confirm = () => { }, isEdit = false }) {
             this.visible = true;
             this.title = title;
             this.okText = okText;
@@ -40,11 +40,11 @@
             this.index = index === null ? this.clients.length : index;
             this.isExpired = isEdit ? this.inbound.isExpiry(this.index) : false;
             this.delayedStart = false;
-            if (isEdit){
-                if (this.clients[index].expiryTime < 0){
+            if (isEdit) {
+                if (this.clients[index].expiryTime < 0) {
                     this.delayedStart = true;
                 }
-                this.oldClientId = this.getClientId(dbInbound.protocol,clients[index]);
+                this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
             } else {
                 this.addClient(this.inbound.protocol, this.clients);
             }
@@ -52,7 +52,7 @@
             this.confirm = confirm;
         },
         getClients(protocol, clientSettings) {
-            switch(protocol){
+            switch (protocol) {
                 case Protocols.VMESS: return clientSettings.vmesses;
                 case Protocols.VLESS: return clientSettings.vlesses;
                 case Protocols.TROJAN: return clientSettings.trojans;
@@ -61,7 +61,7 @@
             }
         },
         getClientId(protocol, client) {
-            switch(protocol){
+            switch (protocol) {
                 case Protocols.TROJAN: return client.password;
                 case Protocols.SHADOWSOCKS: return client.email;
                 default: return client.id;
@@ -103,24 +103,24 @@
                 return this.clientModal.isEdit;
             },
             get isTrafficExhausted() {
-                if(!clientStats) return false
-                if(clientStats.total <= 0) return false
-                if(clientStats.up + clientStats.down < clientStats.total) return false
+                if (!clientStats) return false
+                if (clientStats.total <= 0) return false
+                if (clientStats.up + clientStats.down < clientStats.total) return false
                 return true
             },
             get isExpiry() {
                 return this.clientModal.isExpired
             },
             get statsColor() {
-                if(!clientStats) return 'blue'
-                if(clientStats.total <= 0) return 'blue'
-                else if(clientStats.total > 0 && (clientStats.down+clientStats.up) < clientStats.total) return 'cyan'
+                if (!clientStats) return 'blue'
+                if (clientStats.total <= 0) return 'blue'
+                else if (clientStats.total > 0 && (clientStats.down + clientStats.up) < clientStats.total) return 'cyan'
                 else return 'red'
             },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
             },
-            set delayedExpireDays(days){
+            set delayedExpireDays(days) {
                 this.client.expiryTime = -86400000 * days;
             },
         },
@@ -129,13 +129,13 @@
                 var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
                 var string = '';
                 var len = 6 + Math.floor(Math.random() * 5);
-                for(var ii=0; ii<len; ii++){
+                for (var ii = 0; ii < len; ii++) {
                     string += chars[Math.floor(Math.random() * chars.length)];
                 }
                 client.email = string;
             },
-            async getDBClientIps(email,event) {
-                const msg = await HttpUtil.post('/xui/inbound/clientIps/'+ email);
+            async getDBClientIps(email, event) {
+                const msg = await HttpUtil.post('/xui/inbound/clientIps/' + email);
                 if (!msg.success) {
                     return;
                 }
@@ -149,22 +149,22 @@
                 }
             },
             async clearDBClientIps(email) {
-                const msg = await HttpUtil.post('/xui/inbound/clearClientIps/'+ email);
+                const msg = await HttpUtil.post('/xui/inbound/clearClientIps/' + email);
                 if (!msg.success) {
                     return;
                 }
                 document.getElementById("clientIPs").value = ""
             },
-            resetClientTraffic(email,dbInboundId,iconElement) {
+            resetClientTraffic(email, dbInboundId, iconElement) {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         iconElement.disabled = true;
-                        const msg = await HttpUtil.postWithModal('/xui/inbound/' + dbInboundId + '/resetClientTraffic/'+ email);
+                        const msg = await HttpUtil.postWithModal('/xui/inbound/' + dbInboundId + '/resetClientTraffic/' + email);
                         if (msg.success) {
                             this.clientModal.clientStats.up = 0;
                             this.clientModal.clientStats.down = 0;
@@ -175,5 +175,6 @@
             },
         },
     });
+
 </script>
 {{end}}

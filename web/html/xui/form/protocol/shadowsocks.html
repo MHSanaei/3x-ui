@@ -57,7 +57,7 @@
             <br>
             <a-form-item>
                 <span slot="label">
-                    <span >{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                    <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
                     <a-tooltip>
                         <template slot="title">
                             0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
@@ -77,7 +77,7 @@
             </a-form-item>
             <a-form-item v-else>
                 <span slot="label">
-                    <span >{{ i18n "pages.inbounds.expireDate" }}</span>
+                    <span>{{ i18n "pages.inbounds.expireDate" }}</span>
                     <a-tooltip>
                         <template slot="title">
                             <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
@@ -86,7 +86,7 @@
                     </a-tooltip>
                 </span>
                 <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                                :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''"
+                                :dropdown-class-name="themeSwitcher.darkCardClass"
                                 v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
             </a-form-item>
         </a-collapse-panel>
@@ -106,7 +106,7 @@
 </a-form>
 <a-form layout="inline">
     <a-form-item label='{{ i18n "encryption" }}'>
-        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -114,7 +114,7 @@
         <a-input v-model.trim="inbound.settings.password" style="width: 250px;"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
-        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option value="tcp,udp">TCP+UDP</a-select-option>
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="udp">UDP</a-select-option>

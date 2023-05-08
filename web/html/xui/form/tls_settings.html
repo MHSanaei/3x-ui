@@ -37,18 +37,18 @@
         <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="CipherSuites">
-        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option value="">auto</a-select-option>
             <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
     <a-form-item label="MinVersion">
-        <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
     <a-form-item label="MaxVersion">
-        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -57,7 +57,7 @@
     </a-form-item>
     <a-form-item label="uTLS">
         <a-select v-model="inbound.stream.tls.settings.fingerprint"
-                  style="width: 170px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                  style="width: 170px" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option value=''>None</a-select-option>
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
@@ -145,9 +145,9 @@
     <a-form-item label="xVer">
         <a-input-number v-model="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input-number>
     </a-form-item>
-    <a-form-item label="uTLS" >
+    <a-form-item label="uTLS">
         <a-select v-model="inbound.stream.reality.settings.fingerprint" 
-                    style="width: 135px" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                    style="width: 135px" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -169,7 +169,7 @@
     <a-form-item label="Public Key">
         <a-input v-model.trim="inbound.stream.reality.settings.publicKey" style="width: 300px"></a-input>
     </a-form-item>
-    <a-form-item >
+    <a-form-item>
         <a-button type="primary" icon="import" @click="getNewX25519Cert">Get New Key</a-button>
     </a-form-item>
 </a-form>
