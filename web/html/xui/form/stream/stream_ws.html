@@ -10,8 +10,7 @@
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.stream.general.requestHeader" }}'>
         <a-row>
-            <a-button size="small"
-                      @click="inbound.stream.ws.addHeader('Host', '')">
+            <a-button size="small" @click="inbound.stream.ws.addHeader('Host', '')">
                 +
             </a-button>
         </a-row>
@@ -21,8 +20,7 @@
             <a-input style="width: 50%" v-model.trim="header.value"
                      addon-before='{{ i18n "pages.inbounds.stream.general.value" }}'>
                 <template slot="addonAfter">
-                    <a-button size="small"
-                              @click="inbound.stream.ws.removeHeader(index)">
+                    <a-button size="small" @click="inbound.stream.ws.removeHeader(index)">
                         -
                     </a-button>
                 </template>

@@ -1,10 +1,11 @@
 {{define "textModal"}}
 <a-modal id="text-modal" v-model="txtModal.visible" :title="txtModal.title"
          :closable="true" ok-text='{{ i18n "copy" }}' cancel-text='{{ i18n "close" }}'
-         :class="siderDrawer.isDarkTheme ? darkClass : ''"
+         :class="themeSwitcher.darkCardClass"
          :ok-button-props="{attrs:{id:'txt-modal-ok-btn'}}">
     <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" type="primary" style="margin-bottom: 10px;"
-              :href="'data:application/text;charset=utf-8,' + encodeURIComponent(txtModal.content)" :download="txtModal.fileName">
+              :href="'data:application/text;charset=utf-8,' + encodeURIComponent(txtModal.content)"
+              :download="txtModal.fileName">
         {{ i18n "download" }} [[ txtModal.fileName ]]
     </a-button>
     <a-input type="textarea" v-model="txtModal.content"
@@ -20,7 +21,7 @@
         qrcode: null,
         clipboard: null,
         visible: false,
-        show: function (title='', content='', fileName='') {
+        show: function (title = '', content = '', fileName = '') {
             this.title = title;
             this.content = content;
             this.fileName = fileName;

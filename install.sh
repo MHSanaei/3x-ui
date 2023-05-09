@@ -23,23 +23,14 @@ else
 fi
 echo "The OS release is: $release"
 
-arch=$(arch)
-
-if [[ $arch == "x86_64" || $arch == "x64" || $arch == "amd64" ]]; then
-    arch="amd64"
-elif [[ $arch == "aarch64" || $arch == "arm64" ]]; then
-    arch="arm64"
-else
-    arch="amd64"
-    echo -e "${red} Failed to check system arch, will use default arch: ${arch}${plain}"
-fi
-
-echo "arch: ${arch}"
-
-if [ $(getconf WORD_BIT) != '32' ] && [ $(getconf LONG_BIT) != '64' ]; then
-    echo "x-ui dosen't support 32-bit(x86) system, please use 64 bit operating system(x86_64) instead, if there is something wrong, please get in touch with me!"
-    exit -1
-fi
+arch3xui() {
+    case "$(uname -m)" in
+        x86_64 | x64 | amd64 ) echo 'amd64' ;;
+        armv8 | arm64 | aarch64 ) echo 'arm64' ;;
+        * ) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+    esac
+}
+echo "arch: $(arch3xui)"
 
 os_version=""
 os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
@@ -79,9 +70,10 @@ install_base() {
 
 #This function will be called when user installed x-ui out of sercurity
 config_after_install() {
+    /usr/local/x-ui/x-ui migrate
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]? ": config_confirm
-    if [[ x"${config_confirm}" == x"y" || x"${config_confirm}" == x"Y" ]]; then
+    if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
         read -p "Please set up your username:" config_account
         echo -e "${yellow}Your username will be:${config_account}${plain}"
         read -p "Please set up your password:" config_password
@@ -122,18 +114,18 @@ install_x-ui() {
             exit 1
         fi
         echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-${arch}.tar.gz https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/3x-ui-linux-${arch}.tar.gz
+        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-$(arch3xui).tar.gz https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/3x-ui-linux-${arch}.tar.gz"
+        url="https://github.com/FakharzadehH/3x-ui/releases/download/${last_version}/3x-ui-linux-$(arch3xui).tar.gz"
         echo -e "Begining to install x-ui $1"
-        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-${arch}.tar.gz ${url}
+        wget -N --no-check-certificate -O /usr/local/3x-ui-linux-$(arch3xui).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui $1 failed,please check the version exists${plain}"
+            echo -e "${red}Download x-ui $1 failed,please check the version exists ${plain}"
             exit 1
         fi
     fi
@@ -142,14 +134,16 @@ install_x-ui() {
         rm /usr/local/3x-ui/ -rf
     fi
 
-    tar zxvf 3x-ui-linux-${arch}.tar.gz
-    rm 3x-ui-linux-${arch}.tar.gz -f
+
+    tar zxvf 3x-ui-linux-$(arch3xui).tar.gz
+    rm 3x-ui-linux-$(arch3xui).tar.gz -f
     cd 3x-ui
-    chmod +x 3x-ui bin/xray-linux-${arch}
+    chmod +x 3x-ui bin/xray-linux-$(arch3xui)
     cp -f 3x-ui.service /etc/systemd/system/
     wget --no-check-certificate -O /usr/bin/3x-ui https://raw.githubusercontent.com/FakharzadehH/3x-ui/main/x-ui.sh
     chmod +x /usr/local/3x-ui/x-ui.sh
     chmod +x /usr/bin/3x-ui
+
     config_after_install
     #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
     #echo -e "Please make sure that this port is not occupied by other procedures,${yellow} And make sure that port 2053 has been released${plain}"

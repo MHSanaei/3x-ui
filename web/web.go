@@ -33,9 +33,6 @@ import (
 //go:embed assets/*
 var assetsFS embed.FS
 
-//go:embed assets/favicon.ico
-var favicon []byte
-
 //go:embed html/*
 var htmlFS embed.FS
 
@@ -160,11 +157,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
-
-	// Add favicon
-	engine.GET("/favicon.ico", func(c *gin.Context) {
-		c.Data(200, "image/x-icon", favicon)
-	})
 
 	secret, err := s.settingService.GetSecret()
 	if err != nil {

@@ -2,6 +2,7 @@ package service
 
 import (
 	_ "embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -28,6 +29,7 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
+	"sessionMaxAge":      "0",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"timeLocation":       "Asia/Tehran",
@@ -37,9 +39,19 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
 	"tgCpu":              "0",
+	"secretEnable":       "false",
 }
 
 type SettingService struct {
+}
+
+func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
+	var jsonData interface{}
+	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
 }
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
@@ -119,7 +131,13 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	return db.Where("1 = 1").Delete(model.Setting{}).Error
+	err := db.Where("1 = 1").Delete(model.Setting{}).Error
+	if err != nil {
+		return err
+	}
+	return db.Model(model.User{}).
+		Where("1 = 1").
+		Update("login_secret", "").Error
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -234,16 +252,8 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 	return s.getBool("tgBotBackup")
 }
 
-func (s *SettingService) SetTgBotBackup(value bool) error {
-	return s.setBool("tgBotBackup", value)
-}
-
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
-}
-
-func (s *SettingService) SetTgCpu(value int) error {
-	return s.setInt("tgCpu", value)
 }
 
 func (s *SettingService) GetPort() (int, error) {
@@ -266,16 +276,20 @@ func (s *SettingService) GetExpireDiff() (int, error) {
 	return s.getInt("expireDiff")
 }
 
-func (s *SettingService) SetExpireDiff(value int) error {
-	return s.setInt("expireDiff", value)
-}
-
 func (s *SettingService) GetTrafficDiff() (int, error) {
 	return s.getInt("trafficDiff")
 }
 
-func (s *SettingService) SetgetTrafficDiff(value int) error {
-	return s.setInt("trafficDiff", value)
+func (s *SettingService) GetSessionMaxAge() (int, error) {
+	return s.getInt("sessionMaxAge")
+}
+
+func (s *SettingService) GetSecretStatus() (bool, error) {
+	return s.getBool("secretEnable")
+}
+
+func (s *SettingService) SetSecretStatus(value bool) error {
+	return s.setBool("secretEnable", value)
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

@@ -3,57 +3,66 @@
     v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
     :closable="true"
     :mask-closable="true"
-    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+    :class="themeSwitcher.darkCardClass"
     :footer="null"
     width="600px"
     >
     <table style="margin-bottom: 10px; width: 100%;">
-        <tr><td>
-            <table>
-                <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="green">[[ dbInbound.protocol ]]</a-tag></td></tr>
-                <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag color="blue">[[ dbInbound.address ]]</a-tag></td></tr>
-                <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag color="green">[[ dbInbound.port ]]</a-tag></td></tr>
-            </table>
-        </td>
-        <td v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-            <table>
-                <tr>
-                    <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
-                </tr>
-            <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
-                <tr v-if="inbound.host"><td>{{ i18n "host" }}</td><td><a-tag color="green">[[ inbound.host ]]</a-tag></td></tr>
-                <tr v-else><td>{{ i18n "host" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
-            
-                <tr v-if="inbound.path"><td>{{ i18n "path" }}</td><td><a-tag color="green">[[ inbound.path ]]</a-tag></td></tr>
-                <tr v-else><td>{{ i18n "path" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
-            </template>
-            
-            <template v-if="inbound.isQuic">
-                <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.quicSecurity ]]</a-tag></td></tr>
-                <tr><td>quic {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.quicKey ]]</a-tag></td></tr>
-                <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag color="green">[[ inbound.quicType ]]</a-tag></td></tr>
-            </template>
-            
-            <template v-if="inbound.isKcp">
-                <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.kcpType ]]</a-tag></td></tr>
-                <tr><td>kcp {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.kcpSeed ]]</a-tag></td></tr>
-            </template>
-            
-            <template v-if="inbound.isGrpc">
-                <tr><td>grpc serviceName</td><td><a-tag color="green">[[ inbound.serviceName ]]</a-tag></td></tr>
-            </template>
-            </table>
-        </td></tr>
-            <tr colspan="2" v-if="dbInbound.hasLink()">
-                <td v-if="inbound.tls">
-                    tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                    tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
-                </td>
-                <td v-else-if="inbound.XTLS">
-                    xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                    xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
-                </td>
-                <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
+        <tr>
+            <td>
+                <table>
+                    <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="green">[[ dbInbound.protocol ]]</a-tag></td></tr>
+                    <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag color="blue">[[ dbInbound.address ]]</a-tag></td></tr>
+                    <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag color="green">[[ dbInbound.port ]]</a-tag></td></tr>
+                </table>
+            </td>
+            <td v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                <table>
+                    <tr>
+                        <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
+                    </tr>
+
+                    <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
+                        <tr v-if="inbound.host"><td>{{ i18n "host" }}</td><td><a-tag color="green">[[ inbound.host ]]</a-tag></td></tr>
+                        <tr v-else><td>{{ i18n "host" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+
+                        <tr v-if="inbound.path"><td>{{ i18n "path" }}</td><td><a-tag color="green">[[ inbound.path ]]</a-tag></td></tr>
+                        <tr v-else><td>{{ i18n "path" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+                    </template>
+
+                    <template v-if="inbound.isQuic">
+                        <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.quicSecurity ]]</a-tag></td></tr>
+                        <tr><td>quic {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.quicKey ]]</a-tag></td></tr>
+                        <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag color="green">[[ inbound.quicType ]]</a-tag></td></tr>
+                    </template>
+
+                    <template v-if="inbound.isKcp">
+                        <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.kcpType ]]</a-tag></td></tr>
+                        <tr><td>kcp {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.kcpSeed ]]</a-tag></td></tr>
+                    </template>
+
+                    <template v-if="inbound.isGrpc">
+                        <tr><td>grpc serviceName</td><td><a-tag color="green">[[ inbound.serviceName ]]</a-tag></td></tr>
+                        <tr><td>grpc multiMode</td><td><a-tag color="green">[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
+                    </template>
+                </table>
+            </td>
+        </tr>
+        <tr colspan="2" v-if="dbInbound.hasLink()">
+            <td v-if="inbound.tls">
+                tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+            </td>
+            <td v-else-if="inbound.xtls">
+                xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+            </td>
+            <td v-else-if="inbound.reality">
+                reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
+                reality {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+            </td>
+            <td v-else>
+                tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
             </td>
         </tr>
     </table>
@@ -107,7 +116,7 @@
             <td><a :href="[[ subBase + infoModal.clientSettings.subId ]]" target="_blank">[[ subBase + infoModal.clientSettings.subId ]]</a></td>
         </tr>
         <tr v-if="infoModal.clientSettings.tgId">
-            <td>Telegram Username</td>
+            <td>Telegram ID</td>
             <td><a :href="[[ tgBase + infoModal.clientSettings.tgId ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></td>
         </tr>
     </table>
@@ -119,7 +128,8 @@
                 <th>{{ i18n "encryption" }}</th>
                 <th>{{ i18n "password" }}</th>
                 <th>{{ i18n "pages.inbounds.network" }}</th>
-            </tr><tr>
+            </tr>
+            <tr>
                 <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -131,7 +141,8 @@
                 <th>{{ i18n "pages.inbounds.destinationPort" }}</th>
                 <th>{{ i18n "pages.inbounds.network" }}</th>
                 <th>FollowRedirect</th>
-            </tr><tr>
+            </tr>
+            <tr>
                 <td><a-tag color="green">[[ inbound.settings.address ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.port ]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -144,15 +155,18 @@
                 <th>{{ i18n "password" }} Auth</th>
                 <th>{{ i18n "pages.inbounds.enable" }} udp</th>
                 <th>IP</th>
-            </tr><tr>
+            </tr>
+            <tr>
                 <td><a-tag color="green">[[ inbound.settings.auth ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.udp]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.ip ]]</a-tag></td>
-            </tr><tr v-if="inbound.settings.auth == 'password'">
+            </tr>
+            <tr v-if="inbound.settings.auth == 'password'">
                 <td> </td>
                 <td>{{ i18n "username" }}</td>
                 <td>{{ i18n "password" }}</td>
-            </tr><tr v-for="account,index in inbound.settings.accounts">
+            </tr>
+            <tr v-for="account,index in inbound.settings.accounts">
                 <td><a-tag color="green">[[ index ]]</a-tag></td>
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
@@ -164,7 +178,8 @@
                 <th> </th>
                 <th>{{ i18n "username" }}</th>
                 <th>{{ i18n "password" }}</th>
-            </tr><tr v-for="account,index in inbound.settings.accounts">
+            </tr>
+            <tr v-for="account,index in inbound.settings.accounts">
                 <td><a-tag color="green">[[ index ]]</a-tag></td>
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
@@ -179,6 +194,7 @@
     </div>
 </a-modal>
 <script>
+
     const infoModal = {
         visible: false,
         inbound: new Inbound(),
@@ -228,42 +244,41 @@
                 return this.infoModal.inbound;
             },
             get isActive() {
-                if(infoModal.clientStats){
+                if (infoModal.clientStats) {
                     return infoModal.clientStats.enable;
                 }
                 return infoModal.dbInbound.isEnable;
             },
             get isEnable() {
-                if(infoModal.clientSettings){
+                if (infoModal.clientSettings) {
                     return infoModal.clientSettings.enable;
                 }
                 return infoModal.dbInbound.isEnable;
             },
             get subBase() {
-                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port:"") + basePath + "sub/";
+                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port : "") + basePath + "sub/";
             },
             get tgBase() {
                 return "https://t.me/"
             },
         },
         methods: {
-            copyTextToClipboard(elmentId,content) {
+            copyTextToClipboard(elmentId, content) {
                 this.infoModal.clipboard = new ClipboardJS('#' + elmentId, {
-                        text: () => content,
-                    });
-                this.infoModal.clipboard.on('success', () => { 
+                    text: () => content,
+                });
+                this.infoModal.clipboard.on('success', () => {
                     app.$message.success('{{ i18n "copied" }}')
                     this.infoModal.clipboard.destroy();
                 });
             },
             statsColor(stats) {
-                if(!stats) return 'blue'
-                if(stats['total'] === 0) return 'blue'
-                else if(stats['total'] > 0 && (stats['down']+stats['up']) < stats['total']) return 'cyan'
+                if (!stats) return 'blue'
+                if (stats['total'] === 0) return 'blue'
+                else if (stats['total'] > 0 && (stats['down'] + stats['up']) < stats['total']) return 'cyan'
                 else return 'red'
             }
         },
-        
     });
 
 </script>

@@ -1,5 +1,23 @@
+html,
+body {
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
 #app {
     height: 100%;
+    min-height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+    padding: 0;
+    overflow: auto;
 }
 
 .ant-space {
@@ -11,7 +29,7 @@
 }
 
 .ant-card {
-    border-radius: 30px;
+    border-radius: 1.5rem;
 }
 
 .ant-card-hoverable {
@@ -169,7 +187,7 @@
 .ant-layout-sider-zero-width-trigger,
 .ant-dropdown-menu-dark,.ant-dropdown-menu-dark .ant-dropdown-menu,
 .ant-menu-dark.ant-menu-horizontal>.ant-menu-item,.ant-menu-dark.ant-menu-horizontal>.ant-menu-submenu {
-    background:#161b22
+    background:#1A202B
 }
 
 .ant-card-dark {
@@ -180,8 +198,12 @@
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    box-shadow: 0 2px 8px rgba(255,255,255,.15);
+    box-shadow: 0 1px 10px -1px rgb(76, 88, 126);
 }
+
+/* .ant-card-bordered:hover {
+    box-shadow: 0 3px 12px -0.8px #0000005c;
+} */
 
 .ant-card-dark .ant-table-thead th {
     color: hsla(0,0%,100%,.65);
@@ -199,6 +221,7 @@
 .ant-card-dark .ant-input-group-addon {
     color: hsla(0,0%,100%,.65);
     background-color: #262f3d;
+    border: 1px solid rgb(0 150 112 / 0%);
 }
 
 .ant-card-dark .ant-list-item-meta-title,
@@ -212,6 +235,7 @@
 .ant-card-dark .ant-modal-close,
 .ant-card-dark i,
 .ant-card-dark .ant-select-dropdown-menu-item,
+.ant-card-dark .ant-calendar-day-select,
 .ant-card-dark .ant-calendar-month-select,
 .ant-card-dark .ant-calendar-year-select,
 .ant-card-dark .ant-calendar-date,
@@ -226,13 +250,17 @@
 .ant-card-dark .ant-calendar-date:hover,
 .ant-card-dark .ant-select-dropdown-menu-item-active,
 .ant-card-dark li.ant-calendar-time-picker-select-option-selected {
-    background-color: #004488;
+    background-color: #11314d;
 }
 
 .ant-card-dark tbody .ant-table-expanded-row,
 .ant-card-dark .ant-calendar-time-picker-inner {
     color: hsla(0,0%,100%,.65);
     background-color: #1a212a; 
+}
+
+.ant-input-number {
+    min-width: 100px;
 }
 
 .ant-card-dark .ant-input,
@@ -243,26 +271,40 @@
 .ant-card-dark .ant-select-selection,
 .ant-card-dark .ant-calendar-picker-clear {
     color: hsla(0,0%,100%,.65);
-    background-color: #2e3b52;
+    background-color: rgb(46 59 82 / 50%);
+    border: 1px solid rgb(0 150 112 / 0%);
+}
+
+.ant-card-dark .ant-select-disabled .ant-select-selection {
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background-color: #242c3a;
 }
 
 .ant-card-dark .ant-collapse-item {
     color: hsla(0,0%,100%,.65);
     background-color: #161b22;
+    border-radius: 0.5rem 0.5rem 0 0;
 }
 
 .ant-dropdown-menu-dark,
 .ant-card-dark .ant-modal-content {
-    border: 1px solid rgba(255, 255, 255, 0.65);
+    border:1px solid rgb(100 100 100 / 20%);
     box-shadow: 0 2px 8px rgba(255,255,255,.15);
 }
 
 .ant-card-dark .ant-modal-content,
 .ant-card-dark .ant-modal-body,
-.ant-card-dark .ant-modal-header,
-.ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
+.ant-card-dark .ant-modal-header {
     color: hsla(0,0%,100%,.65);
     background-color: #222a37;
+}
+
+.ant-card-dark .ant-calendar-selected-day .ant-calendar-date {
+    background-color: rgb(0 150 112);
+}
+
+.ant-card-dark .ant-calendar-time-picker-select li:hover {
+    background: #1668dc;
 }
 
 .client-table-header {
@@ -311,9 +353,9 @@
 }
 
 .ant-card-dark .ant-tag-green {
-    color: #6abe39;
-    background: #162312;
-    border-color: #274916;
+    color: #37b998;
+    background: #101e1a;
+    border-color: #144237;
 }
 
 .ant-card-dark .ant-tag-cyan {
@@ -340,7 +382,7 @@
 }
 
 .ant-card-dark .ant-switch-checked {
-    background-color: #0c61b0;
+    background-color: #009670;
 }
 
 .ant-card-dark .ant-btn,
@@ -356,14 +398,14 @@
 
 .ant-card-dark .ant-btn-primary {
     color:  hsla(0,0%,100%,.65);
-    background-color: #073763;
-    border-color: #1890ff;
+    background-color: rgb(7 98 75 / 50%);
+    border-color: #009670;
     text-shadow: 0 -1px 0 rgba(255,255,255,.12);
     box-shadow: 0 2px 0 rgba(255,255,255,.045);
 }
 .ant-card-dark .ant-btn-primary:hover {
-    background-color: #40a9ff;
-    border-color: #40a9ff;
+    background-color: #009670;
+    border-color: #40a9ff00;
 }
 
 .ant-dark .ant-popover-content {
@@ -383,4 +425,21 @@
 
 .ant-dark .ant-popover-placement-top>.ant-popover-content>.ant-popover-arrow {
     border-color: transparent #2e3b52 #2e3b52 transparent;
+}
+
+::-webkit-scrollbar {
+    width: 0.7em;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(50 62 82 / 25%);
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(133 133 133 / 80%);
+    border-radius: 100vw;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #919191;
 }

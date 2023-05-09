@@ -2,11 +2,15 @@ axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 
 axios.interceptors.request.use(
-    config => {
-        config.data = Qs.stringify(config.data, {
-            arrayFormat: 'repeat'
-        });
+    (config) => {
+        if (config.data instanceof FormData) {
+            config.headers['Content-Type'] = 'multipart/form-data';
+        } else {
+            config.data = Qs.stringify(config.data, {
+                arrayFormat: 'repeat',
+            });
+        }
         return config;
     },
-    error => Promise.reject(error)
+    (error) => Promise.reject(error),
 );

@@ -51,8 +51,8 @@ func runWebServer() {
 	}
 
 	sigCh := make(chan os.Signal, 1)
-	//信号量捕获处理
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, syscall.SIGKILL)
+	// Trap shutdown signals
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
 	for {
 		sig := <-sigCh
 
@@ -204,6 +204,36 @@ func updateSetting(port int, username string, password string) {
 	}
 }
 
+func migrateDb() {
+	inboundService := service.InboundService{}
+
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("Start migrating database...")
+	inboundService.MigrateDB()
+	fmt.Println("Migration done!")
+}
+
+func removeSecret() {
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	userService := service.UserService{}
+	err = userService.RemoveUserSecret()
+	if err != nil {
+		fmt.Println(err)
+	}
+	settingService := service.SettingService{}
+	err = settingService.SetSecretStatus(false)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		runWebServer()
@@ -229,6 +259,7 @@ func main() {
 	var tgbotRuntime string
 	var reset bool
 	var show bool
+	var remove_secret bool
 	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "show current settings")
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
@@ -246,6 +277,7 @@ func main() {
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
 		fmt.Println("    v2-ui          migrate form v2-ui")
+		fmt.Println("    migrate        migrate form other/old x-ui")
 		fmt.Println("    setting        set settings")
 	}
 
@@ -263,6 +295,8 @@ func main() {
 			return
 		}
 		runWebServer()
+	case "migrate":
+		migrateDb()
 	case "v2-ui":
 		err := v2uiCmd.Parse(os.Args[2:])
 		if err != nil {
@@ -289,6 +323,12 @@ func main() {
 		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
+		}
+		if remove_secret {
+			removeSecret()
+		}
+		if enabletgbot {
+			updateTgbotEnableSts(enabletgbot)
 		}
 	default:
 		fmt.Println("except 'run' or 'v2-ui' or 'setting' subcommands")

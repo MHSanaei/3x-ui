@@ -13,32 +13,33 @@
     }
 
     .ant-card-dark h2 {
-        color: hsla(0,0%,100%,.65);
+        color: hsla(0, 0%, 100%, .65);
     }
 </style>
+
 <body>
 <a-layout id="app" v-cloak>
     {{ template "commonSider" . }}
-    <a-layout id="content-layout" :style="siderDrawer.isDarkTheme ? bgDarkStyle : ''">
+    <a-layout id="content-layout" :style="themeSwitcher.bgStyle">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
             <transition name="list" appear>
                 <a-row>
-                    <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                    <a-card hoverable :class="themeSwitcher.darkCardClass">
                         <a-row>
                             <a-col :sm="24" :md="12">
                                 <a-row>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.cpu.color"
-                                                    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.cpu.percent"></a-progress>
                                         <div>CPU</div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.mem.color"
-                                                    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.mem.percent"></a-progress>
                                         <div>
                                             {{ i18n "pages.index.memory"}}: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
@@ -51,7 +52,7 @@
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.swap.color"
-                                                    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.swap.percent"></a-progress>
                                         <div>
                                             Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
@@ -60,7 +61,7 @@
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.disk.color"
-                                                    :class="siderDrawer.isDarkTheme ? darkClass : ''"
+                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.disk.percent"></a-progress>
                                         <div>
                                             {{ i18n "pages.index.hard"}}: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
@@ -75,14 +76,14 @@
             <transition name="list" appear>
                 <a-row>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             3x-ui: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
                             Xray: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                             Telegram: <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             {{ i18n "pages.index.operationHours" }}:
                             <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
                             <a-tooltip>
@@ -94,7 +95,7 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             {{ i18n "pages.index.xrayStatus" }}:
                             <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
                             <a-tooltip v-if="status.xray.state === State.Error">
@@ -109,20 +110,20 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             {{ i18n "menu.link" }}:
-                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">Log Reports</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">Config</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="getBackup">Backup</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             TCP / UDP {{ i18n "pages.index.connectionCount" }}: [[ status.tcpCount ]] / [[ status.udpCount ]]
                             <a-tooltip>
                                 <template slot="title">
@@ -133,7 +134,7 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             <a-row>
                                 <a-col :span="12">
                                     <a-icon type="arrow-up"></a-icon>
@@ -159,7 +160,7 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="siderDrawer.isDarkTheme ? darkClass : ''">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
                             <a-row>
                                 <a-col :span="12">
                                     <a-icon type="cloud-upload"></a-icon>
@@ -188,9 +189,10 @@
             </transition>
         </a-layout-content>
     </a-layout>
+
     <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}'
              :closable="true" @ok="() => versionModal.visible = false"
-             :class="siderDrawer.isDarkTheme ? darkClass : ''"
+             :class="themeSwitcher.darkCardClass"
              footer="">
         <h2>{{ i18n "pages.index.xraySwitchClick"}}</h2>
         <h2>{{ i18n "pages.index.xraySwitchClickDesk"}}</h2>
@@ -201,9 +203,10 @@
             </a-tag>
         </template>
     </a-modal>
+
     <a-modal id="log-modal" v-model="logModal.visible" title="X-UI logs"
              :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
-             :class="siderDrawer.isDarkTheme ? darkClass : ''"
+             :class="themeSwitcher.darkCardClass"
              width="800px"
              footer="">
         <a-form layout="inline">
@@ -211,7 +214,7 @@
                 <a-select v-model="logModal.rows"
                 style="width: 80px"
                 @change="openLogs(logModal.rows)"
-                :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+                :dropdown-class-name="themeSwitcher.darkCardClass">
                     <a-select-option value="10">10</a-select-option>
                     <a-select-option value="20">20</a-select-option>
                     <a-select-option value="50">50</a-select-option>
@@ -227,12 +230,31 @@
                     {{ i18n "download" }} x-ui.log
                 </a-button>
             </a-form-item>
-       </a-form>
+        </a-form>
         <a-input type="textarea" v-model="logModal.logs" disabled="true"
                 :autosize="{ minRows: 10, maxRows: 22}"></a-input>
     </a-modal>
+
+    <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
+            :closable="true" :class="themeSwitcher.darkCardClass"
+            @ok="() => backupModal.hide()" @cancel="() => backupModal.hide()">
+        <p style="color: inherit; font-size: 16px; padding: 4px 2px;">
+            <a-icon type="warning" style="color: inherit; font-size: 20px;"></a-icon>
+            [[ backupModal.description ]]
+        </p>
+        <a-space direction="horizontal" align="center" style="margin-bottom: 10px;">
+            <a-button type="primary" @click="exportDatabase()">
+                [[ backupModal.exportText ]]
+            </a-button>
+            <a-button type="primary" @click="importDatabase()">
+                [[ backupModal.importText ]]
+            </a-button>
+        </a-space>
+    </a-modal>
+
 </a-layout>
 {{template "js" .}}
+{{template "component/themeSwitcher" .}}
 {{template "textModal"}}
 <script>
 
@@ -275,13 +297,13 @@
             this.disk = new CurTotal(0, 0);
             this.loads = [0, 0, 0];
             this.mem = new CurTotal(0, 0);
-            this.netIO = {up: 0, down: 0};
-            this.netTraffic = {sent: 0, recv: 0};
+            this.netIO = { up: 0, down: 0 };
+            this.netTraffic = { sent: 0, recv: 0 };
             this.swap = new CurTotal(0, 0);
             this.tcpCount = 0;
             this.udpCount = 0;
             this.uptime = 0;
-            this.xray = {state: State.Stop, errorMsg: "", version: "", color: ""};
+            this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
 
             if (data == null) {
                 return;
@@ -339,14 +361,38 @@
         },
     };
 
+    const backupModal = {
+        visible: false,
+        title: '',
+        description: '',
+        exportText: '',
+        importText: '',
+        show({
+            title = '{{ i18n "pages.index.backupTitle" }}',
+            description = '{{ i18n "pages.index.backupDescription" }}',
+            exportText = '{{ i18n "pages.index.exportDatabase" }}',
+            importText = '{{ i18n "pages.index.importDatabase" }}',
+        }) {
+            this.title = title;
+            this.description = description;
+            this.exportText = exportText;
+            this.importText = importText;
+            this.visible = true;
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
+            themeSwitcher,
             status: new Status(),
             versionModal,
             logModal,
+            backupModal,
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
         },
@@ -378,17 +424,16 @@
                     title: '{{ i18n "pages.index.xraySwitchVersionDialog"}}',
                     content: '{{ i18n "pages.index.xraySwitchVersionDialogDesc"}}' + ` ${version}?`,
                     okText: '{{ i18n "confirm"}}',
-                    class: siderDrawer.isDarkTheme ? darkClass : '',
+                    class: themeSwitcher.darkCardClass,
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         versionModal.hide();
-                        this.loading(true, '{{ i18n "pages.index.dontRefreshh"}}');
+                        this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
                         await HttpUtil.post(`/server/installXray/${version}`);
                         this.loading(false);
                     },
                 });
             },
-	        //here add stop xray function
             async stopXrayService() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/stopXrayService');
@@ -397,7 +442,6 @@
                     return;
                 }
             },
-            //here add restart xray function
             async restartXrayService() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/restartXrayService');
@@ -406,27 +450,67 @@
                     return;
                 }
             },
-            async openLogs(rows){
+            async openLogs(rows) {
                 this.loading(true);
-                const msg = await HttpUtil.post('server/logs/'+rows);
+                const msg = await HttpUtil.post('server/logs/' + rows);
                 this.loading(false);
                 if (!msg.success) {
                     return;
                 }
-                logModal.show(msg.obj,rows);
+                logModal.show(msg.obj, rows);
             },
-            async openConfig(){
+            async openConfig() {
                 this.loading(true);
                 const msg = await HttpUtil.post('server/getConfigJson');
                 this.loading(false);
                 if (!msg.success) {
                     return;
                 }
-                txtModal.show('config.json',JSON.stringify(msg.obj, null, 2),'config.json');
+                txtModal.show('config.json', JSON.stringify(msg.obj, null, 2), 'config.json');
             },
-            getBackup(){
+            openBackup() {
+                backupModal.show({
+                    title: '{{ i18n "pages.index.backupTitle" }}',
+                    description: '{{ i18n "pages.index.backupDescription" }}',
+                    exportText: '{{ i18n "pages.index.exportDatabase" }}',
+                    importText: '{{ i18n "pages.index.importDatabase" }}',
+                });
+            },
+            exportDatabase() {
                 window.location = basePath + 'server/getDb';
-            }
+            },
+            importDatabase() {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.db';
+                fileInput.addEventListener('change', async (event) => {
+                    const dbFile = event.target.files[0];
+                    if (dbFile) {
+                        const formData = new FormData();
+                        formData.append('db', dbFile);
+                        backupModal.hide();
+                        this.loading(true);
+                        const uploadMsg = await HttpUtil.post('server/importDB', formData, {
+                            headers: {
+                                'Content-Type': 'multipart/form-data',
+                            }
+                        });
+                        this.loading(false);
+                        if (!uploadMsg.success) {
+                            return;
+                        }
+                        this.loading(true);
+                        const restartMsg = await HttpUtil.post("/xui/setting/restartPanel");
+                        this.loading(false);
+                        if (restartMsg.success) {
+                            this.loading(true);
+                            await PromiseUtil.sleep(5000);
+                            location.reload();
+                        }
+                    }
+                });
+                fileInput.click();
+            },
         },
         async mounted() {
             while (true) {

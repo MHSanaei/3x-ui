@@ -1,7 +1,112 @@
 {{define "form/shadowsocks"}}
+<a-form layout="inline" style="padding: 10px 0px;">
+    <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.shadowsockses.slice(0,1)" v-if="!isEdit">
+        <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+            <a-form-item>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.Email" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.EmailDesc" }}</span>
+                        </template>
+                        <a-icon @click="getNewEmail(client)" type="sync"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
+            </a-form-item>
+            <a-form-item label="Password">
+                <a-icon @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
+                <a-input v-model.trim="client.password" style="width: 250px;"></a-input>
+            </a-form-item>
+            <a-form-item v-if="client.email">
+                <span slot="label">
+                    Subscription
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input v-model.trim="client.subId"></a-input>
+        </a-form-item>
+            <a-form-item v-if="client.email">
+                <span slot="label">
+                    Telegram ID
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input v-model.trim="client.tgId"></a-input>
+            </a-form-item>
+            <a-form-item>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input-number v-model="client.limitIp" min="0"></a-input-number>
+            </a-form-item>
+            <br>
+            <a-form-item>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                    <a-tooltip>
+                        <template slot="title">
+                            0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+            </a-form-item>
+            <br>
+            <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
+                <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
+            </a-form-item>
+            <br>
+            <a-form-item v-if="delayedStart" label='{{ i18n "pages.client.expireDays" }}'>
+                <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
+            </a-form-item>
+            <a-form-item v-else>
+                <span slot="label">
+                    <span>{{ i18n "pages.inbounds.expireDate" }}</span>
+                    <a-tooltip>
+                        <template slot="title">
+                            <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
+                        </template>
+                        <a-icon type="question-circle" theme="filled"></a-icon>
+                    </a-tooltip>
+                </span>
+                <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+                                :dropdown-class-name="themeSwitcher.darkCardClass"
+                                v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
+            </a-form-item>
+        </a-collapse-panel>
+    </a-collapse>
+    <a-collapse v-else>
+        <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.shadowsockses.length">
+            <table width="100%">
+                <tr class="client-table-header">
+                    <th v-for="col in Object.keys(inbound.settings.shadowsockses[0]).slice(0, 3)">[[ col ]]</th>
+                </tr>
+                <tr v-for="(client, index) in inbound.settings.shadowsockses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+                    <td v-for="col in Object.values(client).slice(0, 3)">[[ col ]]</td>
+                </tr>
+            </table>
+        </a-collapse-panel>
+    </a-collapse>
+</a-form>
 <a-form layout="inline">
     <a-form-item label='{{ i18n "encryption" }}'>
-        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
         </a-select>
     </a-form-item>
@@ -9,7 +114,7 @@
         <a-input v-model.trim="inbound.settings.password" style="width: 250px;"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
-        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="siderDrawer.isDarkTheme ? 'ant-card-dark' : ''">
+        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.darkCardClass">
             <a-select-option value="tcp,udp">TCP+UDP</a-select-option>
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="udp">UDP</a-select-option>

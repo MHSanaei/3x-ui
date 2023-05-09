@@ -3,6 +3,7 @@ class User {
     constructor() {
         this.username = "";
         this.password = "";
+        this.LoginSecret = "";
     }
 }
 
@@ -171,6 +172,7 @@ class AllSetting {
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
+        this.sessionMaxAge = "";
         this.expireDiff = "";
         this.trafficDiff = "";
         this.tgBotEnable = false;
@@ -180,6 +182,7 @@ class AllSetting {
         this.tgBotBackup = false;
         this.tgCpu = "";
         this.xrayTemplateConfig = "";
+        this.secretEnable = false;
 
         this.timeLocation = "Asia/Tehran";
 

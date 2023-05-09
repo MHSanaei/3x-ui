@@ -28,6 +28,18 @@
       "tag": "blocked",
       "protocol": "blackhole",
       "settings": {}
+    },
+    {
+      "tag": "WARP",
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "127.0.0.1",
+            "port": 40000
+          }
+        ]
+      }
     }
   ],
   "policy": {
@@ -59,6 +71,26 @@
         "type": "field",
         "outboundTag": "blocked",
         "protocol": ["bittorrent"]
+      },
+      {
+        "type": "field",
+        "outboundTag": "blocked",
+        "domain": [
+          "geosite:category-ads-all",
+          "geosite:category-ads",
+          "geosite:google-ads",
+          "geosite:spotify-ads"
+        ]
+      },
+      {
+        "type": "field",
+        "outboundTag": "WARP",
+        "domain": [
+          "geosite:google",
+          "geosite:netflix",
+          "geosite:spotify",
+          "geosite:openai"
+        ]
       }
     ]
   },

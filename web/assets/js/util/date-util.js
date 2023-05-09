@@ -128,14 +128,13 @@ Date.prototype.formatDateTime = function (split = ' ') {
 };
 
 class DateUtil {
-
     // 字符串转 Date 对象
     static parseDate(str) {
         return new Date(str.replace(/-/g, '/'));
     }
 
     static formatMillis(millis) {
-        return moment(millis).format('YYYY-M-D H:m:s')
+        return moment(millis).format('YYYY-M-D H:m:s');
     }
 
     static firstDayOfMonth() {

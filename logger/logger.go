@@ -1,8 +1,9 @@
 package logger
 
 import (
-	"github.com/op/go-logging"
 	"os"
+
+	"github.com/op/go-logging"
 )
 
 var logger *logging.Logger

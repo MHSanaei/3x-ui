@@ -69,7 +69,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 
 	s.inboundService.DisableInvalidClients()
-	s.inboundService.RemoveOrphanedTraffics()
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
@@ -119,12 +118,15 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "alterId" {
 						delete(c, key)
 					}
+					if c["flow"] == "xtls-rprx-vision-udp443" {
+						c["flow"] = "xtls-rprx-vision"
+					}
 				}
 				final_clients = append(final_clients, interface{}(c))
 			}
 
 			settings["clients"] = final_clients
-			modifiedSettings, err := json.Marshal(settings)
+			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return nil, err
 			}

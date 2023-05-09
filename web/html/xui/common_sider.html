@@ -7,9 +7,9 @@
     <a-icon type="user"></a-icon>
     <span>{{ i18n "menu.inbounds"}}</span>
 </a-menu-item>
-<a-menu-item key="{{ .base_path }}xui/setting">
+<a-menu-item key="{{ .base_path }}xui/settings">
     <a-icon type="setting"></a-icon>
-    <span>{{ i18n "menu.setting"}}</span>
+    <span>{{ i18n "menu.settings"}}</span>
 </a-menu-item>
 <!--<a-menu-item key="{{ .base_path }}xui/clients">-->
 <!--    <a-icon type="laptop"></a-icon>-->
@@ -23,17 +23,14 @@
 
 
 {{define "commonSider"}}
-<a-layout-sider :theme="siderDrawer.theme" id="sider" collapsible breakpoint="md" collapsed-width="0">
-    <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
+<a-layout-sider :theme="themeSwitcher.currentTheme" id="sider" collapsible breakpoint="md" collapsed-width="0">
+    <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
-            <a-switch :default-checked="siderDrawer.isDarkTheme"
-            checked-children="☀"
-            un-checked-children="🌙"
-            @change="siderDrawer.changeTheme()"></a-switch>
+            <theme-switch />
         </a-menu-item>
     </a-menu>
-    <a-menu :theme="siderDrawer.theme" mode="inline" :selected-keys="['{{ .request_uri }}']"
+    <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']"
             @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
         {{template "menuItems" .}}
     </a-menu>
@@ -41,32 +38,25 @@
 <a-drawer id="sider-drawer" placement="left" :closable="false"
           @close="siderDrawer.close()"
           :visible="siderDrawer.visible"
-          :wrap-class-name="siderDrawer.isDarkTheme ? 'ant-drawer-dark' : ''"
+          :wrap-class-name="themeSwitcher.darkDrawerClass"
           :wrap-style="{ padding: 0 }">
     <div class="drawer-handle" @click="siderDrawer.change()" slot="handle">
         <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
     </div>
-    <a-menu :theme="siderDrawer.theme" mode="inline" selected-keys="">
+    <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
             <a-icon type="bg-colors"></a-icon>
-            <a-switch :default-checked="siderDrawer.isDarkTheme"
-            checked-children="☀"
-            un-checked-children="🌙"
-            @change="siderDrawer.changeTheme()"></a-switch>
+            <theme-switch />
         </a-menu-item>
     </a-menu>
-    <a-menu :theme="siderDrawer.theme" mode="inline" :selected-keys="['{{ .request_uri }}']"
+    <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']"
         @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
         {{template "menuItems" .}}
     </a-menu>
 </a-drawer>
 <script>
-    const darkClass = "ant-card-dark";
-    const bgDarkStyle = "background-color: #242c3a";
     const siderDrawer = {
         visible: false,
-        collapsed: false,
-        isDarkTheme: localStorage.getItem("dark-mode") === 'true' ? true : false,
         show() {
             this.visible = true;
         },
@@ -76,17 +66,6 @@
         change() {
             this.visible = !this.visible;
         },
-        toggleCollapsed() {
-            this.collapsed = !this.collapsed;
-        },
-        changeTheme() {
-            this.isDarkTheme = ! this.isDarkTheme;
-            localStorage.setItem("dark-mode", this.isDarkTheme);
-        },
-        get theme() {
-            return this.isDarkTheme ? 'dark' : 'light';
-        }
     };
-
 </script>
 {{end}}
