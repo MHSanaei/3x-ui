@@ -1,5 +1,5 @@
 #Build latest x-ui from source
-FROM golang:1.20.4-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.20.4-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH 
 RUN apk --no-cache --update add build-base gcc wget unzip
