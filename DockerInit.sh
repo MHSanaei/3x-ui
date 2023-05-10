@@ -17,4 +17,6 @@ rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"
 wget "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
 wget "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+wget "https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat"
+
 cd ../../
