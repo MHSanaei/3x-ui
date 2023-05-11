@@ -1,6 +1,13 @@
 {{define "component/settingListItem"}}
 <a-list-item style="padding: 20px">
-    <a-row>
+    <a-row v-if="type === 'textarea'">
+        <a-col>
+            <a-list-item-meta :title="title" :description="desc"/>
+            <a-textarea class="ant-setting-textarea" :value="value" @input="$emit('input', $event.target.value)"></a-textarea>
+            <!--a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 30 }"></a-textarea-->
+        </a-col>
+    </a-row>
+    <a-row v-else>
         <a-col :lg="24" :xl="12">
             <a-list-item-meta :title="title" :description="desc"/>
         </a-col>
@@ -10,9 +17,6 @@
             </template>
             <template v-else-if="type === 'number'">
                 <a-input-number :value="value" @change="value => $emit('input', value)" :min="min" style="width: 100%;"></a-input-number>
-            </template>
-            <template v-else-if="type === 'textarea'">
-                <a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 10 }"></a-textarea>
             </template>
             <template v-else-if="type === 'switch'">
                 <a-switch :checked="value" @change="value => $emit('input', value)"></a-switch>
