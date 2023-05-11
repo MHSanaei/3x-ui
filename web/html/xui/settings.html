@@ -36,7 +36,7 @@
                         <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
                         <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
                     </a-space>
-                    <a-tabs default-active-key="1" :class="themeSwitcher.darkCardClass" >
+                    <a-tabs style="margin:1rem 0.5rem;" default-active-key="1" :class="themeSwitcher.darkCardClass" >
                         <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
                             <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
@@ -75,7 +75,7 @@
                         </a-tab-pane>
 
                         <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
-                            <a-tabs default-active-key="sec-1" :class="themeSwitcher.darkCardClass">
+                            <a-tabs class="ant-card-dark-securitybox-nohover" default-active-key="sec-1" :class="themeSwitcher.darkCardClass">
                                 <a-tab-pane key="sec-1" tab='{{ i18n "pages.settings.security.admin"}}'>
                                     <a-form :style="'padding: 20px;' + themeSwitcher.textStyle">
                                         <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
