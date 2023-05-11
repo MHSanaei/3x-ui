@@ -198,7 +198,29 @@ body {
 
 .ant-card-dark:hover {
     border-color: #e8e8e8;
-    box-shadow: 0 1px 10px -1px rgb(76, 88, 126);
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 70%);
+}
+
+.ant-setting-textarea {
+    margin-top: 1.5rem;
+    min-height: 300px !important;
+    /*max-height: 800px !important;*/
+}
+
+.ant-card-dark-box-nohover{
+    padding: 0 20px 20px !important;
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
+}
+.ant-card-dark-box-nohover:hover{
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
+    /*background-color: rgb(36 44 58 / 50%);*/
+}
+
+.ant-card-dark-securitybox-nohover{
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
+}
+.ant-card-dark-securitybox-nohover:hover{
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
 }
 
 /* .ant-card-bordered:hover {
@@ -393,7 +415,7 @@ body {
 }
 
 .ant-card-dark .ant-radio-button-wrapper:hover {
-    color: #177ddc;
+    color: #009670;
 }
 
 .ant-card-dark .ant-btn-primary {
