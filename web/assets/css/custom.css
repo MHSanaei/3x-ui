@@ -208,11 +208,12 @@ body {
 }
 
 .ant-card-dark-box-nohover{
+    padding: 0 20px 20px !important;
     box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
 }
 .ant-card-dark-box-nohover:hover{
     box-shadow: 0 1px 10px -1px rgb(154 175 238 / 0%) !important;
-    background-color: rgb(36 44 58 / 50%);
+    /*background-color: rgb(36 44 58 / 50%);*/
 }
 
 .ant-card-dark-securitybox-nohover{
