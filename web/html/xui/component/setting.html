@@ -3,7 +3,7 @@
     <a-row v-if="type === 'textarea'">
         <a-col>
             <a-list-item-meta :title="title" :description="desc"/>
-            <a-textarea class="ant-setting-textarea" :value="value" @input="$emit('input', $event.target.value)"></a-textarea>
+            <a-textarea class="ant-setting-textarea" :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10 }"></a-textarea>
             <!--a-textarea :value="value" @input="$emit('input', $event.target.value)" :auto-size="{ minRows: 10, maxRows: 30 }"></a-textarea-->
         </a-col>
     </a-row>
