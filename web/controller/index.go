@@ -101,5 +101,4 @@ func (a *IndexController) getSecretStatus(c *gin.Context) {
 	if err == nil {
 		jsonObj(c, status, nil)
 	}
-
 }

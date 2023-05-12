@@ -3,6 +3,7 @@ package controller
 import (
 	"errors"
 	"time"
+	"x-ui/util/common"
 	"x-ui/web/entity"
 	"x-ui/web/service"
 	"x-ui/web/session"
@@ -44,6 +45,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDefaultJsonConfig", a.getDefaultJsonConfig)
 	g.POST("/updateUserSecret", a.updateSecret)
 	g.POST("/getUserSecret", a.getUserSecret)
+	g.GET("/searchDatafiles", a.searchDatafiles)
 }
 
 func (a *SettingController) getAllSetting(c *gin.Context) {
@@ -149,10 +151,26 @@ func (a *SettingController) updateSecret(c *gin.Context) {
 	}
 	jsonMsg(c, I18n(c, "pages.settings.toasts.modifyUser"), err)
 }
+
 func (a *SettingController) getUserSecret(c *gin.Context) {
 	loginUser := session.GetLoginUser(c)
 	user := a.userService.GetUserSecret(loginUser.Id)
 	if user != nil {
 		jsonObj(c, user, nil)
 	}
+}
+
+func (a *SettingController) searchDatafiles(c *gin.Context) {
+	searchString := c.Query("query")
+	if searchString == "" {
+		err := common.NewError("data query parameter is empty")
+		jsonMsg(c, "Invalid query:", err)
+		return
+	}
+	found, err := a.settingService.SearchDatafiles(searchString)
+	if err != nil {
+		jsonMsg(c, "Something went wrong!", err)
+		return
+	}
+	jsonObj(c, found, nil)
 }
