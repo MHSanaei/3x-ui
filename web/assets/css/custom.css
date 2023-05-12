@@ -243,7 +243,7 @@ body {
 .ant-card-dark .ant-input-group-addon {
     color: hsla(0,0%,100%,.65);
     background-color: #262f3d;
-    border: 1px solid rgb(0 150 112 / 0%);
+    border: 1px solid rgb(149 149 149 / 30%);
 }
 
 .ant-card-dark .ant-list-item-meta-title,
