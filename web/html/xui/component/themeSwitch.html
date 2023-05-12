@@ -28,7 +28,7 @@
       isDarkTheme,
       bgStyle: `background: ${colors[theme].bg};`,
       textStyle: `color: ${colors[theme].text};`,
-      darkClass: isDarkTheme ? 'ant-card-dark' : '',
+      darkClass: isDarkTheme ? 'ant-dark' : '',
       darkCardClass: isDarkTheme ? 'ant-card-dark' : '',
       darkDrawerClass: isDarkTheme ? 'ant-drawer-dark' : '',
       get currentTheme() {
@@ -40,7 +40,7 @@
         localStorage.setItem('dark-mode', this.isDarkTheme);
         this.bgStyle = `background: ${colors[this.theme].bg};`;
         this.textStyle = `color: ${colors[this.theme].text};`;
-        this.darkClass = this.isDarkTheme ? 'ant-card-dark' : '';
+        this.darkClass = this.isDarkTheme ? 'ant-dark' : '';
         this.darkCardClass = this.isDarkTheme ? 'ant-card-dark' : '';
         this.darkDrawerClass = this.isDarkTheme ? 'ant-drawer-dark' : '';
       },
