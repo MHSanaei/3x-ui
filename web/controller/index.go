@@ -39,7 +39,7 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 
 func (a *IndexController) index(c *gin.Context) {
 	if session.IsLogin(c) {
-		c.Redirect(http.StatusTemporaryRedirect, "xui/")
+		c.Redirect(http.StatusTemporaryRedirect, "panel/")
 		return
 	}
 	html(c, "login.html", "pages.login.title", nil)
