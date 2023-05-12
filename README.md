@@ -49,12 +49,12 @@ or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
 
 Before you set ssl on settings
 
-- http://ip:2053/xui
-- http://domain:2053/xui
+- http://ip:2053/panel
+- http://domain:2053/panel
 
 After you set ssl on settings
 
-- https://yourdomain:2053/xui
+- https://yourdomain:2053/panel
 
 # Environment Variables
 
