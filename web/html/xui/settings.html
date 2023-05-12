@@ -307,6 +307,9 @@
                 },
             }
         },
+        created() {
+            this.checkForGeosites();
+        },
         methods: {
             loading(spinning = true, obj) {
                 if (obj == null) this.spinning = spinning;
@@ -400,6 +403,27 @@
                     this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
                     this.saveBtnDisable = true;
                 }
+            },
+            checkForGeosites() {
+                const domainsToCheck = [
+                    {
+                        query: "category-ru-gov",
+                        key: "this.settingsData.domains.ru",
+                        data: [
+                            "geosite:category-ru-gov",
+                            "regexp:.*\\.ru$"
+                        ]
+                    },
+                ];
+                this.loading(true);
+                domainsToCheck.forEach(async (dd) => {
+                    const msg = await HttpUtil.get(`/xui/setting/searchDatafiles?query=${dd.query}`);
+                    if (msg.success && msg.obj) {
+                        [dd.key] = dd.data;
+                        console.log([dd.key])
+                    }
+                })
+                this.loading(false);
             },
             checkRequiredOutbounds() {
                 const newTemplateSettings = this.templateSettings;
