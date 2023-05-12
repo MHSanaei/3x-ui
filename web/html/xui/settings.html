@@ -153,6 +153,7 @@
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigAds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigAdsDesc"}}' v-model="AdsSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPorn"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPornDesc"}}' v-model="PornSettings"></setting-list-item>
+                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpeedtest"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.countryConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
@@ -285,6 +286,7 @@
                         "geosite:spotify-ads"
                     ],
                     porn: ["geosite:category-porn"],
+                    speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
                     google: ["geosite:google"],
                     spotify: ["geosite:spotify"],
@@ -594,6 +596,23 @@
                         outboundTag: "blocked",
                         property: "domain",
                         data: this.settingsData.domains.porn
+                    });
+                },
+            },
+            SpeedTestSettings: {
+                get: function () {
+                    return this.templateRuleGetter({
+                        outboundTag: "blocked",
+                        property: "domain",
+                        data: this.settingsData.domains.speedtest
+                    });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({
+                        newValue,
+                        outboundTag: "blocked",
+                        property: "domain",
+                        data: this.settingsData.domains.speedtest
                     });
                 },
             },
