@@ -696,8 +696,9 @@
                 }
             },
             showQrcode(dbInbound, clientIndex) {
+                const clientName = JSON.parse(dbInbound.settings).clients[clientIndex].email;
                 const link = dbInbound.genLink(clientIndex);
-                qrModal.show('{{ i18n "qrCode"}}', link, dbInbound);
+                qrModal.show('{{ i18n "qrCode"}}', link, dbInbound, '', clientName);
             },
             showInfo(dbInbound, index) {
                 infoModal.show(dbInbound, index);
