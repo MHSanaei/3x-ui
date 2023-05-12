@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bufio"
 	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -16,6 +18,7 @@ import (
 	"x-ui/util/random"
 	"x-ui/util/reflect_util"
 	"x-ui/web/entity"
+	"x-ui/xray"
 )
 
 //go:embed config.json
@@ -350,4 +353,28 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		}
 	}
 	return common.Combine(errs...)
+}
+
+func (s *SettingService) SearchDatafiles(query string) (bool, error) {
+	// Open the file for reading
+	file, err := os.Open(xray.GetGeositePath())
+	if err != nil {
+		return false, common.NewErrorf("Error opening geosite.dat: %v", err)
+	}
+	defer file.Close()
+
+	// Create a scanner to read the file line-by-line
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(strings.ToLower(line), strings.ToLower(query)) {
+			return true, nil
+		}
+	}
+
+	err = scanner.Err()
+	if err != nil {
+		return false, common.NewErrorf("Error while scanning geosite.dat: %v", err)
+	}
+	return false, nil
 }
