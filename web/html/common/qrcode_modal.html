@@ -7,7 +7,10 @@
     <a-tag color="green" style="margin-bottom: 10px;display: block;text-align: center;">
         {{ i18n "pages.inbounds.clickOnQRcode" }}
     </a-tag>
-    <canvas @click="copyToClipboard()" id="qrCode" style="width: 100%; height: 100%;"></canvas>
+    <a-tag v-if="qrModal.clientName" color="orange" style="margin-bottom: 10px;display: block;text-align: center;">
+        {{ i18n "pages.inbounds.email" }}: "[[ qrModal.clientName ]]"
+    </a-tag>
+    <canvas @click="copyToClipboard()" id="qrCode" style="width: 100%; height: 100%; margin-top: 10px;"></canvas>
 </a-modal>
 
 <script>
@@ -18,14 +21,16 @@
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
         copyText: '',
+        clientName: null,
         qrcode: null,
         clipboard: null,
         visible: false,
-        show: function (title = '', content = '', dbInbound = new DBInbound(), copyText = '') {
+        show: function (title = '', content = '', dbInbound = new DBInbound(), copyText = '', clientName = null) {
             this.title = title;
             this.content = content;
             this.dbInbound = dbInbound;
             this.inbound = dbInbound.toInbound();
+            this.clientName = clientName;
             if (ObjectUtil.isEmpty(copyText)) {
                 this.copyText = content;
             } else {
@@ -50,6 +55,7 @@
     };
 
     const qrModalApp = new Vue({
+        delimiters: ['[[', ']]'],
         el: '#qrcode-modal',
         data: {
             qrModal: qrModal,
