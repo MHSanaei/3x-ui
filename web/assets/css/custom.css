@@ -297,12 +297,12 @@ body {
     border: 1px solid rgb(0 150 112 / 0%);
 }
 
-section:not(.login) .ant-input:focus,
-section:not(.login) .ant-input:hover,
-section:not(.login) .ant-input-number:focus,
-section:not(.login) .ant-input-number:hover,
-section:not(.login) .ant-calendar-input:focus,
-section:not(.login) .ant-calendar-input:hover {
+.ant-layout:not(.login) .ant-input:focus,
+.ant-layout:not(.login) .ant-input:hover,
+.ant-layout:not(.login) .ant-input-number:focus,
+.ant-layout:not(.login) .ant-input-number:hover,
+.ant-layout:not(.login) .ant-calendar-input:focus,
+.ant-layout:not(.login) .ant-calendar-input:hover {
     background-color: rgba(0, 149, 111, 0.1);
 }
 
