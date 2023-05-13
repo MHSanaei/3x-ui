@@ -5,7 +5,7 @@ const supportLangs = [
         icon: '🇺🇸',
     },
     {
-        name: 'Farsi',
+        name: 'فارسی',
         value: 'fa_IR',
         icon: '🇮🇷',
     },
@@ -15,7 +15,7 @@ const supportLangs = [
         icon: '🇨🇳',
     },
     {
-        name: 'Russian',
+        name: 'Русский',
         value: 'ru_RU',
         icon: '🇷🇺',
     },
