@@ -343,7 +343,9 @@
                     return;
                 }
                 this.setInbounds(msg.obj);
-                this.refreshing = false;
+                setTimeout(() => {
+                    this.refreshing = false;
+                }, 500);
             },
             async getDefaultSettings() {
                 const msg = await HttpUtil.post('/panel/setting/defaultSettings');

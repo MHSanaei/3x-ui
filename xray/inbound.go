@@ -6,7 +6,7 @@ import (
 )
 
 type InboundConfig struct {
-	Listen         json_util.RawMessage `json:"listen"` // listen 不能为空字符串
+	Listen         json_util.RawMessage `json:"listen"` // listen cannot be an empty string
 	Port           int                  `json:"port"`
 	Protocol       string               `json:"protocol"`
 	Settings       json_util.RawMessage `json:"settings"`
