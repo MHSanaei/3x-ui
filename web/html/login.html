@@ -46,7 +46,7 @@
 
 </style>
 <body>
-<a-layout id="app" v-cloak :class="themeSwitcher.darkClass">
+<a-layout id="app" v-cloak :class="themeSwitcher.darkCardClass">
     <transition name="list" appear>
         <a-layout-content>
             <a-row type="flex" justify="center">
@@ -120,10 +120,10 @@
             secretEnable: false,
             lang: ""
         },
-        created() {
+        async created() {
             this.updateBackground();
             this.lang = getLang();
-            this.secretEnable = this.getSecretStatus();
+            this.secretEnable = await this.getSecretStatus();
         },
         methods: {
             async login() {
@@ -131,7 +131,7 @@
                 const msg = await HttpUtil.post('/login', this.user);
                 this.loading = false;
                 if (msg.success) {
-                    location.href = basePath + 'xui/';
+                    location.href = basePath + 'panel/';
                 }
             },
             async getSecretStatus() {

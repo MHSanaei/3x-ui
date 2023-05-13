@@ -135,7 +135,7 @@
                 client.email = string;
             },
             async getDBClientIps(email, event) {
-                const msg = await HttpUtil.post('/xui/inbound/clientIps/' + email);
+                const msg = await HttpUtil.post('/panel/inbound/clientIps/' + email);
                 if (!msg.success) {
                     return;
                 }
@@ -149,7 +149,7 @@
                 }
             },
             async clearDBClientIps(email) {
-                const msg = await HttpUtil.post('/xui/inbound/clearClientIps/' + email);
+                const msg = await HttpUtil.post('/panel/inbound/clearClientIps/' + email);
                 if (!msg.success) {
                     return;
                 }
@@ -164,7 +164,7 @@
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         iconElement.disabled = true;
-                        const msg = await HttpUtil.postWithModal('/xui/inbound/' + dbInboundId + '/resetClientTraffic/' + email);
+                        const msg = await HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + email);
                         if (msg.success) {
                             this.clientModal.clientStats.up = 0;
                             this.clientModal.clientStats.down = 0;

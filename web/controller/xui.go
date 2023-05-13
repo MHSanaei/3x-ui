@@ -18,7 +18,7 @@ func NewXUIController(g *gin.RouterGroup) *XUIController {
 }
 
 func (a *XUIController) initRouter(g *gin.RouterGroup) {
-	g = g.Group("/xui")
+	g = g.Group("/panel")
 	g.Use(a.checkLogin)
 
 	g.GET("/", a.index)

@@ -1,4 +1,5 @@
-# 3x-ui 
+# 3x-ui
+
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
@@ -12,7 +13,8 @@
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
 **Buy Me a Coffee :**
- - Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+
+- Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
 # Install & Upgrade
 
@@ -47,12 +49,12 @@ or you can use x-ui menu then number '16' (Apply for an SSL Certificate)
 
 Before you set ssl on settings
 
-- http://ip:2053/xui
-- http://domain:2053/xui
+- http://ip:2053/panel
+- http://domain:2053/panel
 
 After you set ssl on settings
 
-- https://yourdomain:2053/xui
+- https://yourdomain:2053/panel
 
 # Environment Variables
 
@@ -68,6 +70,31 @@ Example:
 ```sh
 XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ```
+
+# Install with Docker
+
+1. Install Docker:
+   ```sh
+   bash <(curl -sSL https://get.docker.com)
+   ```
+2. Run 3x-ui:
+
+   ```sh
+   docker compose up -d
+   ```
+
+   OR
+
+   ```sh
+   docker run -itd \
+      -e XRAY_VMESS_AEAD_FORCED=false \
+      -v $PWD/db/:/etc/x-ui/ \
+      -v $PWD/cert/:/root/cert/ \
+      --network=host \
+      --restart=unless-stopped \
+      --name 3x-ui \
+      ghcr.io/mhsanaei/3x-ui:latest
+   ```
 
 # Xray Configurations:
 
@@ -173,18 +200,18 @@ Reference syntax:
 | `POST` | `"/clientIps/:email"`              | Client Ip address                           |
 | `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
 | `POST` | `"/addClient"`                     | Add Client to inbound                       |
-| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId*                  |
-| `POST` | `"/updateClient/:clientId"`        | Update Client by clientId*                  |
+| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId\*                 |
+| `POST` | `"/updateClient/:clientId"`        | Update Client by clientId\*                 |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
 | `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
 
-*- The field `clientId` should be filled by: 
+\*- The field `clientId` should be filled by:
+
 - `client.id` for VMESS and VLESS
 - `client.password` for TROJAN
 - `client.email` for Shadowsocks
-
 
 - [Postman Collection](https://gist.github.com/mehdikhody/9a862801a2e41f6b5fb6bbc7e1326044)
 
