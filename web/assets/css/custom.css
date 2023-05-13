@@ -297,6 +297,15 @@ body {
     border: 1px solid rgb(0 150 112 / 0%);
 }
 
+.ant-layout:not(.login) .ant-input:focus,
+.ant-layout:not(.login) .ant-input:hover,
+.ant-layout:not(.login) .ant-input-number:focus,
+.ant-layout:not(.login) .ant-input-number:hover,
+.ant-layout:not(.login) .ant-calendar-input:focus,
+.ant-layout:not(.login) .ant-calendar-input:hover {
+    background-color: rgba(0, 149, 111, 0.1);
+}
+
 .ant-card-dark .ant-select-disabled .ant-select-selection {
     border: 1px solid rgba(255, 255, 255, 0.2);
     background-color: #242c3a;
