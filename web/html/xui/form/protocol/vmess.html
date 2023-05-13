@@ -21,7 +21,7 @@
             <br>
             <a-form-item label="ID">
                 <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"> </a-icon>
-                    <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
+                <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
             </a-form-item>
             <a-form-item v-if="client.email">
                 <span slot="label">
@@ -34,7 +34,7 @@
                     </a-tooltip>
                 </span>
                 <a-input v-model.trim="client.subId"></a-input>
-        </a-form-item>
+            </a-form-item>
             <a-form-item v-if="client.email">
                 <span slot="label">
                     Telegram ID
