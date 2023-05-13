@@ -269,10 +269,13 @@ body {
 
 .ant-card-dark .ant-table-tbody>tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)>td,
 .ant-card-dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled),
-.ant-card-dark .ant-calendar-date:hover,
-.ant-card-dark .ant-select-dropdown-menu-item-active,
-.ant-card-dark li.ant-calendar-time-picker-select-option-selected {
+.ant-card-dark .ant-select-dropdown-menu-item-active {
     background-color: #11314d;
+}
+
+.ant-card-dark .ant-calendar-date:hover,
+.ant-card-dark li.ant-calendar-time-picker-select-option-selected {
+    background-color: rgb(4, 119, 90);
 }
 
 .ant-card-dark tbody .ant-table-expanded-row,
