@@ -495,7 +495,6 @@
                 });
             },
             async cloneInbound(baseInbound, dbInbound) {
-                const inbound = new Inbound();
                 const data = {
                     up: dbInbound.up,
                     down: dbInbound.down,
@@ -504,10 +503,10 @@
                     enable: dbInbound.enable,
                     expiryTime: dbInbound.expiryTime,
 
-                    listen: inbound.listen,
-                    port: inbound.port,
+                    listen: '',
+                    port: RandomUtil.randomIntRange(10000, 60000),
                     protocol: baseInbound.protocol,
-                    settings: inbound.settings.toString(),
+                    settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
                     streamSettings: baseInbound.stream.toString(),
                     sniffing: baseInbound.canSniffing() ? baseInbound.sniffing.toString() : '{}',
                 };
