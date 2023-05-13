@@ -9,7 +9,7 @@
                         <template slot="title">
                             <span>{{ i18n "pages.inbounds.emailDesc" }}</span>
                         </template>
-                        <a-icon @click="getNewEmail(client)" type="sync"></a-icon>
+                        <a-icon @click="client.email = RandomUtil.randomText()" type="sync"> </a-icon>
                     </a-tooltip>
                 </span>
                 <a-input v-model.trim="client.email" style="width: 150px;"></a-input>
