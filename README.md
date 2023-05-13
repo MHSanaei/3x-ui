@@ -8,7 +8,7 @@
 [![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese)**
+3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese,Russian)**
 
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
@@ -24,10 +24,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.4.0`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.4.5`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.4.0
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.4.5
 ```
 
 # SSL
