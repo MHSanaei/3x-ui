@@ -187,7 +187,7 @@ Reference syntax:
 ## API routes
 
 - `/login` with `PUSH` user data: `{username: '', password: ''}` for login
-- `/xui/API/inbounds` base for following actions:
+- `/panel/api/inbounds` base for following actions:
 
 | Method | Path                               | Action                                      |
 | :----: | ---------------------------------- | ------------------------------------------- |
