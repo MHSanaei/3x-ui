@@ -6,8 +6,6 @@ import (
 	"x-ui/logger"
 )
 
-var CtxDone = errors.New("context done")
-
 func NewErrorf(format string, a ...interface{}) error {
 	msg := fmt.Sprintf(format, a...)
 	return errors.New(msg)
