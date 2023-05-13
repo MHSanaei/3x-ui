@@ -147,16 +147,17 @@ func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, 
 	return t, nil
 }
 
-func redirectMiddleware() gin.HandlerFunc {
+func redirectMiddleware(basePath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Redirect from old '/xui' path to '/panel'
 		path := c.Request.URL.Path
 		redirects := map[string]string{
-			"/panel/API": "/panel/api",
-			"/xui/API":   "/panel/api",
-			"/xui":       "/panel",
+			"panel/API": "panel/api",
+			"xui/API":   "panel/api",
+			"xui":       "panel",
 		}
 		for from, to := range redirects {
+			from, to = basePath+from, basePath+to
 			if strings.HasPrefix(path, from) {
 				newPath := to + path[len(from):]
 				c.Redirect(http.StatusMovedPermanently, newPath)
@@ -225,7 +226,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Apply the redirect middleware (`/xui` to `/panel`)
-	engine.Use(redirectMiddleware())
+	engine.Use(redirectMiddleware(basePath))
 
 	g := engine.Group(basePath)
 
