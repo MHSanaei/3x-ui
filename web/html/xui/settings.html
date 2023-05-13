@@ -153,6 +153,7 @@
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigAds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigAdsDesc"}}' v-model="AdsSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPorn"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPornDesc"}}' v-model="PornSettings"></setting-list-item>
+                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpeedtest"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.countryConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
@@ -285,6 +286,7 @@
                         "geosite:spotify-ads"
                     ],
                     porn: ["geosite:category-porn"],
+                    speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
                     google: ["geosite:google"],
                     spotify: ["geosite:spotify"],
@@ -307,13 +309,16 @@
                 },
             }
         },
+        created() {
+            this.checkForGeosites();
+        },
         methods: {
             loading(spinning = true, obj) {
                 if (obj == null) this.spinning = spinning;
             },
             async getAllSetting() {
                 this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/all");
+                const msg = await HttpUtil.post("/panel/setting/all");
                 this.loading(false);
                 if (msg.success) {
                     this.oldAllSetting = new AllSetting(msg.obj);
@@ -324,7 +329,7 @@
             },
             async updateAllSetting() {
                 this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/update", this.allSetting);
+                const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
                 this.loading(false);
                 if (msg.success) {
                     await this.getAllSetting();
@@ -332,7 +337,7 @@
             },
             async updateUser() {
                 this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/updateUser", this.user);
+                const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
                 this.loading(false);
                 if (msg.success) {
                     this.user = {};
@@ -350,7 +355,7 @@
                     });
                 });
                 this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/restartPanel");
+                const msg = await HttpUtil.post("/panel/setting/restartPanel");
                 this.loading(false);
                 if (msg.success) {
                     this.loading(true);
@@ -359,7 +364,7 @@
                 }
             },
             async getUserSecret() {
-                const user_msg = await HttpUtil.post("/xui/setting/getUserSecret", this.user);
+                const user_msg = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
                 if (user_msg.success) {
                     this.user = user_msg.obj;
                 }
@@ -367,7 +372,7 @@
             },
             async updateSecret() {
                 this.loading(true);
-                const msg = await HttpUtil.post("/xui/setting/updateUserSecret", this.user);
+                const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
                 if (msg.success) {
                     this.user = msg.obj;
                     window.location.replace(basePath + "logout")
@@ -394,12 +399,33 @@
             },
             async resetXrayConfigToDefault() {
                 this.loading(true);
-                const msg = await HttpUtil.get("/xui/setting/getDefaultJsonConfig");
+                const msg = await HttpUtil.get("/panel/setting/getDefaultJsonConfig");
                 this.loading(false);
                 if (msg.success) {
                     this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
                     this.saveBtnDisable = true;
                 }
+            },
+            checkForGeosites() {
+                const domainsToCheck = [
+                    {
+                        query: "category-ru-gov",
+                        key: "this.settingsData.domains.ru",
+                        data: [
+                            "geosite:category-ru-gov",
+                            "regexp:.*\\.ru$"
+                        ]
+                    },
+                ];
+                this.loading(true);
+                domainsToCheck.forEach(async (dd) => {
+                    const msg = await HttpUtil.get(`/panel/setting/searchDatafiles?query=${dd.query}`);
+                    if (msg.success && msg.obj) {
+                        [dd.key] = dd.data;
+                        console.log([dd.key])
+                    }
+                })
+                this.loading(false);
             },
             checkRequiredOutbounds() {
                 const newTemplateSettings = this.templateSettings;
@@ -570,6 +596,23 @@
                         outboundTag: "blocked",
                         property: "domain",
                         data: this.settingsData.domains.porn
+                    });
+                },
+            },
+            SpeedTestSettings: {
+                get: function () {
+                    return this.templateRuleGetter({
+                        outboundTag: "blocked",
+                        property: "domain",
+                        data: this.settingsData.domains.speedtest
+                    });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({
+                        newValue,
+                        outboundTag: "blocked",
+                        property: "domain",
+                        data: this.settingsData.domains.speedtest
                     });
                 },
             },

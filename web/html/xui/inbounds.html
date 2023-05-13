@@ -338,7 +338,7 @@
             },
             async getDBInbounds() {
                 this.refreshing = true;
-                const msg = await HttpUtil.post('/xui/inbound/list');
+                const msg = await HttpUtil.post('/panel/inbound/list');
                 if (!msg.success) {
                     return;
                 }
@@ -346,7 +346,7 @@
                 this.refreshing = false;
             },
             async getDefaultSettings() {
-                const msg = await HttpUtil.post('/xui/setting/defaultSettings');
+                const msg = await HttpUtil.post('/panel/setting/defaultSettings');
                 if (!msg.success) {
                     return;
                 }
@@ -509,7 +509,7 @@
                     streamSettings: baseInbound.stream.toString(),
                     sniffing: baseInbound.canSniffing() ? baseInbound.sniffing.toString() : '{}',
                 };
-                await this.submit('/xui/inbound/add', data, inModal);
+                await this.submit('/panel/inbound/add', data, inModal);
             },
             openAddInbound() {
                 inModal.show({
@@ -558,7 +558,7 @@
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
                 if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
 
-                await this.submit('/xui/inbound/add', data, inModal);
+                await this.submit('/panel/inbound/add', data, inModal);
             },
             async updateInbound(inbound, dbInbound) {
                 const data = {
@@ -577,7 +577,7 @@
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
                 if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
 
-                await this.submit(`/xui/inbound/update/${dbInbound.id}`, data, inModal);
+                await this.submit(`/panel/inbound/update/${dbInbound.id}`, data, inModal);
             },
             openAddClient(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -632,14 +632,14 @@
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
                 };
-                await this.submit(`/xui/inbound/addClient`, data);
+                await this.submit(`/panel/inbound/addClient`, data);
             },
             async updateClient(client, dbInboundId, clientId) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + client.toString() + ']}',
                 };
-                await this.submit(`/xui/inbound/updateClient/${clientId}`, data);
+                await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -664,7 +664,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/del/' + dbInboundId),
+                    onOk: () => this.submit('/panel/inbound/del/' + dbInboundId),
                 });
             },
             delClient(dbInboundId, client) {
@@ -676,7 +676,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit(`/xui/inbound/${dbInboundId}/delClient/${clientId}`),
+                    onOk: () => this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`),
                 });
             },
             getClients(protocol, clientSettings) {
@@ -696,15 +696,16 @@
                 }
             },
             showQrcode(dbInbound, clientIndex) {
+                const clientName = JSON.parse(dbInbound.settings).clients[clientIndex].email;
                 const link = dbInbound.genLink(clientIndex);
-                qrModal.show('{{ i18n "qrCode"}}', link, dbInbound);
+                qrModal.show('{{ i18n "qrCode"}}', link, dbInbound, '', clientName);
             },
             showInfo(dbInbound, index) {
                 infoModal.show(dbInbound, index);
             },
             switchEnable(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                this.submit(`/xui/inbound/update/${dbInboundId}`, dbInbound);
+                this.submit(`/panel/inbound/update/${dbInboundId}`, dbInbound);
             },
             async switchEnableClient(dbInboundId, client) {
                 this.loading()
@@ -741,7 +742,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
+                    onOk: () => this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
                 })
             },
             resetAllTraffic() {
@@ -751,7 +752,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/resetAllTraffics'),
+                    onOk: () => this.submit('/panel/inbound/resetAllTraffics'),
                 });
             },
             resetAllClientTraffics(dbInboundId) {
@@ -761,7 +762,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/resetAllClientTraffics/' + dbInboundId),
+                    onOk: () => this.submit('/panel/inbound/resetAllClientTraffics/' + dbInboundId),
                 })
             },
             delDepletedClients(dbInboundId) {
@@ -771,7 +772,7 @@
                     class: themeSwitcher.darkCardClass,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/xui/inbound/delDepletedClients/' + dbInboundId),
+                    onOk: () => this.submit('/panel/inbound/delDepletedClients/' + dbInboundId),
                 })
             },
             isExpiry(dbInbound, index) {
