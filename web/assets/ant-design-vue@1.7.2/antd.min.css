@@ -629,7 +629,7 @@ to{transform:scaleY(0);transform-origin:0 0;opacity:0}
 .ant-input:-moz-placeholder-shown{text-overflow:ellipsis}
 .ant-input:-ms-input-placeholder{text-overflow:ellipsis}
 .ant-input:placeholder-shown{text-overflow:ellipsis}
-.ant-input:focus,.ant-input:hover{border-color:rgb(0, 150, 112) !important;border-right-width:1px!important;background-color: rgb(0 149 111 / 10%)}
+.ant-input:focus,.ant-input:hover{border-color:rgb(0, 150, 112) !important;border-right-width:1px!important;}
 .ant-input:focus{outline:0;box-shadow:rgba(0, 150, 112, 0.2) 0px 0px 0px 2px}
 .ant-input-disabled{color:rgba(0,0,0,.25);background-color:#f5f5f5;cursor:not-allowed;opacity:1}
 .ant-input-disabled:hover{border-color:#d9d9d9;border-right-width:1px!important}
