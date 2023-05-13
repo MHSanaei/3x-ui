@@ -42,7 +42,7 @@ if [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
-elif [[ "${release}" ==  "ubuntu" ]]; then
+elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
         echo -e "${red}please use Ubuntu 20 or higher version! ${plain}\n" && exit 1
     fi
@@ -432,8 +432,7 @@ show_xray_status() {
 }
 
 open_ports() {
-    if ! command -v ufw &> /dev/null
-    then
+    if ! command -v ufw &>/dev/null; then
         echo "ufw firewall is not installed. Installing now..."
         sudo apt-get update
         sudo apt-get install -y ufw
@@ -460,22 +459,23 @@ open_ports() {
 
     # Check if the input is valid
     if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
-        echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2; exit 1
+        echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
+        exit 1
     fi
 
     # Open the specified ports using ufw
-    IFS=',' read -ra PORT_LIST <<< "$ports"
+    IFS=',' read -ra PORT_LIST <<<"$ports"
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
-        # Split the range into start and end ports
-        start_port=$(echo $port | cut -d'-' -f1)
-        end_port=$(echo $port | cut -d'-' -f2)
-        # Loop through the range and open each port
-        for ((i=start_port; i<=end_port; i++)); do
-            sudo ufw allow $i
-        done
+            # Split the range into start and end ports
+            start_port=$(echo $port | cut -d'-' -f1)
+            end_port=$(echo $port | cut -d'-' -f2)
+            # Loop through the range and open each port
+            for ((i = start_port; i <= end_port; i++)); do
+                sudo ufw allow $i
+            done
         else
-        sudo ufw allow "$port"
+            sudo ufw allow "$port"
         fi
     done
 
@@ -529,7 +529,7 @@ ssl_cert_issue() {
         fi
     fi
     #install socat second
-    if [[ "${release}" == "centos" ]] || [[ "${release}" == "fedora" ]] ; then
+    if [[ "${release}" == "centos" ]] || [[ "${release}" == "fedora" ]]; then
         yum install socat -y
     else
         apt install socat -y
@@ -555,16 +555,16 @@ ssl_cert_issue() {
     else
         LOGI "your domain is ready for issuing cert now..."
     fi
-	
-	#create a directory for install cert
-	certPath="/root/cert/${domain}"
-	if [ ! -d "$certPath" ]; then
-		mkdir -p "$certPath"
-	else
-		rm -rf "$certPath"
-		mkdir -p "$certPath"
-	fi
-	
+
+    #create a directory for install cert
+    certPath="/root/cert/${domain}"
+    if [ ! -d "$certPath" ]; then
+        mkdir -p "$certPath"
+    else
+        rm -rf "$certPath"
+        mkdir -p "$certPath"
+    fi
+
     #get needed port here
     local WebPort=80
     read -p "please choose which port do you use,default will be 80 port:" WebPort
@@ -595,21 +595,20 @@ ssl_cert_issue() {
     else
         LOGI "install certs succeed,enable auto renew..."
     fi
-	
-	~/.acme.sh/acme.sh --upgrade --auto-upgrade
-	if [ $? -ne 0 ]; then
-		LOGE "auto renew failed, certs details:"
-		ls -lah cert/*
-		chmod 755 $certPath/*
-		exit 1
-	else
-		LOGI "auto renew succeed, certs details:"
-		ls -lah cert/*
-		chmod 755 $certPath/*
-	fi
+
+    ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+    if [ $? -ne 0 ]; then
+        LOGE "auto renew failed, certs details:"
+        ls -lah cert/*
+        chmod 755 $certPath/*
+        exit 1
+    else
+        LOGI "auto renew succeed, certs details:"
+        ls -lah cert/*
+        chmod 755 $certPath/*
+    fi
 
 }
-
 
 warp_fixchatgpt() {
     curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
@@ -619,21 +618,21 @@ warp_fixchatgpt() {
 
 run_speedtest() {
     # Check if Speedtest is already installed
-    if ! command -v speedtest &> /dev/null; then
+    if ! command -v speedtest &>/dev/null; then
         # If not installed, install it
-        if command -v dnf &> /dev/null; then
+        if command -v dnf &>/dev/null; then
             sudo dnf install -y curl
             curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh | sudo bash
             sudo dnf install -y speedtest
-        elif command -v yum &> /dev/null; then
+        elif command -v yum &>/dev/null; then
             sudo yum install -y curl
             curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh | sudo bash
             sudo yum install -y speedtest
-        elif command -v apt-get &> /dev/null; then
+        elif command -v apt-get &>/dev/null; then
             sudo apt-get update && sudo apt-get install -y curl
             curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
             sudo apt-get install -y speedtest
-        elif command -v apt &> /dev/null; then
+        elif command -v apt &>/dev/null; then
             sudo apt update && sudo apt install -y curl
             curl -s https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | sudo bash
             sudo apt install -y speedtest
@@ -646,8 +645,6 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
-
-
 
 show_usage() {
     echo "x-ui control menu usages: "
@@ -760,7 +757,7 @@ show_menu() {
     19)
         warp_fixchatgpt
         ;;
-	20)
+    20)
         run_speedtest
         ;;
     *)

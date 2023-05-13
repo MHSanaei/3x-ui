@@ -25,9 +25,9 @@ echo "The OS release is: $release"
 
 arch3xui() {
     case "$(uname -m)" in
-        x86_64 | x64 | amd64 ) echo 'amd64' ;;
-        armv8 | arm64 | aarch64 ) echo 'arm64' ;;
-        * ) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+    x86_64 | x64 | amd64) echo 'amd64' ;;
+    armv8 | arm64 | aarch64) echo 'arm64' ;;
+    *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
 echo "arch: $(arch3xui)"
@@ -39,7 +39,7 @@ if [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
-elif [[ "${release}" ==  "ubuntu" ]]; then
+elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
         echo -e "${red}please use Ubuntu 20 or higher version！${plain}\n" && exit 1
     fi
@@ -59,18 +59,17 @@ fi
 
 install_base() {
     case "${release}" in
-        centos|fedora)
-            yum install -y -q wget curl tar
-            ;;
-        *)
-            apt install -y -q wget curl tar
-            ;;
+    centos | fedora)
+        yum install -y -q wget curl tar
+        ;;
+    *)
+        apt install -y -q wget curl tar
+        ;;
     esac
 }
 
 #This function will be called when user installed x-ui out of sercurity
 config_after_install() {
-    /usr/local/x-ui/x-ui migrate
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]? ": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
@@ -101,6 +100,7 @@ config_after_install() {
             echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 7 to check${plain}"
         fi
     fi
+    /usr/local/x-ui/x-ui migrate
 }
 
 install_x-ui() {

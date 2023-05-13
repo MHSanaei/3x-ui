@@ -170,7 +170,7 @@
 "xtlsDesc" = "Xray core needs to be 1.7.5"
 "realityDesc" = "Xray core needs to be 1.8.0 or higher."
 "telegramDesc" = "use Telegram ID without @ or chat IDs ( you can get it here @userinfobot )"
-"subscriptionDesc" = "you can find your sub link on Details, also ou can use the same name for several configurations"
+"subscriptionDesc" = "you can find your sub link on Details, also you can use the same name for several configurations"
 
 [pages.client]
 "add" = "Add Client"
