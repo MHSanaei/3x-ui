@@ -102,12 +102,33 @@ func (t *Tgbot) OnReceive() {
 	botHandler, _ = th.NewBotHandler(bot, updates)
 
 	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+		t.SendMsgToTgbot(message.Chat.ID, "Custom Keyboard Closed!", tu.ReplyKeyboardRemove())
+	}, th.TextEqual("❌ Close Keyboard"))
+
+	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
 		t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 	}, th.AnyCommand())
 
 	botHandler.HandleCallbackQuery(func(bot *telego.Bot, query telego.CallbackQuery) {
 		t.asnwerCallback(&query, checkAdmin(query.From.ID))
 	}, th.AnyCallbackQueryWithMessage())
+
+	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+		if message.UserShared != nil {
+			if checkAdmin(message.From.ID) {
+				err := t.inboundService.SetClientTelegramUserID(message.UserShared.RequestID, strconv.FormatInt(message.UserShared.UserID, 10))
+				var output string
+				if err != nil {
+					output = "❌ Error in user selection!"
+				} else {
+					output = "✅ Telegram User saved."
+				}
+				t.SendMsgToTgbot(message.Chat.ID, output, tu.ReplyKeyboardRemove())
+			} else {
+				t.SendMsgToTgbot(message.Chat.ID, "No result!", tu.ReplyKeyboardRemove())
+			}
+		}
+	}, th.AnyMessage())
 
 	botHandler.Start()
 }
@@ -301,6 +322,9 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "ip_log":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Get IP Log.", email))
 				t.searchClientIps(chatId, email)
+			case "tg_user":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Get Telegram User Info.", email))
+				t.clientTelegramUserInfo(chatId, email)
 			case "toggle_enable":
 				enabled, err := t.inboundService.ToggleClientEnableByEmail(email)
 				if err == nil {
@@ -386,7 +410,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	}
 }
 
-func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, inlineKeyboard ...*telego.InlineKeyboardMarkup) {
+func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) {
 	if !isRunning {
 		return
 	}
@@ -413,8 +437,8 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, inlineKeyboard ...*tele
 			Text:      message,
 			ParseMode: "HTML",
 		}
-		if len(inlineKeyboard) > 0 {
-			params.ReplyMarkup = inlineKeyboard[0]
+		if len(replyMarkup) > 0 {
+			params.ReplyMarkup = replyMarkup[0]
 		}
 		_, err := bot.SendMessage(&params)
 		if err != nil {
@@ -613,6 +637,35 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 	}
 }
 
+func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string) {
+	traffic, client, err := t.inboundService.GetClientByEmail(email)
+	if err != nil {
+		logger.Warning(err)
+		msg := "❌ Something went wrong!"
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
+	if client == nil {
+		msg := "No result!"
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
+	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, client.TgID)
+	requestUser := telego.KeyboardButtonRequestUser{
+		RequestID: int32(traffic.Id),
+		UserIsBot: false,
+	}
+	keyboard := tu.Keyboard(
+		tu.KeyboardRow(
+			tu.KeyboardButton("👤 Select Telegram User").WithRequestUser(&requestUser),
+		),
+		tu.KeyboardRow(
+			tu.KeyboardButton("❌ Close Keyboard"),
+		),
+	).WithIsPersistent()
+	t.SendMsgToTgbot(chatId, output, keyboard)
+}
+
 func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
@@ -656,6 +709,9 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("🔢 IP Log").WithCallbackData("ip_log "+email),
 			tu.InlineKeyboardButton("🔢 IP Limit").WithCallbackData("ip_limit "+email),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton("👤 Set Telegram User").WithCallbackData("tg_user "+email),
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("🔘 Enable / Disable").WithCallbackData("toggle_enable "+email),
