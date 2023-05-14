@@ -707,7 +707,7 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 			tu.KeyboardRow(
 				tu.KeyboardButton("❌ Close Keyboard"),
 			),
-		).WithIsPersistent()
+		).WithIsPersistent().WithResizeKeyboard()
 		t.SendMsgToTgbot(chatId, "👤 Select a telegram user:", keyboard)
 	}
 }
