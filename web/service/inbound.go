@@ -673,6 +673,21 @@ func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
 	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
+func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
+	db := database.GetDB()
+	var traffics []*xray.ClientTraffic
+	err = db.Model(xray.ClientTraffic{}).Where("id = ?", trafficId).Find(&traffics).Error
+	if err != nil {
+		logger.Warning(err)
+		return nil, nil, err
+	}
+	if len(traffics) > 0 {
+		inbound, err = s.GetInbound(traffics[0].InboundId)
+		return traffics[0], inbound, err
+	}
+	return nil, nil, nil
+}
+
 func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.ClientTraffic, inbound *model.Inbound, err error) {
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
@@ -686,6 +701,85 @@ func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.Cl
 		return traffics[0], inbound, err
 	}
 	return nil, nil, nil
+}
+
+func (s *InboundService) GetClientByEmail(clientEmail string) (*xray.ClientTraffic, *model.Client, error) {
+	traffic, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return nil, nil, err
+	}
+	if inbound == nil {
+		return nil, nil, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	clients, err := s.getClients(inbound)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for _, client := range clients {
+		if client.Email == clientEmail {
+			return traffic, &client, nil
+		}
+	}
+
+	return nil, nil, common.NewError("Client Not Found In Inbound For Email:", clientEmail)
+}
+
+func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) error {
+	traffic, inbound, err := s.GetClientInboundByTrafficID(trafficId)
+	if err != nil {
+		return err
+	}
+	if inbound == nil {
+		return common.NewError("Inbound Not Found For Traffic ID:", trafficId)
+	}
+
+	clientEmail := traffic.Email
+
+	oldClients, err := s.getClients(inbound)
+	if err != nil {
+		return err
+	}
+
+	clientId := ""
+
+	for _, oldClient := range oldClients {
+		if oldClient.Email == clientEmail {
+			if inbound.Protocol == "trojan" {
+				clientId = oldClient.Password
+			} else {
+				clientId = oldClient.ID
+			}
+			break
+		}
+	}
+
+	if len(clientId) == 0 {
+		return common.NewError("Client Not Found For Email:", clientEmail)
+	}
+
+	var settings map[string]interface{}
+	err = json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err != nil {
+		return err
+	}
+	clients := settings["clients"].([]interface{})
+	var newClients []interface{}
+	for client_index := range clients {
+		c := clients[client_index].(map[string]interface{})
+		if c["email"] == clientEmail {
+			c["tgId"] = tgId
+			newClients = append(newClients, interface{}(c))
+		}
+	}
+	settings["clients"] = newClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	inbound.Settings = string(modifiedSettings)
+	return s.UpdateInboundClient(inbound, clientId)
 }
 
 func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, error) {
