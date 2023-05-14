@@ -28,6 +28,12 @@ body {
     display: none;
 }
 
+@media (max-width: 768px) {
+    .ant-layout-sider {
+        display: none;
+    }
+}
+
 .ant-card {
     border-radius: 1.5rem;
 }
