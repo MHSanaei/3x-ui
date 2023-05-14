@@ -183,17 +183,23 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			email := dataArray[1]
 			switch dataArray[0] {
 			case "client_refresh":
-				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Client Refreshed successfully.", email))
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Client refreshed successfully.", email))
 				t.searchClient(chatId, email, callbackQuery.Message.MessageID)
 			case "client_cancel":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("❌ %s : Operation canceled.", email))
 				t.searchClient(chatId, email, callbackQuery.Message.MessageID)
 			case "ips_refresh":
-				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : IPs Refreshed successfully.", email))
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : IPs refreshed successfully.", email))
 				t.searchClientIps(chatId, email, callbackQuery.Message.MessageID)
 			case "ips_cancel":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("❌ %s : Operation canceled.", email))
 				t.searchClientIps(chatId, email, callbackQuery.Message.MessageID)
+			case "tgid_refresh":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Client's Telegram User refreshed successfully.", email))
+				t.clientTelegramUserInfo(chatId, email, callbackQuery.Message.MessageID)
+			case "tgid_cancel":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("❌ %s : Operation canceled.", email))
+				t.clientTelegramUserInfo(chatId, email, callbackQuery.Message.MessageID)
 			case "reset_traffic":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
@@ -325,6 +331,29 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tg_user":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Get Telegram User Info.", email))
 				t.clientTelegramUserInfo(chatId, email)
+			case "tgid_remove":
+				inlineKeyboard := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton("❌ Cancel").WithCallbackData("tgid_cancel "+email),
+					),
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton("✅ Confirm Remove Telegram User?").WithCallbackData("tgid_remove_c "+email),
+					),
+				)
+				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
+			case "tgid_remove_c":
+				traffic, err := t.inboundService.GetClientTrafficByEmail(email)
+				if err != nil || traffic == nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+					return
+				}
+				err = t.inboundService.SetClientTelegramUserID(traffic.Id, "")
+				if err == nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, fmt.Sprintf("✅ %s : Telegram User removed successfully.", email))
+					t.clientTelegramUserInfo(chatId, email, callbackQuery.Message.MessageID)
+				} else {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, "❗ Error in Operation.")
+				}
 			case "toggle_enable":
 				enabled, err := t.inboundService.ToggleClientEnableByEmail(email)
 				if err == nil {
@@ -637,7 +666,7 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 	}
 }
 
-func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string) {
+func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...int) {
 	traffic, client, err := t.inboundService.GetClientByEmail(email)
 	if err != nil {
 		logger.Warning(err)
@@ -650,20 +679,37 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, client.TgID)
-	requestUser := telego.KeyboardButtonRequestUser{
-		RequestID: int32(traffic.Id),
-		UserIsBot: false,
+	tdId := "None"
+	if len(client.TgID) > 0 {
+		tdId = client.TgID
 	}
-	keyboard := tu.Keyboard(
-		tu.KeyboardRow(
-			tu.KeyboardButton("👤 Select Telegram User").WithRequestUser(&requestUser),
+	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, tdId)
+	inlineKeyboard := tu.InlineKeyboard(
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("tgid_refresh "+email),
 		),
-		tu.KeyboardRow(
-			tu.KeyboardButton("❌ Close Keyboard"),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton("❌ Remove Telegram User").WithCallbackData("tgid_remove "+email),
 		),
-	).WithIsPersistent()
-	t.SendMsgToTgbot(chatId, output, keyboard)
+	)
+	if len(messageID) > 0 {
+		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
+	} else {
+		t.SendMsgToTgbot(chatId, output, inlineKeyboard)
+		requestUser := telego.KeyboardButtonRequestUser{
+			RequestID: int32(traffic.Id),
+			UserIsBot: false,
+		}
+		keyboard := tu.Keyboard(
+			tu.KeyboardRow(
+				tu.KeyboardButton("👤 Select Telegram User").WithRequestUser(&requestUser),
+			),
+			tu.KeyboardRow(
+				tu.KeyboardButton("❌ Close Keyboard"),
+			),
+		).WithIsPersistent()
+		t.SendMsgToTgbot(chatId, "👤 Select a telegram user:", keyboard)
+	}
 }
 
 func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
