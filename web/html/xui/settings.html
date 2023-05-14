@@ -241,6 +241,7 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
+            siderDrawer,
             themeSwitcher,
             spinning: false,
             oldAllSetting: new AllSetting(),
@@ -357,7 +358,7 @@
                 if (msg.success) {
                     this.loading(true);
                     await PromiseUtil.sleep(5000);
-                    location.reload();
+                    window.location.replace(this.allSetting.webBasePath + "panel/settings");
                 }
             },
             async getUserSecret() {
