@@ -90,3 +90,12 @@ function setCookie(cname, cvalue, exdays) {
     let expires = 'expires=' + d.toUTCString();
     document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
 }
+
+function doAllItemsExist(array1, array2) {
+    for (let i = 0; i < array1.length; i++) {
+        if (!array2.includes(array1[i])) {
+            return false;
+        }
+    }
+    return true;
+}
