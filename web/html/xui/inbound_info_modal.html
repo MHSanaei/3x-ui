@@ -89,7 +89,7 @@
                 <th>{{ i18n "pages.inbounds.expireDate" }}</th>
         <tr>
             <td>
-                <a-tag v-if="infoModal.clientStats" :color="statsColor(infoModal.clientStats)">
+                <a-tag v-if="infoModal.clientStats" color="green">
                     [[ sizeFormat(infoModal.clientStats['up']) ]] / 
                     [[ sizeFormat(infoModal.clientStats['down']) ]]
                     ([[ sizeFormat(infoModal.clientStats['up'] + infoModal.clientStats['down']) ]])
@@ -101,7 +101,7 @@
             </td>
             <td>
                 <template v-if="infoModal.clientSettings.expiryTime > 0">
-                    <a-tag :color="infoModal.isExpired ? 'red' : 'blue'">
+                    <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)">
                         [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
                     </a-tag>
                 </template>
@@ -266,10 +266,7 @@
                 });
             },
             statsColor(stats) {
-                if (!stats) return 'blue'
-                if (stats['total'] === 0) return 'blue'
-                else if (stats['total'] > 0 && (stats['down'] + stats['up']) < stats['total']) return 'cyan'
-                else return 'red'
+                return usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
             }
         },
     });

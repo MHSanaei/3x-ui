@@ -790,10 +790,10 @@
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email)
                 return clientStats ? clientStats.down : 0
             },
-            isTrafficExhausted(dbInbound, email) {
-                if (email.length == 0) return false
-                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
-                return clientStats ? clientStats.down + clientStats.up > clientStats.total : false
+            statsColor(dbInbound, email) {
+                if(email.length == 0) return 'blue';
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                return usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
             },
             isClientEnabled(dbInbound, email) {
                 clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null

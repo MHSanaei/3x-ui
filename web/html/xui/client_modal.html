@@ -20,7 +20,6 @@
         oldClientId: "",
         index: null,
         clientIps: null,
-        isExpired: false,
         delayedStart: false,
         ok() {
             if (clientModal.isEdit) {
@@ -38,7 +37,6 @@
             this.inbound = dbInbound.toInbound();
             this.clients = this.getClients(this.inbound.protocol, this.inbound.settings);
             this.index = index === null ? this.clients.length : index;
-            this.isExpired = isEdit ? this.inbound.isExpiry(this.index) : false;
             this.delayedStart = false;
             if (isEdit) {
                 if (this.clients[index].expiryTime < 0) {
@@ -109,13 +107,10 @@
                 return true
             },
             get isExpiry() {
-                return this.clientModal.isExpired
+                return this.clientModal.isEdit && this.client.expiryTime >0 ? (this.client.expiryTime < new Date().getTime()) : false;
             },
             get statsColor() {
-                if (!clientStats) return 'blue'
-                if (clientStats.total <= 0) return 'blue'
-                else if (clientStats.total > 0 && (clientStats.down + clientStats.up) < clientStats.total) return 'cyan'
-                else return 'red'
+                return usageColor(clientStats.up + clientStats.down, app.trafficDiff, this.client.totalGB);
             },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
