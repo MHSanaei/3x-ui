@@ -22,8 +22,8 @@
         <a-input v-model.trim="client.email" style="width: 200px;"></a-input>
     </a-form-item>
     <a-form-item label="Password" v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
-        <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS"
-                @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
+        <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS" @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
+        <a-icon v-if="inbound.protocol === Protocols.TROJAN" @click="client.password = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
         <a-input v-model.trim="client.password" style="width: 300px;"></a-input>
     </a-form-item>
     <br>
