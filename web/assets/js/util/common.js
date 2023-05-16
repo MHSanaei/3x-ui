@@ -91,6 +91,21 @@ function setCookie(cname, cvalue, exdays) {
     document.cookie = cname + '=' + cvalue + ';' + expires + ';path=/';
 }
 
+function usageColor(data, threshold, total) {
+    switch (true) {
+        case data === null:
+            return 'blue';
+        case total <= 0:
+            return 'blue';
+        case data < total - threshold:
+            return 'cyan';
+        case data < total:
+            return 'orange';
+        default:
+            return 'red';
+    }
+}
+
 function doAllItemsExist(array1, array2) {
     for (let i = 0; i < array1.length; i++) {
         if (!array2.includes(array1[i])) {

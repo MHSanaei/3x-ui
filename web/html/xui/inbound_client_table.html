@@ -29,20 +29,15 @@
     <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "depleted" }}</a-tag>
 </template>                                    
 <template slot="traffic" slot-scope="text, client">
-    <a-tag color="blue">
-        [[ sizeFormat(getUpStats(record, client.email)) ]] / [[ sizeFormat(getDownStats(record, client.email)) ]]
-    </a-tag>
+    <a-tag :color="statsColor(record, client.email)" @click="alert(usageColor(0,1024,512))">[[ sizeFormat(getUpStats(record, client.email)) ]] / [[ sizeFormat(getDownStats(record, client.email)) ]]</a-tag>
     <template v-if="client._totalGB > 0">
-        <a-tag v-if="isTrafficExhausted(record, client.email)" color="red">[[client._totalGB]] GB</a-tag>
-        <a-tag v-else color="cyan">[[client._totalGB]] GB</a-tag>
+        <a-tag :color="statsColor(record, client.email)">[[client._totalGB]]GB</a-tag>
     </template>
     <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
 </template>                                    
 <template slot="expiryTime" slot-scope="text, client, index">
     <template v-if="client.expiryTime > 0">
-        <a-tag :color="isExpiry(record, index)? 'red' : 'blue'">
-            [[ DateUtil.formatMillis(client._expiryTime) ]]
-        </a-tag>
+        <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, client.expiryTime)">
     </template>
     <a-tag v-else-if="client.expiryTime < 0" color="cyan">
         [[ client._expiryTime ]] {{ i18n "pages.client.days" }}
