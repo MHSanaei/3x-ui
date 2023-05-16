@@ -11,7 +11,6 @@ import (
 	"x-ui/xray"
 
 	"github.com/goccy/go-json"
-	"gorm.io/gorm"
 )
 
 type SubService struct {
@@ -19,15 +18,15 @@ type SubService struct {
 	inboundService InboundService
 }
 
-func (s *SubService) GetSubs(subId string, host string) ([]string, string, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, []string, error) {
 	s.address = host
 	var result []string
-	var header string
+	var headers []string
 	var traffic xray.ClientTraffic
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, "", err
+		return nil, nil, err
 	}
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.getClients(inbound)
@@ -66,15 +65,17 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 			}
 		}
 	}
-	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-	return result, header, nil
+	headers = append(headers, fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000))
+	headers = append(headers, "12")
+	headers = append(headers, subId)
+	return result, headers, nil
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("settings like ? and enable = ?", fmt.Sprintf(`%%"subId": "%s"%%`, subId), true).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != nil {
 		return nil, err
 	}
 	return inbounds, nil

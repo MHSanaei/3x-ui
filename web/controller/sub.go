@@ -29,7 +29,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	host := strings.Split(c.Request.Host, ":")[0]
-	subs, header, err := a.subService.GetSubs(subId, host)
+	subs, headers, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
 	} else {
@@ -38,8 +38,10 @@ func (a *SUBController) subs(c *gin.Context) {
 			result += sub + "\n"
 		}
 
-		// Add subscription-userinfo
-		c.Writer.Header().Set("Subscription-Userinfo", header)
+		// Add headers
+		c.Writer.Header().Set("Subscription-Userinfo", headers[0])
+		c.Writer.Header().Set("Profile-Update-Interval", headers[1])
+		c.Writer.Header().Set("Profile-Title", headers[2])
 
 		c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
 	}
