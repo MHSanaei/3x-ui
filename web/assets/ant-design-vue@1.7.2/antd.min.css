@@ -529,7 +529,7 @@ to{transform:scaleY(0);transform-origin:0 0;opacity:0}
 .ant-select-selection-selected-value{float:left;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .ant-select-no-arrow .ant-select-selection-selected-value{padding-right:0}
 .ant-select-disabled{color:rgba(0,0,0,.25)}
-.ant-select-disabled .ant-select-selection{background:rgb(0 150 112);cursor:not-allowed}
+.ant-select-disabled .ant-select-selection{background:rgb(221, 221, 221);cursor:not-allowed}
 .ant-select-disabled .ant-select-selection:active,.ant-select-disabled .ant-select-selection:focus,.ant-select-disabled .ant-select-selection:hover{border-color:#d9d9d9;box-shadow:none}
 .ant-select-disabled .ant-select-selection__clear{display:none;visibility:hidden;pointer-events:none}
 .ant-select-disabled .ant-select-selection--multiple .ant-select-selection__choice{padding-right:10px;color:rgba(0,0,0,.33);background:#f5f5f5}
