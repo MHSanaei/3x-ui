@@ -75,9 +75,9 @@
             <a-radio-group v-model="cert.useFile" button-style="solid">
                 <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
                 <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
-                <a-button type="primary" size="small" @click="inbound.stream.tls.addCert()" style="margin: 0 10px">+</a-button>
-                <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.tls.removeCert(index)">-</a-button>
             </a-radio-group>
+            <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()" style="margin-left: 10px">+</a-button>
+            <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button> 
         </a-form-item>
         <template v-if="cert.useFile">
             <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
@@ -120,9 +120,9 @@
             <a-radio-group v-model="cert.useFile" button-style="solid">
                 <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
                 <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
-                <a-button type="primary" size="small" @click="inbound.stream.xtls.addCert()" style="margin: 0 10px">+</a-button>
-                <a-button v-if="inbound.stream.xtls.certs.length>1" type="primary" size="small" @click="inbound.stream.xtls.removeCert(index)">-</a-button>
             </a-radio-group>
+            <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.xtls.addCert()" style="margin-left: 10px">+</a-button>
+            <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.xtls.removeCert(index)" style="margin-left: 10px">-</a-button> 
         </a-form-item>
         <template v-if="cert.useFile">
             <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
