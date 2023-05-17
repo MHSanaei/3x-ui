@@ -38,6 +38,8 @@
 <template slot="expiryTime" slot-scope="text, client, index">
     <template v-if="client.expiryTime > 0">
         <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, client.expiryTime)">
+            [[ DateUtil.formatMillis(client._expiryTime) ]]
+        </a-tag>
     </template>
     <a-tag v-else-if="client.expiryTime < 0" color="cyan">
         [[ client._expiryTime ]] {{ i18n "pages.client.days" }}
