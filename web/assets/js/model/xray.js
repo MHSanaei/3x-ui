@@ -725,7 +725,7 @@ class RealityStreamSettings extends XrayCommonClass {
     static fromJson(json = {}) {
         let settings;
 		if (!ObjectUtil.isEmpty(json.settings)) {
-            settings = new RealityStreamSettings.Settings(json.settings.publicKey , json.settings.fingerprint, json.settings.serverName);
+            settings = new RealityStreamSettings.Settings(json.settings.publicKey , json.settings.fingerprint, json.settings.serverName, json.settings.spiderX);
         }
         return new RealityStreamSettings(
             json.show,
@@ -758,17 +758,19 @@ class RealityStreamSettings extends XrayCommonClass {
 }
 
 RealityStreamSettings.Settings = class extends XrayCommonClass {
-    constructor(publicKey = '', fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, serverName = '') {
+    constructor(publicKey = '', fingerprint = UTLS_FINGERPRINT.UTLS_FIREFOX, serverName = '', spiderX= '/') {
         super();
         this.publicKey = publicKey;
         this.fingerprint = fingerprint;
         this.serverName = serverName;
+        this.spiderX = spiderX;
     }
     static fromJson(json = {}) {
         return new RealityStreamSettings.Settings(
             json.publicKey,
             json.fingerprint,
             json.serverName,
+            json.spiderX,
         );
     }
     toJson() {
@@ -776,6 +778,7 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
             publicKey: this.publicKey,
             fingerprint: this.fingerprint,
             serverName: this.serverName,
+            spiderX: this.spiderX,
         };
     }
 };
@@ -1370,6 +1373,9 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
                 address = this.stream.reality.settings.serverName;
             }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.spiderX)) {
+                params.set("spx", this.stream.reality.settings.spiderX);
+            }
         }
 
         const link = `vless://${uuid}@${address}:${port}`;
@@ -1469,6 +1475,9 @@ class Inbound extends XrayCommonClass {
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.serverName)) {
                 address = this.stream.reality.settings.serverName;
+            }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.spiderX)) {
+                params.set("spx", this.stream.reality.settings.spiderX);
             }
         }
 

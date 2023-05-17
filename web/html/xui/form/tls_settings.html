@@ -162,7 +162,7 @@
     <a-form-item label='{{ i18n "domainName" }}'>
         <a-input v-model.trim="inbound.stream.reality.settings.serverName" style="width: 250px"></a-input>
     </a-form-item>
-	<a-form-item label="dest">
+	<a-form-item label="Dest">
         <a-input v-model.trim="inbound.stream.reality.dest" style="width: 300px"></a-input>
     </a-form-item>
     <a-form-item label="Server Names">
@@ -170,6 +170,9 @@
     </a-form-item>
     <a-form-item label="ShortIds">
         <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
+    </a-form-item>
+    <a-form-item label="SpiderX">
+        <a-input v-model.trim="inbound.stream.reality.settings.spiderX"></a-input>
     </a-form-item>
     <a-form-item label="Private Key">
         <a-input v-model.trim="inbound.stream.reality.privateKey" style="width: 300px"></a-input>
