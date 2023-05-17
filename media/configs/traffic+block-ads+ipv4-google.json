@@ -71,10 +71,7 @@
         "type": "field",
         "outboundTag": "blocked",
         "domain": [
-          "geosite:category-ads-all",
-          "geosite:category-ads",
-          "geosite:google-ads",
-          "geosite:spotify-ads"
+          "geosite:category-ads-all"
         ]
       },
       {
