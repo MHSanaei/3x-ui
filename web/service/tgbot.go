@@ -13,6 +13,7 @@ import (
 	"x-ui/util/common"
 	"x-ui/xray"
 
+	"github.com/gin-gonic/gin"
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -497,6 +498,12 @@ func (t *Tgbot) SendReport() {
 		for _, adminId := range adminIds {
 			t.sendBackup(int64(adminId))
 		}
+	}
+}
+
+func (t *Tgbot) SendBackUP(c *gin.Context) {
+	for _, adminId := range adminIds {
+		t.sendBackup(int64(adminId))
 	}
 }
 
