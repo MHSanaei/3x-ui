@@ -6,7 +6,11 @@
   },
   "api": {
     "tag": "api",
-    "services": ["HandlerService", "LoggerService", "StatsService"]
+    "services": [
+      "HandlerService",
+      "LoggerService",
+      "StatsService"
+    ]
   },
   "inbounds": [
     {
@@ -54,30 +58,39 @@
     "rules": [
       {
         "type": "field",
-        "inboundTag": ["api"],
+        "inboundTag": [
+          "api"
+        ],
         "outboundTag": "api"
       },
       {
         "type": "field",
         "outboundTag": "blocked",
-        "ip": ["geoip:private"]
+        "ip": [
+          "geoip:private"
+        ]
       },
       {
         "type": "field",
         "outboundTag": "blocked",
-        "protocol": ["bittorrent"]
+        "protocol": [
+          "bittorrent"
+        ]
       },
       {
         "type": "field",
         "outboundTag": "blocked",
         "domain": [
-          "geosite:category-ads-all"
+          "geosite:category-ads-all",
+          "ext:iran.dat:ads"
         ]
       },
       {
         "type": "field",
         "outboundTag": "IPv4",
-        "domain": ["geosite:google"]
+        "domain": [
+          "geosite:google"
+        ]
       }
     ]
   },
