@@ -1,10 +1,15 @@
 package controller
 
-import "github.com/gin-gonic/gin"
+import (
+	"x-ui/web/service"
+
+	"github.com/gin-gonic/gin"
+)
 
 type APIController struct {
 	BaseController
 	inboundController *InboundController
+	Tgbot             service.Tgbot
 }
 
 func NewAPIController(g *gin.RouterGroup) *APIController {
@@ -32,7 +37,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
 	g.POST("/delDepletedClients/:id", a.delDepletedClients)
-
+	g.GET("/createbackup", a.createBackup)
 	a.inboundController = NewInboundController(g)
 }
 
@@ -94,4 +99,8 @@ func (a *APIController) resetAllClientTraffics(c *gin.Context) {
 
 func (a *APIController) delDepletedClients(c *gin.Context) {
 	a.inboundController.delDepletedClients(c)
+}
+
+func (a *APIController) createBackup(c *gin.Context) {
+	a.Tgbot.SendBackUP(c)
 }
