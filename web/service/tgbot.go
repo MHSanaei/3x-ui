@@ -61,8 +61,9 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
-	// init hash storage
-	t.hashStorage = global.NewHashStorage(5*time.Minute, false)
+	// init hash storage => store callback queries
+	// NOTE: it only save the query if its length is more than 64 chars.
+	t.hashStorage = global.NewHashStorage(20*time.Minute, false)
 
 	tgBottoken, err := t.settingService.GetTgBotToken()
 	if err != nil || tgBottoken == "" {
@@ -199,8 +200,12 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	chatId := callbackQuery.Message.Chat.ID
 
 	if isAdmin {
-		// get query from hash storage (if the query was <= 64 chars hash storage dont save the hash and return data itself)
-		decodedQuery := t.hashStorage.GetValue(callbackQuery.Data)
+		// get query from hash storage
+		decodedQuery, err := t.hashStorage.GetValue(callbackQuery.Data)
+		if err != nil {
+			t.SendMsgToTgbot(chatId, "Query not found! Please use the command again!")
+			return
+		}
 		dataArray := strings.Split(decodedQuery, " ")
 
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
