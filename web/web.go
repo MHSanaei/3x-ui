@@ -207,6 +207,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
+	// Apply locale middleware for i18n
+	webI18nFunc := func(key string, params ...string) string {
+		return locale.I18n(locale.Web, key, params...)
+	}
+	engine.FuncMap["i18n"] = webI18nFunc
+	engine.Use(locale.LocalizerMiddleware())
+
 	// set static files and template
 	if config.IsDebug() {
 		// for development
