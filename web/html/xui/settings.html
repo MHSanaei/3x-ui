@@ -299,6 +299,8 @@
                                                 <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualBlockedDomains"}}' v-model="manualBlockedDomains"></setting-list-item>
                                                 <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectIPs"}}' v-model="manualDirectIPs"></setting-list-item>
                                                 <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectDomains"}}' v-model="manualDirectDomains"></setting-list-item>
+                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualIPv4Domains"}}' v-model="manualIPv4Domains"></setting-list-item>
+                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualWARPDomains"}}' v-model="manualWARPDomains"></setting-list-item>
                                             </a-collapse-panel>
                                         </a-collapse>
                                     </a-tab-pane>
@@ -617,30 +619,30 @@
         computed: {
             templateSettings: {
                 get: function () { return this.allSetting.xrayTemplateConfig ? JSON.parse(this.allSetting.xrayTemplateConfig) : null; },
-                set: function (newValue) { this.allSetting.xrayTemplateConfig = JSON.stringify(newValue, null, 2) },
+                set: function (newValue) { this.allSetting.xrayTemplateConfig = JSON.stringify(newValue, null, 2); },
             },
             inboundSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.inbounds = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
+                    newTemplateSettings.inbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
                 },
             },
             outboundSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.outbounds, null, 2) : null; },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.outbounds = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
+                    newTemplateSettings.outbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
                 },
             },
             routingRuleSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.routing.rules = JSON.parse(newValue)
-                    this.templateSettings = newTemplateSettings
+                    newTemplateSettings.routing.rules = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
                 },
             },
             freedomStrategy: {
@@ -715,6 +717,24 @@
                     this.syncRulesWithOutbound("direct", this.directSettings);
                 }
             },
+            ipv4Domains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "IPv4", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
+                }
+            },
+            warpDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "WARP", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("WARP", this.warpSettings);
+                }
+            },
             manualBlockedIPs: {
                 get: function () { return JSON.stringify(this.blockedIPs, null, 2); },
                 set: debounce(function (value) { this.blockedIPs = JSON.parse(value); }, 1000)
@@ -730,6 +750,14 @@
             manualDirectDomains: {
                 get: function () { return JSON.stringify(this.directDomains, null, 2); },
                 set: debounce(function (value) { this.directDomains = JSON.parse(value); }, 1000)
+            },
+            manualIPv4Domains: {
+                get: function () { return JSON.stringify(this.ipv4Domains, null, 2); },
+                set: debounce(function (value) { this.ipv4Domains = JSON.parse(value); }, 1000)
+            },
+            manualWARPDomains: {
+                get: function () { return JSON.stringify(this.warpDomains, null, 2); },
+                set: debounce(function (value) { this.warpDomains = JSON.parse(value); }, 1000)
             },
             torrentSettings: {
                 get: function () {
@@ -796,40 +824,26 @@
             },
             GoogleIPv4Settings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.google, this.ipv4Domains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.google];
+                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.google];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.google.includes(data))
+                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.google.includes(data));
                     }
-                    this.templateRuleSetter({
-                        outboundTag: "IPv4",
-                        property: "domain",
-                        data: oldData
-                    });
-                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
                 },
             },
             NetflixIPv4Settings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.netflix, this.ipv4Domains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.netflix];
+                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.netflix];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.netflix.includes(data))
+                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.netflix.includes(data));
                     }
-                    this.templateRuleSetter({
-                        outboundTag: "IPv4",
-                        property: "domain",
-                        data: oldData
-                    });
-                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
                 },
             },
             IRIpSettings: {
@@ -978,78 +992,50 @@
             },
             GoogleWARPSettings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.templateRuleGetter({ outboundTag: "WARP", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.google];
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.google];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.google.includes(data))
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.google.includes(data));
                     }
-                    this.templateRuleSetter({
-                    outboundTag: "WARP",
-                    property: "domain",
-                    data: oldData
-                    });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
                 },
             },
             OpenAIWARPSettings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.openai, this.templateRuleGetter({ outboundTag: "WARP", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.openai, this.warpDomains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.openai];
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.openai];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.openai.includes(data))
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.openai.includes(data));
                     }
-                    this.templateRuleSetter({
-                    outboundTag: "WARP",
-                    property: "domain",
-                    data: oldData
-                    });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
                 },
             },
             NetflixWARPSettings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.templateRuleGetter({ outboundTag: "WARP", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.netflix, this.warpDomains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.netflix];
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.netflix];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.netflix.includes(data))
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.netflix.includes(data));
                     }
-                    this.templateRuleSetter({
-                    outboundTag: "WARP",
-                    property: "domain",
-                    data: oldData
-                    });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
                 },
             },
             SpotifyWARPSettings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.domains.spotify, this.templateRuleGetter({ outboundTag: "WARP", property: "domain" }));
+                    return doAllItemsExist(this.settingsData.domains.spotify, this.warpDomains);
                 },
                 set: function (newValue) {
-                    oldData = this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
                     if (newValue) {
-                        oldData = [...oldData, ...this.settingsData.domains.spotify];
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.spotify];
                     } else {
-                        oldData = oldData.filter(data => !this.settingsData.domains.spotify.includes(data))
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.spotify.includes(data));
                     }
-                    this.templateRuleSetter({
-                    outboundTag: "WARP",
-                    property: "domain",
-                    data: oldData
-                    });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
                 },
             },
         },
