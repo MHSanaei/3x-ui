@@ -338,6 +338,29 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.telegramNotifyTime"}}' desc='{{ i18n "pages.settings.telegramNotifyTimeDesc"}}' v-model="allSetting.tgRunTime"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyBackup" }}' desc='{{ i18n "pages.settings.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title="Telegram Bot Language" />
+                                        </a-col>
+
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select
+                                                    ref="selectBotLang"
+                                                    v-model="allSetting.tgLang"
+                                                    :dropdown-class-name="themeSwitcher.darkCardClass"
+                                                    style="width: 100%"
+                                                >
+                                                    <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
+                                                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                                                        &nbsp;&nbsp;<span v-text="l.name"></span>
+                                                    </a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
                             </a-list>
                         </a-tab-pane>
                     </a-tabs>
