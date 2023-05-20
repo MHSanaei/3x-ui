@@ -1,5 +1,5 @@
 # 3x-ui
-
+## [آموزش نصب در کانال یوتیوب--> کلیک کنید](https:YouTube.com/@IR_Tech)
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
@@ -14,9 +14,9 @@
 
 **Buy Me a Coffee :**
 
-- Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+- Tron USDT (TRC20): `TTCfN7wiME62NefFgeYQfR8sCs6BDBJm2A`
 
-# Install & Upgrade
+# نصب و ارتقا
 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
