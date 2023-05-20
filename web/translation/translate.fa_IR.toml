@@ -336,6 +336,8 @@
 "manualBlockedDomains" = "لیست دامنه های مسدود شده"
 "manualDirectIPs" = "لیست آی‌پی های مستقیم"
 "manualDirectDomains" = "لیست دامنه های مستقیم"
+"manualIPv4Domains" = "لیست دامنه‌های IPv4"
+"manualWARPDomains" = "لیست دامنه های WARP"
 
 [pages.settings.security]
 "admin" = "مدیر"

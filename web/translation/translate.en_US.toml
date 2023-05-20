@@ -209,7 +209,7 @@
 [pages.settings]
 "title" = "Settings"
 "save" = "Save"
-"infoDesc" = "Every change made here needs to be saved. Please restart the panel for the changes to take effect."
+"infoDesc" = "Every change made here needs to be saved. Please restart the panel to apply changes."
 "restartPanel" = "Restart Panel "
 "restartPanelDesc" = "Are you sure you want to restart the panel? Click OK to restart after 3 seconds. If you cannot access the panel after restarting, please view the panel log information on the server."
 "actions" = "Actions"
@@ -336,6 +336,8 @@
 "manualBlockedDomains" = "List of Blocked Domains"
 "manualDirectIPs" = "List of Direct IPs"
 "manualDirectDomains" = "List of Direct Domains"
+"manualIPv4Domains" = "List of IPv4 Domains"
+"manualWARPDomains" = "List of WARP Domains"
 
 [pages.settings.security]
 "admin" = "Admin"

@@ -336,6 +336,8 @@
 "manualBlockedDomains" = "Список заблокированных доменов"
 "manualDirectIPs" = "Список прямых IP адресов"
 "manualDirectDomains" = "Список прямых доменов"
+"manualIPv4Domains" = "Список доменов IPv4"
+"manualWARPDomains" = "Список доменов WARP"
 
 [pages.settings.security]
 "admin" = "Админ"
