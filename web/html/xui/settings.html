@@ -480,7 +480,12 @@
                 if (msg.success) {
                     this.loading(true);
                     await PromiseUtil.sleep(5000);
-                    window.location.replace(this.allSetting.webBasePath + "panel/settings");
+                    let protocol = "http://";
+                    if (this.allSetting.webCertFile !== "") {
+                        protocol = "https://";
+                    }
+                    const { host, pathname } = window.location;
+                    window.location.replace(protocol + host + this.allSetting.webBasePath + pathname.slice(1));
                 }
             },
             async fetchUserSecret() {
