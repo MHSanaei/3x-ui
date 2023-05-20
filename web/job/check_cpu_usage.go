@@ -1,7 +1,7 @@
 package job
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 	"x-ui/web/service"
 
@@ -24,7 +24,10 @@ func (j *CheckCpuJob) Run() {
 	// get latest status of server
 	percent, err := cpu.Percent(1*time.Second, false)
 	if err == nil && percent[0] > float64(threshold) {
-		msg := fmt.Sprintf("🔴 CPU usage %.2f%% is more than threshold %d%%", percent[0], threshold)
+		msg := j.tgbotService.I18nBot("tgbot.messages.cpuThreshold",
+			"Percent=="+strconv.FormatFloat(percent[0], 'f', 2, 64),
+			"Threshold=="+strconv.Itoa(threshold))
+
 		j.tgbotService.SendMsgToTgbotAdmins(msg)
 	}
 }
