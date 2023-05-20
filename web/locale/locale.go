@@ -6,6 +6,7 @@ import (
 	"strings"
 	"x-ui/logger"
 
+	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/pelletier/go-toml/v2"
 	"golang.org/x/text/language"
@@ -80,6 +81,24 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 	}
 
 	return msg
+}
+
+func LocalizerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var lang string
+
+		if cookie, err := c.Request.Cookie("lang"); err == nil {
+			lang = cookie.Value
+		} else {
+			lang = c.GetHeader("Accept-Language")
+		}
+
+		LocalizerWeb = i18n.NewLocalizer(i18nBundle, lang)
+
+		c.Set("localizer", LocalizerWeb)
+		c.Set("I18n", I18n)
+		c.Next()
+	}
 }
 
 func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
