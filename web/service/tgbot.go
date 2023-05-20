@@ -1,6 +1,7 @@
 package service
 
 import (
+	"embed"
 	"fmt"
 	"net"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/util/common"
+	"x-ui/web/locale"
 	"x-ui/xray"
 
 	"github.com/gin-gonic/gin"
@@ -43,7 +45,16 @@ func (t *Tgbot) NewTgbot() *Tgbot {
 	return new(Tgbot)
 }
 
-func (t *Tgbot) Start() error {
+func (t *Tgbot) BotI18n(name string, params ...string) string {
+	return locale.I18n(locale.Bot, name, params...)
+}
+
+func (t *Tgbot) Start(i18nFS embed.FS) error {
+	err := locale.InitLocalizer(i18nFS, &t.settingService)
+	if err != nil {
+		return err
+	}
+
 	tgBottoken, err := t.settingService.GetTgBotToken()
 	if err != nil || tgBottoken == "" {
 		logger.Warning("Get TgBotToken failed:", err)
