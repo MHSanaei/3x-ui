@@ -208,10 +208,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Apply locale middleware for i18n
-	webI18nFunc := func(key string, params ...string) string {
+	i18nWebFunc := func(key string, params ...string) string {
 		return locale.I18n(locale.Web, key, params...)
 	}
-	engine.FuncMap["i18n"] = webI18nFunc
+	engine.FuncMap["i18n"] = i18nWebFunc
 	engine.Use(locale.LocalizerMiddleware())
 
 	// set static files and template

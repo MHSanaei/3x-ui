@@ -102,5 +102,5 @@ func (a *APIController) delDepletedClients(c *gin.Context) {
 }
 
 func (a *APIController) createBackup(c *gin.Context) {
-	a.Tgbot.SendBackUP(c)
+	a.Tgbot.SendBackupToAdmins()
 }
