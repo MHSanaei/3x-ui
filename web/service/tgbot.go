@@ -17,7 +17,6 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
-	tgbot "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 var bot *telego.Bot
