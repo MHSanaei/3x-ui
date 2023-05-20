@@ -81,7 +81,7 @@ func (t *Tgbot) Start() error {
 	return nil
 }
 
-func (t *Tgbot) IsRunnging() bool {
+func (t *Tgbot) IsRunning() bool {
 	return isRunning
 }
 
@@ -102,19 +102,19 @@ func (t *Tgbot) OnReceive() {
 
 	botHandler, _ = th.NewBotHandler(bot, updates)
 
-	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
 		t.SendMsgToTgbot(message.Chat.ID, "Custom Keyboard Closed!", tu.ReplyKeyboardRemove())
 	}, th.TextEqual("❌ Close Keyboard"))
 
-	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
 		t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 	}, th.AnyCommand())
 
-	botHandler.HandleCallbackQuery(func(bot *telego.Bot, query telego.CallbackQuery) {
+	botHandler.HandleCallbackQuery(func(_ *telego.Bot, query telego.CallbackQuery) {
 		t.asnwerCallback(&query, checkAdmin(query.From.ID))
 	}, th.AnyCallbackQueryWithMessage())
 
-	botHandler.HandleMessage(func(bot *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
 		if message.UserShared != nil {
 			if checkAdmin(message.From.ID) {
 				err := t.inboundService.SetClientTelegramUserID(message.UserShared.RequestID, strconv.FormatInt(message.UserShared.UserID, 10))
@@ -424,32 +424,32 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 			tu.InlineKeyboardButton("Commands").WithCallbackData("client_commands"),
 		),
 	)
-	params := telego.SendMessageParams{
-		ChatID:    tu.ID(chatId),
-		Text:      msg,
-		ParseMode: "HTML",
-	}
+	var ReplyMarkup telego.ReplyMarkup
 	if isAdmin {
-		params.ReplyMarkup = numericKeyboard
+		ReplyMarkup = numericKeyboard
 	} else {
-		params.ReplyMarkup = numericKeyboardClient
+		ReplyMarkup = numericKeyboardClient
 	}
-	_, err := bot.SendMessage(&params)
-	if err != nil {
-		logger.Warning("Error sending telegram message :", err)
-	}
+	t.SendMsgToTgbot(chatId, msg, ReplyMarkup)
 }
 
 func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) {
 	if !isRunning {
 		return
 	}
+	if msg == "" {
+		logger.Info("[tgbot] message is empty!")
+		return
+	}
+
 	var allMessages []string
 	limit := 2000
+
 	// paging message if it is big
 	if len(msg) > limit {
 		messages := strings.Split(msg, "\r\n \r\n")
 		lastIndex := -1
+
 		for _, message := range messages {
 			if (len(allMessages) == 0) || (len(allMessages[lastIndex])+len(message) > limit) {
 				allMessages = append(allMessages, message)
@@ -510,12 +510,12 @@ func (t *Tgbot) SendBackUP(c *gin.Context) {
 func (t *Tgbot) getServerUsage() string {
 	var info string
 	//get hostname
-	name, err := os.Hostname()
+	hostname, err := os.Hostname()
 	if err != nil {
 		logger.Error("get hostname error:", err)
-		name = ""
+		hostname = ""
 	}
-	info = fmt.Sprintf("💻 Hostname: %s\r\n", name)
+	info = fmt.Sprintf("💻 Hostname: %s\r\n", hostname)
 	info += fmt.Sprintf("🚀X-UI Version: %s\r\n", config.GetVersion())
 	//get ip address
 	var ip string
@@ -557,25 +557,32 @@ func (t *Tgbot) getServerUsage() string {
 }
 
 func (t *Tgbot) UserLoginNotify(username string, ip string, time string, status LoginStatus) {
-	if username == "" || ip == "" || time == "" {
-		logger.Warning("UserLoginNotify failed,invalid info")
+	if !t.IsRunning() {
 		return
 	}
-	var msg string
+
+	if username == "" || ip == "" || time == "" {
+		logger.Warning("UserLoginNotify failed, invalid info!")
+		return
+	}
+
 	// Get hostname
-	name, err := os.Hostname()
+	hostname, err := os.Hostname()
 	if err != nil {
 		logger.Warning("get hostname error:", err)
 		return
 	}
+
+	msg := ""
 	if status == LoginSuccess {
-		msg = fmt.Sprintf("✅ Successfully logged-in to the panel\r\nHostname:%s\r\n", name)
+		msg = fmt.Sprintf("✅ Successfully logged-in to the panel\r\nHostname:%s\r\n", hostname)
 	} else if status == LoginFail {
-		msg = fmt.Sprintf("❗ Login to the panel was unsuccessful\r\nHostname:%s\r\n", name)
+		msg = fmt.Sprintf("❗ Login to the panel was unsuccessful\r\nHostname:%s\r\n", hostname)
 	}
 	msg += fmt.Sprintf("⏰ Time:%s\r\n", time)
 	msg += fmt.Sprintf("🆔 Username:%s\r\n", username)
 	msg += fmt.Sprintf("🌐 IP:%s\r\n", ip)
+
 	t.SendMsgToTgbotAdmins(msg)
 }
 
@@ -686,11 +693,12 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	tdId := "None"
+	tgId := "None"
 	if len(client.TgID) > 0 {
-		tdId = client.TgID
+		tgId = client.TgID
 	}
-	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, tdId)
+
+	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, tgId)
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("tgid_refresh "+email),
@@ -699,6 +707,7 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 			tu.InlineKeyboardButton("❌ Remove Telegram User").WithCallbackData("tgid_remove "+email),
 		),
 	)
+
 	if len(messageID) > 0 {
 		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
 	} else {
@@ -732,6 +741,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
+
 	expiryTime := ""
 	if traffic.ExpiryTime == 0 {
 		expiryTime = "♾Unlimited"
@@ -740,15 +750,18 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	} else {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	}
+
 	total := ""
 	if traffic.Total == 0 {
 		total = "♾Unlimited"
 	} else {
 		total = common.FormatTraffic((traffic.Total))
 	}
+
 	output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
 		traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 		total, expiryTime)
+
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("client_refresh "+email),
@@ -770,6 +783,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 			tu.InlineKeyboardButton("🔘 Enable / Disable").WithCallbackData("toggle_enable "+email),
 		),
 	)
+
 	if len(messageID) > 0 {
 		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
 	} else {
@@ -785,6 +799,12 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
+	if len(inbouds) == 0 {
+		msg := "❌ No inbounds found!"
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
+
 	for _, inbound := range inbouds {
 		info := ""
 		info += fmt.Sprintf("📍Inbound:%s\r\nPort:%d\r\n", inbound.Remark, inbound.Port)
@@ -795,6 +815,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 			info += fmt.Sprintf("Expire date:%s\r\n \r\n", time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
 		}
 		t.SendMsgToTgbot(chatId, info)
+
 		for _, traffic := range inbound.ClientStats {
 			expiryTime := ""
 			if traffic.ExpiryTime == 0 {
@@ -804,6 +825,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 			} else {
 				expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 			}
+
 			total := ""
 			if traffic.Total == 0 {
 				total = "♾Unlimited"
@@ -831,6 +853,7 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
+
 	expiryTime := ""
 	if traffic.ExpiryTime == 0 {
 		expiryTime = "♾Unlimited"
@@ -839,12 +862,14 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 	} else {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	}
+
 	total := ""
 	if traffic.Total == 0 {
 		total = "♾Unlimited"
 	} else {
 		total = common.FormatTraffic((traffic.Total))
 	}
+
 	output := fmt.Sprintf("💡 Active: %t\r\n📧 Email: %s\r\n🔼 Upload↑: %s\r\n🔽 Download↓: %s\r\n🔄 Total: %s / %s\r\n📅 Expire in: %s\r\n",
 		traffic.Enable, traffic.Email, common.FormatTraffic(traffic.Up), common.FormatTraffic(traffic.Down), common.FormatTraffic((traffic.Up + traffic.Down)),
 		total, expiryTime)
@@ -859,6 +884,7 @@ func (t *Tgbot) getExhausted() string {
 	var exhaustedClients []xray.ClientTraffic
 	var disabledInbounds []model.Inbound
 	var disabledClients []xray.ClientTraffic
+
 	output := ""
 	TrafficThreshold, err := t.settingService.GetTrafficDiff()
 	if err == nil && TrafficThreshold > 0 {
@@ -872,6 +898,7 @@ func (t *Tgbot) getExhausted() string {
 	if err != nil {
 		logger.Warning("Unable to load Inbounds", err)
 	}
+
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if (inbound.ExpiryTime > 0 && (inbound.ExpiryTime-now < exDiff)) ||
@@ -894,6 +921,7 @@ func (t *Tgbot) getExhausted() string {
 			disabledInbounds = append(disabledInbounds, *inbound)
 		}
 	}
+
 	output += fmt.Sprintf("Exhausted Inbounds count:\r\n🛑 Disabled: %d\r\n🔜 Deplete soon: %d\r\n \r\n", len(disabledInbounds), len(exhaustedInbounds))
 	if len(exhaustedInbounds) > 0 {
 		output += "Exhausted Inbounds:\r\n"
@@ -906,6 +934,7 @@ func (t *Tgbot) getExhausted() string {
 			}
 		}
 	}
+
 	output += fmt.Sprintf("Exhausted Clients count:\r\n🛑 Exhausted: %d\r\n🔜 Deplete soon: %d\r\n \r\n", len(disabledClients), len(exhaustedClients))
 	if len(exhaustedClients) > 0 {
 		output += "Exhausted Clients:\r\n"
@@ -934,6 +963,10 @@ func (t *Tgbot) getExhausted() string {
 }
 
 func (t *Tgbot) sendBackup(chatId int64) {
+	if !t.IsRunning() {
+		return
+	}
+
 	sendingTime := time.Now().Format("2006-01-02 15:04:05")
 	t.SendMsgToTgbot(chatId, "Backup time: "+sendingTime)
 	file, err := os.Open(config.GetDBPath())
@@ -995,22 +1028,5 @@ func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlin
 	}
 	if _, err := bot.EditMessageText(&params); err != nil {
 		logger.Warning(err)
-	}
-}
-
-func fromChat(u *telego.Update) *telego.Chat {
-	switch {
-	case u.Message != nil:
-		return &u.Message.Chat
-	case u.EditedMessage != nil:
-		return &u.EditedMessage.Chat
-	case u.ChannelPost != nil:
-		return &u.ChannelPost.Chat
-	case u.EditedChannelPost != nil:
-		return &u.EditedChannelPost.Chat
-	case u.CallbackQuery != nil:
-		return &u.CallbackQuery.Message.Chat
-	default:
-		return nil
 	}
 }
