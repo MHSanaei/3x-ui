@@ -37,6 +37,11 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 		return err
 	}
 
+	// setup bot locale
+	if err := initTGBotLocalizer(settingService); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -81,6 +86,16 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 	}
 
 	return msg
+}
+
+func initTGBotLocalizer(settingService SettingService) error {
+	botLang, err := settingService.GetTgLang()
+	if err != nil {
+		return err
+	}
+
+	LocalizerBot = i18n.NewLocalizer(i18nBundle, botLang)
+	return nil
 }
 
 func LocalizerMiddleware() gin.HandlerFunc {
