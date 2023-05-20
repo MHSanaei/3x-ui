@@ -453,7 +453,7 @@ func (s *Server) Stop() error {
 	if s.cron != nil {
 		s.cron.Stop()
 	}
-	if s.tgbotService.IsRunnging() {
+	if s.tgbotService.IsRunning() {
 		s.tgbotService.Stop()
 	}
 	var err1 error

@@ -60,15 +60,16 @@ func (a *IndexController) login(c *gin.Context) {
 		pureJsonMsg(c, false, I18n(c, "pages.login.toasts.emptyPassword"))
 		return
 	}
+
 	user := a.userService.CheckUser(form.Username, form.Password, form.LoginSecret)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if user == nil {
-		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
 		logger.Infof("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
+		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
 		pureJsonMsg(c, false, I18n(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
 	} else {
-		logger.Infof("%s login success,Ip Address:%s\n", form.Username, getRemoteIp(c))
+		logger.Infof("%s login success, Ip Address: %s\n", form.Username, getRemoteIp(c))
 		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 1)
 	}
 
