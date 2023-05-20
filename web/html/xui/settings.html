@@ -23,6 +23,34 @@
     :not(.ant-card-dark)>.ant-tabs-top-bar {
         background: white;
     }
+
+    .alert-msg {
+        color: rgb(194, 117, 18);
+        font-weight: bold;
+        font-size: 20px;
+        margin-top: 5px;
+        padding: 16px 6px;
+        text-align: center;
+        border-bottom: 1px solid;
+    }
+
+    .alert-msg > i {
+        color: inherit;
+        font-size: 24px;
+    }
+
+    .collapse-title {
+        color: inherit;
+        font-weight: bold;
+        font-size: 18px;
+        padding: 10px 20px;
+        border-bottom: 2px solid;
+    }
+
+    .collapse-title > i {
+        color: inherit;
+        font-size: 24px;
+    }
 </style>
 <body>
 <a-layout id="app" v-cloak>
@@ -35,8 +63,14 @@
                         <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
                         <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
                     </a-space>
-                    <a-tabs style="margin:1rem 0.5rem;" default-active-key="1" :class="themeSwitcher.darkCardClass" >
+                    <a-tabs style="margin:1rem 0.5rem;" default-active-key="1" :class="themeSwitcher.darkCardClass">
                         <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
+                            <a-row :xs="24" :sm="24" :lg="12">
+                                <h2 class="alert-msg">
+                                    <a-icon type="warning"></a-icon>
+                                    {{ i18n "pages.settings.infoDesc" }}
+                                </h2>
+                            </a-row>
                             <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="0"></setting-list-item>
@@ -72,12 +106,6 @@
                                     </a-row>
                                 </a-list-item>
                             </a-list>
-                            <a-row :xs="24" :sm="24" :lg="12">
-                                <h2 style="color: inherit; font-weight: bold; font-size: 16px; padding: 5px 5px; text-align: center;">
-                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                    {{ i18n "pages.settings.infoDesc" }}
-                                </h2>
-                            </a-row>
                         </a-tab-pane>
                         <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
                             <a-tabs class="ant-card-dark-securitybox-nohover" default-active-key="sec-1" :class="themeSwitcher.darkCardClass">
@@ -144,8 +172,8 @@
                                 </a-space>
                                 <a-divider style="padding: 20px;">{{ i18n "pages.settings.templates.title"}} </a-divider>
                                 <a-row :xs="24" :sm="24" :lg="12">
-                                    <h2 style="color: inherit; font-weight: bold; font-size: 16px; padding: 5px 5px; text-align: center;">
-                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                    <h2 class="alert-msg">
+                                        <a-icon type="warning"></a-icon>
                                         {{ i18n "pages.settings.infoDesc" }}
                                     </h2>
                                 </a-row>
@@ -154,8 +182,8 @@
                                         <a-collapse>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.generalConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.generalConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -199,8 +227,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.blockConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.blockConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -212,8 +240,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.blockCountryConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.blockCountryConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -226,8 +254,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.directCountryConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.directCountryConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -240,8 +268,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.ipv4Configs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.ipv4ConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -250,8 +278,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.warpConfigs"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.warpConfigsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -262,8 +290,8 @@
                                             </a-collapse-panel>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.manualLists"}}'>
                                                 <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 style="color: inherit; font-weight: bold; font-size: 18px; padding: 10px 20px; border-bottom: 2px solid;">
-                                                        <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
+                                                    <h2 class="collapse-title">
+                                                        <a-icon type="warning"></a-icon>
                                                         {{ i18n "pages.settings.templates.manualListsDesc" }}
                                                     </h2>
                                                 </a-row>
@@ -295,6 +323,12 @@
                         </a-tab-pane>
 
                         <a-tab-pane key="4" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
+                            <a-row :xs="24" :sm="24" :lg="12">
+                                <h2 class="alert-msg">
+                                    <a-icon type="warning"></a-icon>
+                                    {{ i18n "pages.settings.infoDesc" }}
+                                </h2>
+                            </a-row>
                             <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.telegramBotEnable" }}' desc='{{ i18n "pages.settings.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.telegramToken"}}' desc='{{ i18n "pages.settings.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
@@ -303,12 +337,6 @@
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyBackup" }}' desc='{{ i18n "pages.settings.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
                             </a-list>
-                            <a-row :xs="24" :sm="24" :lg="12">
-                                <h2 style="color: inherit; font-weight: bold; font-size: 16px; padding: 5px 5px; text-align: center;">
-                                    <a-icon type="warning" style="color: inherit; font-size: 24px;"></a-icon>
-                                    {{ i18n "pages.settings.infoDesc" }}
-                                </h2>
-                            </a-row>
                         </a-tab-pane>
                     </a-tabs>
                 </a-space>
