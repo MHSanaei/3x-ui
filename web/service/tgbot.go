@@ -12,6 +12,7 @@ import (
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/util/common"
+	"x-ui/web/global"
 	"x-ui/web/locale"
 	"x-ui/xray"
 
@@ -39,6 +40,7 @@ type Tgbot struct {
 	serverService  ServerService
 	xrayService    XrayService
 	lastStatus     *Status
+	hashStorage    *global.HashStorage
 }
 
 func (t *Tgbot) NewTgbot() *Tgbot {
@@ -49,11 +51,18 @@ func (t *Tgbot) BotI18n(name string, params ...string) string {
 	return locale.I18n(locale.Bot, name, params...)
 }
 
+func (t *Tgbot) GetHashStorage() *global.HashStorage {
+	return t.hashStorage
+}
+
 func (t *Tgbot) Start(i18nFS embed.FS) error {
 	err := locale.InitLocalizer(i18nFS, &t.settingService)
 	if err != nil {
 		return err
 	}
+
+	// init hash storage
+	t.hashStorage = global.NewHashStorage(5*time.Minute, false)
 
 	tgBottoken, err := t.settingService.GetTgBotToken()
 	if err != nil || tgBottoken == "" {
@@ -190,7 +199,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	chatId := callbackQuery.Message.Chat.ID
 
 	if isAdmin {
-		dataArray := strings.Split(callbackQuery.Data, " ")
+		// get query from hash storage (if the query was <= 64 chars hash storage dont save the hash and return data itself)
+		decodedQuery := t.hashStorage.GetValue(callbackQuery.Data)
+		dataArray := strings.Split(decodedQuery, " ")
+
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
@@ -215,10 +227,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "reset_traffic":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("❌ Cancel Reset").WithCallbackData("client_cancel "+email),
+						tu.InlineKeyboardButton("❌ Cancel Reset").WithCallbackData(t.hashStorage.AddHash("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("✅ Confirm Reset Traffic?").WithCallbackData("reset_traffic_c "+email),
+						tu.InlineKeyboardButton("✅ Confirm Reset Traffic?").WithCallbackData(t.hashStorage.AddHash("reset_traffic_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -234,26 +246,26 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "reset_exp":
 				var inlineKeyboard = tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("❌ Cancel Reset").WithCallbackData("client_cancel "+email),
+						tu.InlineKeyboardButton("❌ Cancel Reset").WithCallbackData(t.hashStorage.AddHash("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("♾ Unlimited").WithCallbackData("reset_exp_c "+email+" 0"),
+						tu.InlineKeyboardButton("♾ Unlimited").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 0")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("1 Month").WithCallbackData("reset_exp_c "+email+" 30"),
-						tu.InlineKeyboardButton("2 Months").WithCallbackData("reset_exp_c "+email+" 60"),
+						tu.InlineKeyboardButton("1 Month").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 30")),
+						tu.InlineKeyboardButton("2 Months").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 60")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("3 Months").WithCallbackData("reset_exp_c "+email+" 90"),
-						tu.InlineKeyboardButton("6 Months").WithCallbackData("reset_exp_c "+email+" 180"),
+						tu.InlineKeyboardButton("3 Months").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 90")),
+						tu.InlineKeyboardButton("6 Months").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 180")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("9 Months").WithCallbackData("reset_exp_c "+email+" 270"),
-						tu.InlineKeyboardButton("12 Months").WithCallbackData("reset_exp_c "+email+" 360"),
+						tu.InlineKeyboardButton("9 Months").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 270")),
+						tu.InlineKeyboardButton("12 Months").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 360")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("10 Days").WithCallbackData("reset_exp_c "+email+" 10"),
-						tu.InlineKeyboardButton("20 Days").WithCallbackData("reset_exp_c "+email+" 20"),
+						tu.InlineKeyboardButton("10 Days").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 10")),
+						tu.InlineKeyboardButton("20 Days").WithCallbackData(t.hashStorage.AddHash("reset_exp_c "+email+" 20")),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -279,28 +291,28 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "ip_limit":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("❌ Cancel IP Limit").WithCallbackData("client_cancel "+email),
+						tu.InlineKeyboardButton("❌ Cancel IP Limit").WithCallbackData(t.hashStorage.AddHash("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("♾ Unlimited").WithCallbackData("ip_limit_c "+email+" 0"),
+						tu.InlineKeyboardButton("♾ Unlimited").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 0")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("1").WithCallbackData("ip_limit_c "+email+" 1"),
-						tu.InlineKeyboardButton("2").WithCallbackData("ip_limit_c "+email+" 2"),
+						tu.InlineKeyboardButton("1").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 1")),
+						tu.InlineKeyboardButton("2").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 2")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("3").WithCallbackData("ip_limit_c "+email+" 3"),
-						tu.InlineKeyboardButton("4").WithCallbackData("ip_limit_c "+email+" 4"),
+						tu.InlineKeyboardButton("3").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 3")),
+						tu.InlineKeyboardButton("4").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 4")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("5").WithCallbackData("ip_limit_c "+email+" 5"),
-						tu.InlineKeyboardButton("6").WithCallbackData("ip_limit_c "+email+" 6"),
-						tu.InlineKeyboardButton("7").WithCallbackData("ip_limit_c "+email+" 7"),
+						tu.InlineKeyboardButton("5").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 5")),
+						tu.InlineKeyboardButton("6").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 6")),
+						tu.InlineKeyboardButton("7").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 7")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("8").WithCallbackData("ip_limit_c "+email+" 8"),
-						tu.InlineKeyboardButton("9").WithCallbackData("ip_limit_c "+email+" 9"),
-						tu.InlineKeyboardButton("10").WithCallbackData("ip_limit_c "+email+" 10"),
+						tu.InlineKeyboardButton("8").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 8")),
+						tu.InlineKeyboardButton("9").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 9")),
+						tu.InlineKeyboardButton("10").WithCallbackData(t.hashStorage.AddHash("ip_limit_c "+email+" 10")),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -322,10 +334,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "clear_ips":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("❌ Cancel").WithCallbackData("ips_cancel "+email),
+						tu.InlineKeyboardButton("❌ Cancel").WithCallbackData(t.hashStorage.AddHash("ips_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("✅ Confirm Clear IPs?").WithCallbackData("clear_ips_c "+email),
+						tu.InlineKeyboardButton("✅ Confirm Clear IPs?").WithCallbackData(t.hashStorage.AddHash("clear_ips_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -346,10 +358,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tgid_remove":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("❌ Cancel").WithCallbackData("tgid_cancel "+email),
+						tu.InlineKeyboardButton("❌ Cancel").WithCallbackData(t.hashStorage.AddHash("tgid_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("✅ Confirm Remove Telegram User?").WithCallbackData("tgid_remove_c "+email),
+						tu.InlineKeyboardButton("✅ Confirm Remove Telegram User?").WithCallbackData(t.hashStorage.AddHash("tgid_remove_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -418,21 +430,21 @@ func checkAdmin(tgId int64) bool {
 func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	numericKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Server Usage").WithCallbackData("get_usage"),
-			tu.InlineKeyboardButton("Get DB Backup").WithCallbackData("get_backup"),
+			tu.InlineKeyboardButton("Server Usage").WithCallbackData(t.hashStorage.AddHash("get_usage")),
+			tu.InlineKeyboardButton("Get DB Backup").WithCallbackData(t.hashStorage.AddHash("get_backup")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Get Inbounds").WithCallbackData("inbounds"),
-			tu.InlineKeyboardButton("Deplete soon").WithCallbackData("deplete_soon"),
+			tu.InlineKeyboardButton("Get Inbounds").WithCallbackData(t.hashStorage.AddHash("inbounds")),
+			tu.InlineKeyboardButton("Deplete soon").WithCallbackData(t.hashStorage.AddHash("deplete_soon")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Commands").WithCallbackData("commands"),
+			tu.InlineKeyboardButton("Commands").WithCallbackData(t.hashStorage.AddHash("commands")),
 		),
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("Get Usage").WithCallbackData("client_traffic"),
-			tu.InlineKeyboardButton("Commands").WithCallbackData("client_commands"),
+			tu.InlineKeyboardButton("Get Usage").WithCallbackData(t.hashStorage.AddHash("client_traffic")),
+			tu.InlineKeyboardButton("Commands").WithCallbackData(t.hashStorage.AddHash("client_commands")),
 		),
 	)
 	var ReplyMarkup telego.ReplyMarkup
@@ -678,10 +690,10 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 	output := fmt.Sprintf("📧 Email: %s\r\n🔢 IPs: \r\n%s\r\n", email, ips)
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("ips_refresh "+email),
+			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData(t.hashStorage.AddHash("ips_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("❌ Clear IPs").WithCallbackData("clear_ips "+email),
+			tu.InlineKeyboardButton("❌ Clear IPs").WithCallbackData(t.hashStorage.AddHash("clear_ips "+email)),
 		),
 	)
 	if len(messageID) > 0 {
@@ -712,10 +724,10 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 	output := fmt.Sprintf("📧 Email: %s\r\n👤 Telegram User: %s\r\n", email, tgId)
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("tgid_refresh "+email),
+			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData(t.hashStorage.AddHash("tgid_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("❌ Remove Telegram User").WithCallbackData("tgid_remove "+email),
+			tu.InlineKeyboardButton("❌ Remove Telegram User").WithCallbackData(t.hashStorage.AddHash("tgid_remove "+email)),
 		),
 	)
 
@@ -775,23 +787,23 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData("client_refresh "+email),
+			tu.InlineKeyboardButton("🔄 Refresh").WithCallbackData(t.hashStorage.AddHash("client_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("📈 Reset Traffic").WithCallbackData("reset_traffic "+email),
+			tu.InlineKeyboardButton("📈 Reset Traffic").WithCallbackData(t.hashStorage.AddHash("reset_traffic "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("📅 Reset Expire Days").WithCallbackData("reset_exp "+email),
+			tu.InlineKeyboardButton("📅 Reset Expire Days").WithCallbackData(t.hashStorage.AddHash("reset_exp "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🔢 IP Log").WithCallbackData("ip_log "+email),
-			tu.InlineKeyboardButton("🔢 IP Limit").WithCallbackData("ip_limit "+email),
+			tu.InlineKeyboardButton("🔢 IP Log").WithCallbackData(t.hashStorage.AddHash("ip_log "+email)),
+			tu.InlineKeyboardButton("🔢 IP Limit").WithCallbackData(t.hashStorage.AddHash("ip_limit "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("👤 Set Telegram User").WithCallbackData("tg_user "+email),
+			tu.InlineKeyboardButton("👤 Set Telegram User").WithCallbackData(t.hashStorage.AddHash("tg_user "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🔘 Enable / Disable").WithCallbackData("toggle_enable "+email),
+			tu.InlineKeyboardButton("🔘 Enable / Disable").WithCallbackData(t.hashStorage.AddHash("toggle_enable "+email)),
 		),
 	)
 
