@@ -41,6 +41,7 @@ type AllSetting struct {
 	TgRunTime          string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup        bool   `json:"tgBotBackup" form:"tgBotBackup"`
 	TgCpu              int    `json:"tgCpu" form:"tgCpu"`
+	TgLang             string `json:"tgLang" form:"tgLang"`
 	XrayTemplateConfig string `json:"xrayTemplateConfig" form:"xrayTemplateConfig"`
 	TimeLocation       string `json:"timeLocation" form:"timeLocation"`
 	SecretEnable       bool   `json:"secretEnable" form:"secretEnable"`
