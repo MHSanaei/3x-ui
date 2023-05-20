@@ -3,8 +3,10 @@ package global
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"regexp"
 	"sync"
 	"time"
+	"x-ui/util/common"
 )
 
 type HashEntry struct {
@@ -59,15 +61,23 @@ func (h *HashStorage) saveValue(query string) string {
 	return md5HashString
 }
 
-func (h *HashStorage) GetValue(hash string) string {
+func (h *HashStorage) GetValue(hash string) (string, error) {
 	h.RLock()
 	defer h.RUnlock()
 
 	entry, exists := h.Data[hash]
 	if !exists {
-		return hash
+		if h.isMD5(hash) {
+			return "", common.NewError("hash not found in storage!")
+		}
+		return hash, nil
 	}
-	return entry.Value
+	return entry.Value, nil
+}
+
+func (h *HashStorage) isMD5(hash string) bool {
+	match, _ := regexp.MatchString("^[a-f0-9]{32}$", hash)
+	return match
 }
 
 func (h *HashStorage) RemoveExpiredHashes() {
