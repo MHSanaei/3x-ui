@@ -2,6 +2,8 @@ package controller
 
 import (
 	"net/http"
+	"x-ui/logger"
+	"x-ui/web/locale"
 	"x-ui/web/session"
 
 	"github.com/gin-gonic/gin"
@@ -13,7 +15,7 @@ type BaseController struct {
 func (a *BaseController) checkLogin(c *gin.Context) {
 	if !session.IsLogin(c) {
 		if isAjax(c) {
-			pureJsonMsg(c, false, I18n(c, "pages.login.loginAgain"))
+			pureJsonMsg(c, false, WebI18n(c, "pages.login.loginAgain"))
 		} else {
 			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		}
@@ -23,11 +25,13 @@ func (a *BaseController) checkLogin(c *gin.Context) {
 	}
 }
 
-func I18n(c *gin.Context, name string) string {
-	anyfunc, _ := c.Get("I18n")
-	i18n, _ := anyfunc.(func(key string, params ...string) (string, error))
-
-	message, _ := i18n(name)
-
-	return message
+func WebI18n(c *gin.Context, name string, params ...string) string {
+	anyfunc, funcExists := c.Get("I18n")
+	if !funcExists {
+		logger.Warning("I18n function not exists in gin context!")
+		return ""
+	}
+	i18nFunc, _ := anyfunc.(func(i18nType locale.I18nType, key string, keyParams ...string) string)
+	msg := i18nFunc(locale.Web, name, params...)
+	return msg
 }
