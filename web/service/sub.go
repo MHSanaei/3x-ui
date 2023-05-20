@@ -603,7 +603,8 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 		}
 	}
 	encPart := fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
-	return fmt.Sprintf("ss://%s@%s:%d#%s", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port, clients[clientIndex].Email)
+	remark := fmt.Sprintf("%s-%s", inbound.Remark, clients[clientIndex].Email)
+	return fmt.Sprintf("ss://%s@%s:%d#%s", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port, remark)
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {
