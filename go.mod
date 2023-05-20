@@ -20,6 +20,8 @@ require (
 	google.golang.org/grpc v1.55.0
 	gorm.io/driver/sqlite v1.5.0
 	gorm.io/gorm v1.25.1
+	github.com/go-telegram-bot-api/telegram-bot-api/v5
+
 )
 
 require (
