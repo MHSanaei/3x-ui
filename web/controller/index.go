@@ -49,15 +49,15 @@ func (a *IndexController) login(c *gin.Context) {
 	var form LoginForm
 	err := c.ShouldBind(&form)
 	if err != nil {
-		pureJsonMsg(c, false, WebI18n(c, "pages.login.toasts.invalidFormData"))
+		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.invalidFormData"))
 		return
 	}
 	if form.Username == "" {
-		pureJsonMsg(c, false, WebI18n(c, "pages.login.toasts.emptyUsername"))
+		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.emptyUsername"))
 		return
 	}
 	if form.Password == "" {
-		pureJsonMsg(c, false, WebI18n(c, "pages.login.toasts.emptyPassword"))
+		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.emptyPassword"))
 		return
 	}
 
@@ -66,7 +66,7 @@ func (a *IndexController) login(c *gin.Context) {
 	if user == nil {
 		logger.Infof("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
 		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
-		pureJsonMsg(c, false, WebI18n(c, "pages.login.toasts.wrongUsernameOrPassword"))
+		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
 	} else {
 		logger.Infof("%s login success, Ip Address: %s\n", form.Username, getRemoteIp(c))
@@ -87,7 +87,7 @@ func (a *IndexController) login(c *gin.Context) {
 
 	err = session.SetLoginUser(c, user)
 	logger.Info("user", user.Id, "login success")
-	jsonMsg(c, WebI18n(c, "pages.login.toasts.successLogin"), err)
+	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), err)
 }
 
 func (a *IndexController) logout(c *gin.Context) {

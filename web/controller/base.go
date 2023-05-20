@@ -15,7 +15,7 @@ type BaseController struct {
 func (a *BaseController) checkLogin(c *gin.Context) {
 	if !session.IsLogin(c) {
 		if isAjax(c) {
-			pureJsonMsg(c, false, WebI18n(c, "pages.login.loginAgain"))
+			pureJsonMsg(c, false, I18nWeb(c, "pages.login.loginAgain"))
 		} else {
 			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		}
@@ -25,7 +25,7 @@ func (a *BaseController) checkLogin(c *gin.Context) {
 	}
 }
 
-func WebI18n(c *gin.Context, name string, params ...string) string {
+func I18nWeb(c *gin.Context, name string, params ...string) string {
 	anyfunc, funcExists := c.Get("I18n")
 	if !funcExists {
 		logger.Warning("I18n function not exists in gin context!")

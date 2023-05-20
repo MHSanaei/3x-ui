@@ -60,7 +60,7 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.toasts.obtain"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	jsonObj(c, inbounds, nil)
@@ -68,12 +68,12 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "get"), err)
 		return
 	}
 	inbound, err := a.inboundService.GetInbound(id)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.toasts.obtain"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
 	}
 	jsonObj(c, inbound, nil)
@@ -93,7 +93,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.create"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.create"), err)
 		return
 	}
 	user := session.GetLoginUser(c)
@@ -101,7 +101,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	inbound.Enable = true
 	inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	inbound, err = a.inboundService.AddInbound(inbound)
-	jsonMsgObj(c, WebI18n(c, "pages.inbounds.create"), inbound, err)
+	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.create"), inbound, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -110,11 +110,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "delete"), err)
+		jsonMsg(c, I18nWeb(c, "delete"), err)
 		return
 	}
 	err = a.inboundService.DelInbound(id)
-	jsonMsgObj(c, WebI18n(c, "delete"), id, err)
+	jsonMsgObj(c, I18nWeb(c, "delete"), id, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -123,7 +123,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 func (a *InboundController) updateInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 	inbound := &model.Inbound{
@@ -131,11 +131,11 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	}
 	err = c.ShouldBind(inbound)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 	inbound, err = a.inboundService.UpdateInbound(inbound)
-	jsonMsgObj(c, WebI18n(c, "pages.inbounds.update"), inbound, err)
+	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.update"), inbound, err)
 	if err == nil {
 		a.xrayService.SetToNeedRestart()
 	}
@@ -165,7 +165,7 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 	data := &model.Inbound{}
 	err := c.ShouldBind(data)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 
@@ -183,7 +183,7 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 func (a *InboundController) delInboundClient(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 	clientId := c.Param("clientId")
@@ -205,7 +205,7 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 
@@ -223,7 +223,7 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 	email := c.Param("email")
@@ -251,7 +251,7 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 
@@ -266,7 +266,7 @@ func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 func (a *InboundController) delDepletedClients(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, WebI18n(c, "pages.inbounds.update"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
 		return
 	}
 	err = a.inboundService.DelDepletedClients(id)
