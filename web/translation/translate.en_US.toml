@@ -419,6 +419,7 @@
 "disabled" = "🛑 Disabled: {{ .Disabled }}\r\n"
 "depleteSoon" = "🔜 Deplete soon: {{ .Deplete }}\r\n \r\n"
 "backupTime" = "🗄 Backup Time: {{ .Time }}\r\n"
+"refreshedOn" = "🔄🕒 Refreshed On: {{ .Time }}\r\n"
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
