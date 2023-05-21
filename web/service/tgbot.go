@@ -409,7 +409,6 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
     t.SendMsgToTgbot(chatId, result.String())
 }
-
 func (t *Tgbot) getIPsForDomains(domainList []string) string {
     var result strings.Builder
     for _, domain := range domainList {
