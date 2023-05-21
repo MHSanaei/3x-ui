@@ -427,7 +427,7 @@ func (t *Tgbot) getIPsForDomains(domainList []string) string {
     }
     return result
 }
-
+}
 func checkAdmin(tgId int64) bool {
     for _, adminId := range adminIds {
         if adminId == tgId {
