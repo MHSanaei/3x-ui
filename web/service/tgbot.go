@@ -437,6 +437,7 @@ func checkAdmin(tgId int64) bool {
         }
     }
     return false
+}
 func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
     var replyMarkup interface{}
 
