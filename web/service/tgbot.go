@@ -392,7 +392,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, "برای جستجوی آمار کافیست از دستور زیر استفاده کنید:\r\n \r\n<code>/usage [UID|Password]</code>\r\n \r\nاز UID برای Vmess/Vless استفاده کنید و از Passowrd برای Trojan استفاده کنید.")
 	case "commands":
 		t.SendMsgToTgbot(chatId, "جستجوی client با ایمیل:\r\n<code>/usage email</code>\r\n \r\nجستجو برای inbounds (همراه با آمار):\r\n<code>/inbound [remark]</code>")
-		case "get_ips":
+		case "mci":
     domainList := []string{"mci.ircf.space", "mcix.ircf.space", "mci.eqjgkx.xyz", "mcicn.adihnrr.eu.org", "mci.vcdn.online", "mci.ma7ta.online", "mci.boby66600.eu.org", "mci.jangal.icu", "mci.filna.cloud"}
     t.SendMsgToTgbot(chatId, t.getIPsForDomains(domainList))
 }
