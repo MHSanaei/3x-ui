@@ -694,6 +694,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 		}
 
 		output := ""
+		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 		output += t.I18nBot("tgbot.messages.active", "Enable=="+strconv.FormatBool(traffic.Enable))
 		output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 		output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
@@ -814,6 +815,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	}
 
 	output := ""
+	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	output += t.I18nBot("tgbot.messages.active", "Enable=="+strconv.FormatBool(traffic.Enable))
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
@@ -895,6 +897,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 			}
 
 			output := ""
+			output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 			output += t.I18nBot("tgbot.messages.active", "Enable=="+strconv.FormatBool(traffic.Enable))
 			output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 			output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
@@ -938,6 +941,7 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 	}
 
 	output := ""
+	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	output += t.I18nBot("tgbot.messages.active", "Enable=="+strconv.FormatBool(traffic.Enable))
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 	output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
@@ -1042,6 +1046,7 @@ func (t *Tgbot) getExhausted() string {
 				total = common.FormatTraffic((traffic.Total))
 			}
 
+			output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 			output += t.I18nBot("tgbot.messages.active", "Enable=="+strconv.FormatBool(traffic.Enable))
 			output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
 			output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))

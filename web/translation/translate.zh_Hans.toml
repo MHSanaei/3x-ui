@@ -419,6 +419,7 @@
 "disabled" = "🛑 禁用：{{ .Disabled }}\r\n"
 "depleteSoon" = "🔜 即将耗尽：{{ .Deplete }}\r\n \r\n"
 "backupTime" = "🗄 备份时间：{{ .Time }}\r\n"
+"refreshedOn" = "🔄🕒 刷新时间：{{ .Time }}\r\n"
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ 关闭键盘"
