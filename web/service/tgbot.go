@@ -62,8 +62,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	// init hash storage => store callback queries
-	// NOTE: it only save the query if its length is more than 64 chars.
-	hashStorage = global.NewHashStorage(20*time.Minute, false)
+	hashStorage = global.NewHashStorage(20 * time.Minute)
 
 	t.SetHostname()
 	tgBottoken, err := t.settingService.GetTgBotToken()
@@ -123,6 +122,28 @@ func (t *Tgbot) Stop() {
 	logger.Info("Stop Telegram receiver ...")
 	isRunning = false
 	adminIds = nil
+}
+
+func (t *Tgbot) encodeQuery(query string) string {
+	// NOTE: we only need to hash for more than 64 chars
+	if len(query) <= 64 {
+		return query
+	}
+
+	return hashStorage.SaveHash(query)
+}
+
+func (t *Tgbot) decodeQuery(query string) (string, error) {
+	if !hashStorage.IsMD5(query) {
+		return query, nil
+	}
+
+	decoded, exists := hashStorage.GetValue(query)
+	if !exists {
+		return "", common.NewError("hash not found in storage!")
+	}
+
+	return decoded, nil
 }
 
 func (t *Tgbot) OnReceive() {
@@ -212,7 +233,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 	if isAdmin {
 		// get query from hash storage
-		decodedQuery, err := hashStorage.GetValue(callbackQuery.Data)
+		decodedQuery, err := t.decodeQuery(callbackQuery.Data)
 		if err != nil {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.noQuery"))
 			return
@@ -243,10 +264,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "reset_traffic":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(hashStorage.AddHash("client_cancel "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetTraffic")).WithCallbackData(hashStorage.AddHash("reset_traffic_c "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetTraffic")).WithCallbackData(t.encodeQuery("reset_traffic_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -262,26 +283,26 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "reset_exp":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(hashStorage.AddHash("client_cancel "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.unlimited")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 0")),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.unlimited")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 0")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("1 "+t.I18nBot("tgbot.month")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 30")),
-						tu.InlineKeyboardButton("2 "+t.I18nBot("tgbot.months")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 60")),
+						tu.InlineKeyboardButton("1 "+t.I18nBot("tgbot.month")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 30")),
+						tu.InlineKeyboardButton("2 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 60")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("3 "+t.I18nBot("tgbot.months")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 90")),
-						tu.InlineKeyboardButton("6 "+t.I18nBot("tgbot.months")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 180")),
+						tu.InlineKeyboardButton("3 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 90")),
+						tu.InlineKeyboardButton("6 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 180")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("9 "+t.I18nBot("tgbot.months")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 270")),
-						tu.InlineKeyboardButton("12 "+t.I18nBot("tgbot.months")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 360")),
+						tu.InlineKeyboardButton("9 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 270")),
+						tu.InlineKeyboardButton("12 "+t.I18nBot("tgbot.months")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 360")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("10 "+t.I18nBot("tgbot.days")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 10")),
-						tu.InlineKeyboardButton("20 "+t.I18nBot("tgbot.days")).WithCallbackData(hashStorage.AddHash("reset_exp_c "+email+" 20")),
+						tu.InlineKeyboardButton("10 "+t.I18nBot("tgbot.days")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 10")),
+						tu.InlineKeyboardButton("20 "+t.I18nBot("tgbot.days")).WithCallbackData(t.encodeQuery("reset_exp_c "+email+" 20")),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -307,28 +328,28 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "ip_limit":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelIpLimit")).WithCallbackData(hashStorage.AddHash("client_cancel "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelIpLimit")).WithCallbackData(t.encodeQuery("client_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.unlimited")).WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 0")),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.unlimited")).WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 0")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("1").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 1")),
-						tu.InlineKeyboardButton("2").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 2")),
+						tu.InlineKeyboardButton("1").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 1")),
+						tu.InlineKeyboardButton("2").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 2")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("3").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 3")),
-						tu.InlineKeyboardButton("4").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 4")),
+						tu.InlineKeyboardButton("3").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 3")),
+						tu.InlineKeyboardButton("4").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 4")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("5").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 5")),
-						tu.InlineKeyboardButton("6").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 6")),
-						tu.InlineKeyboardButton("7").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 7")),
+						tu.InlineKeyboardButton("5").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 5")),
+						tu.InlineKeyboardButton("6").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 6")),
+						tu.InlineKeyboardButton("7").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 7")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("8").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 8")),
-						tu.InlineKeyboardButton("9").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 9")),
-						tu.InlineKeyboardButton("10").WithCallbackData(hashStorage.AddHash("ip_limit_c "+email+" 10")),
+						tu.InlineKeyboardButton("8").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 8")),
+						tu.InlineKeyboardButton("9").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 9")),
+						tu.InlineKeyboardButton("10").WithCallbackData(t.encodeQuery("ip_limit_c "+email+" 10")),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -350,10 +371,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "clear_ips":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(hashStorage.AddHash("ips_cancel "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("ips_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmClearIps")).WithCallbackData(hashStorage.AddHash("clear_ips_c "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmClearIps")).WithCallbackData(t.encodeQuery("clear_ips_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -374,10 +395,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "tgid_remove":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(hashStorage.AddHash("tgid_cancel "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("tgid_cancel "+email)),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmRemoveTGUser")).WithCallbackData(hashStorage.AddHash("tgid_remove_c "+email)),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmRemoveTGUser")).WithCallbackData(t.encodeQuery("tgid_remove_c "+email)),
 					),
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.MessageID, inlineKeyboard)
@@ -446,21 +467,21 @@ func checkAdmin(tgId int64) bool {
 func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	numericKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(hashStorage.AddHash("get_usage")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dbBackup")).WithCallbackData(hashStorage.AddHash("get_backup")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(t.encodeQuery("get_usage")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dbBackup")).WithCallbackData(t.encodeQuery("get_backup")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getInbounds")).WithCallbackData(hashStorage.AddHash("inbounds")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.depleteSoon")).WithCallbackData(hashStorage.AddHash("deplete_soon")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.getInbounds")).WithCallbackData(t.encodeQuery("inbounds")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.depleteSoon")).WithCallbackData(t.encodeQuery("deplete_soon")),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(hashStorage.AddHash("commands")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("commands")),
 		),
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientUsage")).WithCallbackData(hashStorage.AddHash("client_traffic")),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(hashStorage.AddHash("client_commands")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clientUsage")).WithCallbackData(t.encodeQuery("client_traffic")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("client_commands")),
 		),
 	)
 
@@ -719,10 +740,10 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(hashStorage.AddHash("ips_refresh "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("ips_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clearIPs")).WithCallbackData(hashStorage.AddHash("clear_ips "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.clearIPs")).WithCallbackData(t.encodeQuery("clear_ips "+email)),
 		),
 	)
 
@@ -757,10 +778,10 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(hashStorage.AddHash("tgid_refresh "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("tgid_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.removeTGUser")).WithCallbackData(hashStorage.AddHash("tgid_remove "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.removeTGUser")).WithCallbackData(t.encodeQuery("tgid_remove "+email)),
 		),
 	)
 
@@ -825,23 +846,23 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(hashStorage.AddHash("client_refresh "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("client_refresh "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetTraffic")).WithCallbackData(hashStorage.AddHash("reset_traffic "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetTraffic")).WithCallbackData(t.encodeQuery("reset_traffic "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData(hashStorage.AddHash("reset_exp "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData(t.encodeQuery("reset_exp "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ipLog")).WithCallbackData(hashStorage.AddHash("ip_log "+email)),
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ipLimit")).WithCallbackData(hashStorage.AddHash("ip_limit "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ipLog")).WithCallbackData(t.encodeQuery("ip_log "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ipLimit")).WithCallbackData(t.encodeQuery("ip_limit "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.setTGUser")).WithCallbackData(hashStorage.AddHash("tg_user "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.setTGUser")).WithCallbackData(t.encodeQuery("tg_user "+email)),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.toggle")).WithCallbackData(hashStorage.AddHash("toggle_enable "+email)),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.toggle")).WithCallbackData(t.encodeQuery("toggle_enable "+email)),
 		),
 	)
 
@@ -1076,7 +1097,7 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	if err != nil {
 		logger.Warning("Error in uploading backup: ", err)
 	}
-	
+
 	file, err = os.Open(xray.GetConfigPath())
 	if err != nil {
 		logger.Warning("Error in opening config.json file for backup: ", err)
