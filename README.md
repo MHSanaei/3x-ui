@@ -152,7 +152,7 @@ If you want to use routing to WARP follow steps as below:
 
 X-UI supports daily traffic notification, panel login reminder and other functions through the Tg robot. To use the Tg robot, you need to apply for the specific application tutorial. You can refer to the [blog](https://coderfan.net/how-to-use-telegram-bot-to-alarm-you-when-someone-login-into-your-vps.html)
 Set the robot-related parameters in the panel background, including:
-
+- 🍎 آی پی سالم کلودفلر
 - Tg robot Token
 - Tg robot ChatId
 - Tg robot cycle runtime, in crontab syntax
