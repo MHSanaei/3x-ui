@@ -1061,7 +1061,9 @@ func (t *Tgbot) getExhausted() string {
 }
 
 func (t *Tgbot) sendBackup(chatId int64) {
-	t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05")))
+	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
+	t.SendMsgToTgbot(chatId, output)
+
 	file, err := os.Open(config.GetDBPath())
 	if err != nil {
 		logger.Warning("Error in opening db file for backup: ", err)
@@ -1074,6 +1076,7 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	if err != nil {
 		logger.Warning("Error in uploading backup: ", err)
 	}
+	
 	file, err = os.Open(xray.GetConfigPath())
 	if err != nil {
 		logger.Warning("Error in opening config.json file for backup: ", err)
