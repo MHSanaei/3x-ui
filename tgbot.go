@@ -440,15 +440,6 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 		tu.InlineKeyboardButton("آی پی سالم").WithCallbackData("get_ips"),
 	),
 )
-	numericKeyboardClient := tu.InlineKeyboard(
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("🤳 گزارش مصرف").WithCallbackData("client_traffic"),
-			tu.InlineKeyboardButton("👩‍💻 دستورات").WithCallbackData("client_commands"),
-		),
-		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton("آی پی سالم").WithCallbackData("get_ips"),
-		),
-	)
 	params := telego.SendMessageParams{
 		ChatID:    tu.ID(chatId),
 		Text:      msg,
