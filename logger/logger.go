@@ -2,17 +2,28 @@ package logger
 
 import (
 	"os"
+	"sync"
 
 	"github.com/op/go-logging"
 )
 
-var logger *logging.Logger
+var (
+	logger *logging.Logger
+	mu     sync.Mutex
+)
 
 func init() {
 	InitLogger(logging.INFO)
 }
 
 func InitLogger(level logging.Level) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	if logger != nil {
+		return
+	}
+
 	format := logging.MustStringFormatter(
 		`%{time:2006/01/02 15:04:05} %{level} - %{message}`,
 	)
@@ -21,39 +32,55 @@ func InitLogger(level logging.Level) {
 	backendFormatter := logging.NewBackendFormatter(backend, format)
 	backendLeveled := logging.AddModuleLevel(backendFormatter)
 	backendLeveled.SetLevel(level, "")
-	newLogger.SetBackend(backendLeveled)
+	newLogger.SetBackend(logging.MultiLogger(backendLeveled))
 
 	logger = newLogger
 }
 
 func Debug(args ...interface{}) {
-	logger.Debug(args...)
+	if logger != nil {
+		logger.Debug(args...)
+	}
 }
 
 func Debugf(format string, args ...interface{}) {
-	logger.Debugf(format, args...)
+	if logger != nil {
+		logger.Debugf(format, args...)
+	}
 }
 
 func Info(args ...interface{}) {
-	logger.Info(args...)
+	if logger != nil {
+		logger.Info(args...)
+	}
 }
 
 func Infof(format string, args ...interface{}) {
-	logger.Infof(format, args...)
+	if logger != nil {
+		logger.Infof(format, args...)
+	}
 }
 
 func Warning(args ...interface{}) {
-	logger.Warning(args...)
+	if logger != nil {
+		logger.Warning(args...)
+	}
 }
 
 func Warningf(format string, args ...interface{}) {
-	logger.Warningf(format, args...)
+	if logger != nil {
+		logger.Warningf(format, args...)
+	}
 }
 
 func Error(args ...interface{}) {
-	logger.Error(args...)
+	if logger != nil {
+		logger.Error(args...)
+	}
 }
 
 func Errorf(format string, args ...interface{}) {
-	logger.Errorf(format, args...)
+	if logger != nil {
+		logger.Errorf(format, args...)
+	}
 }
