@@ -59,10 +59,9 @@
             </td>
             <td v-else-if="inbound.reality">
                 reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                reality {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                reality Destination: <a-tag :color="inbound.stream.reality.dest ? 'green' : 'orange'">[[ inbound.stream.reality.dest ]]</a-tag>
             </td>
-            <td v-else>
-                tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
+            <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
             </td>
         </tr>
     </table>
@@ -110,17 +109,16 @@
             </td>
         </tr>
     </table>
-    <table v-if="infoModal.clientSettings.subId + infoModal.clientSettings.tgId" style="margin-bottom: 10px;">
-        <tr v-if="infoModal.clientSettings.subId">
-            <td>Subscription link</td>
-            <td><a :href="[[ subBase + infoModal.clientSettings.subId ]]" target="_blank">[[ subBase + infoModal.clientSettings.subId ]]</a></td>
-            <td><a-icon id="copy-sub-link" type="snippets" @click="copyToClipboard('copy-sub-link', subBase + infoModal.clientSettings.subId)"></a-icon></td>
-        </tr>
-        <tr v-if="infoModal.clientSettings.tgId">
-            <td>Telegram ID</td>
-            <td><a :href="[[ tgBase + infoModal.clientSettings.tgId ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></td>
-        </tr>
-    </table>
+    <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
+        <a-divider>Subscription link</a-divider>
+        <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a>
+        <a-icon id="copy-sub-link" type="snippets" @click="copyToClipboard('copy-sub-link', infoModal.subLink)"></a-icon>
+    </template>
+    <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
+        <a-divider>Telegram Username</a-divider>
+        <a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a>
+        <a-icon id="copy-tg-link" type="snippets" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)"></a-icon>
+    </template>
     </template>
     <template v-else>
         <a-divider></a-divider>
@@ -190,8 +188,14 @@
     </template>
     <div v-if="dbInbound.hasLink()">
         <a-divider>URL</a-divider>
-        <p>[[ infoModal.link ]]</p>
-        <button class="ant-btn ant-btn-primary" id="copy-url-link" @click="copyToClipboard('copy-url-link', infoModal.link)"><a-icon type="snippets"></a-icon>{{ i18n "copy" }}</button>
+        <a-row v-for="(link,index) in infoModal.links">
+            <a-col :span="21"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+            <a-col :span="3" style="text-align: right;">
+                <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
+                    <a-icon type="snippets"></a-icon>{{ i18n "copy" }}
+                </button>
+            </a-col>
+        </a-row>
     </div>
 </a-modal>
 <script>
@@ -206,23 +210,56 @@
         upStats: 0,
         downStats: 0,
         clipboard: null,
-        link: null,
+        links: [],
         index: null,
         isExpired: false,
+        subLink: '',
+        tgLink: '',
         show(dbInbound, index) {
             this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
-            this.link = dbInbound.genLink(index);
             this.settings = JSON.parse(this.inbound.settings);
             this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
             this.isExpired = this.inbound.isExpiry(index);
             this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+            remark = this.dbInbound.remark + "-" + this.clientSettings.email;
+            address = this.dbInbound.address;
+            this.links = [];
+            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
+                this.inbound.stream.tls.settings.domains.forEach((domain) => {
+                    this.links.push({
+                        remark: remark + "-" + domain.remark,
+                        link: this.inbound.genLink(domain.domain, remark + "-" + domain.remark, index)
+                    });
+                });
+            } else {
+                this.links.push({
+                    remark: remark,
+                    link: this.inbound.genLink(address, remark, index)
+                });
+            }
+            if (this.clientSettings) {
+                if (this.clientSettings.subId) {
+                    this.subLink = this.genSubLink(this.clientSettings.subId);
+                }
+                if (this.clientSettings.tgId) {
+                    this.tgLink = "https://t.me/" + this.clientSettings.tgId;
+                }
+            }
             this.visible = true;
         },
         close() {
             infoModal.visible = false;
         },
+        genSubLink(subID) {
+            protocol = app.subSettings.tls ? "https://" : "http://";
+            hostName = app.subSettings.domain === "" ? window.location.hostname : app.subSettings.domain;
+            subPort = app.subSettings.port;
+            port = (subPort === 443 && app.subSettings.tls) || (subPort === 80 && !app.subSettings.tls) ? "" : ":" + String(subPort);
+            subPath = app.subSettings.path;
+            return protocol + hostName + port + subPath + subID;
+        }
     };
 
     const infoModalApp = new Vue({
@@ -247,12 +284,6 @@
                     return infoModal.clientSettings.enable;
                 }
                 return infoModal.dbInbound.isEnable;
-            },
-            get subBase() {
-                return window.location.protocol + "//" + window.location.hostname + (window.location.port ? ":" + window.location.port : "") + basePath + "sub/";
-            },
-            get tgBase() {
-                return "https://t.me/"
             },
         },
         methods: {

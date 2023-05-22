@@ -498,8 +498,7 @@ class TlsStreamSettings extends XrayCommonClass {
         }
 
 		if (!ObjectUtil.isEmpty(json.settings)) {
-            settings = new TlsStreamSettings.Settings(json.settings.allowInsecure , json.settings.fingerprint, json.settings.serverName);
-        }
+            settings = new TlsStreamSettings.Settings(json.settings.allowInsecure , json.settings.fingerprint, json.settings.serverName, json.settings.domains);        }
         return new TlsStreamSettings(
             json.serverName,
             json.minVersion,
@@ -566,17 +565,19 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
 };
 
 TlsStreamSettings.Settings = class extends XrayCommonClass {
-    constructor(allowInsecure = false, fingerprint = '', serverName = '') {
+    constructor(allowInsecure = false, fingerprint = '', serverName = '', domains = []) {
         super();
         this.allowInsecure = allowInsecure;
         this.fingerprint = fingerprint;
         this.serverName = serverName;
+        this.domains = domains;
     }
     static fromJson(json = {}) {
         return new TlsStreamSettings.Settings(
             json.allowInsecure,
             json.fingerprint,
-            json.servername,
+            json.serverName,
+            json.domains,
         );
     }
     toJson() {
@@ -584,6 +585,7 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
             allowInsecure: this.allowInsecure,
             fingerprint: this.fingerprint,
             serverName: this.serverName,
+            domains: this.domains,
         };
     }
 };
@@ -1507,25 +1509,13 @@ class Inbound extends XrayCommonClass {
 
     genLink(address='', remark='', clientIndex=0) {
         switch (this.protocol) {
-            case Protocols.VMESS:
-                if (this.settings.vmesses[clientIndex].email != ""){
-                    remark += '-' + this.settings.vmesses[clientIndex].email
-                }
+            case Protocols.VMESS:  
                 return this.genVmessLink(address, remark, clientIndex);
             case Protocols.VLESS:
-                if (this.settings.vlesses[clientIndex].email != ""){
-                    remark += '-' + this.settings.vlesses[clientIndex].email
-                }
                 return this.genVLESSLink(address, remark, clientIndex);
             case Protocols.SHADOWSOCKS: 
-                if (this.settings.shadowsockses[clientIndex].email != ""){
-                    remark = this.settings.shadowsockses[clientIndex].email
-                }
                 return this.genSSLink(address, remark, clientIndex);
             case Protocols.TROJAN:
-                if (this.settings.trojans[clientIndex].email != ""){
-                    remark += '-' + this.settings.trojans[clientIndex].email
-                }
                 return this.genTrojanLink(address, remark, clientIndex);
             default: return '';
         }
@@ -1537,12 +1527,17 @@ class Inbound extends XrayCommonClass {
             case Protocols.VMESS:
             case Protocols.VLESS:
             case Protocols.TROJAN:
-                JSON.parse(this.settings).clients.forEach((_,index) => {
-                    link += this.genLink(address, remark, index) + '\r\n';
+            case Protocols.SHADOWSOCKS:
+                JSON.parse(this.settings).clients.forEach((client,index) => {
+                    if(this.tls && !ObjectUtil.isArrEmpty(this.stream.tls.settings.domains)){
+                        this.stream.tls.settings.domains.forEach((domain) => {
+                            link += this.genLink(domain.domain, remark + '-' + client.email + '-' + domain.remark, index) + '\r\n';
+                        });
+                    } else {
+                        link += this.genLink(address, remark + '-' + client.email, index) + '\r\n';
+                    }
                 });
                 return link;
-            case Protocols.SHADOWSOCKS:
-                return (this.genSSLink(address, remark) + '\r\n');
             default: return '';
         }
     }
