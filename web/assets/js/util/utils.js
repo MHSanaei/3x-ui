@@ -104,7 +104,7 @@ class RandomUtil {
         return str;
     }
     
-    static randowShortId() {
+    static randomShortId() {
         return this.randomShortIdSeq(8);
     }
 
