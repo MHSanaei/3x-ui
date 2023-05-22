@@ -1,17 +1,14 @@
-package controller
+package sub
 
 import (
 	"encoding/base64"
 	"strings"
-	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type SUBController struct {
-	BaseController
-
-	subService service.SubService
+	subService SubService
 }
 
 func NewSUBController(g *gin.RouterGroup) *SUBController {
@@ -21,7 +18,7 @@ func NewSUBController(g *gin.RouterGroup) *SUBController {
 }
 
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
-	g = g.Group("/sub")
+	g = g.Group("/")
 
 	g.GET("/:subid", a.subs)
 }

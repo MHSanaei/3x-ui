@@ -343,7 +343,15 @@
             clientCount: {},
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
             refreshing: false,
-            refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000
+            refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
+            subSettings: {
+                enable : false,
+                port: 0,
+                path: '',
+                domain: '',
+                tls: false
+            },
+            tgBotEnable: false
         },
         methods: {
             loading(spinning = true) {
@@ -365,10 +373,20 @@
                 if (!msg.success) {
                     return;
                 }
-                this.expireDiff = msg.obj.expireDiff * 86400000;
-                this.trafficDiff = msg.obj.trafficDiff * 1073741824;
-                this.defaultCert = msg.obj.defaultCert;
-                this.defaultKey = msg.obj.defaultKey;
+                with(msg.obj){
+                    this.expireDiff = expireDiff * 86400000;
+                    this.trafficDiff = trafficDiff * 1073741824;
+                    this.defaultCert = defaultCert;
+                    this.defaultKey = defaultKey;
+                    this.tgBotEnable = tgBotEnable;
+                    this.subSettings = {
+                        enable : subEnable,
+                        port: subPort,
+                        path: subPath,
+                        domain: subDomain,
+                        tls: subTLS
+                    };
+                }
             },
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
