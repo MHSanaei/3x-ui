@@ -11,6 +11,7 @@ import (
 	"x-ui/config"
 	"x-ui/database"
 	"x-ui/logger"
+	"x-ui/sub"
 	"x-ui/v2ui"
 	"x-ui/web"
 	"x-ui/web/global"
@@ -50,6 +51,16 @@ func runWebServer() {
 		return
 	}
 
+	var subServer *sub.Server
+	subServer = sub.NewServer()
+	global.SetSubServer(subServer)
+
+	err = subServer.Start()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	sigCh := make(chan os.Signal, 1)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
@@ -62,6 +73,11 @@ func runWebServer() {
 			if err != nil {
 				logger.Warning("stop server err:", err)
 			}
+			err = subServer.Stop()
+			if err != nil {
+				logger.Warning("stop server err:", err)
+			}
+
 			server = web.NewServer()
 			global.SetWebServer(server)
 			err = server.Start()
@@ -69,8 +85,18 @@ func runWebServer() {
 				log.Println(err)
 				return
 			}
+
+			subServer = sub.NewServer()
+			global.SetSubServer(subServer)
+
+			err = subServer.Start()
+			if err != nil {
+				log.Println(err)
+				return
+			}
 		default:
 			server.Stop()
+			subServer.Stop()
 			return
 		}
 	}
@@ -133,7 +159,6 @@ func updateTgbotEnableSts(status bool) {
 			logger.Infof("SetTgbotenabled[%v] success", status)
 		}
 	}
-	return
 }
 
 func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime string) {
