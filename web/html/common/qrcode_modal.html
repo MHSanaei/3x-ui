@@ -39,6 +39,7 @@
             this.client = settings.clients[clientIndex];
             remark = this.dbInbound.remark + "-" + this.client.email;
             address = this.dbInbound.address;
+            this.subId = '';
             this.qrcodes = [];
             if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
                 this.inbound.stream.tls.settings.domains.forEach((domain) => {

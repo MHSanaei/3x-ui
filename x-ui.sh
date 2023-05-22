@@ -528,6 +528,7 @@ ssl_cert_issue_main() {
             local domain=""
             read -p "Please enter your domain name to revoke the certificate: " domain
             ~/.acme.sh/acme.sh --revoke -d ${domain}
+            LOGI "Certificate revoked"
             ;;
         3)
             local domain=""
@@ -571,13 +572,7 @@ ssl_cert_issue() {
         local certInfo=$(~/.acme.sh/acme.sh --list)
         LOGE "system already has certs here,can not issue again,current certs details:"
         LOGI "$certInfo"
-        read -p "Do you want to revoke the existing certificate? (yes/no): " choice
-        if [ "$choice" == "yes" ]; then
-            ~/.acme.sh/acme.sh --revoke -d ${domain}
-            LOGI "Certificate revoked"
-        else
-            exit 1
-        fi
+        exit 1
     else
         LOGI "your domain is ready for issuing cert now..."
     fi
