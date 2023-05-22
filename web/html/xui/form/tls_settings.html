@@ -169,10 +169,12 @@
         <a-input v-model.trim="inbound.stream.reality.serverNames" style="width: 300px"></a-input>
     </a-form-item>
     <a-form-item label="ShortIds">
-        <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
+        <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"> </a-icon>
+        <a-input v-model.trim="inbound.stream.reality.shortIds" style="width: 150px;"></a-input>
     </a-form-item>
+    <br>
     <a-form-item label="SpiderX">
-        <a-input v-model.trim="inbound.stream.reality.settings.spiderX"></a-input>
+        <a-input v-model.trim="inbound.stream.reality.settings.spiderX" style="width: 150px;"></a-input>
     </a-form-item>
     <a-form-item label="Private Key">
         <a-input v-model.trim="inbound.stream.reality.privateKey" style="width: 300px"></a-input>
