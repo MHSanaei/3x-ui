@@ -517,7 +517,26 @@ install_acme() {
     return 0
 }
 
-#method for standalone mode
+ssl_cert_issue_main() {
+    echo "1) Get SSL"
+    echo "2) Revoke"
+    echo "3) Force Renew"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        1) ssl_cert_issue ;;
+        2) 
+            local domain=""
+            read -p "Please enter your domain name to revoke the certificate: " domain
+            ~/.acme.sh/acme.sh --revoke -d ${domain}
+            ;;
+        3)
+            local domain=""
+            read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
+            ~/.acme.sh/acme.sh --renew -d ${domain} --force ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
 ssl_cert_issue() {
     #check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
@@ -547,11 +566,18 @@ ssl_cert_issue() {
     LOGD "your domain is:${domain},check it..."
     #here we need to judge whether there exists cert already
     local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
+
     if [ ${currentCert} == ${domain} ]; then
         local certInfo=$(~/.acme.sh/acme.sh --list)
-        LOGE "system already have certs here,can not issue again,current certs details:"
+        LOGE "system already has certs here,can not issue again,current certs details:"
         LOGI "$certInfo"
-        exit 1
+        read -p "Do you want to revoke the existing certificate? (yes/no): " choice
+        if [ "$choice" == "yes" ]; then
+            ~/.acme.sh/acme.sh --revoke -d ${domain}
+            LOGI "Certificate revoked"
+        else
+            exit 1
+        fi
     else
         LOGI "your domain is ready for issuing cert now..."
     fi
@@ -687,7 +713,7 @@ show_menu() {
   ${green}14.${plain} Disable x-ui On System Startup
 ————————————————
   ${green}15.${plain} Enable BBR 
-  ${green}16.${plain} Apply for an SSL Certificate
+  ${green}16.${plain} SSL Certificate Management
   ${green}17.${plain} Update Geo Files
   ${green}18.${plain} Active Firewall and open ports
   ${green}19.${plain} Install WARP
@@ -746,7 +772,7 @@ show_menu() {
         enable_bbr
         ;;
     16)
-        ssl_cert_issue
+        ssl_cert_issue_main
         ;;
     17)
         update_geo
