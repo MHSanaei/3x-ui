@@ -146,11 +146,18 @@ func (a *InboundController) getClientIps(c *gin.Context) {
 
 	ips, err := a.inboundService.GetInboundClientIps(email)
 	if err != nil {
+		jsonObj(c, "Failed to get client IPs", nil)
+		return
+	}
+
+	if ips == "" {
 		jsonObj(c, "No IP Record", nil)
 		return
 	}
+
 	jsonObj(c, ips, nil)
 }
+
 func (a *InboundController) clearClientIps(c *gin.Context) {
 	email := c.Param("email")
 

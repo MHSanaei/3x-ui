@@ -7,47 +7,53 @@
     <a-tag color="green" style="margin-bottom: 10px;display: block;text-align: center;">
         {{ i18n "pages.inbounds.clickOnQRcode" }}
     </a-tag>
-    <a-tag v-if="qrModal.clientName" color="orange" style="margin-bottom: 10px;display: block;text-align: center;">
-        {{ i18n "pages.inbounds.email" }}: "[[ qrModal.clientName ]]"
-    </a-tag>
-    <canvas @click="copyToClipboard()" id="qrCode" style="width: 100%; height: 100%; margin-top: 10px;"></canvas>
+    <template v-if="app.subSettings.enable && qrModal.subId">
+        <a-divider>Subscription</a-divider>
+        <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" style="width: 100%; height: 100%;"></canvas>
+    </template>
+    <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
+    <template v-for="(row, index) in qrModal.qrcodes">
+        <a-tag color="orange" style="margin-top: 10px;display: block;text-align: center;">[[ row.remark ]]</a-tag>
+        <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas>
+    </template>
 </a-modal>
 
 <script>
 
     const qrModal = {
         title: '',
-        content: '',
+        clientIndex: 0,
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
-        copyText: '',
-        clientName: null,
-        qrcode: null,
+        client: null,
+        qrcodes: [],
         clipboard: null,
         visible: false,
-        show: function (title = '', content = '', dbInbound = new DBInbound(), copyText = '', clientName = null) {
+        subId: '',
+        show: function (title = '', dbInbound = new DBInbound(), clientIndex = 0) {
             this.title = title;
-            this.content = content;
+            this.clientIndex = clientIndex;
             this.dbInbound = dbInbound;
             this.inbound = dbInbound.toInbound();
-            this.clientName = clientName;
-            if (ObjectUtil.isEmpty(copyText)) {
-                this.copyText = content;
+            settings = JSON.parse(this.inbound.settings);
+            this.client = settings.clients[clientIndex];
+            remark = this.dbInbound.remark + "-" + this.client.email;
+            address = this.dbInbound.address;
+            this.qrcodes = [];
+            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
+                this.inbound.stream.tls.settings.domains.forEach((domain) => {
+                    this.qrcodes.push({
+                        remark: remark + "-" + domain.remark,
+                        link: this.inbound.genLink(domain.domain, remark + "-" + domain.remark, clientIndex)
+                    });
+                });
             } else {
-                this.copyText = copyText;
+                this.qrcodes.push({
+                    remark: remark,
+                    link: this.inbound.genLink(address, remark, clientIndex)
+                });
             }
             this.visible = true;
-            qrModalApp.$nextTick(() => {
-                if (this.qrcode === null) {
-                    this.qrcode = new QRious({
-                        element: document.querySelector('#qrCode'),
-                        size: 260,
-                        value: content,
-                    });
-                } else {
-                    this.qrcode.value = content;
-                }
-            });
         },
         close: function () {
             this.visible = false;
@@ -61,16 +67,40 @@
             qrModal: qrModal,
         },
         methods: {
-            copyToClipboard() {
-                this.qrModal.clipboard = new ClipboardJS('#qrCode', {
-                    text: () => this.qrModal.copyText,
+            copyToClipboard(elmentId,content) {
+                this.qrModal.clipboard = new ClipboardJS('#'+elmentId, {
+                    text: () => content,
                 });
                 this.qrModal.clipboard.on('success', () => {
                     app.$message.success('{{ i18n "copied" }}')
                     this.qrModal.clipboard.destroy();
                 });
+            },
+            setQrCode(elmentId,content) {
+                new QRious({
+                        element: document.querySelector('#'+elmentId),
+                        size: 260,
+                        value: content,
+                    });
+            },
+            genSubLink(subID) {
+                protocol = app.subSettings.tls ? "https://" : "http://";
+                hostName = app.subSettings.domain === "" ? window.location.hostname : app.subSettings.domain;
+                subPort = app.subSettings.port;
+                port = (subPort === 443 && app.subSettings.tls) || (subPort === 80 && !app.subSettings.tls) ? "" : ":" + String(subPort);
+                subPath = app.subSettings.path;
+                return protocol + hostName + port + subPath + subID;
             }
         },
+        updated() {
+            if (qrModal.client.subId){
+                qrModal.subId = qrModal.client.subId;
+                this.setQrCode("qrCode-sub",this.genSubLink(this.subId));
+            }
+            qrModal.qrcodes.forEach((element,index) => {
+                this.setQrCode("qrCode-"+index, element.link);     
+            });
+        }
     });
 
 </script>

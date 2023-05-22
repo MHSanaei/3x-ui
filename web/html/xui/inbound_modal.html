@@ -90,6 +90,18 @@
             set delayedExpireDays(days) {
                 this.client.expiryTime = -86400000 * days;
             },
+            get multiDomain() {
+                return this.inbound.stream.tls.settings.domains.length > 0;
+            },
+            set multiDomain(value) {
+                if (value) {
+                    inModal.inbound.stream.tls.server = "";
+                    inModal.inbound.stream.tls.settings.domains = [{remark: "", domain: window.location.host.split(":")[0]}];
+                } else {
+                    inModal.inbound.stream.tls.server = "";
+                    inModal.inbound.stream.tls.settings.domains = [];
+                }
+            }
         },
         methods: {
             streamNetworkChange() {
