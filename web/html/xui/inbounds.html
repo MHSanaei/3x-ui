@@ -361,6 +361,7 @@
                 this.refreshing = true;
                 const msg = await HttpUtil.post('/panel/inbound/list');
                 if (!msg.success) {
+                    this.refreshing = false;
                     return;
                 }
                 this.setInbounds(msg.obj);
@@ -763,11 +764,32 @@
                     default: return client.id;
                 }
             },
+            checkFallback(dbInbound) {
+                newDbInbound = new DBInbound(dbInbound);
+                if (dbInbound.listen.startsWith("@")){
+                    rootInbound = this.inbounds.find((i) => 
+                        i.tls && 
+                        ['trojan','vless'].includes(i.protocol) &&
+                        i.settings.fallbacks.find(f => f.dest === dbInbound.listen)
+                    );
+                    if (rootInbound) {
+                        newDbInbound.listen = rootInbound.listen;
+                        newDbInbound.port = rootInbound.port;
+                        newInbound = newDbInbound.toInbound();
+                        newInbound.stream.security = 'tls';
+                        newInbound.stream.tls = rootInbound.stream.tls;
+                        newDbInbound.streamSettings = newInbound.stream.toString();
+                    }
+                }
+                return newDbInbound;
+            },
             showQrcode(dbInbound, clientIndex) {
-                qrModal.show('{{ i18n "qrCode"}}', dbInbound, clientIndex);
+                newDbInbound = this.checkFallback(dbInbound);
+                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, clientIndex);
             },
             showInfo(dbInbound, index) {
-                infoModal.show(dbInbound, index);
+                newDbInbound = this.checkFallback(dbInbound);
+                infoModal.show(newDbInbound, index);
             },
             switchEnable(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -868,7 +890,8 @@
             },
             inboundLinks(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', dbInbound.genInboundLinks, dbInbound.remark);
+                newDbInbound = this.checkFallback(dbInbound);
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks, newDbInbound.remark);
             },
             exportAllLinks() {
                 let copyText = '';

@@ -38,6 +38,21 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, err
 		if clients == nil {
 			continue
 		}
+		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
+			fallbackMaster, err := s.getFallbackMaster(inbound.Listen)
+			if err == nil {
+				inbound.Listen = fallbackMaster.Listen
+				inbound.Port = fallbackMaster.Port
+				var stream map[string]interface{}
+				json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+				var masterStream map[string]interface{}
+				json.Unmarshal([]byte(fallbackMaster.StreamSettings), &masterStream)
+				stream["security"] = masterStream["security"]
+				stream["tlsSettings"] = masterStream["tlsSettings"]
+				modifiedStream, _ := json.MarshalIndent(stream, "", "  ")
+				inbound.StreamSettings = string(modifiedStream)
+			}
+		}
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
 				link := s.getLink(inbound, client.Email)
@@ -91,6 +106,19 @@ func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email stri
 		}
 	}
 	return xray.ClientTraffic{}
+}
+
+func (s *SubService) getFallbackMaster(dest string) (*model.Inbound, error) {
+	db := database.GetDB()
+	var inbound *model.Inbound
+	err := db.Model(model.Inbound{}).
+		Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
+		Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", dest).
+		Find(&inbound).Error
+	if err != nil {
+		return nil, err
+	}
+	return inbound, nil
 }
 
 func (s *SubService) getLink(inbound *model.Inbound, email string) string {
