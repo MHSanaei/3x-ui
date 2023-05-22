@@ -23,7 +23,7 @@
                 <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"> </a-icon>
                 <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
             </a-form-item>
-            <a-form-item v-if="client.email">
+            <a-form-item v-if="client.email && app.subSettings.enable">
                 <span slot="label">
                     Subscription
                     <a-tooltip>
@@ -36,7 +36,7 @@
                 <a-icon @click="client.subId = RandomUtil.randomText()" type="sync"> </a-icon>
                 <a-input v-model.trim="client.subId" style="width: 150px;"></a-input>
             </a-form-item>
-            <a-form-item v-if="client.email">
+            <a-form-item v-if="client.email && app.tgBotEnable">
                 <span slot="label">
                     Telegram ID
                     <a-tooltip>

@@ -184,6 +184,14 @@ class AllSetting {
         this.tgLang = "en-US";
         this.xrayTemplateConfig = "";
         this.secretEnable = false;
+        this.subEnable = false;
+        this.subListen = "";
+        this.subPort = "2096";
+        this.subPath = "sub/";
+        this.subDomain = "";
+        this.subCertFile = "";
+        this.subKeyFile = "";
+        this.subUpdates = 0;
 
         this.timeLocation = "Asia/Tehran";
 

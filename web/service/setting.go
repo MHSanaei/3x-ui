@@ -41,6 +41,14 @@ var defaultValueMap = map[string]string{
 	"tgCpu":              "0",
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
+	"subEnable":          "false",
+	"subListen":          "",
+	"subPort":            "2096",
+	"subPath":            "sub/",
+	"subDomain":          "",
+	"subCertFile":        "",
+	"subKeyFile":         "",
+	"subUpdates":         "12",
 }
 
 type SettingService struct {
@@ -334,6 +342,48 @@ func (s *SettingService) GetTimeLocation() (*time.Location, error) {
 		return time.LoadLocation(defaultLocation)
 	}
 	return location, nil
+}
+
+func (s *SettingService) GetSubEnable() (bool, error) {
+	return s.getBool("subEnable")
+}
+
+func (s *SettingService) GetSubListen() (string, error) {
+	return s.getString("subListen")
+}
+
+func (s *SettingService) GetSubPort() (int, error) {
+	return s.getInt("subPort")
+}
+
+func (s *SettingService) GetSubPath() (string, error) {
+	subPath, err := s.getString("subPath")
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasPrefix(subPath, "/") {
+		subPath = "/" + subPath
+	}
+	if !strings.HasSuffix(subPath, "/") {
+		subPath += "/"
+	}
+	return subPath, nil
+}
+
+func (s *SettingService) GetSubDomain() (string, error) {
+	return s.getString("subDomain")
+}
+
+func (s *SettingService) GetSubCertFile() (string, error) {
+	return s.getString("subCertFile")
+}
+
+func (s *SettingService) GetSubKeyFile() (string, error) {
+	return s.getString("subKeyFile")
+}
+
+func (s *SettingService) GetSubUpdates() (int, error) {
+	return s.getInt("subUpdates")
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

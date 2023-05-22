@@ -33,7 +33,7 @@
             <span slot="label">{{ i18n "pages.client.clientCount" }}</span>
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
-        <a-form-item>
+        <a-form-item v-if="app.subSettings.enable">
                 <span slot="label">
                     Subscription
                     <a-tooltip>
@@ -45,7 +45,7 @@
                 </span>
                 <a-input v-model.trim="clientsBulkModal.subId"></a-input>
         </a-form-item>
-        <a-form-item>
+        <a-form-item v-if="app.tgBotEnable">
             <span slot="label">
                 Telegram ID
                 <a-tooltip>
@@ -204,6 +204,7 @@
                 case Protocols.VMESS: return clientSettings.vmesses;
                 case Protocols.VLESS: return clientSettings.vlesses;
                 case Protocols.TROJAN: return clientSettings.trojans;
+                case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
                 default: return null;
             }
         },
@@ -212,6 +213,7 @@
                 case Protocols.VMESS: return new Inbound.VmessSettings.Vmess();
                 case Protocols.VLESS: return new Inbound.VLESSSettings.VLESS();
                 case Protocols.TROJAN: return new Inbound.TrojanSettings.Trojan();
+                case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings.Shadowsocks();
                 default: return null;
             }
         },

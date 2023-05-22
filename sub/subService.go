@@ -1,4 +1,4 @@
-package service
+package sub
 
 import (
 	"encoding/base64"
@@ -8,6 +8,7 @@ import (
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
+	"x-ui/web/service"
 	"x-ui/xray"
 
 	"github.com/goccy/go-json"
@@ -15,7 +16,8 @@ import (
 
 type SubService struct {
 	address        string
-	inboundService InboundService
+	inboundService service.InboundService
+	settingServics service.SettingService
 }
 
 func (s *SubService) GetSubs(subId string, host string) ([]string, []string, error) {
@@ -29,7 +31,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, err
 		return nil, nil, err
 	}
 	for _, inbound := range inbounds {
-		clients, err := s.inboundService.getClients(inbound)
+		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {
 			logger.Error("SubService - GetSub: Unable to get clients from inbound")
 		}
@@ -66,7 +68,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, err
 		}
 	}
 	headers = append(headers, fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000))
-	headers = append(headers, "12")
+	updateInterval, _ := s.settingServics.GetSubUpdates()
+	headers = append(headers, fmt.Sprintf("%d", updateInterval))
 	headers = append(headers, subId)
 	return result, headers, nil
 }
@@ -163,6 +166,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	}
 
 	security, _ := stream["security"].(string)
+	var domains []interface{}
 	obj["tls"] = security
 	if security == "tls" {
 		tlsSetting, _ := stream["tlsSettings"].(map[string]interface{})
@@ -185,6 +189,9 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
 				obj["allowInsecure"], _ = insecure.(bool)
 			}
+			if domainSettings, ok := searchKey(tlsSettings, "domains"); ok {
+				domains, _ = domainSettings.([]interface{})
+			}
 		}
 		serverName, _ := tlsSetting["serverName"].(string)
 		if serverName != "" {
@@ -192,7 +199,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
-	clients, _ := s.inboundService.getClients(inbound)
+	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
 		if client.Email == email {
@@ -202,6 +209,21 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	}
 	obj["id"] = clients[clientIndex].ID
 	obj["aid"] = clients[clientIndex].AlterIds
+
+	if len(domains) > 0 {
+		links := ""
+		for index, d := range domains {
+			domain := d.(map[string]interface{})
+			obj["ps"] = remark + "-" + domain["remark"].(string)
+			obj["add"] = domain["domain"].(string)
+			if index > 0 {
+				links += "\n"
+			}
+			jsonStr, _ := json.MarshalIndent(obj, "", "  ")
+			links += "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
+		}
+		return links
+	}
 
 	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
 	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
@@ -214,7 +236,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	}
 	var stream map[string]interface{}
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
-	clients, _ := s.inboundService.getClients(inbound)
+	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
 		if client.Email == email {
@@ -270,6 +292,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	}
 
 	security, _ := stream["security"].(string)
+	var domains []interface{}
 	if security == "tls" {
 		params["security"] = "tls"
 		tlsSetting, _ := stream["tlsSettings"].(map[string]interface{})
@@ -293,6 +316,9 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 				if insecure.(bool) {
 					params["allowInsecure"] = "1"
 				}
+			}
+			if domainSettings, ok := searchKey(tlsSettings, "domains"); ok {
+				domains, _ = domainSettings.([]interface{})
 			}
 		}
 
@@ -393,6 +419,20 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	url.RawQuery = q.Encode()
 
 	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
+
+	if len(domains) > 0 {
+		links := ""
+		for index, d := range domains {
+			domain := d.(map[string]interface{})
+			url.Fragment = remark + "-" + domain["remark"].(string)
+			url.Host = fmt.Sprintf("%s:%d", domain["domain"].(string), port)
+			if index > 0 {
+				links += "\n"
+			}
+			links += url.String()
+		}
+		return links
+	}
 	url.Fragment = remark
 	return url.String()
 }
@@ -404,7 +444,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	}
 	var stream map[string]interface{}
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
-	clients, _ := s.inboundService.getClients(inbound)
+	clients, _ := s.inboundService.GetClients(inbound)
 	clientIndex := -1
 	for i, client := range clients {
 		if client.Email == email {
@@ -460,6 +500,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	}
 
 	security, _ := stream["security"].(string)
+	var domains []interface{}
 	if security == "tls" {
 		params["security"] = "tls"
 		tlsSetting, _ := stream["tlsSettings"].(map[string]interface{})
@@ -483,6 +524,9 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 				if insecure.(bool) {
 					params["allowInsecure"] = "1"
 				}
+			}
+			if domainSettings, ok := searchKey(tlsSettings, "domains"); ok {
+				domains, _ = domainSettings.([]interface{})
 			}
 		}
 
@@ -580,6 +624,21 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	url.RawQuery = q.Encode()
 
 	remark := fmt.Sprintf("%s-%s", inbound.Remark, email)
+
+	if len(domains) > 0 {
+		links := ""
+		for index, d := range domains {
+			domain := d.(map[string]interface{})
+			url.Fragment = remark + "-" + domain["remark"].(string)
+			url.Host = fmt.Sprintf("%s:%d", domain["domain"].(string), port)
+			if index > 0 {
+				links += "\n"
+			}
+			links += url.String()
+		}
+		return links
+	}
+
 	url.Fragment = remark
 	return url.String()
 }
@@ -589,7 +648,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
 	}
-	clients, _ := s.inboundService.getClients(inbound)
+	clients, _ := s.inboundService.GetClients(inbound)
 
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
