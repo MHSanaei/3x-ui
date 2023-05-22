@@ -10,7 +10,7 @@
             Reality
             <a-tooltip>
                 <template slot="title">
-                  <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
+                    <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
                 </template>
                 <a-icon type="question-circle" theme="filled"></a-icon>
             </a-tooltip>
@@ -22,7 +22,7 @@
             XTLS
             <a-tooltip>
                 <template slot="title">
-                  <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
+                    <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
                 </template>
                 <a-icon type="question-circle" theme="filled"></a-icon>
             </a-tooltip>
@@ -100,7 +100,7 @@
 </a-form>
 
 <!-- xtls settings -->
-<a-form v-if="inbound.xtls" layout="inline">
+<a-form v-else-if="inbound.xtls" layout="inline">
     <a-form-item label='{{ i18n "domainName" }}'>
         <a-input v-model.trim="inbound.stream.xtls.server"></a-input>
     </a-form-item>

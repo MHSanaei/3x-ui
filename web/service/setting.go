@@ -39,6 +39,7 @@ var defaultValueMap = map[string]string{
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
 	"tgCpu":              "0",
+	"tgLang":             "en-US",
 	"secretEnable":       "false",
 }
 
@@ -254,6 +255,10 @@ func (s *SettingService) GetTgBotBackup() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgLang() (string, error) {
+	return s.getString("tgLang")
 }
 
 func (s *SettingService) GetPort() (int, error) {
