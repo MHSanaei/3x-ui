@@ -17,7 +17,16 @@ import (
 
 var db *gorm.DB
 
+var initializers = []func() error{
+	initUser,
+	initInbound,
+	initSetting,
+	initInboundClientIps,
+	initClientTraffic,
+}
+
 func initUser() error {
+
 	err := db.AutoMigrate(&model.User{})
 	if err != nil {
 		return err
@@ -54,7 +63,7 @@ func initClientTraffic() error {
 
 func InitDB(dbPath string) error {
 	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, fs.ModeDir)
+	err := os.MkdirAll(dir, fs.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -75,25 +84,10 @@ func InitDB(dbPath string) error {
 		return err
 	}
 
-	err = initUser()
-	if err != nil {
-		return err
-	}
-	err = initInbound()
-	if err != nil {
-		return err
-	}
-	err = initSetting()
-	if err != nil {
-		return err
-	}
-	err = initInboundClientIps()
-	if err != nil {
-		return err
-	}
-	err = initClientTraffic()
-	if err != nil {
-		return err
+	for _, initialize := range initializers {
+		if err := initialize(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -107,10 +101,10 @@ func IsNotFound(err error) bool {
 	return err == gorm.ErrRecordNotFound
 }
 
-func IsSQLiteDB(file io.Reader) (bool, error) {
+func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	signature := []byte("SQLite format 3\x00")
 	buf := make([]byte, len(signature))
-	_, err := file.Read(buf)
+	_, err := file.ReadAt(buf, 0)
 	if err != nil {
 		return false, err
 	}

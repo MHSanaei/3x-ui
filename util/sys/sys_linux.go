@@ -24,8 +24,8 @@ func getLinesNum(filename string) (int, error) {
 
 		var buffPosition int
 		for {
-			i := bytes.IndexByte(buf[buffPosition:], '\n')
-			if i < 0 || n == buffPosition {
+			i := bytes.IndexByte(buf[buffPosition:n], '\n')
+			if i < 0 {
 				break
 			}
 			buffPosition += i + 1
@@ -33,11 +33,12 @@ func getLinesNum(filename string) (int, error) {
 		}
 
 		if err == io.EOF {
-			return sum, nil
+			break
 		} else if err != nil {
-			return sum, err
+			return 0, err
 		}
 	}
+	return sum, nil
 }
 
 func GetTCPCount() (int, error) {
@@ -45,11 +46,11 @@ func GetTCPCount() (int, error) {
 
 	tcp4, err := getLinesNum(fmt.Sprintf("%v/net/tcp", root))
 	if err != nil {
-		return tcp4, err
+		return 0, err
 	}
 	tcp6, err := getLinesNum(fmt.Sprintf("%v/net/tcp6", root))
 	if err != nil {
-		return tcp4 + tcp6, nil
+		return 0, err
 	}
 
 	return tcp4 + tcp6, nil
@@ -60,11 +61,11 @@ func GetUDPCount() (int, error) {
 
 	udp4, err := getLinesNum(fmt.Sprintf("%v/net/udp", root))
 	if err != nil {
-		return udp4, err
+		return 0, err
 	}
 	udp6, err := getLinesNum(fmt.Sprintf("%v/net/udp6", root))
 	if err != nil {
-		return udp4 + udp6, nil
+		return 0, err
 	}
 
 	return udp4 + udp6, nil

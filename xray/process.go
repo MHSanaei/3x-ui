@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 	"x-ui/config"
 	"x-ui/util/common"
@@ -184,11 +185,11 @@ func (p *process) Start() (err error) {
 		return err
 	}
 
+	var wg sync.WaitGroup
+	wg.Add(2)
+
 	go func() {
-		defer func() {
-			common.Recover("")
-			stdReader.Close()
-		}()
+		defer wg.Done()
 		reader := bufio.NewReaderSize(stdReader, 8192)
 		for {
 			line, _, err := reader.ReadLine()
@@ -203,10 +204,7 @@ func (p *process) Start() (err error) {
 	}()
 
 	go func() {
-		defer func() {
-			common.Recover("")
-			errReader.Close()
-		}()
+		defer wg.Done()
 		reader := bufio.NewReaderSize(errReader, 8192)
 		for {
 			line, _, err := reader.ReadLine()
@@ -225,6 +223,7 @@ func (p *process) Start() (err error) {
 		if err != nil {
 			p.exitErr = err
 		}
+		wg.Wait()
 	}()
 
 	p.refreshVersion()
