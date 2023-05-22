@@ -175,7 +175,7 @@
                             </template>
                             <template slot="protocol" slot-scope="text, dbInbound">
                                 <a-tag style="margin:0;" color="blue">[[ dbInbound.protocol ]]</a-tag>
-                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan">
+                                <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
                                     <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
                                     <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXtls" color="cyan">XTLS</a-tag>
