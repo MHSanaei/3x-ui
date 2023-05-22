@@ -75,26 +75,13 @@ class PromiseUtil {
     }
 }
 
-const seq = [
-    'a', 'b', 'c', 'd', 'e', 'f', 'g',
-    'h', 'i', 'j', 'k', 'l', 'm', 'n',
-    'o', 'p', 'q', 'r', 's', 't',
-    'u', 'v', 'w', 'x', 'y', 'z',
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    'A', 'B', 'C', 'D', 'E', 'F', 'G',
-    'H', 'I', 'J', 'K', 'L', 'M', 'N',
-    'O', 'P', 'Q', 'R', 'S', 'T',
-    'U', 'V', 'W', 'X', 'Y', 'Z'
-];
+const seq = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
-const shortIdSeq = [
-    'a', 'b', 'c', 'd', 'e', 'f',
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-];
+const shortIdSeq = 'abcdef0123456789'.split('');
 
 class RandomUtil {
     static randomIntRange(min, max) {
-        return parseInt(Math.random() * (max - min) + min, 10);
+        return Math.floor(Math.random() * (max - min) + min);
     }
 
     static randomInt(n) {
@@ -115,6 +102,10 @@ class RandomUtil {
             str += shortIdSeq[this.randomInt(16)];
         }
         return str;
+    }
+    
+    static randowShortId() {
+        return this.randomShortIdSeq(8);
     }
 
     static randomLowerAndNum(count) {
@@ -154,12 +145,6 @@ class RandomUtil {
             string += chars[Math.floor(Math.random() * chars.length)];
         }
         return string;
-    }
-
-    static randowShortId() {
-        let str = '';
-        str += this.randomShortIdSeq(8);
-        return str;
     }
 
     static randomShadowsocksPassword() {
