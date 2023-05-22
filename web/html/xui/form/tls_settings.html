@@ -77,7 +77,7 @@
                 <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
             </a-radio-group>
             <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()" style="margin-left: 10px">+</a-button>
-            <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button> 
+            <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button>
         </a-form-item>
         <template v-if="cert.useFile">
             <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
@@ -88,14 +88,14 @@
             </a-form-item>
             <a-button type="primary" icon="import" @click="setDefaultCertData(index)">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
         </template>
-    </template>
-    <template v-else>
-        <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-            <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
-        </a-form-item>
-        <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-            <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
-        </a-form-item>
+        <template v-else>
+            <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
+            </a-form-item>
+        </template>
     </template>
 </a-form>
 
@@ -133,14 +133,14 @@
             </a-form-item>
             <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
         </template>
-    </template>
-    <template v-else>
-        <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-            <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
-        </a-form-item>
-        <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-            <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
-        </a-form-item>
+        <template v-else>
+            <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
+            </a-form-item>
+        </template>
     </template>
 </a-form>
 
