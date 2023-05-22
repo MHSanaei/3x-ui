@@ -181,6 +181,7 @@ class AllSetting {
         this.tgRunTime = "@daily";
         this.tgBotBackup = false;
         this.tgCpu = "";
+        this.tgLang = "";
         this.xrayTemplateConfig = "";
         this.secretEnable = false;
 
