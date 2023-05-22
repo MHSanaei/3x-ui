@@ -35,14 +35,18 @@
 <a-form v-if="inbound.tls" layout="inline">
     <a-form-item label='Multi Domain'>
         <a-switch v-model="multiDomain"></a-switch>
-        <a-button v-if="multiDomain" size="small" @click="inbound.stream.tls.settings.domains.push({remark: '', domain: ''})">+</a-button>
+        
     </a-form-item>
-    <a-form-item v-if="multiDomain" label='Domains'>
+    <a-form-item v-if="multiDomain">
+        <a-row>
+            <span>Domains:</span>
+            <a-button v-if="multiDomain" type="primary" size="small" @click="inbound.stream.tls.settings.domains.push({remark: '', domain: ''})" style="margin-left: 10px">+</a-button>
+        </a-row>
         <a-input-group v-for="(row, index) in inbound.stream.tls.settings.domains">
             <a-input style="width: 40%" v-model.trim="row.remark" addon-before='{{ i18n "remark" }}'></a-input>
             <a-input style="width: 60%" v-model.trim="row.domain" addon-before='{{ i18n "host" }}'>
                 <template slot="addonAfter">
-                    <a-button size="small" style="margin: 0px" @click="inbound.stream.tls.settings.domains.splice(index, 1)">-</a-button>
+                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tls.settings.domains.splice(index, 1)">-</a-button>
                 </template>
             </a-input>
         </a-input-group>
