@@ -96,7 +96,7 @@
         updated() {
             if (qrModal.client.subId){
                 qrModal.subId = qrModal.client.subId;
-                this.setQrCode("qrCode-sub",this.genSubLink(this.subId));
+                this.setQrCode("qrCode-sub",this.genSubLink(qrModal.subId));
             }
             qrModal.qrcodes.forEach((element,index) => {
                 this.setQrCode("qrCode-"+index, element.link);     
