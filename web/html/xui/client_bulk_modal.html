@@ -158,8 +158,8 @@
                 newClient = clientsBulkModal.newClient(clientsBulkModal.dbInbound.protocol);
                 if (method == 4) newClient.email = "";
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
-                newClient.subId = clientsBulkModal.subId;
-                newClient.tgId = clientsBulkModal.tgId;
+                if (clientsBulkModal.subId.length > 0) newClient.subId = clientsBulkModal.subId;
+                if (clientsBulkModal.tgId.length > 0) newClient.tgId = clientsBulkModal.tgId;
                 newClient.limitIp = clientsBulkModal.limitIp;
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
