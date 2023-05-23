@@ -36,15 +36,21 @@ func (j *CheckClientIpJob) Run() {
 
 	// disAllowedIps = []string{"192.168.1.183","192.168.1.197"}
 	blockedIps := []byte(strings.Join(disAllowedIps, ","))
-	err := os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0755)
-	checkError(err)
 
+	// check if file exists, if not create one
+	_, err := os.Stat(xray.GetBlockedIPsPath())
+	if os.IsNotExist(err) {
+		_, err = os.OpenFile(xray.GetBlockedIPsPath(), os.O_RDWR|os.O_CREATE, 0755)
+		checkError(err)
+	}
+	err = os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0755)
+	checkError(err)
 }
 
 func processLogFile() {
 	accessLogPath := GetAccessLogPath()
 	if accessLogPath == "" {
-		logger.Warning("xray log not init in config.json")
+		logger.Warning("access.log doesn't exist in your config.json")
 		return
 	}
 
@@ -73,7 +79,7 @@ func processLogFile() {
 			if matchesEmail == "" {
 				continue
 			}
-			matchesEmail = strings.Split(matchesEmail, "email: ")[1]
+			matchesEmail = strings.TrimSpace(strings.Split(matchesEmail, "email: ")[1])
 
 			if InboundClientIps[matchesEmail] != nil {
 				if contains(InboundClientIps[matchesEmail], ip) {
@@ -94,9 +100,11 @@ func processLogFile() {
 		sort.Strings(ips)
 		if err != nil {
 			addInboundClientIps(clientEmail, ips)
+
 		} else {
 			updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
+
 	}
 
 	// check if inbound connection is more than limited ip and drop connection
@@ -155,9 +163,6 @@ func addInboundClientIps(clientEmail string, ips []string) error {
 	jsonIps, err := json.Marshal(ips)
 	checkError(err)
 
-	// Trim any leading/trailing whitespace from clientEmail
-	clientEmail = strings.TrimSpace(clientEmail)
-
 	inboundClientIps.ClientEmail = clientEmail
 	inboundClientIps.Ips = string(jsonIps)
 
@@ -199,8 +204,6 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
 
-	var disAllowedIps []string // initialize the slice
-
 	for _, client := range clients {
 		if client.Email == clientEmail {
 
@@ -222,7 +225,6 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	}
 	return nil
 }
-
 func DisableInbound(id int) error {
 	db := database.GetDB()
 	result := db.Model(model.Inbound{}).
@@ -249,7 +251,6 @@ func GetInboundByEmail(clientEmail string) (*model.Inbound, error) {
 }
 
 func LimitDevice() {
-	var destIp, destPort, srcIp, srcPort string
 
 	localIp, err := LocalIP()
 	checkError(err)
@@ -265,15 +266,15 @@ func LimitDevice() {
 
 			data := strings.Split(row, " ")
 
-			if len(data) < 2 {
-				continue // Skip this row if it doesn't have at least two elements
-			}
+			destIp, destPort, srcIp, srcPort := "", "", "", ""
 
 			destIp = string(ipRegx.FindString(data[0]))
+
 			destPort = portRegx.FindString(data[0])
 			destPort = strings.Replace(destPort, ":", "", -1)
 
 			srcIp = string(ipRegx.FindString(data[1]))
+
 			srcPort = portRegx.FindString(data[1])
 			srcPort = strings.Replace(srcPort, ":", "", -1)
 
@@ -285,6 +286,7 @@ func LimitDevice() {
 			}
 		}
 	}
+
 }
 
 func LocalIP() ([]string, error) {
