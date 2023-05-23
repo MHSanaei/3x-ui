@@ -24,10 +24,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.5.0`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.6.0`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.5.0
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.6.0
 ```
 
 # SSL
