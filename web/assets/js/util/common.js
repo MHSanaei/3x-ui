@@ -5,7 +5,9 @@ const ONE_TB = ONE_GB * 1024;
 const ONE_PB = ONE_TB * 1024;
 
 function sizeFormat(size) {
-    if (size < ONE_KB) {
+    if (size < 0) {
+        return "0 B";
+    } else if (size < ONE_KB) {
         return size.toFixed(0) + " B";
     } else if (size < ONE_MB) {
         return (size / ONE_KB).toFixed(2) + " KB";
