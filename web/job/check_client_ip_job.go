@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"sync"
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -20,34 +21,38 @@ import (
 
 type CheckClientIpJob struct {
 	xrayService service.XrayService
+	AllowedIps  []string
+	mutex       sync.Mutex
 }
 
 var job *CheckClientIpJob
-var disAllowedIps []string
+var AllowedIps []string
+var ipRegx *regexp.Regexp = regexp.MustCompile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
+var emailRegx *regexp.Regexp = regexp.MustCompile(`email:.+`)
 
 func NewCheckClientIpJob() *CheckClientIpJob {
-	job = new(CheckClientIpJob)
+	job := &CheckClientIpJob{}
 	return job
 }
 
 func (j *CheckClientIpJob) Run() {
 	logger.Debug("Check Client IP Job...")
-	processLogFile()
+	j.processLogFile()
 
-	// disAllowedIps = []string{"192.168.1.183","192.168.1.197"}
-	blockedIps := []byte(strings.Join(disAllowedIps, ","))
+	// AllowedIps = []string{"192.168.1.183","192.168.1.197"}
+	allowedIps := []byte(strings.Join(j.getAllowedIps(), ","))
 
 	// check if file exists, if not create one
-	_, err := os.Stat(xray.GetBlockedIPsPath())
+	_, err := os.Stat(xray.GetAllowedIPsPath())
 	if os.IsNotExist(err) {
-		_, err = os.OpenFile(xray.GetBlockedIPsPath(), os.O_RDWR|os.O_CREATE, 0755)
+		_, err = os.OpenFile(xray.GetAllowedIPsPath(), os.O_RDWR|os.O_CREATE, 0755)
 		checkError(err)
 	}
-	err = os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0755)
+	err = os.WriteFile(xray.GetAllowedIPsPath(), allowedIps, 0755)
 	checkError(err)
 }
 
-func processLogFile() {
+func (j *CheckClientIpJob) processLogFile() {
 	accessLogPath := GetAccessLogPath()
 	if accessLogPath == "" {
 		logger.Warning("access.log doesn't exist in your config.json")
@@ -65,8 +70,6 @@ func processLogFile() {
 
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
-		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
-		emailRegx, _ := regexp.Compile(`email:.+`)
 
 		matchesIp := ipRegx.FindString(line)
 		if len(matchesIp) > 0 {
@@ -81,19 +84,13 @@ func processLogFile() {
 			}
 			matchesEmail = strings.TrimSpace(strings.Split(matchesEmail, "email: ")[1])
 
-			if InboundClientIps[matchesEmail] != nil {
-				if contains(InboundClientIps[matchesEmail], ip) {
-					continue
-				}
-				InboundClientIps[matchesEmail] = append(InboundClientIps[matchesEmail], ip)
-
-			} else {
+			if !contains(InboundClientIps[matchesEmail], ip) {
 				InboundClientIps[matchesEmail] = append(InboundClientIps[matchesEmail], ip)
 			}
 		}
 
 	}
-	disAllowedIps = []string{}
+	j.setAllowedIps([]string{})
 
 	for clientEmail, ips := range InboundClientIps {
 		inboundClientIps, err := GetInboundClientIps(clientEmail)
@@ -102,7 +99,7 @@ func processLogFile() {
 			addInboundClientIps(clientEmail, ips)
 
 		} else {
-			updateInboundClientIps(inboundClientIps, clientEmail, ips)
+			j.updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
 
 	}
@@ -115,6 +112,7 @@ func processLogFile() {
 	stop <- true
 
 }
+
 func GetAccessLogPath() string {
 
 	config, err := os.ReadFile(xray.GetConfigPath())
@@ -135,20 +133,22 @@ func GetAccessLogPath() string {
 	return ""
 
 }
+
 func checkError(e error) {
 	if e != nil {
 		logger.Warning("client ip job err:", e)
 	}
 }
+
 func contains(s []string, str string) bool {
 	for _, v := range s {
 		if v == str {
 			return true
 		}
 	}
-
 	return false
 }
+
 func GetInboundClientIps(clientEmail string) (*model.InboundClientIps, error) {
 	db := database.GetDB()
 	InboundClientIps := &model.InboundClientIps{}
@@ -158,6 +158,7 @@ func GetInboundClientIps(clientEmail string) (*model.InboundClientIps, error) {
 	}
 	return InboundClientIps, nil
 }
+
 func addInboundClientIps(clientEmail string, ips []string) error {
 	inboundClientIps := &model.InboundClientIps{}
 	jsonIps, err := json.Marshal(ips)
@@ -170,10 +171,10 @@ func addInboundClientIps(clientEmail string, ips []string) error {
 	tx := db.Begin()
 
 	defer func() {
-		if err == nil {
-			tx.Commit()
-		} else {
+		if r := recover(); r != nil {
 			tx.Rollback()
+		} else {
+			tx.Commit()
 		}
 	}()
 
@@ -183,13 +184,7 @@ func addInboundClientIps(clientEmail string, ips []string) error {
 	}
 	return nil
 }
-func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, ips []string) error {
-
-	jsonIps, err := json.Marshal(ips)
-	checkError(err)
-
-	inboundClientIps.ClientEmail = clientEmail
-	inboundClientIps.Ips = string(jsonIps)
+func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, ips []string) error {
 
 	// check inbound limitation
 	inbound, err := GetInboundByEmail(clientEmail)
@@ -206,17 +201,22 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 
 	for _, client := range clients {
 		if client.Email == clientEmail {
-
 			limitIp := client.LimitIP
-
 			if limitIp < len(ips) && limitIp != 0 && inbound.Enable {
-
-				disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
+				for _, ip := range ips[:limitIp] {
+					j.addAllowedIp(ip)
+				}
 			}
 		}
 	}
-	logger.Debug("disAllowedIps ", disAllowedIps)
-	sort.Strings(disAllowedIps)
+
+	jsonIps, err := json.Marshal(ips) // marshal the possibly truncated list of IPs
+	checkError(err)
+
+	inboundClientIps.ClientEmail = clientEmail
+	inboundClientIps.Ips = string(jsonIps)
+
+	logger.Debug("Allowed IPs: ", ips)
 
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
@@ -225,6 +225,25 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	}
 	return nil
 }
+
+func (j *CheckClientIpJob) setAllowedIps(ips []string) {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.AllowedIps = ips
+}
+
+func (j *CheckClientIpJob) addAllowedIp(ip string) {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	j.AllowedIps = append(j.AllowedIps, ip)
+}
+
+func (j *CheckClientIpJob) getAllowedIps() []string {
+	j.mutex.Lock()
+	defer j.mutex.Unlock()
+	return j.AllowedIps
+}
+
 func DisableInbound(id int) error {
 	db := database.GetDB()
 	result := db.Model(model.Inbound{}).
@@ -278,7 +297,7 @@ func LimitDevice() {
 			srcPort = portRegx.FindString(data[1])
 			srcPort = strings.Replace(srcPort, ":", "", -1)
 
-			if contains(disAllowedIps, srcIp) {
+			if contains(AllowedIps, srcIp) {
 				dropCmd := cmd.NewCmd("bash", "-c", "ss -K dport = "+srcPort)
 				dropCmd.Start()
 
