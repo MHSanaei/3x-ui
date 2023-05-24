@@ -34,7 +34,8 @@
                                                     :stroke-color="status.cpu.color"
                                                     :class="themeSwitcher.darkCardClass"
                                                     :percent="status.cpu.percent"></a-progress>
-                                        <div>CPU</div>
+                                        <div>Cores:  [[ status.cpuCores ]]</div>
+                                        <div>Logical Procs:  [[ status.logicalProcessors ]]</div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
@@ -84,14 +85,10 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            {{ i18n "pages.index.operationHours" }}:
-                            <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
-                            <a-tooltip>
-                                <template slot="title">
-                                    {{ i18n "pages.index.operationHoursDesc" }}
-                                </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
+                            {{ i18n "menu.link" }}:
+                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -111,26 +108,69 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            {{ i18n "menu.link" }}:
-                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">{{ i18n "pages.index.logs" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
+                            <a-row>
+                                <a-col :span="12">
+                                    {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                                    <a-tooltip>
+                                        <template slot="title">
+                                            {{ i18n "pages.index.systemLoadDesc" }}
+                                        </template>
+                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                    </a-tooltip>
+                                </a-col>
+                                <a-col :span="12">
+                                    {{ i18n "pages.index.operationHours" }}:
+                                    <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
+                                </a-col>
+                            </a-row>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                            <a-row>
+                                <a-col :span="12">
+                                    ipv4:
+                                    <a-tooltip>
+                                        <template slot="title">
+                                            [[ status.publicIP.ipv4 ]]
+                                        </template>
+                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                    </a-tooltip>
+                                </a-col>
+                                <a-col :span="12">
+                                    ipv6:
+                                    <a-tooltip>
+                                        <template slot="title">
+                                            [[ status.publicIP.ipv6 ]]
+                                        </template>
+                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                    </a-tooltip>
+                                </a-col>
+                            </a-row>
                         </a-card>
-                    </a-col>
+                    </a-col>                    
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            TCP / UDP {{ i18n "pages.index.connectionCount" }}: [[ status.tcpCount ]] / [[ status.udpCount ]]
-                            <a-tooltip>
-                                <template slot="title">
-                                    {{ i18n "pages.index.connectionCountDesc" }}
-                                </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
+                            <a-row>
+                                <a-col :span="12">
+                                    TCP:  [[ status.tcpCount ]]
+                                    <a-tooltip>
+                                        <template slot="title">
+                                            {{ i18n "pages.index.connectionTcpCountDesc" }}
+                                        </template>
+                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                    </a-tooltip>
+                                </a-col>
+                                <a-col :span="12">
+                                    UDP:  [[ status.udpCount ]]
+                                    <a-tooltip>
+                                        <template slot="title">
+                                            {{ i18n "pages.index.connectionUdpCountDesc" }}
+                                        </template>
+                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                    </a-tooltip>
+                                </a-col>
+                            </a-row>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -299,9 +339,12 @@
             this.mem = new CurTotal(0, 0);
             this.netIO = { up: 0, down: 0 };
             this.netTraffic = { sent: 0, recv: 0 };
+            this.publicIP = { ipv4: 0, ipv6: 0 };
             this.swap = new CurTotal(0, 0);
             this.tcpCount = 0;
             this.udpCount = 0;
+            this.cpuCores = 0;
+            this.logicalProcessors = 0;
             this.uptime = 0;
             this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
 
@@ -314,9 +357,12 @@
             this.mem = new CurTotal(data.mem.current, data.mem.total);
             this.netIO = data.netIO;
             this.netTraffic = data.netTraffic;
+            this.publicIP = data.publicIP;
             this.swap = new CurTotal(data.swap.current, data.swap.total);
             this.tcpCount = data.tcpCount;
             this.udpCount = data.udpCount;
+            this.cpuCores = data.cpuCores;
+            this.logicalProcessors = data.logicalProcessors;
             this.uptime = data.uptime;
             this.xray = data.xray;
             switch (this.xray.state) {
