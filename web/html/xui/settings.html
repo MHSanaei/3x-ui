@@ -26,14 +26,32 @@
 
     .alert-msg {
         color: rgb(194, 117, 18);
-        font-weight: bold;
-        font-size: 20px;
-        margin-top: 5px;
-        padding: 16px 6px;
+        font-weight: normal;
+        font-size: 16px;
+        padding: .5rem 1rem;
         text-align: center;
-        border-bottom: 1px solid;
+        background: rgb(255 145 0 / 15%);
+        margin: 1.5rem 2.5rem 0rem 2.5rem;
+        border-radius: .5rem;
+        transition: all 0.5s;
+        animation: signal 3s cubic-bezier(0.18, 0.89, 0.32, 1.28) infinite;
     }
-
+    .alert-msg:hover {
+        cursor: default;
+        transition-duration: .3s;
+        animation: signal 0.9s ease infinite;
+    }
+    @keyframes signal{
+    0%{
+        box-shadow: 0 0 0 0 rgba(194, 118, 18, 0.5);
+    }
+    50%{
+        box-shadow: 0 0 0 6px rgba(0 ,0,0,0);
+    }
+    100%{
+        box-shadow: 0 0 0 6px rgba(0 ,0,0,0);
+    }
+    }
     .alert-msg > i {
         color: inherit;
         font-size: 24px;
