@@ -167,7 +167,7 @@ install_x-ui() {
     echo -e "x-ui update       - Update    x-ui"
     echo -e "x-ui install      - Install   x-ui"
     echo -e "x-ui uninstall    - Uninstall x-ui"
-    echo -e "----------------------------------------------"
+    echo -e "-----------t.me/P_tech2024------------"
 }
 
 echo -e "${green}Running...${plain}"
