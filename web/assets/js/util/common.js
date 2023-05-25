@@ -23,8 +23,12 @@ function sizeFormat(size) {
 }
 
 function cpuSpeedFormat(speed) {
-    const GHz = speed / 1000;
-    return GHz.toFixed(2) + " GHz";
+    if (speed > 1000) {
+        const GHz = speed / 1000;
+        return GHz.toFixed(2) + " GHz";
+    } else {
+        return speed.toFixed(2) + " MHz";
+    }
 }
 
 function cpuCoreFormat(cores) {
