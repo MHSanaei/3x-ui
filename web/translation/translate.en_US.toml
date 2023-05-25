@@ -393,7 +393,7 @@
 "pleaseChoose" = "👇 Please choose:\r\n"
 "help" = "🤖 Welcome to this bot! It's designed to offer you specific data from the server, and it allows you to make modifications as needed.\r\n\r\n"
 "start" = "👋 Hello <i>{{ .Firstname }}</i>.\r\n"
-"welcome" = "🤖 Welcome to <b>{{ .Hostname }}</b> management bot.\r\n"
+"welcome" = "🇮🇷🖐 Welcome to <b>{{ .Hostname }}</b> management bot.\r\nجهت تغییر زبان به فارسی از طریق پنل و بخش تنظیمات تلگرام اقدام کنید.."
 "status" = "✅ Bot is ok!"
 "usage" = "❗ Please provide a text to search!"
 "helpAdminCommands" = "Search for a client email:\r\n<code>/usage [Email]</code>\r\n \r\nSearch for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
