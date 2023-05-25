@@ -996,7 +996,8 @@ to{transform:scale(0) translate(50%,-50%);opacity:0}
 .ant-menu-horizontal .ant-menu-item,.ant-menu-horizontal .ant-menu-submenu{margin-top:-1px}
 .ant-menu-horizontal>.ant-menu-item-active,.ant-menu-horizontal>.ant-menu-item:hover,.ant-menu-horizontal>.ant-menu-submenu .ant-menu-submenu-title:hover{background-color:transparent}
 .ant-menu-item-selected,.ant-menu-item-selected>a,.ant-menu-item-selected>a:hover{color:#1890ff}
-.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected{background: linear-gradient(90deg,#009670 0,#026247 100%);color: #fff;border-radius: 0.5rem}
+.ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected{background-color: #0a7557;background-image: linear-gradient( 270deg, rgba(123, 199, 77, 0) 30%, #00ab80, rgba(123, 199, 77, 0) 100% );background-repeat: no-repeat;animation: ma-bg-move linear 6.6s infinite;/*background: linear-gradient(90deg,#009670 0,#026247 100%);*/color: #fff;border-radius: 0.5rem}
+@-webkit-keyframes ma-bg-move {0% {background-position: -500px 0;}100% {background-position: 1000px 0;}}@keyframes ma-bg-move {0% {background-position: -500px 0;}50% {background-position: 1000px 0;}100% {background-position: 1000px 0;}}
 .ant-menu-vertical-right{border-left:1px solid #e8e8e8}
 .ant-menu-vertical-left.ant-menu-sub,.ant-menu-vertical-right.ant-menu-sub,.ant-menu-vertical.ant-menu-sub{min-width:160px;padding:0;border-right:0;transform-origin:0 0}
 .ant-menu-vertical-left.ant-menu-sub .ant-menu-item,.ant-menu-vertical-right.ant-menu-sub .ant-menu-item,.ant-menu-vertical.ant-menu-sub .ant-menu-item{left:0;margin-left:0;border-right:0}
@@ -1081,8 +1082,8 @@ to{transform:scale(0) translate(50%,-50%);opacity:0}
 .ant-menu-dark .ant-menu-item-selected{color:#fff;border-right:0}
 .ant-menu-dark .ant-menu-item-selected:after{border-right:0}
 .ant-menu-dark .ant-menu-item-selected .anticon,.ant-menu-dark .ant-menu-item-selected .anticon+span,.ant-menu-dark .ant-menu-item-selected>a,.ant-menu-dark .ant-menu-item-selected>a:hover{color:#ffffff}
-.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-selected,.ant-menu.ant-menu-dark .ant-menu-item-selected{background-color:#15223a}
-.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-active,.ant-menu.ant-menu-dark .ant-menu-item-active{background-color:#38383800}
+.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-selected,.ant-menu.ant-menu-dark .ant-menu-item-selected{background-color:#0a7557}
+/*.ant-menu-submenu-popup.ant-menu-dark .ant-menu-item-active,.ant-menu.ant-menu-dark .ant-menu-item-active{background-color:#0a7557}*/
 .ant-menu-dark .ant-menu-item-disabled,.ant-menu-dark .ant-menu-item-disabled>a,.ant-menu-dark .ant-menu-submenu-disabled,.ant-menu-dark .ant-menu-submenu-disabled>a{color:hsla(0,0%,100%,.35)!important;opacity:.8}
 .ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title{color:hsla(0,0%,100%,.35)!important}
 .ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:after,.ant-menu-dark .ant-menu-item-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:before,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:after,.ant-menu-dark .ant-menu-submenu-disabled>.ant-menu-submenu-title>.ant-menu-submenu-arrow:before{background:hsla(0,0%,100%,.35)!important}
@@ -3231,7 +3232,7 @@ textarea.ant-input-number{max-width:100%;height:auto;min-height:32px;line-height
 .ant-input-number-handler-down-inner:before,.ant-input-number-handler-up-inner:before{display:none}
 .ant-input-number-handler-down-inner .ant-input-number-handler-down-inner-icon,.ant-input-number-handler-down-inner .ant-input-number-handler-up-inner-icon,.ant-input-number-handler-up-inner .ant-input-number-handler-down-inner-icon,.ant-input-number-handler-up-inner .ant-input-number-handler-up-inner-icon{display:block}
 .ant-input-number-focused,.ant-input-number:hover{border-color:rgb(0, 150, 112) !important;border-right-width:1px!important}
-.ant-input-number-focused{outline:0;box-shadow:0 0 0 2px rgba(24,144,255,.2)}
+.ant-input-number-focused{outline:0;box-shadow:rgba(0, 150, 112, 0.2) 0px 0px 0px 2px}
 .ant-input-number-disabled{color:rgba(0,0,0,.25);background-color:#f5f5f5;cursor:not-allowed;opacity:1}
 .ant-input-number-disabled:hover{border-color:#d9d9d9;border-right-width:1px!important}
 .ant-input-number-disabled .ant-input-number-input{cursor:not-allowed}
