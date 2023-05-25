@@ -38,11 +38,11 @@ const (
 )
 
 type Status struct {
-	T                 time.Time `json:"-"`
-	Cpu               float64   `json:"cpu"`
-	CpuCores          int       `json:"cpuCores"`
-	LogicalProcessors int       `json:"logicalProcessors"`
-	Mem               struct {
+	T           time.Time `json:"-"`
+	Cpu         float64   `json:"cpu"`
+	CpuCores    int       `json:"cpuCores"`
+	CpuSpeedMhz float64   `json:"cpuSpeedMhz"`
+	Mem         struct {
 		Current uint64 `json:"current"`
 		Total   uint64 `json:"total"`
 	} `json:"mem"`
@@ -131,7 +131,15 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get cpu cores count failed:", err)
 	}
 
-	status.LogicalProcessors = runtime.NumCPU()
+	cpuInfos, err := cpu.Info()
+	if err != nil {
+		logger.Warning("get cpu info failed:", err)
+	} else if len(cpuInfos) > 0 {
+		cpuInfo := cpuInfos[0]
+		status.CpuSpeedMhz = cpuInfo.Mhz // setting CPU speed in MHz
+	} else {
+		logger.Warning("could not find cpu info")
+	}
 
 	upTime, err := host.Uptime()
 	if err != nil {
