@@ -34,8 +34,8 @@
                                                     :stroke-color="status.cpu.color"
                                                     :class="themeSwitcher.darkCardClass"
                                                     :percent="status.cpu.percent"></a-progress>
-                                        <div>Cores:  [[ status.cpuCores ]]</div>
-                                        <div>Logical Procs:  [[ status.logicalProcessors ]]</div>
+                                        <div>CPU:  [[ cpuCoreFormat(status.cpuCores) ]]</div>
+                                        <div>Speed:  [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
@@ -178,7 +178,7 @@
                             <a-row>
                                 <a-col :span="12">
                                     <a-icon type="arrow-up"></a-icon>
-                                    [[ sizeFormat(status.netIO.up) ]] / S
+                                    [[ sizeFormat(status.netIO.up) ]]/S
                                     <a-tooltip>
                                         <template slot="title">
                                             {{ i18n "pages.index.upSpeed" }}
@@ -188,7 +188,7 @@
                                 </a-col>
                                 <a-col :span="12">
                                     <a-icon type="arrow-down"></a-icon>
-                                    [[ sizeFormat(status.netIO.down) ]] / S
+                                    [[ sizeFormat(status.netIO.down) ]]/S
                                     <a-tooltip>
                                         <template slot="title">
                                             {{ i18n "pages.index.downSpeed" }}
@@ -334,6 +334,8 @@
     class Status {
         constructor(data) {
             this.cpu = new CurTotal(0, 0);
+            this.cpuCores = 0;
+            this.cpuSpeedMhz = 0;
             this.disk = new CurTotal(0, 0);
             this.loads = [0, 0, 0];
             this.mem = new CurTotal(0, 0);
@@ -343,8 +345,6 @@
             this.swap = new CurTotal(0, 0);
             this.tcpCount = 0;
             this.udpCount = 0;
-            this.cpuCores = 0;
-            this.logicalProcessors = 0;
             this.uptime = 0;
             this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
 
@@ -352,6 +352,8 @@
                 return;
             }
             this.cpu = new CurTotal(data.cpu, 100);
+            this.cpuCores = data.cpuCores;
+            this.cpuSpeedMhz = data.cpuSpeedMhz;
             this.disk = new CurTotal(data.disk.current, data.disk.total);
             this.loads = data.loads.map(load => toFixed(load, 2));
             this.mem = new CurTotal(data.mem.current, data.mem.total);
@@ -361,8 +363,6 @@
             this.swap = new CurTotal(data.swap.current, data.swap.total);
             this.tcpCount = data.tcpCount;
             this.udpCount = data.udpCount;
-            this.cpuCores = data.cpuCores;
-            this.logicalProcessors = data.logicalProcessors;
             this.uptime = data.uptime;
             this.xray = data.xray;
             switch (this.xray.state) {
