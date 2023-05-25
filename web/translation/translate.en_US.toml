@@ -450,6 +450,7 @@
 "dbBackup" = "Get DB Backup"
 "serverUsage" = "Server Usage"
 "getInbounds" = "Get Inbounds"
+"getips" = "🍎Cloudflare IPs"
 "depleteSoon" = "Deplete soon"
 "clientUsage" = "Get Usage"
 "commands" = "Commands"
