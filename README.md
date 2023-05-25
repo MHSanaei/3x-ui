@@ -1,6 +1,5 @@
-# 3x-ui
-## [آموزش کامل در کانال یوتیوب-کلیک کنید.](YouTube.com/@IR_Tech)
-
+# 3x-ui2
+## [آموزش کامل در کانال یوتیوب-کلکیک کنید](https://YouTube.com/@ir_tech)
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
