@@ -1,4 +1,4 @@
-# 3x-ui2
+# 3x-ui
 ## [آموزش کامل در کانال یوتیوب-کلیک کنید](https://YouTube.com/@ir_tech)
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
@@ -16,7 +16,7 @@
 
 - Tron USDT (TRC20): `TTCfN7wiME62NefFgeYQfR8sCs6BDBJm2A`
 
-# Install & Upgrade
+# نصب و ارتقا
 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/Ptechgithub/3x-ui/master/install.sh)
