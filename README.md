@@ -171,6 +171,7 @@ Reference syntax:
 
 # Telegram Bot Features
 
+- 🍎 آی پی سالم کلودفلر
 - Report periodic
 - Login notification
 - CPU threshold notification
