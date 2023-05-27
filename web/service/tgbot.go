@@ -702,7 +702,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 		if traffic.ExpiryTime == 0 {
 			expiryTime = t.I18nBot("tgbot.unlimited")
 		} else if (traffic.ExpiryTime/1000 - time.Now().Unix() < 259200) {
-			expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/3600000, t.I18nBot("tgbot.hours"))
+			expiryTime = fmt.Sprintf("%d %s", (traffic.ExpiryTime/1000 - time.Now().Unix())/3600, t.I18nBot("tgbot.hours"))
 		} else {
 			expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 		}
