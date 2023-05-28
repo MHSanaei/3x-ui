@@ -29,7 +29,7 @@
     <a-form-item>
         <a-row>
             <span>{{ i18n "pages.inbounds.stream.general.requestHeader" }}:</span>
-            <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.request.addHeader('Host', 'xxx.com')">+</a-button>
+            <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.request.addHeader('Host', 'telewebion.com')">+</a-button>
         </a-row>
         <a-input-group v-for="(header, index) in inbound.stream.tcp.request.headers">
             <a-input style="width: 50%" v-model.trim="header.name"
