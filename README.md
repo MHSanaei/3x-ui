@@ -71,13 +71,46 @@ Example:
 XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ```
 
+## Manual install & upgrade
+
+1. To download the latest version of the compressed package directly to your server, run the following command:
+
+```sh
+wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-amd64.tar.gz
+```
+
+Note:  If your server's CPU architecture is `arm64`, modify the URL by substituting `amd64` with your respective CPU architecture.
+
+2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
+
+```sh
+cd /root/
+rm -rf x-ui/ /usr/local/x-ui/ /usr/bin/x-ui
+tar zxvf x-ui-linux-amd64.tar.gz
+chmod +x x-ui/x-ui x-ui/bin/xray-linux-* x-ui/x-ui.sh
+cp x-ui/x-ui.sh /usr/bin/x-ui
+cp -f x-ui/x-ui.service /etc/systemd/system/
+mv x-ui/ /usr/local/
+systemctl daemon-reload
+systemctl enable x-ui
+systemctl restart x-ui
+```
+Note: If your server's CPU architecture is `arm64`, modify the URL by substituting `amd64` in `tar zxvf x-ui-linux-amd64.tar.gz` with your respective CPU architecture.
+
 # Install with Docker
 
 1. Install Docker:
    ```sh
    bash <(curl -sSL https://get.docker.com)
    ```
-2. Run 3x-ui:
+2. Clone the Project Repository:
+
+   ```sh
+   git clone https://github.com/MHSanaei/3x-ui.git
+   cd 3x-ui
+   ```
+   
+3. Start the Service
 
    ```sh
    docker compose up -d
