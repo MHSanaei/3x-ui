@@ -88,10 +88,12 @@ Note: If your server's CPU architecture is `arm64`, modify the `amd64` in `tar z
 # Install with Docker
 <details>
   <summary>Click for Docker details</summary>
+
 1. Install Docker:
    ```sh
    bash <(curl -sSL https://get.docker.com)
    ```
+
 2. Clone the Project Repository:
 
    ```sh
@@ -261,6 +263,7 @@ Reference syntax:
 # Environment Variables
 <details>
   <summary>Click for Environment Variables details</summary>
+
 | Variable       |                      Type                      | Default       |
 | -------------- | :--------------------------------------------: | :------------ |
 | XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`      |
