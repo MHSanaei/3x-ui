@@ -93,7 +93,7 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 	}
 
 	subTLS := false
-	if result["subKeyFile"].(string) != "" || result["subCertFile"].(string) != "" {
+	if result["subKeyFile"] != "" || result["subCertFile"] != "" {
 		subTLS = true
 	}
 	result["subTLS"] = subTLS
