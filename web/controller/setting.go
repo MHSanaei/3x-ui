@@ -65,77 +65,42 @@ func (a *SettingController) getDefaultJsonConfig(c *gin.Context) {
 }
 
 func (a *SettingController) getDefaultSettings(c *gin.Context) {
-	expireDiff, err := a.settingService.GetExpireDiff()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
+	type settingFunc func() (interface{}, error)
+
+	settings := map[string]settingFunc{
+		"expireDiff":  func() (interface{}, error) { return a.settingService.GetExpireDiff() },
+		"trafficDiff": func() (interface{}, error) { return a.settingService.GetTrafficDiff() },
+		"defaultCert": func() (interface{}, error) { return a.settingService.GetCertFile() },
+		"defaultKey":  func() (interface{}, error) { return a.settingService.GetKeyFile() },
+		"tgBotEnable": func() (interface{}, error) { return a.settingService.GetTgbotenabled() },
+		"subEnable":   func() (interface{}, error) { return a.settingService.GetSubEnable() },
+		"subPort":     func() (interface{}, error) { return a.settingService.GetSubPort() },
+		"subPath":     func() (interface{}, error) { return a.settingService.GetSubPath() },
+		"subDomain":   func() (interface{}, error) { return a.settingService.GetSubDomain() },
+		"subKeyFile":  func() (interface{}, error) { return a.settingService.GetSubKeyFile() },
+		"subCertFile": func() (interface{}, error) { return a.settingService.GetSubCertFile() },
 	}
-	trafficDiff, err := a.settingService.GetTrafficDiff()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
+
+	result := make(map[string]interface{})
+
+	for key, fn := range settings {
+		value, err := fn()
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+			return
+		}
+		result[key] = value
 	}
-	defaultCert, err := a.settingService.GetCertFile()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	defaultKey, err := a.settingService.GetKeyFile()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	tgBotEnable, err := a.settingService.GetTgbotenabled()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subEnable, err := a.settingService.GetSubEnable()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subPort, err := a.settingService.GetSubPort()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subPath, err := a.settingService.GetSubPath()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subDomain, err := a.settingService.GetSubDomain()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subKeyFile, err := a.settingService.GetSubKeyFile()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
-	subCertFile, err := a.settingService.GetSubCertFile()
-	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-		return
-	}
+
 	subTLS := false
-	if subKeyFile != "" || subCertFile != "" {
+	if result["subKeyFile"].(string) != "" || result["subCertFile"].(string) != "" {
 		subTLS = true
 	}
-	result := map[string]interface{}{
-		"expireDiff":  expireDiff,
-		"trafficDiff": trafficDiff,
-		"defaultCert": defaultCert,
-		"defaultKey":  defaultKey,
-		"tgBotEnable": tgBotEnable,
-		"subEnable":   subEnable,
-		"subPort":     subPort,
-		"subPath":     subPath,
-		"subDomain":   subDomain,
-		"subTLS":      subTLS,
-	}
+	result["subTLS"] = subTLS
+
+	delete(result, "subKeyFile")
+	delete(result, "subCertFile")
+
 	jsonObj(c, result, nil)
 }
 
