@@ -425,7 +425,7 @@
 "time" = "⏰ Time: {{ .Time }}\r\n"
 "inbound" = "📍 Inbound: {{ .Remark }}\r\n"
 "port" = "🔌 Port: {{ .Port }}\r\n"
-"expire" = "📅 Expire Date: {{ .DateTime }}\r\n \r\n"
+"expire" = "📅 Expire Date: {{ .Time }}\r\n \r\n"
 "expireIn" = "📅 Expire In: {{ .Time }}\r\n \r\n"
 "active" = "💡 Active: ✅ Yes\r\n"
 "inactive" = "💡 Active: ❌ No\r\n"

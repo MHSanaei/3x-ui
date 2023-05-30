@@ -425,7 +425,7 @@
 "time" = "⏰ 时间：{{ .Time }}\r\n"
 "inbound" = "📍 入站：{{ .Remark }}\r\n"
 "port" = "🔌 端口：{{ .Port }}\r\n"
-"expire" = "📅 过期日期：{{ .DateTime }}\r\n \r\n"
+"expire" = "📅 过期日期：{{ .Time }}\r\n \r\n"
 "expireIn" = "📅 剩余时间：{{ .Time }}\r\n \r\n"
 "active" = "💡 激活：✅\r\n"
 "inactive" = "💡 激活： ❌\r\n"
