@@ -188,7 +188,7 @@ func (t *Tgbot) OnReceive() {
 }
 
 func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin bool) {
-	msg := ""
+	msg, onlyMessage := "", false
 
 	command, commandArgs := tu.ParseCommand(message.Text)
 
@@ -204,8 +204,13 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		}
 		msg += "\n\n" + t.I18nBot("tgbot.commands.pleaseChoose")
 	case "status":
+		onlyMessage = true
 		msg += t.I18nBot("tgbot.commands.status")
+	case "id":
+		onlyMessage = true
+		msg += t.I18nBot("tgbot.commands.getID", "ID=="+strconv.FormatInt(message.From.ID, 10))
 	case "usage":
+		onlyMessage = true
 		if len(commandArgs) > 0 {
 			if isAdmin {
 				t.searchClient(chatId, commandArgs[0])
@@ -216,6 +221,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			msg += t.I18nBot("tgbot.commands.usage")
 		}
 	case "inbound":
+		onlyMessage = true
 		if isAdmin && len(commandArgs) > 0 {
 			t.searchInbound(chatId, commandArgs[0])
 		} else {
@@ -223,6 +229,11 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		}
 	default:
 		msg += t.I18nBot("tgbot.commands.unknown")
+	}
+
+	if onlyMessage {
+		t.SendMsgToTgbot(chatId, msg)
+		return
 	}
 	t.SendAnswer(chatId, msg, isAdmin)
 }
@@ -498,6 +509,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	if !isRunning {
 		return
 	}
+
 	if msg == "" {
 		logger.Info("[tgbot] message is empty!")
 		return
@@ -723,7 +735,7 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 
 		output := ""
 		output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
-		if (traffic.Enable) {
+		if traffic.Enable {
 			output += t.I18nBot("tgbot.messages.active")
 			if flag {
 				output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)
@@ -791,6 +803,7 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+email)
 	output += t.I18nBot("tgbot.messages.TGUser", "TelegramID=="+tgId)
+	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
@@ -840,7 +853,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	flag := false
 	diff := traffic.ExpiryTime/1000 - now
 	if traffic.ExpiryTime == 0 {
-	expiryTime = t.I18nBot("tgbot.unlimited")
+		expiryTime = t.I18nBot("tgbot.unlimited")
 	} else if diff > 172800 || !traffic.Enable {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	} else if traffic.ExpiryTime < 0 {
@@ -860,7 +873,7 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
-	if (traffic.Enable) {
+	if traffic.Enable {
 		output += t.I18nBot("tgbot.messages.active")
 		if flag {
 			output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)
@@ -918,7 +931,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	
+
 	now := time.Now().Unix()
 	for _, inbound := range inbouds {
 		info := ""
@@ -958,7 +971,7 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 
 			output := ""
 			output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
-			if (traffic.Enable) {
+			if traffic.Enable {
 				output += t.I18nBot("tgbot.messages.active")
 				if flag {
 					output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)
@@ -998,7 +1011,7 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 	flag := false
 	diff := traffic.ExpiryTime/1000 - now
 	if traffic.ExpiryTime == 0 {
-	expiryTime = t.I18nBot("tgbot.unlimited")
+		expiryTime = t.I18nBot("tgbot.unlimited")
 	} else if diff > 172800 || !traffic.Enable {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
 	} else if traffic.ExpiryTime < 0 {
@@ -1018,7 +1031,7 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
-	if (traffic.Enable) {
+	if traffic.Enable {
 		output += t.I18nBot("tgbot.messages.active")
 		if flag {
 			output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)
@@ -1117,7 +1130,7 @@ func (t *Tgbot) getExhausted() string {
 		for _, traffic := range exhaustedClients {
 			expiryTime := ""
 			flag := false
-			diff := (traffic.ExpiryTime - now)/1000
+			diff := (traffic.ExpiryTime - now) / 1000
 			if traffic.ExpiryTime == 0 {
 				expiryTime = t.I18nBot("tgbot.unlimited")
 			} else if diff > 172800 || !traffic.Enable {
@@ -1138,7 +1151,7 @@ func (t *Tgbot) getExhausted() string {
 			}
 
 			output += t.I18nBot("tgbot.messages.email", "Email=="+traffic.Email)
-			if (traffic.Enable) {
+			if traffic.Enable {
 				output += t.I18nBot("tgbot.messages.active")
 				if flag {
 					output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)

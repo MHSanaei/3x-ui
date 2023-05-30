@@ -168,7 +168,7 @@
 "setDefaultCert" = "从面板设置证书"
 "xtlsDesc" = "Xray核心需要1.7.5"
 "realityDesc" = "Xray核心需要1.8.0及以上版本"
-"telegramDesc" = "使用不带@的电报 ID 或聊天 ID（您可以在此处获取 @userinfobot）"
+"telegramDesc" = "使用 Telegram ID，不包含 @ 符号或聊天 ID（可以在 @userinfobot 处获取，或在机器人中使用'/id'命令）"
 "subscriptionDesc" = "您可以在详细信息上找到您的子链接，也可以对多个配置使用相同的名称"
 
 [pages.client]
@@ -240,7 +240,7 @@
 "telegramToken" = "电报机器人TOKEN"
 "telegramTokenDesc" = "重启面板生效"
 "telegramChatId" = "以逗号分隔的多个 chatID 重启面板生效"
-"telegramChatIdDesc" = "多个聊天 ID 以逗号分隔。使用@userinfobot 获取您的聊天 ID。重新启动面板以应用更改。"
+"telegramChatIdDesc" = "多个聊天 ID 用逗号分隔。使用 @userinfobot 或在机器人中使用'/id'命令获取您的聊天 ID。"
 "telegramNotifyTime" = "电报机器人通知时间"
 "telegramNotifyTimeDesc" = "采用Crontab定时格式,重启面板生效"
 "tgNotifyBackup" = "数据库备份"
@@ -399,6 +399,7 @@
 "welcome" = "🤖 欢迎来到<b>{{ .Hostname }}</b>管理机器人。\r\n"
 "status" = "✅ 机器人正常运行！"
 "usage" = "❗ 请输入要搜索的文本！"
+"getID" = "🆔 您的ID为：<code>{{ .ID }}</code>"
 "helpAdminCommands" = "搜索客户端邮箱：\r\n<code>/usage [Email]</code>\r\n \r\n搜索入站连接（包含客户端统计信息）：\r\n<code>/inbound [Remark]</code>"
 "helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n \r\n<code>/usage [UUID|Password]</code>\r\n \r\n对于vmess/vless，请使用UUID；对于Trojan，请使用密码。"
 
