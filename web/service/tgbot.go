@@ -737,7 +737,6 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 		output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
 		output += t.I18nBot("tgbot.messages.download", "Download=="+common.FormatTraffic(traffic.Down))
 		output += t.I18nBot("tgbot.messages.total", "UpDown=="+common.FormatTraffic((traffic.Up+traffic.Down)), "Total=="+total)
-		output += ""
 		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 		t.SendMsgToTgbot(chatId, output)
@@ -875,7 +874,6 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 	output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
 	output += t.I18nBot("tgbot.messages.download", "Download=="+common.FormatTraffic(traffic.Down))
 	output += t.I18nBot("tgbot.messages.total", "UpDown=="+common.FormatTraffic((traffic.Up+traffic.Down)), "Total=="+total)
-	output += ""
 	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 	inlineKeyboard := tu.InlineKeyboard(
@@ -974,7 +972,6 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 			output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
 			output += t.I18nBot("tgbot.messages.download", "Download=="+common.FormatTraffic(traffic.Down))
 			output += t.I18nBot("tgbot.messages.total", "UpDown=="+common.FormatTraffic((traffic.Up+traffic.Down)), "Total=="+total)
-			output += ""
 			output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 			t.SendMsgToTgbot(chatId, output)
@@ -1035,7 +1032,6 @@ func (t *Tgbot) searchForClient(chatId int64, query string) {
 	output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
 	output += t.I18nBot("tgbot.messages.download", "Download=="+common.FormatTraffic(traffic.Down))
 	output += t.I18nBot("tgbot.messages.total", "UpDown=="+common.FormatTraffic((traffic.Up+traffic.Down)), "Total=="+total)
-	output += ""
 	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 	t.SendMsgToTgbot(chatId, output)
@@ -1156,7 +1152,6 @@ func (t *Tgbot) getExhausted() string {
 			output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
 			output += t.I18nBot("tgbot.messages.download", "Download=="+common.FormatTraffic(traffic.Down))
 			output += t.I18nBot("tgbot.messages.total", "UpDown=="+common.FormatTraffic((traffic.Up+traffic.Down)), "Total=="+total)
-			output += ""
 			output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 			output += "\r\n \r\n"
 		}
