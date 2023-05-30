@@ -168,6 +168,7 @@ class AllSetting {
 
     constructor(data) {
         this.webListen = "";
+        this.webDomain = "";
         this.webPort = 2053;
         this.webCertFile = "";
         this.webKeyFile = "";
@@ -187,7 +188,7 @@ class AllSetting {
         this.subEnable = false;
         this.subListen = "";
         this.subPort = "2096";
-        this.subPath = "sub/";
+        this.subPath = "/sub/";
         this.subDomain = "";
         this.subCertFile = "";
         this.subKeyFile = "";
