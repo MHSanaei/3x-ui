@@ -168,7 +168,7 @@
 "setDefaultCert" = "Set cert from panel"
 "xtlsDesc" = "Xray core needs to be 1.7.5"
 "realityDesc" = "Xray core needs to be 1.8.0 or higher."
-"telegramDesc" = "use Telegram ID without @ or chat IDs ( you can get it here @userinfobot )"
+"telegramDesc" = "use Telegram ID without @ or chat IDs ( you can get it here @userinfobot or use '/id' command in bot )"
 "subscriptionDesc" = "you can find your sub link on Details, also you can use the same name for several configurations"
 
 [pages.client]
@@ -240,7 +240,7 @@
 "telegramToken" = "Telegram Token"
 "telegramTokenDesc" = "You must get the token from the manager of Telegram bots @botfather"
 "telegramChatId" = "Telegram Admin Chat IDs"
-"telegramChatIdDesc" = "Multiple Chat IDs separated by comma. use @userinfobot to get your Chat IDs."
+"telegramChatIdDesc" = "Multiple Chat IDs separated by comma. use @userinfobot or use '/id' command in bot to get your Chat IDs."
 "telegramNotifyTime" = "Telegram bot notification time"
 "telegramNotifyTimeDesc" = "Use Crontab timing format."
 "tgNotifyBackup" = "Database Backup"
@@ -399,6 +399,7 @@
 "welcome" = "🤖 Welcome to <b>{{ .Hostname }}</b> management bot.\r\n"
 "status" = "✅ Bot is ok!"
 "usage" = "❗ Please provide a text to search!"
+"getID" = "🆔 Your ID: <code>{{ .ID }}</code>"
 "helpAdminCommands" = "Search for a client email:\r\n<code>/usage [Email]</code>\r\n \r\nSearch for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
 "helpClientCommands" = "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UUID|Password]</code>\r\n \r\nUse UUID for vmess/vless and Password for Trojan."
 
