@@ -24,6 +24,7 @@ var xrayTemplateConfig string
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
 	"webListen":          "",
+	"webDomain":          "",
 	"webPort":            "2053",
 	"webCertFile":        "",
 	"webKeyFile":         "",
@@ -44,7 +45,7 @@ var defaultValueMap = map[string]string{
 	"subEnable":          "false",
 	"subListen":          "",
 	"subPort":            "2096",
-	"subPath":            "sub/",
+	"subPath":            "/sub/",
 	"subDomain":          "",
 	"subCertFile":        "",
 	"subKeyFile":         "",
@@ -223,6 +224,10 @@ func (s *SettingService) GetXrayConfigTemplate() (string, error) {
 
 func (s *SettingService) GetListen() (string, error) {
 	return s.getString("webListen")
+}
+
+func (s *SettingService) GetWebDomain() (string, error) {
+	return s.getString("webDomain")
 }
 
 func (s *SettingService) GetTgBotToken() (string, error) {

@@ -18,7 +18,6 @@ type HashStorage struct {
 	sync.RWMutex
 	Data       map[string]HashEntry
 	Expiration time.Duration
-
 }
 
 func NewHashStorage(expiration time.Duration) *HashStorage {
@@ -45,7 +44,6 @@ func (h *HashStorage) SaveHash(query string) string {
 
 	return md5HashString
 }
-
 
 func (h *HashStorage) GetValue(hash string) (string, bool) {
 	h.RLock()
