@@ -221,6 +221,8 @@
 "TGBotSettings" = "TG提醒相关设置"
 "panelListeningIP" = "面板监听 IP"
 "panelListeningIPDesc" = "默认留空监听所有 IP"
+"panelListeningDomain" = "面板监听域名"
+"panelListeningDomainDesc" = "默认情况下留空以监视所有域名和 IP 地址"
 "panelPort" = "面板监听端口"
 "panelPortDesc" = "重启面板生效"
 "publicKeyPath" = "面板证书公钥文件路径"
