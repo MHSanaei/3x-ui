@@ -126,7 +126,7 @@ Note: If your server's CPU architecture is `arm64`, modify the `amd64` in `tar z
   <summary>Click for Default settings details</summary>
    
 - Port: 2053
-- username and password will be generated randomly if you skip to modify your own security(x-ui "7")
+- username rszali and password 1125 will be generated randomly if you skip to modify your own security(x-ui "7")
 - database path: /etc/x-ui/x-ui.db
 - xray config path: /usr/local/x-ui/bin/config.json
 
