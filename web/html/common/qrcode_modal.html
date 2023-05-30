@@ -94,7 +94,7 @@
             }
         },
         updated() {
-            if (qrModal.client.subId){
+            if (qrModal.client && qrModal.client.subId){
                 qrModal.subId = qrModal.client.subId;
                 this.setQrCode("qrCode-sub",this.genSubLink(qrModal.subId));
             }
