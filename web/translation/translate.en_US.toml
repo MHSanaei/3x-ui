@@ -221,6 +221,8 @@
 "TGBotSettings" = "Telegram Bot Settings"
 "panelListeningIP" = "Panel Listening IP"
 "panelListeningIPDesc" = "Leave blank by default to monitor all IPs."
+"panelListeningDomain" = "Panel Listening Domain"
+"panelListeningDomainDesc" = "Leave blank by default to monitor all domains and IPs"
 "panelPort" = "Panel Port"
 "panelPortDesc" = "The port used to display this panel"
 "publicKeyPath" = "Panel Certificate Public Key File Path"

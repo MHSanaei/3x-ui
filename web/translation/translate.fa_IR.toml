@@ -221,6 +221,8 @@
 "TGBotSettings" = "تنظیمات ربات تلگرام"
 "panelListeningIP" = "محدودیت آی پی پنل"
 "panelListeningIPDesc" = "برای استفاده از تمام آی‌پیها به طور پیش فرض خالی بگذارید"
+"panelListeningDomain" = "محدودیت دامین پنل"
+"panelListeningDomainDesc" = "برای استفاده از تمام دامنه‌ها و آی‌پی‌ها به طور پیش فرض خالی بگذارید"
 "panelPort" = "پورت پنل"
 "panelPortDesc" = "پورت مورد استفاده برای نمایش این پنل"
 "publicKeyPath" = "مسیر فایل گواهی کلید عمومی پنل"

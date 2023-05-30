@@ -221,6 +221,8 @@
 "TGBotSettings" = "Настройки Telegram бота"
 "panelListeningIP" = "IP адрес панели"
 "panelListeningIPDesc" = "Оставьте пустым для подключения с любого IP"
+"panelListeningDomain" = "Домен прослушивания панели"
+"panelListeningDomainDesc" = "По умолчанию оставьте пустым, чтобы отслеживать все домены и IP-адреса"
 "panelPort" = "Порт панели"
 "panelPortDesc" = "Порт, используемый для отображения этой панели"
 "publicKeyPath" = "Путь к файлу публичного ключа сертификата панели"
