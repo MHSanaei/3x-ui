@@ -7,10 +7,10 @@ import (
 	"net"
 	"net/http"
 	"strconv"
-	"strings"
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
+	"x-ui/web/middleware"
 	"x-ui/web/network"
 	"x-ui/web/service"
 
@@ -58,18 +58,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	if subDomain != "" {
-		validateDomain := func(c *gin.Context) {
-			host := strings.Split(c.Request.Host, ":")[0]
-
-			if host != subDomain {
-				c.AbortWithStatus(http.StatusForbidden)
-				return
-			}
-
-			c.Next()
-		}
-
-		engine.Use(validateDomain)
+		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
 	}
 
 	g := engine.Group(subPath)
@@ -116,11 +105,13 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
+
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
 	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return err
 	}
+
 	if certFile != "" || keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err != nil {
