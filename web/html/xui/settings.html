@@ -523,7 +523,7 @@
                 this.loading(false);
                 if (msg.success) {
                     this.user = {};
-                    window.location.replace(basePath + "logout")
+                    window.location.replace(basePath + "logout");
                 }
             },
             async restartPanel() {
@@ -542,12 +542,10 @@
                 if (msg.success) {
                     this.loading(true);
                     await PromiseUtil.sleep(5000);
-                    let protocol = "http://";
-                    if (this.allSetting.webCertFile !== "") {
-                        protocol = "https://";
-                    }
-                    const { host } = window.location;
-                    window.location.replace(protocol + host + this.allSetting.webBasePath + "panel/settings");
+                    const { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+                    const isTLS = webCertFile !== "" || webKeyFile !== "";
+                    const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
+                    window.location.replace(url);
                 }
             },
             async fetchUserSecret() {

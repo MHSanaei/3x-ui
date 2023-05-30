@@ -216,7 +216,7 @@ Reference syntax:
 - CPU threshold notification
 - Threshold for Expiration time and Traffic to report in advance
 - Support client report menu if client's telegram username added to the user's configurations
-- Support telegram traffic report searched with UID (VMESS/VLESS) or Password (TROJAN) - anonymously
+- Support telegram traffic report searched with UUID (VMESS/VLESS) or Password (TROJAN) - anonymously
 - Menu based bot
 - Search client by email ( only admin )
 - Check all inbounds
