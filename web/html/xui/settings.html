@@ -307,23 +307,37 @@
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
                                             </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualLists"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.manualListsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualBlockedIPs"}}' v-model="manualBlockedIPs"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualBlockedDomains"}}' v-model="manualBlockedDomains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectIPs"}}' v-model="manualDirectIPs"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectDomains"}}' v-model="manualDirectDomains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualIPv4Domains"}}' v-model="manualIPv4Domains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualWARPDomains"}}' v-model="manualWARPDomains"></setting-list-item>
+                                        </a-collapse>
+                                    </a-tab-pane>
+                                    <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.manualLists"}}' style="padding-top: 20px;">
+                                        <a-row :xs="24" :sm="24" :lg="12">
+                                            <h2 class="collapse-title">
+                                                <a-icon type="warning"></a-icon>
+                                                {{ i18n "pages.settings.templates.manualListsDesc" }}
+                                            </h2>
+                                        </a-row>
+                                        <a-collapse>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedIPs"}}'>
+                                                <setting-list-item type="textarea" v-model="manualBlockedIPs"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualBlockedDomains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectIPs"}}'>
+                                                <setting-list-item type="textarea" v-model="manualDirectIPs"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualDirectDomains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualIPv4Domains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualIPv4Domains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualWARPDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualWARPDomains"></setting-list-item>
                                             </a-collapse-panel>
                                         </a-collapse>
                                     </a-tab-pane>
-                                    <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
+                                    <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
                                         <a-collapse>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}'>
                                                 <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
@@ -336,7 +350,7 @@
                                             </a-collapse-panel>
                                         </a-collapse>
                                     </a-tab-pane>
-                                    <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
+                                    <a-tab-pane key="tpl-4" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
                                         <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigTemplate"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                                     </a-tab-pane>
                                 </a-tabs>
