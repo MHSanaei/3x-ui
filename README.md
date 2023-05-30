@@ -64,14 +64,16 @@ You also can use `x-ui` menu then select `16. SSL Certificate Management`
 1. To download the latest version of the compressed package directly to your server, run the following command:
 
 ```sh
-[[ "$(uname -m)" == "aarch64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+ARCH=$(uname -m)
+[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
 wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
 ```
 
 2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
 
 ```sh
-[[ "$(uname -m)" == "aarch64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+ARCH=$(uname -m)
+[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
 cd /root/
 rm -rf x-ui/ /usr/local/x-ui/ /usr/bin/x-ui
 tar zxvf x-ui-linux-${XUI_ARCH}.tar.gz
