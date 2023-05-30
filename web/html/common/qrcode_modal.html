@@ -68,8 +68,8 @@
             qrModal: qrModal,
         },
         methods: {
-            copyToClipboard(elmentId,content) {
-                this.qrModal.clipboard = new ClipboardJS('#'+elmentId, {
+            copyToClipboard(elmentId, content) {
+                this.qrModal.clipboard = new ClipboardJS('#' + elmentId, {
                     text: () => content,
                 });
                 this.qrModal.clipboard.on('success', () => {
@@ -77,29 +77,25 @@
                     this.qrModal.clipboard.destroy();
                 });
             },
-            setQrCode(elmentId,content) {
+            setQrCode(elmentId, content) {
                 new QRious({
-                        element: document.querySelector('#'+elmentId),
-                        size: 260,
-                        value: content,
-                    });
+                    element: document.querySelector('#' + elmentId),
+                    size: 260,
+                    value: content,
+                });
             },
             genSubLink(subID) {
-                protocol = app.subSettings.tls ? "https://" : "http://";
-                hostName = app.subSettings.domain === "" ? window.location.hostname : app.subSettings.domain;
-                subPort = app.subSettings.port;
-                port = (subPort === 443 && app.subSettings.tls) || (subPort === 80 && !app.subSettings.tls) ? "" : ":" + String(subPort);
-                subPath = app.subSettings.path;
-                return protocol + hostName + port + subPath + subID;
+                const { domain: host, port, tls: isTLS, path: base } = app.subSettings;
+                return buildURL({ host, port, isTLS, base, path: subID });
             }
         },
         updated() {
-            if (qrModal.client && qrModal.client.subId){
+            if (qrModal.client && qrModal.client.subId) {
                 qrModal.subId = qrModal.client.subId;
-                this.setQrCode("qrCode-sub",this.genSubLink(qrModal.subId));
+                this.setQrCode("qrCode-sub", this.genSubLink(qrModal.subId));
             }
-            qrModal.qrcodes.forEach((element,index) => {
-                this.setQrCode("qrCode-"+index, element.link);     
+            qrModal.qrcodes.forEach((element, index) => {
+                this.setQrCode("qrCode-" + index, element.link);
             });
         }
     });

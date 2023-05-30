@@ -96,7 +96,7 @@
             set multiDomain(value) {
                 if (value) {
                     inModal.inbound.stream.tls.server = "";
-                    inModal.inbound.stream.tls.settings.domains = [{remark: "", domain: window.location.host.split(":")[0]}];
+                    inModal.inbound.stream.tls.settings.domains = [{ remark: "", domain: window.location.hostname }];
                 } else {
                     inModal.inbound.stream.tls.server = "";
                     inModal.inbound.stream.tls.settings.domains = [];
