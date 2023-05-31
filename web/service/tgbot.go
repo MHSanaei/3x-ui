@@ -77,13 +77,15 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
-	for _, adminId := range strings.Split(tgBotid, ",") {
-		id, err := strconv.Atoi(adminId)
-		if err != nil {
-			logger.Warning("Failed to get IDs from GetTgBotChatId:", err)
-			return err
+	if tgBotid != "" {
+		for _, adminId := range strings.Split(tgBotid, ",") {
+			id, err := strconv.Atoi(adminId)
+			if err != nil {
+				logger.Warning("Failed to get IDs from GetTgBotChatId:", err)
+				return err
+			}
+			adminIds = append(adminIds, int64(id))
 		}
-		adminIds = append(adminIds, int64(id))
 	}
 
 	bot, err = telego.NewBot(tgBottoken)
