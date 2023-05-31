@@ -1185,6 +1185,7 @@ func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error)
 	}
 	return InboundClientIps.Ips, nil
 }
+
 func (s *InboundService) ClearClientIps(clientEmail string) error {
 	db := database.GetDB()
 

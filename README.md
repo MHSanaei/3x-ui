@@ -9,7 +9,6 @@
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
 3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese,Russian)**
-
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
 **Buy Me a Coffee :**
@@ -24,11 +23,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 # Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.6.0`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.6.1`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.6.0
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.6.1
 ```
+
 # SSL
 
 ```
@@ -37,8 +37,8 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-or you can use x-ui menu then number `16` (`SSL Certificate Management`)
-   
+You also can use `x-ui` menu then select `16. SSL Certificate Management`
+
 # Features
 
 - System Status Monitoring
@@ -57,23 +57,26 @@ or you can use x-ui menu then number `16` (`SSL Certificate Management`)
 - Support export/import database from panel
 
 # Manual Install & Upgrade
+
 <details>
   <summary>Click for Manual Install details</summary>
-   
+
 1. To download the latest version of the compressed package directly to your server, run the following command:
 
 ```sh
-wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-amd64.tar.gz
+ARCH=$(uname -m)
+[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
 ```
-
-Note:  If your server's CPU architecture is `arm64`, modify the URL by substituting `amd64` with your respective CPU architecture.
 
 2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
 
 ```sh
+ARCH=$(uname -m)
+[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
 cd /root/
 rm -rf x-ui/ /usr/local/x-ui/ /usr/bin/x-ui
-tar zxvf x-ui-linux-amd64.tar.gz
+tar zxvf x-ui-linux-${XUI_ARCH}.tar.gz
 chmod +x x-ui/x-ui x-ui/bin/xray-linux-* x-ui/x-ui.sh
 cp x-ui/x-ui.sh /usr/bin/x-ui
 cp -f x-ui/x-ui.service /etc/systemd/system/
@@ -82,14 +85,16 @@ systemctl daemon-reload
 systemctl enable x-ui
 systemctl restart x-ui
 ```
-Note: If your server's CPU architecture is `arm64`, modify the `amd64` in `tar zxvf x-ui-linux-amd64.tar.gz` with your respective CPU architecture.
+
 </details>
-   
+
 # Install with Docker
+
 <details>
   <summary>Click for Docker details</summary>
 
 1. Install Docker:
+
    ```sh
    bash <(curl -sSL https://get.docker.com)
    ```
@@ -100,7 +105,7 @@ Note: If your server's CPU architecture is `arm64`, modify the `amd64` in `tar z
    git clone https://github.com/MHSanaei/3x-ui.git
    cd 3x-ui
    ```
-   
+
 3. Start the Service
 
    ```sh
@@ -119,12 +124,14 @@ Note: If your server's CPU architecture is `arm64`, modify the `amd64` in `tar z
       --name 3x-ui \
       ghcr.io/mhsanaei/3x-ui:latest
    ```
+
 </details>
- 
+
 # Default settings
+
 <details>
   <summary>Click for Default settings details</summary>
-   
+
 - Port: 2053
 - username and password will be generated randomly if you skip to modify your own security(x-ui "7")
 - database path: /etc/x-ui/x-ui.db
@@ -141,10 +148,10 @@ After you set ssl on settings
 </details>
 
 # Xray Configurations:
-   
+
 <details>
   <summary>Click for Xray Configurations details</summary>
-   
+
 **copy and paste to xray Configuration :** (you don't need to do this if you have a fresh install)
 
 - [traffic](./media/configs/traffic.json)
@@ -152,14 +159,14 @@ After you set ssl on settings
 - [traffic + Block all Iran Domains](./media/configs/traffic+block-iran-domains.json)
 - [traffic + Block Ads + Use IPv4 for Google](./media/configs/traffic+block-ads+ipv4-google.json)
 - [traffic + Block Ads + Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP](./media/configs/traffic+block-ads+warp.json)
-   
+
 </details>
-   
+
 # [WARP Configuration](https://github.com/fscarmen/warp) (Optional)
-   
+
 <details>
   <summary>Click for WARP Configuration details</summary>
-   
+
 If you want to use routing to WARP follow steps as below:
 
 1. If you already installed warp, you can uninstall using below command:
@@ -171,7 +178,7 @@ If you want to use routing to WARP follow steps as below:
 2. Install WARP on **socks proxy mode**:
 
    ```sh
-   curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
+   bash <(curl -sSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh)
    ```
 
 3. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
@@ -181,14 +188,14 @@ If you want to use routing to WARP follow steps as below:
    - Block Ads
    - Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP
    - Fix Google 403 error
-   
+
 </details>
 
 # Telegram Bot
-   
+
 <details>
   <summary>Click for Telegram Bot details</summary>
-   
+
 X-UI supports daily traffic notification, panel login reminder and other functions through the Tg robot. To use the Tg robot, you need to apply for the specific application tutorial. You can refer to the [blog](https://coderfan.net/how-to-use-telegram-bot-to-alarm-you-when-someone-login-into-your-vps.html)
 Set the robot-related parameters in the panel background, including:
 
@@ -216,19 +223,21 @@ Reference syntax:
 - CPU threshold notification
 - Threshold for Expiration time and Traffic to report in advance
 - Support client report menu if client's telegram username added to the user's configurations
-- Support telegram traffic report searched with UID (VMESS/VLESS) or Password (TROJAN) - anonymously
+- Support telegram traffic report searched with UUID (VMESS/VLESS) or Password (TROJAN) - anonymously
 - Menu based bot
 - Search client by email ( only admin )
 - Check all inbounds
 - Check server status
 - Check depleted users
 - Receive backup by request and in periodic reports
+- Multi language bot
 </details>
 
 # API routes
+
 <details>
   <summary>Click for API routes details</summary>
-   
+
 - `/login` with `PUSH` user data: `{username: '', password: ''}` for login
 - `/panel/api/inbounds` base for following actions:
 
@@ -261,6 +270,7 @@ Reference syntax:
 </details>
 
 # Environment Variables
+
 <details>
   <summary>Click for Environment Variables details</summary>
 
@@ -276,6 +286,7 @@ Example:
 ```sh
 XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ```
+
 </details>
 
 # A Special Thanks To

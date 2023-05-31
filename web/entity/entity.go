@@ -28,6 +28,7 @@ type Pager struct {
 
 type AllSetting struct {
 	WebListen          string `json:"webListen" form:"webListen"`
+	WebDomain          string `json:"webDomain" form:"webDomain"`
 	WebPort            int    `json:"webPort" form:"webPort"`
 	WebCertFile        string `json:"webCertFile" form:"webCertFile"`
 	WebKeyFile         string `json:"webKeyFile" form:"webKeyFile"`

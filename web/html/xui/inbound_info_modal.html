@@ -253,12 +253,8 @@
             infoModal.visible = false;
         },
         genSubLink(subID) {
-            protocol = app.subSettings.tls ? "https://" : "http://";
-            hostName = app.subSettings.domain === "" ? window.location.hostname : app.subSettings.domain;
-            subPort = app.subSettings.port;
-            port = (subPort === 443 && app.subSettings.tls) || (subPort === 80 && !app.subSettings.tls) ? "" : ":" + String(subPort);
-            subPath = app.subSettings.path;
-            return protocol + hostName + port + subPath + subID;
+            const { domain: host, port, tls: isTLS, path: base } = app.subSettings;
+            return buildURL({ host, port, isTLS, base, path: subID });
         }
     };
 
