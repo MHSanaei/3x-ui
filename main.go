@@ -12,7 +12,6 @@ import (
 	"x-ui/database"
 	"x-ui/logger"
 	"x-ui/sub"
-	"x-ui/v2ui"
 	"x-ui/web"
 	"x-ui/web/global"
 	"x-ui/web/service"
@@ -270,10 +269,6 @@ func main() {
 
 	runCmd := flag.NewFlagSet("run", flag.ExitOnError)
 
-	v2uiCmd := flag.NewFlagSet("v2-ui", flag.ExitOnError)
-	var dbPath string
-	v2uiCmd.StringVar(&dbPath, "db", fmt.Sprintf("%s/v2-ui.db", config.GetDBFolderPath()), "set v2-ui db file path")
-
 	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
 	var port int
 	var username string
@@ -301,7 +296,6 @@ func main() {
 		fmt.Println()
 		fmt.Println("Commands:")
 		fmt.Println("    run            run web panel")
-		fmt.Println("    v2-ui          migrate form v2-ui")
 		fmt.Println("    migrate        migrate form other/old x-ui")
 		fmt.Println("    setting        set settings")
 	}
@@ -322,16 +316,6 @@ func main() {
 		runWebServer()
 	case "migrate":
 		migrateDb()
-	case "v2-ui":
-		err := v2uiCmd.Parse(os.Args[2:])
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		err = v2ui.MigrateFromV2UI(dbPath)
-		if err != nil {
-			fmt.Println("migrate from v2-ui failed:", err)
-		}
 	case "setting":
 		err := settingCmd.Parse(os.Args[2:])
 		if err != nil {
@@ -356,11 +340,9 @@ func main() {
 			updateTgbotEnableSts(enabletgbot)
 		}
 	default:
-		fmt.Println("except 'run' or 'v2-ui' or 'setting' subcommands")
+		fmt.Println("except 'run' or 'setting' subcommands")
 		fmt.Println()
 		runCmd.Usage()
-		fmt.Println()
-		v2uiCmd.Usage()
 		fmt.Println()
 		settingCmd.Usage()
 	}
