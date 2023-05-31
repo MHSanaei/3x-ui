@@ -59,18 +59,18 @@ jobs:
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
-          mv xray xray-${{ matrix.platform }}
+          mv xray xray-linux-${{ matrix.platform }}
           cd ../..
           
       - name: Package
-        run: tar -zcvf x-ui-${{ matrix.platform }}.tar.gz x-ui
+        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
         
       - name: Upload
         uses: svenstaro/upload-release-action@2.6.1
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: x-ui-${{ matrix.platform }}.tar.gz
-          asset_name: x-ui-${{ matrix.platform }}.tar.gz
+          file: x-ui-linux-${{ matrix.platform }}.tar.gz
+          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
           overwrite: true
