@@ -673,9 +673,9 @@ func (t *Tgbot) getInboundUsages() string {
 			info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
 
 			if inbound.ExpiryTime == 0 {
-				info += t.I18nBot("tgbot.messages.expire", "DateTime=="+t.I18nBot("tgbot.unlimited"))
+				info += t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited"))
 			} else {
-				info += t.I18nBot("tgbot.messages.expire", "DateTime=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
+				info += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
 			}
 		}
 	}
@@ -942,9 +942,9 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 		info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
 
 		if inbound.ExpiryTime == 0 {
-			info += t.I18nBot("tgbot.messages.expire", "DateTime=="+t.I18nBot("tgbot.unlimited"))
+			info += t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited"))
 		} else {
-			info += t.I18nBot("tgbot.messages.expire", "DateTime=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
+			info += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
 		}
 		t.SendMsgToTgbot(chatId, info)
 
@@ -1112,9 +1112,9 @@ func (t *Tgbot) getExhausted() string {
 			output += t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port))
 			output += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
 			if inbound.ExpiryTime == 0 {
-				output += t.I18nBot("tgbot.messages.expire", "DateTime=="+t.I18nBot("tgbot.unlimited"))
+				output += t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited"))
 			} else {
-				output += t.I18nBot("tgbot.messages.expire", "DateTime=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
+				output += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
 			}
 			output += "\r\n \r\n"
 		}
