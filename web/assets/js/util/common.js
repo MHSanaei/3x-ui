@@ -135,3 +135,21 @@ function doAllItemsExist(array1, array2) {
     }
     return true;
 }
+
+function buildURL({ host, port, isTLS, base, path }) {
+    if (!host || host.length === 0) host = window.location.hostname;
+    if (!port || port.length === 0) port = window.location.port;
+
+    if (isTLS === undefined) isTLS = window.location.protocol === "https:";
+
+    const protocol = isTLS ? "https:" : "http:";
+
+    port = String(port);
+    if (port === "" || (isTLS && port === "443") || (!isTLS && port === "80")) {
+        port = "";
+    } else {
+        port = `:${port}`;
+    }
+
+    return `${protocol}//${host}${port}${base}${path}`;
+}

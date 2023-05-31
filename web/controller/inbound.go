@@ -65,6 +65,7 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 	}
 	jsonObj(c, inbounds, nil)
 }
+
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -168,6 +169,7 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 	}
 	jsonMsg(c, "Log Cleared", nil)
 }
+
 func (a *InboundController) addInboundClient(c *gin.Context) {
 	data := &model.Inbound{}
 	err := c.ShouldBind(data)

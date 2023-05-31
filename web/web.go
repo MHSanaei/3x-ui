@@ -19,6 +19,7 @@ import (
 	"x-ui/web/controller"
 	"x-ui/web/job"
 	"x-ui/web/locale"
+	"x-ui/web/middleware"
 	"x-ui/web/network"
 	"x-ui/web/service"
 
@@ -144,28 +145,6 @@ func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, 
 	return t, nil
 }
 
-func redirectMiddleware(basePath string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Redirect from old '/xui' path to '/panel'
-		path := c.Request.URL.Path
-		redirects := map[string]string{
-			"panel/API": "panel/api",
-			"xui/API":   "panel/api",
-			"xui":       "panel",
-		}
-		for from, to := range redirects {
-			from, to = basePath+from, basePath+to
-			if strings.HasPrefix(path, from) {
-				newPath := to + path[len(from):]
-				c.Redirect(http.StatusMovedPermanently, newPath)
-				c.Abort()
-				return
-			}
-		}
-		c.Next()
-	}
-}
-
 func (s *Server) initRouter() (*gin.Engine, error) {
 	if config.IsDebug() {
 		gin.SetMode(gin.DebugMode)
@@ -176,6 +155,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
+
+	webDomain, err := s.settingService.GetWebDomain()
+	if err != nil {
+		return nil, err
+	}
+
+	if webDomain != "" {
+		engine.Use(middleware.DomainValidatorMiddleware(webDomain))
+	}
 
 	secret, err := s.settingService.GetSecret()
 	if err != nil {
@@ -233,7 +221,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Apply the redirect middleware (`/xui` to `/panel`)
-	engine.Use(redirectMiddleware(basePath))
+	engine.Use(middleware.RedirectMiddleware(basePath))
 
 	g := engine.Group(basePath)
 

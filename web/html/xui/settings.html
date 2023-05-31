@@ -91,6 +91,7 @@
                             </a-row>
                             <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningDomain"}}' desc='{{ i18n "pages.settings.panelListeningDomainDesc"}}' v-model="allSetting.webDomain"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="0"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.publicKeyPath"}}' desc='{{ i18n "pages.settings.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
@@ -306,23 +307,37 @@
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
                                             </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualLists"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.manualListsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualBlockedIPs"}}' v-model="manualBlockedIPs"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualBlockedDomains"}}' v-model="manualBlockedDomains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectIPs"}}' v-model="manualDirectIPs"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualDirectDomains"}}' v-model="manualDirectDomains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualIPv4Domains"}}' v-model="manualIPv4Domains"></setting-list-item>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.manualWARPDomains"}}' v-model="manualWARPDomains"></setting-list-item>
+                                        </a-collapse>
+                                    </a-tab-pane>
+                                    <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.manualLists"}}' style="padding-top: 20px;">
+                                        <a-row :xs="24" :sm="24" :lg="12">
+                                            <h2 class="collapse-title">
+                                                <a-icon type="warning"></a-icon>
+                                                {{ i18n "pages.settings.templates.manualListsDesc" }}
+                                            </h2>
+                                        </a-row>
+                                        <a-collapse>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedIPs"}}'>
+                                                <setting-list-item type="textarea" v-model="manualBlockedIPs"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualBlockedDomains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectIPs"}}'>
+                                                <setting-list-item type="textarea" v-model="manualDirectIPs"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualDirectDomains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualIPv4Domains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualIPv4Domains"></setting-list-item>
+                                            </a-collapse-panel>
+                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualWARPDomains"}}'>
+                                                <setting-list-item type="textarea" v-model="manualWARPDomains"></setting-list-item>
                                             </a-collapse-panel>
                                         </a-collapse>
                                     </a-tab-pane>
-                                    <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
+                                    <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
                                         <a-collapse>
                                             <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}'>
                                                 <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
@@ -335,7 +350,7 @@
                                             </a-collapse-panel>
                                         </a-collapse>
                                     </a-tab-pane>
-                                    <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
+                                    <a-tab-pane key="tpl-4" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
                                         <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigTemplate"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
                                     </a-tab-pane>
                                 </a-tabs>
@@ -391,9 +406,9 @@
                             <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.subEnable"}}' desc='{{ i18n "pages.settings.subEnableDesc"}}' v-model="allSetting.subEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subListen"}}' desc='{{ i18n "pages.settings.subListenDesc"}}' v-model="allSetting.subListen"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.subDomain"}}' desc='{{ i18n "pages.settings.subDomainDesc"}}' v-model="allSetting.subDomain"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.subPort"}}' desc='{{ i18n "pages.settings.subPortDesc"}}' v-model.number="allSetting.subPort"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subPath"></setting-list-item>
-                                <setting-list-item type="text" title='{{ i18n "pages.settings.subDomain"}}' desc='{{ i18n "pages.settings.subDomainDesc"}}' v-model="allSetting.subDomain"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subCertPath"}}' desc='{{ i18n "pages.settings.subCertPathDesc"}}' v-model="allSetting.subCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subKeyPath"}}' desc='{{ i18n "pages.settings.subKeyPathDesc"}}' v-model="allSetting.subKeyFile"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.subUpdates"}}' desc='{{ i18n "pages.settings.subUpdatesDesc"}}' v-model="allSetting.subUpdates"></setting-list-item>
@@ -522,7 +537,7 @@
                 this.loading(false);
                 if (msg.success) {
                     this.user = {};
-                    window.location.replace(basePath + "logout")
+                    window.location.replace(basePath + "logout");
                 }
             },
             async restartPanel() {
@@ -541,12 +556,10 @@
                 if (msg.success) {
                     this.loading(true);
                     await PromiseUtil.sleep(5000);
-                    let protocol = "http://";
-                    if (this.allSetting.webCertFile !== "") {
-                        protocol = "https://";
-                    }
-                    const { host } = window.location;
-                    window.location.replace(protocol + host + this.allSetting.webBasePath + "panel/settings");
+                    const { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+                    const isTLS = webCertFile !== "" || webKeyFile !== "";
+                    const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
+                    window.location.replace(url);
                 }
             },
             async fetchUserSecret() {
