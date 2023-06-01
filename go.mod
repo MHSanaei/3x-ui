@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/Workiva/go-datastructures v1.1.0
 	github.com/gin-contrib/sessions v0.0.4
-	github.com/gin-gonic/gin v1.9.0
+	github.com/gin-gonic/gin v1.9.1
 	github.com/go-cmd/cmd v1.4.1
 	github.com/goccy/go-json v0.10.2
 	github.com/mymmrac/telego v0.24.0
@@ -25,7 +25,7 @@ require (
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
-	github.com/bytedance/sonic v1.8.10 // indirect
+	github.com/bytedance/sonic v1.9.1 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/fasthttp/router v1.4.19 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
