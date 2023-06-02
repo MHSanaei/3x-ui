@@ -202,10 +202,11 @@ body {
 }
 
 .ant-card-dark:hover {
-    /*border-color: #e8e8e8;*/
-    animation:light-shadow ease-in 3s infinite;
+    /*border-color: #e8e8e8;
+    animation:light-shadow ease-in 3s infinite;*/
+    box-shadow: 0 1px 10px -1px rgb(154 175 238 / 80%);
 }
-
+/*
 @keyframes light-shadow {
     0% {
         box-shadow: 0 1px 10px -1px rgb(154 175 238 / 60%);
@@ -219,7 +220,7 @@ body {
     100% {
         box-shadow: 0 1px 10px -1px rgb(154 175 238 / 60%);
     }
-}
+}*/
 
 .ant-setting-textarea {
     margin-top: 1.5rem;
