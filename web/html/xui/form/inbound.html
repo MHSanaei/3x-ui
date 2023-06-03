@@ -1,11 +1,12 @@
 {{define "form/inbound"}}
 <!-- base -->
 <a-form layout="inline">
-    <a-form-item label='{{ i18n "remark" }}'>
-        <a-input v-model.trim="dbInbound.remark"></a-input>
-    </a-form-item>
     <a-form-item label='{{ i18n "enable" }}'>
         <a-switch v-model="dbInbound.enable"></a-switch>
+    </a-form-item>
+    <br>
+    <a-form-item label='{{ i18n "remark" }}'>
+        <a-input v-model.trim="dbInbound.remark"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "protocol" }}'>
         <a-select v-model="inbound.protocol" style="width: 160px;" :disabled="isEdit" :dropdown-class-name="themeSwitcher.darkCardClass">

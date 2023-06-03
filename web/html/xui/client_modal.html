@@ -120,26 +120,27 @@
             },
         },
         methods: {
-            async getDBClientIps(email, event) {
-                const msg = await HttpUtil.post('/panel/inbound/clientIps/' + email);
-                if (!msg.success) {
-                    return;
-                }
+            async getDBClientIps(email) {
                 try {
-                    ips = JSON.parse(msg.obj)
-                    ips = ips.join(",")
-                    event.target.value = ips
+                    const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
+                    if (!msg.success) {
+                        return;
+                    }
+                    const ips = JSON.parse(msg.obj).join(",\n");
+                    document.getElementById("clientIPs").value = ips;
                 } catch (error) {
-                    // text
-                    event.target.value = msg.obj
+                    document.getElementById("clientIPs").value = msg.obj;
                 }
             },
             async clearDBClientIps(email) {
-                const msg = await HttpUtil.post('/panel/inbound/clearClientIps/' + email);
-                if (!msg.success) {
-                    return;
+                try {
+                    const msg = await HttpUtil.post(`/panel/inbound/clearClientIps/${email}`);
+                    if (!msg.success) {
+                        return;
+                    }
+                    document.getElementById("clientIPs").value = "";
+                } catch (error) {
                 }
-                document.getElementById("clientIPs").value = ""
             },
             resetClientTraffic(email, dbInboundId, iconElement) {
                 this.$confirm({
