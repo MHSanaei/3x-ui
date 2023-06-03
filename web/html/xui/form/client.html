@@ -72,31 +72,32 @@
 		<a-input-number v-model="client.limitIp" min="0"></a-input-number>
 	</a-form-item>
 	<a-form-item v-if="client.email && client.limitIp > 0 && isEdit">
-		<span slot="label">
-			<span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
-			<a-tooltip>
-				<template slot="title">
-				<span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
-				</template>
-				<a-icon type="question-circle" theme="filled"></a-icon>
-			</a-tooltip>
-			<a-tooltip>
-				<template slot="title">
-				<span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
-				</template>
-				<span style="color: #FF4D4F">
-				<a-icon type="delete" @click="clearDBClientIps(client.email)"></a-icon>
-				</span>
-			</a-tooltip>
-		</span>
-		<a-form layout="block">
-			<a-textarea id="clientIPs" readonly 
-                        @click="getDBClientIps(client.email,$event)"
-                        placeholder="Click To Get IPs"
-                        :auto-size="{ minRows: 2, maxRows: 10 }">
-			</a-textarea>
-		</a-form>
-	</a-form-item>
+        <span slot="label">
+          <span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
+          <a-tooltip>
+            <template slot="title">
+              <span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
+            </template>
+            <a-icon type="question-circle" theme="filled"></a-icon>
+          </a-tooltip>
+          <a-tooltip>
+            <template slot="title">
+              <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
+            </template>
+            <span style="color: #FF4D4F">
+              <a-icon type="delete" @click="clearDBClientIps(client.email)"></a-icon>
+            </span>
+          </a-tooltip>
+        </span>
+        <a-form layout="block">
+          <a-textarea id="clientIPs" readonly 
+            @click="getDBClientIps(client.email)"
+            placeholder="Click To Get IPs"
+            :auto-size="{ minRows: 5, maxRows: 10 }"
+          >
+          </a-textarea>
+        </a-form>
+    </a-form-item>
     <br>
     <a-form-item v-if="inbound.xtls" label="Flow">
         <a-select v-model="client.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">

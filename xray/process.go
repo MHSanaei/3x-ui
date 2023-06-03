@@ -51,8 +51,8 @@ func GetIranPath() string {
 	return config.GetBinFolderPath() + "/iran.dat"
 }
 
-func GetAllowedIPsPath() string {
-	return config.GetBinFolderPath() + "/AllowedIPs"
+func GetBlockedIPsPath() string {
+	return config.GetBinFolderPath() + "/BlockedIps"
 }
 
 func stopProcess(p *Process) {
@@ -173,7 +173,7 @@ func (p *process) Start() (err error) {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
 
-	cmd := exec.Command(GetBinaryPath(), "-c", configPath, "-restrictedIPsPath", GetAllowedIPsPath())
+	cmd := exec.Command(GetBinaryPath(), "-c", configPath, "-restrictedIPsPath", GetBlockedIPsPath())
 	p.cmd = cmd
 
 	stdReader, err := cmd.StdoutPipe()
