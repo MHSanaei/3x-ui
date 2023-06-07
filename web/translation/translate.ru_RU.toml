@@ -72,7 +72,7 @@
 "title" = "Статус системы"
 "memory" = "Память"
 "hard" = "Жесткий диск"
-"xrayStatus" = "Статус Xray"
+"xrayStatus" = "Статус"
 "stopXray" = "Остановить Xray"
 "restartXray" = "Рестарт Xray"
 "xraySwitch" = "Переключить версию"

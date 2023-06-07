@@ -72,7 +72,7 @@
 "title" = "وضعیت سیستم"
 "memory" = "حافظه رم"
 "hard" = "حافظه دیسک"
-"xrayStatus" = "وضعیت Xray"
+"xrayStatus" = "وضعیت"
 "stopXray" = "توقف"
 "restartXray" = "شروع مجدد"
 "xraySwitch" = "تغییر ورژن"

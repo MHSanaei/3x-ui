@@ -75,9 +75,7 @@ class PromiseUtil {
     }
 }
 
-const seq = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-
-const shortIdSeq = 'abcdef0123456789'.split('');
+const seq = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
 class RandomUtil {
     static randomIntRange(min, max) {
@@ -96,21 +94,17 @@ class RandomUtil {
         return str;
     }
 
-    static randomShortIdSeq(count) {
+    static randomShortId(count) {
         let str = '';
         for (let i = 0; i < count; ++i) {
-            str += shortIdSeq[this.randomInt(16)];
+            str += seq[this.randomInt(16)];
         }
         return str;
     }
-    
-    static randomShortId() {
-        return this.randomShortIdSeq(8);
-    }
 
-    static randomLowerAndNum(count) {
+    static randomText(len) {
         let str = '';
-        for (let i = 0; i < count; ++i) {
+        for (let i = 0; i < len; i++) {
             str += seq[this.randomInt(36)];
         }
         return str;
@@ -136,16 +130,7 @@ class RandomUtil {
             d = Math.floor(d / 16);
             return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
         });
-    }
-
-    static randomText() {
-        var chars = 'abcdefghijklmnopqrstuvwxyz1234567890';
-        var string = '';
-        for (var ii = 0; ii < 8; ii++) {
-            string += chars[Math.floor(Math.random() * chars.length)];
-        }
-        return string;
-    }
+    }  
 
     static randomShadowsocksPassword() {
         let array = new Uint8Array(32);

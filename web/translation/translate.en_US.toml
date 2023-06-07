@@ -72,7 +72,7 @@
 "title" = "System Status"
 "memory" = "Memory"
 "hard" = "Hard Disk"
-"xrayStatus" = "Xray Status"
+"xrayStatus" = "Status"
 "stopXray" = "Stop"
 "restartXray" = "Restart"
 "xraySwitch" = "SwitchV"
