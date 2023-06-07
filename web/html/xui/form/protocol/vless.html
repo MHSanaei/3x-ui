@@ -11,7 +11,7 @@
                         </template>
                     </a-tooltip>
                 </span>
-                <a-icon @click="client.email = RandomUtil.randomText()" type="sync"> </a-icon>
+                <a-icon @click="client.email = RandomUtil.randomText(8)" type="sync"> </a-icon>
                 <a-input v-model.trim="client.email" style="width: 200px;"></a-input>
             </a-form-item>
             <a-form-item label="ID">
@@ -28,7 +28,7 @@
                         <a-icon type="question-circle" theme="filled"></a-icon>
                     </a-tooltip>
                 </span>
-                <a-icon @click="client.subId = RandomUtil.randomText()" type="sync"> </a-icon>
+                <a-icon @click="client.subId = RandomUtil.randomText(16)" type="sync"> </a-icon>
                 <a-input v-model.trim="client.subId" style="width: 150px;"></a-input>
             </a-form-item>
             <a-form-item v-if="client.email && app.tgBotEnable">

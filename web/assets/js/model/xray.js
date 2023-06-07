@@ -708,7 +708,7 @@ class RealityStreamSettings extends XrayCommonClass {
         minClient = '',
         maxClient = '',
         maxTimediff = 0,
-        shortIds = RandomUtil.randomShortId(),
+        shortIds = RandomUtil.randomShortId(8),
         settings= new RealityStreamSettings.Settings()
         ){
         super();
@@ -1655,7 +1655,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     }
 };
 Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
-    constructor(id=RandomUtil.randomUUID(), alterId=0, email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId='') {
+    constructor(id=RandomUtil.randomUUID(), alterId=0, email=RandomUtil.randomText(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomText(16)) {
         super();
         this.id = id;
         this.alterId = alterId;
@@ -1747,7 +1747,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
 };
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
-    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId='') {
+    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomText(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomText(16)) {
         super();
         this.id = id;
         this.flow = flow;
@@ -1870,7 +1870,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomSeq(10), flow='', email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId='') {
+    constructor(password=RandomUtil.randomSeq(10), flow='', email=RandomUtil.randomText(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomText(16)) {
         super();
         this.password = password;
         this.flow = flow;
@@ -2012,7 +2012,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 };
 
 Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomText(),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId='') {
+    constructor(password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomText(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomText(16)) {
         super();
         this.password = password;
         this.email = email;

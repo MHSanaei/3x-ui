@@ -576,7 +576,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
-			if sidValue, ok := searchKey(realitySettings, "shortIds"); ok {
+			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
 				shortIds, _ := sidValue.([]interface{})
 				params["sid"], _ = shortIds[0].(string)
 			}

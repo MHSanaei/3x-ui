@@ -72,7 +72,7 @@
 "title" = "系统状态"
 "memory" = "内存"
 "hard" = "硬盘"
-"xrayStatus" = "xray 状态"
+"xrayStatus" = "状态"
 "stopXray" = "停止"
 "restartXray" = "重启"
 "xraySwitch" = "切换版本"
