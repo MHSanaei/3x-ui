@@ -10,7 +10,6 @@ import (
 	"x-ui/web/service"
 	"x-ui/xray"
 
-	"net"
 	"sort"
 	"strings"
 	"time"
