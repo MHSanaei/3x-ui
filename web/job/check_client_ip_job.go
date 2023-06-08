@@ -57,11 +57,6 @@ func processLogFile() {
 	InboundClientIps := make(map[string][]string)
 	checkError(err)
 
-	// clean log
-	if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
-		checkError(err)
-	}
-
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
 		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
@@ -101,7 +96,13 @@ func processLogFile() {
 			addInboundClientIps(clientEmail, ips)
 
 		} else {
-			updateInboundClientIps(inboundClientIps, clientEmail, ips)
+			shouldCleanLog := updateInboundClientIps(inboundClientIps, clientEmail, ips)
+			if shouldCleanLog {
+				// clean log
+				if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
+					checkError(err)
+				}
+			}
 		}
 
 	}
@@ -182,7 +183,7 @@ func addInboundClientIps(clientEmail string, ips []string) error {
 	}
 	return nil
 }
-func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, ips []string) error {
+func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, ips []string) bool {
 
 	jsonIps, err := json.Marshal(ips)
 	checkError(err)
@@ -196,7 +197,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 
 	if inbound.Settings == "" {
 		logger.Debug("wrong data ", inbound)
-		return nil
+		return false
 	}
 
 	settings := map[string][]model.Client{}
@@ -211,6 +212,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 			if limitIp < len(ips) && limitIp != 0 && inbound.Enable {
 
 				disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
+				return true
 			}
 		}
 	}
@@ -220,10 +222,11 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
 	if err != nil {
-		return err
+		return false
 	}
-	return nil
+	return false
 }
+
 func DisableInbound(id int) error {
 	db := database.GetDB()
 	result := db.Model(model.Inbound{}).
