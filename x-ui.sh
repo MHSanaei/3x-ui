@@ -642,24 +642,19 @@ run_speedtest() {
     if ! command -v speedtest &> /dev/null; then
         # If not installed, install it
         local pkg_manager=""
-        local curl_install_cmd=""
         local speedtest_install_script=""
         
         if command -v dnf &> /dev/null; then
             pkg_manager="dnf"
-            curl_install_cmd="sudo dnf install -y curl"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
         elif command -v yum &> /dev/null; then
             pkg_manager="yum"
-            curl_install_cmd="sudo yum install -y curl"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
         elif command -v apt-get &> /dev/null; then
             pkg_manager="apt-get"
-            curl_install_cmd="sudo apt-get update && sudo apt-get install -y curl"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
         elif command -v apt &> /dev/null; then
             pkg_manager="apt"
-            curl_install_cmd="sudo apt update && sudo apt install -y curl"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
         fi
         
@@ -667,7 +662,6 @@ run_speedtest() {
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
         else
-            $curl_install_cmd
             curl -s $speedtest_install_script | sudo bash
             sudo $pkg_manager install -y speedtest
         fi
@@ -676,6 +670,7 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
+
 
 show_usage() {
     echo "x-ui control menu usages: "
