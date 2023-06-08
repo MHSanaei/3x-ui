@@ -195,20 +195,25 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	settings := map[string][]model.Client{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
+	shouldCleanLog := false
 
 	for _, client := range clients {
 		if client.Email == clientEmail {
 
 			limitIp := client.LimitIP
 
-			if limitIp < len(ips) && limitIp != 0 && inbound.Enable {
+			if limitIp != 0 {
 
-				disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
-				for i:=limitIp; i < len(ips); i++ {
-					logger.Info("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+				shouldCleanLog = true
+
+				if limitIp < len(ips) && inbound.Enable {
+
+					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
+					for i:=limitIp; i < len(ips); i++ {
+						logger.Info("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+					}
 				}
-				return true
-			}
+			}	
 		}
 	}
 	logger.Debug("disAllowedIps ", disAllowedIps)
@@ -217,9 +222,9 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
 	if err != nil {
-		return false
+		return shouldCleanLog
 	}
-	return false
+	return shouldCleanLog
 }
 
 func DisableInbound(id int) error {
