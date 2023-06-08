@@ -85,6 +85,7 @@ func processLogFile() {
 
 	}
 	disAllowedIps = []string{}
+	shouldCleanLog := false
 
 	for clientEmail, ips := range InboundClientIps {
 		inboundClientIps, err := GetInboundClientIps(clientEmail)
@@ -93,17 +94,17 @@ func processLogFile() {
 			addInboundClientIps(clientEmail, ips)
 
 		} else {
-			shouldCleanLog := updateInboundClientIps(inboundClientIps, clientEmail, ips)
-			if shouldCleanLog {
-				// clean log
-				if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
-					checkError(err)
-				}
-			}
+			shouldCleanLog = updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
 
 	}
 
+	if shouldCleanLog {
+		// clean log
+		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
+			checkError(err)
+		}
+	}
 	time.Sleep(10 * time.Second)
 
 }
