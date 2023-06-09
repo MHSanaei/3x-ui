@@ -94,30 +94,32 @@ class RandomUtil {
         return str;
     }
 
-    static randomShortId(count) {
+    static randomShortId() {
         let str = '';
-        for (let i = 0; i < count; ++i) {
+        for (let i = 0; i < 8; ++i) {
             str += seq[this.randomInt(16)];
         }
         return str;
     }
 
-    static randomText(len) {
+    static randomLowerAndNum(len) {
         let str = '';
-        for (let i = 0; i < len; i++) {
+        for (let i = 0; i < len; ++i) {
             str += seq[this.randomInt(36)];
         }
         return str;
     }
 
     static randomUUID() {
-        let d = new Date().getTime();
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-            let r = (d + Math.random() * 16) % 16 | 0;
-            d = Math.floor(d / 16);
-            return (c === 'x' ? r : (r & 0x7 | 0x8)).toString(16);
+        const template = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+        return template.replace(/[xy]/g, function (c) {
+          const randomValues = new Uint8Array(1);
+          crypto.getRandomValues(randomValues);
+          let randomValue = randomValues[0] % 16;
+          let calculatedValue = (c === 'x') ? randomValue : (randomValue & 0x3 | 0x8);
+          return calculatedValue.toString(16);
         });
-    }  
+    }
 
     static randomShadowsocksPassword() {
         let array = new Uint8Array(32);
