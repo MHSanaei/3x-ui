@@ -35,7 +35,6 @@
 <a-form v-if="inbound.tls" layout="inline">
     <a-form-item label='Multi Domain'>
         <a-switch v-model="multiDomain"></a-switch>
-        
     </a-form-item>
     <a-form-item v-if="multiDomain">
         <a-row>
@@ -85,8 +84,13 @@
             <a-checkbox v-for="key,value in ALPN_OPTION" :value="key">[[ value ]]</a-checkbox>
         </a-checkbox-group>
     </a-form-item>
+    <br>
     <a-form-item label="Allow insecure">
         <a-switch v-model="inbound.stream.tls.settings.allowInsecure"></a-switch>
+    </a-form-item>
+    <br>
+    <a-form-item label="Reject Unknown SNI">
+        <a-switch v-model="inbound.stream.tls.rejectUnknownSni"></a-switch>
     </a-form-item>
     <template v-for="cert,index in inbound.stream.tls.certs">
         <a-form-item label='{{ i18n "certificate" }}'>
