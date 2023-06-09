@@ -378,10 +378,15 @@ class WsStreamSettings extends XrayCommonClass {
 }
 
 class HttpStreamSettings extends XrayCommonClass {
-    constructor(path='/', host=['']) {
+    constructor(
+        path='/',
+        host=[''],
+        sockopt={acceptProxyProtocol: false}
+        ) {
         super();
         this.path = path;
         this.host = host.length === 0 ? [''] : host;
+        this.sockopt = sockopt;
     }
 
     addHost(host) {
@@ -393,7 +398,7 @@ class HttpStreamSettings extends XrayCommonClass {
     }
 
     static fromJson(json={}) {
-        return new HttpStreamSettings(json.path, json.host);
+        return new HttpStreamSettings(json.path, json.host, json.sockopt);
     }
 
     toJson() {
@@ -406,9 +411,11 @@ class HttpStreamSettings extends XrayCommonClass {
         return {
             path: this.path,
             host: host,
+            sockopt: this.sockopt,
         }
     }
 }
+
 
 class QuicStreamSettings extends XrayCommonClass {
     constructor(security=VmessMethods.NONE,
@@ -441,27 +448,32 @@ class QuicStreamSettings extends XrayCommonClass {
 class GrpcStreamSettings extends XrayCommonClass {
     constructor(
         serviceName="",
-        multiMode=false
+        multiMode=false,
+        sockopt={acceptProxyProtocol: false}
         ) {
         super();
         this.serviceName = serviceName;
         this.multiMode = multiMode;
+        this.sockopt = sockopt;
     }
 
     static fromJson(json={}) {
         return new GrpcStreamSettings(
             json.serviceName,
-            json.multiMode
+            json.multiMode,
+            json.sockopt
             );
     }
 
     toJson() {
         return {
             serviceName: this.serviceName,
-            multiMode: this.multiMode
+            multiMode: this.multiMode,
+            sockopt: this.sockopt
         }
     }
 }
+
 
 class TlsStreamSettings extends XrayCommonClass {
     constructor(serverName='',
