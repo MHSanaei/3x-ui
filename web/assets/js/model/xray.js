@@ -4,7 +4,6 @@ const Protocols = {
     TROJAN: 'trojan',
     SHADOWSOCKS: 'shadowsocks',
     DOKODEMO: 'dokodemo-door',
-    MTPROTO: 'mtproto',
     SOCKS: 'socks',
     HTTP: 'http',
 };
@@ -1586,7 +1585,6 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.TROJAN: return new Inbound.TrojanSettings(protocol);
             case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings(protocol);
             case Protocols.DOKODEMO: return new Inbound.DokodemoSettings(protocol);
-            case Protocols.MTPROTO: return new Inbound.MtprotoSettings(protocol);
             case Protocols.SOCKS: return new Inbound.SocksSettings(protocol);
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             default: return null;
@@ -1600,7 +1598,6 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.TROJAN: return Inbound.TrojanSettings.fromJson(json);
             case Protocols.SHADOWSOCKS: return Inbound.ShadowsocksSettings.fromJson(json);
             case Protocols.DOKODEMO: return Inbound.DokodemoSettings.fromJson(json);
-            case Protocols.MTPROTO: return Inbound.MtprotoSettings.fromJson(json);
             case Protocols.SOCKS: return Inbound.SocksSettings.fromJson(json);
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             default: return null;
@@ -2103,36 +2100,6 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
             network: this.network,
             followRedirect: this.followRedirect,
         };
-    }
-};
-
-Inbound.MtprotoSettings = class extends Inbound.Settings {
-    constructor(protocol, users=[new Inbound.MtprotoSettings.MtUser()]) {
-        super(protocol);
-        this.users = users;
-    }
-
-    static fromJson(json={}) {
-        return new Inbound.MtprotoSettings(
-            Protocols.MTPROTO,
-            json.users.map(user => Inbound.MtprotoSettings.MtUser.fromJson(user)),
-        );
-    }
-
-    toJson() {
-        return {
-            users: XrayCommonClass.toJsonArray(this.users),
-        };
-    }
-};
-Inbound.MtprotoSettings.MtUser = class extends XrayCommonClass {
-    constructor(secret=RandomUtil.randomMTSecret()) {
-        super();
-        this.secret = secret;
-    }
-
-    static fromJson(json={}) {
-        return new Inbound.MtprotoSettings.MtUser(json.secret);
     }
 };
 
