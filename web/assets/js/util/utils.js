@@ -110,19 +110,6 @@ class RandomUtil {
         return str;
     }
 
-    static randomMTSecret() {
-        let str = '';
-        for (let i = 0; i < 32; ++i) {
-            let index = this.randomInt(16);
-            if (index <= 9) {
-                str += index;
-            } else {
-                str += seq[index - 10];
-            }
-        }
-        return str;
-    }
-
     static randomUUID() {
         let d = new Date().getTime();
         return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
