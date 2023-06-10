@@ -105,7 +105,7 @@ func processLogFile() {
 			checkError(err)
 		}
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(30 * time.Second)
 
 }
 func GetAccessLogPath() string {
