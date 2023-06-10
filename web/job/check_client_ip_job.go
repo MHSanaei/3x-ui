@@ -12,7 +12,6 @@ import (
 
 	"sort"
 	"strings"
-	"time"
 )
 
 type CheckClientIpJob struct {
@@ -105,7 +104,6 @@ func processLogFile() {
 			checkError(err)
 		}
 	}
-	time.Sleep(30 * time.Second)
 
 }
 func GetAccessLogPath() string {
