@@ -76,7 +76,6 @@ type Client struct {
 	ID         string `json:"id"`
 	Password   string `json:"password"`
 	Flow       string `json:"flow"`
-	AlterIds   uint16 `json:"alterId"`
 	Email      string `json:"email"`
 	LimitIP    int    `json:"limitIp"`
 	TotalGB    int64  `json:"totalGB" form:"totalGB"`

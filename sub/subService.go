@@ -236,7 +236,6 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 	obj["id"] = clients[clientIndex].ID
-	obj["aid"] = clients[clientIndex].AlterIds
 
 	if len(domains) > 0 {
 		links := ""
