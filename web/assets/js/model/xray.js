@@ -1358,7 +1358,7 @@ class Inbound extends XrayCommonClass {
             }
         }
 
-        if (this.xtls) {
+        else if (this.xtls) {
             params.set("security", "xtls");
             params.set("alpn", this.stream.xtls.alpn);
             if(this.stream.xtls.settings.allowInsecure){
@@ -1373,7 +1373,7 @@ class Inbound extends XrayCommonClass {
             params.set("flow", this.settings.vlesses[clientIndex].flow);
         }
 
-        if (this.reality) {
+        else if (this.reality) {
             params.set("security", "reality");
             params.set("fp", this.stream.reality.settings.fingerprint);
             params.set("pbk", this.stream.reality.settings.publicKey);
@@ -1392,6 +1392,10 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.spiderX)) {
                 params.set("spx", this.stream.reality.settings.spiderX);
             }
+        }
+
+        else {
+            params.set("security", "none");
         }
 
         const link = `vless://${uuid}@${address}:${port}`;
@@ -1479,7 +1483,7 @@ class Inbound extends XrayCommonClass {
 			}
         }
 
-        if (this.reality) {
+        else if (this.reality) {
             params.set("security", "reality");
             params.set("fp", this.stream.reality.settings.fingerprint);
             params.set("pbk", this.stream.reality.settings.publicKey);
@@ -1497,7 +1501,7 @@ class Inbound extends XrayCommonClass {
             }
         }
 
-		if (this.xtls) {
+		else if (this.xtls) {
             params.set("security", "xtls");
             params.set("alpn", this.stream.xtls.alpn);
             if(this.stream.xtls.settings.allowInsecure){
@@ -1510,6 +1514,10 @@ class Inbound extends XrayCommonClass {
                 params.set("sni", this.stream.xtls.settings.serverName);
 			}
             params.set("flow", this.settings.trojans[clientIndex].flow);
+        }
+
+        else {
+            params.set("security", "none");
         }
 
         const link = `trojan://${settings.trojans[clientIndex].password}@${address}:${this.port}`;
