@@ -434,6 +434,10 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
+	if security != "tls" && security != "reality" && security != "xtls" {
+		params["security"] = "none"
+	}
+
 	link := fmt.Sprintf("vless://%s@%s:%d", uuid, address, port)
 	url, _ := url.Parse(link)
 	q := url.Query()
@@ -636,6 +640,10 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		if serverName != "" {
 			address = serverName
 		}
+	}
+
+	if security != "tls" && security != "reality" && security != "xtls" {
+		params["security"] = "none"
 	}
 
 	link := fmt.Sprintf("trojan://%s@%s:%d", password, address, port)
