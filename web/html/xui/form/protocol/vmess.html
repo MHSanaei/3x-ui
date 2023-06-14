@@ -15,10 +15,6 @@
                 <a-input v-model.trim="client.email" style="width: 200px;"></a-input>
             </a-form-item>
             <br>
-            <a-form-item label='{{ i18n "additional" }} ID'>
-                <a-input-number v-model="client.alterId"></a-input-number>
-            </a-form-item>
-            <br>
             <a-form-item label="ID">
                 <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"> </a-icon>
                 <a-input v-model.trim="client.id" style="width: 300px;"></a-input>

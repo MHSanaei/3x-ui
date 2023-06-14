@@ -396,7 +396,6 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 			err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]interface{}{
 				"email":    client.Email,
 				"id":       client.ID,
-				"alterId":  client.AlterIds,
 				"flow":     client.Flow,
 				"password": client.Password,
 			})
@@ -589,7 +588,6 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 			err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]interface{}{
 				"email":    clients[0].Email,
 				"id":       clients[0].ID,
-				"alterId":  clients[0].AlterIds,
 				"flow":     clients[0].Flow,
 				"password": clients[0].Password,
 			})
@@ -1169,7 +1167,6 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 				err1 := s.xrayApi.AddUser(string(inbound.Protocol), inbound.Tag, map[string]interface{}{
 					"email":    client.Email,
 					"id":       client.ID,
-					"alterId":  client.AlterIds,
 					"flow":     client.Flow,
 					"password": client.Password,
 				})

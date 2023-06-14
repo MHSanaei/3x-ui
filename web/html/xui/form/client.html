@@ -27,9 +27,6 @@
         <a-input v-model.trim="client.password" style="width: 300px;"></a-input>
     </a-form-item>
     <br>
-    <a-form-item label='{{ i18n "additional" }} ID' v-if="inbound.protocol === Protocols.VMESS">
-        <a-input-number v-model="client.alterId"></a-input-number>
-    </a-form-item>
     <a-form-item label="ID" v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
         <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"> </a-icon>
         <a-input v-model.trim="client.id" style="width: 300px;"></a-input>

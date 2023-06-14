@@ -57,8 +57,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]in
 	switch Protocol {
 	case "vmess":
 		account = serial.ToTypedMessage(&vmess.Account{
-			Id:      user["id"].(string),
-			AlterId: uint32(user["alterId"].(uint16)),
+			Id: user["id"].(string),
 		})
 	case "vless":
 		account = serial.ToTypedMessage(&vless.Account{

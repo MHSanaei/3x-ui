@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-cmd/cmd v1.4.1
 	github.com/goccy/go-json v0.10.2
-	github.com/mymmrac/telego v0.24.0
+	github.com/mymmrac/telego v0.25.0
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pelletier/go-toml/v2 v2.0.8
@@ -16,7 +16,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.23.5
 	github.com/xtls/xray-core v1.8.1
 	go.uber.org/atomic v1.11.0
-	golang.org/x/text v0.9.0
+	golang.org/x/text v0.10.0
 	google.golang.org/grpc v1.55.0
 	gorm.io/driver/sqlite v1.5.2
 	gorm.io/gorm v1.25.2-0.20230530020048-26663ab9bf55
