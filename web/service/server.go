@@ -86,31 +86,24 @@ type ServerService struct {
 	inboundService InboundService
 }
 
-const DebugMode = false // Set to true during development
-
 func getPublicIP(url string) string {
 	resp, err := http.Get(url)
 	if err != nil {
-		if DebugMode {
-			logger.Warning("get public IP failed:", err)
-		}
 		return "N/A"
 	}
 	defer resp.Body.Close()
 
 	ip, err := io.ReadAll(resp.Body)
 	if err != nil {
-		if DebugMode {
-			logger.Warning("read public IP failed:", err)
-		}
 		return "N/A"
 	}
 
-	if string(ip) == "" {
-		return "N/A" // default value
+	ipString := string(ip)
+	if ipString == "" {
+		return "N/A"
 	}
 
-	return string(ip)
+	return ipString
 }
 
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {

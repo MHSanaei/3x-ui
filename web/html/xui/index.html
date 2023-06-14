@@ -449,9 +449,13 @@
                 this.loadingTip = tip;
             },
             async getStatus() {
-                const msg = await HttpUtil.post('/server/status');
-                if (msg.success) {
-                    this.setStatus(msg.obj);
+                try {
+                    const msg = await HttpUtil.post('/server/status');
+                    if (msg.success) {
+                        this.setStatus(msg.obj);
+                    }
+                } catch (e) {
+                    console.error("Failed to get status:", e);
                 }
             },
             setStatus(data) {
@@ -560,11 +564,14 @@
             },
         },
         async mounted() {
-            while (true) {
+            let retries = 0;
+            while (retries < 5) {
                 try {
                     await this.getStatus();
+                    retries = 0;
                 } catch (e) {
-                    console.error(e);
+                    console.error("Error occurred while fetching status:", e);
+                    retries++;
                 }
                 await PromiseUtil.sleep(2000);
             }

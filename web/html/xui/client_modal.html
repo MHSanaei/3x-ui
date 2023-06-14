@@ -124,12 +124,14 @@
                 try {
                     const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
                     if (!msg.success) {
+                        document.getElementById("clientIPs").value = msg.obj;
                         return;
                     }
-                    const ips = JSON.parse(msg.obj).join(",\n");
+                    const ips = Array.isArray(msg.obj) ? msg.obj.join(",\n") : msg.obj;
                     document.getElementById("clientIPs").value = ips;
                 } catch (error) {
-                    document.getElementById("clientIPs").value = msg.obj;
+                    console.error(error);
+                    document.getElementById("clientIPs").value = 'An error occurred while making the request';
                 }
             },
             async clearDBClientIps(email) {
