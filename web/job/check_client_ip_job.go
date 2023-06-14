@@ -12,6 +12,7 @@ import (
 
 	"sort"
 	"strings"
+	"time"
 )
 
 type CheckClientIpJob struct {
@@ -97,7 +98,9 @@ func processLogFile() {
 		}
 
 	}
-
+	
+	time.Sleep(time.Second * 5)
+	//added 5 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
 		// clean log
 		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
