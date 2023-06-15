@@ -121,18 +121,21 @@
         },
         methods: {
             async getDBClientIps(email) {
-                try {
-                    const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
-                    if (!msg.success) {
-                        document.getElementById("clientIPs").value = msg.obj;
-                        return;
-                    }
-                    const ips = Array.isArray(msg.obj) ? msg.obj.join(",\n") : msg.obj;
-                    document.getElementById("clientIPs").value = ips;
-                } catch (error) {
-                    console.error(error);
-                    document.getElementById("clientIPs").value = 'An error occurred while making the request';
+                const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
+                if (!msg.success) {
+                    document.getElementById("clientIPs").value = msg.obj;
+                    return;
                 }
+                let ips = msg.obj;
+                if (typeof ips === 'string' && ips.startsWith('[') && ips.endsWith(']')) {
+                    try {
+                        ips = JSON.parse(ips);
+                        ips = Array.isArray(ips) ? ips.join("\n") : ips;
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+                document.getElementById("clientIPs").value = ips;
             },
             async clearDBClientIps(email) {
                 try {
