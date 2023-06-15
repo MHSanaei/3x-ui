@@ -29,7 +29,10 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 
 func (j *CheckClientIpJob) Run() {
 	logger.Debug("Check Client IP Job...")
-	processLogFile()
+
+	if hasLimitIp() {
+		processLogFile()
+	}
 
 	blockedIps := []byte(strings.Join(disAllowedIps, ","))
 
@@ -41,6 +44,33 @@ func (j *CheckClientIpJob) Run() {
 	}
 	err = os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0755)
 	checkError(err)
+}
+
+func hasLimitIp() bool {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	if err != nil {
+		return false
+	}
+
+	for _, inbound := range inbounds {
+		if inbound.Settings == "" {
+			continue
+		}
+
+		settings := map[string][]model.Client{}
+		json.Unmarshal([]byte(inbound.Settings), &settings)
+		clients := settings["clients"]
+
+		for _, client := range clients {
+			limitIp := client.LimitIP
+			if limitIp > 0 {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func processLogFile() {
@@ -98,7 +128,7 @@ func processLogFile() {
 		}
 
 	}
-	
+
 	time.Sleep(time.Second * 5)
 	//added 5 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
@@ -211,11 +241,11 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 				if limitIp < len(ips) && inbound.Enable {
 
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
-					for i:=limitIp; i < len(ips); i++ {
+					for i := limitIp; i < len(ips); i++ {
 						logger.Info("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
 					}
 				}
-			}	
+			}
 		}
 	}
 	logger.Debug("disAllowedIps ", disAllowedIps)
