@@ -10,12 +10,9 @@ import (
 	"x-ui/web/service"
 	"x-ui/xray"
 
-	"net"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/go-cmd/cmd"
 )
 
 type CheckClientIpJob struct {
@@ -88,6 +85,7 @@ func processLogFile() {
 
 	}
 	disAllowedIps = []string{}
+	shouldCleanLog := false
 
 	for clientEmail, ips := range InboundClientIps {
 		inboundClientIps, err := GetInboundClientIps(clientEmail)
@@ -96,23 +94,19 @@ func processLogFile() {
 			addInboundClientIps(clientEmail, ips)
 
 		} else {
-			shouldCleanLog := updateInboundClientIps(inboundClientIps, clientEmail, ips)
-			if shouldCleanLog {
-				// clean log
-				if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
-					checkError(err)
-				}
-			}
+			shouldCleanLog = updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
 
 	}
-
-	// check if inbound connection is more than limited ip and drop connection
-	LimitDevice := func() { LimitDevice() }
-
-	stop := schedule(LimitDevice, 1000*time.Millisecond)
-	time.Sleep(10 * time.Second)
-	stop <- true
+	
+	time.Sleep(time.Second * 5)
+	//added 5 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
+	if shouldCleanLog {
+		// clean log
+		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
+			checkError(err)
+		}
+	}
 
 }
 func GetAccessLogPath() string {
@@ -203,17 +197,25 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	settings := map[string][]model.Client{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
+	shouldCleanLog := false
 
 	for _, client := range clients {
 		if client.Email == clientEmail {
 
 			limitIp := client.LimitIP
 
-			if limitIp < len(ips) && limitIp != 0 && inbound.Enable {
+			if limitIp != 0 {
 
-				disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
-				return true
-			}
+				shouldCleanLog = true
+
+				if limitIp < len(ips) && inbound.Enable {
+
+					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
+					for i:=limitIp; i < len(ips); i++ {
+						logger.Info("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+					}
+				}
+			}	
 		}
 	}
 	logger.Debug("disAllowedIps ", disAllowedIps)
@@ -222,9 +224,9 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
 	if err != nil {
-		return false
+		return shouldCleanLog
 	}
-	return false
+	return shouldCleanLog
 }
 
 func DisableInbound(id int) error {
@@ -250,104 +252,4 @@ func GetInboundByEmail(clientEmail string) (*model.Inbound, error) {
 		return nil, err
 	}
 	return inbounds, nil
-}
-
-func LimitDevice() {
-
-	localIp, err := LocalIP()
-	checkError(err)
-
-	c := cmd.NewCmd("bash", "-c", "ss --tcp | grep -E '"+IPsToRegex(localIp)+"'| awk '{if($1==\"ESTAB\") print $4,$5;}'", "| sort | uniq -c | sort -nr | head")
-
-	<-c.Start()
-	if len(c.Status().Stdout) > 0 {
-		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
-		portRegx, _ := regexp.Compile(`(?:(:))([0-9]..[^.][0-9]+)`)
-
-		for _, row := range c.Status().Stdout {
-
-			data := strings.Split(row, " ")
-
-			destIp, destPort, srcIp, srcPort := "", "", "", ""
-
-			destIp = string(ipRegx.FindString(data[0]))
-
-			destPort = portRegx.FindString(data[0])
-			destPort = strings.Replace(destPort, ":", "", -1)
-
-			srcIp = string(ipRegx.FindString(data[1]))
-
-			srcPort = portRegx.FindString(data[1])
-			srcPort = strings.Replace(srcPort, ":", "", -1)
-
-			if contains(disAllowedIps, srcIp) {
-				dropCmd := cmd.NewCmd("bash", "-c", "ss -K dport = "+srcPort)
-				dropCmd.Start()
-
-				logger.Debug("request droped : ", srcIp, srcPort, "to", destIp, destPort)
-			}
-		}
-	}
-
-}
-
-func LocalIP() ([]string, error) {
-	// get machine ips
-
-	ifaces, err := net.Interfaces()
-	ips := []string{}
-	if err != nil {
-		return ips, err
-	}
-	for _, i := range ifaces {
-		addrs, err := i.Addrs()
-		if err != nil {
-			return ips, err
-		}
-
-		for _, addr := range addrs {
-			var ip net.IP
-			switch v := addr.(type) {
-			case *net.IPNet:
-				ip = v.IP
-			case *net.IPAddr:
-				ip = v.IP
-			}
-
-			ips = append(ips, ip.String())
-
-		}
-	}
-	logger.Debug("System IPs : ", ips)
-
-	return ips, nil
-}
-
-func IPsToRegex(ips []string) string {
-
-	regx := ""
-	for _, ip := range ips {
-		regx += "(" + strings.Replace(ip, ".", "\\.", -1) + ")"
-
-	}
-	regx = "(" + strings.Replace(regx, ")(", ")|(.", -1) + ")"
-
-	return regx
-}
-
-func schedule(LimitDevice func(), delay time.Duration) chan bool {
-	stop := make(chan bool)
-
-	go func() {
-		for {
-			LimitDevice()
-			select {
-			case <-time.After(delay):
-			case <-stop:
-				return
-			}
-		}
-	}()
-
-	return stop
 }
