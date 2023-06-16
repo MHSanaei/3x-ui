@@ -29,7 +29,7 @@ type SettingService interface {
 
 func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	// set default bundle to english
-	i18nBundle = i18n.NewBundle(language.English)
+	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
 	i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 
 	// parse files
