@@ -64,7 +64,7 @@ func (a *IndexController) login(c *gin.Context) {
 	user := a.userService.CheckUser(form.Username, form.Password, form.LoginSecret)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if user == nil {
-		logger.Infof("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
+		logger.Warningf("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
 		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
 		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
@@ -75,13 +75,13 @@ func (a *IndexController) login(c *gin.Context) {
 
 	sessionMaxAge, err := a.settingService.GetSessionMaxAge()
 	if err != nil {
-		logger.Infof("Unable to get session's max age from DB")
+		logger.Warningf("Unable to get session's max age from DB")
 	}
 
 	if sessionMaxAge > 0 {
 		err = session.SetMaxAge(c, sessionMaxAge*60)
 		if err != nil {
-			logger.Infof("Unable to set session's max age")
+			logger.Warningf("Unable to set session's max age")
 		}
 	}
 
