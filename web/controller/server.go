@@ -118,7 +118,8 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 
 func (a *ServerController) getLogs(c *gin.Context) {
 	count := c.Param("count")
-	logs, err := a.serverService.GetLogs(count)
+	logLevel := c.PostForm("logLevel")
+	logs, err := a.serverService.GetLogs(count, logLevel)
 	if err != nil {
 		jsonMsg(c, "getLogs", err)
 		return

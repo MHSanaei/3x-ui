@@ -380,16 +380,17 @@ func (s *ServerService) UpdateXray(version string) error {
 
 }
 
-func (s *ServerService) GetLogs(count string) ([]string, error) {
-	// Define the journalctl command and its arguments
+func (s *ServerService) GetLogs(count string, logLevel string) ([]string, error) {
 	var cmdArgs []string
 	if runtime.GOOS == "linux" {
 		cmdArgs = []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count}
+		if logLevel != "" {
+			cmdArgs = append(cmdArgs, "-p", logLevel)
+		}
 	} else {
 		return []string{"Unsupported operating system"}, nil
 	}
 
-	// Run the command
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 	var out bytes.Buffer
 	cmd.Stdout = &out

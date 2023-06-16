@@ -86,7 +86,7 @@
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
                             {{ i18n "menu.link" }}:
-                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(20)">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs(logModal.rows, logModal.logLevel)">{{ i18n "pages.index.logs" }}</a-tag>
                             <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
                             <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
@@ -253,7 +253,7 @@
             <a-form-item label="Count">
                 <a-select v-model="logModal.rows"
                 style="width: 80px"
-                @change="openLogs(logModal.rows)"
+                @change="openLogs(logModal.rows, logModal.logLevel)"
                 :dropdown-class-name="themeSwitcher.darkCardClass">
                     <a-select-option value="10">10</a-select-option>
                     <a-select-option value="20">20</a-select-option>
@@ -261,8 +261,20 @@
                     <a-select-option value="100">100</a-select-option>
                 </a-select>
             </a-form-item>
+            <a-form-item label="Log Level">
+                <a-select v-model="logModal.logLevel"
+                style="width: 120px"
+                @change="openLogs(logModal.rows, logModal.logLevel)"
+                :dropdown-class-name="themeSwitcher.darkCardClass">
+                    <a-select-option value="debug">Debug</a-select-option>
+                    <a-select-option value="info">Info</a-select-option>
+                    <a-select-option value="notice">Notice</a-select-option>
+                    <a-select-option value="warning">Warning</a-select-option>
+                    <a-select-option value="err">Error</a-select-option>
+                </a-select>
+            </a-form-item>
             <a-form-item>
-                <button class="ant-btn ant-btn-primary" @click="openLogs(logModal.rows)"><a-icon type="sync"></a-icon> Reload</button>
+                <button class="ant-btn ant-btn-primary" @click="openLogs(logModal.rows, logModal.logLevel)"><a-icon type="sync"></a-icon> Reload</button>
             </a-form-item>
             <a-form-item>
                 <a-button type="primary" style="margin-bottom: 10px;"
@@ -397,6 +409,7 @@
         visible: false,
         logs: '',
         rows: 20,
+        logLevel: 'info',
         show(logs, rows) {
             this.visible = true;
             this.rows = rows;
@@ -501,9 +514,9 @@
                     return;
                 }
             },
-            async openLogs(rows) {
+            async openLogs(rows, logLevel) {
                 this.loading(true);
-                const msg = await HttpUtil.post('server/logs/' + rows);
+                const msg = await HttpUtil.post('server/logs/' + rows, { logLevel: `${logLevel}` });
                 this.loading(false);
                 if (!msg.success) {
                     return;
