@@ -116,7 +116,7 @@
                                                     style="width: 100%"
                                                 >
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                                                        <span role="img" :aria-label="l.name" v-text="l.icon"></span>
                                                         &nbsp;&nbsp;<span v-text="l.name"></span>
                                                     </a-select-option>
                                                 </a-select>
@@ -386,7 +386,7 @@
                                                     style="width: 100%"
                                                 >
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                                                        <span role="img" :aria-label="l.name" v-text="l.icon"></span>
                                                         &nbsp;&nbsp;<span v-text="l.name"></span>
                                                     </a-select-option>
                                                 </a-select>

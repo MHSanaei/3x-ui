@@ -84,3 +84,15 @@ func Errorf(format string, args ...interface{}) {
 		logger.Errorf(format, args...)
 	}
 }
+
+func Notice(args ...interface{}) {
+	if logger != nil {
+		logger.Notice(args...)
+	}
+}
+
+func Noticef(format string, args ...interface{}) {
+	if logger != nil {
+		logger.Noticef(format, args...)
+	}
+}

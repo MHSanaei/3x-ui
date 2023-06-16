@@ -242,7 +242,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
-						logger.Info("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+						logger.Notice("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
 					}
 				}
 			}
