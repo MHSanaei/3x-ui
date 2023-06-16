@@ -86,7 +86,7 @@
                             <a-row justify="center" class="centered">
                                 <a-col :span="12">
                                     <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" :dropdown-class-name="themeSwitcher.darkCardClass">
-                                        <a-select-option :value="l.value" label="English" v-for="l in supportLangs">
+                                        <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
                                             <span role="img" aria-label="l.name" v-text="l.icon"></span>
                                             &nbsp;&nbsp;<span v-text="l.name"></span>
                                         </a-select-option>
