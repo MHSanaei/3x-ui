@@ -677,8 +677,14 @@ iplimit_main() {
     echo -e "${green}\t3.${plain} Check logs"
     read -p "Choose an option: " choice
     case "$choice" in
-        1) install_iplimit ;;
-        2) 
+        1) 
+            confirm "Proceed?" "y"
+            if [[ $? == 0 ]]; then
+                install_iplimit
+            else
+                show_menu
+            fi ;;
+        2)  
             read -p "Remove Fail2ban aswell? (Default:n) [y/n]: " temp
             if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
                 sudo systemctl disable fail2ban
