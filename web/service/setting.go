@@ -39,6 +39,7 @@ var defaultValueMap = map[string]string{
 	"tgBotChatId":        "",
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
+	"tgBotLoginNotify":   "false",
 	"tgCpu":              "0",
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
@@ -264,6 +265,10 @@ func (s *SettingService) SetTgbotRuntime(time string) error {
 
 func (s *SettingService) GetTgBotBackup() (bool, error) {
 	return s.getBool("tgBotBackup")
+}
+
+func (s *SettingService) GetTgBotLoginNotify() (bool, error) {
+	return s.getBool("tgBotLoginNotify")
 }
 
 func (s *SettingService) GetTgCpu() (int, error) {
