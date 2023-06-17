@@ -518,9 +518,9 @@ install_acme() {
 }
 
 ssl_cert_issue_main() {
-    echo "${green}1.${plain} Get SSL"
-    echo "${green}2.${plain} Revoke"
-    echo "${green}3.${plain} Force Renew"
+    echo -e "${green}1.${plain} Get SSL"
+    echo -e "${green}2.${plain} Revoke"
+    echo -e "${green}3.${plain} Force Renew"
     read -p "Choose an option: " choice
     case "$choice" in
         1) ssl_cert_issue ;;
@@ -672,22 +672,25 @@ run_speedtest() {
 }
 
 iplimit_main() {
-    echo "${green}1.${plain} Install Fail2ban and configure IP Limit"
-    echo "${green}2.${plain} Uninstall"
-    echo "${green}3.${plain} Check logs"
+    echo -e "${green}1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "${green}2.${plain} Uninstall"
+    echo -e "${green}3.${plain} Check logs"
     read -p "Choose an option: " choice
     case "$choice" in
         1) install_iplimit ;;
         2) 
             read -p "Remove Fail2ban aswell? (Default:n) [y/n]: " temp
             if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
+                sudo systemctl disable fail2ban
+                sudo systemctl stop fail2ban
                 rm -f /etc/fail2ban/filter.d/3x-ipl.conf
                 rm -f /etc/fail2ban/action.d/3x-ipl.conf
                 sudo apt-get remove fail2ban -y
             else
                 rm -f /etc/fail2ban/filter.d/3x-ipl.conf
                 rm -f /etc/fail2ban/action.d/3x-ipl.conf
-                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local 
+                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+                sudo systemctl restart fail2ban
             fi
             ;;
         3)
@@ -752,8 +755,10 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
 [Init]
 EOF
     
+    sudo systemctl enable fail2ban
+    sudo systemctl start fail2ban
+
     echo -e "${green}IP Limit installed and configured successfully."
-    echo -e "${green}To check logs of bans run."
     before_show_menu
 }
 
