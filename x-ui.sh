@@ -518,9 +518,9 @@ install_acme() {
 }
 
 ssl_cert_issue_main() {
-    echo -e "${green}1.${plain} Get SSL"
-    echo -e "${green}2.${plain} Revoke"
-    echo -e "${green}3.${plain} Force Renew"
+    echo -e "${green}\t1.${plain} Get SSL"
+    echo -e "${green}\t2.${plain} Revoke"
+    echo -e "${green}\t3.${plain} Force Renew"
     read -p "Choose an option: " choice
     case "$choice" in
         1) ssl_cert_issue ;;
@@ -672,9 +672,9 @@ run_speedtest() {
 }
 
 iplimit_main() {
-    echo -e "${green}1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}2.${plain} Uninstall"
-    echo -e "${green}3.${plain} Check logs"
+    echo -e "${green}\t1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "${green}\t2.${plain} Uninstall"
+    echo -e "${green}\t3.${plain} Check logs"
     read -p "Choose an option: " choice
     case "$choice" in
         1) install_iplimit ;;
@@ -701,14 +701,14 @@ iplimit_main() {
 
 install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
-        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}"
+        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
         sudo apt-get update
         sudo apt-get install fail2ban -y
     else
-        echo -e "${yellow}Fail2ban is already installed."
+        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
     fi
 
-    echo -e "${green}Configuring IP Limit..."
+    echo -e "${green}Configuring IP Limit...${plain}\n"
     #Check if jail.local exists
     if ! test -f "/etc/fail2ban/jail.local"; then
         sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
@@ -758,7 +758,7 @@ EOF
     sudo systemctl enable fail2ban
     sudo systemctl start fail2ban
 
-    echo -e "${green}IP Limit installed and configured successfully."
+    echo -e "${green}IP Limit installed and configured successfully.${plain}\n"
     before_show_menu
 }
 
