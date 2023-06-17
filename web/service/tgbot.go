@@ -643,6 +643,11 @@ func (t *Tgbot) UserLoginNotify(username string, ip string, time string, status 
 		return
 	}
 
+	loginNotifyEnabled, err := t.settingService.GetTgBotLoginNotify()
+	if err != nil || !loginNotifyEnabled {
+		return
+	}
+
 	msg := ""
 	if status == LoginSuccess {
 		msg += t.I18nBot("tgbot.messages.loginSuccess")

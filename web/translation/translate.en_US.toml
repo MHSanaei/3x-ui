@@ -245,6 +245,8 @@
 "telegramNotifyTimeDesc" = "Use Crontab timing format."
 "tgNotifyBackup" = "Database Backup"
 "tgNotifyBackupDesc" = "Include database backup file with report notification."
+"tgNotifyLogin" = "Login Notification"
+"tgNotifyLoginDesc" = "Displays the username, IP address, and time when someone tries to log into your panel."
 "sessionMaxAge" = "Session maximum age"
 "sessionMaxAgeDesc" = "The duration of a login session (unit: minute)"
 "expireTimeDiff" = "Expiration threshold for notification"
