@@ -518,9 +518,9 @@ install_acme() {
 }
 
 ssl_cert_issue_main() {
-    echo "1) Get SSL"
-    echo "2) Revoke"
-    echo "3) Force Renew"
+    echo "${green}1.${plain} Get SSL"
+    echo "${green}2.${plain} Revoke"
+    echo "${green}3.${plain} Force Renew"
     read -p "Choose an option: " choice
     case "$choice" in
         1) ssl_cert_issue ;;
@@ -671,6 +671,91 @@ run_speedtest() {
     speedtest
 }
 
+iplimit_main() {
+    echo "${green}1.${plain} Install Fail2ban and configure IP Limit"
+    echo "${green}2.${plain} Uninstall"
+    echo "${green}3.${plain} Check logs"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        1) install_iplimit ;;
+        2) 
+            read -p "Remove Fail2ban aswell? (Default:n) [y/n]: " temp
+            if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
+                rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+                rm -f /etc/fail2ban/action.d/3x-ipl.conf
+                sudo apt-get remove fail2ban -y
+            else
+                rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+                rm -f /etc/fail2ban/action.d/3x-ipl.conf
+                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local 
+            fi
+            ;;
+        3)
+            cat /var/log/3xipl-banned.log ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
+install_iplimit() {
+    if ! command -v fail2ban-client &>/dev/null; then
+        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}"
+        sudo apt-get update
+        sudo apt-get install fail2ban -y
+    else
+        echo -e "${yellow}Fail2ban is already installed."
+    fi
+
+    echo -e "${green}Configuring IP Limit..."
+    #Check if jail.local exists
+    if ! test -f "/etc/fail2ban/jail.local"; then
+        sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+    fi
+
+    #Check if [3x-ipl] jail exists
+    if ! grep -qw '3x-ipl' /etc/fail2ban/jail.local; then
+        echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/daemon.log\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
+    fi
+
+    #Check if 3x-ipl filter exist and remove if true
+    if test -f "/etc/fail2ban/filter.d/3x-ipl.conf"; then
+        rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+    fi
+
+    #Check if 3x-ipl action exist and remove if true
+    if test -f "/etc/fail2ban/action.d/3x-ipl.conf"; then
+        rm -f /etc/fail2ban/action.d/3x-ipl.conf
+    fi
+
+    echo $'[Definition]\nfailregex = [LIMIT_IP].+Email= <F-USER>.+</F-USER>.+SRC= <HOST>\nignoreregex =' >> /etc/fail2ban/filter.d/3x-ipl.conf
+
+    sudo cat > /etc/fail2ban/action.d/3x-ipl.conf << 'EOF'
+[INCLUDES]
+before = iptables-common.conf
+
+[Definition]
+actionstart = <iptables> -N f2b-<name>
+              <iptables> -A f2b-<name> -j <returntype>
+              <iptables> -I <chain> -p <protocol> -j f2b-<name>
+
+actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
+             <actionflush>
+             <iptables> -X f2b-<name>
+
+actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
+
+actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
+            echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> /var/log/3xipl-banned.log
+
+actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
+              echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> /var/log/3xipl-banned.log
+
+[Init]
+EOF
+    
+    echo -e "${green}IP Limit installed and configured successfully."
+    echo -e "${green}To check logs of bans run."
+    before_show_menu
+}
 
 show_usage() {
     echo "x-ui control menu usages: "
@@ -718,9 +803,10 @@ show_menu() {
   ${green}18.${plain} Active Firewall and open ports
   ${green}19.${plain} Install WARP
   ${green}20.${plain} Speedtest by Ookla
+  ${green}21.${plain} IP Limit Management
  "
     show_status
-    echo && read -p "Please enter your selection [0-20]: " num
+    echo && read -p "Please enter your selection [0-21]: " num
 
     case "${num}" in
     0)
@@ -786,8 +872,11 @@ show_menu() {
     20)
         run_speedtest
         ;;
+    21)
+        iplimit_main
+        ;;    
     *)
-        LOGE "Please enter the correct number [0-20]"
+        LOGE "Please enter the correct number [0-21]"
         ;;
     esac
 }

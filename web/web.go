@@ -250,8 +250,8 @@ func (s *Server) startTask() {
 	// Check the inbound traffic every 30 seconds that the traffic exceeds and expires
 	s.cron.AddJob("@every 30s", job.NewCheckInboundJob())
 
-	// check client ips from log file every 30 sec
-	s.cron.AddJob("@every 30s", job.NewCheckClientIpJob())
+	// check client ips from log file every 20 sec
+	s.cron.AddJob("@every 20s", job.NewCheckClientIpJob())
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID

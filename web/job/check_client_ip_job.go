@@ -129,8 +129,8 @@ func processLogFile() {
 
 	}
 
-	time.Sleep(time.Second * 5)
-	//added 5 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
+	time.Sleep(time.Second * 3)
+	//added 3 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
 		// clean log
 		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
