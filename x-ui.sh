@@ -673,34 +673,29 @@ run_speedtest() {
 
 iplimit_main() {
     echo -e "${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Uninstall"
-    echo -e "${green}\t3.${plain} Check logs"
+    echo -e "${green}\t2.${plain} Remove IP Limit"
+    echo -e "${green}\t3.${plain} Check Logs"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
+        0)
+            show_menu ;;
         1) 
-            confirm "Proceed?" "y"
+            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
             if [[ $? == 0 ]]; then
                 install_iplimit
             else
-                show_menu
+                iplimit_main
             fi ;;
         2)  
-            read -p "Remove Fail2ban aswell? (Default:n) [y/n]: " temp
-            if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
-                sudo systemctl disable fail2ban
-                sudo systemctl stop fail2ban
-                rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-                rm -f /etc/fail2ban/action.d/3x-ipl.conf
-                sudo apt-get remove fail2ban -y
-            else
-                rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-                rm -f /etc/fail2ban/action.d/3x-ipl.conf
-                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-                sudo systemctl restart fail2ban
-            fi
-            ;;
+            remove_iplimit ;;
         3)
-            cat /var/log/3xipl-banned.log ;;
+            if test -f "/var/log/3xipl-banned.log"; then
+                cat /var/log/3xipl-banned.log
+            else
+                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
+                iplimit_main
+            fi ;;
         *) echo "Invalid choice" ;;
     esac
 }
@@ -708,8 +703,20 @@ iplimit_main() {
 install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
-        sudo apt-get update
-        sudo apt-get install fail2ban -y
+        # Check the OS and install necessary packages
+        if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
+            sudo apt-get update && sudo apt-get install fail2ban -y
+        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
+            sudo apt-get update && sudo apt-get install fail2ban -y
+        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
+            sudo dnf -y update && sudo dnf -y install fail2ban
+        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
+            sudo yum -y update && sudo yum -y install fail2ban
+        else
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1
+        fi
+        echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
     fi
@@ -717,25 +724,32 @@ install_iplimit() {
     echo -e "${green}Configuring IP Limit...${plain}\n"
     #Check if jail.local exists
     if ! test -f "/etc/fail2ban/jail.local"; then
-        sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+        if test -f "/etc/fail2ban/jail.conf"
+            sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+        else
+            echo -e "${red}File /etc/fail2ban/jail.conf not found! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
+            exit 1
+        fi
     fi
 
     #Check if [3x-ipl] jail exists
-    if ! grep -qw '3x-ipl' /etc/fail2ban/jail.local; then
-        echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/daemon.log\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
+    if grep -qw '3x-ipl' /etc/fail2ban/jail.local; then
+        if test -f "/etc/fail2ban/jail.conf"
+            sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+        else
+            echo -e "${red}Found leftovers of previously installed IP Limit, but there's no jail.conf! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
+            exit 1
+        fi
     fi
 
-    #Check if 3x-ipl filter exist and remove if true
-    if test -f "/etc/fail2ban/filter.d/3x-ipl.conf"; then
-        rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+    #Check if log file exists
+    if ! test -f "/var/log/3xipl-banned.log"; then
+        touch /var/log/3xipl-banned.log
     fi
 
-    #Check if 3x-ipl action exist and remove if true
-    if test -f "/etc/fail2ban/action.d/3x-ipl.conf"; then
-        rm -f /etc/fail2ban/action.d/3x-ipl.conf
-    fi
+    echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/daemon.log\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
 
-    echo $'[Definition]\nfailregex = [LIMIT_IP].+Email= <F-USER>.+</F-USER>.+SRC= <HOST>\nignoreregex =' >> /etc/fail2ban/filter.d/3x-ipl.conf
+    echo $'[Definition]\nfailregex = [LIMIT_IP].+Email= <F-USER>.+</F-USER>.+SRC= <HOST>\nignoreregex =' > /etc/fail2ban/filter.d/3x-ipl.conf
 
     sudo cat > /etc/fail2ban/action.d/3x-ipl.conf << 'EOF'
 [INCLUDES]
@@ -764,8 +778,50 @@ EOF
     sudo systemctl enable fail2ban
     sudo systemctl start fail2ban
 
-    echo -e "${green}IP Limit installed and configured successfully.${plain}\n"
+    echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu
+}
+
+remove_iplimit(){
+    echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
+    echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
+    echo -e "${green}\t0.${plain} Abort"
+    read -p "Choose an option: " num
+    case "$num" in
+        1) 
+            rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+            rm -f /etc/fail2ban/action.d/3x-ipl.conf
+            if test -f "/etc/fail2ban/jail.conf"
+                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+            else
+                echo -e "${red}File /etc/fail2ban/jail.conf not found! Please remove [3x-ipl] jail manually from /etc/fail2ban/jail.local.${plain}\n"
+            fi
+            sudo systemctl restart fail2ban
+            echo -e "${green}IP Limit removed successfully!${plain}\n"
+            before_show_menu ;;
+        2)  
+            rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+            rm -f /etc/fail2ban/action.d/3x-ipl.conf
+            sudo systemctl stop fail2ban
+            sudo systemctl disable fail2ban
+            if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
+                sudo apt-get remove fail2ban -y
+            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
+                sudo apt-get remove fail2ban -y
+            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
+                sudo dnf -y remove fail2ban
+            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
+                sudo yum -y remove fail2ban
+            else
+                echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
+                exit 1
+            fi
+            echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
+            before_show_menu ;;
+        *) 
+            echo -e "${yellow}Cancelled.${plain}\n"
+            show_menu ;;
+    esac
 }
 
 show_usage() {
