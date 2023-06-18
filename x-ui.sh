@@ -704,18 +704,17 @@ install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
         # Check the OS and install necessary packages
-        if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
-            sudo apt-get update && sudo apt-get install fail2ban -y
-        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
-            sudo apt-get update && sudo apt-get install fail2ban -y
-        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
-            sudo dnf -y update && sudo dnf -y install fail2ban
-        elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
-            sudo yum -y update && sudo yum -y install fail2ban
-        else
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1
-        fi
+        case "${release}" in
+            ubuntu|debian)
+                sudo apt-get update && sudo apt-get install fail2ban -y ;;
+            centos)
+                sudo yum -y update && sudo yum -y install fail2ban ;;
+            fedora)
+                sudo dnf -y update && sudo dnf -y install fail2ban ;;
+            *)
+                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+                exit 1 ;;
+        esac
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
@@ -724,7 +723,7 @@ install_iplimit() {
     echo -e "${green}Configuring IP Limit...${plain}\n"
     #Check if jail.local exists
     if ! test -f "/etc/fail2ban/jail.local"; then
-        if test -f "/etc/fail2ban/jail.conf"
+        if test -f "/etc/fail2ban/jail.conf"; then
             sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
         else
             echo -e "${red}File /etc/fail2ban/jail.conf not found! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
@@ -734,7 +733,7 @@ install_iplimit() {
 
     #Check if [3x-ipl] jail exists
     if grep -qw '3x-ipl' /etc/fail2ban/jail.local; then
-        if test -f "/etc/fail2ban/jail.conf"
+        if test -f "/etc/fail2ban/jail.conf"; then
             sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
         else
             echo -e "${red}Found leftovers of previously installed IP Limit, but there's no jail.conf! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
@@ -791,7 +790,7 @@ remove_iplimit(){
         1) 
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
-            if test -f "/etc/fail2ban/jail.conf"
+            if test -f "/etc/fail2ban/jail.conf"; then
                 sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
             else
                 echo -e "${red}File /etc/fail2ban/jail.conf not found! Please remove [3x-ipl] jail manually from /etc/fail2ban/jail.local.${plain}\n"
@@ -804,23 +803,22 @@ remove_iplimit(){
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             sudo systemctl stop fail2ban
             sudo systemctl disable fail2ban
-            if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
-                sudo apt-get remove fail2ban -y
-            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
-                sudo apt-get remove fail2ban -y
-            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
-                sudo dnf -y remove fail2ban
-            elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
-                sudo yum -y remove fail2ban
-            else
-                echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
-                exit 1
-            fi
+            case "${release}" in
+                ubuntu|debian)
+                    sudo apt-get remove fail2ban -y ;;
+                centos)
+                    sudo yum -y remove fail2ban ;;
+                fedora)
+                    sudo dnf -y remove fail2ban ;;
+                *)
+                    echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
+                    exit 1 ;;
+            esac
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         *) 
             echo -e "${yellow}Cancelled.${plain}\n"
-            show_menu ;;
+            iplimit_main ;;
     esac
 }
 
