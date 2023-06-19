@@ -746,7 +746,13 @@ install_iplimit() {
         touch /var/log/3xipl-banned.log
     fi
 
-    echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=%(syslog_daemon)s\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
+    #Check if service log file exists so fail2ban fail2ban won't return error
+    if ! test -f "/var/log/3xipl.log"; then
+        touch /var/log/3xipl.log
+    fi
+    
+
+    echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
 
     echo $'[Definition]\nfailregex = [LIMIT_IP].+Email= <F-USER>.+</F-USER>.+SRC= <HOST>\nignoreregex =' > /etc/fail2ban/filter.d/3x-ipl.conf
 

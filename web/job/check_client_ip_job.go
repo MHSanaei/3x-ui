@@ -2,6 +2,7 @@ package job
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"regexp"
 	"x-ui/database"
@@ -66,6 +67,13 @@ func hasLimitIp() bool {
 		for _, client := range clients {
 			limitIp := client.LimitIP
 			if limitIp > 0 {
+				logIpFile, err := os.Create("/var/log/3xipl.log")
+				if err != nil {
+					log.Panic(err)
+				}
+				defer logIpFile.Close()
+				log.SetOutput(logIpFile)
+				log.SetFlags(log.LstdFlags)
 				return true
 			}
 		}
@@ -242,7 +250,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
-						logger.Notice("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+						log.Println("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
 					}
 				}
 			}
