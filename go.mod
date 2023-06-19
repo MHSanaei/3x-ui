@@ -13,7 +13,7 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.8
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.23.5
-	github.com/xtls/xray-core v1.8.1
+	github.com/xtls/xray-core v1.8.3
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.10.0
 	google.golang.org/grpc v1.56.0
@@ -54,6 +54,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
+	github.com/sagernet/sing v0.2.5 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
