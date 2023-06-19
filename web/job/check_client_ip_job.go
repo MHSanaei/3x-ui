@@ -32,6 +32,13 @@ func (j *CheckClientIpJob) Run() {
 	logger.Debug("Check Client IP Job...")
 
 	if hasLimitIp() {
+		logIpFile, err := os.OpenFile("/var/log/3xipl.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		if err != nil {
+			log.Panic(err)
+		}
+		defer logIpFile.Close()
+		log.SetOutput(logIpFile)
+		log.SetFlags(log.LstdFlags)
 		processLogFile()
 	}
 
@@ -240,15 +247,6 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 				shouldCleanLog = true
 
 				if limitIp < len(ips) && inbound.Enable {
-					
-					logIpFile, err := os.Create("/var/log/3xipl.log")
-					if err != nil {
-						log.Panic(err)
-					}
-					defer logIpFile.Close()
-					log.SetOutput(logIpFile)
-					log.SetFlags(log.LstdFlags)
-
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
 						log.Println("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
