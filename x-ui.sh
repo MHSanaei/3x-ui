@@ -717,6 +717,7 @@ install_iplimit() {
         esac
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
+        sudo systemctl stop fail2ban
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
     fi
 
