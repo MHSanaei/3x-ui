@@ -67,13 +67,6 @@ func hasLimitIp() bool {
 		for _, client := range clients {
 			limitIp := client.LimitIP
 			if limitIp > 0 {
-				logIpFile, err := os.Create("/var/log/3xipl.log")
-				if err != nil {
-					log.Panic(err)
-				}
-				defer logIpFile.Close()
-				log.SetOutput(logIpFile)
-				log.SetFlags(log.LstdFlags)
 				return true
 			}
 		}
@@ -247,6 +240,14 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 				shouldCleanLog = true
 
 				if limitIp < len(ips) && inbound.Enable {
+					
+					logIpFile, err := os.Create("/var/log/3xipl.log")
+					if err != nil {
+						log.Panic(err)
+					}
+					defer logIpFile.Close()
+					log.SetOutput(logIpFile)
+					log.SetFlags(log.LstdFlags)
 
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
