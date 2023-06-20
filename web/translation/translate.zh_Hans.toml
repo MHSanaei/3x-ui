@@ -245,6 +245,8 @@
 "telegramNotifyTimeDesc" = "采用Crontab定时格式,重启面板生效"
 "tgNotifyBackup" = "数据库备份"
 "tgNotifyBackupDesc" = "正在发送数据库备份文件和报告通知"
+"tgNotifyLogin" = "登录通知"
+"tgNotifyLoginDesc" = "当有人试图登录您的面板时显示用户名、IP 地址和时间"
 "sessionMaxAge" = "会话最大年龄"
 "sessionMaxAgeDesc" = "您可以保持登录状态的时间（单位：分钟）"
 "expireTimeDiff" = "耗尽时间阈值"
