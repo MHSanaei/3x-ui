@@ -674,8 +674,9 @@ run_speedtest() {
 iplimit_main() {
     echo -e "${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
-    echo -e "${green}\t3.${plain} Check Logs"
-    echo -e "${green}\t4.${plain} Remove IP Limit"
+    echo -e "${green}\t3.${plain} Unban Everyone"
+    echo -e "${green}\t4.${plain} Check Logs"
+    echo -e "${green}\t5.${plain} Uninstall IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -693,18 +694,22 @@ iplimit_main() {
             if [[ $NUM =~ ^[0-9]+$ ]]; then
                 echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
                 echo -e "${green}Bantime set to ${NUM} minutes successfully."
+                sudo systemctl restart fail2ban
             else
                 echo -e "${red}${NUM} is not a number! Please, try again."
             fi
             iplimit_main ;;
         3)
+            fail2ban-client reload --restart --unban --all
+            echo -e "${green}All users Unbanned and Jails restarted." ;;
+        4)
             if test -f "/var/log/3xipl-banned.log"; then
                 cat /var/log/3xipl-banned.log
             else
                 echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
                 iplimit_main
             fi ;;
-        4)  
+        5)  
             remove_iplimit ;;
         *) echo "Invalid choice" ;;
     esac
