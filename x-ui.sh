@@ -689,7 +689,7 @@ iplimit_main() {
                 iplimit_main
             fi ;;
         2)  
-            read -rp "Please enter new Ban duration in minutes [default is 5]: " NUM
+            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
                 echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
                 echo -e "${green}Bantime set to ${NUM} minutes successfully."
@@ -799,17 +799,14 @@ remove_iplimit(){
         1) 
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
-            if test -f "/etc/fail2ban/jail.conf"; then
-                sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-            else
-                echo -e "${red}File /etc/fail2ban/jail.conf not found! Please remove [3x-ipl] jail manually from /etc/fail2ban/jail.local.${plain}\n"
-            fi
+            rm -f /etc/fail2ban/jail.d/3x-ipl.conf
             sudo systemctl restart fail2ban
             echo -e "${green}IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         2)  
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
+            rm -f /etc/fail2ban/jail.d/3x-ipl.conf
             sudo systemctl stop fail2ban
             sudo systemctl disable fail2ban
             case "${release}" in
