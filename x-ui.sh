@@ -693,15 +693,15 @@ iplimit_main() {
             read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
                 echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
-                echo -e "${green}Bantime set to ${NUM} minutes successfully."
                 sudo systemctl restart fail2ban
+                echo -e "${green}Bantime set to ${NUM} minutes successfully.${plain}"
             else
-                echo -e "${red}${NUM} is not a number! Please, try again."
+                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
             iplimit_main ;;
         3)
             fail2ban-client reload --restart --unban 3x-ipl
-            echo -e "${green}All users Unbanned successfully." ;;
+            echo -e "${green}All users Unbanned successfully.${plain}" ;;
         4)
             if test -f "/var/log/3xipl-banned.log"; then
                 cat /var/log/3xipl-banned.log
