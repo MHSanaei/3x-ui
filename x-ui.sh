@@ -823,9 +823,12 @@ remove_iplimit(){
             esac
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
-        *) 
+        0) 
             echo -e "${yellow}Cancelled.${plain}\n"
             iplimit_main ;;
+        *) 
+            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+            remove_iplimit ;;
     esac
 }
 
