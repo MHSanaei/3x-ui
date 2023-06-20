@@ -673,8 +673,9 @@ run_speedtest() {
 
 iplimit_main() {
     echo -e "${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Remove IP Limit"
+    echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Check Logs"
+    echo -e "${green}\t4.${plain} Remove IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -688,7 +689,14 @@ iplimit_main() {
                 iplimit_main
             fi ;;
         2)  
-            remove_iplimit ;;
+            read -rp "Please enter new Ban duration in minutes [default is 5]: " NUM
+            if [[ $NUM =~ ^[0-9]+$ ]]; then
+                echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
+                echo -e "${green}Bantime set to ${NUM} minutes successfully."
+            else
+                echo -e "${red}${NUM} is not a number! Please, try again."
+            fi
+            iplimit_main ;;
         3)
             if test -f "/var/log/3xipl-banned.log"; then
                 cat /var/log/3xipl-banned.log
@@ -696,6 +704,8 @@ iplimit_main() {
                 echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
                 iplimit_main
             fi ;;
+        4)  
+            remove_iplimit ;;
         *) echo "Invalid choice" ;;
     esac
 }
@@ -722,24 +732,11 @@ install_iplimit() {
     fi
 
     echo -e "${green}Configuring IP Limit...${plain}\n"
-    #Check if jail.local exists
-    if ! test -f "/etc/fail2ban/jail.local"; then
-        if test -f "/etc/fail2ban/jail.conf"; then
-            sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-        else
-            echo -e "${red}File /etc/fail2ban/jail.conf not found! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
-            exit 1
-        fi
-    fi
 
-    #Check if [3x-ipl] jail exists
-    if grep -qw '3x-ipl' /etc/fail2ban/jail.local; then
-        if test -f "/etc/fail2ban/jail.conf"; then
-            sudo cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
-        else
-            echo -e "${red}Found leftovers of previously installed IP Limit, but there's no jail.conf! Probably there is something wrong with your Fail2ban installation.\nInstallation of IP Limit failed.${plain}\n"
-            exit 1
-        fi
+    #Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
+    if grep -qw '3x-ipl' /etc/fail2ban/jail.local || grep -qw '3x-ipl' /etc/fail2ban/jail.conf; then
+        echo -e "${red}Found conflicts in /etc/fail2ban/jail.conf or jail.local file!\nPlease manually remove anything related 3x-ipl in that files and try again.\nInstallation of IP Limit failed.${plain}\n"
+        exit 1
     fi
 
     #Check if log file exists
@@ -747,15 +744,20 @@ install_iplimit() {
         touch /var/log/3xipl-banned.log
     fi
 
-    #Check if service log file exists so fail2ban fail2ban won't return error
+    #Check if service log file exists so fail2ban won't return error
     if ! test -f "/var/log/3xipl.log"; then
         touch /var/log/3xipl.log
     fi
     
 
-    echo $'\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=300' >> /etc/fail2ban/jail.local
+    echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=5m" > /etc/fail2ban/jail.d/3x-ipl.conf
 
-    echo $'[Definition]\nfailregex = [LIMIT_IP].+Email= <F-USER>.+</F-USER>.+SRC= <HOST>\nignoreregex =' > /etc/fail2ban/filter.d/3x-ipl.conf
+    sudo cat > /etc/fail2ban/filter.d/3x-ipl.conf << EOF 
+[Definition]
+datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
+failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
+ignoreregex =
+EOF
 
     sudo cat > /etc/fail2ban/action.d/3x-ipl.conf << 'EOF'
 [INCLUDES]

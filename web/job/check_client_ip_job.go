@@ -34,7 +34,7 @@ func (j *CheckClientIpJob) Run() {
 	if hasLimitIp() {
 		logIpFile, err := os.OpenFile("/var/log/3xipl.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 		if err != nil {
-			log.Panic(err)
+			logger.Errorf("Failed to create or open IP Limit Log file: %s", err)
 		}
 		defer logIpFile.Close()
 		log.SetOutput(logIpFile)
@@ -249,7 +249,7 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 				if limitIp < len(ips) && inbound.Enable {
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
-						log.Println("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+						log.Printf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
 					}
 				}
 			}
