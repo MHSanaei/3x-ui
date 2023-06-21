@@ -68,9 +68,21 @@
     <template v-if="infoModal.clientSettings">
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <table style="margin-bottom: 10px;">
-        <tr v-for="col,index in Object.keys(infoModal.clientSettings).slice(0, 3)">
-            <td>[[ col ]]</td>
-            <td><a-tag color="green">[[ infoModal.clientSettings[col] ]]</a-tag></td>
+        <tr>
+            <td>{{ i18n "pages.inbounds.email" }}</td>
+            <td><a-tag color="green">[[ infoModal.clientSettings.email ]]</a-tag></td>
+        </tr>
+        <tr v-if="infoModal.clientSettings.id">
+            <td>ID</td>
+            <td><a-tag color="green">[[ infoModal.clientSettings.id ]]</a-tag></td>
+        </tr>
+        <tr v-if="infoModal.inbound.canEnableTlsFlow()">
+            <td>Flow</td>
+            <td><a-tag color="green">[[ infoModal.clientSettings.flow ]]</a-tag></td>
+        </tr>
+        <tr v-if="infoModal.clientSettings.password">
+            <td>Password</td>
+            <td><a-tag color="green">[[ infoModal.clientSettings.password ]]</a-tag></td>
         </tr>
         <tr>
             <td>{{ i18n "status" }}</td>
