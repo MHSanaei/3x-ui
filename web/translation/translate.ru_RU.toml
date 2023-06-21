@@ -48,6 +48,7 @@
 "clients" = "Клиенты"
 "usage" = "Использование"
 "secretToken" = "Секретный токен"
+"remained" = "остались"
 
 [menu]
 "dashboard" = "Статус системы"

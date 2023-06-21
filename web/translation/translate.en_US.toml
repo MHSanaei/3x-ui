@@ -48,6 +48,7 @@
 "clients" = "Clients"
 "usage" = "Usage"
 "secretToken" = "Secret Token"
+"remained" = "Remained"
 
 [menu]
 "dashboard" = "System Status"
