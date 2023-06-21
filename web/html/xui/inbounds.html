@@ -206,12 +206,27 @@
                                 </template>
                             </template>
                             <template slot="traffic" slot-scope="text, dbInbound">
-                                <a-tag color="blue">[[ sizeFormat(dbInbound.up) ]] / [[ sizeFormat(dbInbound.down) ]]</a-tag>
-                                <template v-if="dbInbound.total > 0">
-                                    <a-tag v-if="dbInbound.up + dbInbound.down < dbInbound.total" color="cyan">[[ sizeFormat(dbInbound.total) ]]</a-tag>
-                                    <a-tag v-else color="red">[[ sizeFormat(dbInbound.total) ]]</a-tag>
-                                </template>
-                                <a-tag v-else color="green">{{ i18n "unlimited" }}</a-tag>
+                                <a-popover :overlay-class-name="themeSwitcher.darkClass">
+                                    <template slot="content">
+                                        <table cellpadding="2" width="100%">
+                                            <tr>
+                                                <td>↑[[ sizeFormat(dbInbound.up) ]]</td>
+                                                <td>↓[[ sizeFormat(dbInbound.down) ]]</td>
+                                            </tr>
+                                            <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
+                                                <td>{{ i18n "remained" }}</td>
+                                                <td>[[ sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
+                                            </tr>
+                                        </table>
+                                    </template>
+                                    <a-tag :color="dbInbound.total == 0 ? 'green' : dbInbound.up + dbInbound.down < dbInbound.total ? 'cyan' : 'red'">
+                                        [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
+                                        <template v-if="dbInbound.total > 0">
+                                            [[ sizeFormat(dbInbound.total) ]]
+                                        </template>
+                                        <template v-else>♾</template>
+                                    </a-tag>
+                                </a-popover>
                             </template>
                             <template slot="enable" slot-scope="text, dbInbound">
                                 <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
@@ -291,12 +306,12 @@
     }, {
         title: '{{ i18n "clients" }}',
         align: 'left',
-        width: 50,
+        width: 40,
         scopedSlots: { customRender: 'clients' },
     }, {
-        title: '{{ i18n "pages.inbounds.traffic" }}↑|↓',
+        title: '{{ i18n "pages.inbounds.traffic" }}',
         align: 'center',
-        width: 120,
+        width: 60,
         scopedSlots: { customRender: 'traffic' },
     }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
@@ -309,8 +324,8 @@
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 120, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 50, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 50, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'UUID', width: 120, dataIndex: "id" },
     ];
 
@@ -318,8 +333,8 @@
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
         { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}↑|↓', width: 120, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 70, scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 50, scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 50, scopedSlots: { customRender: 'expiryTime' } },
         { title: 'Password', width: 170, dataIndex: "password" },
     ];
 

@@ -48,6 +48,7 @@
 "clients" = "کاربران"
 "usage" = "استفاده"
 "secretToken" = "توکن امنیتی"
+"remained" = "باقیمانده"
 
 [menu]
 "dashboard" = "وضعیت سیستم"

@@ -48,6 +48,7 @@
 "clients" = "客户端"
 "usage" = "用法"
 "secretToken" = "秘密令牌"
+"remained" = "仍然存在"
 
 [menu]
 "dashboard" = "系统状态"
