@@ -702,6 +702,7 @@ iplimit_main() {
         3)
             fail2ban-client reload --restart --unban 3x-ipl
             echo -e "${green}All users Unbanned successfully.${plain}" ;;
+            iplimit_main ;;
         4)
             if test -f "/var/log/3xipl-banned.log"; then
                 cat /var/log/3xipl-banned.log
