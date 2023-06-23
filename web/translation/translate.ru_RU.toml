@@ -39,7 +39,6 @@
 "depleted" = "Исчерпано"
 "depletingSoon" = "Почти исчерпано"
 "domainName" = "Домен"
-"additional" = "Дополнительно"
 "monitor" = "Порт IP"
 "certificate" = "Сертификат"
 "fail" = "Неудачно"
@@ -49,6 +48,7 @@
 "clients" = "Клиенты"
 "usage" = "Использование"
 "secretToken" = "Секретный токен"
+"remained" = "остались"
 
 [menu]
 "dashboard" = "Статус системы"

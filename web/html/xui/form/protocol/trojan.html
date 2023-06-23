@@ -102,10 +102,12 @@
         <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.trojans.length">
             <table width="100%">
                 <tr class="client-table-header">
-                    <th v-for="col in Object.keys(inbound.settings.trojans[0]).slice(0, 3)">[[ col ]]</th>
+                    <th>{{ i18n "pages.inbounds.email" }}</th>
+                    <th>Password</th>
                 </tr>
                 <tr v-for="(client, index) in inbound.settings.trojans" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
-                    <td v-for="col in Object.values(client).slice(0, 3)">[[ col ]]</td>
+                    <td>[[ client.email ]]</td>
+                    <td>[[ client.password ]]</td>
                 </tr>
             </table>
         </a-collapse-panel>

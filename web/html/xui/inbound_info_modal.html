@@ -8,8 +8,7 @@
     width="600px"
     >
     <table style="margin-bottom: 10px; width: 100%;">
-        <tr>
-            <td>
+        <tr><td>
                 <table>
                     <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="green">[[ dbInbound.protocol ]]</a-tag></td></tr>
                     <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag color="blue">[[ dbInbound.address ]]</a-tag></td></tr>
@@ -21,7 +20,6 @@
                     <tr>
                         <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
                     </tr>
-
                     <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
                         <tr v-if="inbound.host"><td>{{ i18n "host" }}</td><td><a-tag color="green">[[ inbound.host ]]</a-tag></td></tr>
                         <tr v-else><td>{{ i18n "host" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
@@ -46,8 +44,7 @@
                         <tr><td>grpc multiMode</td><td><a-tag color="green">[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
                     </template>
                 </table>
-            </td>
-        </tr>
+            </td></tr>
         <tr colspan="2" v-if="dbInbound.hasLink()">
             <td v-if="inbound.tls">
                 tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
@@ -66,36 +63,56 @@
         </tr>
     </table>
     <template v-if="infoModal.clientSettings">
-    <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-    <table style="margin-bottom: 10px;">
-        <tr v-for="col,index in Object.keys(infoModal.clientSettings).slice(0, 3)">
-            <td>[[ col ]]</td>
-            <td><a-tag color="green">[[ infoModal.clientSettings[col] ]]</a-tag></td>
-        </tr>
-        <tr>
-            <td>{{ i18n "status" }}</td>
-            <td>
-                <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
-                <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
-                <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
-            </td>
-        </tr>
-    </table>
-    <table style="margin-bottom: 10px; width: 100%;">
+        <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
+        <table style="margin-bottom: 10px;">
             <tr>
-                <th>{{ i18n "usage" }}</th>
+                <td>{{ i18n "pages.inbounds.email" }}</td>
+                <td><a-tag color="green">[[ infoModal.clientSettings.email ]]</a-tag></td>
+            </tr>
+            <tr v-if="infoModal.clientSettings.id">
+                <td>ID</td>
+                <td><a-tag color="green">[[ infoModal.clientSettings.id ]]</a-tag></td>
+            </tr>
+            <tr v-if="infoModal.inbound.canEnableTlsFlow()">
+                <td>Flow</td>
+                <td><a-tag color="green">[[ infoModal.clientSettings.flow ]]</a-tag></td>
+            </tr>
+            <tr v-if="infoModal.clientSettings.password">
+                <td>Password</td>
+                <td><a-tag color="green">[[ infoModal.clientSettings.password ]]</a-tag></td>
+            </tr>
+            <tr>
+                <td>{{ i18n "status" }}</td>
+                <td>
+                    <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
+                    <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
+                    <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
+                </td>
+            </tr>
+            <tr v-if="infoModal.clientStats">
+                <td>{{ i18n "usage" }}</td>
+                <td>
+                    <a-tag color="green">[[ sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
+                    <a-tag color="blue">↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
+                </td>
+            </tr>
+        </table>
+        <table style="margin-bottom: 10px; width: 100%;">
+            <tr>
+                <th>{{ i18n "remained" }}</th>
                 <th>{{ i18n "pages.inbounds.totalFlow" }}</th>
                 <th>{{ i18n "pages.inbounds.expireDate" }}</th>
+            </tr>
         <tr>
             <td>
-                <a-tag v-if="infoModal.clientStats" color="green">
-                    [[ sizeFormat(infoModal.clientStats['up']) ]] / 
-                    [[ sizeFormat(infoModal.clientStats['down']) ]]
-                    ([[ sizeFormat(infoModal.clientStats['up'] + infoModal.clientStats['down']) ]])
+                <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
+                    [[ sizeFormat(infoModal.clientSettings.totalGB - infoModal.clientStats.up - infoModal.clientStats.down) ]]
                 </a-tag>
             </td>
             <td>
-                <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">[[ sizeFormat(infoModal.clientSettings.totalGB) ]]</a-tag>
+                <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
+                    [[ sizeFormat(infoModal.clientSettings.totalGB) ]]
+                </a-tag>
                 <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
             </td>
             <td>
@@ -111,15 +128,44 @@
     </table>
     <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
         <a-divider>Subscription link</a-divider>
-        <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a>
-        <a-icon id="copy-sub-link" type="snippets" @click="copyToClipboard('copy-sub-link', infoModal.subLink)"></a-icon>
+        <a-row>
+            <a-col :span="22"><a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a></a-col>
+            <a-col :span="2">
+                <a-tooltip title='{{ i18n "copy" }}'>
+                    <button class="ant-btn ant-btn-primary" id="copy-sub-link" @click="copyToClipboard('copy-sub-link', infoModal.subLink)">
+                        <a-icon type="snippets"></a-icon>
+                    </button>
+                </a-tooltip>
+            </a-col>
+        </a-row>
     </template>
     <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
         <a-divider>Telegram Username</a-divider>
-        <a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a>
-        <a-icon id="copy-tg-link" type="snippets" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)"></a-icon>
+        <a-row>
+            <a-col :span="22"><a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></a-col>
+            <a-col :span="2">
+                <a-tooltip title='{{ i18n "copy" }}'>
+                    <button class="ant-btn ant-btn-primary" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)">
+                        <a-icon type="snippets"></a-icon>
+                    </button>
+                </a-tooltip>
+            </a-col>
+        </a-row>
     </template>
+    <template v-if="dbInbound.hasLink()">
+        <a-divider>URL</a-divider>
+        <a-row v-for="(link,index) in infoModal.links">
+            <a-col :span="22"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+            <a-col :span="2" style="text-align: right;">
+                <a-tooltip title='{{ i18n "copy" }}'>
+                    <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
+                        <a-icon type="snippets"></a-icon>
+                    </button>
+                </a-tooltip>
+            </a-col>
+        </a-row>
     </template>
+</template>
     <template v-else>
         <a-divider></a-divider>
         <table v-if="inbound.protocol == Protocols.SHADOWSOCKS" style="margin-bottom: 10px; width: 100%;">
@@ -127,8 +173,7 @@
                 <th>{{ i18n "encryption" }}</th>
                 <th>{{ i18n "password" }}</th>
                 <th>{{ i18n "pages.inbounds.network" }}</th>
-            </tr>
-            <tr>
+            </tr><tr>
                 <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -140,8 +185,7 @@
                 <th>{{ i18n "pages.inbounds.destinationPort" }}</th>
                 <th>{{ i18n "pages.inbounds.network" }}</th>
                 <th>FollowRedirect</th>
-            </tr>
-            <tr>
+            </tr><tr>
                 <td><a-tag color="green">[[ inbound.settings.address ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.port ]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -154,18 +198,15 @@
                 <th>{{ i18n "password" }} Auth</th>
                 <th>{{ i18n "pages.inbounds.enable" }} udp</th>
                 <th>IP</th>
-            </tr>
-            <tr>
+            </tr><tr>
                 <td><a-tag color="green">[[ inbound.settings.auth ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.udp]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.ip ]]</a-tag></td>
-            </tr>
-            <tr v-if="inbound.settings.auth == 'password'">
+            </tr><tr v-if="inbound.settings.auth == 'password'">
                 <td> </td>
                 <td>{{ i18n "username" }}</td>
                 <td>{{ i18n "password" }}</td>
-            </tr>
-            <tr v-for="account,index in inbound.settings.accounts">
+            </tr><tr v-for="account,index in inbound.settings.accounts">
                 <td><a-tag color="green">[[ index ]]</a-tag></td>
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
@@ -177,8 +218,7 @@
                 <th> </th>
                 <th>{{ i18n "username" }}</th>
                 <th>{{ i18n "password" }}</th>
-            </tr>
-            <tr v-for="account,index in inbound.settings.accounts">
+            </tr><tr v-for="account,index in inbound.settings.accounts">
                 <td><a-tag color="green">[[ index ]]</a-tag></td>
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
@@ -186,20 +226,8 @@
         </table>
         </table>
     </template>
-    <div v-if="dbInbound.hasLink()">
-        <a-divider>URL</a-divider>
-        <a-row v-for="(link,index) in infoModal.links">
-            <a-col :span="21"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
-            <a-col :span="3" style="text-align: right;">
-                <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
-                    <a-icon type="snippets"></a-icon>{{ i18n "copy" }}
-                </button>
-            </a-col>
-        </a-row>
-    </div>
 </a-modal>
 <script>
-
     const infoModal = {
         visible: false,
         inbound: new Inbound(),

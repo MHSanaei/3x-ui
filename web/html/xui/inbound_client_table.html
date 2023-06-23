@@ -29,11 +29,25 @@
     <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "depleted" }}</a-tag>
 </template>                                    
 <template slot="traffic" slot-scope="text, client">
-    <a-tag :color="statsColor(record, client.email)">[[ sizeFormat(getUpStats(record, client.email)) ]] / [[ sizeFormat(getDownStats(record, client.email)) ]]</a-tag>
-    <template v-if="client._totalGB > 0">
-        <a-tag :color="statsColor(record, client.email)">[[client._totalGB]]GB</a-tag>
-    </template>
-    <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+    <a-popover :overlay-class-name="themeSwitcher.darkClass">
+        <template slot="content" v-if="client.email">
+            <table cellpadding="2" width="100%">
+                <tr>
+                    <td>↑[[ sizeFormat(getUpStats(record, client.email)) ]]</td>
+                    <td>↓[[ sizeFormat(getDownStats(record, client.email)) ]]</td>
+                </tr>
+                <tr v-if="client.totalGB > 0">
+                    <td>{{ i18n "remained" }}</td>
+                    <td>[[ sizeFormat(client.totalGB - getUpStats(record, client.email) - getDownStats(record, client.email)) ]]</td>
+                </tr>
+            </table>
+        </template>
+        <a-tag :color="statsColor(record, client.email)">
+            [[ sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]] /
+            <template v-if="client.totalGB > 0">[[client._totalGB]]GB</template>
+            <template v-else>♾</template>
+        </a-tag>
+    </a-popover>
 </template>                                    
 <template slot="expiryTime" slot-scope="text, client, index">
     <template v-if="client.expiryTime > 0">
