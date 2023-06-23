@@ -733,7 +733,6 @@ install_iplimit() {
         esac
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
-        sudo systemctl stop fail2ban
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
     fi
 
@@ -788,9 +787,16 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
 
 [Init]
 EOF
-    
+
+    #Launching fail2ban
+    if ! sudo systemctl is-active --quiet fail2ban; then
+        sudo systemctl start fail2ban
+        echo test-start
+    else
+        systemctl restart fail2ban
+        echo test-restart
+    fi
     sudo systemctl enable fail2ban
-    sudo systemctl start fail2ban
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu

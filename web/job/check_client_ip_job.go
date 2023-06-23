@@ -32,13 +32,18 @@ func (j *CheckClientIpJob) Run() {
 	logger.Debug("Check Client IP Job...")
 
 	if hasLimitIp() {
+		//create log file for Fail2ban IP Limit
 		logIpFile, err := os.OpenFile("/var/log/3xipl.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		if err != nil {
-			logger.Errorf("Failed to create or open IP Limit Log file: %s", err)
-		}
+		checkError(err)
 		defer logIpFile.Close()
 		log.SetOutput(logIpFile)
 		log.SetFlags(log.LstdFlags)
+
+		//create file to collect access.log to another file accessp.log (p=persistent)
+		logAccessP, err := os.OpenFile("/usr/local/x-ui/accessp.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		checkError(err)
+		defer logAccessP.Close()
+
 		processLogFile()
 	}
 
@@ -140,6 +145,12 @@ func processLogFile() {
 	time.Sleep(time.Second * 3)
 	//added 3 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
+		//copy log
+		input, err := os.ReadFile(accessLogPath)
+		checkError(err)
+		if err := os.WriteFile("/usr/local/x-ui/accessp.log", input, 0644); err != nil {
+			checkError(err)
+		}
 		// clean log
 		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
 			checkError(err)
