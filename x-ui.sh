@@ -791,10 +791,8 @@ EOF
     #Launching fail2ban
     if ! sudo systemctl is-active --quiet fail2ban; then
         sudo systemctl start fail2ban
-        echo test-start
     else
         systemctl restart fail2ban
-        echo test-restart
     fi
     sudo systemctl enable fail2ban
 
