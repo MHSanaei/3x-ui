@@ -146,11 +146,14 @@ func processLogFile() {
 	//added 3 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
 		//copy log
+		logAccessP, err := os.OpenFile("/usr/local/x-ui/accessp.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		checkError(err)
 		input, err := os.ReadFile(accessLogPath)
 		checkError(err)
-		if err := os.WriteFile("/usr/local/x-ui/accessp.log", input, 0644); err != nil {
+		if _, err := logAccessP.Write(input); err != nil {
 			checkError(err)
 		}
+		defer logAccessP.Close()
 		// clean log
 		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
 			checkError(err)
