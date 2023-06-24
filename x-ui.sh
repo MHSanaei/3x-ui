@@ -631,10 +631,27 @@ ssl_cert_issue() {
 
 }
 
-warp_fixchatgpt() {
-    curl -fsSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh | bash
-    echo ""
-    before_show_menu
+warp_cloudflare() {
+    echo -e "${green}\t1.${plain} install WARP"
+    echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
+    echo -e "${green}\t3.${plain} Turn on/off WireProxy"
+    echo -e "${green}\t4.${plain} Uninstall WARP"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        1) 
+            bash <(curl -sSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh)
+            ;;
+        2) 
+            warp a
+            ;;
+        3)
+            warp y
+            ;;
+        4)
+            warp u
+            ;;
+        *) echo "Invalid choice" ;;
+    esac
 }
 
 run_speedtest() {
@@ -892,13 +909,14 @@ show_menu() {
   ${green}13.${plain} Enable x-ui On System Startup
   ${green}14.${plain} Disable x-ui On System Startup
 ————————————————
-  ${green}15.${plain} Enable BBR 
-  ${green}16.${plain} SSL Certificate Management
-  ${green}17.${plain} Update Geo Files
-  ${green}18.${plain} Active Firewall and open ports
-  ${green}19.${plain} Install WARP
-  ${green}20.${plain} Speedtest by Ookla
-  ${green}21.${plain} IP Limit Management
+  ${green}15.${plain} SSL Certificate Management
+  ${green}16.${plain} IP Limit Management
+  ${green}17.${plain} WARP Management
+————————————————
+  ${green}18.${plain} Enable BBR 
+  ${green}19.${plain} Update Geo Files
+  ${green}20.${plain} Active Firewall and open ports
+  ${green}21.${plain} Speedtest by Ookla
  "
     show_status
     echo && read -p "Please enter your selection [0-21]: " num
@@ -950,25 +968,25 @@ show_menu() {
         check_install && disable
         ;;
     15)
-        enable_bbr
-        ;;
-    16)
         ssl_cert_issue_main
         ;;
+    16)
+        iplimit_main
+        ;;
     17)
-        update_geo
+        warp_cloudflare
         ;;
     18)
-        open_ports
+        enable_bbr
         ;;
     19)
-        warp_fixchatgpt
+        update_geo
         ;;
     20)
-        run_speedtest
+        open_ports
         ;;
     21)
-        iplimit_main
+        run_speedtest
         ;;    
     *)
         LOGE "Please enter the correct number [0-21]"
