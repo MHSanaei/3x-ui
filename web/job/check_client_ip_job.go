@@ -2,6 +2,7 @@ package job
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"regexp"
 	"x-ui/database"
@@ -31,6 +32,18 @@ func (j *CheckClientIpJob) Run() {
 	logger.Debug("Check Client IP Job...")
 
 	if hasLimitIp() {
+		//create log file for Fail2ban IP Limit
+		logIpFile, err := os.OpenFile("/var/log/3xipl.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		checkError(err)
+		defer logIpFile.Close()
+		log.SetOutput(logIpFile)
+		log.SetFlags(log.LstdFlags)
+
+		//create file to collect access.log to another file accessp.log (p=persistent)
+		logAccessP, err := os.OpenFile("/usr/local/x-ui/accessp.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		checkError(err)
+		defer logAccessP.Close()
+
 		processLogFile()
 	}
 
@@ -129,9 +142,18 @@ func processLogFile() {
 
 	}
 
-	time.Sleep(time.Second * 5)
-	//added 5 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
+	time.Sleep(time.Second * 3)
+	//added 3 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
 	if shouldCleanLog {
+		//copy log
+		logAccessP, err := os.OpenFile("/usr/local/x-ui/accessp.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		checkError(err)
+		input, err := os.ReadFile(accessLogPath)
+		checkError(err)
+		if _, err := logAccessP.Write(input); err != nil {
+			checkError(err)
+		}
+		defer logAccessP.Close()
 		// clean log
 		if err := os.Truncate(GetAccessLogPath(), 0); err != nil {
 			checkError(err)
@@ -239,10 +261,9 @@ func updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmai
 				shouldCleanLog = true
 
 				if limitIp < len(ips) && inbound.Enable {
-
 					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
-						logger.Notice("[LIMIT_IP] Email=", clientEmail, " SRC=", ips[i])
+						log.Printf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
 					}
 				}
 			}
