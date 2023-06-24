@@ -639,7 +639,7 @@ warp_cloudflare() {
     read -p "Choose an option: " choice
     case "$choice" in
         1) 
-            bash <(curl -sSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh)
+            bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
             ;;
         2) 
             warp a
