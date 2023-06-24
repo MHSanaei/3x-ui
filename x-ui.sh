@@ -56,6 +56,13 @@ elif [[ "${release}" == "debian" ]]; then
     fi
 fi
 
+
+# Declare Variables
+log_folder="${XUI_LOG_FOLDER:=/var/log}"
+jail_log_path="${log_folder}/3xipl.log"
+jail_banned_log_path="${log_folder}/3xipl-banned.log"
+
+
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default $2]: " temp
@@ -696,6 +703,24 @@ run_speedtest() {
     speedtest
 }
 
+create_iplimit_jail() {
+    # Use default bantime if not passed => 5 minutes
+    local bantime="${1:-5}"
+
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+[3x-ipl]
+enabled=true
+filter=3x-ipl
+action=3x-ipl
+logpath=${jail_log_path}
+maxretry=3
+findtime=100
+bantime=${bantime}m
+EOF
+
+    echo -e "${green}Created Ip Limit jail with a bantime of ${bantime} minutes.${plain}"
+}
+
 iplimit_main() {
     echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
@@ -717,7 +742,7 @@ iplimit_main() {
         2)  
             read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
-                echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
+                create_iplimit_jail ${NUM}
                 sudo systemctl restart fail2ban
                 echo -e "${green}Bantime set to ${NUM} minutes successfully.${plain}"
             else
@@ -773,24 +798,25 @@ install_iplimit() {
 
     echo -e "${green}Configuring IP Limit...${plain}\n"
 
-    #Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
+    # Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
     if grep -qw '3x-ipl' /etc/fail2ban/jail.local || grep -qw '3x-ipl' /etc/fail2ban/jail.conf; then
         echo -e "${red}Found conflicts in /etc/fail2ban/jail.conf or jail.local file!\nPlease manually remove anything related 3x-ipl in that files and try again.\nInstallation of IP Limit failed.${plain}\n"
         exit 1
     fi
 
-    #Check if log file exists
+    # Check if log file exists
     if ! test -f "/var/log/3xipl-banned.log"; then
         touch /var/log/3xipl-banned.log
     fi
 
-    #Check if service log file exists so fail2ban won't return error
+    # Check if service log file exists so fail2ban won't return error
     if ! test -f "/var/log/3xipl.log"; then
         touch /var/log/3xipl.log
     fi
-    
 
-    echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=5m" > /etc/fail2ban/jail.d/3x-ipl.conf
+    # Create the iplimit jail file
+    # we didn't pass the bantime here to use the default value
+    create_iplimit_jail
 
     sudo cat > /etc/fail2ban/filter.d/3x-ipl.conf << EOF 
 [Definition]
@@ -823,7 +849,7 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
 [Init]
 EOF
 
-    #Launching fail2ban
+    # Launching fail2ban
     if ! sudo systemctl is-active --quiet fail2ban; then
         sudo systemctl start fail2ban
     else
