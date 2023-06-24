@@ -3,8 +3,8 @@ module x-ui
 go 1.20
 
 require (
+	github.com/Calidity/gin-sessions v1.3.1
 	github.com/Workiva/go-datastructures v1.1.0
-	github.com/gin-contrib/sessions v0.0.4
 	github.com/gin-gonic/gin v1.9.1
 	github.com/goccy/go-json v0.10.2
 	github.com/mymmrac/telego v0.25.1
@@ -54,7 +54,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/refraction-networking/utls v1.3.2 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
-	github.com/sagernet/sing v0.2.5 // indirect
+	github.com/sagernet/sing v0.2.6 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect

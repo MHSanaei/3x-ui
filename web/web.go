@@ -23,8 +23,8 @@ import (
 	"x-ui/web/network"
 	"x-ui/web/service"
 
-	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	sessions "github.com/Calidity/gin-sessions"
+	"github.com/Calidity/gin-sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 )

@@ -4,7 +4,7 @@ import (
 	"encoding/gob"
 	"x-ui/database/model"
 
-	"github.com/gin-contrib/sessions"
+	sessions "github.com/Calidity/gin-sessions"
 	"github.com/gin-gonic/gin"
 )
 
