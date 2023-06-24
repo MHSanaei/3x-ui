@@ -672,7 +672,7 @@ run_speedtest() {
 }
 
 iplimit_main() {
-    echo -e "${green}\t1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Unban Everyone"
     echo -e "${green}\t4.${plain} Check Logs"
@@ -699,13 +699,23 @@ iplimit_main() {
                 echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
             iplimit_main ;;
-        3)
-            fail2ban-client reload --restart --unban 3x-ipl
-            echo -e "${green}All users Unbanned successfully.${plain}"
+        3)  
+            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
+            if [[ $? == 0 ]]; then
+                fail2ban-client reload --restart --unban 3x-ipl
+                echo -e "${green}All users Unbanned successfully.${plain}"
+                iplimit_main
+            else
+                echo -e "${yellow}Cancelled.${plain}"
+            fi
             iplimit_main ;;
         4)
             if test -f "/var/log/3xipl-banned.log"; then
-                cat /var/log/3xipl-banned.log
+                if [[ -s "/var/log/3xipl-banned.log" ]]; then
+                    cat /var/log/3xipl-banned.log
+                else
+                    echo -e "${red}Log file is empty.${plain}\n"
+                fi
             else
                 echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
                 iplimit_main
@@ -830,6 +840,7 @@ remove_iplimit(){
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
             esac
+            rm -rf /etc/fail2ban/*
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         0) 
