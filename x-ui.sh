@@ -296,18 +296,21 @@ enable_bbr() {
     fi
 
     # Check the OS and install necessary packages
-    if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
-        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
-        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
-        sudo dnf -y update && sudo dnf -y install ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
-        sudo yum -y update && sudo yum -y install ca-certificates
-    else
-        echo "Unsupported operating system. Please check the script and install the necessary packages manually."
-        exit 1
-    fi
+    case "${release}" in
+        ubuntu|debian)
+            sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+            ;;
+        centos)
+            sudo yum -y update && sudo yum -y install ca-certificates
+            ;;
+        fedora)
+            sudo dnf -y update && sudo dnf -y install ca-certificates
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1
+            ;;
+    esac
 
     # Enable BBR
     echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
@@ -539,7 +542,7 @@ ssl_cert_issue_main() {
 }
 
 ssl_cert_issue() {
-    #check for acme.sh first
+    # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         echo "acme.sh could not be found. we will install it"
         install_acme
@@ -548,24 +551,30 @@ ssl_cert_issue() {
             exit 1
         fi
     fi
-    #install socat second
-    if [[ "${release}" == "centos" ]] || [[ "${release}" == "fedora" ]]; then
-        yum install socat -y
-    else
-        apt install socat -y
-    fi
+    # install socat second
+    case "${release}" in
+        ubuntu|debian)
+            apt update && apt install socat -y ;;
+        centos)
+            yum -y update && yum -y install socat ;;
+        fedora)
+            dnf -y update && dnf -y install socat ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1 ;;
+    esac
     if [ $? -ne 0 ]; then
-        LOGE "install socat failed,please check logs"
+        LOGE "install socat failed, please check logs"
         exit 1
     else
         LOGI "install socat succeed..."
     fi
 
-    #get the domain here,and we need verify it
+    # get the domain here,and we need verify it
     local domain=""
     read -p "Please enter your domain name:" domain
     LOGD "your domain is:${domain},check it..."
-    #here we need to judge whether there exists cert already
+    # here we need to judge whether there exists cert already
     local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
 
     if [ ${currentCert} == ${domain} ]; then
@@ -577,7 +586,7 @@ ssl_cert_issue() {
         LOGI "your domain is ready for issuing cert now..."
     fi
 
-    #create a directory for install cert
+    # create a directory for install cert
     certPath="/root/cert/${domain}"
     if [ ! -d "$certPath" ]; then
         mkdir -p "$certPath"
@@ -586,15 +595,15 @@ ssl_cert_issue() {
         mkdir -p "$certPath"
     fi
 
-    #get needed port here
+    # get needed port here
     local WebPort=80
     read -p "please choose which port do you use,default will be 80 port:" WebPort
     if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
         LOGE "your input ${WebPort} is invalid,will use default port"
     fi
     LOGI "will use port:${WebPort} to issue certs,please make sure this port is open..."
-    #NOTE:This should be handled by user
-    #open the port and kill the occupied progress
+    # NOTE:This should be handled by user
+    # open the port and kill the occupied progress
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     ~/.acme.sh/acme.sh --issue -d ${domain} --standalone --httpport ${WebPort}
     if [ $? -ne 0 ]; then
@@ -604,7 +613,7 @@ ssl_cert_issue() {
     else
         LOGE "issue certs succeed,installing certs..."
     fi
-    #install cert
+    # install cert
     ~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem
@@ -628,11 +637,10 @@ ssl_cert_issue() {
         ls -lah cert/*
         chmod 755 $certPath/*
     fi
-
 }
 
 warp_cloudflare() {
-    echo -e "${green}\t1.${plain} install WARP"
+    echo -e "${green}\t1.${plain} Install WARP socks5 proxy"
     echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
     echo -e "${green}\t3.${plain} Turn on/off WireProxy"
     echo -e "${green}\t4.${plain} Uninstall WARP"
