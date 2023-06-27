@@ -752,6 +752,21 @@ EOF
     echo -e "${green}Created Ip Limit jail files with a bantime of ${bantime} minutes.${plain}"
 }
 
+iplimit_remove_conflicts() {
+    local jail_files=(
+        /etc/fail2ban/jail.conf
+        /etc/fail2ban/jail.local
+    )
+
+    for file in "${jail_files[@]}"; do
+        # Check for [3x-ipl] config in jail file then remove it
+        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
+            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
+            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
+        fi
+    done
+}
+
 iplimit_main() {
     echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
@@ -828,11 +843,8 @@ install_iplimit() {
 
     echo -e "${green}Configuring IP Limit...${plain}\n"
 
-    # Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
-    if grep -qw '3x-ipl' /etc/fail2ban/jail.local || grep -qw '3x-ipl' /etc/fail2ban/jail.conf; then
-        echo -e "${red}Found conflicts in /etc/fail2ban/jail.conf or jail.local file!\nPlease manually remove anything related 3x-ipl in that files and try again.\nInstallation of IP Limit failed.${plain}\n"
-        exit 1
-    fi
+    # make sure there's no conflict for jail files
+    iplimit_remove_conflicts
 
     # Check if log file exists
     if ! test -f "${iplimit_banned_log_path}"; then
@@ -950,7 +962,7 @@ show_menu() {
   ${green}19.${plain} Update Geo Files
   ${green}20.${plain} Active Firewall and open ports
   ${green}21.${plain} Speedtest by Ookla
- "
+"
     show_status
     echo && read -p "Please enter your selection [0-21]: " num
 
