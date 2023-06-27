@@ -305,13 +305,13 @@ enable_bbr() {
     # Check the OS and install necessary packages
     case "${release}" in
         ubuntu|debian)
-            sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
+            apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
             ;;
         centos)
-            sudo yum -y update && sudo yum -y install ca-certificates
+            yum -y update && yum -y install ca-certificates
             ;;
         fedora)
-            sudo dnf -y update && sudo dnf -y install ca-certificates
+            dnf -y update && dnf -y install ca-certificates
             ;;
         *)
             echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
@@ -320,11 +320,11 @@ enable_bbr() {
     esac
 
     # Enable BBR
-    echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+    echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
 
     # Apply changes
-    sudo sysctl -p
+    sysctl -p
 
     # Verify that BBR is enabled
     if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
@@ -444,24 +444,24 @@ show_xray_status() {
 open_ports() {
     if ! command -v ufw &>/dev/null; then
         echo "ufw firewall is not installed. Installing now..."
-        sudo apt-get update
-        sudo apt-get install -y ufw
+        apt-get update
+        apt-get install -y ufw
     else
         echo "ufw firewall is already installed"
     fi
 
     # Check if the firewall is inactive
-    if sudo ufw status | grep -q "Status: active"; then
+    if ufw status | grep -q "Status: active"; then
         echo "firewall is already active"
     else
         # Open the necessary ports
-        sudo ufw allow ssh
-        sudo ufw allow http
-        sudo ufw allow https
-        sudo ufw allow 2053/tcp
+        ufw allow ssh
+        ufw allow http
+        ufw allow https
+        ufw allow 2053/tcp
 
         # Enable the firewall
-        sudo ufw --force enable
+        ufw --force enable
     fi
 
     # Prompt the user to enter a list of ports
@@ -482,15 +482,15 @@ open_ports() {
             end_port=$(echo $port | cut -d'-' -f2)
             # Loop through the range and open each port
             for ((i = start_port; i <= end_port; i++)); do
-                sudo ufw allow $i
+                ufw allow $i
             done
         else
-            sudo ufw allow "$port"
+            ufw allow "$port"
         fi
     done
 
     # Confirm that the ports are open
-    sudo ufw status | grep $ports
+    ufw status | grep $ports
 }
 
 update_geo() {
@@ -694,8 +694,8 @@ run_speedtest() {
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
         else
-            curl -s $speedtest_install_script | sudo bash
-            sudo $pkg_manager install -y speedtest
+            curl -s $speedtest_install_script | bash
+            $pkg_manager install -y speedtest
         fi
     fi
 
@@ -718,14 +718,14 @@ findtime=100
 bantime=${bantime}m
 EOF
 
-    sudo cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
 ignoreregex =
 EOF
 
-    sudo cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-common.conf
 
@@ -789,7 +789,7 @@ iplimit_main() {
             read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
                 create_iplimit_jail ${NUM}
-                sudo systemctl restart fail2ban
+                systemctl restart fail2ban
             else
                 echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
@@ -827,11 +827,11 @@ install_iplimit() {
         # Check the OS and install necessary packages
         case "${release}" in
             ubuntu|debian)
-                sudo apt update && sudo apt install fail2ban -y ;;
+                apt update && apt install fail2ban -y ;;
             centos)
-                sudo yum -y update && sudo yum -y install fail2ban ;;
+                yum -y update && yum -y install fail2ban ;;
             fedora)
-                sudo dnf -y update && sudo dnf -y install fail2ban ;;
+                dnf -y update && dnf -y install fail2ban ;;
             *)
                 echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
                 exit 1 ;;
@@ -861,12 +861,12 @@ install_iplimit() {
     create_iplimit_jails
 
     # Launching fail2ban
-    if ! sudo systemctl is-active --quiet fail2ban; then
-        sudo systemctl start fail2ban
+    if ! systemctl is-active --quiet fail2ban; then
+        systemctl start fail2ban
     else
         systemctl restart fail2ban
     fi
-    sudo systemctl enable fail2ban
+    systemctl enable fail2ban
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu
@@ -882,22 +882,22 @@ remove_iplimit(){
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            sudo systemctl restart fail2ban
+            systemctl restart fail2ban
             echo -e "${green}IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         2)  
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            sudo systemctl stop fail2ban
-            sudo systemctl disable fail2ban
+            systemctl stop fail2ban
+            systemctl disable fail2ban
             case "${release}" in
                 ubuntu|debian)
-                    sudo apt remove fail2ban -y ;;
+                    apt remove fail2ban -y ;;
                 centos)
-                    sudo yum -y remove fail2ban ;;
+                    yum -y remove fail2ban ;;
                 fedora)
-                    sudo dnf -y remove fail2ban ;;
+                    dnf -y remove fail2ban ;;
                 *)
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
