@@ -57,7 +57,7 @@ func GetIPLimitBannedLogPath() string {
 }
 
 func GetAccessPersistentLogPath() string {
-	return config.GetLogFolder() + "/3xui-access-persistent.log"
+	return config.GetLogFolder() + "/3xipl-access-persistent.log"
 }
 
 func GetAccessLogPath() string {
