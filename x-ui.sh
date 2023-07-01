@@ -56,6 +56,13 @@ elif [[ "${release}" == "debian" ]]; then
     fi
 fi
 
+
+# Declare Variables
+log_folder="${XUI_LOG_FOLDER:=/var/log}"
+iplimit_log_path="${log_folder}/3xipl.log"
+iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
+
+
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default $2]: " temp
@@ -296,25 +303,28 @@ enable_bbr() {
     fi
 
     # Check the OS and install necessary packages
-    if [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "ubuntu" ]]; then
-        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "debian" ]]; then
-        sudo apt-get update && sudo apt-get install -yqq --no-install-recommends ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "fedora" ]]; then
-        sudo dnf -y update && sudo dnf -y install ca-certificates
-    elif [[ "$(cat /etc/os-release | grep -E '^ID=' | awk -F '=' '{print $2}')" == "centos" ]]; then
-        sudo yum -y update && sudo yum -y install ca-certificates
-    else
-        echo "Unsupported operating system. Please check the script and install the necessary packages manually."
-        exit 1
-    fi
+    case "${release}" in
+        ubuntu|debian)
+            apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
+            ;;
+        centos)
+            yum -y update && yum -y install ca-certificates
+            ;;
+        fedora)
+            dnf -y update && dnf -y install ca-certificates
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1
+            ;;
+    esac
 
     # Enable BBR
-    echo "net.core.default_qdisc=fq" | sudo tee -a /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" | sudo tee -a /etc/sysctl.conf
+    echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
+    echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
 
     # Apply changes
-    sudo sysctl -p
+    sysctl -p
 
     # Verify that BBR is enabled
     if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
@@ -434,24 +444,24 @@ show_xray_status() {
 open_ports() {
     if ! command -v ufw &>/dev/null; then
         echo "ufw firewall is not installed. Installing now..."
-        sudo apt-get update
-        sudo apt-get install -y ufw
+        apt-get update
+        apt-get install -y ufw
     else
         echo "ufw firewall is already installed"
     fi
 
     # Check if the firewall is inactive
-    if sudo ufw status | grep -q "Status: active"; then
+    if ufw status | grep -q "Status: active"; then
         echo "firewall is already active"
     else
         # Open the necessary ports
-        sudo ufw allow ssh
-        sudo ufw allow http
-        sudo ufw allow https
-        sudo ufw allow 2053/tcp
+        ufw allow ssh
+        ufw allow http
+        ufw allow https
+        ufw allow 2053/tcp
 
         # Enable the firewall
-        sudo ufw --force enable
+        ufw --force enable
     fi
 
     # Prompt the user to enter a list of ports
@@ -472,15 +482,15 @@ open_ports() {
             end_port=$(echo $port | cut -d'-' -f2)
             # Loop through the range and open each port
             for ((i = start_port; i <= end_port; i++)); do
-                sudo ufw allow $i
+                ufw allow $i
             done
         else
-            sudo ufw allow "$port"
+            ufw allow "$port"
         fi
     done
 
     # Confirm that the ports are open
-    sudo ufw status | grep $ports
+    ufw status | grep $ports
 }
 
 update_geo() {
@@ -539,7 +549,7 @@ ssl_cert_issue_main() {
 }
 
 ssl_cert_issue() {
-    #check for acme.sh first
+    # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         echo "acme.sh could not be found. we will install it"
         install_acme
@@ -548,24 +558,30 @@ ssl_cert_issue() {
             exit 1
         fi
     fi
-    #install socat second
-    if [[ "${release}" == "centos" ]] || [[ "${release}" == "fedora" ]]; then
-        yum install socat -y
-    else
-        apt install socat -y
-    fi
+    # install socat second
+    case "${release}" in
+        ubuntu|debian)
+            apt update && apt install socat -y ;;
+        centos)
+            yum -y update && yum -y install socat ;;
+        fedora)
+            dnf -y update && dnf -y install socat ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1 ;;
+    esac
     if [ $? -ne 0 ]; then
-        LOGE "install socat failed,please check logs"
+        LOGE "install socat failed, please check logs"
         exit 1
     else
         LOGI "install socat succeed..."
     fi
 
-    #get the domain here,and we need verify it
+    # get the domain here,and we need verify it
     local domain=""
     read -p "Please enter your domain name:" domain
     LOGD "your domain is:${domain},check it..."
-    #here we need to judge whether there exists cert already
+    # here we need to judge whether there exists cert already
     local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
 
     if [ ${currentCert} == ${domain} ]; then
@@ -577,7 +593,7 @@ ssl_cert_issue() {
         LOGI "your domain is ready for issuing cert now..."
     fi
 
-    #create a directory for install cert
+    # create a directory for install cert
     certPath="/root/cert/${domain}"
     if [ ! -d "$certPath" ]; then
         mkdir -p "$certPath"
@@ -586,15 +602,15 @@ ssl_cert_issue() {
         mkdir -p "$certPath"
     fi
 
-    #get needed port here
+    # get needed port here
     local WebPort=80
     read -p "please choose which port do you use,default will be 80 port:" WebPort
     if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
         LOGE "your input ${WebPort} is invalid,will use default port"
     fi
     LOGI "will use port:${WebPort} to issue certs,please make sure this port is open..."
-    #NOTE:This should be handled by user
-    #open the port and kill the occupied progress
+    # NOTE:This should be handled by user
+    # open the port and kill the occupied progress
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     ~/.acme.sh/acme.sh --issue -d ${domain} --standalone --httpport ${WebPort}
     if [ $? -ne 0 ]; then
@@ -604,7 +620,7 @@ ssl_cert_issue() {
     else
         LOGE "issue certs succeed,installing certs..."
     fi
-    #install cert
+    # install cert
     ~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem
@@ -628,18 +644,17 @@ ssl_cert_issue() {
         ls -lah cert/*
         chmod 755 $certPath/*
     fi
-
 }
 
 warp_cloudflare() {
-    echo -e "${green}\t1.${plain} install WARP"
+    echo -e "${green}\t1.${plain} Install WARP socks5 proxy"
     echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
     echo -e "${green}\t3.${plain} Turn on/off WireProxy"
     echo -e "${green}\t4.${plain} Uninstall WARP"
     read -p "Choose an option: " choice
     case "$choice" in
         1) 
-            bash <(curl -sSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh)
+            bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
             ;;
         2) 
             warp a
@@ -679,8 +694,8 @@ run_speedtest() {
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
         else
-            curl -s $speedtest_install_script | sudo bash
-            sudo $pkg_manager install -y speedtest
+            curl -s $speedtest_install_script | bash
+            $pkg_manager install -y speedtest
         fi
     fi
 
@@ -688,110 +703,29 @@ run_speedtest() {
     speedtest
 }
 
-iplimit_main() {
-    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Change Ban Duration"
-    echo -e "${green}\t3.${plain} Unban Everyone"
-    echo -e "${green}\t4.${plain} Check Logs"
-    echo -e "${green}\t5.${plain} Uninstall IP Limit"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
-    case "$choice" in
-        0)
-            show_menu ;;
-        1) 
-            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
-            if [[ $? == 0 ]]; then
-                install_iplimit
-            else
-                iplimit_main
-            fi ;;
-        2)  
-            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
-            if [[ $NUM =~ ^[0-9]+$ ]]; then
-                echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
-                sudo systemctl restart fail2ban
-                echo -e "${green}Bantime set to ${NUM} minutes successfully.${plain}"
-            else
-                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
-            fi
-            iplimit_main ;;
-        3)  
-            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
-            if [[ $? == 0 ]]; then
-                fail2ban-client reload --restart --unban 3x-ipl
-                echo -e "${green}All users Unbanned successfully.${plain}"
-                iplimit_main
-            else
-                echo -e "${yellow}Cancelled.${plain}"
-            fi
-            iplimit_main ;;
-        4)
-            if test -f "/var/log/3xipl-banned.log"; then
-                if [[ -s "/var/log/3xipl-banned.log" ]]; then
-                    cat /var/log/3xipl-banned.log
-                else
-                    echo -e "${red}Log file is empty.${plain}\n"
-                fi
-            else
-                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
-                iplimit_main
-            fi ;;
-        5)  
-            remove_iplimit ;;
-        *) echo "Invalid choice" ;;
-    esac
-}
+create_iplimit_jails() {
+    # Use default bantime if not passed => 5 minutes
+    local bantime="${1:-5}"
 
-install_iplimit() {
-    if ! command -v fail2ban-client &>/dev/null; then
-        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
-        # Check the OS and install necessary packages
-        case "${release}" in
-            ubuntu|debian)
-                sudo apt-get update && sudo apt-get install fail2ban -y ;;
-            centos)
-                sudo yum -y update && sudo yum -y install fail2ban ;;
-            fedora)
-                sudo dnf -y update && sudo dnf -y install fail2ban ;;
-            *)
-                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-                exit 1 ;;
-        esac
-        echo -e "${green}Fail2ban installed successfully!${plain}\n"
-    else
-        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
-    fi
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+[3x-ipl]
+enabled=true
+filter=3x-ipl
+action=3x-ipl
+logpath=${iplimit_log_path}
+maxretry=3
+findtime=100
+bantime=${bantime}m
+EOF
 
-    echo -e "${green}Configuring IP Limit...${plain}\n"
-
-    #Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
-    if grep -qw '3x-ipl' /etc/fail2ban/jail.local || grep -qw '3x-ipl' /etc/fail2ban/jail.conf; then
-        echo -e "${red}Found conflicts in /etc/fail2ban/jail.conf or jail.local file!\nPlease manually remove anything related 3x-ipl in that files and try again.\nInstallation of IP Limit failed.${plain}\n"
-        exit 1
-    fi
-
-    #Check if log file exists
-    if ! test -f "/var/log/3xipl-banned.log"; then
-        touch /var/log/3xipl-banned.log
-    fi
-
-    #Check if service log file exists so fail2ban won't return error
-    if ! test -f "/var/log/3xipl.log"; then
-        touch /var/log/3xipl.log
-    fi
-    
-
-    echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=5m" > /etc/fail2ban/jail.d/3x-ipl.conf
-
-    sudo cat > /etc/fail2ban/filter.d/3x-ipl.conf << EOF 
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
 ignoreregex =
 EOF
 
-    sudo cat > /etc/fail2ban/action.d/3x-ipl.conf << 'EOF'
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-common.conf
 
@@ -807,21 +741,132 @@ actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
 actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
-            echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> /var/log/3xipl-banned.log
+            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
 actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
-              echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> /var/log/3xipl-banned.log
+              echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 EOF
 
-    #Launching fail2ban
-    if ! sudo systemctl is-active --quiet fail2ban; then
-        sudo systemctl start fail2ban
+    echo -e "${green}Created Ip Limit jail files with a bantime of ${bantime} minutes.${plain}"
+}
+
+iplimit_remove_conflicts() {
+    local jail_files=(
+        /etc/fail2ban/jail.conf
+        /etc/fail2ban/jail.local
+    )
+
+    for file in "${jail_files[@]}"; do
+        # Check for [3x-ipl] config in jail file then remove it
+        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
+            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
+            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
+        fi
+    done
+}
+
+iplimit_main() {
+    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "${green}\t2.${plain} Change Ban Duration"
+    echo -e "${green}\t3.${plain} Unban Everyone"
+    echo -e "${green}\t4.${plain} Check Logs"
+    echo -e "${green}\t5.${plain} Uninstall IP Limit"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        0)
+            show_menu ;;
+        1)
+            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
+            if [[ $? == 0 ]]; then
+                install_iplimit
+            else
+                iplimit_main
+            fi ;;
+        2)
+            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
+            if [[ $NUM =~ ^[0-9]+$ ]]; then
+                create_iplimit_jail ${NUM}
+                systemctl restart fail2ban
+            else
+                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
+            fi
+            iplimit_main ;;
+        3)
+            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
+            if [[ $? == 0 ]]; then
+                fail2ban-client reload --restart --unban 3x-ipl
+                echo -e "${green}All users Unbanned successfully.${plain}"
+                iplimit_main
+            else
+                echo -e "${yellow}Cancelled.${plain}"
+            fi
+            iplimit_main ;;
+        4)
+            if test -f "${iplimit_banned_log_path}"; then
+                if [[ -s "${iplimit_banned_log_path}" ]]; then
+                    cat ${iplimit_banned_log_path}
+                else
+                    echo -e "${red}Log file is empty.${plain}\n"
+                fi
+            else
+                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
+                iplimit_main
+            fi ;;
+        5)
+            remove_iplimit ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
+install_iplimit() {
+    if ! command -v fail2ban-client &>/dev/null; then
+        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+        # Check the OS and install necessary packages
+        case "${release}" in
+            ubuntu|debian)
+                apt update && apt install fail2ban -y ;;
+            centos)
+                yum -y update && yum -y install fail2ban ;;
+            fedora)
+                dnf -y update && dnf -y install fail2ban ;;
+            *)
+                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+                exit 1 ;;
+        esac
+        echo -e "${green}Fail2ban installed successfully!${plain}\n"
+    else
+        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
+    fi
+
+    echo -e "${green}Configuring IP Limit...${plain}\n"
+
+    # make sure there's no conflict for jail files
+    iplimit_remove_conflicts
+
+    # Check if log file exists
+    if ! test -f "${iplimit_banned_log_path}"; then
+        touch ${iplimit_banned_log_path}
+    fi
+
+    # Check if service log file exists so fail2ban won't return error
+    if ! test -f "${iplimit_log_path}"; then
+        touch ${iplimit_log_path}
+    fi
+
+    # Create the iplimit jail files
+    # we didn't pass the bantime here to use the default value
+    create_iplimit_jails
+
+    # Launching fail2ban
+    if ! systemctl is-active --quiet fail2ban; then
+        systemctl start fail2ban
     else
         systemctl restart fail2ban
     fi
-    sudo systemctl enable fail2ban
+    systemctl enable fail2ban
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu
@@ -837,27 +882,27 @@ remove_iplimit(){
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            sudo systemctl restart fail2ban
+            systemctl restart fail2ban
             echo -e "${green}IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         2)  
             rm -f /etc/fail2ban/filter.d/3x-ipl.conf
             rm -f /etc/fail2ban/action.d/3x-ipl.conf
             rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            sudo systemctl stop fail2ban
-            sudo systemctl disable fail2ban
+            systemctl stop fail2ban
+            systemctl disable fail2ban
             case "${release}" in
                 ubuntu|debian)
-                    sudo apt-get remove fail2ban -y ;;
+                    apt remove fail2ban -y ;;
                 centos)
-                    sudo yum -y remove fail2ban ;;
+                    yum -y remove fail2ban ;;
                 fedora)
-                    sudo dnf -y remove fail2ban ;;
+                    dnf -y remove fail2ban ;;
                 *)
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
             esac
-            rm -rf /etc/fail2ban/*
+            rm -rf /etc/fail2ban
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         0) 
@@ -917,7 +962,7 @@ show_menu() {
   ${green}19.${plain} Update Geo Files
   ${green}20.${plain} Active Firewall and open ports
   ${green}21.${plain} Speedtest by Ookla
- "
+"
     show_status
     echo && read -p "Please enter your selection [0-21]: " num
 

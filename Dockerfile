@@ -1,20 +1,47 @@
-#Build latest x-ui from source
+# ========================================================
+# Stage: Builder
+# ========================================================
 FROM --platform=$BUILDPLATFORM golang:1.20.4-alpine AS builder
 WORKDIR /app
-ARG TARGETARCH 
-RUN apk --no-cache --update add build-base gcc wget unzip
+ARG TARGETARCH
+ENV CGO_ENABLED=1
+
+RUN apk --no-cache --update add \
+  build-base \
+  gcc \
+  wget \
+  unzip
+
 COPY . .
-RUN env CGO_ENABLED=1 go build -o build/x-ui main.go
+
+RUN go build -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
 
-
-#Build app image using latest x-ui
+# ========================================================
+# Stage: Final Image of 3x-ui
+# ========================================================
 FROM alpine
 ENV TZ=Asia/Tehran
 WORKDIR /app
 
-RUN apk add ca-certificates tzdata
+RUN apk add --no-cache --update \
+  ca-certificates \
+  tzdata \
+  fail2ban
 
 COPY --from=builder  /app/build/ /app/
+COPY --from=builder  /app/DockerEntrypoint.sh /app/
+COPY --from=builder  /app/x-ui.sh /usr/bin/x-ui
+
+# Configure fail2ban
+RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
+  && cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local \
+  && sed -i "s/^\[ssh\]$/&\nenabled = false/" /etc/fail2ban/jail.local
+
+RUN chmod +x \
+  /app/DockerEntrypoint.sh \
+  /app/x-ui \
+  /usr/bin/x-ui
+
 VOLUME [ "/etc/x-ui" ]
-ENTRYPOINT [ "/app/x-ui" ]
+ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

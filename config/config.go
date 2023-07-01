@@ -65,3 +65,11 @@ func GetDBFolderPath() string {
 func GetDBPath() string {
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
+
+func GetLogFolder() string {
+	logFolderPath := os.Getenv("XUI_LOG_FOLDER")
+	if logFolderPath == "" {
+		logFolderPath = "/var/log"
+	}
+	return logFolderPath
+}
