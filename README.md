@@ -178,7 +178,7 @@ If you want to use routing to WARP follow steps as below:
 2. Install WARP on **socks proxy mode**:
 
    ```sh
-   bash <(curl -sSL https://gist.githubusercontent.com/hamid-gh98/dc5dd9b0cc5b0412af927b1ccdb294c7/raw/install_warp_proxy.sh)
+   bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
    ```
 
 3. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
@@ -280,6 +280,7 @@ Reference syntax:
 | XUI_DEBUG      |                   `boolean`                    | `false`       |
 | XUI_BIN_FOLDER |                    `string`                    | `"bin"`       |
 | XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"` |
+| XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`  |
 
 Example:
 

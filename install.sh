@@ -8,7 +8,7 @@ plain='\033[0m'
 cur_dir=$(pwd)
 
 # check root
-[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error：${plain} Please run this script with root privilege \n " && exit 1
+[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
 # Check OS and set release variable
 if [[ -f /etc/os-release ]]; then
@@ -41,12 +41,12 @@ if [[ "${release}" == "centos" ]]; then
     fi
 elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red}please use Ubuntu 20 or higher version！${plain}\n" && exit 1
+        echo -e "${red}please use Ubuntu 20 or higher version!${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "fedora" ]]; then
     if [[ ${os_version} -lt 36 ]]; then
-        echo -e "${red}please use Fedora 36 or higher version！${plain}\n" && exit 1
+        echo -e "${red}please use Fedora 36 or higher version!${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "debian" ]]; then
@@ -68,7 +68,7 @@ install_base() {
     esac
 }
 
-#This function will be called when user installed x-ui out of sercurity
+# This function will be called when user installed x-ui out of sercurity
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]? ": config_confirm

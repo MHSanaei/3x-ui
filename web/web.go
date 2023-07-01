@@ -253,6 +253,9 @@ func (s *Server) startTask() {
 	// check client ips from log file every 20 sec
 	s.cron.AddJob("@every 20s", job.NewCheckClientIpJob())
 
+	// check client ips from log file every 3 day
+	s.cron.AddJob("@every 3d", job.NewClearLogsJob())
+
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotenabled()
