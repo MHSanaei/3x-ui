@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -75,6 +74,7 @@ func (s *InboundService) getAllEmails() ([]string, error) {
 		FROM inbounds,
 			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
 		`).Scan(&emails).Error
+
 	if err != nil {
 		return nil, err
 	}
@@ -816,8 +816,7 @@ func (s *InboundService) UpdateClientStat(email string, client *model.Client) er
 			"enable":      true,
 			"email":       client.Email,
 			"total":       client.TotalGB,
-			"expiry_time": client.ExpiryTime,
-		})
+			"expiry_time": client.ExpiryTime})
 	err := result.Error
 	if err != nil {
 		return err
@@ -1069,8 +1068,8 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 		return err
 	}
 	return nil
-}
 
+}
 func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry_time int64) error {
 	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
@@ -1127,6 +1126,7 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 		return err
 	}
 	return nil
+
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
@@ -1137,6 +1137,7 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
 
 	err := result.Error
+
 	if err != nil {
 		return err
 	}
@@ -1208,6 +1209,7 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
 
 	err := result.Error
+
 	if err != nil {
 		return err
 	}
@@ -1222,6 +1224,7 @@ func (s *InboundService) ResetAllTraffics() error {
 		Updates(map[string]interface{}{"up": 0, "down": 0})
 
 	err := result.Error
+
 	if err != nil {
 		return err
 	}
@@ -1408,6 +1411,7 @@ func (s *InboundService) ClearClientIps(clientEmail string) error {
 		Where("client_email = ?", clientEmail).
 		Update("ips", "")
 	err := result.Error
+
 	if err != nil {
 		return err
 	}

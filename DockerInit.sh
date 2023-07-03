@@ -18,7 +18,7 @@ esac
 mkdir -p build/bin
 cd build/bin
 
-wget "https://github.com/mhsanaei/xray-core/releases/latest/download/Xray-linux-${ARCH}.zip"
+wget "https://github.com/masoudkhz/xray-core/releases/latest/download/Xray-linux-${ARCH}.zip"
 unzip "Xray-linux-${ARCH}.zip"
 rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat iran.dat
 mv xray "xray-linux-${FNAME}"

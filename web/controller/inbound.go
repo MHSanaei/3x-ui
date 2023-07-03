@@ -3,7 +3,6 @@ package controller
 import (
 	"fmt"
 	"strconv"
-
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/web/global"
@@ -41,6 +40,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
 	g.POST("/delDepletedClients/:id", a.delDepletedClients)
+
 }
 
 func (a *InboundController) startTask() {
@@ -79,7 +79,6 @@ func (a *InboundController) getInbound(c *gin.Context) {
 	}
 	jsonObj(c, inbound, nil)
 }
-
 func (a *InboundController) getClientTraffics(c *gin.Context) {
 	email := c.Param("email")
 	clientTraffics, err := a.inboundService.GetClientTrafficByEmail(email)

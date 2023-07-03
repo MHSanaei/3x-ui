@@ -1,0 +1,52 @@
+// Lucas Bebber's Glitch Effect
+// Tutorial and CSS from CSS Tricks
+// https://css-tricks.com/glitch-effect-text-images-svg/
+
+.error {
+  color: $gray-800;
+  font-size: 7rem;
+  position: relative;
+  line-height: 1;
+  width: 12.5rem;
+}
+@keyframes noise-anim {
+  $steps: 20;
+  @for $i from 0 through $steps {
+    #{percentage($i*(1/$steps))} {
+      clip: rect(random(100)+px,9999px,random(100)+px,0);
+    }
+  }
+}
+.error:after {
+  content: attr(data-text);
+  position: absolute;
+  left: 2px;
+  text-shadow: -1px 0 $red;
+  top: 0;
+  color: $gray-800;
+  background: $gray-100;
+  overflow: hidden;
+  clip: rect(0,900px,0,0);
+  animation: noise-anim 2s infinite linear alternate-reverse;
+}
+
+@keyframes noise-anim-2 {
+  $steps: 20;
+  @for $i from 0 through $steps {
+    #{percentage($i*(1/$steps))} {
+      clip: rect(random(100)+px,9999px,random(100)+px,0);
+    }
+  }
+}
+.error:before {
+  content: attr(data-text);
+  position: absolute;
+  left: -2px;
+  text-shadow: 1px 0 $blue;
+  top: 0;
+  color: $gray-800;
+  background: $gray-100;
+  overflow: hidden;
+  clip: rect(0,900px,0,0);
+  animation: noise-anim-2 3s infinite linear alternate-reverse;
+}

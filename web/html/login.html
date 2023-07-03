@@ -1,163 +1,159 @@
+
 <!DOCTYPE html>
 <html lang="en">
-{{template "head" .}}
-<style>
+<head>
+    <meta charset="utf-8">
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>{{ .host }}-{{ i18n .title}}</title>
+    <link href="{{ .base_path }}saeed/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="{{ .base_path }}saeed/css/sb-admin-2.min.css" rel="stylesheet">
+</head>
 
-    #app {
-        padding-top: 100px;
-    }
+<a-layout id="app" v-cloak class="login">
 
-    h1 {
-        text-align: center;
-        color: #fff;
-        margin: 20px 0 50px 0;
-    }
+<body class="bg-gradient-primary">
 
-    .ant-btn, .ant-input {
-        height: 50px;
-        border-radius: 30px;
-    }
+    <div class="container">
 
-    .ant-input-group-addon {
-        border-radius: 0 30px 30px 0;
-        width: 50px;
-        font-size: 18px;
-    }
+        <!-- Outer Row -->
+        <div class="row justify-content-center">
 
-    .ant-input-affix-wrapper .ant-input-prefix {
-        left: 23px;
-    }
+            <div class="col-xl-10 col-lg-12 col-md-9">
 
-    .ant-input-affix-wrapper .ant-input:not(:first-child) {
-        padding-left: 50px;
-    }
+                <div class="card o-hidden border-0 shadow-lg my-5">
+                    <div class="card-body p-0">
+                        <!-- Nested Row within Card Body -->
+                        <div class="row">
+                            <div class="col-lg-6 d-none d-lg-block bg-login-image"></div>
+                            <div class="col-lg-6">
+                                <div class="p-5">
+                                    <div class="text-center">
+                                        <h1 class="h4 text-gray-900 mb-4">{{ i18n "pages.login.title" }}</h1>
+                                    </div>
+                                    <form class="user">
+                                        <a-form-item v-if="secretEnable">
+                                            <password-input icon="key" v-model.trim="user.loginSecret"
+                                                            placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
+                                            </password-input>
+                                        </a-input>
+                                        <div class="form-group">
+                                            <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
+                                                    @keydown.enter.native="login" autofocus>
+                                                <a-icon slot="prefix" type="user" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
+                                            </a-input>
+                                        </div>
+                                        <div class="form-group">
+                                            <!-- <input type="password" class="form-control form-control-user"
+                                                id="exampleInputPassword" placeholder="Password"> -->
 
-    .centered {
-        display: flex;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
-    }
+                                            <password-input icon="lock" v-model.trim="user.password" 
+                                                placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
+                                            </password-input>
+                                                
+                                        </div>
+                                        <!-- <div class="form-group">
+                                            <div class="custom-control custom-checkbox small">
+                                                <input type="checkbox" class="custom-control-input" id="customCheck">
+                                                <label class="custom-control-label" for="customCheck">Remember
+                                                    Me</label>
+                                            </div>
+                                        </div> -->
+                                        
+                                        <a-button type="primary" :loading="loading" 
+                                                class="btn btn-primary btn-user btn-block"
+                                                :class="btn btn-primary btn-user btn-block"
+                                                @click="login" 
+                                                :icon="loading ? 'poweroff' : undefined"
+                                                :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
+                                            [[ loading ? '' : '{{ i18n "login" }}' ]]
+                                        </a-button>
+                                        
+                                        <!-- <hr>
+                                        <a href="index.html" class="btn btn-google btn-user btn-block">
+                                            <i class="fab fa-google fa-fw"></i> Login with Google
+                                        </a>
+                                        <a href="index.html" class="btn btn-facebook btn-user btn-block">
+                                            <i class="fab fa-facebook-f fa-fw"></i> Login with Facebook
+                                        </a> -->
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-    .title {
-        font-size: 32px;
-        font-weight: bold;
-    }
+            </div>
 
-</style>
-<body>
-<a-layout id="app" v-cloak class="login" :class="themeSwitcher.darkCardClass">
-    <transition name="list" appear>
-        <a-layout-content>
-            <a-row type="flex" justify="center">
-                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
-                    <h1 class="title">{{ i18n "pages.login.title" }}</h1>
-                </a-col>
-            </a-row>
-            <a-row type="flex" justify="center">
-                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
-                    <a-form>
-                        <a-form-item>
-                            <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
-                                     @keydown.enter.native="login" autofocus>
-                                <a-icon slot="prefix" type="user" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
-                            </a-input>
-                        </a-form-item>
-                        <a-form-item>
-                            <password-input icon="lock" v-model.trim="user.password"
-                                            placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                            </password-input>
-                        </a-form-item>
-                        <a-form-item v-if="secretEnable">
-                            <password-input icon="key" v-model.trim="user.loginSecret"
-                                            placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
-                            </password-input>
-                        </a-input>
-                        </a-form-item>
-                        <a-form-item>
-                            <a-row justify="center" class="centered">
-                                <a-button type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
-                                          :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
-                                    [[ loading ? '' : '{{ i18n "login" }}' ]]
-                                </a-button>
-                            </a-row>
-                        </a-form-item>
-                        <a-form-item>
-                            <a-row justify="center" class="centered">
-                                <a-col :span="12">
-                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" :dropdown-class-name="themeSwitcher.darkCardClass">
-                                        <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                            <span role="img" :aria-label="l.name" v-text="l.icon"></span>
-                                            &nbsp;&nbsp;<span v-text="l.name"></span>
-                                        </a-select-option>
-                                    </a-select>
-                                </a-col>
-                            </a-row>
-                        </a-form-item>
-                        <a-form-item>
-                            <a-row justify="center" class="centered">
-                                <theme-switch />
-                            </a-row>
-                        </a-form-item>
-                    </a-form>
-                </a-col>
-            </a-row>
-        </a-layout-content>
-    </transition>
-</a-layout>
-{{template "js" .}}
-{{template "component/themeSwitcher" .}}
-{{template "component/password" .}}
-<script>
+        </div>
 
-    const app = new Vue({
-        delimiters: ['[[', ']]'],
-        el: '#app',
-        data: {
-            themeSwitcher,
-            loading: false,
-            user: new User(),
-            secretEnable: false,
-            lang: ""
-        },
-        async created() {
-            this.updateBackground();
-            this.lang = getLang();
-            this.secretEnable = await this.getSecretStatus();
-        },
-        methods: {
-            async login() {
-                this.loading = true;
-                const msg = await HttpUtil.post('/login', this.user);
-                this.loading = false;
-                if (msg.success) {
-                    location.href = basePath + 'panel/';
-                }
-            },
-            async getSecretStatus() {
-                this.loading = true;
-                const msg = await HttpUtil.post('/getSecretStatus');
-                this.loading = false;
-                if (msg.success) {
-                    this.secretEnable = msg.obj;
-                    return msg.obj;
-                }
-            },
-            updateBackground() {
-                const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
-                const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
-                const deg = RandomUtil.randomIntRange(0, 360);
-                const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
-                document.querySelector('#app').style.background = this.themeSwitcher.isDarkTheme ? colors.dark.bg : background;
-            },
-        },
-        watch: {
-            'themeSwitcher.isDarkTheme'(newVal, oldVal) {
-                this.updateBackground();
-            },
-        },
-    });
-
-</script>
+    </div>
 </body>
+</a-layout>
+    {{template "js" .}}
+    {{template "component/themeSwitcher" .}}
+    {{template "component/password" .}}
+    
+    <!-- Bootstrap core JavaScript-->
+    <script src="{{ .base_path }}saeed/vendor/jquery/jquery.min.js"></script>
+    <script src="{{ .base_path }}saeed/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Core plugin JavaScript-->
+    <script src="{{ .base_path }}saeed/vendor/jquery-easing/jquery.easing.min.js"></script>
+    
+    <!-- Custom scripts for all pages-->
+    <script src="{{ .base_path }}saeed/js/sb-admin-2.min.js"></script>
+
+    <script>
+        const app = new Vue({
+            delimiters: ['[[', ']]'],
+            el: '#app',
+            data: {
+                themeSwitcher,
+                loading: false,
+                user: new User(),
+                secretEnable: false,
+                lang: ""
+            },
+            async created() {
+                this.updateBackground();
+                this.lang = getLang();
+                this.secretEnable = await this.getSecretStatus();
+            },
+            methods: {
+                async login() {
+                    this.loading = true;
+                    const msg = await HttpUtil.post('/login', this.user);
+                    this.loading = false;
+                    if (msg.success) {
+                        location.href = basePath + 'panel/';
+                    }
+                },
+                async getSecretStatus() {
+                    this.loading = true;
+                    const msg = await HttpUtil.post('/getSecretStatus');
+                    this.loading = false;
+                    if (msg.success) {
+                        this.secretEnable = msg.obj;
+                        return msg.obj;
+                    }
+                },
+                updateBackground() {
+                    const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
+                    const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
+                    const deg = RandomUtil.randomIntRange(0, 360);
+                    const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
+                    document.querySelector('#app').style.background = this.themeSwitcher.isDarkTheme ? colors.dark.bg : background;
+                },
+            },
+            watch: {
+                'themeSwitcher.isDarkTheme'(newVal, oldVal) {
+                    this.updateBackground();
+                },
+            },
+        });
+    </script>
 </html>

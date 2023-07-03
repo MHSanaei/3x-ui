@@ -39,6 +39,7 @@
 "depleted" = "منقضی"
 "depletingSoon" = "در حال انقضا"
 "domainName" = "آدرس دامنه"
+"additional" = "آی دی جایگزین"
 "monitor" = "آی پی اتصال"
 "certificate" = "گواهی دیجیتال"
 "fail" = "خطا"
@@ -48,7 +49,6 @@
 "clients" = "کاربران"
 "usage" = "استفاده"
 "secretToken" = "توکن امنیتی"
-"remained" = "باقیمانده"
 
 [menu]
 "dashboard" = "وضعیت سیستم"

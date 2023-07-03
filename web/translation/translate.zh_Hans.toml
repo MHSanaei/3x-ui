@@ -39,6 +39,7 @@
 "depleted" = "耗尽"
 "depletingSoon" = "即将耗尽"
 "domainName" = "域名"
+"additional" = "额外"
 "monitor" = "监听"
 "certificate" = "证书"
 "fail" = "失败"
@@ -48,7 +49,6 @@
 "clients" = "客户端"
 "usage" = "用法"
 "secretToken" = "秘密令牌"
-"remained" = "仍然存在"
 
 [menu]
 "dashboard" = "系统状态"
