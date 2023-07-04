@@ -87,7 +87,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MasoudKhz/3x-ui/master/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -106,7 +106,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MasoudKhz/3x-ui/master/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         exit 0
@@ -127,7 +127,7 @@ uninstall() {
     systemctl daemon-reload
     systemctl reset-failed
     rm /etc/x-ui/ -rf
-    rm /usr/local/x-ui/ -rf
+    rm /usr/local/3x-ui-p1/ -rf
 
     echo ""
     echo -e "Uninstalled Successfully, If you want to remove this script, then after exiting the script run ${green}rm /usr/bin/x-ui -f${plain} to delete it."
@@ -150,8 +150,8 @@ reset_user() {
     [[ -z $config_account ]] && config_account=$(date +%s%N | md5sum | cut -c 1-8)
     read -rp "Please set the login password [default is a random password]: " config_password
     [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
-    /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
-    /usr/local/x-ui/x-ui setting -remove_secret >/dev/null 2>&1
+    /usr/local/3x-ui-p1/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
+    /usr/local/3x-ui-p1/x-ui setting -remove_secret >/dev/null 2>&1
     echo -e "Panel login username has been reset to: ${green} ${config_account} ${plain}"
     echo -e "Panel login password has been reset to: ${green} ${config_password} ${plain}"
     echo -e "${yellow} Panel login secret token disabled ${plain}"
@@ -167,13 +167,13 @@ reset_config() {
         fi
         return 0
     fi
-    /usr/local/x-ui/x-ui setting -reset
+    /usr/local/3x-ui-p1/x-ui setting -reset
     echo -e "All panel settings have been reset to default, Please restart the panel now, and use the default ${green}2053${plain} Port to Access the web Panel"
     confirm_restart
 }
 
 check_config() {
-    info=$(/usr/local/x-ui/x-ui setting -show true)
+    info=$(/usr/local/3x-ui-p1/x-ui setting -show true)
     if [[ $? != 0 ]]; then
         LOGE "get current settings error, please check logs"
         show_menu
@@ -187,7 +187,7 @@ set_port() {
         LOGD "Cancelled"
         before_show_menu
     else
-        /usr/local/x-ui/x-ui setting -port ${port}
+        /usr/local/3x-ui-p1/x-ui setting -port ${port}
         echo -e "The port is set, Please restart the panel now, and use the new port ${green}${port}${plain} to access web panel"
         confirm_restart
     fi
@@ -328,7 +328,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/MasoudKhz/3x-ui/raw/main/x-ui.sh
+    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/MasoudKhz/3x-ui/raw/master/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -487,7 +487,7 @@ open_ports() {
 }
 
 update_geo() {
-    local defaultBinFolder="/usr/local/x-ui/bin"
+    local defaultBinFolder="/usr/local/3x-ui-p1/bin"
     read -p "Please enter x-ui bin folder path. Leave blank for default. (Default: '${defaultBinFolder}')" binFolder
     binFolder=${binFolder:-${defaultBinFolder}}
     if [[ ! -d ${binFolder} ]]; then
