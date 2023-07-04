@@ -80,16 +80,16 @@ config_after_install() {
         read -p "Please set up the panel port:" config_port
         echo -e "${yellow}Your panel port is:${config_port}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
-        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
+        /usr/local/3x-ui-p1/x-ui setting -username ${config_account} -password ${config_password}
         echo -e "${yellow}Account name and password set successfully!${plain}"
-        /usr/local/x-ui/x-ui setting -port ${config_port}
+        /usr/local/3x-ui-p1/x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
     else
         echo -e "${red}cancel...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
+            /usr/local/3x-ui-p1/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "this is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
             echo -e "${green}username:${usernameTemp}${plain}"
@@ -100,7 +100,7 @@ config_after_install() {
             echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 7 to check${plain}"
         fi
     fi
-    /usr/local/x-ui/x-ui migrate
+    /usr/local/3x-ui-p1/x-ui migrate
 }
 
 install_x-ui() {
@@ -129,8 +129,8 @@ install_x-ui() {
             exit 1
         fi
     fi
-    if [[ -e /usr/local/x-ui/ ]]; then
-        rm /usr/local/x-ui/ -rf
+    if [[ -e /usr/local/3x-ui-p1/ ]]; then
+        rm /usr/local/3x-ui-p1/ -rf
     fi
 
     tar zxvf x-ui.tar.gz
@@ -145,7 +145,7 @@ install_x-ui() {
     echo -e "55555555"
     wget --no-check-certificate -O /usr/bin/3x-ui-p1 https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/x-ui.sh
     echo -e "666666"
-    chmod +x /usr/local/x-ui/x-ui.sh
+    chmod +x /usr/local/3x-ui-p1/x-ui.sh
     echo -e "777777"
     chmod +x /usr/bin/x-ui
     echo -e "88888"
