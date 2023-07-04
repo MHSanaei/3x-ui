@@ -137,13 +137,13 @@ install_x-ui() {
     echo -e "11111111111"
     rm x-ui.tar.gz -f
     echo -e "2222222222222"
-    cd /usr/local/x-ui
+    cd /usr/local/3x-ui-p1
     echo -e "3333333"
-    chmod +x /usr/local/x-ui bin/xray-linux-$(arch3xui)
+    chmod +x /usr/local/3x-ui-p1 bin/xray-linux-$(arch3xui)
     echo -e "4444444"
     cp -f x-ui.service /etc/systemd/system/
     echo -e "55555555"
-    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/x-ui.sh
+    wget --no-check-certificate -O /usr/bin/3x-ui-p1 https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/x-ui.sh
     echo -e "666666"
     chmod +x /usr/local/x-ui/x-ui.sh
     echo -e "777777"
