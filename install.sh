@@ -134,13 +134,21 @@ install_x-ui() {
     fi
 
     tar zxvf x-ui.tar.gz
+    echo -e "11111111111"
     rm x-ui.tar.gz -f
+    echo -e "2222222222222"
     cd x-ui
+    echo -e "3333333"
     chmod +x x-ui bin/xray-linux-$(arch3xui)
+    echo -e "4444444"
     cp -f x-ui.service /etc/systemd/system/
+    echo -e "55555555"
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/x-ui.sh
+    echo -e "666666"
     chmod +x /usr/local/x-ui/x-ui.sh
+    echo -e "777777"
     chmod +x /usr/bin/x-ui
+    echo -e "88888"
     config_after_install
     #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
     #echo -e "Please make sure that this port is not occupied by other procedures,${yellow} And make sure that port 2053 has been released${plain}"
