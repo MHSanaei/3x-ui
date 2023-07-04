@@ -6,8 +6,8 @@ Wants=network.target
 [Service]
 Environment="XRAY_VMESS_AEAD_FORCED=false"
 Type=simple
-WorkingDirectory=/usr/local/x-ui/
-ExecStart=/usr/local/x-ui/x-ui
+WorkingDirectory=/usr/local/3x-ui-p1/
+ExecStart=/usr/local/3x-ui-p1/x-ui
 Restart=on-failure
 RestartSec=5s
 
