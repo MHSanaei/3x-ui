@@ -137,9 +137,9 @@ install_x-ui() {
     echo -e "11111111111"
     rm x-ui.tar.gz -f
     echo -e "2222222222222"
-    cd x-ui
+    cd /usr/local/x-ui
     echo -e "3333333"
-    chmod +x x-ui bin/xray-linux-$(arch3xui)
+    chmod +x /usr/local/x-ui bin/xray-linux-$(arch3xui)
     echo -e "4444444"
     cp -f x-ui.service /etc/systemd/system/
     echo -e "55555555"
