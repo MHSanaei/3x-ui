@@ -80,16 +80,16 @@ config_after_install() {
         read -p "Please set up the panel port:" config_port
         echo -e "${yellow}Your panel port is:${config_port}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
-        /usr/local/3x-ui-p1/x-ui setting -username ${config_account} -password ${config_password}
+        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
         echo -e "${yellow}Account name and password set successfully!${plain}"
-        /usr/local/3x-ui-p1/x-ui setting -port ${config_port}
+        /usr/local/x-ui/x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
     else
         echo -e "${red}cancel...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            /usr/local/3x-ui-p1/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
+            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "this is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
             echo -e "${green}username:${usernameTemp}${plain}"
@@ -100,7 +100,7 @@ config_after_install() {
             echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 7 to check${plain}"
         fi
     fi
-    /usr/local/3x-ui-p1/x-ui migrate
+    /usr/local/x-ui/x-ui migrate
 }
 
 install_x-ui() {
@@ -114,41 +114,34 @@ install_x-ui() {
             exit 1
         fi
         echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/x-ui.tar.gz https://github.com/MasoudKhz/3x-ui/archive/refs/tags/p1.tar.gz
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/MasoudKhz/3x-ui/archive/refs/tags/p1.tar.gz"
+        url="https://github.com/MasoudKhz/3x-ui/releases/${last_version}/x-ui-linux-$(arch3xui).tar.gz"
         echo -e "Begining to install x-ui $1"
-        wget -N --no-check-certificate -O /usr/local/x-ui.tar.gz ${url}
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Download x-ui $1 failed,please check the version exists ${plain}"
             exit 1
         fi
     fi
-    if [[ -e /usr/local/3x-ui-p1/ ]]; then
-        rm /usr/local/3x-ui-p1/ -rf
+
+    if [[ -e /usr/local/x-ui/ ]]; then
+        rm /usr/local/x-ui/ -rf
     fi
 
-    tar zxvf x-ui.tar.gz
-    echo -e "11111111111"
-    rm x-ui.tar.gz -f
-    echo -e "2222222222222"
-    cd /usr/local/3x-ui-p1
-    echo -e "3333333"
+    tar zxvf x-ui-linux-$(arch3xui).tar.gz
+    rm x-ui-linux-$(arch3xui).tar.gz -f
+    cd x-ui
     chmod +x x-ui bin/xray-linux-$(arch3xui)
-    echo -e "4444444"
     cp -f x-ui.service /etc/systemd/system/
-    echo -e "55555555"
-    wget --no-check-certificate -O /usr/bin/3x-ui-p1 https://raw.githubusercontent.com/MasoudKhz/3x-ui/master/x-ui.sh
-    echo -e "666666"
-    chmod +x /usr/local/3x-ui-p1/x-ui.sh
-    echo -e "777777"
+    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
-    echo -e "88888"
     config_after_install
     #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
     #echo -e "Please make sure that this port is not occupied by other procedures,${yellow} And make sure that port 2053 has been released${plain}"
