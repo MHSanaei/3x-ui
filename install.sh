@@ -139,6 +139,7 @@ install_x-ui() {
     echo -e "2222222222222"
     cd /usr/local/3x-ui-p1
     echo -e "3333333"
+    mkdir bin
     chmod +x /usr/local/3x-ui-p1 bin/xray-linux-$(arch3xui)
     echo -e "4444444"
     cp -f x-ui.service /etc/systemd/system/
