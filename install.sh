@@ -80,16 +80,16 @@ config_after_install() {
         read -p "Please set up the panel port:" config_port
         echo -e "${yellow}Your panel port is:${config_port}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
-        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
+        /usr/local/3x-ui-p1/x-ui setting -username ${config_account} -password ${config_password}
         echo -e "${yellow}Account name and password set successfully!${plain}"
-        /usr/local/x-ui/x-ui setting -port ${config_port}
+        /usr/local/3x-ui-p1/x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
     else
         echo -e "${red}cancel...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
+            /usr/local/3x-ui-p1/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "this is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
             echo -e "${green}username:${usernameTemp}${plain}"
@@ -100,7 +100,7 @@ config_after_install() {
             echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 7 to check${plain}"
         fi
     fi
-    /usr/local/x-ui/x-ui migrate
+    /usr/local/3x-ui-p1/x-ui migrate
 }
 
 install_x-ui() {
@@ -129,8 +129,8 @@ install_x-ui() {
             exit 1
         fi
     fi
-    if [[ -e /usr/local/x-ui/ ]]; then
-        rm /usr/local/x-ui/ -rf
+    if [[ -e /usr/local/3x-ui-p1/ ]]; then
+        rm /usr/local/3x-ui-p1/ -rf
     fi
 
     tar zxvf x-ui-linux-$(arch3xui).tar.gz
@@ -139,7 +139,7 @@ install_x-ui() {
     chmod +x x-ui bin/xray-linux-$(arch3xui)
     cp -f x-ui.service /etc/systemd/system/
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MasoudKhz/3x-ui/main/x-ui.sh
-    chmod +x /usr/local/x-ui/x-ui.sh
+    chmod +x /usr/local/3x-ui-p1/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install
     #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
