@@ -133,9 +133,9 @@ install_x-ui() {
         rm /usr/local/x-ui/ -rf
     fi
 
-    tar zxvf x-ui.tar.gz
+    tar zxvf x-ui-linux-$(arch3xui).tar.gz
     echo -e "11111111111"
-    rm x-ui.tar.gz -f
+    rm x-ui-linux-$(arch3xui).tar.gz -f
     echo -e "2222222222222"
     cd /usr/local/3x-ui-p1
     echo -e "3333333"
