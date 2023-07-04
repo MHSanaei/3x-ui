@@ -238,7 +238,7 @@ Reference syntax:
 <details>
   <summary>Click for API routes details</summary>
 
-- `/login` with `PUSH` user data: `{username: '', password: ''}` for login
+- `/login` with `POST` user data: `{username: '', password: ''}` for login
 - `/panel/api/inbounds` base for following actions:
 
 | Method | Path                               | Action                                      |
