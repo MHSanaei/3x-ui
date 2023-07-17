@@ -84,6 +84,7 @@ const SNIFFING_OPTION = {
     HTTP:    "http",
     TLS:     "tls",
     QUIC:    "quic",
+    FAKEDNS: "fakedns"
 };
 
 Object.freeze(Protocols);
@@ -905,7 +906,7 @@ class StreamSettings extends XrayCommonClass {
 }
 
 class Sniffing extends XrayCommonClass {
-    constructor(enabled=true, destOverride=['http', 'tls', 'quic']) {
+    constructor(enabled=true, destOverride=['http', 'tls', 'quic', 'fakedns']) {
         super();
         this.enabled = enabled;
         this.destOverride = destOverride;
@@ -915,7 +916,7 @@ class Sniffing extends XrayCommonClass {
         let destOverride = ObjectUtil.clone(json.destOverride);
         if (!ObjectUtil.isEmpty(destOverride) && !ObjectUtil.isArrEmpty(destOverride)) {
             if (ObjectUtil.isEmpty(destOverride[0])) {
-                destOverride = ['http', 'tls', 'quic'];
+                destOverride = ['http', 'tls', 'quic', 'fakedns'];
             }
         }
         return new Sniffing(
