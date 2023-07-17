@@ -131,7 +131,11 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || dbInbound.isSS">
+                                        <a-menu-item key="qrcode" v-if="dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser">
+                                            <a-icon type="qrcode"></a-icon>
+                                            {{ i18n "qrCode" }}
+                                        </a-menu-item>
+                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || dbInbound.toInbound().isSSMultiUser">
                                             <a-menu-item key="addClient">
                                                 <a-icon type="user-add"></a-icon>
                                                 {{ i18n "pages.client.add"}}
@@ -255,7 +259,7 @@
                                     {{template "client_table"}}
                                 </a-table>
                                 <a-table
-                                v-else-if="record.protocol === Protocols.TROJAN || record.protocol === Protocols.SHADOWSOCKS"
+                                v-else-if="record.protocol === Protocols.TROJAN || record.toInbound().isSSMultiUser"
                                 :row-key="client => client.id"
                                 :columns="innerTrojanColumns"
                                 :data-source="getInboundClients(record)"
@@ -274,7 +278,6 @@
 {{template "js" .}}
 {{template "component/themeSwitcher" .}}
 <script>
-
     const columns = [{
         title: '{{ i18n "pages.inbounds.operate" }}',
         align: 'center',
@@ -357,7 +360,7 @@
             trafficDiff: 0,
             defaultCert: '',
             defaultKey: '',
-            clientCount: {},
+            clientCount: [],
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
             refreshing: false,
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
@@ -409,12 +412,16 @@
             setInbounds(dbInbounds) {
                 this.inbounds.splice(0);
                 this.dbInbounds.splice(0);
+                this.clientCount.splice(0);
                 for (const inbound of dbInbounds) {
                     const dbInbound = new DBInbound(inbound);
                     to_inbound = dbInbound.toInbound()
                     this.inbounds.push(to_inbound);
                     this.dbInbounds.push(dbInbound);
                     if ([Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(inbound.protocol)) {
+                        if (inbound.protocol === Protocols.SHADOWSOCKS && (!to_inbound.isSSMultiUser)) {
+                            continue;
+                        }
                         this.clientCount[inbound.id] = this.getClientCounts(inbound, to_inbound);
                     }
                 }

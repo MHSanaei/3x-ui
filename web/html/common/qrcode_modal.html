@@ -37,7 +37,7 @@
             this.inbound = dbInbound.toInbound();
             settings = JSON.parse(this.inbound.settings);
             this.client = settings.clients[clientIndex];
-            remark = this.dbInbound.remark + "-" + this.client.email;
+            remark = this.dbInbound.remark + ( this.client ? "-" + this.client.email : '');
             address = this.dbInbound.address;
             this.subId = '';
             this.qrcodes = [];
