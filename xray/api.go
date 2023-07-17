@@ -2,15 +2,18 @@ package xray
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"time"
+	"x-ui/logger"
 	"x-ui/util/common"
 
 	"github.com/xtls/xray-core/app/proxyman/command"
 	statsService "github.com/xtls/xray-core/app/stats/command"
 	"github.com/xtls/xray-core/common/protocol"
 	"github.com/xtls/xray-core/common/serial"
+	"github.com/xtls/xray-core/infra/conf"
 	"github.com/xtls/xray-core/proxy/shadowsocks"
 	"github.com/xtls/xray-core/proxy/trojan"
 	"github.com/xtls/xray-core/proxy/vless"
@@ -50,6 +53,33 @@ func (x *XrayAPI) Close() {
 	x.HandlerServiceClient = nil
 	x.StatsServiceClient = nil
 	x.isConnected = false
+}
+
+func (x *XrayAPI) AddInbound(inbound []byte) error {
+	client := *x.HandlerServiceClient
+
+	conf := new(conf.InboundDetourConfig)
+	err := json.Unmarshal(inbound, conf)
+	if err != nil {
+		logger.Debug("Failed to unmarshal inbound:", err)
+	}
+	config, err := conf.Build()
+	if err != nil {
+		logger.Debug("Failed to build inbound Detur:", err)
+	}
+	inboundConfig := command.AddInboundRequest{Inbound: config}
+
+	_, err = client.AddInbound(context.Background(), &inboundConfig)
+
+	return err
+}
+
+func (x *XrayAPI) DelInbound(tag string) error {
+	client := *x.HandlerServiceClient
+	_, err := client.RemoveInbound(context.Background(), &command.RemoveInboundRequest{
+		Tag: tag,
+	})
+	return err
 }
 
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]interface{}) error {
