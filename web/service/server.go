@@ -403,25 +403,20 @@ func (s *ServerService) GetLogs(count string, logLevel string) ([]string, error)
 }
 
 func (s *ServerService) GetConfigJson() (interface{}, error) {
-	// Open the file for reading
-	file, err := os.Open(xray.GetConfigPath())
+	config, err := s.xrayService.GetXrayConfig()
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
-
-	// Read the file contents
-	fileContents, err := io.ReadAll(file)
+	contents, err := json.MarshalIndent(config, "", "  ")
 	if err != nil {
 		return nil, err
 	}
 
 	var jsonData interface{}
-	err = json.Unmarshal(fileContents, &jsonData)
+	err = json.Unmarshal(contents, &jsonData)
 	if err != nil {
 		return nil, err
 	}
-
 	return jsonData, nil
 }
 
