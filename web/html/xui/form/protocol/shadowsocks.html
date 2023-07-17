@@ -1,5 +1,6 @@
 {{define "form/shadowsocks"}}
 <a-form layout="inline" style="padding: 10px 0px;">
+    <template v-if="inbound.isSSMultiUser">
     <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.shadowsockses.slice(0,1)" v-if="!isEdit">
         <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
             <a-form-item>
@@ -106,10 +107,11 @@
             </table>
         </a-collapse-panel>
     </a-collapse>
+</template>
 </a-form>
 <a-form layout="inline">
     <a-form-item label='{{ i18n "encryption" }}'>
-        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-select v-model="inbound.settings.method" style="width: 250px;" :dropdown-class-name="themeSwitcher.darkCardClass" @change="SSMethodChange">
             <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
         </a-select>
     </a-form-item>

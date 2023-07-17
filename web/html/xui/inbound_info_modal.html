@@ -179,6 +179,19 @@
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
             </tr>
         </table>
+        <template v-if="inbound.protocol == Protocols.SHADOWSOCKS && !inbound.isSSMultiUser">
+            <a-divider>URL</a-divider>
+            <a-row v-for="(link,index) in infoModal.links">
+                <a-col :span="22"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+                <a-col :span="2" style="text-align: right;">
+                    <a-tooltip title='{{ i18n "copy" }}'>
+                        <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
+                            <a-icon type="snippets"></a-icon>
+                        </button>
+                    </a-tooltip>
+                </a-col>
+            </a-row>
+        </template>
         <table v-if="inbound.protocol == Protocols.DOKODEMO" style="margin-bottom: 10px; width: 100%;">
             <tr>
                 <th>{{ i18n "pages.inbounds.targetAddress" }}</th>
@@ -251,7 +264,7 @@
             this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
             this.isExpired = this.inbound.isExpiry(index);
             this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            remark = this.dbInbound.remark + "-" + this.clientSettings.email;
+            remark = this.dbInbound.remark + ( this.clientSettings ? "-" + this.clientSettings.email : '');
             address = this.dbInbound.address;
             this.links = [];
             if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {

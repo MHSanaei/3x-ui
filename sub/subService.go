@@ -3,17 +3,18 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
-	"time"
-	ptime "github.com/yaa110/go-persian-calendar"
 	"net/url"
 	"strings"
+	"time"
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
+	"x-ui/util/common"
 	"x-ui/web/service"
 	"x-ui/xray"
-	"x-ui/util/common"
+
 	"github.com/goccy/go-json"
+	ptime "github.com/yaa110/go-persian-calendar"
 )
 
 type SubService struct {
@@ -57,7 +58,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, err
 		}
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
-				link := s.getLink(inbound, client.Email,client.ExpiryTime)
+				link := s.getLink(inbound, client.Email, client.ExpiryTime)
 				result = append(result, link)
 				clientTraffics = append(clientTraffics, s.getClientTraffics(inbound.ClientStats, client.Email))
 			}
@@ -143,7 +144,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string, expiryTi
 	}
 
 	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString :=  getExpiryTime(expiryTime)
+	expiryTimeString := getExpiryTime(expiryTime)
 
 	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
 	obj := map[string]interface{}{
@@ -456,7 +457,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, expiryTi
 	url.RawQuery = q.Encode()
 
 	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString :=  getExpiryTime(expiryTime)
+	expiryTimeString := getExpiryTime(expiryTime)
 
 	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
 
@@ -668,7 +669,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, expiryT
 	url.RawQuery = q.Encode()
 
 	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString :=  getExpiryTime(expiryTime)
+	expiryTimeString := getExpiryTime(expiryTime)
 
 	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
 
@@ -695,6 +696,8 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, ex
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
 	}
+	var stream map[string]interface{}
+	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	clients, _ := s.inboundService.GetClients(inbound)
 
 	var settings map[string]interface{}
@@ -708,13 +711,69 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, ex
 			break
 		}
 	}
-	encPart := fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
-	
-	remainedTraffic := s.getRemainedTraffic(clients[clientIndex].Email)
-	expiryTimeString :=  getExpiryTime(expiryTime)
+	streamNetwork := stream["network"].(string)
+	params := make(map[string]string)
+	params["type"] = streamNetwork
 
-	remark := fmt.Sprintf("%s: %s- %s", clients[clientIndex].Email, remainedTraffic ,expiryTimeString)
-	return fmt.Sprintf("ss://%s@%s:%d#%s", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port, remark)
+	switch streamNetwork {
+	case "tcp":
+		tcp, _ := stream["tcpSettings"].(map[string]interface{})
+		header, _ := tcp["header"].(map[string]interface{})
+		typeStr, _ := header["type"].(string)
+		if typeStr == "http" {
+			request := header["request"].(map[string]interface{})
+			requestPath, _ := request["path"].([]interface{})
+			params["path"] = requestPath[0].(string)
+			headers, _ := request["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
+			params["headerType"] = "http"
+		}
+	case "kcp":
+		kcp, _ := stream["kcpSettings"].(map[string]interface{})
+		header, _ := kcp["header"].(map[string]interface{})
+		params["headerType"] = header["type"].(string)
+		params["seed"] = kcp["seed"].(string)
+	case "ws":
+		ws, _ := stream["wsSettings"].(map[string]interface{})
+		params["path"] = ws["path"].(string)
+		headers, _ := ws["headers"].(map[string]interface{})
+		params["host"] = searchHost(headers)
+	case "http":
+		http, _ := stream["httpSettings"].(map[string]interface{})
+		params["path"] = http["path"].(string)
+		params["host"] = searchHost(http)
+	case "quic":
+		quic, _ := stream["quicSettings"].(map[string]interface{})
+		params["quicSecurity"] = quic["security"].(string)
+		params["key"] = quic["key"].(string)
+		header := quic["header"].(map[string]interface{})
+		params["headerType"] = header["type"].(string)
+	case "grpc":
+		grpc, _ := stream["grpcSettings"].(map[string]interface{})
+		params["serviceName"] = grpc["serviceName"].(string)
+		if grpc["multiMode"].(bool) {
+			params["mode"] = "multi"
+		}
+	}
+
+	encPart := fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
+	url, _ := url.Parse(link)
+	q := url.Query()
+
+	for k, v := range params {
+		q.Add(k, v)
+	}
+
+	// Set the new query values on the URL
+	url.RawQuery = q.Encode()
+
+	remainedTraffic := s.getRemainedTraffic(email)
+	expiryTimeString := getExpiryTime(expiryTime)
+
+	remark := fmt.Sprintf("%s: %s- %s", clients[clientIndex].Email, remainedTraffic, expiryTimeString)
+	url.Fragment = remark
+	return url.String()
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {
@@ -759,26 +818,26 @@ func searchHost(headers interface{}) string {
 	return ""
 }
 
-func getExpiryTime(expiryTime int64) string{
+func getExpiryTime(expiryTime int64) string {
 	now := time.Now().Unix()
 	expiryString := ""
 
 	timeDifference := expiryTime/1000 - now
-	
+
 	if expiryTime == 0 {
-			expiryString = "♾ ⏳"
-		} else if timeDifference > 172800 {
-			expiryString = fmt.Sprintf("%s ⏳", ptime.Unix((expiryTime / 1000), 0).Format("yy-MM-dd hh:mm"))
-		} else if expiryTime < 0 {
-			expiryString = fmt.Sprintf("%d ⏳", expiryTime/-86400000)
-		} else {
-			expiryString = fmt.Sprintf("%s %d ⏳", "ساعت", timeDifference/3600)
-		}
+		expiryString = "♾ ⏳"
+	} else if timeDifference > 172800 {
+		expiryString = fmt.Sprintf("%s ⏳", ptime.Unix((expiryTime/1000), 0).Format("yy-MM-dd hh:mm"))
+	} else if expiryTime < 0 {
+		expiryString = fmt.Sprintf("%d ⏳", expiryTime/-86400000)
+	} else {
+		expiryString = fmt.Sprintf("%s %d ⏳", "ساعت", timeDifference/3600)
+	}
 
 	return expiryString
 }
 
-func (s *SubService) getRemainedTraffic( email string) string{
+func (s *SubService) getRemainedTraffic(email string) string {
 	traffic, err := s.inboundService.GetClientTrafficByEmail(email)
 	if err != nil {
 		logger.Warning(err)
@@ -788,7 +847,7 @@ func (s *SubService) getRemainedTraffic( email string) string{
 	if traffic.Total == 0 {
 		remainedTraffic = "♾ 📊"
 	} else {
-		remainedTraffic = fmt.Sprintf("%s%s" ,common.FormatTraffic(traffic.Total-(traffic.Up+traffic.Down)), "📊")
+		remainedTraffic = fmt.Sprintf("%s%s", common.FormatTraffic(traffic.Total-(traffic.Up+traffic.Down)), "📊")
 	}
 
 	return remainedTraffic

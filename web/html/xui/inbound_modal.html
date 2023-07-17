@@ -54,23 +54,11 @@
         },
     };
 
-    const protocols = {
-        VMESS: Protocols.VMESS,
-        VLESS: Protocols.VLESS,
-        TROJAN: Protocols.TROJAN,
-        SHADOWSOCKS: Protocols.SHADOWSOCKS,
-        DOKODEMO: Protocols.DOKODEMO,
-        SOCKS: Protocols.SOCKS,
-        HTTP: Protocols.HTTP,
-    };
-
     new Vue({
         delimiters: ['[[', ']]'],
         el: '#inbound-modal',
         data: {
             inModal: inModal,
-            Protocols: protocols,
-            SSMethods: SSMethods,
             delayedStart: false,
             get inbound() {
                 return inModal.inbound;
@@ -115,6 +103,17 @@
                     this.inModal.inbound.settings.vlesses.forEach(client => {
                         client.flow = "";
                     });
+                }
+            },
+            SSMethodChange() {
+                if (this.inModal.inbound.isSSMultiUser) {
+                    if (this.inModal.inbound.settings.shadowsockses.length ==0){
+                        this.inModal.inbound.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
+                    }
+                } else {
+                    if (this.inModal.inbound.settings.shadowsockses.length > 0){
+                        this.inModal.inbound.settings.shadowsockses = [];
+                    }
                 }
             },
             setDefaultCertData(index) {
