@@ -56,6 +56,13 @@ elif [[ "${release}" == "debian" ]]; then
     fi
 fi
 
+
+# Declare Variables
+log_folder="${XUI_LOG_FOLDER:=/var/log}"
+iplimit_log_path="${log_folder}/3xipl.log"
+iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
+
+
 confirm() {
     if [[ $# > 1 ]]; then
         echo && read -p "$1 [Default $2]: " temp
@@ -696,110 +703,29 @@ run_speedtest() {
     speedtest
 }
 
-iplimit_main() {
-    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Change Ban Duration"
-    echo -e "${green}\t3.${plain} Unban Everyone"
-    echo -e "${green}\t4.${plain} Check Logs"
-    echo -e "${green}\t5.${plain} Uninstall IP Limit"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
-    case "$choice" in
-        0)
-            show_menu ;;
-        1) 
-            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
-            if [[ $? == 0 ]]; then
-                install_iplimit
-            else
-                iplimit_main
-            fi ;;
-        2)  
-            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
-            if [[ $NUM =~ ^[0-9]+$ ]]; then
-                echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=${NUM}m" > /etc/fail2ban/jail.d/3x-ipl.conf
-                systemctl restart fail2ban
-                echo -e "${green}Bantime set to ${NUM} minutes successfully.${plain}"
-            else
-                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
-            fi
-            iplimit_main ;;
-        3)  
-            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
-            if [[ $? == 0 ]]; then
-                fail2ban-client reload --restart --unban 3x-ipl
-                echo -e "${green}All users Unbanned successfully.${plain}"
-                iplimit_main
-            else
-                echo -e "${yellow}Cancelled.${plain}"
-            fi
-            iplimit_main ;;
-        4)
-            if test -f "/var/log/3xipl-banned.log"; then
-                if [[ -s "/var/log/3xipl-banned.log" ]]; then
-                    cat /var/log/3xipl-banned.log
-                else
-                    echo -e "${red}Log file is empty.${plain}\n"
-                fi
-            else
-                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
-                iplimit_main
-            fi ;;
-        5)  
-            remove_iplimit ;;
-        *) echo "Invalid choice" ;;
-    esac
-}
+create_iplimit_jails() {
+    # Use default bantime if not passed => 5 minutes
+    local bantime="${1:-5}"
 
-install_iplimit() {
-    if ! command -v fail2ban-client &>/dev/null; then
-        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
-        # Check the OS and install necessary packages
-        case "${release}" in
-            ubuntu|debian)
-                apt-get update && apt-get install fail2ban -y ;;
-            centos)
-                yum -y update && yum -y install fail2ban ;;
-            fedora)
-                dnf -y update && dnf -y install fail2ban ;;
-            *)
-                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-                exit 1 ;;
-        esac
-        echo -e "${green}Fail2ban installed successfully!${plain}\n"
-    else
-        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
-    fi
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+[3x-ipl]
+enabled=true
+filter=3x-ipl
+action=3x-ipl
+logpath=${iplimit_log_path}
+maxretry=3
+findtime=100
+bantime=${bantime}m
+EOF
 
-    echo -e "${green}Configuring IP Limit...${plain}\n"
-
-    #Check if [3x-ipl] exists in jail.local (just making sure there's no double config for jail)
-    if grep -qw '3x-ipl' /etc/fail2ban/jail.local || grep -qw '3x-ipl' /etc/fail2ban/jail.conf; then
-        echo -e "${red}Found conflicts in /etc/fail2ban/jail.conf or jail.local file!\nPlease manually remove anything related 3x-ipl in that files and try again.\nInstallation of IP Limit failed.${plain}\n"
-        exit 1
-    fi
-
-    #Check if log file exists
-    if ! test -f "/var/log/3xipl-banned.log"; then
-        touch /var/log/3xipl-banned.log
-    fi
-
-    #Check if service log file exists so fail2ban won't return error
-    if ! test -f "/var/log/3xipl.log"; then
-        touch /var/log/3xipl.log
-    fi
-    
-
-    echo -e "\n[3x-ipl]\nenabled=true\nfilter=3x-ipl\naction=3x-ipl\nlogpath=/var/log/3xipl.log\nmaxretry=3\nfindtime=100\nbantime=5m" > /etc/fail2ban/jail.d/3x-ipl.conf
-
-    cat > /etc/fail2ban/filter.d/3x-ipl.conf << EOF 
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
 ignoreregex =
 EOF
 
-    cat > /etc/fail2ban/action.d/3x-ipl.conf << 'EOF'
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
 before = iptables-common.conf
 
@@ -815,13 +741,124 @@ actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
 actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
-            echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> /var/log/3xipl-banned.log
+            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
 actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
-              echo "$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> /var/log/3xipl-banned.log
+              echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 EOF
+
+    echo -e "${green}Created Ip Limit jail files with a bantime of ${bantime} minutes.${plain}"
+}
+
+iplimit_remove_conflicts() {
+    local jail_files=(
+        /etc/fail2ban/jail.conf
+        /etc/fail2ban/jail.local
+    )
+
+    for file in "${jail_files[@]}"; do
+        # Check for [3x-ipl] config in jail file then remove it
+        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
+            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
+            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
+        fi
+    done
+}
+
+iplimit_main() {
+    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "${green}\t2.${plain} Change Ban Duration"
+    echo -e "${green}\t3.${plain} Unban Everyone"
+    echo -e "${green}\t4.${plain} Check Logs"
+    echo -e "${green}\t5.${plain} Uninstall IP Limit"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        0)
+            show_menu ;;
+        1)
+            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
+            if [[ $? == 0 ]]; then
+                install_iplimit
+            else
+                iplimit_main
+            fi ;;
+        2)
+            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
+            if [[ $NUM =~ ^[0-9]+$ ]]; then
+                create_iplimit_jail ${NUM}
+                systemctl restart fail2ban
+            else
+                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
+            fi
+            iplimit_main ;;
+        3)
+            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
+            if [[ $? == 0 ]]; then
+                fail2ban-client reload --restart --unban 3x-ipl
+                echo -e "${green}All users Unbanned successfully.${plain}"
+                iplimit_main
+            else
+                echo -e "${yellow}Cancelled.${plain}"
+            fi
+            iplimit_main ;;
+        4)
+            if test -f "${iplimit_banned_log_path}"; then
+                if [[ -s "${iplimit_banned_log_path}" ]]; then
+                    cat ${iplimit_banned_log_path}
+                else
+                    echo -e "${red}Log file is empty.${plain}\n"
+                fi
+            else
+                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
+                iplimit_main
+            fi ;;
+        5)
+            remove_iplimit ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
+install_iplimit() {
+    if ! command -v fail2ban-client &>/dev/null; then
+        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+        # Check the OS and install necessary packages
+        case "${release}" in
+            ubuntu|debian)
+                apt update && apt install fail2ban -y ;;
+            centos)
+                yum -y update && yum -y install fail2ban ;;
+            fedora)
+                dnf -y update && dnf -y install fail2ban ;;
+            *)
+                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+                exit 1 ;;
+        esac
+        echo -e "${green}Fail2ban installed successfully!${plain}\n"
+    else
+        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
+    fi
+
+    echo -e "${green}Configuring IP Limit...${plain}\n"
+
+    # make sure there's no conflict for jail files
+    iplimit_remove_conflicts
+
+    # Check if log file exists
+    if ! test -f "${iplimit_banned_log_path}"; then
+        touch ${iplimit_banned_log_path}
+    fi
+
+    # Check if service log file exists so fail2ban won't return error
+    if ! test -f "${iplimit_log_path}"; then
+        touch ${iplimit_log_path}
+    fi
+
+    # Create the iplimit jail files
+    # we didn't pass the bantime here to use the default value
+    create_iplimit_jails
 
     # Launching fail2ban
     if ! systemctl is-active --quiet fail2ban; then
@@ -856,7 +893,7 @@ remove_iplimit(){
             systemctl disable fail2ban
             case "${release}" in
                 ubuntu|debian)
-                    apt-get remove fail2ban -y ;;
+                    apt remove fail2ban -y ;;
                 centos)
                     yum -y remove fail2ban ;;
                 fedora)
@@ -865,7 +902,7 @@ remove_iplimit(){
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
             esac
-            rm -rf /etc/fail2ban/*
+            rm -rf /etc/fail2ban
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         0) 
