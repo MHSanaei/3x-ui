@@ -29,14 +29,23 @@ To install your desired version you can add the version to the end of install co
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.7.1
 ```
 
-# SSL
+# SSL & BackUp
 
 ```
 apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
-```
 
+=============================================================================================
+First Install tar : sudo apt-get install tar
+
+Backup : tar zcvf /tmp/letsencrypt_backup_$(date +'%Y-%m-%d_%H%M').tar.gz /etc/letsencrypt
+
+Check Backup: tar tvf /tmp/letsencrypt_backup_YEAR-MONTH-DAY_HOURMIUTE.tar.gz 
+
+Restore: tar zxvf /tmp/letsencrypt_backup_YEAR-MONTH-DAY_HOURMIUTE.tar.gz -C /
+
+```
 You also can use `x-ui` menu then select `16. SSL Certificate Management`
 
 # Features
