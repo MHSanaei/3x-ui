@@ -788,7 +788,7 @@ iplimit_main() {
         2)
             read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
             if [[ $NUM =~ ^[0-9]+$ ]]; then
-                create_iplimit_jail ${NUM}
+                create_iplimit_jails ${NUM}
                 systemctl restart fail2ban
             else
                 echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
