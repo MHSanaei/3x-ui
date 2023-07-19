@@ -772,7 +772,8 @@ iplimit_main() {
     echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Unban Everyone"
     echo -e "${green}\t4.${plain} Check Logs"
-    echo -e "${green}\t5.${plain} Uninstall IP Limit"
+    echo -e "${green}\t5.${plain} fail2ban status"
+    echo -e "${green}\t6.${plain} Uninstall IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -816,6 +817,10 @@ iplimit_main() {
                 iplimit_main
             fi ;;
         5)
+            service fail2ban status
+            ;;
+
+        6)
             remove_iplimit ;;
         *) echo "Invalid choice" ;;
     esac
@@ -886,23 +891,19 @@ remove_iplimit(){
             echo -e "${green}IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         2)  
-            rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-            rm -f /etc/fail2ban/action.d/3x-ipl.conf
-            rm -f /etc/fail2ban/jail.d/3x-ipl.conf
+            rm -rf /etc/fail2ban
             systemctl stop fail2ban
-            systemctl disable fail2ban
             case "${release}" in
                 ubuntu|debian)
-                    apt remove fail2ban -y ;;
+                    apt-get purge fail2ban -y;;
                 centos)
-                    yum -y remove fail2ban ;;
+                    yum remove fail2ban -y;;
                 fedora)
-                    dnf -y remove fail2ban ;;
+                    dnf remove fail2ban -y;;
                 *)
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
             esac
-            rm -rf /etc/fail2ban
             echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
             before_show_menu ;;
         0) 
