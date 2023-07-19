@@ -14,7 +14,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.23.6
 	github.com/xtls/xray-core v1.8.3
-	github.com/yaa110/go-persian-calendar v1.1.5
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.11.0
 	google.golang.org/grpc v1.56.2
