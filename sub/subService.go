@@ -14,7 +14,6 @@ import (
 	"x-ui/xray"
 
 	"github.com/goccy/go-json"
-	ptime "github.com/yaa110/go-persian-calendar"
 )
 
 type SubService struct {
@@ -827,11 +826,11 @@ func getExpiryTime(expiryTime int64) string {
 	if expiryTime == 0 {
 		expiryString = "♾ ⏳"
 	} else if timeDifference > 172800 {
-		expiryString = fmt.Sprintf("%s ⏳", ptime.Unix((expiryTime/1000), 0).Format("yy-MM-dd hh:mm"))
+		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/86400, "Days")
 	} else if expiryTime < 0 {
-		expiryString = fmt.Sprintf("%d ⏳", expiryTime/-86400000)
+		expiryString = fmt.Sprintf("%d %s⏳", expiryTime/-86400000, "Days")
 	} else {
-		expiryString = fmt.Sprintf("%s %d ⏳", "ساعت", timeDifference/3600)
+		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/3600, "Hours")
 	}
 
 	return expiryString

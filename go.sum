@@ -270,8 +270,6 @@ github.com/xtls/reality v0.0.0-20230613075828-e07c3b04b983 h1:AMyzgjkh54WocjQSlC
 github.com/xtls/reality v0.0.0-20230613075828-e07c3b04b983/go.mod h1:rkuAY1S9F8eI8gDiPDYvACE8e2uwkyg8qoOTuwWov7Y=
 github.com/xtls/xray-core v1.8.3 h1:lxaVklPjLKqUU4ua4qH8SBaRcAaNHlH+LmXOx0U/Ejg=
 github.com/xtls/xray-core v1.8.3/go.mod h1:i7t4JFnq828P2+XK0XjGQ8W9x78iu+EJ7jI4l3sonIw=
-github.com/yaa110/go-persian-calendar v1.1.5 h1:EUipRRhzE6bR2NZaSyZ5BEOP46LGbUjzQgdC+Ivrbe4=
-github.com/yaa110/go-persian-calendar v1.1.5/go.mod h1:qtnmHCS9u1EiwzzSCSttGoxD5NfV9ZMzymxFCBYmqfg=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
