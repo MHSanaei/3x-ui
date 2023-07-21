@@ -191,6 +191,27 @@ If you want to use routing to WARP follow steps as below:
 
 </details>
 
+# IP Limit
+
+<details>
+  <summary>Click for IP Limit details</summary>
+
+**Note: IP Limit won't work correctly when using IP Tunnel**
+
+- For versions up to `v1.6.1`:
+
+  - IP limit is built-in into the panel.
+
+- For versions `v1.7.0` and newer:
+
+  - To make IP Limit work properly, you need to install fail2ban and its required files by following these steps:
+
+    1. Use the `x-ui` command inside the shell.
+    2. Select `16. IP Limit Management`.
+    3. Choose the appropriate options based on your needs.
+
+</details>
+
 # Telegram Bot
 
 <details>
