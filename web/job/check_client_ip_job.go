@@ -20,7 +20,6 @@ type CheckClientIpJob struct {}
 var job *CheckClientIpJob
 var disAllowedIps []string
 var ipFiles = []string{
-	xray.GetBlockedIPsPath(),
 	xray.GetIPLimitLogPath(),
 	xray.GetIPLimitBannedLogPath(),
 	xray.GetAccessPersistentLogPath(),
@@ -45,11 +44,6 @@ func (j *CheckClientIpJob) Run() {
 	if j.hasLimitIp() {
 		j.processLogFile()
 	}
-
-	// write to blocked ips
-	blockedIps := []byte(strings.Join(disAllowedIps, ","))
-	err := os.WriteFile(xray.GetBlockedIPsPath(), blockedIps, 0644)
-	j.checkError(err)
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
