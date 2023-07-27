@@ -755,7 +755,10 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, ex
 		}
 	}
 
-	encPart := fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	encPart := fmt.Sprintf("%s:%s", method, clients[clientIndex].Password)
+	if method[0] == '2' {
+		encPart = fmt.Sprintf("%s:%s:%s", method, inboundPassword, clients[clientIndex].Password)
+	}
 	link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
 	url, _ := url.Parse(link)
 	q := url.Query()

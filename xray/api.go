@@ -63,10 +63,12 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 	err := json.Unmarshal(inbound, conf)
 	if err != nil {
 		logger.Debug("Failed to unmarshal inbound:", err)
+		return err
 	}
 	config, err := conf.Build()
 	if err != nil {
 		logger.Debug("Failed to build inbound Detur:", err)
+		return err
 	}
 	inboundConfig := command.AddInboundRequest{Inbound: config}
 

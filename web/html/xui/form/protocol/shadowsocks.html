@@ -115,7 +115,7 @@
             <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label='{{ i18n "password" }}'>
+    <a-form-item v-if="inbound.isSS2022" label='{{ i18n "password" }}'>
         <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
         <a-input v-model.trim="inbound.settings.password" style="width: 250px;"></a-input>
     </a-form-item>
