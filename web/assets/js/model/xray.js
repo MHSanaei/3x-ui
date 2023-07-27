@@ -16,9 +16,10 @@ const VmessMethods = {
 };
 
 const SSMethods = {
-    CHACHA20_POLY1305: 'chacha20-poly1305',
     AES_256_GCM: 'aes-256-gcm',
     AES_128_GCM: 'aes-128-gcm',
+    CHACHA20_POLY1305: 'chacha20-poly1305',
+    XCHACHA20_POLY1305: 'xchacha20-poly1305',
     BLAKE3_AES_128_GCM: '2022-blake3-aes-128-gcm',
     BLAKE3_AES_256_GCM: '2022-blake3-aes-256-gcm',
     BLAKE3_CHACHA20_POLY1305: '2022-blake3-chacha20-poly1305',
@@ -1040,7 +1041,10 @@ class Inbound extends XrayCommonClass {
         }
     }
     get isSSMultiUser() {
-        return [SSMethods.BLAKE3_AES_128_GCM,SSMethods.BLAKE3_AES_256_GCM].includes(this.method);
+        return this.method != SSMethods.BLAKE3_CHACHA20_POLY1305;
+    }
+    get isSS2022(){
+        return this.method.substring(0,4) === "2022";
     }
 
     get serverName() {
@@ -1470,9 +1474,11 @@ class Inbound extends XrayCommonClass {
                 break;
         }
 
-        let clientPassword = this.isSSMultiUser ? ':' + settings.shadowsockses[clientIndex].password : '';
+        let password = new Array();
+        if (this.isSSMultiUser) password.push(settings.shadowsockses[clientIndex].password);
+        if (this.isSS2022) password.push(settings.password);
 
-        let link = `ss://${safeBase64(settings.method + ':' + settings.password + clientPassword)}@${address}:${this.port}`;
+        let link = `ss://${safeBase64(settings.method + ':' + password.join(':'))}@${address}:${this.port}`;
         const url = new URL(link);
         for (const [key, value] of params) {
             url.searchParams.set(key, value)
@@ -2097,8 +2103,9 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 };
 
 Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
+    constructor(method='', password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
         super();
+        this.method = method;
         this.password = password;
         this.email = email;
         this.limitIp = limitIp;
@@ -2111,6 +2118,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
 
     toJson() {
         return {
+            method: this.method,
             password: this.password,
             email: this.email,
             limitIp: this.limitIp,
@@ -2124,6 +2132,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
 
     static fromJson(json = {}) {
         return new Inbound.ShadowsocksSettings.Shadowsocks(
+            json.method,
             json.password,
             json.email,
             json.limitIp,
