@@ -224,7 +224,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 }
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
-	url := "https://api.github.com/repos/MHSanaei/Xray-core/releases"
+	url := "https://api.github.com/repos/XTLS/Xray-core/releases"
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -243,14 +243,17 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	versions := make([]string, 0, len(releases))
+	var versions []string
 	for _, release := range releases {
-		versions = append(versions, release.TagName)
+		if release.TagName >= "v1.7.5" {
+			versions = append(versions, release.TagName)
+		}
 	}
 	return versions, nil
 }
 
 func (s *ServerService) StopXrayService() (string error) {
+
 	err := s.xrayService.StopXray()
 	if err != nil {
 		logger.Error("stop xray failed:", err)
@@ -261,6 +264,7 @@ func (s *ServerService) StopXrayService() (string error) {
 }
 
 func (s *ServerService) RestartXrayService() (string error) {
+
 	s.xrayService.StopXray()
 	defer func() {
 		err := s.xrayService.RestartXray(true)
@@ -289,7 +293,7 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	}
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)
-	url := fmt.Sprintf("https://github.com/MHSanaei/Xray-core/releases/download/%s/%s", version, fileName)
+	url := fmt.Sprintf("https://github.com/XTLS/Xray-core/releases/download/%s/%s", version, fileName)
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", err
@@ -370,10 +374,6 @@ func (s *ServerService) UpdateXray(version string) error {
 	if err != nil {
 		return err
 	}
-	err = copyZipFile("iran.dat", xray.GetIranPath())
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -417,6 +417,7 @@ func (s *ServerService) GetConfigJson() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return jsonData, nil
 }
 
