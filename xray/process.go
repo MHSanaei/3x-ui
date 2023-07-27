@@ -40,14 +40,6 @@ func GetGeoipPath() string {
 	return config.GetBinFolderPath() + "/geoip.dat"
 }
 
-func GetIranPath() string {
-	return config.GetBinFolderPath() + "/iran.dat"
-}
-
-func GetBlockedIPsPath() string {
-	return config.GetBinFolderPath() + "/BlockedIps"
-}
-
 func GetIPLimitLogPath() string {
 	return config.GetLogFolder() + "/3xipl.log"
 }
@@ -87,7 +79,6 @@ func GetAccessLogPath() string {
 func stopProcess(p *Process) {
 	p.Stop()
 }
-
 
 type Process struct {
 	*process
@@ -203,7 +194,7 @@ func (p *process) Start() (err error) {
 		return common.NewErrorf("Failed to write configuration file: %v", err)
 	}
 
-	cmd := exec.Command(GetBinaryPath(), "-c", configPath, "-restrictedIPsPath", GetBlockedIPsPath())
+	cmd := exec.Command(GetBinaryPath(), "-c", configPath)
 	p.cmd = cmd
 
 	stdReader, err := cmd.StdoutPipe()
