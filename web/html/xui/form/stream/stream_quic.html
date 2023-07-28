@@ -8,7 +8,8 @@
         </a-select>
     </a-form-item>
     <a-form-item label='{{ i18n "password" }}'>
-        <a-input v-model.trim="inbound.stream.quic.key"></a-input>
+        <a-icon @click="inbound.stream.quic.key = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
+        <a-input v-model.trim="inbound.stream.quic.key" style="width: 150px;"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "camouflage" }}'>
         <a-select v-model="inbound.stream.quic.type" style="width: 280px;" :dropdown-class-name="themeSwitcher.darkCardClass">
