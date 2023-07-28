@@ -425,7 +425,7 @@ class HttpStreamSettings extends XrayCommonClass {
 
 class QuicStreamSettings extends XrayCommonClass {
     constructor(security=VmessMethods.NONE,
-                key='', type='none') {
+                key=RandomUtil.randomSeq(10), type='none') {
         super();
         this.security = security;
         this.key = key;

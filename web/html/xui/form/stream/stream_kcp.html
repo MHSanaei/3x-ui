@@ -12,7 +12,8 @@
     </a-form-item>
     <br>
     <a-form-item label='{{ i18n "password" }}'>
-        <a-input v-model="inbound.stream.kcp.seed"></a-input>
+        <a-icon @click="inbound.stream.kcp.seed = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
+        <a-input v-model="inbound.stream.kcp.seed" style="width: 150px;" ></a-input>
     </a-form-item>
     <br>
     <a-form-item label="MTU">
