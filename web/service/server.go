@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -378,28 +379,26 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
-func (s *ServerService) GetLogs(count string, logLevel string) ([]string, error) {
-	var cmdArgs []string
-	if runtime.GOOS == "linux" {
-		cmdArgs = []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count}
-		if logLevel != "" {
-			cmdArgs = append(cmdArgs, "-p", logLevel)
+func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
+	c, _ := strconv.Atoi(count)
+	var lines []string
+
+	if syslog == "true" {
+		cmdArgs := []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count, "-p", level}
+		// Run the command
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			return []string{"Failed to run journalctl command!"}
 		}
+		lines = strings.Split(out.String(), "\n")
 	} else {
-		return []string{"Unsupported operating system"}, nil
+		lines = logger.GetLogs(c, level)
 	}
 
-	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	lines := strings.Split(out.String(), "\n")
-
-	return lines, nil
+	return lines
 }
 
 func (s *ServerService) GetConfigJson() (interface{}, error) {
