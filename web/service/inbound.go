@@ -316,26 +316,21 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 
 	needRestart := false
 	s.xrayApi.Init(p.GetAPIPort())
-	err1 := s.xrayApi.DelInbound(tag)
-	if err1 != nil {
-		logger.Debug("Unable to delete old inbound by api:", err1)
-		needRestart = true
-	} else {
+	if s.xrayApi.DelInbound(tag) == nil {
 		logger.Debug("Old inbound deleted by api:", tag)
-
-		if inbound.Enable {
-			inboundJson, err2 := json.MarshalIndent(oldInbound.GenXrayInboundConfig(), "", "  ")
-			if err2 != nil {
-				logger.Debug("Unable to marshal updated inbound config:", err2)
-				needRestart = true
+	}
+	if inbound.Enable {
+		inboundJson, err2 := json.MarshalIndent(oldInbound.GenXrayInboundConfig(), "", "  ")
+		if err2 != nil {
+			logger.Debug("Unable to marshal updated inbound config:", err2)
+			needRestart = true
+		} else {
+			err2 = s.xrayApi.AddInbound(inboundJson)
+			if err2 == nil {
+				logger.Debug("Updated inbound added by api:", oldInbound.Tag)
 			} else {
-				err2 = s.xrayApi.AddInbound(inboundJson)
-				if err2 == nil {
-					logger.Debug("Updated inbound added by api:", oldInbound.Tag)
-				} else {
-					logger.Debug("Unable to update inbound by api:", err2)
-					needRestart = true
-				}
+				logger.Debug("Unable to update inbound by api:", err2)
+				needRestart = true
 			}
 		}
 	}
@@ -662,7 +657,9 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	needRestart := false
 	if len(oldEmail) > 0 {
 		s.xrayApi.Init(p.GetAPIPort())
-		s.xrayApi.RemoveUser(oldInbound.Tag, oldEmail)
+		if s.xrayApi.RemoveUser(oldInbound.Tag, oldEmail) == nil {
+			logger.Debug("Old client deleted by api:", clients[0].Email)
+		}
 		if clients[0].Enable {
 			cipher := ""
 			if oldInbound.Protocol == "shadowsocks" {
@@ -681,8 +678,6 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 				logger.Debug("Error in adding client by api:", err1)
 				needRestart = true
 			}
-		} else {
-			logger.Debug("Client disabled by api:", clients[0].Email)
 		}
 		s.xrayApi.Close()
 	} else {
