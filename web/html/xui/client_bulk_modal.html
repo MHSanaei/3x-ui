@@ -200,21 +200,12 @@
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;
         },
-        getClients(protocol, clientSettings) {
-            switch (protocol) {
-                case Protocols.VMESS: return clientSettings.vmesses;
-                case Protocols.VLESS: return clientSettings.vlesses;
-                case Protocols.TROJAN: return clientSettings.trojans;
-                case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
-                default: return null;
-            }
-        },
         newClient(protocol) {
             switch (protocol) {
                 case Protocols.VMESS: return new Inbound.VmessSettings.Vmess();
                 case Protocols.VLESS: return new Inbound.VLESSSettings.VLESS();
                 case Protocols.TROJAN: return new Inbound.TrojanSettings.Trojan();
-                case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings.Shadowsocks();
+                case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings.Shadowsocks(clientsBulkModal.inbound.settings.shadowsockses[0].method);
                 default: return null;
             }
         },
