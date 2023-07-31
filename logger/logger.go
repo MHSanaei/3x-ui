@@ -1,98 +1,118 @@
 package logger
 
 import (
+	"fmt"
 	"os"
-	"sync"
+	"time"
 
 	"github.com/op/go-logging"
 )
 
-var (
-	logger *logging.Logger
-	mu     sync.Mutex
-)
+var logger *logging.Logger
+var logBuffer []struct {
+	time  string
+	level logging.Level
+	log   string
+}
 
 func init() {
 	InitLogger(logging.INFO)
 }
 
 func InitLogger(level logging.Level) {
-	mu.Lock()
-	defer mu.Unlock()
+	newLogger := logging.MustGetLogger("x-ui")
+	var err error
+	var backend logging.Backend
+	var format logging.Formatter
+	ppid := os.Getppid()
 
-	if logger != nil {
-		return
+	if ppid == 1 {
+		backend, err = logging.NewSyslogBackend("")
+		format = logging.MustStringFormatter(
+			`%{level} - %{message}`,
+		)
+	}
+	if err != nil || ppid != 1 {
+		backend = logging.NewLogBackend(os.Stderr, "", 0)
+		format = logging.MustStringFormatter(
+			`%{time:2006/01/02 15:04:05} %{level} - %{message}`,
+		)
 	}
 
-	format := logging.MustStringFormatter(
-		`%{time:2006/01/02 15:04:05} %{level} - %{message}`,
-	)
-	newLogger := logging.MustGetLogger("x-ui")
-	backend := logging.NewLogBackend(os.Stderr, "", 0)
 	backendFormatter := logging.NewBackendFormatter(backend, format)
 	backendLeveled := logging.AddModuleLevel(backendFormatter)
-	backendLeveled.SetLevel(level, "")
-	newLogger.SetBackend(logging.MultiLogger(backendLeveled))
+	backendLeveled.SetLevel(level, "x-ui")
+	newLogger.SetBackend(backendLeveled)
 
 	logger = newLogger
 }
 
 func Debug(args ...interface{}) {
-	if logger != nil {
-		logger.Debug(args...)
-	}
+	logger.Debug(args...)
+	addToBuffer("DEBUG", fmt.Sprint(args...))
 }
 
 func Debugf(format string, args ...interface{}) {
-	if logger != nil {
-		logger.Debugf(format, args...)
-	}
+	logger.Debugf(format, args...)
+	addToBuffer("DEBUG", fmt.Sprintf(format, args...))
 }
 
 func Info(args ...interface{}) {
-	if logger != nil {
-		logger.Info(args...)
-	}
+	logger.Info(args...)
+	addToBuffer("INFO", fmt.Sprint(args...))
 }
 
 func Infof(format string, args ...interface{}) {
-	if logger != nil {
-		logger.Infof(format, args...)
-	}
+	logger.Infof(format, args...)
+	addToBuffer("INFO", fmt.Sprintf(format, args...))
 }
 
 func Warning(args ...interface{}) {
-	if logger != nil {
-		logger.Warning(args...)
-	}
+	logger.Warning(args...)
+	addToBuffer("WARNING", fmt.Sprint(args...))
 }
 
 func Warningf(format string, args ...interface{}) {
-	if logger != nil {
-		logger.Warningf(format, args...)
-	}
+	logger.Warningf(format, args...)
+	addToBuffer("WARNING", fmt.Sprintf(format, args...))
 }
 
 func Error(args ...interface{}) {
-	if logger != nil {
-		logger.Error(args...)
-	}
+	logger.Error(args...)
+	addToBuffer("ERROR", fmt.Sprint(args...))
 }
 
 func Errorf(format string, args ...interface{}) {
-	if logger != nil {
-		logger.Errorf(format, args...)
-	}
+	logger.Errorf(format, args...)
+	addToBuffer("ERROR", fmt.Sprintf(format, args...))
 }
 
-func Notice(args ...interface{}) {
-	if logger != nil {
-		logger.Notice(args...)
+func addToBuffer(level string, newLog string) {
+	t := time.Now()
+	if len(logBuffer) >= 10240 {
+		logBuffer = logBuffer[1:]
 	}
+
+	logLevel, _ := logging.LogLevel(level)
+	logBuffer = append(logBuffer, struct {
+		time  string
+		level logging.Level
+		log   string
+	}{
+		time:  t.Format("2006/01/02 15:04:05"),
+		level: logLevel,
+		log:   newLog,
+	})
 }
 
-func Noticef(format string, args ...interface{}) {
-	if logger != nil {
-		logger.Noticef(format, args...)
+func GetLogs(c int, level string) []string {
+	var output []string
+	logLevel, _ := logging.LogLevel(level)
+
+	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
+		if logBuffer[i].level <= logLevel {
+			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
+		}
 	}
+	return output
 }

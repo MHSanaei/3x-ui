@@ -402,7 +402,7 @@ class HttpStreamSettings extends XrayCommonClass {
     }
 
     static fromJson(json={}) {
-        return new HttpStreamSettings(json.path, json.host, json.sockopt);
+        return new HttpStreamSettings(json.path, json.host);
     }
 
     toJson() {
@@ -461,8 +461,7 @@ class GrpcStreamSettings extends XrayCommonClass {
     static fromJson(json={}) {
         return new GrpcStreamSettings(
             json.serviceName,
-            json.multiMode,
-            json.sockopt
+            json.multiMode
             );
     }
 
