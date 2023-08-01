@@ -713,8 +713,8 @@ enabled=true
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}
-maxretry=3
-findtime=100
+maxretry=4
+findtime=60
 bantime=${bantime}m
 EOF
 

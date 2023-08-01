@@ -131,7 +131,7 @@ func (j *CheckClientIpJob) processLogFile() {
 	}
 
 	// added 3 seconds delay before cleaning logs to reduce chance of logging IP that already has been banned
-	time.Sleep(time.Second * 3)
+	time.Sleep(time.Second * 2)
 
 	if shouldCleanLog {
 		// copy access log to persistent file
