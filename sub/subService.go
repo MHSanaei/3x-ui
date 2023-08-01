@@ -144,8 +144,15 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string, expiryTi
 
 	remainedTraffic := s.getRemainedTraffic(email)
 	expiryTimeString := getExpiryTime(expiryTime)
+	remark := ""
+	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
 
-	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
+	if isTerminated {
+		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
+	} else {
+		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
+	}
+
 	obj := map[string]interface{}{
 		"v":    "2",
 		"ps":   remark,
@@ -457,8 +464,14 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, expiryTi
 
 	remainedTraffic := s.getRemainedTraffic(email)
 	expiryTimeString := getExpiryTime(expiryTime)
+	remark := ""
+	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
 
-	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
+	if isTerminated {
+		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
+	} else {
+		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
+	}
 
 	if len(domains) > 0 {
 		links := ""
@@ -669,8 +682,14 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, expiryT
 
 	remainedTraffic := s.getRemainedTraffic(email)
 	expiryTimeString := getExpiryTime(expiryTime)
+	remark := ""
+	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
 
-	remark := fmt.Sprintf("%s: %s- %s", email, remainedTraffic, expiryTimeString)
+	if isTerminated {
+		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
+	} else {
+		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
+	}
 
 	if len(domains) > 0 {
 		links := ""
@@ -772,8 +791,15 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, ex
 
 	remainedTraffic := s.getRemainedTraffic(email)
 	expiryTimeString := getExpiryTime(expiryTime)
+	remark := ""
+	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
 
-	remark := fmt.Sprintf("%s: %s- %s", clients[clientIndex].Email, remainedTraffic, expiryTimeString)
+	if isTerminated {
+		remark = fmt.Sprintf("%s: %s⛔️", clients[clientIndex].Email, "Terminated")
+	} else {
+		remark = fmt.Sprintf("%s: %s - %s", clients[clientIndex].Email, remainedTraffic, expiryTimeString)
+	}
+	
 	url.Fragment = remark
 	return url.String()
 }
@@ -825,6 +851,7 @@ func getExpiryTime(expiryTime int64) string {
 	expiryString := ""
 
 	timeDifference := expiryTime/1000 - now
+	isTerminated := timeDifference/3600 <= 0
 
 	if expiryTime == 0 {
 		expiryString = "♾ ⏳"
@@ -832,6 +859,8 @@ func getExpiryTime(expiryTime int64) string {
 		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/86400, "Days")
 	} else if expiryTime < 0 {
 		expiryString = fmt.Sprintf("%d %s⏳", expiryTime/-86400000, "Days")
+	} else if isTerminated {
+		expiryString = fmt.Sprintf("%s⛔️", "Terminated")
 	} else {
 		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/3600, "Hours")
 	}
@@ -846,8 +875,12 @@ func (s *SubService) getRemainedTraffic(email string) string {
 	}
 
 	remainedTraffic := ""
+	isTerminated := traffic.Total-(traffic.Up+traffic.Down) < 0
+
 	if traffic.Total == 0 {
 		remainedTraffic = "♾ 📊"
+	} else if isTerminated {
+		remainedTraffic = fmt.Sprintf("%s⛔️", "Terminated")
 	} else {
 		remainedTraffic = fmt.Sprintf("%s%s", common.FormatTraffic(traffic.Total-(traffic.Up+traffic.Down)), "📊")
 	}
