@@ -508,7 +508,7 @@ update_geo() {
     rm -f geoip.dat geosite.dat iran.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-    wget -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
+    wget -N https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
     systemctl start x-ui
     echo -e "${green}Geosite.dat + Geoip.dat + Iran.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
