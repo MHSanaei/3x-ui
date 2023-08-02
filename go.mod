@@ -7,7 +7,7 @@ require (
 	github.com/Workiva/go-datastructures v1.1.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/goccy/go-json v0.10.2
-	github.com/mymmrac/telego v0.25.1
+	github.com/mymmrac/telego v0.26.0
 	github.com/nicksnyder/go-i18n/v2 v2.2.1
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pelletier/go-toml/v2 v2.0.9
@@ -27,7 +27,7 @@ require (
 	github.com/bytedance/sonic v1.9.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
-	github.com/fasthttp/router v1.4.19 // indirect
+	github.com/fasthttp/router v1.4.20 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gaukas/godicttls v0.0.4 // indirect
