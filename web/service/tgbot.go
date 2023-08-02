@@ -827,7 +827,7 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 		t.SendMsgToTgbot(chatId, output, inlineKeyboard)
 		requestUser := telego.KeyboardButtonRequestUser{
 			RequestID: int32(traffic.Id),
-			UserIsBot: false,
+			UserIsBot: new(bool),
 		}
 		keyboard := tu.Keyboard(
 			tu.KeyboardRow(
