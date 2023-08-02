@@ -66,7 +66,7 @@ require (
 	github.com/refraction-networking/utls v1.3.3 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
-	github.com/sagernet/sing v0.2.9 // indirect
+	github.com/sagernet/sing v0.2.7 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.2 // indirect
 	github.com/sagernet/wireguard-go v0.0.0-20221116151939-c99467f53f2c // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
