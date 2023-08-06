@@ -54,9 +54,8 @@ elif [[ "${release}" == "debian" ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
-    if [false]; then
-        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
-    fi
+    echo "OS is ArchLinux"
+
 else
     echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
 fi
