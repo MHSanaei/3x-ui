@@ -11,6 +11,9 @@
     .ant-col-sm-24 {
         margin-top: 10px;
     }
+    tr.hideExpandIcon .ant-table-row-expand-icon {
+        display: none;
+    }
 </style>
 
 <body>
@@ -118,8 +121,12 @@
                         </a-radio-group>
                         <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
-                                 :loading="spinning" :scroll="{ x: 1300 }"
+                                 :loading="spinning" :scroll="{ x: 1200 }"
                                  :pagination="false"
+                                 :expand-icon-as-cell="false"
+                                 :expand-row-by-click="false"
+                                 :expand-icon-column-index="0"
+                                 :row-class-name="dbInbound => (dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || (dbInbound.isSS && dbInbound.toInbound().isSSMultiUser) ? '' : 'hideExpandIcon')"
                                  style="margin-top: 20px"
                                  @change="() => getDBInbounds()">
                             <template slot="action" slot-scope="text, dbInbound">
@@ -135,7 +142,7 @@
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
                                         </a-menu-item>
-                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || dbInbound.toInbound().isSSMultiUser">
+                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || (dbInbound.isSS && dbInbound.toInbound().isSSMultiUser)">
                                             <a-menu-item key="addClient">
                                                 <a-icon type="user-add"></a-icon>
                                                 {{ i18n "pages.client.add"}}
@@ -255,6 +262,7 @@
                                 :columns="innerColumns"
                                 :data-source="getInboundClients(record)"
                                 :pagination="false"
+                                style="margin-left: 20px;"
                                 >
                                     {{template "client_table"}}
                                 </a-table>
@@ -264,6 +272,7 @@
                                 :columns="innerTrojanColumns"
                                 :data-source="getInboundClients(record)"
                                 :pagination="false"
+                                style="margin-left: 20px;"
                                 >
                                     {{template "client_table"}}
                                 </a-table>
@@ -279,20 +288,20 @@
 {{template "component/themeSwitcher" .}}
 <script>
     const columns = [{
+        title: "ID",
+        align: 'right',
+        dataIndex: "id",
+        width: 30,
+    }, {
         title: '{{ i18n "pages.inbounds.operate" }}',
         align: 'center',
-        width: 60,
+        width: 40,
         scopedSlots: { customRender: 'action' },
     }, {
         title: '{{ i18n "pages.inbounds.enable" }}',
         align: 'center',
         width: 40,
         scopedSlots: { customRender: 'enable' },
-    }, {
-        title: "ID",
-        align: 'center',
-        dataIndex: "id",
-        width: 40,
     }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
         align: 'center',
@@ -340,7 +349,7 @@
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 50, scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 50, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'Password', width: 170, dataIndex: "password" },
+        { title: '{{ i18n "password" }}', width: 170, dataIndex: "password" },
     ];
 
     const app = new Vue({
