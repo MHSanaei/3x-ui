@@ -321,6 +321,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - Debian 10+
 - CentOS 8+
 - Fedora 36+
+- Arch Linux
 
 # Pictures
 
