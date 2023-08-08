@@ -648,6 +648,83 @@ ssl_cert_issue() {
     fi
 }
 
+ssl_cert_issue_CF() {
+    echo -E ""
+    LOGD "******Instructions for use******"
+    LOGI "This Acme script requires the following data:"
+    LOGI "1.Cloudflare Registered e-mail"
+    LOGI "2.Cloudflare Global API Key"
+    LOGI "3.The domain name that has been resolved dns to the current server by Cloudflare"
+    LOGI "4.The script applies for a certificate. The default installation path is /root/cert "
+    confirm "Confirmed?[y/n]" "y"
+    if [ $? -eq 0 ]; then
+        # check for acme.sh first
+        if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+            echo "acme.sh could not be found. we will install it"
+            install_acme
+            if [ $? -ne 0 ]; then
+                LOGE "install acme failed, please check logs"
+                exit 1
+            fi
+        fi
+        CF_Domain=""
+        CF_GlobalKey=""
+        CF_AccountEmail=""
+        certPath=/root/cert
+        if [ ! -d "$certPath" ]; then
+            mkdir $certPath
+        else
+            rm -rf $certPath
+            mkdir $certPath
+        fi
+        LOGD "Please set a domain name:"
+        read -p "Input your domain here:" CF_Domain
+        LOGD "Your domain name is set to:${CF_Domain}"
+        LOGD "Please set the API key:"
+        read -p "Input your key here:" CF_GlobalKey
+        LOGD "Your API key is:${CF_GlobalKey}"
+        LOGD "Please set up registered email:"
+        read -p "Input your email here:" CF_AccountEmail
+        LOGD "Your registered email address is:${CF_AccountEmail}"
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+        if [ $? -ne 0 ]; then
+            LOGE "Default CA, Lets'Encrypt fail, script exiting..."
+            exit 1
+        fi
+        export CF_Key="${CF_GlobalKey}"
+        export CF_Email=${CF_AccountEmail}
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log
+        if [ $? -ne 0 ]; then
+            LOGE "Certificate issuance failed, script exiting..."
+            exit 1
+        else
+            LOGI "Certificate issued Successfully, Installing..."
+        fi
+        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
+        --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
+        --fullchain-file /root/cert/fullchain.cer
+        if [ $? -ne 0 ]; then
+            LOGE "Certificate installation failed, script exiting..."
+            exit 1
+        else
+            LOGI "Certificate installed Successfully,Turning on automatic updates..."
+        fi
+        ~/.acme.sh/acme.sh --upgrade --auto-upgrade
+        if [ $? -ne 0 ]; then
+            LOGE "Auto update setup Failed, script exiting..."
+            ls -lah cert
+            chmod 755 $certPath
+            exit 1
+        else
+            LOGI "The certificate is installed and auto-renewal is turned on, Specific information is as follows"
+            ls -lah cert
+            chmod 755 $certPath
+        fi
+    else
+        show_menu
+    fi
+}
+
 warp_cloudflare() {
     echo -e "${green}\t1.${plain} Install WARP socks5 proxy"
     echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
@@ -958,16 +1035,17 @@ show_menu() {
   ${green}14.${plain} Disable x-ui On System Startup
 ————————————————
   ${green}15.${plain} SSL Certificate Management
-  ${green}16.${plain} IP Limit Management
-  ${green}17.${plain} WARP Management
+  ${green}16.${plain} Cloudflare SSL Certificate
+  ${green}17.${plain} IP Limit Management
+  ${green}18.${plain} WARP Management
 ————————————————
-  ${green}18.${plain} Enable BBR 
-  ${green}19.${plain} Update Geo Files
-  ${green}20.${plain} Active Firewall and open ports
-  ${green}21.${plain} Speedtest by Ookla
+  ${green}19.${plain} Enable BBR 
+  ${green}20.${plain} Update Geo Files
+  ${green}21.${plain} Active Firewall and open ports
+  ${green}22.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-21]: " num
+    echo && read -p "Please enter your selection [0-22]: " num
 
     case "${num}" in
     0)
@@ -1019,25 +1097,28 @@ show_menu() {
         ssl_cert_issue_main
         ;;
     16)
-        iplimit_main
+        ssl_cert_issue_CF
         ;;
     17)
-        warp_cloudflare
+        iplimit_main
         ;;
     18)
-        enable_bbr
+        warp_cloudflare
         ;;
     19)
-        update_geo
+        enable_bbr
         ;;
     20)
-        open_ports
+        update_geo
         ;;
     21)
+        open_ports
+        ;;
+    22)
         run_speedtest
         ;;    
     *)
-        LOGE "Please enter the correct number [0-21]"
+        LOGE "Please enter the correct number [0-22]"
         ;;
     esac
 }
