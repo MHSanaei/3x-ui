@@ -58,8 +58,19 @@
                 reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
                 reality Destination: <a-tag :color="inbound.stream.reality.dest ? 'green' : 'orange'">[[ inbound.stream.reality.dest ]]</a-tag>
             </td>
-            <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag>
-            </td>
+            <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag></td>
+        </tr>
+    </table>
+    <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">
+        <tr>
+            <td>{{ i18n "encryption" }}</td>
+            <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
+        </tr><tr v-if="inbound.isSS2022">
+            <td>{{ i18n "password" }}</td>
+            <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
+        </tr><tr>
+            <td>{{ i18n "pages.inbounds.network" }}</td>
+            <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
         </tr>
     </table>
     <template v-if="infoModal.clientSettings">
@@ -167,19 +178,7 @@
     </template>
 </template>
     <template v-else>
-        <a-divider></a-divider>
-        <table v-if="inbound.protocol == Protocols.SHADOWSOCKS" style="margin-bottom: 10px; width: 100%;">
-            <tr>
-                <th>{{ i18n "encryption" }}</th>
-                <th>{{ i18n "password" }}</th>
-                <th>{{ i18n "pages.inbounds.network" }}</th>
-            </tr><tr>
-                <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
-                <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
-            </tr>
-        </table>
-        <template v-if="inbound.protocol == Protocols.SHADOWSOCKS && !inbound.isSSMultiUser">
+        <template v-if="dbInbound.isSS && !inbound.isSSMultiUser">
             <a-divider>URL</a-divider>
             <a-row v-for="(link,index) in infoModal.links">
                 <a-col :span="22"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
@@ -205,17 +204,19 @@
                 <td><a-tag color="blue">[[ inbound.settings.followRedirect ]]</a-tag></td>
             </tr>
         </table>
-        </table>
-        <table v-if="inbound.protocol == Protocols.SOCKS" style="margin-bottom: 10px; width: 100%;">
+        <table v-if="dbInbound.isSocks" style="margin-bottom: 10px; width: 100%;">
             <tr>
                 <th>{{ i18n "password" }} Auth</th>
                 <th>{{ i18n "pages.inbounds.enable" }} udp</th>
                 <th>IP</th>
-            </tr><tr>
+            </tr>
+            <tr>
                 <td><a-tag color="green">[[ inbound.settings.auth ]]</a-tag></td>
                 <td><a-tag color="blue">[[ inbound.settings.udp]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.ip ]]</a-tag></td>
-            </tr><tr v-if="inbound.settings.auth == 'password'">
+            </tr>
+            <template v-if="inbound.settings.auth == 'password'">
+                <tr>
                 <td> </td>
                 <td>{{ i18n "username" }}</td>
                 <td>{{ i18n "password" }}</td>
@@ -224,9 +225,9 @@
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
-        </table>
-        </table>
-        <table v-if="inbound.protocol == Protocols.HTTP" style="margin-bottom: 10px; width: 100%;">
+        </template>
+    </table>
+    <table v-if="dbInbound.isHTTP" style="margin-bottom: 10px; width: 100%;">
             <tr>
                 <th> </th>
                 <th>{{ i18n "username" }}</th>
@@ -236,7 +237,6 @@
                 <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
-        </table>
         </table>
     </template>
 </a-modal>
