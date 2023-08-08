@@ -6,11 +6,20 @@
     </a-form-item>
     <br>
     <template v-if="inbound.settings.auth === 'password'">
-        <a-form-item label='{{ i18n "username" }}'>
-            <a-input v-model.trim="inbound.settings.accounts[0].user"></a-input>
-        </a-form-item>
-        <a-form-item label='{{ i18n "password" }}'>
-            <a-input v-model.trim="inbound.settings.accounts[0].pass"></a-input>
+        <a-form-item>
+            <a-row>
+                <a-button type="primary" size="small" @click="inbound.settings.addAccount(new Inbound.SocksSettings.SocksAccount())">+</a-button>
+            </a-row>
+            <a-input-group v-for="(account, index) in inbound.settings.accounts">
+                <a-input style="width: 45%" v-model.trim="account.user"
+                    addon-before='{{ i18n "username" }}'></a-input>
+                <a-input style="width: 55%" v-model.trim="account.pass"
+                    addon-before='{{ i18n "password" }}'>
+                    <template slot="addonAfter">
+                        <a-button type="primary" size="small" @click="inbound.settings.delAccount(index)">-</a-button>
+                    </template>
+                </a-input>
+            </a-input-group>
         </a-form-item>
     </template>
     <br>
