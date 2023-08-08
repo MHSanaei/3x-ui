@@ -1503,8 +1503,8 @@ class Inbound extends XrayCommonClass {
         }
 
         let password = new Array();
-        if (this.isSSMultiUser) password.push(settings.shadowsockses[clientIndex].password);
         if (this.isSS2022) password.push(settings.password);
+        if (this.isSSMultiUser) password.push(settings.shadowsockses[clientIndex].password);
 
         let link = `ss://${safeBase64(settings.method + ':' + password.join(':'))}@${address}:${this.port}`;
         const url = new URL(link);
