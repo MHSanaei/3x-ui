@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
@@ -38,6 +39,10 @@ func GetGeositePath() string {
 
 func GetGeoipPath() string {
 	return config.GetBinFolderPath() + "/geoip.dat"
+}
+
+func GetIranPath() string {
+	return config.GetBinFolderPath() + "/iran.dat"
 }
 
 func GetIPLimitLogPath() string {
