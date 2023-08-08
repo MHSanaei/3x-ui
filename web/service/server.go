@@ -77,6 +77,11 @@ type Status struct {
 		IPv4 string `json:"ipv4"`
 		IPv6 string `json:"ipv6"`
 	} `json:"publicIP"`
+	AppStats struct {
+		Threads uint32 `json:"threads"`
+		Mem     uint64 `json:"mem"`
+		Uptime  uint64 `json:"uptime"`
+	} `json:"appStats"`
 }
 
 type Release struct {
@@ -220,6 +225,16 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+	var rtm runtime.MemStats
+	runtime.ReadMemStats(&rtm)
+
+	status.AppStats.Mem = rtm.Sys
+	status.AppStats.Threads = uint32(runtime.NumGoroutine())
+	if p.IsRunning() {
+		status.AppStats.Uptime = p.GetUptime()
+	} else {
+		status.AppStats.Uptime = 0
+	}
 
 	return status
 }

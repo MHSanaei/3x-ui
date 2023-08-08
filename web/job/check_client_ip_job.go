@@ -15,7 +15,7 @@ import (
 	"x-ui/xray"
 )
 
-type CheckClientIpJob struct {}
+type CheckClientIpJob struct{}
 
 var job *CheckClientIpJob
 var disAllowedIps []string
@@ -31,7 +31,6 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
-	logger.Debug("Check Client IP Job...")
 
 	// create files required for iplimit if not exists
 	for i := 0; i < len(ipFiles); i++ {

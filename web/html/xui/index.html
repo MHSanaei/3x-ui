@@ -108,21 +108,30 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            <a-row>
-                                <a-col :span="12">
-                                    {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
-                                    <a-tooltip>
-                                        <template slot="title">
-                                            {{ i18n "pages.index.systemLoadDesc" }}
-                                        </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
-                                    </a-tooltip>
-                                </a-col>
-                                <a-col :span="12">
-                                    {{ i18n "pages.index.operationHours" }}:
-                                    <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
-                                </a-col>
-                            </a-row>
+                            {{ i18n "pages.index.operationHours" }}:
+                            Xray:
+                            <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            OS:
+                            <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                            {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                            <a-tooltip>
+                                <template slot="title">
+                                    {{ i18n "pages.index.systemLoadDesc" }}
+                                </template>
+                                <a-icon type="question-circle" theme="filled"></a-icon>
+                            </a-tooltip>
+                        </a-card>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                            {{ i18n "usage"}}:
+                            Memory [[ sizeFormat(status.appStats.mem) ]] -
+                            Threads [[ status.appStats.threads ]]
+                            </a-tooltip>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -361,6 +370,8 @@
             this.tcpCount = 0;
             this.udpCount = 0;
             this.uptime = 0;
+            this.appUptime = 0;
+            this.appStats = {threads: 0, mem: 0, uptime: 0};
             this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
 
             if (data == null) {
@@ -379,6 +390,8 @@
             this.tcpCount = data.tcpCount;
             this.udpCount = data.udpCount;
             this.uptime = data.uptime;
+            this.appUptime = data.appUptime;
+            this.appStats = data.appStats;
             this.xray = data.xray;
             switch (this.xray.state) {
                 case State.Running:
