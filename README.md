@@ -23,10 +23,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 # Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.7.1`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.7.6`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.7.1
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.7.6
 ```
 
 # SSL
@@ -37,7 +37,7 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-You also can use `x-ui` menu then select `16. SSL Certificate Management`
+You also can use `x-ui` menu then select `SSL Certificate Management`
 
 # Features
 
@@ -207,7 +207,7 @@ If you want to use routing to WARP follow steps as below:
   - To make IP Limit work properly, you need to install fail2ban and its required files by following these steps:
 
     1. Use the `x-ui` command inside the shell.
-    2. Select `16. IP Limit Management`.
+    2. Select `IP Limit Management`.
     3. Choose the appropriate options based on your needs.
 
 </details>
