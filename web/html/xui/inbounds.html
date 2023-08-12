@@ -726,8 +726,7 @@
                 });
             },
             findIndexOfClient(clients, client) {
-                firstKey = Object.keys(client)[0];
-                return clients.findIndex(c => c[firstKey] === client[firstKey]);
+                return clients.findIndex(item => JSON.stringify(item) === JSON.stringify(client));
             },
             async addClient(clients, dbInboundId) {
                 const data = {
