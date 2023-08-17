@@ -832,6 +832,7 @@
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 inbound = dbInbound.toInbound();
                 clients = this.getClients(dbInbound.protocol, inbound.settings);
+                client.enable = !client.enable; // For finding correct index in findIndexOfClient() function
                 index = this.findIndexOfClient(clients, client);
                 clients[index].enable = !clients[index].enable;
                 clientId = this.getClientId(dbInbound.protocol, clients[index]);
