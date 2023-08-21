@@ -156,8 +156,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJ
 github.com/modern-go/reflect2 v1.0.1/go.mod h1:bx2lNnkwVCuqBIxFjflWJWanXIb3RllmbCylyMrvgv0=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/mymmrac/telego v0.26.0 h1:m4B3SW9dxL4uHpyjBnmhQeiFO7GWCxFjsUKUvFx3mf0=
-github.com/mymmrac/telego v0.26.0/go.mod h1:kizipjY3MhxmkcGvyz8jiw/26vEKAhR2V7YTE69iqvw=
+github.com/mymmrac/telego v0.26.1 h1:BzWWzDOkov0SMVnSF+mLJ5ChYcTqmhTIyBWBGyi51hw=
+github.com/mymmrac/telego v0.26.1/go.mod h1:kizipjY3MhxmkcGvyz8jiw/26vEKAhR2V7YTE69iqvw=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
 github.com/nicksnyder/go-i18n/v2 v2.2.1 h1:aOzRCdwsJuoExfZhoiXHy4bjruwCMdt5otbYojM/PaA=
