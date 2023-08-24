@@ -253,8 +253,8 @@ func (s *Server) startTask() {
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
-	// check client ips from log file every 3 day
-	s.cron.AddJob("@every 3d", job.NewClearLogsJob())
+	// check client ips from log file every day
+	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
