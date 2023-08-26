@@ -37,15 +37,16 @@
             this.inbound = dbInbound.toInbound();
             settings = JSON.parse(this.inbound.settings);
             this.client = settings.clients[clientIndex];
-            remark = this.dbInbound.remark + ( this.client ? "-" + this.client.email : '');
+            remark = [this.dbInbound.remark, ( this.client ? this.client.email : '')].filter(Boolean).join('-');
             address = this.dbInbound.address;
             this.subId = '';
             this.qrcodes = [];
             if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
                 this.inbound.stream.tls.settings.domains.forEach((domain) => {
+                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
                     this.qrcodes.push({
-                        remark: remark + "-" + domain.remark,
-                        link: this.inbound.genLink(domain.domain, remark + "-" + domain.remark, clientIndex)
+                        remark: remarkText,
+                        link: this.inbound.genLink(domain.domain, remarkText, clientIndex)
                     });
                 });
             } else {

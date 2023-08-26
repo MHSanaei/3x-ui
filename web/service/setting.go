@@ -39,7 +39,7 @@ var defaultValueMap = map[string]string{
 	"tgBotChatId":        "",
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
-	"tgBotLoginNotify":   "false",
+	"tgBotLoginNotify":   "true",
 	"tgCpu":              "0",
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
@@ -51,7 +51,7 @@ var defaultValueMap = map[string]string{
 	"subCertFile":        "",
 	"subKeyFile":         "",
 	"subUpdates":         "12",
-	"subShowInfo":        "false",
+	"subShowInfo":        "true",
 }
 
 type SettingService struct {
