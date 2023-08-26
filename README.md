@@ -257,21 +257,26 @@ Reference syntax:
 # Setting up Telegram bot
 
 - Start [Botfather](https://t.me/BotFather) in your Telegram account:
+
     ![Botfather](https://github.com/karo-yousefi/Sanaie-xui/assets/88065530/faf5f979-e27d-4c05-abb2-5637ec926fa2)
   
 - Create a new Bot using /newbot command: It will ask you 2 questions, A name and a username for your bot. Note that the username has to end with the word "bot".
+
     ![Create new bot](https://github.com/karo-yousefi/Sanaie-xui/assets/88065530/36a6ff7c-0b86-4291-b4a0-c339f52a3a85)
 
 - Start the bot you've just created. You can find the link to your bot here.
+
     ![2023-08-26 11_22_53-Window](https://github.com/karo-yousefi/Sanaie-xui/assets/88065530/a316b086-64ed-4ffb-8be8-928175843083)
 
 - Enter your panel and config Telegram bot settings like below:
+
 ![Panel Config](https://github.com/karo-yousefi/Sanaie-xui/assets/88065530/cb1bebbf-c269-4260-8b15-93a11780597e)
 
 Enter your bot token in input field number 3.
-Enter the user ID in input field number 4. The Telegram accounts with this id will be the bot admin. (You can enter more than one, Just separate them with ,)
+Enter the user ID in input field number 4. The Telegram accounts with this ID will be the bot admin. (You can enter more than one, Just separate them with ,)
 
 - How to get Telegram user ID? Use this [bot](https://t.me/useridinfobot), Start the bot and it will give you the Telegram user ID.
+
 ![User ID](https://github.com/karo-yousefi/Sanaie-xui/assets/88065530/54bd8284-9222-4354-967f-aabc2c7496fc)
 
 
