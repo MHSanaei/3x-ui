@@ -122,6 +122,10 @@
                 <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
             </a-form-item>
         </template>
+        <br>
+        <a-form-item label="ocspStapling">
+            <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
+        </a-form-item>
     </template>
 </a-form>
 
