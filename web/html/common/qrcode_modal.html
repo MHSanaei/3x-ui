@@ -86,7 +86,7 @@
             },
             genSubLink(subID) {
                 const { domain: host, port, tls: isTLS, path: base } = app.subSettings;
-                return buildURL({ host, port, isTLS, base, path: subID });
+                return buildURL({ host, port, isTLS, base, path: subID+'?name='+subID });
             }
         },
         updated() {
