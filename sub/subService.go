@@ -804,7 +804,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 			}
 		}
 	}
-	return strings.Join(remark, "-")
+	return strings.Join(remark, " : ")
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {
