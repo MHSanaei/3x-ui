@@ -1,9 +1,5 @@
 {{define "form/streamGRPC"}}
 <a-form layout="inline">
-    <a-form-item label="AcceptProxyProtocol">
-        <a-switch v-model="inbound.stream.sockopt.acceptProxyProtocol"></a-switch>
-    </a-form-item>
-    <br>
     <a-form-item label="ServiceName">
         <a-input v-model.trim="inbound.stream.grpc.serviceName"></a-input>
     </a-form-item>

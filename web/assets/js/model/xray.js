@@ -803,22 +803,27 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
 };
 
 class SockoptStreamSettings extends XrayCommonClass {
-    constructor(
-        acceptProxyProtocol = false,
-    ) {
+    constructor(acceptProxyProtocol = false, tcpFastOpen = false, mark = 0, tproxy="off") {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
+        this.tcpFastOpen = tcpFastOpen;
+        this.mark = mark;
+        this.tproxy = tproxy;
     }
-
     static fromJson(json = {}) {
         return new SockoptStreamSettings(
             json.acceptProxyProtocol,
+            json.tcpFastOpen,
+            json.mark,
+            json.tproxy,
         );
     }
-
     toJson() {
         return {
             acceptProxyProtocol: this.acceptProxyProtocol,
+            tcpFastOpen: this.tcpFastOpen,
+            mark: this.mark,
+            tproxy: this.tproxy,
         };
     }
 }
@@ -835,7 +840,7 @@ class StreamSettings extends XrayCommonClass {
         httpSettings=new HttpStreamSettings(),
         quicSettings=new QuicStreamSettings(),
         grpcSettings=new GrpcStreamSettings(),
-        sockopt = new SockoptStreamSettings(),
+        sockopt = undefined,
         ) {
         super();
         this.network = network;
@@ -889,14 +894,12 @@ class StreamSettings extends XrayCommonClass {
         }
     }
 
-    get isSockopt() {
-        return ['http', 'grpc'].indexOf(this.network) !== -1;
+    get sockoptSwitch() {
+        return this.sockopt != undefined;
     }
 
-    set isSockopt(isSockopt) {
-        if (isSockopt) {
-            return ['http', 'grpc'].indexOf(this.network) !== -1;
-        }
+    set sockoptSwitch(value) {
+        this.sockopt = value ? new SockoptStreamSettings() : undefined;
     }
 
     static fromJson(json={}) {
@@ -931,7 +934,7 @@ class StreamSettings extends XrayCommonClass {
             httpSettings: network === 'http' ? this.http.toJson() : undefined,
             quicSettings: network === 'quic' ? this.quic.toJson() : undefined,
             grpcSettings: network === 'grpc' ? this.grpc.toJson() : undefined,
-            sockopt: this.isSockopt ? this.sockopt.toJson() : undefined,
+            sockopt: this.sockopt != undefined ? this.sockopt.toJson() : undefined,
         };
     }
 }
