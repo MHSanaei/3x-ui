@@ -3,12 +3,14 @@ package sub
 import (
 	"encoding/base64"
 	"strings"
+	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )
 
 type SUBController struct {
-	subService SubService
+	subService     SubService
+	settingService service.SettingService
 }
 
 func NewSUBController(g *gin.RouterGroup) *SUBController {
@@ -24,9 +26,10 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *SUBController) subs(c *gin.Context) {
+	subShowInfo, _ := a.settingService.GetSubShowInfo()
 	subId := c.Param("subid")
 	host := strings.Split(c.Request.Host, ":")[0]
-	subs, headers, err := a.subService.GetSubs(subId, host)
+	subs, headers, err := a.subService.GetSubs(subId, host, subShowInfo)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
 	} else {
