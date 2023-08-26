@@ -194,6 +194,7 @@ class AllSetting {
         this.subCertFile = "";
         this.subKeyFile = "";
         this.subUpdates = 0;
+        this.subEncrypt = true;
         this.subShowInfo = true;
 
         this.timeLocation = "Asia/Tehran";
