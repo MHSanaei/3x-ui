@@ -264,14 +264,15 @@
             this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
             this.isExpired = this.inbound.isExpiry(index);
             this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            remark = this.dbInbound.remark + ( this.clientSettings ? "-" + this.clientSettings.email : '');
+            remark = [this.dbInbound.remark, ( this.clientSettings ? this.clientSettings.email : '')].filter(Boolean).join('-');
             address = this.dbInbound.address;
             this.links = [];
             if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
                 this.inbound.stream.tls.settings.domains.forEach((domain) => {
+                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
                     this.links.push({
-                        remark: remark + "-" + domain.remark,
-                        link: this.inbound.genLink(domain.domain, remark + "-" + domain.remark, index)
+                        remark: remarkText,
+                        link: this.inbound.genLink(domain.domain, remarkText, index)
                     });
                 });
             } else {
