@@ -274,6 +274,8 @@
 "subDomainDesc" = "Mặc định để trống để nghe tất cả các tên miền và IP"
 "subUpdates" = "Khoảng thời gian cập nhật đăng ký"
 "subUpdatesDesc" = "Số giờ giữa các cập nhật trong ứng dụng khách"
+"subEncrypt" = "Mã hóa cấu hình"
+"subEncryptDesc" = "Mã hóa các cấu hình được trả về trong đăng ký"
 "subShowInfo" = "Hiển thị thông tin sử dụng"
 "subShowInfoDesc" = "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình"
 

@@ -274,6 +274,8 @@
 "subDomainDesc" = "Leave blank by default to monitor all domains and IPs"
 "subUpdates" = "Subscription update intervals"
 "subUpdatesDesc" = "Interval hours between updates in client application"
+"subEncrypt" = "Encrypt configs"
+"subEncryptDesc" = "Encrypt the returned configs in subscription"
 "subShowInfo" = "Show usage info"
 "subShowInfoDesc" = "Show remianed traffic and date after config name"
 

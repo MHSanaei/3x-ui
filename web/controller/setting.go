@@ -79,6 +79,7 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 		"subDomain":   func() (interface{}, error) { return a.settingService.GetSubDomain() },
 		"subKeyFile":  func() (interface{}, error) { return a.settingService.GetSubKeyFile() },
 		"subCertFile": func() (interface{}, error) { return a.settingService.GetSubCertFile() },
+		"subEncrypt":  func() (interface{}, error) { return a.settingService.GetSubEncrypt() },
 		"subShowInfo": func() (interface{}, error) { return a.settingService.GetSubShowInfo() },
 	}
 
