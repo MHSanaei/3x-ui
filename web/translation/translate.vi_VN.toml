@@ -127,7 +127,6 @@
 "network" = "Mạng"
 "destinationPort" = "Cổng đích"
 "targetAddress" = "Địa chỉ mục tiêu"
-"disableInsecureEncryption" = "Vô hiệu hóa mã hóa không an toàn"
 "monitorDesc" = "Mặc định để trống"
 "meansNoLimit" = "Nghĩa là không giới hạn"
 "totalFlow" = "Tổng lưu lượng"
