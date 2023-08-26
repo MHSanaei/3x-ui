@@ -18,12 +18,14 @@ import (
 
 type SubService struct {
 	address        string
+	showInfo       bool
 	inboundService service.InboundService
 	settingServics service.SettingService
 }
 
-func (s *SubService) GetSubs(subId string, host string) ([]string, []string, error) {
+func (s *SubService) GetSubs(subId string, host string, showInfo bool) ([]string, []string, error) {
 	s.address = host
+	s.showInfo = showInfo
 	var result []string
 	var headers []string
 	var traffic xray.ClientTraffic
@@ -57,7 +59,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, []string, err
 		}
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
-				link := s.getLink(inbound, client.Email, client.ExpiryTime)
+				link := s.getLink(inbound, client.Email)
 				result = append(result, link)
 				clientTraffics = append(clientTraffics, s.getClientTraffics(inbound.ClientStats, client.Email))
 			}
@@ -123,39 +125,26 @@ func (s *SubService) getFallbackMaster(dest string) (*model.Inbound, error) {
 	return inbound, nil
 }
 
-func (s *SubService) getLink(inbound *model.Inbound, email string, expiryTime int64) string {
+func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 	switch inbound.Protocol {
 	case "vmess":
-		return s.genVmessLink(inbound, email, expiryTime)
+		return s.genVmessLink(inbound, email)
 	case "vless":
-		return s.genVlessLink(inbound, email, expiryTime)
+		return s.genVlessLink(inbound, email)
 	case "trojan":
-		return s.genTrojanLink(inbound, email, expiryTime)
+		return s.genTrojanLink(inbound, email)
 	case "shadowsocks":
-		return s.genShadowsocksLink(inbound, email, expiryTime)
+		return s.genShadowsocksLink(inbound, email)
 	}
 	return ""
 }
 
-func (s *SubService) genVmessLink(inbound *model.Inbound, email string, expiryTime int64) string {
+func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VMess {
 		return ""
 	}
-
-	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString := getExpiryTime(expiryTime)
-	remark := ""
-	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
-
-	if isTerminated {
-		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
-	} else {
-		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
-	}
-
 	obj := map[string]interface{}{
 		"v":    "2",
-		"ps":   remark,
 		"add":  s.address,
 		"port": inbound.Port,
 		"type": "none",
@@ -254,7 +243,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string, expiryTi
 		links := ""
 		for index, d := range domains {
 			domain := d.(map[string]interface{})
-			obj["ps"] = remark + "-" + domain["remark"].(string)
+			obj["ps"] = s.genRemark(inbound, email, domain["remark"].(string))
 			obj["add"] = domain["domain"].(string)
 			if index > 0 {
 				links += "\n"
@@ -265,11 +254,13 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string, expiryTi
 		return links
 	}
 
+	obj["ps"] = s.genRemark(inbound, email, "")
+
 	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
 	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
 }
 
-func (s *SubService) genVlessLink(inbound *model.Inbound, email string, expiryTime int64) string {
+func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	address := s.address
 	if inbound.Protocol != model.VLESS {
 		return ""
@@ -462,22 +453,11 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, expiryTi
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString := getExpiryTime(expiryTime)
-	remark := ""
-	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
-
-	if isTerminated {
-		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
-	} else {
-		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
-	}
-
 	if len(domains) > 0 {
 		links := ""
 		for index, d := range domains {
 			domain := d.(map[string]interface{})
-			url.Fragment = remark + "-" + domain["remark"].(string)
+			url.Fragment = s.genRemark(inbound, email, domain["remark"].(string))
 			url.Host = fmt.Sprintf("%s:%d", domain["domain"].(string), port)
 			if index > 0 {
 				links += "\n"
@@ -486,11 +466,12 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, expiryTi
 		}
 		return links
 	}
-	url.Fragment = remark
+
+	url.Fragment = s.genRemark(inbound, email, "")
 	return url.String()
 }
 
-func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, expiryTime int64) string {
+func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
 	address := s.address
 	if inbound.Protocol != model.Trojan {
 		return ""
@@ -680,22 +661,11 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, expiryT
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString := getExpiryTime(expiryTime)
-	remark := ""
-	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
-
-	if isTerminated {
-		remark = fmt.Sprintf("%s: %s⛔️", email, "Terminated")
-	} else {
-		remark = fmt.Sprintf("%s: %s - %s", email, remainedTraffic, expiryTimeString)
-	}
-
 	if len(domains) > 0 {
 		links := ""
 		for index, d := range domains {
 			domain := d.(map[string]interface{})
-			url.Fragment = remark + "-" + domain["remark"].(string)
+			url.Fragment = s.genRemark(inbound, email, domain["remark"].(string))
 			url.Host = fmt.Sprintf("%s:%d", domain["domain"].(string), port)
 			if index > 0 {
 				links += "\n"
@@ -705,11 +675,11 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, expiryT
 		return links
 	}
 
-	url.Fragment = remark
+	url.Fragment = s.genRemark(inbound, email, "")
 	return url.String()
 }
 
-func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, expiryTime int64) string {
+func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
 	address := s.address
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
@@ -788,20 +758,53 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, ex
 
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
-
-	remainedTraffic := s.getRemainedTraffic(email)
-	expiryTimeString := getExpiryTime(expiryTime)
-	remark := ""
-	isTerminated := strings.Contains(expiryTimeString, "Terminated") || strings.Contains(remainedTraffic, "Terminated")
-
-	if isTerminated {
-		remark = fmt.Sprintf("%s: %s⛔️", clients[clientIndex].Email, "Terminated")
-	} else {
-		remark = fmt.Sprintf("%s: %s - %s", clients[clientIndex].Email, remainedTraffic, expiryTimeString)
-	}
-	
-	url.Fragment = remark
+	url.Fragment = s.genRemark(inbound, email, "")
 	return url.String()
+}
+
+func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+	var remark []string
+	if len(email) > 0 {
+		if len(inbound.Remark) > 0 {
+			remark = append(remark, inbound.Remark)
+		}
+		remark = append(remark, email)
+		if len(extra) > 0 {
+			remark = append(remark, extra)
+		}
+	} else {
+		return inbound.Remark
+	}
+
+	if s.showInfo {
+		statsExist := false
+		var stats xray.ClientTraffic
+		for _, clientStat := range inbound.ClientStats {
+			if clientStat.Email == email {
+				stats = clientStat
+				statsExist = true
+				break
+			}
+		}
+
+		// Get remained days
+		if statsExist {
+			if !stats.Enable {
+				return fmt.Sprintf("⛔️N/A-%s", strings.Join(remark, "-"))
+			}
+			if vol := stats.Total - (stats.Up + stats.Down); vol > 0 {
+				remark = append(remark, fmt.Sprintf("%s%s", common.FormatTraffic(vol), "📊"))
+			}
+			now := time.Now().Unix()
+			switch exp := stats.ExpiryTime / 1000; {
+			case exp > 0:
+				remark = append(remark, fmt.Sprintf("%d%s⏳", (exp-now)/86400, "Days"))
+			case exp < 0:
+				remark = append(remark, fmt.Sprintf("%d%s⏳", exp/-86400, "Days"))
+			}
+		}
+	}
+	return strings.Join(remark, "-")
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {
@@ -844,46 +847,4 @@ func searchHost(headers interface{}) string {
 	}
 
 	return ""
-}
-
-func getExpiryTime(expiryTime int64) string {
-	now := time.Now().Unix()
-	expiryString := ""
-
-	timeDifference := expiryTime/1000 - now
-	isTerminated := timeDifference/3600 <= 0
-
-	if expiryTime == 0 {
-		expiryString = "♾ ⏳"
-	} else if timeDifference > 172800 {
-		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/86400, "Days")
-	} else if expiryTime < 0 {
-		expiryString = fmt.Sprintf("%d %s⏳", expiryTime/-86400000, "Days")
-	} else if isTerminated {
-		expiryString = fmt.Sprintf("%s⛔️", "Terminated")
-	} else {
-		expiryString = fmt.Sprintf("%d %s⏳", timeDifference/3600, "Hours")
-	}
-
-	return expiryString
-}
-
-func (s *SubService) getRemainedTraffic(email string) string {
-	traffic, err := s.inboundService.GetClientTrafficByEmail(email)
-	if err != nil {
-		logger.Warning(err)
-	}
-
-	remainedTraffic := ""
-	isTerminated := traffic.Total-(traffic.Up+traffic.Down) < 0
-
-	if traffic.Total == 0 {
-		remainedTraffic = "♾ 📊"
-	} else if isTerminated {
-		remainedTraffic = fmt.Sprintf("%s⛔️", "Terminated")
-	} else {
-		remainedTraffic = fmt.Sprintf("%s%s", common.FormatTraffic(traffic.Total-(traffic.Up+traffic.Down)), "📊")
-	}
-
-	return remainedTraffic
 }

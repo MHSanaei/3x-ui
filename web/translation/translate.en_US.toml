@@ -274,6 +274,8 @@
 "subDomainDesc" = "Leave blank by default to monitor all domains and IPs"
 "subUpdates" = "Subscription update intervals"
 "subUpdatesDesc" = "Interval hours between updates in client application"
+"subShowInfo" = "Show usage info"
+"subShowInfoDesc" = "Show remianed traffic and date after config name"
 
 [pages.settings.templates]
 "title" = "Templates"
