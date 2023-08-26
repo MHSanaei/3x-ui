@@ -24,14 +24,12 @@ func (j *XrayTrafficJob) Run() {
 		logger.Warning("get xray traffic failed:", err)
 		return
 	}
-	err = j.inboundService.AddTraffic(traffics)
+	err, needRestart := j.inboundService.AddTraffic(traffics, clientTraffics)
 	if err != nil {
 		logger.Warning("add traffic failed:", err)
 	}
-
-	err = j.inboundService.AddClientTraffic(clientTraffics)
-	if err != nil {
-		logger.Warning("add client traffic failed:", err)
+	if needRestart {
+		j.xrayService.SetToNeedRestart()
 	}
 
 }
