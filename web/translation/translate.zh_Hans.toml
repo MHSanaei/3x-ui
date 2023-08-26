@@ -127,7 +127,6 @@
 "network" = "网络"
 "destinationPort" = "目标端口"
 "targetAddress" = "目标地址"
-"disableInsecureEncryption" = "禁用不安全加密"
 "monitorDesc" = "默认留空即可"
 "meansNoLimit" = "表示不限制"
 "totalFlow" = "总流量"

@@ -127,7 +127,6 @@
 "network" = "Сеть"
 "destinationPort" = "Порт назначения"
 "targetAddress" = "Целевой адрес"
-"disableInsecureEncryption" = "Отключить небезопасное шифрование"
 "monitorDesc" = "Оставьте пустым по умолчанию"
 "meansNoLimit" = "Значит без ограничений"
 "totalFlow" = "Общий расход"

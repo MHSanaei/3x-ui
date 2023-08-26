@@ -1740,8 +1740,7 @@ Inbound.Settings = class extends XrayCommonClass {
 
 Inbound.VmessSettings = class extends Inbound.Settings {
     constructor(protocol,
-                vmesses=[new Inbound.VmessSettings.Vmess()],
-                disableInsecureEncryption=false) {
+        vmesses=[new Inbound.VmessSettings.Vmess()]) {
         super(protocol);
         this.vmesses = vmesses;
         this.disableInsecure = disableInsecureEncryption;
