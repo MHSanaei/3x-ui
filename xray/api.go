@@ -108,9 +108,9 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]in
 			ssCipherType = shadowsocks.CipherType_AES_128_GCM
 		case "aes-256-gcm":
 			ssCipherType = shadowsocks.CipherType_AES_256_GCM
-		case "chacha20-poly1305":
+		case "chacha20-poly1305", "chacha20-ietf-poly1305":
 			ssCipherType = shadowsocks.CipherType_CHACHA20_POLY1305
-		case "xchacha20-poly1305":
+		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
 			ssCipherType = shadowsocks.CipherType_XCHACHA20_POLY1305
 		default:
 			ssCipherType = shadowsocks.CipherType_NONE
