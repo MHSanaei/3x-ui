@@ -1,10 +1,8 @@
 {{define "form/streamSockopt"}}
 <a-form layout="inline">
-    <a-divider dashed style="margin:0;">
     <a-form-item label="Transparent Proxy">
         <a-switch v-model="inbound.stream.sockoptSwitch"></a-switch>
     </a-form-item>
-    </a-divider>
     <table width="100%" class="ant-table-tbody" v-if="inbound.stream.sockoptSwitch">
         <tr>
             <td>Accept Proxy Protocol</td>
