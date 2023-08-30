@@ -225,6 +225,7 @@ install_x-ui() {
     echo -e "vaxilu            - https://github.com/vaxilu" 
     echo -e "MHSanaei          - https://github.com/MHSanaei/"  
     echo -e "Hossin Asaadi     - https://github.com/hossinasaadi"
+    echo -e "NidukaAkalanka    - https://github.com/NidukaAkalanka" 
     echo -e "--------------------------------------------------------------------------------"
     show_login_info
     yellow "If you can't access X-UI, please check your firewall or accept the ports you have set while installing X-UI."
