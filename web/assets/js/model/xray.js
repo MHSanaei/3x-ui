@@ -421,6 +421,7 @@ class HttpStreamSettings extends XrayCommonClass {
     }
 }
 
+
 class QuicStreamSettings extends XrayCommonClass {
     constructor(security=VmessMethods.NONE,
                 key=RandomUtil.randomSeq(10), type='none') {
@@ -482,7 +483,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 cipherSuites = '',
                 rejectUnknownSni = false,
                 certificates=[new TlsStreamSettings.Cert()],
-                alpn=[ALPN_OPTION.HTTP1,ALPN_OPTION.H2],
+                alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new TlsStreamSettings.Settings()) {
         super();
         this.server = serverName;
@@ -815,7 +816,6 @@ class SockoptStreamSettings extends XrayCommonClass {
         this.tproxy = tproxy;
     }
     static fromJson(json = {}) {
-        if (Object.keys(json).length === 0) return undefined;
         return new SockoptStreamSettings(
             json.acceptProxyProtocol,
             json.tcpFastOpen,
@@ -823,7 +823,6 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.tproxy,
         );
     }
-
     toJson() {
         return {
             acceptProxyProtocol: this.acceptProxyProtocol,

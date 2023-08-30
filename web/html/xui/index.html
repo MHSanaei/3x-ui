@@ -78,9 +78,8 @@
                 <a-row>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable :class="themeSwitcher.darkCardClass">
-                            3X: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                            Xray: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
-                            <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
+                            X-UI: <a href="https://github.com/quydang04/x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                            Xray version: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
@@ -111,7 +110,7 @@
                             {{ i18n "pages.index.operationHours" }}:
                             Xray:
                             <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            OS:
+                            System:
                             <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>

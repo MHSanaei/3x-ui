@@ -711,7 +711,7 @@
             openEditClient(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 clients = this.getInboundClients(dbInbound);
-                index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                index = this.findIndexOfClient(clients, client);
                 clientModal.show({
                     title: '{{ i18n "pages.client.edit"}}',
                     okText: '{{ i18n "pages.client.submitEdit"}}',
@@ -725,13 +725,8 @@
                     isEdit: true
                 });
             },
-            findIndexOfClient(protocol, clients, client) {
-                switch (protocol) {
-                    case Protocols.TROJAN:
-                    case Protocols.SHADOWSOCKS:
-                        return clients.findIndex(item => item.password === client.password && item.email === client.email);
-                    default: return clients.findIndex(item => item.id === client.id && item.email === client.email);
-                }
+            findIndexOfClient(clients, client) {
+                return clients.findIndex(item => JSON.stringify(item) === JSON.stringify(client));
             },
             async addClient(clients, dbInboundId) {
                 const data = {
@@ -837,7 +832,8 @@
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 inbound = dbInbound.toInbound();
                 clients = this.getClients(dbInbound.protocol, inbound.settings);
-                index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                client.enable = !client.enable; // For finding correct index in findIndexOfClient() function
+                index = this.findIndexOfClient(clients, client);
                 clients[index].enable = !clients[index].enable;
                 clientId = this.getClientId(dbInbound.protocol, clients[index]);
                 await this.updateClient(clients[index], dbInboundId, clientId);
