@@ -1,4 +1,4 @@
-name: Release X-UI DockerHub
+name: Release Docker
 on:
   push:
     tags:
