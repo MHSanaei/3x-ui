@@ -298,6 +298,18 @@ show_log() {
     fi
 }
 
+show_banlog() {
+  if test -f "${iplimit_banned_log_path}"; then
+    if [[ -s "${iplimit_banned_log_path}" ]]; then
+      cat ${iplimit_banned_log_path}
+    else
+      echo -e "${red}Log file is empty.${plain}\n"  
+    fi
+  else
+    echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
+  fi
+}
+
 enable_bbr() {
     if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
         echo -e "${green}BBR is already enabled!${plain}"
@@ -885,16 +897,8 @@ iplimit_main() {
             fi
             iplimit_main ;;
         4)
-            if test -f "${iplimit_banned_log_path}"; then
-                if [[ -s "${iplimit_banned_log_path}" ]]; then
-                    cat ${iplimit_banned_log_path}
-                else
-                    echo -e "${red}Log file is empty.${plain}\n"
-                fi
-            else
-                echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
-                iplimit_main
-            fi ;;
+            show_banlog
+            ;;
         5)
             service fail2ban status
             ;;
@@ -1005,6 +1009,7 @@ show_usage() {
     echo -e "x-ui enable       - Enable x-ui on system startup"
     echo -e "x-ui disable      - Disable x-ui on system startup"
     echo -e "x-ui log          - Check x-ui logs"
+    echo -e "x-ui banlog       - Check Fail2ban ban logs"
     echo -e "x-ui update       - Update x-ui "
     echo -e "x-ui install      - Install x-ui "
     echo -e "x-ui uninstall    - Uninstall x-ui "
@@ -1145,6 +1150,9 @@ if [[ $# > 0 ]]; then
         ;;
     "log")
         check_install 0 && show_log 0
+        ;;
+    "banlog")
+        check_install 0 && show_banlog 0
         ;;
     "update")
         check_install 0 && update 0
