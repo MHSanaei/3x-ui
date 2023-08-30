@@ -50,41 +50,11 @@ systemctl restart x-ui
 
 </details>
 
-# Install with Docker
-
-<details>
-  <summary>Click for Docker details</summary>
-
-1. Install Docker:
-
-   ```sh
-   bash <(curl -sSL https://get.docker.com)
-   ```
-
-2. Clone the Project Repository:
+# Clone the Project Repository:
 
    ```sh
    git clone https://github.com/quydang04/x-ui.git
    cd x-ui
-   ```
-
-3. Start the Service
-
-   ```sh
-   docker compose up -d
-   ```
-
-   OR
-
-   ```sh
-   docker run -itd \
-      -e XRAY_VMESS_AEAD_FORCED=false \
-      -v $PWD/db/:/etc/x-ui/ \
-      -v $PWD/cert/:/root/cert/ \
-      --network=host \
-      --restart=unless-stopped \
-      --name 3x-ui \
-      ghcr.io/quydang04/x-ui:latest
    ```
 
 </details>
