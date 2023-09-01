@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
@@ -41,6 +42,7 @@ func (j *CheckClientIpJob) Run() {
 
 	// check for limit ip
 	if j.hasLimitIp() {
+		j.checkFail2BanInstalled()
 		j.processLogFile()
 	}
 }
@@ -72,6 +74,16 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	}
 
 	return false
+}
+
+func (j *CheckClientIpJob) checkFail2BanInstalled() {
+	cmd := "fail2ban-client"
+	args := []string{"-h"}
+
+	err := exec.Command(cmd, args...).Run()
+	if err != nil {
+		logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+	}
 }
 
 func (j *CheckClientIpJob) processLogFile() {
