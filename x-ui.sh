@@ -533,9 +533,13 @@ ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL"
     echo -e "${green}\t2.${plain} Revoke"
     echo -e "${green}\t3.${plain} Force Renew"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
-        1) ssl_cert_issue ;;
+        0)
+            show_menu ;;
+        1) 
+            ssl_cert_issue ;;
         2) 
             local domain=""
             read -p "Please enter your domain name to revoke the certificate: " domain
@@ -730,8 +734,11 @@ warp_cloudflare() {
     echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
     echo -e "${green}\t3.${plain} Turn on/off WireProxy"
     echo -e "${green}\t4.${plain} Uninstall WARP"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
+        0)
+            show_menu ;;
         1) 
             bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
             ;;
