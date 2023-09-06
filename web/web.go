@@ -241,6 +241,16 @@ func (s *Server) startTask() {
 	// Check whether xray is running every 30 seconds
 	s.cron.AddJob("@every 30s", job.NewCheckXrayRunningJob())
 
+	// Check if xray needs to be restarted
+	s.cron.AddFunc("@every 10s", func() {
+		if s.xrayService.IsNeedRestartAndSetFalse() {
+			err := s.xrayService.RestartXray(false)
+			if err != nil {
+				logger.Error("restart xray failed:", err)
+			}
+		}
+	})
+
 	go func() {
 		time.Sleep(time.Second * 5)
 		// Statistics every 10 seconds, start the delay for 5 seconds for the first time, and staggered with the time to restart xray
