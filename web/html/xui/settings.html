@@ -472,13 +472,14 @@
                 ips: {
                     local: ["geoip:private"],
                     cn: ["geoip:cn"],
-                    ir: ["geoip:ir"],
+                    ir: ["geoip:ir","geoip:arvancloud","geoip:derakcloud","geoip:iranserver"],
                     ru: ["geoip:ru"],
                 },
                 domains: {
                     ads: [
                         "geosite:category-ads-all",
-                        "ext:iran.dat:ads"
+                        "ext:iran.dat:ads",
+                        "geosite:ads"
                     ],
                     speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
