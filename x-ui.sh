@@ -507,7 +507,7 @@ run_speedtest() {
         # If not installed, install it
         local pkg_manager=""
         local speedtest_install_script=""
-        
+
         if command -v dnf &> /dev/null; then
             pkg_manager="dnf"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
@@ -520,8 +520,13 @@ run_speedtest() {
         elif command -v apt &> /dev/null; then
             pkg_manager="apt"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
+        elif command -v pacman &> /dev/null; then
+            pkg_manager="pacman"
+            if ! command -v speedtest-cli &> /dev/null; then
+                sudo pacman --noconfirm -S speedtest-cli
+            fi
         fi
-        
+
         if [[ -z $pkg_manager ]]; then
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
@@ -534,6 +539,7 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
+
 
 create_iplimit_jails() {
     # Use default bantime if not passed => 5 minutes
