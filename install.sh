@@ -54,7 +54,8 @@ os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 [[ $SYSTEM == "Fedora" && ${os_version} -lt 30 ]] && echo -e "Please use Fedora 30 or higher version system!" && exit 1
 [[ $SYSTEM == "Ubuntu" && ${os_version} -lt 20 ]] && echo -e "Please use Ubuntu 20 or higher version system!" && exit 1
 [[ $SYSTEM == "Debian" && ${os_version} -lt 10 ]] && echo -e "Please use Debian 10 or higher version system!" && exit 1
-[[ $SYSTEM == "ArchLinux"]] && echo -e "Your OS is ArchLinux!"
+[[ $SYSTEM == "ArchLinux" ]] && echo -e "Your OS is ArchLinux!"
+
 archxui(){
     case "$(uname -m)" in
         x86_64 | x64 | amd64 ) echo 'amd64' ;;
@@ -114,7 +115,6 @@ install_base(){
     check_status
 }
 
-
 # This function will be called when user installed x-ui out of security
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
@@ -136,7 +136,7 @@ config_after_install() {
         echo -e "${red}Cancelling...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
-            local passwordTemp=$(head -c 6 /dev/urandom | base64)
+            local passwordTemp=$(head-c 6 /dev/urandom | base64)
             /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
             echo -e "This is a fresh installation,will generate random login info for security concerns:"
             echo -e "###############################################"
