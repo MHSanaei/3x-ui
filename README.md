@@ -200,3 +200,4 @@ Reference syntax:
 - Debian 10+
 - CentOS 7+
 - Fedora 30+
+- Arch Linux
