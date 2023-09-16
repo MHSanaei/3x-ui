@@ -1,0 +1,16 @@
+---
+version: "3.9"
+
+services:
+  3x-ui:
+    image: ghcr.io/mhsanaei/3x-ui:latest
+    container_name: 3x-ui
+    hostname: yourhostname
+    volumes:
+      - $PWD/db/:/etc/x-ui/
+      - $PWD/cert/:/root/cert/
+    environment:
+      XRAY_VMESS_AEAD_FORCED: "false"
+    tty: true
+    network_mode: host
+    restart: unless-stopped
