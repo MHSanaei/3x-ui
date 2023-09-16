@@ -31,7 +31,7 @@ RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora" "Alpine", "ArchLinux", "Ma
 PACKAGE_UPDATE=("apt-get update" "apt-get update" "yum -y update" "yum -y update" "yum -y update" "apk update -f", "pacman -Syu", "pacman -Syu")
 PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install" "yum -y install" "apk add -f", "pacman -S", "pacman -S")
 PACKAGE_REMOVE=("apt -y remove" "apt -y remove" "yum -y remove" "yum -y remove" "yum -y remove" "apk del -f", "pacman -Rns", "pacman -Rns")
-PACKAGE_UNINSTALL=("apt -y autoremove" "apt -y autoremove" "yum -y autoremove" "yum -y autoremove" "yum -y autoremove" "apk del -f", "pacman -Rns", "pacman -Rns")
+PACKAGE_UNINSTALL=("apt -y autoremove" "apt -y autoremove" "yum -y autoremove" "yum -y autoremove" "yum -y autoremove" "apk del -f")
 
 [[ $EUID -ne 0 ]] && red "This script must be run as root user！" && exit 1
 
