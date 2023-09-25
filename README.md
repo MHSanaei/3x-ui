@@ -201,4 +201,3 @@ Reference syntax:
 - CentOS 7+
 - Fedora 30+
 - Arch Linux
-- Manjaro

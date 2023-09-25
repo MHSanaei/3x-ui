@@ -17,8 +17,6 @@ import (
 	"x-ui/web/service"
 
 	"github.com/op/go-logging"
-	"github.com/shirou/gopsutil/cpu"
-	"github.com/shirou/gopsutil/disk"
 )
 
 func runWebServer() {
@@ -263,13 +261,6 @@ func removeSecret() {
 }
 
 func main() {
-	// Get CPU info
-	cpuInfo, _ := cpu.Info()
-	fmt.Printf("CPU Info: %v\n", cpuInfo[0])
-
-	// Get disk usage
-	diskUsage, _ := disk.Usage("/")
-	fmt.Printf("Disk Usage: %v\n", diskUsage)
 	if len(os.Args) < 2 {
 		runWebServer()
 		return
