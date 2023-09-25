@@ -590,6 +590,30 @@ func (t *Tgbot) SendBackupToAdmins() {
 		t.sendBackup(int64(adminId))
 	}
 }
+// Get CPU Info
+func getCPUInfo() (string, error) {
+	infoStat, err := cpu.Info()
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("CPU Info: %v", infoStat[0]), nil
+}
+// Get disk usage
+func getDiskUsage() (string, error) {
+	usageStat, err := disk.Usage("/")
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("Disk Usage: %v", usageStat), nil
+}
+// Get CPU usage
+func getCPUUsage() (string, error) {
+	percent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("CPU Usage: %.2f%%", percent[0]), nil
+}
 
 func (t *Tgbot) getServerUsage() string {
 	info, ipv4, ipv6 := "", "", ""
@@ -622,34 +646,6 @@ func (t *Tgbot) getServerUsage() string {
 		info += t.I18nBot("tgbot.messages.ipv4", "IPv4=="+ipv4)
 		info += t.I18nBot("tgbot.messages.ipv6", "IPv6=="+ipv6)
 	}
-
-	// get CPU usage
-	percent, err := cpu.Percent(0, false)
-	if err != nil {
-		logger.Error("cpu.Percent failed, err: ", err.Error())
-		info += t.I18nBot("tgbot.messages.cpuUsage", "CPU Usage=="+t.I18nBot("tgbot.unknown"))
-	} else {
-		info += t.I18nBot("tgbot.messages.cpuUsage", "CPU Usage=="+strconv.FormatFloat(percent[0], 'f', 2, 64)+"%")
-	}
-
-	// get CPU info
-	cpuInfo, err := cpu.Info()
-	if err != nil {
-		logger.Error("cpu.Info failed, err: ", err.Error())
-		info += t.I18nBot("tgbot.messages.cpuInfo", "CPU Info=="+t.I18nBot("tgbot.unknown"))
-	} else {
-		info += t.I18nBot("tgbot.messages.cpuInfo", "CPU Model=="+cpuInfo[0].ModelName)
-	}
-
-	// get disk usage
-	diskStat, err := disk.Usage("/")
-	if err != nil {
-		logger.Error("disk.Usage failed, err: ", err.Error())
-		info += t.I18nBot("tgbot.messages.diskUsage", "Disk Usage=="+t.I18nBot("tgbot.unknown"))
-	} else {
-		info += t.I18nBot("tgbot.messages.diskUsage", "Disk Usage=="+strconv.FormatUint(diskStat.Used/1024/1024/1024, 10)+"/"+strconv.FormatUint(diskStat.Total/1024/1024/1024, 10)+"GB")
-	}
-
 	// get latest status of server
 	t.lastStatus = t.serverService.GetStatus(t.lastStatus)
 	info += t.I18nBot("tgbot.messages.serverUpTime", "UpTime=="+strconv.FormatUint(t.lastStatus.Uptime/86400, 10), "Unit=="+t.I18nBot("tgbot.days"))
@@ -659,10 +655,31 @@ func (t *Tgbot) getServerUsage() string {
 	info += t.I18nBot("tgbot.messages.udpCount", "Count=="+strconv.Itoa(t.lastStatus.UdpCount))
 	info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Sent+t.lastStatus.NetTraffic.Recv)), "Upload=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Sent)), "Download=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Recv)))
 	info += t.I18nBot("tgbot.messages.xrayStatus", "State=="+fmt.Sprint(t.lastStatus.Xray.State))
+	// get CPU info
+        cpuInfo, err := getCPUInfo()
+         if err != nil {
+	logger.Error("Error getting CPU info: ", err)
+         } else {
+	info += t.I18nBot("tgbot.messages.cpuInfo", "CPU Info=="+cpuInfo)
+		 }
+
+       // get CPU usage
+       cpuUsage, err := getCPUUsage()
+       if err != nil {
+	logger.Error("Error getting CPU usage: ", err)
+       } else {
+	info += t.I18nBot("tgbot.messages.cpuUsage", "CPU Usage=="+cpuUsage)
+	       }
+
+       // get disk usage
+       diskUsage, err := getDiskUsage()
+       if err != nil {
+	logger.Error("Error getting disk usage: ", err)
+        } else {
+	info += t.I18nBot("tgbot.messages.diskUsage", "Disk Usage=="+diskUsage)
+	       }
 	return info
 }
-
-
 
 func (t *Tgbot) UserLoginNotify(username string, ip string, time string, status LoginStatus) {
 	if !t.IsRunning() {
