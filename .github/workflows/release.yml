@@ -27,7 +27,16 @@ jobs:
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
 
-      - name: Build x-ui
+      - name: Get dependencies
+        run: |
+          go get github.com/shirou/gopsutil/v3/cpu
+          go get github.com/shirou/gopsutil/v3/disk
+          go get github.com/shirou/gopsutil/v3/host
+          go get github.com/shirou/gopsutil/v3/load
+          go get github.com/shirou/gopsutil/v3/mem
+          go get github.com/shirou/gopsutil/v3/net
+
+      - name: Build 
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
