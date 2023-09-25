@@ -57,7 +57,7 @@ func (a *ServerController) refreshStatus() {
 func (a *ServerController) startTask() {
 	webServer := global.GetWebServer()
 	c := webServer.GetCron()
-	c.AddFunc("@every 2s", func() {
+	c.AddFunc("@every 1s", func() {
 		now := time.Now()
 		if now.Sub(a.lastGetStatusTime) > time.Minute*3 {
 			return
