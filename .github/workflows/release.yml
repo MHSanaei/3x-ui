@@ -29,6 +29,7 @@ jobs:
 
       - name: Install gopsutil
         run: |
+          go get github.com/shirou/gopsuti
           go get github.com/shirou/gopsutil/cpu
           go get github.com/shirou/gopsutil/disk
 
