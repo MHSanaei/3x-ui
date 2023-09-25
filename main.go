@@ -17,7 +17,8 @@ import (
 	"x-ui/web/service"
 
 	"github.com/op/go-logging"
-	"github.com/shirou/gopsuti"
+	"github.com/shirou/gopsuti/cpu"
+	"github.com/shirou/gopsuti/disk"
 )
 
 func runWebServer() {
