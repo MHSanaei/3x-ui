@@ -197,7 +197,7 @@ class AllSetting {
         this.subEncrypt = true;
         this.subShowInfo = true;
 
-        this.timeLocation = "Asia/Tehran";
+        this.timeLocation = "Asia/Ho_Chi_Minh";
 
         if (data == null) {
             return
