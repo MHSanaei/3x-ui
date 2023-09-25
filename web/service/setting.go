@@ -33,7 +33,7 @@ var defaultValueMap = map[string]string{
 	"sessionMaxAge":      "0",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
-	"timeLocation":       "Asia/Tehran",
+	"timeLocation":       "Asia/Ho_Chi_Minh",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
 	"tgBotChatId":        "",
