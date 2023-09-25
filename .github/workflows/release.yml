@@ -21,16 +21,11 @@ jobs:
         with:
           go-version: '1.21'
           
-      - name: Install dependencies for amd64
+      - name: Install dependencies for arm64
         if: matrix.platform == 'arm64'
         run: |
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
-
-      - name: Install gopsutil
-        run: |
-          go get github.com/shirou/gopsutil/cpu
-          go get github.com/shirou/gopsutil/disk
 
       - name: Build x-ui
         run: |
