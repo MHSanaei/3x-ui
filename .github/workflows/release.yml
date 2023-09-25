@@ -21,7 +21,7 @@ jobs:
         with:
           go-version: '1.21'
           
-      - name: Install dependencies for arm64
+      - name: Install dependencies for amd64
         if: matrix.platform == 'arm64'
         run: |
           sudo apt-get update
@@ -29,7 +29,6 @@ jobs:
 
       - name: Install gopsutil
         run: |
-          go get github.com/shirou/gopsuti
           go get github.com/shirou/gopsutil/cpu
           go get github.com/shirou/gopsutil/disk
 
