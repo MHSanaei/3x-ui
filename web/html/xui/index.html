@@ -22,7 +22,7 @@
     {{ template "commonSider" . }}
     <a-layout id="content-layout" :style="themeSwitcher.bgStyle">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
+            <a-spin :spinning="spinning" :delay="100" :tip="loadingTip"/>
             <transition name="list" appear>
                 <a-row>
                     <a-card hoverable :class="themeSwitcher.darkCardClass">
