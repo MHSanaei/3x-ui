@@ -27,6 +27,11 @@ jobs:
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
 
+      - name: Install gopsutil
+        run: |
+          go get github.com/shirou/gopsutil/cpu
+          go get github.com/shirou/gopsutil/disk
+
       - name: Build x-ui
         run: |
           export CGO_ENABLED=1
