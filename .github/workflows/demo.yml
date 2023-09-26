@@ -1,4 +1,4 @@
-name: Build for ARM32
+name: Release X-UI 32
 
 on:
   push:
@@ -8,15 +8,15 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # Chọn phiên bản Ubuntu tương thích với ARM32-bit
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2.4.3
+        uses: actions/checkout@v2  # Sử dụng phiên bản mới nhất của actions/checkout
 
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: '1.16'  # Chọn phiên bản Go tương thích
+          go-version: '1.16'
 
       - name: Install dependencies
         run: |
@@ -37,7 +37,7 @@ jobs:
           export CGO_ENABLED=1
           export GOOS=linux
           export GOARCH=arm
-          export GOARM=7  # Chọn phiên bản ARM (armv7a)
+          export GOARM=7
           export CC=arm-linux-gnueabi-gcc
           go build -o xui-release -v main.go
 
