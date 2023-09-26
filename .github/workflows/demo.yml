@@ -1,4 +1,4 @@
-name: Release X-UI
+name: Test Release X-UI
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, arm32]
+        platform: [amd64, arm64, arm]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,18 +20,16 @@ jobs:
         uses: actions/setup-go@v4.1.0
         with:
           go-version: '1.21'
-
-      - name: Install dependencies for arm64
-        if: matrix.platform == 'arm64'
+          
+      - name: Install dependencies for arm64 and arm
+        if: matrix.platform != 'amd64'  # Install dependencies only for non-amd64 platforms
         run: |
           sudo apt-get update
-          sudo apt install gcc-aarch64-linux-gnu
-
-      - name: Install dependencies for arm32
-        if: matrix.platform == 'arm32'
-        run: |
-          sudo apt-get update
-          sudo apt install gcc-arm-linux-gnueabi
+          if [ "${{ matrix.platform }}" == "arm64" ]; then
+            sudo apt install gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.platform }}" == "arm" ]; then
+            sudo apt install gcc-arm-linux-gnueabi
+          fi
 
       - name: Get dependencies
         run: |
@@ -46,11 +44,11 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
-          export GOARCH=${{ matrix.platform }}
-          if [ "${{ matrix.platform }}" == "arm64" ]; then
-            export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm" ]; then
+          if [ "${{ matrix.platform }}" == "arm" ]; then
+            export GOARCH=arm
             export CC=arm-linux-gnueabi-gcc
+          else
+            export GOARCH=${{ matrix.platform }}
           fi
           go build -o xui-release -v main.go
           
@@ -67,14 +65,10 @@ jobs:
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
-          elif [ "${{ matrix.platform }}" == "arm64" ]; then
+          else
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          elif [ "${{ matrix.platform }}" == "arm32" ]; then
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v6.zip
-            unzip Xray-linux-arm32-v6.zip
-            rm -f Xray-linux-arm32-v6.zip
           fi
           rm -f geoip.dat geosite.dat iran.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
