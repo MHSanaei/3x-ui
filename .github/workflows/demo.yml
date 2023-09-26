@@ -49,7 +49,7 @@ jobs:
           export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm32" ]; then
+          elif [ "${{ matrix.platform }}" == "arm" ]; then
             export CC=arm-linux-gnueabi-gcc
           fi
           go build -o xui-release -v main.go
