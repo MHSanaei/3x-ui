@@ -1,4 +1,4 @@
-name: Test Release X-UI
+name: Build for ARM32
 
 on:
   push:
@@ -8,28 +8,20 @@ on:
 
 jobs:
   build:
-    strategy:
-      matrix:
-        platform: [amd64, arm64, arm]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Chọn phiên bản Ubuntu tương thích với ARM32-bit
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3.6.0
+        uses: actions/checkout@v2.4.3
 
       - name: Setup Go
-        uses: actions/setup-go@v4.1.0
+        uses: actions/setup-go@v2
         with:
-          go-version: '1.21'
-          
-      - name: Install dependencies for arm64 and arm
-        if: matrix.platform != 'amd64'  # Install dependencies only for non-amd64 platforms
+          go-version: '1.16'  # Chọn phiên bản Go tương thích
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          if [ "${{ matrix.platform }}" == "arm64" ]; then
-            sudo apt install gcc-aarch64-linux-gnu
-          elif [ "${{ matrix.platform }}" == "arm" ]; then
-            sudo apt install gcc-arm-linux-gnueabi
-          fi
+          sudo apt-get install -y gcc-arm-linux-gnueabi
 
       - name: Get dependencies
         run: |
@@ -40,52 +32,20 @@ jobs:
           go get github.com/shirou/gopsutil/v3/mem
           go get github.com/shirou/gopsutil/v3/net
 
-      - name: Build 
+      - name: Build
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
-          if [ "${{ matrix.platform }}" == "arm" ]; then
-            export GOARCH=arm
-            export CC=arm-linux-gnueabi-gcc
-          else
-            export GOARCH=${{ matrix.platform }}
-          fi
+          export GOARCH=arm
+          export GOARM=7  # Chọn phiên bản ARM (armv7a)
+          export CC=arm-linux-gnueabi-gcc
           go build -o xui-release -v main.go
-          
-          mkdir x-ui
-          cp xui-release x-ui/
-          cp x-ui.service x-ui/
-          cp x-ui.sh x-ui/
-          mv x-ui/xui-release x-ui/x-ui
-          mkdir x-ui/bin
-          cd x-ui/bin
-          
-          # Download dependencies
-          if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-64.zip
-            unzip Xray-linux-64.zip
-            rm -f Xray-linux-64.zip
-          else
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm64-v8a.zip
-            unzip Xray-linux-arm64-v8a.zip
-            rm -f Xray-linux-arm64-v8a.zip
-          fi
-          rm -f geoip.dat geosite.dat iran.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
-          mv xray xray-linux-${{ matrix.platform }}
-          cd ../..
-          
+
       - name: Package
-        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
-        
+        run: tar -zcvf x-ui-linux-arm.tar.gz xui-release
+
       - name: Upload
-        uses: svenstaro/upload-release-action@2.7.0
+        uses: actions/upload-artifact@v2
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          file: x-ui-linux-${{ matrix.platform }}.tar.gz
-          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
-          prerelease: true
-          overwrite: true
+          name: x-ui-linux-arm
+          path: x-ui-linux-arm.tar.gz
