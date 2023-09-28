@@ -1,4 +1,4 @@
-name: Release X-UI
+name: Release All X-UI
 
 on:
   push:
@@ -80,6 +80,10 @@ jobs:
             rm -f Xray-linux-arm32-v7a.zip
           fi
           rm -f geoip.dat geosite.dat iran.dat
+
+          # Add this line to skip replacing README.md
+          unzip -o -d xray-linux-${{ matrix.platform }} Xray-linux-${{ matrix.platform }}.zip -x README.md
+
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
