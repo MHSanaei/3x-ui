@@ -201,3 +201,5 @@ Reference syntax:
 - CentOS 7+
 - Fedora 30+
 - Arch Linux
+- Armbian
+- Windows 10 or newer(coming soon...)
