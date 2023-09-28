@@ -1,4 +1,4 @@
-name: Release All X-UI
+name: Release X-UI
 
 on:
   push:
@@ -61,18 +61,13 @@ jobs:
         run: |
           export GOOS=linux
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            go build -o xui-release -v main.go
+            go build -o x-ui/xui-release -v main.go
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            go build -o xui-release-arm64 -v main.go
+            go build -o x-ui/xui-release-arm64 -v main.go
           elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            go build -o xui-release-armv7 -v main.go
+            go build -o x-ui/xui-release-armv7 -v main.go
           fi
           
-          mkdir x-ui
-          cp xui-release x-ui/
-          cp x-ui.service x-ui/
-          cp x-ui.sh x-ui/
-          mv x-ui/xui-release x-ui/x-ui
           mkdir x-ui/bin
           cd x-ui/bin
           
