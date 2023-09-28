@@ -68,7 +68,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: x-ui-linux-arm32-v7a.tar.gz
-          asset_name: x-ui-linux-arm32-v7a.tar.gz
+          file: x-ui-linux-armv7.tar.gz
+          asset_name: x-ui-linux-armv7.tar.gz
           prerelease: true
           overwrite: true
