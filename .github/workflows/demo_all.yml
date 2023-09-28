@@ -20,18 +20,33 @@ jobs:
         uses: actions/setup-go@v4.1.0
         with:
           go-version: '1.21'
-
-      - name: Install dependencies for ARMv7
+          
+      - name: Install dependencies for armv7
         if: matrix.platform == 'armv7'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-arm-linux-gnueabihf
+          sudo apt install gcc-arm-linux-gnueabihf
 
-      - name: Install dependencies for ARM64
+      - name: Install dependencies for arm64
         if: matrix.platform == 'arm64'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu
+          sudo apt install gcc-aarch64-linux-gnu
+
+      - name: Set up environment for armv7
+        if: matrix.platform == 'armv7'
+        run: |
+          export CGO_ENABLED=1
+          export GOARCH=arm
+          export GOARM=7
+          export CC=arm-linux-gnueabihf-gcc
+
+      - name: Set up environment for arm64
+        if: matrix.platform == 'arm64'
+        run: |
+          export CGO_ENABLED=1
+          export GOARCH=arm64
+          export CC=aarch64-linux-gnu-gcc
 
       - name: Get dependencies
         run: |
@@ -42,29 +57,25 @@ jobs:
           go get github.com/shirou/gopsutil/v3/mem
           go get github.com/shirou/gopsutil/v3/net
 
-      - name: Build
+      - name: Build 
         run: |
-          export CGO_ENABLED=1
           export GOOS=linux
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            export GOARCH=amd64
+            go build -o xui-release -v main.go
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            export GOARCH=arm64
-            export CC=aarch64-linux-gnu-gcc
+            go build -o xui-release-arm64 -v main.go
           elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            export GOARCH=arm
-            export GOARM=7
-            export CC=arm-linux-gnueabihf-gcc
+            go build -o xui-release-armv7 -v main.go
           fi
-          go build -o xui-release -v main.go
-
+          
           mkdir x-ui
           cp xui-release x-ui/
           cp x-ui.service x-ui/
           cp x-ui.sh x-ui/
           mv x-ui/xui-release x-ui/x-ui
           mkdir x-ui/bin
-
+          cd x-ui/bin
+          
           # Download dependencies
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-64.zip
@@ -80,19 +91,15 @@ jobs:
             rm -f Xray-linux-arm32-v7a.zip
           fi
           rm -f geoip.dat geosite.dat iran.dat
-
-          # Add this line to skip replacing README.md
-          unzip -o -d xray-linux-${{ matrix.platform }} Xray-linux-${{ matrix.platform }}.zip -x README.md
-
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
-
+          
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
-
+        
       - name: Upload
         uses: svenstaro/upload-release-action@2.7.0
         with:
