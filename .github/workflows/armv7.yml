@@ -50,9 +50,9 @@ jobs:
           cd x-ui/bin
 
           # Download dependencies
-          wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm7.zip
-          unzip Xray-linux-arm7.zip
-          rm -f Xray-linux-arm7.zip
+          wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v7a.zip
+          unzip Xray-linux-arm32-v7a.zip
+          rm -f Xray-linux-arm32-v7a.zip
           rm -f geoip.dat geosite.dat iran.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
@@ -68,7 +68,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
-          file: x-ui-linux-armv7.tar.gz
-          asset_name: x-ui-linux-armv7.tar.gz
+          file: x-ui-linux-arm32-v7a.tar.gz
+          asset_name: x-ui-linux-arm32-v7a.tar.gz
           prerelease: true
           overwrite: true
