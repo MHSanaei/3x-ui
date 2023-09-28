@@ -18,7 +18,7 @@ yellow(){
 }
 
 REGEX=("debian" "ubuntu" "centos|red hat|kernel|oracle linux|alma|rocky" "'amazon linux'" "fedora" "arch", "manjaro", "armbian")
-RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora", "ArchLinux", "Manjaro")
+RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora", "ArchLinux", "Manjaro", "Armbian")
 PACKAGE_UPDATE=("apt-get update" "apt-get update" "yum -y update" "yum -y update" "yum -y update", "pacman -Syu", "pacman -Syu", "apt update")
 PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install" "yum -y install", "pacman -S", "pacman -S", "apt -y install")
 PACKAGE_REMOVE=("apt -y remove" "apt -y remove" "yum -y remove" "yum -y remove" "yum -y remove", "pacman -Rns", "pacman -Rns", "apt -y remove")
