@@ -34,7 +34,7 @@ archxui(){
 xui_download_url=""
 if [ "$(archxui)" == "amd64" ]; then
     xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-amd64.tar.gz"
-elif [ "$(archxui)" == "arm32" ]; then
+elif [ "$(archxui)" == "armv7" ]; then
     xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-armv7.tar.gz"
 elif [ "$(archxui)" == "arm64" ]; then
     xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-arm64.tar.gz"
