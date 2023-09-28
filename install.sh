@@ -53,7 +53,7 @@ cur_dir=$(pwd)
 
 # Check OS and set release variable
 REGEX=("debian" "ubuntu" "centos|red hat|kernel|oracle linux|alma|rocky" "'amazon linux'" "fedora", "alpine", "arch", "manjaro", "armbian")
-RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora" "Alpine", "ArchLinux", "Manjaro", "apt update")
+RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora" "Alpine", "ArchLinux", "Manjaro", "Armbian")
 PACKAGE_UPDATE=("apt-get update" "apt-get update" "yum -y update" "yum -y update" "yum -y update" "apk update -f", "pacman -Syu", "pacman -Syu", "apt update")
 PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install" "yum -y install" "apk add -f", "pacman -S", "pacman -S", "apt -y install")
 PACKAGE_REMOVE=("apt -y remove" "apt -y remove" "yum -y remove" "yum -y remove" "yum -y remove" "apk del -f", "pacman -Rns", "pacman -Rns", "apt -y remove")
