@@ -52,12 +52,12 @@ cur_dir=$(pwd)
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} this script must be run as root user " && exit 1
 
 # Check OS and set release variable
-REGEX=("debian" "ubuntu" "centos|red hat|kernel|oracle linux|alma|rocky" "'amazon linux'" "fedora", "alpine", "arch", "manjaro")
-RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora" "Alpine", "ArchLinux", "Manjaro")
-PACKAGE_UPDATE=("apt-get update" "apt-get update" "yum -y update" "yum -y update" "yum -y update" "apk update -f", "pacman -Syu", "pacman -Syu")
-PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install" "yum -y install" "apk add -f", "pacman -S", "pacman -S")
-PACKAGE_REMOVE=("apt -y remove" "apt -y remove" "yum -y remove" "yum -y remove" "yum -y remove" "apk del -f", "pacman -Rns", "pacman -Rns")
-PACKAGE_UNINSTALL=("apt -y autoremove" "apt -y autoremove" "yum -y autoremove" "yum -y autoremove" "yum -y autoremove" "apk del -f")
+REGEX=("debian" "ubuntu" "centos|red hat|kernel|oracle linux|alma|rocky" "'amazon linux'" "fedora", "alpine", "arch", "manjaro", "armbian")
+RELEASE=("Debian" "Ubuntu" "CentOS" "CentOS" "Fedora" "Alpine", "ArchLinux", "Manjaro", "apt update")
+PACKAGE_UPDATE=("apt-get update" "apt-get update" "yum -y update" "yum -y update" "yum -y update" "apk update -f", "pacman -Syu", "pacman -Syu", "apt update")
+PACKAGE_INSTALL=("apt -y install" "apt -y install" "yum -y install" "yum -y install" "yum -y install" "apk add -f", "pacman -S", "pacman -S", "apt -y install")
+PACKAGE_REMOVE=("apt -y remove" "apt -y remove" "yum -y remove" "yum -y remove" "yum -y remove" "apk del -f", "pacman -Rns", "pacman -Rns", "apt -y remove")
+PACKAGE_UNINSTALL=("apt -y autoremove" "apt -y autoremove" "yum -y autoremove" "yum -y autoremove" "yum -y autoremove" "apk del -f", "apt -y autoremove")
 
 [[ $EUID -ne 0 ]] && red "This script must be run as root user！" && exit 1
 
