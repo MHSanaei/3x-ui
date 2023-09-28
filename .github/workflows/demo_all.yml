@@ -1,4 +1,4 @@
-name: Release X-UI
+name: Release
 
 on:
   push:
