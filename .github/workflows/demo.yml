@@ -36,7 +36,7 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
-          export GOARCH=armv7
+          export GOARCH=arm
           export CC=aarch64-linux-gnu-gcc
           
           go build -o xui-release -v main.go
