@@ -23,7 +23,7 @@ yellow() {
 archxui(){
     case "$(uname -m)" in
         x86_64 | x64 | amd64 ) echo 'amd64' ;;
-        armv6* | armv7* | armv7l* ) echo 'armv7' ;;
+        armv7* | armv7l ) echo 'armv7' ;;
         armv8* | arm64 | aarch64 ) echo 'arm64' ;;
         s390x ) echo 's390x' ;;
         * ) red "Unsupported CPU architecture! " && rm -f install.sh && exit 1 ;;
