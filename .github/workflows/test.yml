@@ -53,7 +53,7 @@ jobs:
       - name: Download dependencies and package 
         run: |
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v7a.zip 
-            unzip Xray-linux-arm32-v7a.zip 
+            unzip -o Xray-linux-arm32-v7a.zip 
             rm -f Xray-linux-arm32-v7a.zip 
 
             rm -f geoip.dat geosite.dat iran.dat
