@@ -50,9 +50,10 @@ jobs:
           mkdir x-ui/bin
           cd x-ui/bin
 
-      - name: Download dependencies and package 
-        run: |
+           - name: Download dependencies and package 
+             run: |
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v7a.zip 
+            rm -rf xray
             unzip -o Xray-linux-arm32-v7a.zip 
             rm -f Xray-linux-arm32-v7a.zip 
 
@@ -63,6 +64,7 @@ jobs:
             wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
 
             mv xray xray-linux-armv7
+
             
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
