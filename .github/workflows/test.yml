@@ -1,4 +1,4 @@
-name: Release X-UI (DEMO)
+name: Release X-UI
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, armv7l]
+        platform: [amd64, arm64, arm]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -21,8 +21,8 @@ jobs:
         with:
           go-version: '1.21'
           
-      - name: Install dependencies for arm64 and armv7l
-        if: matrix.platform == 'arm64' || matrix.platform == 'armv7l'
+      - name: Install dependencies for arm64 and arm
+        if: matrix.platform == 'arm64' || matrix.platform == 'arm'
         run: |
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
@@ -41,7 +41,7 @@ jobs:
           export CGO_ENABLED=1
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
-          if [ "${{ matrix.platform }}" == "arm64" ] || [ "${{ matrix.platform }}" == "armv7l" ]; then
+          if [ "${{ matrix.platform }}" == "arm64" ] || [ "${{ matrix.platform }}" == "arm" ]; then
             export CC=aarch64-linux-gnu-gcc
           fi
           go build -o xui-release -v main.go
@@ -63,11 +63,10 @@ jobs:
             wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          else if [ "${{ matrix.platform }}" == "armv7l" ]; then 
-            # Add the download link for the armv7l architecture here.
-            # wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v7a.zip
-            # unzip Xray-linux-arm32-v7a.zip
-            # rm -f Xray-linux-arm32-v7a.zip
+          else if [ "${{ matrix.platform }}" == "arm" ]; then 
+            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm32-v7a.zip
+            unzip Xray-linux-arm32-v7a.zip
+            rm -f Xray-linux-arm32-v7a.zip
           fi 
           
           rm -f geoip.dat geosite.dat iran.dat
