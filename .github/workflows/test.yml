@@ -81,12 +81,10 @@ jobs:
 
           mv xray xray-linux-${{ matrix.platform }}
           
-      - name: Package and Upload 
-        run: |
-          cd ../..
-          
-          tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+      - name: Package
+        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
         
+      - name: Upload
         uses: svenstaro/upload-release-action@2.7.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
@@ -95,4 +93,5 @@ jobs:
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
           overwrite: true
+
 
