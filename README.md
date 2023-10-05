@@ -201,5 +201,6 @@ Reference syntax:
 - CentOS 7+
 - Fedora 30+
 - Arch Linux
+- Manjaro
 - Armbian
 - Windows 7 and newer(coming soon...)
