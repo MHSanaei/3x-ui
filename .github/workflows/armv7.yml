@@ -1,4 +1,4 @@
-name: Release X-UI ARMv7
+name: Release X-UI armv7
 
 on:
   push:
