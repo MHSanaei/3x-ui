@@ -49,7 +49,7 @@ jobs:
           export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm" ]; then  # Thay 'armv7' bằng 'arm'
+          elif [ "${{ matrix.platform }}" == "arm" ]; then
             export CC=arm-linux-gnueabihf-gcc
           fi
           go build -o xui-release -v main.go
@@ -72,7 +72,7 @@ jobs:
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           elif [ "${{ matrix.platform }}" == "arm" ]; then  # Thay 'armv7' bằng 'arm'
-            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm32-v7a.zip  # Thay liên kết tải về cho armv7a 
+            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip  
             rm -f Xray-linux-arm32-v7a.zip  
           fi
