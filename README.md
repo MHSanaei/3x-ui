@@ -202,4 +202,4 @@ Reference syntax:
 - Fedora 30+
 - Arch Linux
 - Armbian
-- Windows 10 or newer(coming soon...)
+- Windows 7 and newer(coming soon...)
