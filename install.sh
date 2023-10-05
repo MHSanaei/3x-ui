@@ -23,7 +23,7 @@ yellow() {
 archxui(){
     case "$(uname -m)" in
         x86_64 | x64 | amd64 ) echo 'amd64' ;;
-        armv7* | armv7l ) echo 'armv7' ;;
+        armv7* | armv7l ) echo 'arm' ;;
         armv8* | arm64 | aarch64 ) echo 'arm64' ;;
         s390x ) echo 's390x' ;;
         * ) red "Unsupported CPU architecture! " && rm -f install.sh && exit 1 ;;
@@ -34,8 +34,8 @@ archxui(){
 xui_download_url=""
 if [ "$(archxui)" == "amd64" ]; then
     xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-amd64.tar.gz"
-elif [ "$(archxui)" == "armv7" ]; then
-    xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-armv7.tar.gz"
+elif [ "$(archxui)" == "arm" ]; then
+    xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-arm.tar.gz"
 elif [ "$(archxui)" == "arm64" ]; then
     xui_download_url="https://github.com/quydang04/x-ui/releases/download/latest/x-ui-linux-arm64.tar.gz"
 else
