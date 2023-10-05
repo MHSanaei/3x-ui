@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, armv7]  # Thêm armv7 vào danh sách
+        platform: [amd64, arm64, arm]  # Thay 'armv7' bằng 'arm'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,8 +27,8 @@ jobs:
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
 
-      - name: Install dependencies for armv7  # Thêm bước cài đặt cho armv7
-        if: matrix.platform == 'armv7'
+      - name: Install dependencies for arm  # Thay 'armv7' bằng 'arm'
+        if: matrix.platform == 'arm'
         run: |
           sudo apt-get update
           sudo apt install gcc-arm-linux-gnueabihf
@@ -49,7 +49,7 @@ jobs:
           export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "armv7" ]; then  # Thêm điều kiện cho armv7
+          elif [ "${{ matrix.platform }}" == "arm" ]; then  # Thay 'armv7' bằng 'arm'
             export CC=arm-linux-gnueabihf-gcc
           fi
           go build -o xui-release -v main.go
@@ -71,28 +71,38 @@ jobs:
             wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          elif [ "${{ matrix.platform }}" == "armv7" ]; then  # Thêm điều kiện cho armv7
-            # Giữ liên kết tải về cho armv7 nguyên thủy
-            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-32.zip
-            unzip Xray-linux-32.zip
-            rm -f Xray-linux-32.zip
+          elif [ "${{ matrix.platform }}" == "arm" ]; then  # Thay 'armv7' bằng 'arm'
+            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-32.zip  # Giữ liên kết tải về cho arm nguyên thủy 
+            unzip Xray-linux-32.zip  
+            rm -f Xray-linux-32.zip  
           fi
-          rm -f geoip.dat geosite.dat iran.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
-          mv xray xray-linux-${{ matrix.platform }}
+
+          rm -f geoip.dat geosite.dat iran.dat  
+          
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat  
+          
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat  
+          
+          wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat  
+          
+          mv xray xray-linux-${{ matrix.platform }}  
+          
           cd ../..
 
-      - name: Package
-        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+      - name: Package  
+        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui  
 
-      - name: Upload
-        uses: svenstaro/upload-release-action@2.7.0
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
-          file: x-ui-linux-${{ matrix.platform }}.tar.gz
-          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
-          prerelease: true
-          overwrite: true
+      - name: Upload  
+        uses: svenstaro/upload-release-action@2.7.0  
+        with:  
+          repo_token: ${{ secrets.GITHUB_TOKEN }}  
+          
+          tag: ${{ github.ref }}  
+          
+          file: x-ui-linux-${{ matrix.platform }}.tar.gz  
+          
+          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz  
+          
+          prerelease: true  
+          
+          overwrite: true 
