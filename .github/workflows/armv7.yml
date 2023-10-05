@@ -72,9 +72,9 @@ jobs:
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           elif [ "${{ matrix.platform }}" == "arm" ]; then  # Thay 'armv7' bằng 'arm'
-            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-32.zip  # Giữ liên kết tải về cho arm nguyên thủy 
-            unzip Xray-linux-32.zip  
-            rm -f Xray-linux-32.zip  
+            wget https://github.com/XTLS/Xray-core/releases/latest/download/Xray-linux-arm32-v7a.zip  # Thay liên kết tải về cho armv7a 
+            unzip Xray-linux-arm32-v7a.zip  
+            rm -f Xray-linux-arm32-v7a.zip  
           fi
 
           rm -f geoip.dat geosite.dat iran.dat  
