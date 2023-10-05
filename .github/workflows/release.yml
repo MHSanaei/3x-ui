@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, arm]  # Thay 'armv7' bằng 'arm'
+        platform: [amd64, arm64, arm]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -27,7 +27,7 @@ jobs:
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
 
-      - name: Install dependencies for arm  # Thay 'armv7' bằng 'arm'
+      - name: Install dependencies for arm
         if: matrix.platform == 'arm'
         run: |
           sudo apt-get update
