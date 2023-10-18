@@ -42,10 +42,6 @@ func GetGeoipPath() string {
 	return config.GetBinFolderPath() + "/geoip.dat"
 }
 
-func GetIranPath() string {
-	return config.GetBinFolderPath() + "/iran.dat"
-}
-
 func GetIPLimitLogPath() string {
 	return config.GetLogFolder() + "/3xipl.log"
 }
