@@ -24,6 +24,11 @@ const supportLangs = [
         value: 'vi-VN',
         icon: '🇻🇳',
     },
+    {
+        name: 'española',
+        value: 'es-ES',
+        icon: '🇪🇸',
+    },
 ];
 
 function getLang() {
