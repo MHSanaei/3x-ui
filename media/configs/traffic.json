@@ -1,7 +1,6 @@
 {
   "log": {
     "loglevel": "warning",
-    "access": "./access.log",
     "error": "./error.log"
   },
   "api": {

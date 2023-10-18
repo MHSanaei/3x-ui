@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4.1.0
+        uses: actions/checkout@v4.1.1
 
       - name: Setup Go
         uses: actions/setup-go@v4.1.0
@@ -55,12 +55,11 @@ jobs:
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           fi
-          rm -f geoip.dat geosite.dat iran.dat
+          rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget -O geoip_ch.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-          wget -O geosite_ch.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-          wget https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
+          wget -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+          wget -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
           

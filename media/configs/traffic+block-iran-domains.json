@@ -1,7 +1,6 @@
 {
   "log": {
     "loglevel": "warning",
-    "access": "./access.log",
     "error": "./error.log"
   },
   "api": {
@@ -75,9 +74,8 @@
         "outboundTag": "blocked",
         "domain": [
           "regexp:.*\\.ir$",
-          "ext:iran.dat:ir",
-          "ext:iran.dat:other",
-          "geosite:category-ir"
+          "regexp:.*\\.xn--mgba3a4f16a$", 
+          "ext:geosite_IR.dat:ir"
         ]
       }
     ]

@@ -1,7 +1,6 @@
 {
   "log": {
     "loglevel": "warning",
-    "access": "./access.log",
     "error": "./error.log"
   },
   "api": {
@@ -61,7 +60,7 @@
         "outboundTag": "blocked",
         "ip": [
           "geoip:private",
-          "geoip:ir"
+          "ext:geoip_IR.dat:ir"
         ]
       },
       {

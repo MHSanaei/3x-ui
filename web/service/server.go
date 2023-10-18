@@ -376,50 +376,21 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	downloadFile := func(fileName string, url string) error {
-		os.Remove(fileName)
-		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, fs.ModePerm)
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-		resp, err := http.Get(url)
-		if err != nil {
-			return err
-		}
-		defer resp.Body.Close()
-		if resp.StatusCode != http.StatusOK {
-			return fmt.Errorf("download file failed: %s", resp.Status)
-		}
-		_, err = io.Copy(file, resp.Body)
+	err = copyZipFile("xray", xray.GetBinaryPath())
+	if err != nil {
+		return err
+	}
+	err = copyZipFile("geosite.dat", xray.GetGeositePath())
+	if err != nil {
+		return err
+	}
+	err = copyZipFile("geoip.dat", xray.GetGeoipPath())
+	if err != nil {
 		return err
 	}
 
-	copyFiles := map[string]string{
-		"xray":        xray.GetBinaryPath(),
-		"geosite.dat": xray.GetGeositePath(),
-		"geoip.dat":   xray.GetGeoipPath(),
-	}
-
-	downloadFiles := map[string]string{
-		xray.GetIranPath(): "https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat",
-	}
-
-	for fileName, filePath := range copyFiles {
-		err := copyZipFile(fileName, filePath)
-		if err != nil {
-			return err
-		}
-	}
-
-	for fileName, filePath := range downloadFiles {
-		err := downloadFile(fileName, filePath)
-		if err != nil {
-			return err
-		}
-	}
-
 	return nil
+
 }
 
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {

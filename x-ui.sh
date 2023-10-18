@@ -519,14 +519,13 @@ update_geo() {
 
     systemctl stop x-ui
     cd ${binFolder}
-    rm -f geoip.dat geosite.dat iran.dat
+    rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-    wget -O geoip_ch.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-    wget -O geosite_ch.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-    wget -N https://github.com/MasterKia/iran-hosted-domains/releases/latest/download/iran.dat
+    wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+    wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
     systemctl start x-ui
-    echo -e "${green}Geosite.dat + Geoip.dat + Iran.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
+    echo -e "${green}Geosite.dat + Geoip.dat + geoip_IR.dat + geosite_IR.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
 
