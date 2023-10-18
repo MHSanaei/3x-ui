@@ -1,7 +1,6 @@
 {
   "log": {
     "loglevel": "warning",
-    "access": "./access.log",
     "error": "./error.log"
   },
   "api": {
@@ -81,8 +80,7 @@
         "type": "field",
         "outboundTag": "blocked",
         "domain": [
-          "geosite:category-ads-all",
-          "ext:iran.dat:ads"
+          "ext:geosite_IR.dat:category-ads-all"
         ]
       },
       {

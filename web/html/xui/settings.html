@@ -472,14 +472,12 @@
                 ips: {
                     local: ["geoip:private"],
                     cn: ["geoip:cn"],
-                    ir: ["geoip:ir","ext:geoip_ch.dat:arvancloud","ext:geoip_ch.dat:derakcloud","ext:geoip_ch.dat:iranserver"],
+                    ir: ["ext:geoip_IR.dat:ir","ext:geoip_IR.dat:arvancloud","ext:geoip_IR.dat:derakcloud","ext:geoip_IR.dat:iranserver"],
                     ru: ["geoip:ru"],
                 },
                 domains: {
                     ads: [
-                        "geosite:category-ads-all",
-                        "ext:iran.dat:ads",
-                        "ext:geosite_ch.dat:ads"
+                        "ext:geosite_IR.dat:category-ads-all"
                     ],
                     speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
@@ -497,9 +495,7 @@
                     ir: [
                         "regexp:.*\\.ir$",
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
-                        "ext:iran.dat:ir",
-                        "ext:iran.dat:other",
-                        "geosite:category-ir"
+                        "ext:geosite_IR.dat:ir"  // have rules to bypass all .ir domains.
                     ]
                 },
                 familyProtectDNS: {
