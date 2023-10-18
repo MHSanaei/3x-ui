@@ -209,6 +209,16 @@ If you want to use routing to WARP follow steps as below:
     1. Use the `x-ui` command inside the shell.
     2. Select `IP Limit Management`.
     3. Choose the appropriate options based on your needs.
+   
+  - make sure you have access.log on your Xray Configuration
+  
+  ```sh
+    "log": {
+    "loglevel": "warning",
+    "access": "./access.log",
+    "error": "./error.log"
+    },
+  ```
 
 </details>
 
@@ -338,7 +348,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 # Acknowledgment
 
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-ruless) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
 - [Iran Hosted Domains](https://github.com/bootmortis/iran-hosted-domains) (License: **MIT**): _A comprehensive list of Iranian domains and services that are hosted within the country._
 - [PersianBlocker](https://github.com/MasterKia/PersianBlocker) (License: **AGPLv3**): _An optimal and extensive list to block ads and trackers on Persian websites._
 
