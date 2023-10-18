@@ -25,7 +25,7 @@ const supportLangs = [
         icon: '🇻🇳',
     },
     {
-        name: 'española',
+        name: 'Español',
         value: 'es-ES',
         icon: '🇪🇸',
     },
