@@ -53,7 +53,7 @@
 [menu]
 "dashboard" = "Estado del Sistema"
 "inbounds" = "Entradas"
-"settings" = "Configuraciones del Panel"
+"settings" = "Configuraciones"
 "logout" = "Cerrar Sesión"
 "link" = "Otro"
 
@@ -139,7 +139,7 @@
 "keyPath" = "Ruta de la Clave Privada"
 "keyContent" = "Contenido de la Clave Privada"
 "clickOnQRcode" = "Haz clic en el Código QR para Copiar"
-"client" = "Client"
+"client" = "Cliente"
 "export" = "Exportar Enlaces"
 "clone" = "Clonar"
 "cloneInbound" = "Clonar Entradas"
@@ -394,7 +394,7 @@
 "hours" = "Horas"
 "unknown" = "Desconocido"
 "inbounds" = "Entradas"
-"clients" = "Clients"
+"clients" = "Clientes"
 
 [tgbot.commands]
 "unknown" = "❗ Comando desconocido"
