@@ -5,7 +5,7 @@ case $1 in
         ARCH="64"
         FNAME="amd64"
         ;;
-    arm64)
+    armv8 | arm64 | aarch64)
         ARCH="arm64-v8a"
         FNAME="arm64"
         ;;
