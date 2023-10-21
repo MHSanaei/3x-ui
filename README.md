@@ -162,7 +162,7 @@ After you set ssl on settings
 
 </details>
 
-# [WARP Configuration](https://github.com/fscarmen/warp) (Optional)
+# [WARP Configuration](https://gitlab.com/fscarmen/warp) (Optional)
 
 <details>
   <summary>Click for WARP Configuration details</summary>
