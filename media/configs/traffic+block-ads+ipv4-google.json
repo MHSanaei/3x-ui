@@ -80,6 +80,7 @@
         "type": "field",
         "outboundTag": "blocked",
         "domain": [
+          "geosite:category-ads-all",
           "ext:geosite_IR.dat:category-ads-all"
         ]
       },
