@@ -166,8 +166,8 @@ github.com/mymmrac/telego v0.27.0 h1:22RBP6gDTy4W4MLwFVvqIfECzFZdRQwLFECaPdoNAMY
 github.com/mymmrac/telego v0.27.0/go.mod h1:h0FwbuLw+bw9hL+ImF3qHTFOEKQCTyzMlUpde9ZvFg4=
 github.com/neelance/astrewrite v0.0.0-20160511093645-99348263ae86/go.mod h1:kHJEU3ofeGjhHklVoIGuVj85JJwZ6kWPaJwCIxgnFmo=
 github.com/neelance/sourcemap v0.0.0-20151028013722-8c68805598ab/go.mod h1:Qr6/a/Q4r9LP1IltGz7tA7iOK1WonHEYhu1HRBA7ZiM=
-github.com/nicksnyder/go-i18n/v2 v2.2.1 h1:aOzRCdwsJuoExfZhoiXHy4bjruwCMdt5otbYojM/PaA=
-github.com/nicksnyder/go-i18n/v2 v2.2.1/go.mod h1:fF2++lPHlo+/kPaj3nB0uxtPwzlPm+BlgwGX7MkeGj0=
+github.com/nicksnyder/go-i18n/v2 v2.2.2 h1:Iv/FL6pvYmDqybEZkr4TrOv8jSHezwpE77K68kcaft8=
+github.com/nicksnyder/go-i18n/v2 v2.2.2/go.mod h1:fF2++lPHlo+/kPaj3nB0uxtPwzlPm+BlgwGX7MkeGj0=
 github.com/onsi/ginkgo/v2 v2.12.0 h1:UIVDowFPwpg6yMUpPjGkYvf06K3RAiJXUhCxEwQVHRI=
 github.com/onsi/ginkgo/v2 v2.12.0/go.mod h1:ZNEzXISYlqpb8S36iN71ifqLi3vVD1rVJGvWRCJOUpQ=
 github.com/onsi/gomega v1.27.10 h1:naR28SdDFlqrG6kScpT8VWpu1xWY5nJRCF3XaYyBjhI=
