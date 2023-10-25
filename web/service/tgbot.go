@@ -192,7 +192,7 @@ func (t *Tgbot) OnReceive() {
 func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin bool) {
 	msg, onlyMessage := "", false
 
-	command, commandArgs := tu.ParseCommand(message.Text)
+	command, _, commandArgs := tu.ParseCommand(message.Text)
 
 	// Extract the command from the Message.
 	switch command {
