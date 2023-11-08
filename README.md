@@ -2,31 +2,31 @@
 
 > **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
 
-[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
-[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
+[![](https://img.shields.io/github/v/release/Alex-Joe-Lee/3x-ui.svg)](https://github.com/Alex-Joe-Lee/3x-ui/releases)
+[![](https://img.shields.io/github/actions/workflow/status/Alex-Joe-Lee/3x-ui/release.yml.svg)](#)
+[![GO Version](https://img.shields.io/github/go-mod/go-version/Alex-Joe-Lee/3x-ui.svg)](#)
+[![Downloads](https://img.shields.io/github/downloads/Alex-Joe-Lee/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese,Russian,Vietnamese,Spanish)**
+3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese,Russian)**
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
 **Buy Me a Coffee :**
 
 - Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
-# Install & Upgrade
+# Install &&&& Upgrade
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/Alex-Joe-Lee/3x-ui/master/install.sh)
 ```
 
 # Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.7.9`:
+To install your desired version you can add the version to the end of install command. Example for ver `v1.7.1`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.7.9
+bash <(curl -Ls https://raw.githubusercontent.com/Alex-Joe-Lee/3x-ui/master/install.sh) v1.6.1
 ```
 
 # SSL
@@ -37,7 +37,7 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-You also can use `x-ui` menu then select `SSL Certificate Management`
+You also can use `x-ui` menu then select `16. SSL Certificate Management`
 
 # Features
 
@@ -66,7 +66,7 @@ You also can use `x-ui` menu then select `SSL Certificate Management`
 ```sh
 ARCH=$(uname -m)
 [[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
-wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
+wget https://github.com/Alex-Joe-Lee/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
 ```
 
 2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
@@ -102,7 +102,7 @@ systemctl restart x-ui
 2. Clone the Project Repository:
 
    ```sh
-   git clone https://github.com/MHSanaei/3x-ui.git
+   git clone https://github.com/Alex-Joe-Lee/3x-ui.git
    cd 3x-ui
    ```
 
@@ -122,7 +122,7 @@ systemctl restart x-ui
       --network=host \
       --restart=unless-stopped \
       --name 3x-ui \
-      ghcr.io/mhsanaei/3x-ui:latest
+      ghcr.io/Alex-Joe-Lee/3x-ui:latest
    ```
 
 </details>
@@ -162,7 +162,7 @@ After you set ssl on settings
 
 </details>
 
-# [WARP Configuration](https://gitlab.com/fscarmen/warp) (Optional)
+# [WARP Configuration](https://github.com/fscarmen/warp) (Optional)
 
 <details>
   <summary>Click for WARP Configuration details</summary>
@@ -207,18 +207,8 @@ If you want to use routing to WARP follow steps as below:
   - To make IP Limit work properly, you need to install fail2ban and its required files by following these steps:
 
     1. Use the `x-ui` command inside the shell.
-    2. Select `IP Limit Management`.
+    2. Select `16. IP Limit Management`.
     3. Choose the appropriate options based on your needs.
-   
-  - make sure you have access.log on your Xray Configuration
-  
-  ```sh
-    "log": {
-    "loglevel": "warning",
-    "access": "./access.log",
-    "error": "./error.log"
-    },
-  ```
 
 </details>
 
@@ -263,27 +253,6 @@ Reference syntax:
 - Receive backup by request and in periodic reports
 - Multi language bot
 </details>
-
-# Setting up Telegram bot
-
-- Start [Botfather](https://t.me/BotFather) in your Telegram account:
-    ![Botfather](./media/botfather.png)
-  
-- Create a new Bot using /newbot command: It will ask you 2 questions, A name and a username for your bot. Note that the username has to end with the word "bot".
-    ![Create new bot](./media/newbot.png)
-
-- Start the bot you've just created. You can find the link to your bot here.
-    ![token](./media/token.png)
-
-- Enter your panel and config Telegram bot settings like below:
-![Panel Config](./media/panel-bot-config.png)
-
-Enter your bot token in input field number 3.
-Enter the user ID in input field number 4. The Telegram accounts with this id will be the bot admin. (You can enter more than one, Just separate them with ,)
-
-- How to get Telegram user ID? Use this [bot](https://t.me/useridinfobot), Start the bot and it will give you the Telegram user ID.
-![User ID](./media/user-id.png)
-
 
 # API routes
 
@@ -346,19 +315,12 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 - [alireza0](https://github.com/alireza0/)
 
-# Acknowledgment
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Iran Hosted Domains](https://github.com/bootmortis/iran-hosted-domains) (License: **MIT**): _A comprehensive list of Iranian domains and services that are hosted within the country._
-- [PersianBlocker](https://github.com/MasterKia/PersianBlocker) (License: **AGPLv3**): _An optimal and extensive list to block ads and trackers on Persian websites._
-
 # Suggestion System
 
 - Ubuntu 20.04+
 - Debian 10+
 - CentOS 8+
 - Fedora 36+
-- Arch Linux
 
 # Pictures
 
@@ -371,4 +333,4 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 ## Stargazers over time
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/Alex-Joe-Lee/3x-ui.svg)](https://starchart.cc/Alex-Joe-Lee/3x-ui)
