@@ -11,17 +11,24 @@ cur_dir=$(pwd)
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
 # Check OS and set release variable
-if [[ -f /etc/os-release ]]; then
-    source /etc/os-release
-    release=$ID
-elif [[ -f /usr/lib/os-release ]]; then
-    source /usr/lib/os-release
-    release=$ID
+if [[ -f /etc/redhat-release ]]; then
+    release="centos"
+elif cat /etc/issue | grep -Eqi "debian"; then
+    release="debian"
+elif cat /etc/issue | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /etc/issue | grep -Eqi "centos|red hat|redhat"; then
+    release="centos"
+elif cat /proc/version | grep -Eqi "debian"; then
+    release="debian"
+elif cat /proc/version | grep -Eqi "ubuntu"; then
+    release="ubuntu"
+elif cat /proc/version | grep -Eqi "centos|red hat|redhat"; then
+    release="centos"
 else
-    echo "Failed to check the system OS, please contact the author!" >&2
-    exit 1
+    echo -e "${red}未检测到系统版本，请联系脚本作者！${plain}\n" && exit 1
 fi
-echo "The OS release is: $release"
+
 
 arch3xui() {
     case "$(uname -m)" in
@@ -33,47 +40,39 @@ arch3xui() {
 echo "arch: $(arch3xui)"
 
 os_version=""
-os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
-
-if [[ "${release}" == "centos" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
-    fi
-elif [[ "${release}" == "ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red}please use Ubuntu 20 or higher version!${plain}\n" && exit 1
-    fi
-
-elif [[ "${release}" == "fedora" ]]; then
-    if [[ ${os_version} -lt 36 ]]; then
-        echo -e "${red}please use Fedora 36 or higher version!${plain}\n" && exit 1
-    fi
-
-elif [[ "${release}" == "debian" ]]; then
-    if [[ ${os_version} -lt 10 ]]; then
-        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
-    fi
-elif [[ "${release}" == "arch" ]]; then
-    echo "OS is ArchLinux"
-
-else
-    echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
+# os version
+if [[ -f /etc/os-release ]]; then
+    os_version=$(awk -F'[= ."]' '/VERSION_ID/{print $3}' /etc/os-release)
 fi
+if [[ -z "$os_version" && -f /etc/lsb-release ]]; then
+    os_version=$(awk -F'[= ."]+' '/DISTRIB_RELEASE/{print $2}' /etc/lsb-release)
+fi
+
+if [[ x"${release}" == x"centos" ]]; then
+    if [[ ${os_version} -le 6 ]]; then
+        echo -e "${red}请使用 CentOS 7 或更高版本的系统！${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" == x"ubuntu" ]]; then
+    if [[ ${os_version} -lt 16 ]]; then
+        echo -e "${red}请使用 Ubuntu 16 或更高版本的系统！${plain}\n" && exit 1
+    fi
+elif [[ x"${release}" == x"debian" ]]; then
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red}请使用 Debian 8 或更高版本的系统！${plain}\n" && exit 1
+    fi
+fi
+
 
 install_base() {
     case "${release}" in
-        centos|fedora)
-            yum install -y -q wget curl tar
-            ;;
-        arch)
-            pacman -Syu --noconfirm wget curl tar
-            ;;
-        *)
-            apt install -y -q wget curl tar
-            ;;
+    centos | fedora)
+        yum install -y -q wget curl tar
+        ;;
+    *)
+        apt install -y -q wget curl tar
+        ;;
     esac
 }
-
 
 # This function will be called when user installed x-ui out of sercurity
 config_after_install() {
@@ -111,6 +110,7 @@ config_after_install() {
 }
 
 install_x-ui() {
+    systemctl stop x-ui
     cd /usr/local/
 
     if [ $# == 0 ]; then
@@ -137,7 +137,6 @@ install_x-ui() {
     fi
 
     if [[ -e /usr/local/x-ui/ ]]; then
-        systemctl stop x-ui
         rm /usr/local/x-ui/ -rf
     fi
 
@@ -171,7 +170,6 @@ install_x-ui() {
     echo -e "x-ui enable       - Enable    x-ui on system startup"
     echo -e "x-ui disable      - Disable   x-ui on system startup"
     echo -e "x-ui log          - Check     x-ui logs"
-    echo -e "x-ui banlog       - Check Fail2ban ban logs"
     echo -e "x-ui update       - Update    x-ui"
     echo -e "x-ui install      - Install   x-ui"
     echo -e "x-ui uninstall    - Uninstall x-ui"
