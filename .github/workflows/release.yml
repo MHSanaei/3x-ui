@@ -47,11 +47,11 @@ jobs:
           
           # Download dependencies
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-64.zip
+            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.6/Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
           else
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.4/Xray-linux-arm64-v8a.zip
+            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.6/Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           fi
