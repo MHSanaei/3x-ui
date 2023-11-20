@@ -5,38 +5,21 @@ const ONE_TB = ONE_GB * 1024;
 const ONE_PB = ONE_TB * 1024;
 
 function sizeFormat(size) {
-    if (size < 0) {
-        return "0 B";
-    } else if (size < ONE_KB) {
-        return size.toFixed(0) + " B";
-    } else if (size < ONE_MB) {
-        return (size / ONE_KB).toFixed(2) + " KB";
-    } else if (size < ONE_GB) {
-        return (size / ONE_MB).toFixed(2) + " MB";
-    } else if (size < ONE_TB) {
-        return (size / ONE_GB).toFixed(2) + " GB";
-    } else if (size < ONE_PB) {
-        return (size / ONE_TB).toFixed(2) + " TB";
-    } else {
-        return (size / ONE_PB).toFixed(2) + " PB";
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+    let index = 0;
+    while (size >= 1024 && index < units.length - 1) {
+        size /= 1024;
+        index++;
     }
+    return size.toFixed(index ? 2 : 0) + ' ' + units[index];
 }
 
 function cpuSpeedFormat(speed) {
-    if (speed > 1000) {
-        const GHz = speed / 1000;
-        return GHz.toFixed(2) + " GHz";
-    } else {
-        return speed.toFixed(2) + " MHz";
-    }
+    return (speed > 1000 ? (speed / 1000).toFixed(2) + " GHz" : speed.toFixed(2) + " MHz");
 }
 
 function cpuCoreFormat(cores) {
-    if (cores === 1) {
-        return "1 Core";
-    } else {
-        return cores + " Cores";
-    }
+    return cores + (cores === 1 ? " Core" : " Cores");
 }
 
 function base64(str) {
@@ -51,39 +34,29 @@ function safeBase64(str) {
 }
 
 function formatSecond(second) {
-    if (second < 60) {
-        return second.toFixed(0) + ' s';
-    } else if (second < 3600) {
-        return (second / 60).toFixed(0) + ' m';
-    } else if (second < 3600 * 24) {
-        return (second / 3600).toFixed(0) + ' h';
-    } else {
-        return (second / 3600 / 24).toFixed(0) + ' d';
+    const timeUnits = { day: 86400, hour: 3600, minute: 60 };
+    for (const [unit, value] of Object.entries(timeUnits)) {
+        if (second >= value) {
+            return (second / value).toFixed(0) + ' ' + unit.charAt(0);
+        }
     }
+    return second.toFixed(0) + ' s';
 }
 
 function addZero(num) {
-    if (num < 10) {
-        return "0" + num;
-    } else {
-        return num;
-    }
+    return num < 10 ? "0" + num : num.toString();
 }
 
 function toFixed(num, n) {
-    n = Math.pow(10, n);
-    return Math.round(num * n) / n;
+    const factor = Math.pow(10, n);
+    return Math.round(num * factor) / factor;
 }
 
 function debounce(fn, delay) {
-    var timeoutID = null;
-    return function () {
+    let timeoutID = null;
+    return function (...args) {
         clearTimeout(timeoutID);
-        var args = arguments;
-        var that = this;
-        timeoutID = setTimeout(function () {
-            fn.apply(that, args);
-        }, delay);
+        timeoutID = setTimeout(() => fn.apply(this, args), delay);
     };
 }
 
@@ -113,43 +86,19 @@ function setCookie(cname, cvalue, exdays) {
 }
 
 function usageColor(data, threshold, total) {
-    switch (true) {
-        case data === null:
-            return 'blue';
-        case total <= 0:
-            return 'blue';
-        case data < total - threshold:
-            return 'cyan';
-        case data < total:
-            return 'orange';
-        default:
-            return 'red';
-    }
+    if (data === null || total <= 0) return 'blue';
+    if (data < total - threshold) return 'cyan';
+    if (data < total) return 'orange';
+    return 'red';
 }
 
 function doAllItemsExist(array1, array2) {
-    for (let i = 0; i < array1.length; i++) {
-        if (!array2.includes(array1[i])) {
-            return false;
-        }
-    }
-    return true;
+    return array1.every(item => array2.includes(item));
 }
 
-function buildURL({ host, port, isTLS, base, path }) {
-    if (!host || host.length === 0) host = window.location.hostname;
-    if (!port || port.length === 0) port = window.location.port;
-
-    if (isTLS === undefined) isTLS = window.location.protocol === "https:";
-
+function buildURL({ host = window.location.hostname, port = window.location.port, isTLS = window.location.protocol === "https:", base, path }) {
     const protocol = isTLS ? "https:" : "http:";
-
     port = String(port);
-    if (port === "" || (isTLS && port === "443") || (!isTLS && port === "80")) {
-        port = "";
-    } else {
-        port = `:${port}`;
-    }
-
+    port = (port === "" || (isTLS && port === "443") || (!isTLS && port === "80")) ? "" : `:${port}`;
     return `${protocol}//${host}${port}${base}${path}`;
 }
