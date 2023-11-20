@@ -474,8 +474,12 @@
 "ipLimit" = "🔢 IP Limit"
 "setTGUser" = "👤 Set Telegram User"
 "toggle" = "🔘 Enable / Disable"
+"custom" = "🔢 Custom"
+"confirmNumber" = "✅ Confirm : {{ .Num }}"
+"limitTraffic" = "🚧 Traffic Limit"
 
 [tgbot.answers]
+"successfulOperation" = "✅ Successful!"
 "errorOperation" = "❗ Error in Operation."
 "getInboundsFailed" = "❌ Failed to get inbounds"
 "canceled" = "❌ {{ .Email }} : Operation canceled."
@@ -483,6 +487,7 @@
 "IpRefreshSuccess" = "✅ {{ .Email }} : IPs refreshed successfully."
 "TGIdRefreshSuccess" = "✅ {{ .Email }} : Client's Telegram User refreshed successfully."
 "resetTrafficSuccess" = "✅ {{ .Email }} : Traffic reset successfully."
+"setTrafficLimitSuccess" = "✅ {{ .Email }} : Traffic limit saved successfully."
 "expireResetSuccess" = "✅ {{ .Email }} : Expire days reset successfully."
 "resetIpSuccess" = "✅ {{ .Email }} : IP limit {{ .Count }} saved successfully."
 "clearIpSuccess" = "✅ {{ .Email }} : IPs cleared successfully."

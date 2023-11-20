@@ -1231,6 +1231,67 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 	return nil
 }
 
+func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, totalGB int) error {
+	if totalGB < 0 {
+		return common.NewError("totalGB must be >= 0")
+	}
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return err
+	}
+	if inbound == nil {
+		return common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	oldClients, err := s.GetClients(inbound)
+	if err != nil {
+		return err
+	}
+
+	clientId := ""
+
+	for _, oldClient := range oldClients {
+		if oldClient.Email == clientEmail {
+			if inbound.Protocol == "trojan" {
+				clientId = oldClient.Password
+			} else {
+				clientId = oldClient.ID
+			}
+			break
+		}
+	}
+
+	if len(clientId) == 0 {
+		return common.NewError("Client Not Found For Email:", clientEmail)
+	}
+
+	var settings map[string]interface{}
+	err = json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err != nil {
+		return err
+	}
+	clients := settings["clients"].([]interface{})
+	var newClients []interface{}
+	for client_index := range clients {
+		c := clients[client_index].(map[string]interface{})
+		if c["email"] == clientEmail {
+			c["totalGB"] = totalGB * 1024 * 1024 * 1024
+			newClients = append(newClients, interface{}(c))
+		}
+	}
+	settings["clients"] = newClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+	inbound.Settings = string(modifiedSettings)
+	_, err = s.UpdateInboundClient(inbound, clientId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	db := database.GetDB()
 

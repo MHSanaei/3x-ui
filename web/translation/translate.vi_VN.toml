@@ -474,8 +474,12 @@
 "ipLimit" = "🔢 Giới Hạn IP"
 "setTGUser" = "👤 Đặt Người Dùng Telegram"
 "toggle" = "🔘 Bật / Tắt"
+"custom" = "🔢 Phong tục"
+"confirmNumber" = "✅ Xác nhận : {{ .Num }}"
+"limitTraffic" = "🚧 Giới hạn giao thông"
 
 [tgbot.answers]
+"successfulOperation" = "✅ Thành công!"
 "errorOperation" = "❗ Lỗi Trong Quá Trình Thực Hiện."
 "getInboundsFailed" = "❌ Không Thể Lấy Được Inbounds"
 "canceled" = "❌ {{ .Email }} : Thao Tác Đã Bị Hủy."
@@ -483,6 +487,7 @@
 "IpRefreshSuccess" = "✅ {{ .Email }} : Cập Nhật Thành Công Cho IPs."
 "TGIdRefreshSuccess" = "✅ {{ .Email }} : Cập Nhật Thành Công Cho Người Dùng Telegram."
 "resetTrafficSuccess" = "✅ {{ .Email }} : Đặt Lại Lưu Lượng Thành Công."
+"setTrafficLimitSuccess" = "✅ {{ .Email }} : Đã lưu thành công giới hạn lưu lượng."
 "expireResetSuccess" = "✅ {{ .Email }} : Đặt Lại Ngày Hết Hạn Thành Công."
 "resetIpSuccess" = "✅ {{ .Email }} : Giới Hạn IP {{ .Count }} Đã Được Lưu Thành Công."
 "clearIpSuccess" = "✅ {{ .Email }} : IPs Đã Được Xóa Thành Công."
