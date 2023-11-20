@@ -27,37 +27,41 @@ func NewAutoHttpsConn(conn net.Conn) net.Conn {
 func (c *AutoHttpsConn) readRequest() bool {
 	c.firstBuf = make([]byte, 2048)
 	n, err := c.Conn.Read(c.firstBuf)
-	c.firstBuf = c.firstBuf[:n]
 	if err != nil {
 		return false
 	}
+	c.firstBuf = c.firstBuf[:n]
 	reader := bytes.NewReader(c.firstBuf)
 	bufReader := bufio.NewReader(reader)
 	request, err := http.ReadRequest(bufReader)
 	if err != nil {
 		return false
 	}
-	resp := http.Response{
-		Header: http.Header{},
+	resp := &http.Response{
+		StatusCode: http.StatusTemporaryRedirect,
+		Header:     make(http.Header),
 	}
-	resp.StatusCode = http.StatusTemporaryRedirect
-	location := fmt.Sprintf("https://%v%v", request.Host, request.RequestURI)
-	resp.Header.Set("Location", location)
+	resp.Header.Set("Location", fmt.Sprintf("https://%v%v", request.Host, request.RequestURI))
 	resp.Write(c.Conn)
 	c.Close()
-	c.firstBuf = nil
 	return true
 }
 
 func (c *AutoHttpsConn) Read(buf []byte) (int, error) {
+	var err error
 	c.readRequestOnce.Do(func() {
-		c.readRequest()
+		if !c.readRequest() {
+			err = fmt.Errorf("failed to read HTTP request")
+		}
 	})
+	if err != nil {
+		return 0, err
+	}
 
 	if c.firstBuf != nil {
 		n := copy(buf, c.firstBuf[c.bufStart:])
 		c.bufStart += n
-		if c.bufStart >= len(c.firstBuf) {
+		if c.bufStart == len(c.firstBuf) {
 			c.firstBuf = nil
 		}
 		return n, nil
