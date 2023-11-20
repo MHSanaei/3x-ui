@@ -57,11 +57,8 @@ func (x *XrayAPI) Close() {
 }
 
 func (x *XrayAPI) AddInbound(inbound []byte) error {
-	client := *x.HandlerServiceClient
-
 	conf := new(conf.InboundDetourConfig)
-	err := json.Unmarshal(inbound, conf)
-	if err != nil {
+	if err := json.Unmarshal(inbound, conf); err != nil {
 		logger.Debug("Failed to unmarshal inbound:", err)
 		return err
 	}
@@ -70,10 +67,7 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 		logger.Debug("Failed to build inbound Detur:", err)
 		return err
 	}
-	inboundConfig := command.AddInboundRequest{Inbound: config}
-
-	_, err = client.AddInbound(context.Background(), &inboundConfig)
-
+	_, err = (*x.HandlerServiceClient).AddInbound(context.Background(), &command.AddInboundRequest{Inbound: config})
 	return err
 }
 
@@ -85,55 +79,13 @@ func (x *XrayAPI) DelInbound(tag string) error {
 	return err
 }
 
-func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]interface{}) error {
-	var account *serial.TypedMessage
-	switch Protocol {
-	case "vmess":
-		account = serial.ToTypedMessage(&vmess.Account{
-			Id: user["id"].(string),
-		})
-	case "vless":
-		account = serial.ToTypedMessage(&vless.Account{
-			Id:   user["id"].(string),
-			Flow: user["flow"].(string),
-		})
-	case "trojan":
-		account = serial.ToTypedMessage(&trojan.Account{
-			Password: user["password"].(string),
-		})
-	case "shadowsocks":
-		var ssCipherType shadowsocks.CipherType
-		switch user["cipher"].(string) {
-		case "aes-128-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_128_GCM
-		case "aes-256-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_256_GCM
-		case "chacha20-poly1305", "chacha20-ietf-poly1305":
-			ssCipherType = shadowsocks.CipherType_CHACHA20_POLY1305
-		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
-			ssCipherType = shadowsocks.CipherType_XCHACHA20_POLY1305
-		default:
-			ssCipherType = shadowsocks.CipherType_NONE
-		}
-
-		if ssCipherType != shadowsocks.CipherType_NONE {
-			account = serial.ToTypedMessage(&shadowsocks.Account{
-				Password:   user["password"].(string),
-				CipherType: ssCipherType,
-			})
-		} else {
-			account = serial.ToTypedMessage(&shadowsocks_2022.User{
-				Key:   user["password"].(string),
-				Email: user["email"].(string),
-			})
-		}
-	default:
-		return nil
+func (x *XrayAPI) AddUser(protocol string, inboundTag string, user map[string]interface{}) error {
+	account, err := buildAccount(protocol, user)
+	if err != nil {
+		return err
 	}
 
-	client := *x.HandlerServiceClient
-
-	_, err := client.AlterInbound(context.Background(), &command.AlterInboundRequest{
+	_, err = (*x.HandlerServiceClient).AlterInbound(context.Background(), &command.AlterInboundRequest{
 		Tag: inboundTag,
 		Operation: serial.ToTypedMessage(&command.AddUserOperation{
 			User: &protocol.User{
@@ -143,6 +95,58 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]in
 		}),
 	})
 	return err
+}
+
+// Helper function to build account based on protocol
+func buildAccount(protocol string, user map[string]interface{}) (*serial.TypedMessage, error) {
+	switch protocol {
+	case "vmess":
+		return serial.ToTypedMessage(&vmess.Account{
+			Id: user["id"].(string),
+		}), nil
+	case "vless":
+		return serial.ToTypedMessage(&vless.Account{
+			Id:   user["id"].(string),
+			Flow: user["flow"].(string),
+		}), nil
+	case "trojan":
+		return serial.ToTypedMessage(&trojan.Account{
+			Password: user["password"].(string),
+		}), nil
+	case "shadowsocks":
+		ssCipherType, err := getShadowsocksCipherType(user["cipher"].(string))
+		if err != nil {
+			return nil, err
+		}
+		if ssCipherType != shadowsocks.CipherType_NONE {
+			return serial.ToTypedMessage(&shadowsocks.Account{
+				Password:   user["password"].(string),
+				CipherType: ssCipherType,
+			}), nil
+		}
+		return serial.ToTypedMessage(&shadowsocks_2022.User{
+			Key:   user["password"].(string),
+			Email: user["email"].(string),
+		}), nil
+	default:
+		return nil, common.NewError("unsupported protocol:", protocol)
+	}
+}
+
+// Helper function to get Shadowsocks cipher type
+func getShadowsocksCipherType(cipher string) (shadowsocks.CipherType, error) {
+	switch cipher {
+	case "aes-128-gcm":
+		return shadowsocks.CipherType_AES_128_GCM, nil
+	case "aes-256-gcm":
+		return shadowsocks.CipherType_AES_256_GCM, nil
+	case "chacha20-poly1305", "chacha20-ietf-poly1305":
+		return shadowsocks.CipherType_CHACHA20_POLY1305, nil
+	case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
+		return shadowsocks.CipherType_XCHACHA20_POLY1305, nil
+	default:
+		return shadowsocks.CipherType_NONE, common.NewError("unsupported cipher:", cipher)
+	}
 }
 
 func (x *XrayAPI) RemoveUser(inboundTag string, email string) error {
