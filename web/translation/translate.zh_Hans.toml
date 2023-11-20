@@ -474,8 +474,12 @@
 "ipLimit" = "🔢 IP 限制"
 "setTGUser" = "👤 设置 Telegram 用户"
 "toggle" = "🔘 启用/禁用"
+"custom" = "🔢 风俗"
+"confirmNumber" = "✅ 确认 : {{ .Num }}"
+"limitTraffic" = "🚧 交通限制"
 
 [tgbot.answers]
+"successfulOperation" = "✅ 成功的！"
 "errorOperation" = "❗ 操作错误。"
 "getInboundsFailed" = "❌ 获取入站信息失败。"
 "canceled" = "❌ {{ .Email }}：操作已取消。"
@@ -483,6 +487,7 @@
 "IpRefreshSuccess" = "✅ {{ .Email }}：IP 刷新成功。"
 "TGIdRefreshSuccess" = "✅ {{ .Email }}：客户端的 Telegram 用户刷新成功。"
 "resetTrafficSuccess" = "✅ {{ .Email }}：流量已重置成功。"
+"setTrafficLimitSuccess" = "✅ {{ .Email }} : 流量限制保存成功。"
 "expireResetSuccess" = "✅ {{ .Email }}：过期天数已重置成功。"
 "resetIpSuccess" = "✅ {{ .Email }}：成功保存 IP 限制数量为 {{ .Count }}。"
 "clearIpSuccess" = "✅ {{ .Email }}：IP 已成功清除。"
