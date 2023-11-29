@@ -516,16 +516,19 @@ update_geo() {
         LOGI "making bin folder: ${binFolder}..."
         mkdir -p ${binFolder}
     fi
-
-    systemctl stop x-ui
+    
     cd ${binFolder}
-    rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat
-    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-    wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-    wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-    systemctl start x-ui
-    echo -e "${green}Geosite.dat + Geoip.dat + geoip_IR.dat + geosite_IR.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
+    rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip-lite.dat geosite-lite.dat security.dat security-ip.dat iran.dat
+    wget -O geoip.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/geoip.dat
+    wget -O geosite.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/geosite.dat
+    wget -O geoip-lite.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/geoip-lite.dat
+    wget -O geosite-lite.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/geosite-lite.dat
+    wget -O security-ip.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/security-ip.dat
+    wget -O security.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/security.dat
+    wget -O iran.dat -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
+    
+    systemctl restart x-ui
+    echo -e "${green}Geosite.dat + Geoip.dat + security.dat + security-ip.dat + geoip-lite.dat + geosite-lite.dat + iran.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
 
