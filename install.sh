@@ -75,7 +75,7 @@ install_base() {
 }
 
 
-# This function will be called when user installed x-ui out of sercurity
+# This function will be called when user installed x-ui out of security
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]? ": config_confirm
