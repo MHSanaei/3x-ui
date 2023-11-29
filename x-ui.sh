@@ -516,8 +516,7 @@ update_geo() {
         LOGI "making bin folder: ${binFolder}..."
         mkdir -p ${binFolder}
     fi
-
-    systemctl stop x-ui
+    
     cd ${binFolder}
     rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip-lite.dat geosite-lite.dat security.dat security-ip.dat iran.dat
     wget -O geoip.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/geoip.dat
@@ -528,7 +527,7 @@ update_geo() {
     wget -O security.dat -N https://cdn.jsdelivr.net/gh/chocolate4u/Iran-v2ray-rules@release/security.dat
     wget -O iran.dat -N https://github.com/bootmortis/iran-hosted-domains/releases/latest/download/iran.dat
     
-    systemctl start x-ui
+    systemctl restart x-ui
     echo -e "${green}Geosite.dat + Geoip.dat + security.dat + security-ip.dat + geoip-lite.dat + geosite-lite.dat + iran.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
