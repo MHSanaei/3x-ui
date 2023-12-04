@@ -288,6 +288,8 @@
 
 [pages.xray]
 "title" = "Xray Cài đặt"
+"save" = "Lưu cài đặt"
+"restart" = "Khởi động lại Xray"
 "basicTemplate" = "Mẫu Cơ bản"
 "advancedTemplate" = "Mẫu Nâng cao"
 "completeTemplate" = "Mẫu Đầy đủ"

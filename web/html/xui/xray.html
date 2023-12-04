@@ -47,8 +47,8 @@
                         <a-row>
                             <a-col :xs="24" :sm="8" style="padding: 4px;">
                                 <a-space direction="horizontal">
-                                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.settings.save" }}</a-button>
-                                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
+                                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
+                                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
                                 </a-space>
                             </a-col>
                             <a-col :xs="24" :sm="16">
@@ -332,28 +332,11 @@
                 }
             },
             async restartPanel() {
-                await new Promise(resolve => {
-                    this.$confirm({
-                        title: '{{ i18n "pages.settings.restartPanel" }}',
-                        content: '{{ i18n "pages.settings.restartPanelDesc" }}',
-                        class: themeSwitcher.currentTheme,
-                        okText: '{{ i18n "sure" }}',
-                        cancelText: '{{ i18n "cancel" }}',
-                        onOk: () => resolve(),
-                    });
-                });
                 this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/restartPanel");
+                const msg = await HttpUtil.post("server/restartXrayService");
                 this.loading(false);
                 if (msg.success) {
                     this.loading(true);
-                    await PromiseUtil.sleep(5000);
-                    var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.xraySetting;
-                    if (host == this.oldXraySetting.webDomain) host = null;
-                    if (port == this.oldXraySetting.webPort) port = null;
-                    const isTLS = webCertFile !== "" || webKeyFile !== "";
-                    const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
-                    window.location.replace(url);
                 }
             },
             async fetchUserSecret() {

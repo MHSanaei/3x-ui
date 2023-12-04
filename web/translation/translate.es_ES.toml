@@ -287,6 +287,8 @@
 
 [pages.xray]
 "title" = "Xray Configuración"
+"save" = "Guardar configuración"
+"restart" = "Reiniciar Xray"
 "basicTemplate" = "Plantilla Básica"
 "advancedTemplate" = "Plantilla Avanzada"
 "completeTemplate" = "Plantilla Completa"

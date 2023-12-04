@@ -287,6 +287,8 @@
 
 [pages.xray]
 "title" = "Xray 设置"
+"save" = "保存设置"
+"restart" = "重新启动 Xray"
 "basicTemplate" = "基本模板"
 "advancedTemplate" = "高级模板部件"
 "completeTemplate" = "Xray 配置的完整模板"
