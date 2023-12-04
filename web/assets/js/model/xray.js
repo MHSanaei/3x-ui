@@ -1783,7 +1783,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     }
 };
 Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
-    constructor(id=RandomUtil.randomUUID(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
+    constructor(id=RandomUtil.randomUUID(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16), reset=0) {
         super();
         this.id = id;
         this.email = email;
@@ -1793,6 +1793,7 @@ Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.reset = reset;
     }
 
     static fromJson(json={}) {
@@ -1805,6 +1806,7 @@ Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.reset,
         );
     }
     get _expiryTime() {
@@ -1873,7 +1875,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
 };
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
-    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
+    constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16), reset=0) {
         super();
         this.id = id;
         this.flow = flow;
@@ -1884,6 +1886,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.reset = reset;
     }
 
     static fromJson(json={}) {
@@ -1897,6 +1900,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.reset,
         );
       }
 
@@ -1996,7 +2000,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password=RandomUtil.randomSeq(10), flow='', email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
+    constructor(password=RandomUtil.randomSeq(10), flow='', email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16), reset=0) {
         super();
         this.password = password;
         this.flow = flow;
@@ -2007,6 +2011,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.reset = reset;
     }
 
     toJson() {
@@ -2020,6 +2025,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            reset: this.reset,
         };
     }
 
@@ -2034,6 +2040,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.reset,
         );
     }
 
@@ -2138,7 +2145,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 };
 
 Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
-    constructor(method='', password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16)) {
+    constructor(method='', password=RandomUtil.randomShadowsocksPassword(), email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16), reset=0) {
         super();
         this.method = method;
         this.password = password;
@@ -2149,6 +2156,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.reset = reset;
     }
 
     toJson() {
@@ -2162,6 +2170,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            reset: this.reset,
         };
     }
 
@@ -2176,6 +2185,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.reset,
         );
     }
 
