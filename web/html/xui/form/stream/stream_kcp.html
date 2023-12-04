@@ -1,7 +1,7 @@
 {{define "form/streamKCP"}}
 <a-form layout="inline">
     <a-form-item label='{{ i18n "camouflage" }}'>
-        <a-select v-model="inbound.stream.kcp.type" style="width: 280px;" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-select v-model="inbound.stream.kcp.type" style="width: 280px;" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="none">None (Not Camouflage)</a-select-option>
             <a-select-option value="srtp">SRTP (Camouflage Video Call)</a-select-option>
             <a-select-option value="utp">UTP (Camouflage BT Download)</a-select-option>

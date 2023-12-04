@@ -1,7 +1,7 @@
 {{define "qrcodeModal"}}
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
          :closable="true"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :footer="null"
          width="300px">
     <a-tag color="green" style="margin-bottom: 10px;display: block;text-align: center;">
@@ -13,7 +13,7 @@
     </template>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <template v-for="(row, index) in qrModal.qrcodes">
-        <a-tag color="orange" style="margin-top: 10px;display: block;text-align: center;">[[ row.remark ]]</a-tag>
+        <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
         <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas>
     </template>
 </a-modal>

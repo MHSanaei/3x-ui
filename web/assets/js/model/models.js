@@ -141,6 +141,19 @@ class DBInbound {
         return Inbound.fromJson(config);
     }
 
+    isMultiUser() {
+        switch (this.protocol) {
+            case Protocols.VMESS:
+            case Protocols.VLESS:
+            case Protocols.TROJAN:
+                return true;
+            case Protocols.SHADOWSOCKS:
+                return this.toInbound().isSSMultiUser;
+            default:
+                return false;
+        }
+    }
+
     hasLink() {
         switch (this.protocol) {
             case Protocols.VMESS:
