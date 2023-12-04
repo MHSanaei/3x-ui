@@ -38,6 +38,8 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
 	g.POST("/delDepletedClients/:id", a.delDepletedClients)
 	g.GET("/createbackup", a.createBackup)
+	g.POST("/onlines", a.onlines)
+
 	a.inboundController = NewInboundController(g)
 }
 
@@ -103,4 +105,8 @@ func (a *APIController) delDepletedClients(c *gin.Context) {
 
 func (a *APIController) createBackup(c *gin.Context) {
 	a.Tgbot.SendBackupToAdmins()
+}
+
+func (a *APIController) onlines(c *gin.Context) {
+	a.inboundController.onlines(c)
 }
