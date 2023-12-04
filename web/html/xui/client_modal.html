@@ -112,9 +112,6 @@
             get isExpiry() {
                 return this.clientModal.isEdit && this.client.expiryTime >0 ? (this.client.expiryTime < new Date().getTime()) : false;
             },
-            get statsColor() {
-                return usageColor(clientStats.up + clientStats.down, app.trafficDiff, this.client.totalGB);
-            },
             get delayedStart() {
                 return this.clientModal.delayedStart;
             },

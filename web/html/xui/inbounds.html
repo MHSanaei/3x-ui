@@ -1112,19 +1112,10 @@
                 remained = clientStats.totalGB - (clientStats.up + clientStats.down);
                 return remained>0 ? remained : 0;
             },
-            statsColor(dbInbound, email) {
-                if (email.length == 0) return '#0e49b5';
+            clientStatsColor(dbInbound, email) {
+                if (email.length == 0) return clientUsageColor();
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
-                switch (true) {
-                    case !clientStats:
-                        return "#0e49b5";
-                    case clientStats.up + clientStats.down < clientStats.total - app.trafficDiff:
-                        return "#0e49b5";
-                    case clientStats.up + clientStats.down < clientStats.total:
-                        return "#FFA031";
-                    default:
-                        return "#E04141";
-                }
+                return clientUsageColor(clientStats, app.trafficDiff)
             },
             statsProgress(dbInbound, email) {
                 if (email.length == 0) return 100;
