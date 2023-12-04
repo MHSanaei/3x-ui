@@ -131,6 +131,19 @@ function usageColor(data, threshold, total) {
     }
 }
 
+function clientUsageColor(clientStats, trafficDiff) {
+    switch (true) {
+        case !clientStats || clientStats.total == 0:
+            return "#7a316f";
+        case clientStats.up + clientStats.down < clientStats.total - trafficDiff:
+            return "#0e49b5";
+        case clientStats.up + clientStats.down < clientStats.total:
+            return "#FFA031";
+        default:
+            return "#E04141";
+    }
+}
+
 function userExpiryColor(threshold, client, isDark = false) {
     if (!client.enable) {
         return isDark ? '#2c3950' : '#bcbcbc';

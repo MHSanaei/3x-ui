@@ -85,7 +85,7 @@
                                 :percent="statsProgress(record, client.email)"/>
                 </td>
                 <td width="120px" v-else-if="client.totalGB > 0">
-                    <a-progress :stroke-color="statsColor(record, client.email)"
+                    <a-progress :stroke-color="clientStatsColor(record, client.email)"
                                 :show-info="false"
                                 :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
                                 :percent="statsProgress(record, client.email)"/>
@@ -201,7 +201,7 @@
                                     </tr>
                                 </table>
                             </template>
-                            <a-progress :stroke-color="statsColor(record, client.email)"
+                            <a-progress :stroke-color="clientStatsColor(record, client.email)"
                                         :show-info="false"
                                         :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
                                         :percent="statsProgress(record, client.email)"/>

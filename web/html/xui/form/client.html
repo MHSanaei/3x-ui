@@ -117,7 +117,7 @@
         <template v-if="isEdit && clientStats">
             <br>
             <span> {{ i18n "usage" }}:</span>
-            <a-tag :color="statsColor">
+            <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">
                 [[ sizeFormat(clientStats.up) ]] / 
                 [[ sizeFormat(clientStats.down) ]]
                 ([[ sizeFormat(clientStats.up + clientStats.down) ]])
