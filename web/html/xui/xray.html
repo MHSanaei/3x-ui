@@ -331,7 +331,7 @@
                     await this.getXraySetting();
                 }
             },
-            async restartPanel() {
+            async restartXray() {
                 this.loading(true);
                 const msg = await HttpUtil.post("server/restartXrayService");
                 this.loading(false);
