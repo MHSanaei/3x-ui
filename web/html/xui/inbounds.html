@@ -1109,7 +1109,7 @@
                 if (email.length == 0) return 0;
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
                 if (!clientStats) return 0;
-                remained = clientStats.totalGB - (clientStats.up + clientStats.down);
+                remained = clientStats.total - (clientStats.up + clientStats.down);
                 return remained>0 ? remained : 0;
             },
             clientStatsColor(dbInbound, email) {
