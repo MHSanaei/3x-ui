@@ -26,17 +26,15 @@ func InitLogger(level logging.Level) {
 	var format logging.Formatter
 	ppid := os.Getppid()
 
-	if ppid == 1 {
-		backend, err = logging.NewSyslogBackend("")
-		format = logging.MustStringFormatter(
-			`%{level} - %{message}`,
-		)
-	}
-	if err != nil || ppid != 1 {
+	backend, err = logging.NewSyslogBackend("")
+	if err != nil {
+		println(err)
 		backend = logging.NewLogBackend(os.Stderr, "", 0)
-		format = logging.MustStringFormatter(
-			`%{time:2006/01/02 15:04:05} %{level} - %{message}`,
-		)
+	}
+	if ppid > 0 && err != nil {
+		format = logging.MustStringFormatter(`%{time:2006/01/02 15:04:05} %{level} - %{message}`)
+	} else {
+		format = logging.MustStringFormatter(`%{level} - %{message}`)
 	}
 
 	backendFormatter := logging.NewBackendFormatter(backend, format)
