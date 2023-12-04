@@ -38,6 +38,8 @@
 "disabled" = "غیرفعال"
 "depleted" = "منقضی"
 "depletingSoon" = "در حال انقضا"
+"offline" = "آفلاین"
+"online" = "آنلاین"
 "domainName" = "آدرس دامنه"
 "monitor" = "آی پی اتصال"
 "certificate" = "گواهی دیجیتال"
@@ -54,6 +56,7 @@
 "dashboard" = "وضعیت سیستم"
 "inbounds" = "سرویس ها"
 "settings" = "تنظیمات پنل"
+"xray" = "الگوی ایکس‌ری"
 "logout" = "خروج"
 "link" = "دیگر"
 
@@ -121,6 +124,8 @@
 "modifyInbound" = "ویرایش سرویس"
 "deleteInbound" = "حذف سرویس"
 "deleteInboundContent" = "آیا مطمئن به حذف سرویس هستید ؟"
+"deleteClient" = "حذف کاربر"
+"deleteClientContent" = "آیا مطمئن به حذف کاربر هستید ؟"
 "resetTrafficContent" = "آیا مطمئن به ریست ترافیک هستید ؟"
 "copyLink" = "کپی لینک"
 "address" = "آدرس"
@@ -169,6 +174,7 @@
 "realityDesc" = "هسته Xray باید 1.8.0 و بالاتر باشد"
 "telegramDesc" = "از آیدی تلگرام بدون @ یا آیدی چت استفاده کنید (می توانید آن را از اینجا دریافت کنید @userinfobot یا در ربات دستور '/id' را وارد کنید)"
 "subscriptionDesc" = "می توانید ساب لینک خود را در جزئیات پیدا کنید، همچنین می توانید از همین نام برای چندین کانفیگ استفاده کنید"
+"info" = "اطلاعات"
 
 [pages.client]
 "add" = "کاربر جدید"
@@ -185,6 +191,8 @@
 "delayedStart" = "شروع بعد از اولین استفاده"
 "expireDays" = "روزهای اعتبار"
 "days" = "(روز)"
+"renew" = "تمدید خودکار"
+"renewDesc" = "روزهای تمدید خودکار پس از انقضا. 0 = غیرفعال"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
@@ -216,7 +224,6 @@
 "resetDefaultConfig" = "برگشت به تنظیمات پیشفرض"
 "panelSettings" = "تنظیمات پنل"
 "securitySettings" = "تنظیمات امنیتی"
-"xrayConfiguration" = "تنظیمات Xray"
 "TGBotSettings" = "تنظیمات ربات تلگرام"
 "panelListeningIP" = "محدودیت آی پی پنل"
 "panelListeningIPDesc" = "برای استفاده از تمام آی‌پیها به طور پیش فرض خالی بگذارید"

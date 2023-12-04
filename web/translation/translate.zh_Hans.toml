@@ -12,7 +12,7 @@
 "protocol" = "协议"
 "search" = "搜尋"
 "filter" = "过滤器"
-"loading" = "加载中"
+"loading" = "加载中..."
 "second" = "秒"
 "minute" = "分钟"
 "hour" = "小时"
@@ -38,6 +38,8 @@
 "disabled" = "关闭"
 "depleted" = "耗尽"
 "depletingSoon" = "即将耗尽"
+"offline" = "离线"
+"online" = "在线"
 "domainName" = "域名"
 "monitor" = "监听"
 "certificate" = "证书"
@@ -54,6 +56,7 @@
 "dashboard" = "系统状态"
 "inbounds" = "入站列表"
 "settings" = "面板设置"
+"xray" = "Xray 设置"
 "logout" = "退出登录"
 "link" = "其他"
 
@@ -121,6 +124,8 @@
 "modifyInbound" = "修改入站"
 "deleteInbound" = "删除入站"
 "deleteInboundContent" = "确定要删除入站吗?"
+"deleteClient" = "删除客户端"
+"deleteClientContent" = "您确定要删除客户端吗?"
 "resetTrafficContent" = "确定要重置流量吗?"
 "copyLink" = "复制链接"
 "address" = "地址"
@@ -132,8 +137,8 @@
 "totalFlow" = "总流量"
 "leaveBlankToNeverExpire" = "留空则永不到期"
 "noRecommendKeepDefault" = "没有特殊需求保持默认即可"
-"certificatePath" = "证书文件路径"
-"certificateContent" = "证书文件内容"
+"certificatePath" = "文件路径"
+"certificateContent" = "文件内容"
 "publicKeyPath" = "公钥文件路径"
 "publicKeyContent" = "公钥内容"
 "keyPath" = "密钥文件路径"
@@ -169,6 +174,7 @@
 "realityDesc" = "Xray核心需要1.8.0及以上版本"
 "telegramDesc" = "使用 Telegram ID，不包含 @ 符号或聊天 ID（可以在 @userinfobot 处获取，或在机器人中使用'/id'命令）"
 "subscriptionDesc" = "您可以在详细信息上找到您的子链接，也可以对多个配置使用相同的名称"
+"info" = "信息"
 
 [pages.client]
 "add" = "添加客户端"
@@ -185,6 +191,8 @@
 "delayedStart" = "首次使用后开始"
 "expireDays" = "过期天数"
 "days" = "天"
+"renew" = "自动续订"
+"renewDesc" = "过期后自动续订。0 = 禁用"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"
@@ -216,7 +224,6 @@
 "resetDefaultConfig" = "重置为默认配置"
 "panelSettings" = "面板配置"
 "securitySettings" = "安全设定"
-"xrayConfiguration" = "xray 相关设置"
 "TGBotSettings" = "TG提醒相关设置"
 "panelListeningIP" = "面板监听 IP"
 "panelListeningIPDesc" = "默认留空监听所有 IP"
@@ -278,8 +285,8 @@
 "subShowInfo" = "显示使用信息"
 "subShowInfoDesc" = "在配置名称后显示剩余流量和日期"
 
-[pages.settings.templates]
-"title" = "模板"
+[pages.xray]
+"title" = "Xray 设置"
 "basicTemplate" = "基本模板"
 "advancedTemplate" = "高级模板部件"
 "completeTemplate" = "Xray 配置的完整模板"
