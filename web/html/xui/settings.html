@@ -85,10 +85,20 @@
                                 </a-space>
                             </a-col>
                             <a-col :xs="24" :sm="16">
-                                <a-alert type="warning" style="float: right; width: fit-content"
-                                message='{{ i18n "pages.settings.infoDesc" }}'
-                                show-icon
-                                >
+                                <template>
+                                    <div>
+                                        <template>
+                                            <div>
+                                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                                </a-back-top>
+                                                <a-alert type="warning" style="float: right; width: fit-content"
+                                                message='{{ i18n "pages.settings.infoDesc" }}'
+                                                show-icon
+                                                >
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </a-col>
                         </a-row>
                     </a-card>
