@@ -12,7 +12,7 @@
 "protocol" = "Protocolo"
 "search" = "Buscar"
 "filter" = "Filtrar"
-"loading" = "Cargando"
+"loading" = "Cargando..."
 "second" = "Segundo"
 "minute" = "Minuto"
 "hour" = "Hora"
@@ -37,7 +37,9 @@
 "enabled" = "Habilitado"
 "disabled" = "Deshabilitado"
 "depleted" = "Agotado"
-"depletingSoon" = "Agotándose pronto"
+"depletingSoon" = "Agotándose"
+"offline" = "fuera de línea"
+"online" = "en línea"
 "domainName" = "Nombre de dominio"
 "monitor" = "Listening IP"
 "certificate" = "Certificado"
@@ -54,6 +56,7 @@
 "dashboard" = "Estado del Sistema"
 "inbounds" = "Entradas"
 "settings" = "Configuraciones"
+"xray" = "Configuración Xray"
 "logout" = "Cerrar Sesión"
 "link" = "Otro"
 
@@ -121,6 +124,8 @@
 "modifyInbound" = "Modificar Entrada"
 "deleteInbound" = "Eliminar Entrada"
 "deleteInboundContent" = "¿Confirmar eliminación de entrada?"
+"deleteClient" = "Eliminar cliente"
+"deleteClientContent" = "¿Está seguro de que desea eliminar el cliente?"
 "resetTrafficContent" = "¿Confirmar restablecimiento de tráfico?"
 "copyLink" = "Copiar Enlace"
 "address" = "Dirección"
@@ -132,8 +137,8 @@
 "totalFlow" = "Flujo Total"
 "leaveBlankToNeverExpire" = "Dejar en Blanco para Nunca Expirar"
 "noRecommendKeepDefault" = "No hay requisitos especiales para mantener la configuración predeterminada"
-"certificatePath" = "Ruta del Archivo de Certificado"
-"certificateContent" = "Contenido del Archivo de Certificado"
+"certificatePath" = "Ruta del Archivo"
+"certificateContent" = "Contenido del Archivo"
 "publicKeyPath" = "Ruta de la Clave Pública"
 "publicKeyContent" = "Contenido de la Clave Pública"
 "keyPath" = "Ruta de la Clave Privada"
@@ -169,6 +174,7 @@
 "realityDesc" = "La versión del núcleo de Xray debe ser 1.8.0 o superior."
 "telegramDesc" = "Utiliza el ID de Telegram sin @ o los IDs de chat (puedes obtenerlo aquí @userinfobot o usando el comando '/id' en el bot)."
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
+"info" = "Info"
 
 [pages.client]
 "add" = "Agregar Cliente"
@@ -185,6 +191,8 @@
 "delayedStart" = "Iniciar después del primer uso"
 "expireDays" = "Días de Expiración"
 "days" = "día(s)"
+"renew" = "Renovación automática"
+"renewDesc" = "Renovación automática días después del vencimiento. 0 = deshabilitar"
 
 [pages.inbounds.toasts]
 "obtain" = "Recibir"
@@ -216,7 +224,6 @@
 "resetDefaultConfig" = "Restablecer a Configuración Predeterminada"
 "panelSettings" = "Configuraciones del Panel"
 "securitySettings" = "Configuraciones de Seguridad"
-"xrayConfiguration" = "Configuración de Xray"
 "TGBotSettings" = "Configuraciones de Bot de Telegram"
 "panelListeningIP" = "IP de Escucha del Panel"
 "panelListeningIPDesc" = "Dejar en blanco por defecto para monitorear todas las IPs."
@@ -278,8 +285,8 @@
 "subShowInfo" = "Mostrar información de uso"
 "subShowInfoDesc" = "Mostrar tráfico restante y fecha después del nombre de configuración."
 
-[pages.settings.templates]
-"title" = "Plantillas"
+[pages.xray]
+"title" = "Xray Configuración"
 "basicTemplate" = "Plantilla Básica"
 "advancedTemplate" = "Plantilla Avanzada"
 "completeTemplate" = "Plantilla Completa"

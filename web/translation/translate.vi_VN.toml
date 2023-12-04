@@ -1,6 +1,6 @@
 "username" = "Tên người dùng"
 "password" = "Mật khẩu"
-"login" = "Đăng nhập"
+"login" = "Đăng nhập..."
 "confirm" = "Xác nhận"
 "cancel" = "Hủy bỏ"
 "close" = "Đóng"
@@ -37,7 +37,9 @@
 "enabled" = "Đã kích hoạt"
 "disabled" = "Đã tắt"
 "depleted" = "Đã cạn kiệt"
-"depletingSoon" = "Sắp cạn kiệt"
+"depletingSoon" = "Đang cạn kiệt"
+"offline" = "Ngoại tuyến"
+"online" = "Ngoại tuyến"
 "domainName" = "Tên miền"
 "monitor" = "Listening IP"
 "certificate" = "Chứng chỉ"
@@ -55,6 +57,7 @@
 "inbounds" = "Inbounds"
 "settings" = "Cài đặt bảng điều khiển"
 "logout" = "Đăng xuất"
+"xray" = "Xray Cài đặt"
 "link" = "Khác"
 
 [pages.login]
@@ -121,6 +124,8 @@
 "modifyInbound" = "Chỉnh sửa điểm vào (Inbound)"
 "deleteInbound" = "Xóa điểm vào (Inbound)"
 "deleteInboundContent" = "Xác nhận xóa điểm vào? (Inbound)"
+"deleteClient" = "Xóa khách hàng"
+"deleteClientContent" = "Bạn có chắc chắn muốn xóa ứng dụng khách không?"
 "resetTrafficContent" = "Xác nhận đặt lại lưu lượng?"
 "copyLink" = "Sao chép liên kết"
 "address" = "Địa chỉ"
@@ -132,8 +137,8 @@
 "totalFlow" = "Tổng lưu lượng"
 "leaveBlankToNeverExpire" = "Để trống để không bao giờ hết hạn"
 "noRecommendKeepDefault" = "Không yêu cầu đặc biệt để giữ nguyên cài đặt mặc định"
-"certificatePath" = "Đường dẫn tập tin chứng chỉ"
-"certificateContent" = "Nội dung tập tin chứng chỉ"
+"certificatePath" = "Đường dẫn tập"
+"certificateContent" = "Nội dung tập"
 "publicKeyPath" = "Đường dẫn khóa công khai"
 "publicKeyContent" = "Nội dung khóa công khai"
 "keyPath" = "Đường dẫn khóa riêng tư"
@@ -169,6 +174,7 @@
 "realityDesc" = "Xray core cần phiên bản 1.8.0 hoặc cao hơn."
 "telegramDesc" = "Sử dụng Telegram ID mà không cần ký hiệu @ hoặc chat IDs (bạn có thể nhận được nó ở đây @userinfobot hoặc sử dụng lệnh '/id' trong bot)"
 "subscriptionDesc" = "Bạn có thể tìm liên kết đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
+"info" = "Thông tin"
 
 [pages.client]
 "add" = "Thêm Client"
@@ -185,6 +191,8 @@
 "delayedStart" = "Bắt đầu sau khi sử dụng lần đầu"
 "expireDays" = "Số ngày hết hạn"
 "days" = "ngày"
+"renew" = "Tự động gia hạn"
+"renewDesc" = "Tự động gia hạn những ngày sau khi hết hạn. 0 = tắt"
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"
@@ -278,8 +286,8 @@
 "subShowInfo" = "Hiển thị thông tin sử dụng"
 "subShowInfoDesc" = "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình"
 
-[pages.settings.templates]
-"title" = "Mẫu"
+[pages.xray]
+"title" = "Xray Cài đặt"
 "basicTemplate" = "Mẫu Cơ bản"
 "advancedTemplate" = "Mẫu Nâng cao"
 "completeTemplate" = "Mẫu Đầy đủ"

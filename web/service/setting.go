@@ -70,7 +70,7 @@ func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
 	settings := make([]*model.Setting, 0)
-	err := db.Model(model.Setting{}).Find(&settings).Error
+	err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
 	if err != nil {
 		return nil, err
 	}
@@ -425,4 +425,13 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		}
 	}
 	return common.Combine(errs...)
+}
+
+func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
+	var jsonData interface{}
+	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
 }

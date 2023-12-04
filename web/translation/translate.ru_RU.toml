@@ -12,7 +12,7 @@
 "protocol" = "Протокол"
 "search" = "Поиск"
 "filter" = "Фильтр"
-"loading" = "Загрузка"
+"loading" = "Загрузка..."
 "second" = "Секунда"
 "minute" = "Минута"
 "hour" = "Час"
@@ -38,6 +38,8 @@
 "disabled" = "Отключено"
 "depleted" = "Исчерпано"
 "depletingSoon" = "Почти исчерпано"
+"offline" = "Офлайн"
+"online" = "Онлайн"
 "domainName" = "Домен"
 "monitor" = "Порт IP"
 "certificate" = "Сертификат"
@@ -54,6 +56,7 @@
 "dashboard" = "Статус системы"
 "inbounds" = "Подключения"
 "settings" = "Настройки панели"
+"xray" = "Xray Настройки"
 "logout" = "Выход"
 "link" = "Прочее"
 
@@ -132,8 +135,8 @@
 "totalFlow" = "Общий расход"
 "leaveBlankToNeverExpire" = "Оставьте пустым, чтобы не истекало"
 "noRecommendKeepDefault" = "Нет требований для сохранения настроек по умолчанию"
-"certificatePath" = "Путь файла сертификата"
-"certificateContent" = "Содержимое файла сертификата"
+"certificatePath" = "Путь файла"
+"certificateContent" = "Содержимое файла"
 "publicKeyPath" = "Путь к публичному ключу"
 "publicKeyContent" = "Содержимое публичного ключа"
 "keyPath" = "Путь к приватному ключу"
@@ -169,6 +172,7 @@
 "realityDesc" = "Версия Xray должна быть не ниже 1.8.0"
 "telegramDesc" = "Используйте идентификатор Telegram без символа @ или идентификатора чата (можно получить его здесь @userinfobot или использовать команду '/id' в боте)"
 "subscriptionDesc" = "Вы можете найти свою ссылку подписки в разделе 'Подробнее', также вы можете использовать одно и то же имя для нескольких конфигураций"
+"info" = "Информация"
 
 [pages.client]
 "add" = "Добавить пользователя"
@@ -185,6 +189,8 @@
 "delayedStart" = "Начать с момента первого подключения"
 "expireDays" = "Срок действия"
 "days" = "дней"
+"renew" = "Автопродление"
+"renewDesc" = "Автоматическое продление через несколько дней после истечения срока действия. 0 = отключить"
 
 [pages.inbounds.toasts]
 "obtain" = "Получить"
@@ -278,8 +284,8 @@
 "subShowInfo" = "Показать информацию об использовании"
 "subShowInfoDesc" = "Показывать восстановленный трафик и дату после имени конфигурации"
 
-[pages.settings.templates]
-"title" = "Шаблоны"
+[pages.xray]
+"title" = "Xray Настройки"
 "basicTemplate" = "Базовый шаблон"
 "advancedTemplate" = "Расширенный шаблон"
 "completeTemplate" = "Полный шаблон"

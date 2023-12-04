@@ -12,7 +12,7 @@
 "protocol" = "Protocol"
 "search" = "Search"
 "filter" = "Filter"
-"loading" = "Loading"
+"loading" = "Loading..."
 "second" = "Second"
 "minute" = "Minute"
 "hour" = "Hour"
@@ -37,7 +37,9 @@
 "enabled" = "Enabled"
 "disabled" = "Disabled"
 "depleted" = "Depleted"
-"depletingSoon" = "Depleting soon"
+"depletingSoon" = "Depleting"
+"offline" = "Offline"
+"online" = "Online"
 "domainName" = "Domain name"
 "monitor" = "Listening IP"
 "certificate" = "Certificate"
@@ -54,6 +56,7 @@
 "dashboard" = "System Status"
 "inbounds" = "Inbounds"
 "settings" = "Panel Settings"
+"xray" = "Xray Settings"
 "logout" = "Logout"
 "link" = "Other"
 
@@ -121,6 +124,8 @@
 "modifyInbound" = "Modify Inbound"
 "deleteInbound" = "Delete Inbound"
 "deleteInboundContent" = "Confirm deletion of inbound?"
+"deleteClient" = "Delete Client"
+"deleteClientContent" = "Are you sure you want to delete client?"
 "resetTrafficContent" = "Confirm traffic reset?"
 "copyLink" = "Copy Link"
 "address" = "Address"
@@ -132,8 +137,8 @@
 "totalFlow" = "Total Flow"
 "leaveBlankToNeverExpire" = "Leave Blank to Never Expire"
 "noRecommendKeepDefault" = "No special requirements to maintain default settings"
-"certificatePath" = "Certificate File Path"
-"certificateContent" = "Certificate File Content"
+"certificatePath" = "File Path"
+"certificateContent" = "File Content"
 "publicKeyPath" = "Public Key Path"
 "publicKeyContent" = "Public Key Content"
 "keyPath" = "Private Key Path"
@@ -169,6 +174,7 @@
 "realityDesc" = "Xray core needs to be 1.8.0 or higher."
 "telegramDesc" = "use Telegram ID without @ or chat IDs ( you can get it here @userinfobot or use '/id' command in bot )"
 "subscriptionDesc" = "you can find your sub link on Details, also you can use the same name for several configurations"
+"info" = "Info"
 
 [pages.client]
 "add" = "Add Client"
@@ -185,6 +191,8 @@
 "delayedStart" = "Start after first use"
 "expireDays" = "Expire days"
 "days" = "day(s)"
+"renew" = "Auto renew"
+"renewDesc" = "Auto renew days after expiration. 0 = disable"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
@@ -216,7 +224,6 @@
 "resetDefaultConfig" = "Reset to Default Configuration"
 "panelSettings" = "Panel Settings"
 "securitySettings" = "Security Settings"
-"xrayConfiguration" = "Xray Configuration"
 "TGBotSettings" = "Telegram Bot Settings"
 "panelListeningIP" = "Panel Listening IP"
 "panelListeningIPDesc" = "Leave blank by default to monitor all IPs."
@@ -278,8 +285,8 @@
 "subShowInfo" = "Show usage info"
 "subShowInfoDesc" = "Show remianed traffic and date after config name"
 
-[pages.settings.templates]
-"title" = "Templates"
+[pages.xray]
+"title" = "Xray Settings"
 "basicTemplate" = "Basic Template"
 "advancedTemplate" = "Advanced Template"
 "completeTemplate" = "Complete Template"
