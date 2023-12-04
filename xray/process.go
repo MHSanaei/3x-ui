@@ -98,6 +98,8 @@ type process struct {
 	version string
 	apiPort int
 
+	onlineClients []string
+
 	config    *Config
 	lines     *queue.Queue
 	exitErr   error
@@ -151,6 +153,14 @@ func (p *Process) GetAPIPort() int {
 
 func (p *Process) GetConfig() *Config {
 	return p.config
+}
+
+func (p *Process) GetOnlineClients() []string {
+	return p.onlineClients
+}
+
+func (p *Process) SetOnlineClients(users []string) {
+	p.onlineClients = users
 }
 
 func (p *Process) GetUptime() uint64 {
