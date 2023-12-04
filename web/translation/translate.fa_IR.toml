@@ -287,6 +287,8 @@
 
 [pages.xray]
 "title" = "الگوها"
+"save" = "ذخیره تنظیمات"
+"restart" = "ریستارت ایکس‌ری"
 "basicTemplate" = "بخش الگو پایه"
 "advancedTemplate" = "بخش الگو پیشرفته"
 "completeTemplate" = "بخش الگو کامل"

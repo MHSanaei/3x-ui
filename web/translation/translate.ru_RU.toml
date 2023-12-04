@@ -286,6 +286,8 @@
 
 [pages.xray]
 "title" = "Xray Настройки"
+"save" = "Сохранить настройки"
+"restart" = "Перезапустить рентген"
 "basicTemplate" = "Базовый шаблон"
 "advancedTemplate" = "Расширенный шаблон"
 "completeTemplate" = "Полный шаблон"

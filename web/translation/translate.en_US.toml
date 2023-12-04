@@ -287,6 +287,8 @@
 
 [pages.xray]
 "title" = "Xray Settings"
+"save" = "Save Settings"
+"restart" = "Reastart Xray"
 "basicTemplate" = "Basic Template"
 "advancedTemplate" = "Advanced Template"
 "completeTemplate" = "Complete Template"
