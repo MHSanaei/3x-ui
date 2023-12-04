@@ -138,9 +138,9 @@ function clientUsageColor(clientStats, trafficDiff) {
         case clientStats.up + clientStats.down < clientStats.total - trafficDiff:
             return "#0e49b5";
         case clientStats.up + clientStats.down < clientStats.total:
-            return "#FFA031";
+            return "#ffa031";
         default:
-            return "#E04141";
+            return "#e04141";
     }
 }
 

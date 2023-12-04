@@ -136,7 +136,7 @@
             [[ remainedDays(client.expiryTime) ]]
         </a-tag>
         </a-popover>
-        <a-tag v-else :color="userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)" style="border: 0;" class="infinite-tag">&infin;</a-tag>
+        <a-tag v-else :color="userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)" style="border: none;" class="infinite-tag">&infin;</a-tag>
     </template>
 </template>
 <template slot="actionMenu" slot-scope="text, client, index">
