@@ -285,7 +285,7 @@
 "subShowInfo" = "نمایش اطلاعات مصرف"
 "subShowInfoDesc" = "ترافیک و زمان باقیمانده را در هر کانفیگ نمایش میدهد"
 
-[pages.settings.templates]
+[pages.xray]
 "title" = "الگوها"
 "basicTemplate" = "بخش الگو پایه"
 "advancedTemplate" = "بخش الگو پیشرفته"
