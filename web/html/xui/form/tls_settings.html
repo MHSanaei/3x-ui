@@ -1,6 +1,7 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
 <a-form layout="inline" v-if="inbound.canSetTls()">
+    <a-divider style="margin:0;"></a-divider>
     <a-form-item v-if="inbound.canEnableTls()" label="TLS">
         <a-switch v-model="inbound.tls">
         </a-switch>
@@ -54,27 +55,27 @@
         <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="CipherSuites">
-        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="">auto</a-select-option>
-            <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
+            <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[ value ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label="MinVersion">
-        <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label="MaxVersion">
-        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
+    <a-form-item label="Min/Max Version">
+        <a-input-group compact>
+            <a-select style="width: 60px" v-model="inbound.stream.tls.minVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+            <a-select style="width: 60px" v-model="inbound.stream.tls.maxVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-input-group>
     </a-form-item>
     <a-form-item label="SNI" placeholder="Server Name Indication">
         <a-input v-model.trim="inbound.stream.tls.settings.serverName" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="uTLS">
         <a-select v-model="inbound.stream.tls.settings.fingerprint"
-                  style="width: 170px" :dropdown-class-name="themeSwitcher.darkCardClass">
+                  style="width: 170px" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value=''>None</a-select-option>
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
@@ -83,7 +84,7 @@
         <a-select
             mode="multiple"
             style="width: 250px"
-            :dropdown-class-name="themeSwitcher.darkCardClass"
+            :dropdown-class-name="themeSwitcher.currentTheme"
             v-model="inbound.stream.tls.alpn">
             <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
         </a-select>
@@ -185,7 +186,7 @@
     </a-form-item>
     <a-form-item label="uTLS">
         <a-select v-model="inbound.stream.reality.settings.fingerprint" 
-                    style="width: 135px" :dropdown-class-name="themeSwitcher.darkCardClass">
+                    style="width: 135px" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>

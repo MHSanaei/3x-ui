@@ -8,7 +8,7 @@
     </a-form-item>
     <br>
     <a-form-item label='{{ i18n "pages.inbounds.network"}}'>
-        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp,udp">TCP+UDP</a-select-option>
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="udp">UDP</a-select-option>

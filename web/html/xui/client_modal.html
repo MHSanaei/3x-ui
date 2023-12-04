@@ -1,8 +1,11 @@
 {{define "clientsModal"}}
 <a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
          :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
+    <template v-if="isEdit">
+        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+    </template>
     {{template "form/client"}}
 </a-modal>
 <script>
@@ -151,7 +154,7 @@
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {

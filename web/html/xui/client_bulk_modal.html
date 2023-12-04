@@ -1,11 +1,11 @@
 {{define "clientsBulkModal"}}
 <a-modal id="client-bulk-modal" v-model="clientsBulkModal.visible" :title="clientsBulkModal.title" @ok="clientsBulkModal.ok"
          :confirm-loading="clientsBulkModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :ok-text="clientsBulkModal.okText" cancel-text='{{ i18n "close" }}'>
     <a-form layout="inline">
         <a-form-item label='{{ i18n "pages.client.method" }}'>
-            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid" style="width: 350px" :dropdown-class-name="themeSwitcher.darkCardClass">
+            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid" style="width: 350px" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option :value="0">Random</a-select-option>
                 <a-select-option :value="1">Random+Prefix</a-select-option>
                 <a-select-option :value="2">Random+Prefix+Num</a-select-option>
@@ -72,13 +72,13 @@
         </a-form-item>
         <br>
         <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="">{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.inbound.canEnableTlsFlow()" label="Flow" layout="inline">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
+            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
