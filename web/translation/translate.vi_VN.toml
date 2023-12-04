@@ -224,7 +224,6 @@
 "resetDefaultConfig" = "Đặt lại Cấu hình Mặc định"
 "panelSettings" = "Cài đặt Bảng điều khiển"
 "securitySettings" = "Cài đặt Bảo mật"
-"xrayConfiguration" = "Cấu hình Xray"
 "TGBotSettings" = "Cài đặt Bot Telegram"
 "panelListeningIP" = "IP Nghe của Bảng điều khiển"
 "panelListeningIPDesc" = "Mặc định để trống để nghe tất cả các IP."
