@@ -954,10 +954,10 @@
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "delete"}}',
                         cancelText: '{{ i18n "cancel"}}',
-                        onOk: () => this.submit(`/xui/inbound/${dbInboundId}/delClient/${clientId}`),
+                        onOk: () => this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`),
                     });
                 } else {
-                    this.submit(`/xui/inbound/${dbInboundId}/delClient/${clientId}`);
+                    this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
                 }
             },
             getClients(protocol, clientSettings) {
@@ -1043,10 +1043,10 @@
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "reset"}}',
                         cancelText: '{{ i18n "cancel"}}',
-                        onOk: () => this.submit('/xui/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
+                        onOk: () => this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
                     })
                 } else {
-                    this.submit('/xui/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
+                    this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
                 }
             },
             resetAllTraffic() {
