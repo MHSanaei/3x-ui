@@ -230,7 +230,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 
 	status.AppStats.Mem = rtm.Sys
 	status.AppStats.Threads = uint32(runtime.NumGoroutine())
-	if p.IsRunning() {
+	if p != nil && p.IsRunning() {
 		status.AppStats.Uptime = p.GetUptime()
 	} else {
 		status.AppStats.Uptime = 0
