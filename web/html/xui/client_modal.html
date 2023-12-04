@@ -115,6 +115,12 @@
             get statsColor() {
                 return usageColor(clientStats.up + clientStats.down, app.trafficDiff, this.client.totalGB);
             },
+            get delayedStart() {
+                return this.clientModal.delayedStart;
+            },
+            set delayedStart(value) {
+                this.clientModal.delayedStart = value;
+            },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
             },

@@ -117,6 +117,18 @@
                            :dropdown-class-name="themeSwitcher.darkCardClass"
                            v-model="clientsBulkModal.expiryTime" style="width: 300px;"></a-date-picker>
         </a-form-item>
+        <a-form-item v-if="clientsBulkModal.expiryTime != 0">
+            <span slot="label">
+                <span>{{ i18n "pages.client.renew" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.client.renewDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </span>
+            <a-input-number v-model.number="clientsBulkModal.reset" :min="0"></a-input-number>
+        </a-form-item>
     </a-form>
 </a-modal>
 <script>
@@ -142,6 +154,7 @@
         tgId: "",
         flow: "",
         delayedStart: false,
+        reset: 0,
         ok() {
             clients = [];
             method = clientsBulkModal.emailMethod;
@@ -170,6 +183,7 @@
                 if (clientsBulkModal.inbound.xtls) {
                     newClient.flow = clientsBulkModal.flow;
                 }
+                newClient.reset = clientsBulkModal.reset;
                 clients.push(newClient);
             }
             ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
@@ -199,6 +213,7 @@
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;
+            this.reset = 0;
         },
         newClient(protocol) {
             switch (protocol) {
