@@ -390,6 +390,7 @@
 "editOutbound" = "ویرایش خروجی"
 "editReverse" = "ویرایش معکوس"
 "tag" = "برچسب"
+"tagDesc" = "برچسب یگانه"
 "address" = "آدرس"
 "reverse" = "معکوس"
 "domain" = "دامنه"

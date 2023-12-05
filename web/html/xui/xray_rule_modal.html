@@ -152,9 +152,9 @@
                 }
             }
             this.isEdit = isEdit;
-            this.inboundTags = app.templateSettings.inbounds.map(obj => obj.tag);
+            this.inboundTags = app.templateSettings.inbounds.filter((i) => !ObjectUtil.isEmpty(i.tag)).map(obj => obj.tag);
             this.inboundTags.push(...app.inboundTags);
-            this.outboundTags = app.templateSettings.outbounds.map(obj => obj.tag);
+            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
             if(app.templateSettings.reverse){
                 if(app.templateSettings.reverse.bridges) {
                     this.inboundTags.push(...app.templateSettings.reverse.bridges.map(b => b.tag));

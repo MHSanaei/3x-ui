@@ -747,7 +747,8 @@
                         }
                         outModal.close();
                     },
-                    isEdit: false
+                    isEdit: false,
+                    tags: this.templateSettings.outbounds.map(obj => obj.tag)
                 });
             },
             editOutbound(index){
@@ -760,7 +761,8 @@
                         this.outboundSettings = JSON.stringify(this.templateSettings.outbounds);
                         outModal.close();
                     },
-                    isEdit: true
+                    isEdit: true,
+                    tags: this.outboundData.filter((o) => o.key != index ).map(obj => obj.tag)
                 });
             },
             deleteOutbound(index){

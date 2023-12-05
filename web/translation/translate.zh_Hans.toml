@@ -390,6 +390,7 @@
 "editOutbound" = "编辑出站"
 "editReverse" = "编辑反向"
 "tag" = "标签"
+"tagDesc" = "独特的标签"
 "address" = "地址"
 "rreverse" = "反转"
 "domain" = "域名"

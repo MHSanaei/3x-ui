@@ -390,6 +390,7 @@
 "editOutbound" = "Editar salida"
 "editReverse" = "Editar reverso"
 "tag" = "Etiqueta"
+"tagDesc" = "etiqueta única"
 "address" = "Dirección"
 "reverse" = "Reverso"
 "domain" = "Dominio"
