@@ -176,7 +176,7 @@ class ObjectUtil {
                 }
             }
         } else {
-            return obj.toString().toLowerCase().indexOf(key.toLowerCase()) >= 0;
+            return this.isEmpty(obj) ? false : obj.toString().toLowerCase().indexOf(key.toLowerCase()) >= 0;
         }
         return false;
     }
