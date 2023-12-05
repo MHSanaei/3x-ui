@@ -997,6 +997,16 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 	return needRestart, count, err
 }
 
+func (s *InboundService) GetInboundTags() (string, error) {
+	db := database.GetDB()
+	var inboundTags []string
+	err := db.Model(model.Inbound{}).Select("tag").Find(&inboundTags).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return "", err
+	}
+	return "[\"" + strings.Join(inboundTags, "\", \"") + "\"]", nil
+}
+
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	db := database.GetDB()
 	db.Exec(`

@@ -253,6 +253,7 @@
     </a-layout>
 </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
 {{template "component/password" .}}
 {{template "component/setting"}}
@@ -267,7 +268,7 @@
             oldAllSetting: new AllSetting(),
             allSetting: new AllSetting(),
             saveBtnDisable: true,
-            user: new User(),
+            user: {},
             lang: getLang(),
         },
         methods: {
