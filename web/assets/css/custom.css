@@ -331,6 +331,10 @@ style attribute {
     transform: translateY(-30px)
 }
 
+.ant-tooltip-inner {
+    min-height: 0;
+}
+
 .ant-list-item-meta-title {
     font-size: 14px;
 }
@@ -506,7 +510,6 @@ style attribute {
 .dark .ant-card-head,
 .dark .ant-form,
 .dark .ant-collapse>.ant-collapse-item>.ant-collapse-header,
-.dark .ant-form-item i,
 .dark .ant-modal-close-x,
 .dark .ant-pagination-item a,
 .dark li:not(.ant-pagination-disabled) i,
@@ -589,6 +592,7 @@ style attribute {
 }
 
 .dark .ant-btn-primary[disabled],
+.dark .ant-btn-danger[disabled],
 .dark .ant-calendar-ok-btn-disabled {
     color: rgb(255 255 255 / 35%);
     background-color: #2c3950;
@@ -735,6 +739,20 @@ style attribute {
 
 .dark .ant-calendar-time-picker-select {
     border-right-color: #2C3950;
+}
+
+.dark .has-warning .ant-input,
+.dark .has-warning .ant-input:hover {
+    border-color: #faad14;
+}
+
+.dark .has-warning .anticon {
+    color: #ffa031;
+}
+
+.dark .has-success .anticon {
+    color: #61bf39;
+    animation-name: diffZoomIn1!important;
 }
 
 .dark .anticon-close-circle {
