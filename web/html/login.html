@@ -176,7 +176,12 @@
 {{template "component/themeSwitcher" .}}
 {{template "component/password" .}}
 <script>
-
+    class User {
+        constructor() {
+            this.username = "";
+            this.password = "";
+        }
+    }
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
