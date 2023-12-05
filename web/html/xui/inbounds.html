@@ -993,7 +993,7 @@
                 newDbInbound = new DBInbound(dbInbound);
                 if (dbInbound.listen.startsWith("@")){
                     rootInbound = this.inbounds.find((i) => 
-                        i.tls && 
+                        i.isTcp && 
                         ['trojan','vless'].includes(i.protocol) &&
                         i.settings.fallbacks.find(f => f.dest === dbInbound.listen)
                     );
