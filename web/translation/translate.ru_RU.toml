@@ -390,6 +390,7 @@
 "editOutbound" = "Изменить исходящий"
 "editReverse" = "Редактировать реверс"
 "tag" = "Тег"
+"tagDesc" = "уникальный тег"
 "address" = "Адрес"
 "reverse" = "Обратный"
 "domain" = "Домен"

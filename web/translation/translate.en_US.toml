@@ -390,6 +390,7 @@
 "editOutbound" = "Edit outbound"
 "editReverse" = "Edit reverse"
 "tag" = "Tag"
+"tagDesc" = "Unique tag"
 "address" = "Address"
 "reverse" = "Reverse"
 "domain" = "Domain"

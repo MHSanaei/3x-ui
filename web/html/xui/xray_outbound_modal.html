@@ -21,10 +21,11 @@
         duplicateTag: false,
         isValid: true,
         activeKey: '1',
+        tags: [],
         ok() {
             ObjectUtil.execute(outModal.confirm, outModal.outbound.toJson());
         },
-        show({ title='', okText='{{ i18n "sure" }}', outbound, confirm=(outbound)=>{}, isEdit=false  }) {
+        show({ title='', okText='{{ i18n "sure" }}', outbound, confirm=(outbound)=>{}, isEdit=false, tags=[]  }) {
             this.title = title;
             this.okText = okText;
             this.confirm = confirm;
@@ -34,6 +35,7 @@
             this.visible = true;
             this.outbound = isEdit ? Outbound.fromJson(outbound) : new Outbound();
             this.isEdit = isEdit;
+            this.tags = tags;
             this.check()
         },
         close() {
@@ -44,7 +46,7 @@
             outModal.confirmLoading = loading;
         },
         check(){
-            if(outModal.outbound.tag == ''){
+            if(outModal.outbound.tag == '' || outModal.tags.includes(outModal.outbound.tag)){
                 this.duplicateTag = true;
                 this.isValid = false;
             } else {

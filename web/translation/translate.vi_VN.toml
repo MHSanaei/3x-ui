@@ -390,6 +390,7 @@
 "editOutbound" = "Chỉnh sửa gửi đi"
 "editReverse" = "Chỉnh sửa ngược lại"
 "tag" = "Thẻ"
+"tagDesc" = "thẻ duy nhất"
 "address" = "Địa chỉ"
 "reverse" = "Đảo ngược"
 "domain" = "Miền"
