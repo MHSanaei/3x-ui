@@ -21,8 +21,13 @@
         <a-input v-model.trim="inbound.stream.tcp.request.method"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestPath" }}'>
+        <a-button size="small" @click="inbound.stream.tcp.request.addPath('/')">+</a-button>
         <a-row v-for="(path, index) in inbound.stream.tcp.request.path">
-            <a-input v-model.trim="inbound.stream.tcp.request.path[index]"></a-input>
+            <a-input v-model.trim="inbound.stream.tcp.request.path[index]" style="width: 200px;">
+                <a-button size="small" slot="addonAfter"
+                @click="inbound.stream.tcp.request.removePath(index)"
+                v-if="inbound.stream.tcp.request.path.length>1">-</a-button>
+            </a-input>
         </a-row>
     </a-form-item>
     <br>
