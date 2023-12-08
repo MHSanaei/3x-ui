@@ -2,114 +2,231 @@
 <html lang="en">
 {{template "head" .}}
 <style>
-
-    h1 {
-        text-align: center;
-        margin: 20px 0 50px 0;
+  h1 {
+    text-align: center;
+    margin: 20px 0 50px 0;
+  }
+  .ant-btn,
+  .ant-input {
+    height: 50px;
+    border-radius: 30px;
+  }
+  .ant-input-group-addon {
+    border-radius: 0 30px 30px 0;
+    width: 50px;
+    font-size: 18px;
+  }
+  .ant-input-affix-wrapper .ant-input-prefix {
+    left: 23px;
+  }
+  .ant-input-affix-wrapper .ant-input:not(:first-child) {
+    padding-left: 50px;
+  }
+  .centered {
+    display: flex;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: bold;
+  }
+  #app {
+    overflow: hidden;
+  }
+  #login {
+    animation: charge 0.5s both;
+    background-color: #fff;
+    border-radius: 2rem;
+    padding: 3rem;
+    transition: all 0.3s;
+  }
+  #login:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  }
+  @keyframes charge {
+    from {
+      transform: translateY(5rem);
+      opacity: 0;
     }
-
-    .ant-btn, .ant-input {
-        height: 50px;
-        border-radius: 30px;
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
-
-    .ant-input-group-addon {
-        border-radius: 0 30px 30px 0;
-        width: 50px;
-        font-size: 18px;
+  }
+  @keyframes wave {
+    from {
+      transform: rotate(0deg);
     }
-
-    .ant-input-affix-wrapper .ant-input-prefix {
-        left: 23px;
+    to {
+      transform: rotate(360deg);
     }
-
-    .ant-input-affix-wrapper .ant-input:not(:first-child) {
-        padding-left: 50px;
+  }
+  .wave {
+    opacity: 0.6;
+    position: absolute;
+    bottom: 40%;
+    left: 50%;
+    width: 6000px;
+    height: 6000px;
+    background: #000;
+    margin-left: -3000px;
+    transform-origin: 50% 48%;
+    border-radius: 46%;
+    animation: wave 72s infinite linear;
+    pointer-events: none;
+  }
+  .wave2 {
+    animation: wave 88s infinite linear;
+    opacity: 0.3;
+  }
+  .wave3 {
+    animation: wave 80s infinite linear;
+    opacity: 0.1;
+    background: #0a755715;
+  }
+  .under {
+    background-color: #dbf5ed;
+  }
+  .dark .wave {
+    background: rgb(10 117 87 / 20%);
+  }
+  .dark .under {
+    background-color: #051510;
+  }
+  .dark #login {
+    background-color: rgb(8, 22, 20);
+  }
+  .dark h1 {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .ant-btn-primary-login {
+    color: #0a7557;
+    background-color: #edf4fa;
+    border-color: #a9c5e7;
+    text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.12);
+    box-shadow: none;
+    width: 100%;
+  }
+  .ant-btn-primary-login:focus,
+  .ant-btn-primary-login:hover {
+    color: #fff;
+    background-color: #0c3f9d;
+    border-color: #0a7557;
+    background-image: linear-gradient(
+      270deg,
+      rgba(123, 199, 77, 0) 30%,
+      #2f67c2,
+      rgba(123, 199, 77, 0) 100%
+    );
+    background-repeat: no-repeat;
+    animation: ma-bg-move ease-in-out 5s infinite;
+    background-position-x: -500px;
+    width: 95%;
+    animation-delay: -0.5s;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  }
+  .ant-btn-primary-login.active,
+  .ant-btn-primary-login:active {
+    color: #fff;
+    background-color: #04308f;
+    border-color: #04308f;
+  }
+  @keyframes ma-bg-move {
+    0% {
+      background-position: -500px 0;
     }
-
-    .centered {
-        display: flex;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
+    50% {
+      background-position: 1000px 0;
     }
-
-    .title {
-        font-size: 32px;
-        font-weight: bold;
+    100% {
+      background-position: 1000px 0;
     }
-
-    #app {
-        overflow: hidden;
+  }
+  .wave-btn-bg {
+    position: relative;
+    border-radius: 25px;
+    width: 100%;
+  }
+  .dark .wave-btn-bg {
+    color: #fff;
+    position: relative;
+    background-color: #0a7557;
+    border: 2px double transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-size: 300%;
+    animation: wave-btn-tara 4s ease infinite;
+    transition: all 0.5s ease;
+    width: 100%;
+  }
+  .dark .wave-btn-bg-cl {
+    background-image: linear-gradient(rgba(13, 14, 33, 0), rgba(13, 14, 33, 0)),
+      radial-gradient(circle at left top, #0a7557, #387eff, #0a7557) !important;
+    border-radius: 3em;
+  }
+  .dark .wave-btn-bg-cl:hover {
+    width: 95%;
+  }
+  .dark .wave-btn-bg-cl:before {
+    position: absolute;
+    content: "";
+    top: -5px;
+    left: -5px;
+    bottom: -5px;
+    right: -5px;
+    z-index: -1;
+    background: inherit;
+    background-size: inherit;
+    border-radius: 4em;
+    opacity: 0;
+    transition: 0.5s;
+  }
+  .dark .wave-btn-bg-cl:hover::before {
+    opacity: 1;
+    filter: blur(20px);
+    animation: wave-btn-tara 8s linear infinite;
+  }
+  @keyframes wave-btn-tara {
+    to {
+      background-position: 300%;
     }
-    #login {
-        animation: charge .5s both;
-        background-color: #fff;
-        border-radius: 2rem;
-        padding: 3rem;
-    }
-    #login:hover {
-        box-shadow: 0 2px 8px rgba(0,0,0,.09);
-    }
-    @keyframes charge {
-        from {transform: translateY(5rem);opacity: 0}
-        to {transform: translateY(0);opacity: 1}
-    }
-    @keyframes wave {
-        from {transform: rotate(0deg);}
-        to {transform: rotate(360deg);}
-    }
-    .wave {
-        opacity: .6;
-        position: absolute;
-        bottom: 40%;
-        left: 50%;
-        width: 6000px;
-        height: 6000px;
-        background: #000;
-        margin-left: -3000px;
-        transform-origin: 50% 48%;
-        border-radius: 46%;
-        animation: wave 72s infinite linear;
-        pointer-events: none;
-    }
-    .wave2 {
-        animation: wave 88s infinite linear;
-        opacity: .3;
-    }
-    .wave3 {
-        animation: wave 80s infinite linear;
-        opacity: .1;
-    }
-    .wave {
-        background: #0a755715;
-    }
-    .under {
-        background-color: #dbf5ed;
-    }
-    .dark .wave {
-        background: rgb(10 117 87 / 20%);
-    }
-    .dark .under {
-        background-color: #051510;
-    }
-    .dark #login {
-        background-color: rgb(8, 22, 20);
-    }
-    .dark h1 {
-        color: rgb(255 255 255 / 85%);
-    }
+  }
+  .dark .ant-btn-primary-login {
+    font-size: 14px;
+    color: #fff;
+    text-align: center;
+    background-image: linear-gradient(
+      rgba(13, 14, 33, 0.45),
+      rgba(13, 14, 33, 0.35)
+    );
+    border-radius: 2rem;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    height: 46px;
+    position: relative;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    padding: 0 15px;
+    width: 100%;
+    animation: none;
+    background-position-x: 0;
+    box-shadow: none;
+  }
 </style>
 <body>
-<a-layout id="app" v-cloak class="login" :class="themeSwitcher.currentTheme">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     <transition name="list" appear>
-        <a-layout-content class="under">
+        <a-layout-content class="under" style="min-height: 0;">
             <div class='wave'></div>
             <div class='wave wave2'></div>
             <div class='wave wave3'></div>
-            <a-row type="flex" justify="center" align="middle" style="height: 100%;">
-            <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="6" id="login">
-                <a-row type="flex" justify="center">
+            <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto;">
+            <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
+            <a-row type="flex" justify="center">
                 <a-col>
                     <h1 class="title">{{ i18n "pages.login.title" }}</h1>
                 </a-col>
@@ -120,7 +237,7 @@
                         <a-form-item>
                             <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
                                      @keydown.enter.native="login" autofocus>
-                                <a-icon slot="prefix" type="user" style="font-size: 16px;" />
+                                <a-icon slot="prefix" type="user" style="font-size: 16px;"/>
                             </a-input>
                         </a-form-item>
                         <a-form-item>
@@ -136,18 +253,20 @@
                         </a-form-item>
                         <a-form-item>
                             <a-row justify="center" class="centered">
-                                <a-button type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
-                                          :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
-                                    [[ loading ? '' : '{{ i18n "login" }}' ]]
-                                </a-button>
+                                <div class="wave-btn-bg wave-btn-bg-cl">
+                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
+                                              :style="loading ? { width: '50px' } : { display: 'inline-block' }">
+                                        [[ loading ? '' : '{{ i18n "login" }}' ]]
+                                    </a-button>
+                                </div>
                             </a-row>
                         </a-form-item>
                         <a-form-item>
                             <a-row justify="center" class="centered">
                                 <a-col :span="24">
-                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                            <span role="img" :aria-label="l.name" v-text="l.icon"></span>
+                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" style="width: 150px;" :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="l.value" label="English" v-for="l in supportLangs">
+                                            <span role="img" aria-label="l.name" v-text="l.icon"></span>
                                             &nbsp;&nbsp;<span v-text="l.name"></span>
                                         </a-select-option>
                                     </a-select>
@@ -182,6 +301,7 @@
             this.password = "";
         }
     }
+
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
@@ -216,7 +336,6 @@
             },
         },
     });
-
 </script>
 </body>
 </html>
