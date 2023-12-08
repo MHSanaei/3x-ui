@@ -11,6 +11,7 @@ class AllSetting {
         this.pageSize = 0;
         this.expireDiff = "";
         this.trafficDiff = "";
+        this.remarkModel = "-ieo";
         this.tgBotEnable = false;
         this.tgBotToken = "";
         this.tgBotChatId = "";
