@@ -24,26 +24,6 @@
 
 <!-- tls settings -->
 <a-form v-if="inbound.tls" layout="inline">
-    <a-form-item label='Multi Domain'>
-        <a-switch v-model="multiDomain"></a-switch>
-    </a-form-item>
-    <a-form-item v-if="multiDomain">
-        <a-row>
-            <span>Domains:</span>
-            <a-button v-if="multiDomain" type="primary" size="small" @click="inbound.stream.tls.settings.domains.push({remark: '', domain: ''})" style="margin-left: 10px">+</a-button>
-        </a-row>
-        <a-input-group v-for="(row, index) in inbound.stream.tls.settings.domains">
-            <a-input style="width: 40%" v-model.trim="row.remark" addon-before='{{ i18n "remark" }}'></a-input>
-            <a-input style="width: 60%" v-model.trim="row.domain" addon-before='{{ i18n "host" }}'>
-                <template slot="addonAfter">
-                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tls.settings.domains.splice(index, 1)">-</a-button>
-                </template>
-            </a-input>
-        </a-input-group>
-    </a-form-item>
-    <a-form-item v-else label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
-    </a-form-item>
     <a-form-item label="CipherSuites">
         <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="">auto</a-select-option>
@@ -61,7 +41,7 @@
         </a-input-group>
     </a-form-item>
     <a-form-item label="SNI" placeholder="Server Name Indication">
-        <a-input v-model.trim="inbound.stream.tls.settings.serverName" style="width: 250px"></a-input>
+        <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="uTLS">
         <a-select v-model="inbound.stream.tls.settings.fingerprint"
@@ -122,11 +102,8 @@
 
 <!-- xtls settings -->
 <a-form v-else-if="inbound.xtls" layout="inline">
-    <a-form-item label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.xtls.server"></a-input>
-    </a-form-item>
     <a-form-item label="SNI" placeholder="Server Name Indication">
-        <a-input v-model.trim="inbound.stream.xtls.settings.serverName" style="width: 250px"></a-input>
+        <a-input v-model.trim="inbound.stream.xtls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="Alpn">
         <a-checkbox-group v-model="inbound.stream.xtls.alpn" style="width:200px">
@@ -179,9 +156,6 @@
                     style="width: 135px" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
-    </a-form-item>
-    <a-form-item label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.reality.settings.serverName" style="width: 250px"></a-input>
     </a-form-item>
 	<a-form-item label="Dest">
         <a-input v-model.trim="inbound.stream.reality.dest" style="width: 300px"></a-input>

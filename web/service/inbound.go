@@ -1795,6 +1795,46 @@ func (s *InboundService) MigrationRequirements() {
 
 	// Remove orphaned traffics
 	tx.Where("inbound_id = 0").Delete(xray.ClientTraffic{})
+
+	// Migrate old MultiDomain to External Proxy
+	var externalProxy []struct {
+		Id             int
+		Port           int
+		StreamSettings []byte
+	}
+	err = tx.Raw(`select id, port, stream_settings
+	from inbounds
+	WHERE protocol in ('vmess','vless','trojan')
+	  AND json_extract(stream_settings, '$.security') = 'tls'
+	  AND json_extract(stream_settings, '$.tlsSettings.settings.domains') IS NOT NULL`).Scan(&externalProxy).Error
+	if err != nil || len(externalProxy) == 0 {
+		return
+	}
+
+	for _, ep := range externalProxy {
+		var reverses interface{}
+		var stream map[string]interface{}
+		json.Unmarshal(ep.StreamSettings, &stream)
+		if tlsSettings, ok := stream["tlsSettings"].(map[string]interface{}); ok {
+			if settings, ok := tlsSettings["settings"].(map[string]interface{}); ok {
+				if domains, ok := settings["domains"].([]interface{}); ok {
+					for _, domain := range domains {
+						if domainMap, ok := domain.(map[string]interface{}); ok {
+							domainMap["forceTls"] = "same"
+							domainMap["port"] = ep.Port
+							domainMap["dest"] = domainMap["domain"].(string)
+							delete(domainMap, "domain")
+						}
+					}
+				}
+				reverses = settings["domains"]
+				delete(settings, "domains")
+			}
+		}
+		stream["externalProxy"] = reverses
+		newStream, _ := json.MarshalIndent(stream, " ", "  ")
+		tx.Model(model.Inbound{}).Where("id = ?", ep.Id).Update("stream_settings", newStream)
+	}
 }
 
 func (s *InboundService) MigrateDB() {

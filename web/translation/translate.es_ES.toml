@@ -176,6 +176,7 @@
 "telegramDesc" = "Utiliza el ID de Telegram sin @ o los IDs de chat (puedes obtenerlo aquí @userinfobot o usando el comando '/id' en el bot)."
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
 "info" = "Info"
+"same" = "misma"
 
 [pages.client]
 "add" = "Agregar Cliente"

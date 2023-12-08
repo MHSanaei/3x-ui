@@ -618,7 +618,7 @@
             },
             getClientCounts(dbInbound, inbound) {
                 let clientCount = 0, active = [], deactive = [], depleted = [], expiring = [], online = [];
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                clients = inbound.clients;
                 clientStats = dbInbound.clientStats
                 now = new Date().getTime()
                 if (clients) {
@@ -968,15 +968,6 @@
                     this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
                 }
             },
-            getClients(protocol, clientSettings) {
-                switch (protocol) {
-                    case Protocols.VMESS: return clientSettings.vmesses;
-                    case Protocols.VLESS: return clientSettings.vlesses;
-                    case Protocols.TROJAN: return clientSettings.trojans;
-                    case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
-                    default: return null;
-                }
-            },
             getClientId(protocol, client) {
                 switch (protocol) {
                     case Protocols.TROJAN: return client.password;
@@ -996,8 +987,9 @@
                         newDbInbound.listen = rootInbound.listen;
                         newDbInbound.port = rootInbound.port;
                         newInbound = newDbInbound.toInbound();
-                        newInbound.stream.security = 'tls';
+                        newInbound.stream.security = rootInbound.stream.security;
                         newInbound.stream.tls = rootInbound.stream.tls;
+                        newInbound.stream.externalProxy = rootInbound.stream.externalProxy;
                         newDbInbound.streamSettings = newInbound.stream.toString();
                     }
                 }
@@ -1005,17 +997,17 @@
             },
             showQrcode(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                inbound = dbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
-                index = this.findIndexOfClient(dbInbound.protocol, clients, client);
                 newDbInbound = this.checkFallback(dbInbound);
-                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, index);
+                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client);
             },
             showInfo(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                inbound = dbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
-                index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                index=0;
+                if (dbInbound.isMultiUser()){
+                    inbound = dbInbound.toInbound();
+                    clients = inbound.clients;
+                    index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                }
                 newDbInbound = this.checkFallback(dbInbound);
                 infoModal.show(newDbInbound, index);
             },
@@ -1027,7 +1019,7 @@
                 this.loading()
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 inbound = dbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                clients = inbound.clients;
                 index = this.findIndexOfClient(dbInbound.protocol, clients, client);
                 clients[index].enable = !clients[index].enable;
                 clientId = this.getClientId(dbInbound.protocol, clients[index]);
@@ -1041,15 +1033,7 @@
                 }
             },
             getInboundClients(dbInbound) {
-                if (dbInbound.protocol == Protocols.VLESS) {
-                    return dbInbound.toInbound().settings.vlesses;
-                } else if (dbInbound.protocol == Protocols.VMESS) {
-                    return dbInbound.toInbound().settings.vmesses;
-                } else if (dbInbound.protocol == Protocols.TROJAN) {
-                    return dbInbound.toInbound().settings.trojans;
-                } else if (dbInbound.protocol == Protocols.SHADOWSOCKS) {
-                    return dbInbound.toInbound().settings.shadowsockses;
-                }
+                return dbInbound.toInbound().clients;
             },
             resetClientTraffic(client, dbInboundId, confirmation = true) {
                 if (confirmation){
@@ -1179,11 +1163,11 @@
                 txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks, newDbInbound.remark);
             },
             exportAllLinks() {
-                let copyText = '';
+                let copyText = [];
                 for (const dbInbound of this.dbInbounds) {
-                    copyText += dbInbound.genInboundLinks;
+                    copyText.push(dbInbound.genInboundLinks);
                 }
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText, 'All-Inbounds');
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText.join('\r\n'), 'All-Inbounds');
             },
             async startDataRefreshLoop() {
                 while (this.isRefreshEnabled) {

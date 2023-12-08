@@ -22,39 +22,25 @@
 
     const qrModal = {
         title: '',
-        clientIndex: 0,
-        inbound: new Inbound(),
         dbInbound: new DBInbound(),
         client: null,
         qrcodes: [],
         clipboard: null,
         visible: false,
         subId: '',
-        show: function (title = '', dbInbound = new DBInbound(), clientIndex = 0) {
+        show: function (title = '', dbInbound, client) {
             this.title = title;
-            this.clientIndex = clientIndex;
             this.dbInbound = dbInbound;
             this.inbound = dbInbound.toInbound();
-            settings = JSON.parse(this.inbound.settings);
-            this.client = settings.clients[clientIndex];
-            remark = [this.dbInbound.remark, ( this.client ? this.client.email : '')].filter(Boolean).join('-');
-            address = this.dbInbound.address;
+            this.client = client;
             this.subId = '';
             this.qrcodes = [];
-            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
-                this.inbound.stream.tls.settings.domains.forEach((domain) => {
-                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
-                    this.qrcodes.push({
-                        remark: remarkText,
-                        link: this.inbound.genLink(domain.domain, remarkText, clientIndex)
-                    });
-                });
-            } else {
+            this.inbound.genAllLinks(this.dbInbound.remark, client).forEach(l => {
                 this.qrcodes.push({
-                    remark: remark,
-                    link: this.inbound.genLink(address, remark, clientIndex)
+                    remark: l.remark,
+                    link: l.link
                 });
-            }
+            });
             this.visible = true;
         },
         close: function () {
