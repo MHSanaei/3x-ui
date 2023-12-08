@@ -9,8 +9,8 @@ ARG TARGETOS
 
 RUN export DEBIAN_FRONTEND=noninteractive \
  && apt-get update -qq \
- && apk add --update --no-cache -qqy \
-        build-base \
+ && apt-get install -qqy \
+        build-essential \
         gcc \
         wget \
         unzip \
@@ -37,7 +37,7 @@ RUN if [ "${TARGETARCH}" = 'arm64' ]; then \
         export CC=aarch64-linux-gnu-gcc; \
     fi \
  && go build -a \
-        -ldflags="-s -w -extldflags=-static" \
+        -ldflags="-s -w" \
         -trimpath -o build/x-ui main.go
 
 RUN ./DockerInit.sh "$TARGETARCH"
@@ -45,30 +45,33 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-FROM --platform=$TARGETPLATFORM alpine
-ENV TZ=Asia/Tehran
+FROM --platform=$TARGETPLATFORM debian:bookworm
 WORKDIR /app
 
-RUN apk add --no-cache --update \
+ENV TZ=Asia/Tehran
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+ && apt-get update -qq \
+ && apt-get install -qqy \
         ca-certificates \
         tzdata \
-        fail2ban
+        fail2ban \
+ && apt-get clean \
+ && rm -rf /var/cache/apt
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
 # Configure fail2ban
-RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
+RUN rm -f /etc/fail2ban/jail.d/defaults-debian.conf \
  && cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local \
- && sed -i "s/^\[ssh\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
- && sed -i "s/^\[sshd\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
- && sed -i "s/#allowipv6 = auto/allowipv6 = auto/g" /etc/fail2ban/fail2ban.conf
+ && sed -ri "s/^#?allowipv6\s*=.+/allowipv6 = auto/g" /etc/fail2ban/fail2ban.conf
 
 RUN chmod 0755 \
-    /app/DockerEntrypoint.sh \
-    /app/x-ui \
-    /usr/bin/x-ui
+        /app/DockerEntrypoint.sh \
+        /app/x-ui \
+        /usr/bin/x-ui
 
 VOLUME [ "/etc/x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]
