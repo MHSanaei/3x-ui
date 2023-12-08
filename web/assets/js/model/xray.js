@@ -8,13 +8,6 @@ const Protocols = {
     HTTP: 'http',
 };
 
-const VmessMethods = {
-    AES_128_GCM: 'aes-128-gcm',
-    CHACHA20_POLY1305: 'chacha20-poly1305',
-    AUTO: 'auto',
-    NONE: 'none',
-};
-
 const SSMethods = {
     AES_256_GCM: 'aes-256-gcm',
     AES_128_GCM: 'aes-128-gcm',
@@ -91,7 +84,6 @@ const SNIFFING_OPTION = {
 };
 
 Object.freeze(Protocols);
-Object.freeze(VmessMethods);
 Object.freeze(SSMethods);
 Object.freeze(XTLS_FLOW_CONTROL);
 Object.freeze(TLS_FLOW_CONTROL);
@@ -422,7 +414,7 @@ class HttpStreamSettings extends XrayCommonClass {
 }
 
 class QuicStreamSettings extends XrayCommonClass {
-    constructor(security=VmessMethods.NONE,
+    constructor(security='none',
                 key=RandomUtil.randomSeq(10), type='none') {
         super();
         this.security = security;
@@ -1163,95 +1155,34 @@ class Inbound extends XrayCommonClass {
     }
 
     canEnableTls() {
-        switch (this.protocol) {
-            case Protocols.VMESS:
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-                break;
-            default:
-                return false;
-        }
-
-        switch (this.network) {
-            case "tcp":
-            case "ws":
-            case "http":
-            case "quic":
-            case "grpc":
-                return true;
-            default:
-                return false;
-        }
+        if(![Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
+        return ["tcp", "ws", "http", "quic", "grpc"].includes(this.network);
     }
 
     canEnableReality() {
-        switch (this.protocol) {
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-                break;
-            default:
-                return false;
-        }
-        switch (this.network) {
-            case "tcp":
-            case "http":
-            case "grpc":
-                return true;
-            default:
-                return false;
-        }
+        if(![Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
+        return ["tcp", "http", "grpc"].includes(this.network);
     }
 
     //this is used for xtls-rprx-vision
     canEnableTlsFlow() {
         if (((this.stream.security === 'tls') || (this.stream.security === 'reality')) && (this.network === "tcp")) {
-            switch (this.protocol) {
-                case Protocols.VLESS:
-                    return true;
-                default:
-                    return false;
-            }
+            return this.protocol === Protocols.VLESS;
         }
         return false;
     }
 
-    canSetTls() {
-        return this.canEnableTls();
-    }
-
     canEnableXtls() {
-        switch (this.protocol) {
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-                break;
-            default:
-                return false;
-        }
+        if(![Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
         return this.network === "tcp";
     }
 
     canEnableStream() {
-        switch (this.protocol) {
-            case Protocols.VMESS:
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-            case Protocols.SHADOWSOCKS:
-                return true;
-            default:
-                return false;
-        }
+        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol);
     }
 
     canSniffing() {
-        switch (this.protocol) {
-            case Protocols.VMESS:
-            case Protocols.VLESS:
-            case Protocols.TROJAN:
-            case Protocols.SHADOWSOCKS:
-                return true;
-            default:
-                return false;
-        }
+        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol);
     }
 
     reset() {
@@ -1691,7 +1622,7 @@ class Inbound extends XrayCommonClass {
 
     toJson() {
         let streamSettings;
-        if (this.canEnableStream() || this.protocol === Protocols.TROJAN) {
+        if (this.canEnableStream()) {
             streamSettings = this.stream.toJson();
         }
         return {

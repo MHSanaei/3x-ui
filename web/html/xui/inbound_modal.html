@@ -93,7 +93,7 @@
         },
         methods: {
             streamNetworkChange() {
-                if (!inModal.inbound.canSetTls()) {
+                if (!inModal.inbound.canEnableTls()) {
                     this.inModal.inbound.stream.security = 'none';
                 }
                 if (!inModal.inbound.canEnableReality()) {
