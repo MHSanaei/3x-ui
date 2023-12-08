@@ -1004,7 +1004,8 @@ func (s *InboundService) GetInboundTags() (string, error) {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return "", err
 	}
-	return "[\"" + strings.Join(inboundTags, "\", \"") + "\"]", nil
+	tags, _ := json.Marshal(inboundTags)
+	return string(tags), nil
 }
 
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
