@@ -165,60 +165,73 @@
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
-                            <a-tabs class="ant-card-dark-securitybox-nohover" default-active-key="sec-1" :class="themeSwitcher.currentTheme">
-                                <a-tab-pane key="sec-1" tab='{{ i18n "pages.settings.security.admin"}}'>
-                                    <a-form style="padding: 20px;">
-                                        <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
-                                            <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.currentPassword"}}'>
-                                            <password-input v-model="user.oldPassword" style="max-width: 300px"></password-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.newUsername"}}'>
-                                            <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.newPassword"}}'>
-                                            <password-input v-model="user.newPassword" style="max-width: 300px"></password-input>
-                                        </a-form-item>
-                                        <a-form-item>
-                                            <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
-                                        </a-form-item>
-                                    </a-form>
-                                </a-tab-pane>
-                                <a-tab-pane key="sec-2" tab='{{ i18n "pages.settings.security.secret"}}'>
-                                    <a-form style="padding: 20px;">
-                                        <a-list-item style="padding: 20px">
-                                            <a-row>
-                                                <a-col :lg="24" :xl="12">
-                                                    <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}' description='{{ i18n "pages.settings.security.loginSecurityDesc" }}' />
-                                                </a-col>
-                                                <a-col :lg="24" :xl="12">
-                                                    <template>
-                                                        <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                                                    </template>
-                                                </a-col>
-                                            </a-row>
-                                        </a-list-item>
-                                        <a-list-item style="padding: 20px">
-                                            <a-row>
-                                                <a-col :lg="24" :xl="12">
-                                                    <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}' description='{{ i18n "pages.settings.security.secretTokenDesc" }}' />
-                                                </a-col>
-                                                <a-col :lg="24" :xl="12">
-                                                    <svg 
-                                                        @click="getNewSecret"
-                                                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/><path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> 
-                                                    </svg>
-                                                    <template>
-                                                        <a-textarea type="text" id='token' :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
-                                                    </template>
-                                                </a-col>
-                                            </a-row>
-                                        </a-list-item>
-                                        <a-button type="primary" @click="updateSecret">{{ i18n "confirm" }}</a-button>
-                                    </a-form>
-                                </a-tab-pane>
-                            </a-tabs>
+                            <a-divider>{{ i18n "pages.settings.security.admin"}}</a-divider>
+                            <a-form style="padding: 20px;" layout="inline">
+                                <table cellpadding="2">
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.oldUsername"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <a-input v-model="user.oldUsername" style="width: 200px"></a-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.currentPassword"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <password-input v-model="user.oldPassword" style="width: 200px"></password-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.newUsername"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <a-input v-model="user.newUsername" style="width: 200px"></a-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.newPassword"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <password-input v-model="user.newPassword" style="width: 200px"></password-input>
+                                            </a-form-item>            
+                                        </td>
+                                    </tr>
+                                </table>
+                                <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                            </a-form>
+                            <a-divider>{{ i18n "pages.settings.security.secret"}}</a-divider>
+                            <a-form style="padding: 20px;">
+                                <a-list-item>
+                                    <a-row>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}' description='{{ i18n "pages.settings.security.loginSecurityDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                                                <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync" @click="getNewSecret"></a-icon>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-list-item>
+                                    <a-row>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}' description='{{ i18n "pages.settings.security.secretTokenDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-textarea type="text" :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
+                            </a-form>
                         </a-tab-pane>
 
                         <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
@@ -289,6 +302,7 @@
             siderDrawer,
             themeSwitcher,
             spinning: false,
+            changeSecret: false,
             oldAllSetting: new AllSetting(),
             allSetting: new AllSetting(),
             saveBtnDisable: true,
@@ -405,12 +419,14 @@
                 return randomString;
             },
             async getNewSecret() {
-                this.loading(true);
-                await PromiseUtil.sleep(600);
-                const newSecret = this.generateRandomString(64);
-                this.user.loginSecret = newSecret;
-                document.getElementById("token").textContent = newSecret;
-                this.loading(false);
+                if (!this.changeSecret) {
+                    this.changeSecret = true;
+                    this.user.loginSecret = '';
+                    const newSecret = this.generateRandomString(64);
+                    await PromiseUtil.sleep(1000);
+                    this.user.loginSecret = newSecret;
+                    this.changeSecret = false;
+                }
             },
             async toggleToken(value) {
                 if (value) {
