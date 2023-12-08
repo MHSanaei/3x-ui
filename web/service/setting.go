@@ -31,6 +31,7 @@ var defaultValueMap = map[string]string{
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
 	"sessionMaxAge":      "0",
+	"pageSize":           "0",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"timeLocation":       "Asia/Tehran",
@@ -53,6 +54,7 @@ var defaultValueMap = map[string]string{
 	"subUpdates":         "12",
 	"subEncrypt":         "true",
 	"subShowInfo":        "true",
+	"subURI":             "",
 }
 
 type SettingService struct {
@@ -406,6 +408,14 @@ func (s *SettingService) GetSubShowInfo() (bool, error) {
 	return s.getBool("subShowInfo")
 }
 
+func (s *SettingService) GetSubURI() (string, error) {
+	return s.getString("subURI")
+}
+
+func (s *SettingService) GetPageSize() (int, error) {
+	return s.getInt("pageSize")
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := allSetting.CheckValid(); err != nil {
 		return err
@@ -434,4 +444,62 @@ func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
 		return nil, err
 	}
 	return jsonData, nil
+}
+
+func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
+	type settingFunc func() (interface{}, error)
+	settings := map[string]settingFunc{
+		"expireDiff":  func() (interface{}, error) { return s.GetExpireDiff() },
+		"trafficDiff": func() (interface{}, error) { return s.GetTrafficDiff() },
+		"pageSize":    func() (interface{}, error) { return s.GetPageSize() },
+		"defaultCert": func() (interface{}, error) { return s.GetCertFile() },
+		"defaultKey":  func() (interface{}, error) { return s.GetKeyFile() },
+		"tgBotEnable": func() (interface{}, error) { return s.GetTgbotenabled() },
+		"subEnable":   func() (interface{}, error) { return s.GetSubEnable() },
+		"subURI":      func() (interface{}, error) { return s.GetSubURI() },
+	}
+
+	result := make(map[string]interface{})
+
+	for key, fn := range settings {
+		value, err := fn()
+		if err != nil {
+			return "", err
+		}
+		result[key] = value
+	}
+
+	if result["subEnable"].(bool) && result["subURI"].(string) == "" {
+		subURI := ""
+		subPort, _ := s.GetSubPort()
+		subPath, _ := s.GetSubPath()
+		subDomain, _ := s.GetSubDomain()
+		subKeyFile, _ := s.GetSubKeyFile()
+		subCertFile, _ := s.GetSubCertFile()
+		subTLS := false
+		if subKeyFile != "" && subCertFile != "" {
+			subTLS = true
+		}
+		if subDomain == "" {
+			subDomain = strings.Split(host, ":")[0]
+		}
+		if subTLS {
+			subURI = "https://"
+		} else {
+			subURI = "http://"
+		}
+		if (subPort == 443 && subTLS) || (subPort == 80 && !subTLS) {
+			subURI += subDomain
+		} else {
+			subURI += fmt.Sprintf("%s:%d", subDomain, subPort)
+		}
+		if subPath[0] == byte('/') {
+			subURI += subPath
+		} else {
+			subURI += "/" + subPath
+		}
+		result["subURI"] = subURI
+	}
+
+	return result, nil
 }

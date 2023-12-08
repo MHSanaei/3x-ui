@@ -13,10 +13,10 @@
         </a-col>
         <a-col :lg="24" :xl="12">
             <template v-if="type === 'text'">
-                <a-input :value="value" @input="$emit('input', $event.target.value)"></a-input>
+                <a-input :value="value" @input="$emit('input', $event.target.value)" :placeholder="placeholder"></a-input>
             </template>
             <template v-else-if="type === 'number'">
-                <a-input-number :value="value" @change="value => $emit('input', value)" :min="min" style="width: 100%;"></a-input-number>
+                <a-input-number :value="value" :step="step" @change="value => $emit('input', value)" :min="min" style="width: 100%;"></a-input-number>
             </template>
             <template v-else-if="type === 'switch'">
                 <a-switch :checked="value" @change="value => $emit('input', value)"></a-switch>
@@ -29,7 +29,7 @@
 {{define "component/setting"}}
 <script>
     Vue.component('setting-list-item', {
-        props: ["type", "title", "desc", "value", "min"],
+        props: ["type", "title", "desc", "value", "min", "step", "placeholder"],
         template: `{{template "component/settingListItem"}}`,
     });
 </script>

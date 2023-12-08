@@ -112,6 +112,7 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.timeZone"}}' desc='{{ i18n "pages.settings.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
@@ -243,6 +244,7 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subPath"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subCertPath"}}' desc='{{ i18n "pages.settings.subCertPathDesc"}}' v-model="allSetting.subCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subKeyPath"}}' desc='{{ i18n "pages.settings.subKeyPathDesc"}}' v-model="allSetting.subKeyFile"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.subUpdates"}}' desc='{{ i18n "pages.settings.subUpdatesDesc"}}' v-model="allSetting.subUpdates"></setting-list-item>
                             </a-list>
                         </a-tab-pane>

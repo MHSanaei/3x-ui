@@ -238,6 +238,8 @@
 "privateKeyPathDesc" = "Fill in an absolute path starting with."
 "panelUrlPath" = "Panel URL Root Path"
 "panelUrlPathDesc" = "Must start with '/' and end with."
+"pageSize" = "Pagination size"
+"pageSizeDesc" = "Define page size for inbounds table. Set 0 to disable"
 "oldUsername" = "Current Username"
 "currentPassword" = "Current Password"
 "newUsername" = "New Username"
@@ -285,6 +287,8 @@
 "subEncryptDesc" = "Encrypt the returned configs in subscription"
 "subShowInfo" = "Show usage info"
 "subShowInfoDesc" = "Show remianed traffic and date after config name"
+"subURI" = "Reverse Proxy URI"
+"subURIDesc" = "Change base URI of subscription URL for using on behind of proxies"
 
 [pages.xray]
 "title" = "Xray Settings"

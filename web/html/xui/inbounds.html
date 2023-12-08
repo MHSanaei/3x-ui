@@ -173,14 +173,13 @@
                         <a-table :columns="isMobile ? mobileColums : columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :scroll="isMobile ? {} : { x: 1000 }"
-                                 :pagination="false"
+                                 :pagination=pagination(searchedInbounds)
                                  :expand-icon-as-cell="false"
                                  :expand-row-by-click="false"
                                  :expand-icon-column-index="0"
                                  :indent-size="0"
                                  :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
-                                 style="margin-top: 10px"
-                                 @change="() => getDBInbounds()">
+                                 style="margin-top: 10px">
                             <template slot="action" slot-scope="text, dbInbound">
                                 <a-icon type="edit" style="font-size: 22px" @click="openEditInbound(dbInbound.id);"></a-icon>
                                 <a-dropdown :trigger="['click']">
@@ -416,7 +415,7 @@
                                 :row-key="client => client.id"
                                 :columns="isMobile ? innerMobileColumns : innerColumns"
                                 :data-source="getInboundClients(record)"
-                                :pagination="false"
+                                :pagination=pagination(getInboundClients(record))
                                 :style="isMobile ? 'margin: -16px -5px -17px;' : 'margin-left: 10px;'">
                                     {{template "client_table"}}
                                 </a-table>
@@ -547,12 +546,10 @@
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
-                port: 0,
-                path: '',
-                domain: '',
-                tls: false
+                subURI : ''
             },
             tgBotEnable: false,
+            pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
         methods: {
@@ -592,11 +589,9 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
-                        port: subPort,
-                        path: subPath,
-                        domain: subDomain,
-                        tls: subTLS
+                        subURI: subURI
                     };
+                    this.pageSize = pageSize;
                 }
             },
             setInbounds(dbInbounds) {
@@ -1215,6 +1210,27 @@
                     await this.getDBInbounds();
                     this.spinning = false;
                 }
+            },
+            pagination(obj){
+                if (this.pageSize > 0 && obj.length>this.pageSize) {
+                    // Set page options based on object size
+                    sizeOptions = []
+                    for (i=this.pageSize;i<=obj.length;i=i+this.pageSize) {
+                        sizeOptions.push(i.toString());
+                    }
+                    // Add option to see all in one page
+                    sizeOptions.push(i.toString());
+
+                    p = {
+                        showSizeChanger: true,
+                        size: 'small',
+                        position: 'bottom',
+                        pageSize: this.pageSize,
+                        pageSizeOptions: sizeOptions
+                    }
+                    return p
+                }
+                return false
             },
             onResize() {
                 this.isMobile = window.innerWidth <= 768;
