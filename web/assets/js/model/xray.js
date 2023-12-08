@@ -1138,7 +1138,7 @@ class Inbound extends XrayCommonClass {
     }
 
     canEnableTls() {
-        if(![Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
+        if(![Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "quic", "grpc"].includes(this.network);
     }
 
