@@ -68,6 +68,8 @@
                                 </a-space>
                             </a-col>
                             <a-col :xs="24" :sm="16">
+                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                </a-back-top>
                                 <a-alert type="warning" style="float: right; width: fit-content"
                                 message='{{ i18n "pages.settings.infoDesc" }}'
                                 show-icon
@@ -85,10 +87,12 @@
                             <a-collapse>
                                 <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.generalConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.generalConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <a-list-item>
                                         <a-row style="padding: 20px">
@@ -130,10 +134,12 @@
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.blockConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.blockConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigTorrent"}}' desc='{{ i18n "pages.xray.xrayConfigTorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.xray.xrayConfigPrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
@@ -143,10 +149,12 @@
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockCountryConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.blockCountryConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.blockCountryConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigIRIp"}}' desc='{{ i18n "pages.xray.xrayConfigIRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigIRDomain"}}' desc='{{ i18n "pages.xray.xrayConfigIRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
@@ -157,10 +165,12 @@
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.directCountryConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.directCountryConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectIRIp"}}' desc='{{ i18n "pages.xray.xrayConfigDirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectIRDomain"}}' desc='{{ i18n "pages.xray.xrayConfigDirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
@@ -171,20 +181,24 @@
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.ipv4ConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.ipv4ConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.xray.xrayConfigGoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.xray.xrayConfigNetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.warpConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
-                                        <h2 class="collapse-title">
-                                            <a-icon type="warning"></a-icon>
-                                            {{ i18n "pages.xray.warpConfigsDesc" }}
-                                        </h2>
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.warpConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.xray.xrayConfigGoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.xray.xrayConfigOpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
