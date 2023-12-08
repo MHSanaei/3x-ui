@@ -435,6 +435,11 @@ func (s *ServerService) GetConfigJson() (interface{}, error) {
 }
 
 func (s *ServerService) GetDb() ([]byte, error) {
+	// Update by manually trigger a checkpoint operation
+	err := database.Checkpoint()
+	if err != nil {
+		return nil, err
+	}
 	// Open the file for reading
 	file, err := os.Open(config.GetDBPath())
 	if err != nil {
