@@ -294,8 +294,7 @@
                 </a-button>
             </a-form-item>
         </a-form>
-        <a-input type="textarea" v-model="logModal.logs" disabled="true"
-                :autosize="{ minRows: 10, maxRows: 22}"></a-input>
+        <div v-model="logModal.logs" class="ant-input" style="height: 400px; overflow: scroll;"><pre>[[ logModal.logs ]]</pre></div>
     </a-modal>
 
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
