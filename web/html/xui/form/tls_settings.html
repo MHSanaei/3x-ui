@@ -106,9 +106,13 @@
         <a-input v-model.trim="inbound.stream.xtls.server" style="width: 250px"></a-input>
     </a-form-item>
     <a-form-item label="Alpn">
-        <a-checkbox-group v-model="inbound.stream.xtls.alpn" style="width:200px">
-            <a-checkbox v-for="key in ALPN_OPTION" :value="key">[[ key ]]</a-checkbox>
-        </a-checkbox-group>
+        <a-select
+            mode="multiple"
+            style="width: 250px"
+            :dropdown-class-name="themeSwitcher.currentTheme"
+            v-model="inbound.stream.xtls.alpn">
+            <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+        </a-select>
     </a-form-item>
     <a-form-item label="Allow insecure">
         <a-switch v-model="inbound.stream.xtls.settings.allowInsecure"></a-switch>
