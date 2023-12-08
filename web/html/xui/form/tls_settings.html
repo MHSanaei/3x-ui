@@ -1,34 +1,24 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
-<a-form layout="inline" v-if="inbound.canSetTls()">
+<a-form layout="inline" v-if="inbound.canEnableTls()">
     <a-divider style="margin:0;"></a-divider>
-    <a-form-item v-if="inbound.canEnableTls()" label="TLS">
-        <a-switch v-model="inbound.tls">
-        </a-switch>
-    </a-form-item>
-    <a-form-item v-if="inbound.canEnableReality()">
-        <span slot="label">
-            Reality
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-switch v-model="inbound.reality"></a-switch>
-    </a-form-item>
-    <a-form-item v-if="inbound.canEnableXtls()">
-        <span slot="label">
-            XTLS
+    <a-form-item label='{{ i18n "security" }}'>
+        <a-radio-group v-model="inbound.stream.security" button-style="solid">
+            <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
+            <a-radio-button value="tls">TLS</a-radio-button>
             <a-tooltip>
                 <template slot="title">
                     <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
                 </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <a-radio-button v-if="inbound.canEnableXtls()" value="xtls">XTLS</a-radio-button>
             </a-tooltip>
-        </span>
-        <a-switch v-model="inbound.xtls"></a-switch>
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
+                </template>
+                <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
+            </a-tooltip>
+        </a-radio-group>
     </a-form-item>
 </a-form>
 
