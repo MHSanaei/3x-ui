@@ -238,6 +238,8 @@
 "privateKeyPathDesc" = "填写一个 '/' 开头的绝对路径"
 "panelUrlPath" = "面板 url 根路径"
 "panelUrlPathDesc" = "必须以 '/' 开头，以 '/' 结尾"
+"pageSize" = "分页大小"
+"pageSizeDesc" = "定义入站表的页面大小。设置 0 表示禁用"
 "oldUsername" = "原用户名"
 "currentPassword" = "原密码"
 "newUsername" = "新用户名"
@@ -285,6 +287,8 @@
 "subEncryptDesc" = "在订阅中加密返回的配置"
 "subShowInfo" = "显示使用信息"
 "subShowInfoDesc" = "在配置名称后显示剩余流量和日期"
+"subURI" = "反向代理 URI"
+"subURIDesc" = "更改订阅 URL 的基本 URI 以在代理后面使用"
 
 [pages.xray]
 "title" = "Xray 设置"

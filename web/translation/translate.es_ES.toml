@@ -238,6 +238,8 @@
 "privateKeyPathDesc" = "Complete con una ruta absoluta que comience con."
 "panelUrlPath" = "Ruta Raíz de la URL del Panel"
 "panelUrlPathDesc" = "Debe empezar con '/' y terminar con."
+"pageSize" = "Tamaño de paginación"
+"pageSizeDesc" = "Defina el tamaño de página para la tabla de entradas. Establezca 0 para desactivar"
 "oldUsername" = "Nombre de Usuario Actual"
 "currentPassword" = "Contraseña Actual"
 "newUsername" = "Nuevo Nombre de Usuario"
@@ -285,6 +287,8 @@
 "subEncryptDesc" = "Encriptar las configuraciones devueltas en la suscripción."
 "subShowInfo" = "Mostrar información de uso"
 "subShowInfoDesc" = "Mostrar tráfico restante y fecha después del nombre de configuración."
+"subURI" = "URI de proxy inverso"
+"subURIDesc" = "Cambiar el URI base de la URL de suscripción para usar detrás de los servidores proxy"
 
 [pages.xray]
 "title" = "Xray Configuración"

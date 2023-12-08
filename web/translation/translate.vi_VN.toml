@@ -238,6 +238,8 @@
 "privateKeyPathDesc" = "Điền vào đường dẫn tuyệt đối bắt đầu với."
 "panelUrlPath" = "Đường dẫn gốc URL Bảng điều khiển"
 "panelUrlPathDesc" = "Phải bắt đầu bằng '/' và kết thúc bằng."
+"pageSize" = "Kích thước phân trang"
+"pageSizeDesc" = "Xác định kích thước trang cho bảng gửi đến. Đặt 0 để tắt"
 "oldUsername" = "Tên người dùng hiện tại"
 "currentPassword" = "Mật khẩu hiện tại"
 "newUsername" = "Tên người dùng mới"
@@ -285,6 +287,8 @@
 "subEncryptDesc" = "Mã hóa các cấu hình được trả về trong đăng ký"
 "subShowInfo" = "Hiển thị thông tin sử dụng"
 "subShowInfoDesc" = "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình"
+"subURI" = "URI proxy ngược"
+"subURIDesc" = "Thay đổi URI cơ sở của URL đăng ký để sử dụng ở phía sau proxy"
 
 [pages.xray]
 "title" = "Xray Cài đặt"

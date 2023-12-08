@@ -56,44 +56,11 @@ func (a *SettingController) getAllSetting(c *gin.Context) {
 }
 
 func (a *SettingController) getDefaultSettings(c *gin.Context) {
-	type settingFunc func() (interface{}, error)
-
-	settings := map[string]settingFunc{
-		"expireDiff":  func() (interface{}, error) { return a.settingService.GetExpireDiff() },
-		"trafficDiff": func() (interface{}, error) { return a.settingService.GetTrafficDiff() },
-		"defaultCert": func() (interface{}, error) { return a.settingService.GetCertFile() },
-		"defaultKey":  func() (interface{}, error) { return a.settingService.GetKeyFile() },
-		"tgBotEnable": func() (interface{}, error) { return a.settingService.GetTgbotenabled() },
-		"subEnable":   func() (interface{}, error) { return a.settingService.GetSubEnable() },
-		"subPort":     func() (interface{}, error) { return a.settingService.GetSubPort() },
-		"subPath":     func() (interface{}, error) { return a.settingService.GetSubPath() },
-		"subDomain":   func() (interface{}, error) { return a.settingService.GetSubDomain() },
-		"subKeyFile":  func() (interface{}, error) { return a.settingService.GetSubKeyFile() },
-		"subCertFile": func() (interface{}, error) { return a.settingService.GetSubCertFile() },
-		"subEncrypt":  func() (interface{}, error) { return a.settingService.GetSubEncrypt() },
-		"subShowInfo": func() (interface{}, error) { return a.settingService.GetSubShowInfo() },
+	result, err := a.settingService.GetDefaultSettings(c.Request.Host)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
 	}
-
-	result := make(map[string]interface{})
-
-	for key, fn := range settings {
-		value, err := fn()
-		if err != nil {
-			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
-			return
-		}
-		result[key] = value
-	}
-
-	subTLS := false
-	if result["subKeyFile"] != "" || result["subCertFile"] != "" {
-		subTLS = true
-	}
-	result["subTLS"] = subTLS
-
-	delete(result, "subKeyFile")
-	delete(result, "subCertFile")
-
 	jsonObj(c, result, nil)
 }
 

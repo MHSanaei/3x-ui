@@ -22,6 +22,7 @@ type AllSetting struct {
 	WebKeyFile       string `json:"webKeyFile" form:"webKeyFile"`
 	WebBasePath      string `json:"webBasePath" form:"webBasePath"`
 	SessionMaxAge    int    `json:"sessionMaxAge" form:"sessionMaxAge"`
+	PageSize         int    `json:"pageSize" form:"pageSize"`
 	ExpireDiff       int    `json:"expireDiff" form:"expireDiff"`
 	TrafficDiff      int    `json:"trafficDiff" form:"trafficDiff"`
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`
@@ -44,6 +45,7 @@ type AllSetting struct {
 	SubUpdates       int    `json:"subUpdates" form:"subUpdates"`
 	SubEncrypt       bool   `json:"subEncrypt" form:"subEncrypt"`
 	SubShowInfo      bool   `json:"subShowInfo" form:"subShowInfo"`
+	SubURI           string `json:"subURI" form:"subURI"`
 }
 
 func (s *AllSetting) CheckValid() error {
@@ -92,6 +94,12 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.WebBasePath, "/") {
 		s.WebBasePath += "/"
+	}
+	if !strings.HasPrefix(s.SubPath, "/") {
+		s.SubPath = "/" + s.SubPath
+	}
+	if !strings.HasSuffix(s.SubPath, "/") {
+		s.SubPath += "/"
 	}
 
 	_, err := time.LoadLocation(s.TimeLocation)
