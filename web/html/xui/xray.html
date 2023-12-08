@@ -969,15 +969,17 @@
             freedomStrategy: {
                 get: function () {
                     if (!this.templateSettings) return "AsIs";
-                    freedomOutbound = this.templateSettings.outbounds.find((o) => o.protocol === "freedom" && !o.tag);
+                    freedomOutbound = this.templateSettings.outbounds.find((o) => o.protocol === "freedom" && o.tag == "direct");
                     if (!freedomOutbound) return "AsIs";
                     if (!freedomOutbound.settings || !freedomOutbound.settings.domainStrategy) return "AsIs";
                     return freedomOutbound.settings.domainStrategy;
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    freedomOutboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.protocol === "freedom" && !o.tag);
-                    if (!newTemplateSettings.outbounds[freedomOutboundIndex].settings) {
+                    freedomOutboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.protocol === "freedom" && o.tag == "direct");
+                    if(freedomOutboundIndex == -1){
+                        newTemplateSettings.outbounds.push({protocol: "freedom", tag: "direct", settings: { "domainStrategy": newValue }});
+                    } else if (!newTemplateSettings.outbounds[freedomOutboundIndex].settings) {
                         newTemplateSettings.outbounds[freedomOutboundIndex].settings = {"domainStrategy": newValue};
                     } else {
                         newTemplateSettings.outbounds[freedomOutboundIndex].settings.domainStrategy = newValue;
