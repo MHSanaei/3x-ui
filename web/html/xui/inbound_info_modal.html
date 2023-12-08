@@ -265,27 +265,10 @@
             this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
-            this.settings = JSON.parse(this.inbound.settings);
-            this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
-            this.isExpired = this.inbound.isExpiry(index);
-            this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            remark = [this.dbInbound.remark, ( this.clientSettings ? this.clientSettings.email : '')].filter(Boolean).join('-');
-            address = this.dbInbound.address;
-            this.links = [];
-            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
-                this.inbound.stream.tls.settings.domains.forEach((domain) => {
-                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
-                    this.links.push({
-                        remark: remarkText,
-                        link: this.inbound.genLink(domain.domain, remarkText, index)
-                    });
-                });
-            } else {
-                this.links.push({
-                    remark: remark,
-                    link: this.inbound.genLink(address, remark, index)
-                });
-            }
+            this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
+            this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index): this.dbInbound.isExpiry;
+            this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+            this.links = this.inbound.genAllLinks(this.dbInbound.remark, this.clientSettings);
             if (this.clientSettings) {
                 if (this.clientSettings.subId) {
                     this.subLink = this.genSubLink(this.clientSettings.subId);

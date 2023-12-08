@@ -176,6 +176,7 @@
 "telegramDesc" = "Sử dụng Telegram ID mà không cần ký hiệu @ hoặc chat IDs (bạn có thể nhận được nó ở đây @userinfobot hoặc sử dụng lệnh '/id' trong bot)"
 "subscriptionDesc" = "Bạn có thể tìm liên kết đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
 "info" = "Thông tin"
+"same" = "Giống nhau"
 
 [pages.client]
 "add" = "Thêm Client"
