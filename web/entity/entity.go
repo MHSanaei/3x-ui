@@ -25,6 +25,7 @@ type AllSetting struct {
 	PageSize         int    `json:"pageSize" form:"pageSize"`
 	ExpireDiff       int    `json:"expireDiff" form:"expireDiff"`
 	TrafficDiff      int    `json:"trafficDiff" form:"trafficDiff"`
+	RemarkModel      string `json:"remarkModel" form:"remarkModel"`
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`
 	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`

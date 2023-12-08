@@ -35,7 +35,7 @@
             this.client = client;
             this.subId = '';
             this.qrcodes = [];
-            this.inbound.genAllLinks(this.dbInbound.remark, client).forEach(l => {
+            this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
                 this.qrcodes.push({
                     remark: l.remark,
                     link: l.link

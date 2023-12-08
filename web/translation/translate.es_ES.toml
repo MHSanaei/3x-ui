@@ -245,6 +245,8 @@
 "panelUrlPathDesc" = "Debe empezar con '/' y terminar con."
 "pageSize" = "Tamaño de paginación"
 "pageSizeDesc" = "Defina el tamaño de página para la tabla de entradas. Establezca 0 para desactivar"
+"remarkModel" = "Modelo de observación y carácter de separación"
+"sampleRemark" = "Observación de muestra"
 "oldUsername" = "Nombre de Usuario Actual"
 "currentPassword" = "Contraseña Actual"
 "newUsername" = "Nuevo Nombre de Usuario"

@@ -245,6 +245,8 @@
 "panelUrlPathDesc" = "باید با '/' شروع شود و با '/' تمام شود"
 "pageSize" = "اندازه صفحه بندی جدول"
 "pageSizeDesc" = "اندازه صفحه را برای جدول سرویس ها تعریف کنید. 0: غیرفعال"
+"remarkModel" = "نام کانفیگ و جداکننده"
+"sampleRemark" = "نمونه نام"
 "oldUsername" = "نام کاربری فعلی"
 "currentPassword" = "رمز عبور فعلی"
 "newUsername" = "نام کاربری جدید"

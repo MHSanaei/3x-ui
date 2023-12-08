@@ -19,6 +19,7 @@ import (
 type SubService struct {
 	address        string
 	showInfo       bool
+	remarkModel    string
 	inboundService service.InboundService
 	settingService service.SettingService
 }
@@ -33,6 +34,10 @@ func (s *SubService) GetSubs(subId string, host string, showInfo bool) ([]string
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
 		return nil, nil, err
+	}
+	s.remarkModel, err = s.settingService.GetRemarkModel()
+	if err != nil {
+		s.remarkModel = "-ieo"
 	}
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
@@ -857,17 +862,30 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 }
 
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
-	var remark []string
+	separationChar := string(s.remarkModel[0])
+	orderChars := s.remarkModel[1:]
+	orders := map[byte]string{
+		'i': "",
+		'e': "",
+		'o': "",
+	}
 	if len(email) > 0 {
-		if len(inbound.Remark) > 0 {
-			remark = append(remark, inbound.Remark)
+		orders['e'] = email
+	}
+	if len(inbound.Remark) > 0 {
+		orders['i'] = inbound.Remark
+	}
+	if len(extra) > 0 {
+		orders['e'] = extra
+	}
+
+	var remark []string
+	for i := 0; i < len(orderChars); i++ {
+		char := orderChars[i]
+		order, exists := orders[char]
+		if exists && order != "" {
+			remark = append(remark, order)
 		}
-		remark = append(remark, email)
-		if len(extra) > 0 {
-			remark = append(remark, extra)
-		}
-	} else {
-		return inbound.Remark
 	}
 
 	if s.showInfo {
@@ -884,7 +902,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		// Get remained days
 		if statsExist {
 			if !stats.Enable {
-				return fmt.Sprintf("⛔️N/A-%s", strings.Join(remark, "-"))
+				return fmt.Sprintf("⛔️N/A%s%s", separationChar, strings.Join(remark, separationChar))
 			}
 			if vol := stats.Total - (stats.Up + stats.Down); vol > 0 {
 				remark = append(remark, fmt.Sprintf("%s%s", common.FormatTraffic(vol), "📊"))
@@ -898,7 +916,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 			}
 		}
 	}
-	return strings.Join(remark, " : ")
+	return strings.Join(remark, separationChar)
 }
 
 func searchKey(data interface{}, key string) (interface{}, bool) {

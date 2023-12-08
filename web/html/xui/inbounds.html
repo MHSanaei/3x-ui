@@ -556,6 +556,7 @@
                 enable : false,
                 subURI : ''
             },
+            remarkModel: '-ieo',
             tgBotEnable: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
@@ -600,6 +601,7 @@
                         subURI: subURI
                     };
                     this.pageSize = pageSize;
+                    this.remarkModel = remarkModel;
                 }
             },
             setInbounds(dbInbounds) {
@@ -1191,7 +1193,7 @@
             exportAllLinks() {
                 let copyText = [];
                 for (const dbInbound of this.dbInbounds) {
-                    copyText.push(dbInbound.genInboundLinks);
+                    copyText.push(dbInbound.genInboundLinks(this.remarkModel));
                 }
                 txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText.join('\r\n'), 'All-Inbounds');
             },

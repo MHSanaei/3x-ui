@@ -245,6 +245,8 @@
 "panelUrlPathDesc" = "Must start with '/' and end with."
 "pageSize" = "Pagination size"
 "pageSizeDesc" = "Define page size for inbounds table. Set 0 to disable"
+"remarkModel" = "Remark Model and Seperation charachter"
+"sampleRemark" = "Sample remark"
 "oldUsername" = "Current Username"
 "currentPassword" = "Current Password"
 "newUsername" = "New Username"

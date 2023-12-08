@@ -105,6 +105,28 @@
                     <a-tabs default-active-key="1">
                         <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
                             <a-list item-layout="horizontal">
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.remarkModel"}}'>
+                                                <template slot="description">{{ i18n "pages.settings.sampleRemark"}}: <i>#[[ remarkSample ]]</i></template>
+                                            </a-list-item-meta>
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-input-group style="width: 100%;">
+                                                <a-select style="padding-right: .5rem; min-width: 80%; width: auto;"
+                                                    mode="multiple"
+                                                    v-model="remarkModel"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                                    <a-select-option v-for="(value, key) in remarkModels" :value="key">[[ value ]]</a-select-option>
+                                                </a-select>
+                                                <a-select style="width: 20%;" v-model="remarkSeparator" :dropdown-class-name="themeSwitcher.currentTheme">
+                                                    <a-select-option v-for="key in remarkSeparators" :value="key">[[ key ]]</a-select-option>
+                                                </a-select>
+                                            </a-input-group>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningDomain"}}' desc='{{ i18n "pages.settings.panelListeningDomainDesc"}}' v-model="allSetting.webDomain"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="0"></setting-list-item>
@@ -272,6 +294,31 @@
             saveBtnDisable: true,
             user: {},
             lang: getLang(),
+            showAlert: false,
+            remarkModels: {i:'Inbound',e:'Email',o:'Other'},
+            remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
+            remarkSample: '',
+            get remarkModel() {
+                rm = this.allSetting.remarkModel;
+                return rm.length>1 ? rm.substring(1).split('') : [];
+            },
+            set remarkModel(value) {
+                rs = this.allSetting.remarkModel[0];
+                this.allSetting.remarkModel = rs + value.join('');
+                this.changeRemarkSample();
+            },
+            get remarkSeparator() {
+                return this.allSetting.remarkModel.length > 1 ? this.allSetting.remarkModel.charAt(0) : '-';
+            },
+            set remarkSeparator(value) {
+                this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
+                this.changeRemarkSample();
+            },
+            changeRemarkSample(){
+                sample = []
+                this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
+                this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
+            }            
         },
         methods: {
             loading(spinning = true) {
@@ -284,6 +331,7 @@
                 if (msg.success) {
                     this.oldAllSetting = new AllSetting(msg.obj);
                     this.allSetting = new AllSetting(msg.obj);
+                    app.changeRemarkSample();
                     this.saveBtnDisable = true;
                 }
                 await this.fetchUserSecret();

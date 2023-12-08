@@ -264,7 +264,7 @@
             this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
             this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index): this.dbInbound.isExpiry;
             this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            this.links = this.inbound.genAllLinks(this.dbInbound.remark, this.clientSettings);
+            this.links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, this.clientSettings);
             if (this.clientSettings) {
                 if (this.clientSettings.subId) {
                     this.subLink = this.genSubLink(this.clientSettings.subId);

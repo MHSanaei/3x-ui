@@ -1566,20 +1566,28 @@ class Inbound extends XrayCommonClass {
         }
     }
 
-    genAllLinks(remark='', client){
+    genAllLinks(remark='', remarkModel = '-ieo', client){
         let result = [];
         let email = client ? client.email : '';
         let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
-        let port = this.port
+        let port = this.port;
+        const separationChar = remarkModel.charAt(0);
+        const orderChars = remarkModel.slice(1);
+        let orders = {
+            'i': remark,
+            'e': client ? client.email : '',
+            'o': '',
+          };
         if(ObjectUtil.isArrEmpty(this.stream.externalProxy)){
-            let r = [remark, email].filter(x => x.length > 0).join('-');
+            let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
             result.push({
                 remark: r,
                 link: this.genLink(addr, port, 'same', r, client)
             });
         } else {
             this.stream.externalProxy.forEach((ep) => {
-                let r = [remark, email, ep.remark].filter(x => x.length > 0).join('-')
+                orders['o'] = ep.remark;
+                let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
                     link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client)
@@ -1589,11 +1597,11 @@ class Inbound extends XrayCommonClass {
         return result;
     }
 
-    genInboundLinks(remark = '') {
+    genInboundLinks(remark = '', remarkModel = '-ieo') {
         if(this.clients){
            let links = [];
            this.clients.forEach((client) => {
-                genAllLinks(remark,client).forEach(l => {
+                genAllLinks(remark,remarkModel,client).forEach(l => {
                     links.push(l.link);
                 })
             });
