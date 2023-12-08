@@ -177,6 +177,10 @@
 "subscriptionDesc" = "you can find your sub link on Details, also you can use the same name for several configurations"
 "info" = "Info"
 "same" = "Same"
+"inboundData" = "Inbound's data"
+"copyToClipboard" = "Copy to clipboard"
+"import" = "Import"
+"importInbound" = "Import an inbound"
 
 [pages.client]
 "add" = "Add Client"

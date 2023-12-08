@@ -177,6 +177,10 @@
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
 "info" = "Info"
 "same" = "misma"
+"inboundData" = "Datos de entrada"
+"copyToClipboard" = "Copiar al portapapeles"
+"import" = "Importar"
+"importInbound" = "Importar un entrante"
 
 [pages.client]
 "add" = "Agregar Cliente"

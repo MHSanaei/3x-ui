@@ -177,6 +177,10 @@
 "subscriptionDesc" = "您可以在详细信息上找到您的子链接，也可以对多个配置使用相同的名称"
 "info" = "信息"
 "same" = "相同"
+"inboundData" = "入站数据"
+"copyToClipboard" = "复制到剪贴板"
+"import"="导入"
+"importInbound" = "导入入站"
 
 [pages.client]
 "add" = "添加客户端"
