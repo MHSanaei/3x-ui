@@ -51,19 +51,15 @@
                 </table>
             </td></tr>
         <tr colspan="2" v-if="dbInbound.hasLink()">
-            <td v-if="inbound.tls">
-                tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+            <td>
+                {{ i18n "security" }}
+                <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[ inbound.stream.security ]]</a-tag>
+                <br />
+                <template v-if="inbound.stream.security != 'none'">
+                {{ i18n "domainName" }}
+                <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                </template>
             </td>
-            <td v-else-if="inbound.xtls">
-                xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
-            </td>
-            <td v-else-if="inbound.reality">
-                reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                reality Destination: <a-tag :color="inbound.stream.reality.dest ? 'green' : 'orange'">[[ inbound.stream.reality.dest ]]</a-tag>
-            </td>
-            <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag></td>
         </tr>
     </table>
     <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">

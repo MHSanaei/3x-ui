@@ -287,14 +287,14 @@
 "subEncrypt" = "Encrypt configs"
 "subEncryptDesc" = "Encrypt the returned configs in subscription"
 "subShowInfo" = "Show usage info"
-"subShowInfoDesc" = "Show remianed traffic and date after config name"
+"subShowInfoDesc" = "Show remained traffic and date after config name"
 "subURI" = "Reverse Proxy URI"
 "subURIDesc" = "Change base URI of subscription URL for using on behind of proxies"
 
 [pages.xray]
 "title" = "Xray Settings"
 "save" = "Save Settings"
-"restart" = "Reastart Xray"
+"restart" = "Restart Xray"
 "basicTemplate" = "Basic Template"
 "advancedTemplate" = "Advanced Template"
 "generalConfigs" = "General Configs"
@@ -446,7 +446,7 @@
 "usage" = "❗ Please provide a text to search!"
 "getID" = "🆔 Your ID: <code>{{ .ID }}</code>"
 "helpAdminCommands" = "Search for a client email:\r\n<code>/usage [Email]</code>\r\n \r\nSearch for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "To search for statistics, just use folowing command:\r\n \r\n<code>/usage [UUID|Password]</code>\r\n \r\nUse UUID for vmess/vless and Password for Trojan."
+"helpClientCommands" = "To search for statistics, just use the following command:\r\n \r\n<code>/usage [UUID|Password]</code>\r\n \r\nUse UUID for vmess/vless and Password for Trojan."
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 The CPU usage {{ .Percent }}% is more than threshold {{ .Threshold }}%"
