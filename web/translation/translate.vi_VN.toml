@@ -177,6 +177,10 @@
 "subscriptionDesc" = "Bạn có thể tìm liên kết đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
 "info" = "Thông tin"
 "same" = "Giống nhau"
+"inboundData" = "Dữ liệu gửi đến"
+"copyToClipboard" = "Sao chép vào bảng nhớ tạm"
+"import" = "Nhập"
+"importInbound" = "Nhập hàng gửi về"
 
 [pages.client]
 "add" = "Thêm Client"

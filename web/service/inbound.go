@@ -168,9 +168,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	err = tx.Save(inbound).Error
 	if err == nil {
-		for _, client := range clients {
-			s.AddClientStat(tx, inbound.Id, &client)
+		if len(inbound.ClientStats) == 0 {
+			for _, client := range clients {
+				s.AddClientStat(tx, inbound.Id, &client)
+			}
 		}
+	} else {
+		return inbound, false, err
 	}
 
 	needRestart := false
