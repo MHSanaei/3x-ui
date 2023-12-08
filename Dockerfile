@@ -4,7 +4,8 @@
 FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
-ENV CGO_ENABLED=1
+ARG TARGETPLATFORM
+ENV CGO_ENABLED=0
 
 RUN apk --no-cache --update add \
   build-base \
@@ -14,7 +15,9 @@ RUN apk --no-cache --update add \
 
 COPY . .
 
-RUN go build -o build/x-ui main.go
+RUN GOOS="$(echo "${TARGETPLATFORM}" | cut -d/ -f1)" \
+    GOARCH="$(echo "${TARGETPLATFORM}" | cut -d/ -f2)" \
+    go build -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
 
 # ========================================================
