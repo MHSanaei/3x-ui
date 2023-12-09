@@ -1776,10 +1776,10 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(protocol,
                 vlesses=[new Inbound.VLESSSettings.VLESS()],
                 decryption='none',
-                fallbacks=[],) {
+                fallbacks=[]) {
         super(protocol);
         this.vlesses = vlesses;
-        this.decryption = 'none'; // Using decryption is not implemented here
+        this.decryption = decryption; 
         this.fallbacks = fallbacks;
     }
 
@@ -1796,20 +1796,20 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         return new Inbound.VLESSSettings(
             Protocols.VLESS,
             json.clients.map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
-            'none',
-            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks),
+            json.decryption || 'none',
+            json.fallbacks.map(fallback => Inbound.VLESSSettings.Fallback.fromJson(fallback)),
         );
     }
 
     toJson() {
         return {
             clients: Inbound.VLESSSettings.toJsonArray(this.vlesses),
-            decryption: 'none',
+            decryption: this.decryption, 
             fallbacks: Inbound.VLESSSettings.toJsonArray(this.fallbacks),
         };
     }
-
 };
+
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
     constructor(id=RandomUtil.randomUUID(), flow='', email=RandomUtil.randomLowerAndNum(8),limitIp=0, totalGB=0, expiryTime=0, enable=true, tgId='', subId=RandomUtil.randomLowerAndNum(16), reset=0) {
         super();
