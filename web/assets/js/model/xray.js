@@ -1329,7 +1329,7 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isEmpty(this.stream.xtls.server)){
                 params.set("sni", this.stream.xtls.server);
 			}
-            params.set("flow", this.settings.vlesses[clientIndex].flow);
+            params.set("flow", flow);
         }
 
         else if (security === 'reality') {
@@ -1536,7 +1536,7 @@ class Inbound extends XrayCommonClass {
             if (this.stream.xtls.settings.serverName !== ''){
                 params.set("sni", this.stream.xtls.settings.serverName);
 			}
-            params.set("flow", this.settings.trojans[clientIndex].flow);
+            params.set("flow", flow);
         }
 
         else {
