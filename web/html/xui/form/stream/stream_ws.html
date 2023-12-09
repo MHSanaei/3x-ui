@@ -11,15 +11,17 @@
     <a-form-item>
         <a-row>
             <span>{{ i18n "pages.inbounds.stream.general.requestHeader" }}:</span>
-            <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.ws.addHeader('Host', '')">+</a-button>
+            <a-button type="primary" size="small" style="margin-left: 10px"
+                @click="inbound.stream.ws.addHeader('Host', '')">+</a-button>
         </a-row>
         <a-input-group v-for="(header, index) in inbound.stream.ws.headers">
             <a-input style="width: 50%" v-model.trim="header.name"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.name"}}'></a-input>
+                addon-before='{{ i18n "pages.inbounds.stream.general.name"}}'></a-input>
             <a-input style="width: 50%" v-model.trim="header.value"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.value" }}'>
+                addon-before='{{ i18n "pages.inbounds.stream.general.value" }}'>
                 <template slot="addonAfter">
-                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.ws.removeHeader(index)">-</a-button>
+                    <a-button type="primary" size="small" style="margin-left: 10px"
+                        @click="inbound.stream.ws.removeHeader(index)">-</a-button>
                 </template>
             </a-input>
         </a-input-group>
