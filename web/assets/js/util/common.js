@@ -117,13 +117,13 @@ function setCookie(cname, cvalue, exdays) {
 function usageColor(data, threshold, total) {
     switch (true) {
         case data === null:
-            return "green";
+            return "purple";
         case total < 0:
-            return "blue";
+            return "green";
         case total == 0:
             return "purple";
         case data < total - threshold:
-            return "blue";
+            return "green";
         case data < total:
             return "orange";
         default:
@@ -134,13 +134,13 @@ function usageColor(data, threshold, total) {
 function clientUsageColor(clientStats, trafficDiff) {
     switch (true) {
         case !clientStats || clientStats.total == 0:
-            return "#7a316f";
+            return "#7a316f"; // purple
         case clientStats.up + clientStats.down < clientStats.total - trafficDiff:
-            return "#0e49b5";
+            return "#008771"; // Green
         case clientStats.up + clientStats.down < clientStats.total:
-            return "#ffa031";
+            return "#f37b24"; // Orange
         default:
-            return "#e04141";
+            return "#cf3c3c"; // Red
     }
 }
 
@@ -152,17 +152,17 @@ function userExpiryColor(threshold, client, isDark = false) {
     expiry = client.expiryTime;
     switch (true) {
         case expiry === null:
-            return "#389e0d";
+            return "#7a316f"; // purple
         case expiry < 0:
-            return "#0e49b5";
+            return "#008771"; // Green
         case expiry == 0:
-            return "#7a316f";
+            return "#7a316f"; // purple
         case now < expiry - threshold:
-            return "#0e49b5";
+            return "#008771"; // Green
         case now < expiry:
-            return "#ffa031";
+            return "#f37b24"; // Orange
         default:
-            return "#e04141";
+            return "#cf3c3c"; // Red
     }
 }
 
