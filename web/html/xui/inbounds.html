@@ -1154,13 +1154,13 @@
                 expColor = usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
                 switch (true) {
                     case statsColor == "red" || expColor == "red":
-                        return "#E04141";
+                        return "#cf3c3c"; // Red
                     case statsColor == "orange" || expColor == "orange":
-                        return "#FFA031";
-                    case statsColor == "blue" || expColor == "blue":
-                        return "#0e49b5";
+                        return "#f37b24"; // Orange
+                    case statsColor == "green" || expColor == "green":
+                        return "#008771"; // Green
                     default:
-                        return "#7a316f";
+                        return "#7a316f"; // purple
                 }
             },
             isClientEnabled(dbInbound, email) {
