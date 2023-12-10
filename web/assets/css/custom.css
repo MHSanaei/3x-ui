@@ -94,10 +94,6 @@ style attribute {
     overflow-x: auto !important;
 }
 
-tr.ant-table-expanded-row td>.ant-table-wrapper {
-    margin: -12px -16px -13px;
-}
-
 .ant-card-hoverable {
     cursor: auto;
     cursor: pointer;

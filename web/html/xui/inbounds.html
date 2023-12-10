@@ -419,11 +419,11 @@
                             </template>
                             <template slot="expandedRowRender" slot-scope="record">
                                 <a-table
-                                :row-key="client => client.id"
-                                :columns="isMobile ? innerMobileColumns : innerColumns"
-                                :data-source="getInboundClients(record)"
-                                :pagination=pagination(getInboundClients(record))
-                                :style="isMobile ? 'margin: -12px -5px -13px;' : 'margin-left: 10px;'">
+                                    :row-key="client => client.id"
+                                    :columns="isMobile ? innerMobileColumns : innerColumns"
+                                    :data-source="getInboundClients(record)"
+                                    :pagination=pagination(getInboundClients(record))
+                                    style="margin: -12px -6px -13px;">
                                     {{template "client_table"}}
                                 </a-table>
                             </template>
@@ -1175,7 +1175,7 @@
             inboundLinks(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks, newDbInbound.remark);
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(), newDbInbound.remark);
             },
             importInbound() {
                 promptModal.open({

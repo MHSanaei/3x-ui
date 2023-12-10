@@ -106,8 +106,8 @@
                                         <a-row style="padding: 20px">
                                             <a-col :lg="24" :xl="12">
                                                 <a-list-item-meta 
-                                                    title='{{ i18n "pages.xray.xrayConfigFreedomStrategy" }}'
-                                                    description='{{ i18n "pages.xray.xrayConfigFreedomStrategyDesc" }}'/>
+                                                    title='{{ i18n "pages.xray.FreedomStrategy" }}'
+                                                    description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'/>
                                             </a-col>
                                             <a-col :lg="24" :xl="12">
                                                 <template>
@@ -124,8 +124,8 @@
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
                                             <a-list-item-meta 
-                                                title='{{ i18n "pages.xray.xrayConfigRoutingStrategy" }}'
-                                                description='{{ i18n "pages.xray.xrayConfigRoutingStrategyDesc" }}'/>
+                                                title='{{ i18n "pages.xray.RoutingStrategy" }}'
+                                                description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'/>
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
                                             <template>
@@ -149,11 +149,11 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigTorrent"}}' desc='{{ i18n "pages.xray.xrayConfigTorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.xray.xrayConfigPrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigAds"}}' desc='{{ i18n "pages.xray.xrayConfigAdsDesc"}}' v-model="AdsSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigFamily"}}' desc='{{ i18n "pages.xray.xrayConfigFamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigSpeedtest"}}' desc='{{ i18n "pages.xray.xrayConfigSpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Torrent"}}' desc='{{ i18n "pages.xray.TorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.PrivateIp"}}' desc='{{ i18n "pages.xray.PrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Ads"}}' desc='{{ i18n "pages.xray.AdsDesc"}}' v-model="AdsSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Speedtest"}}' desc='{{ i18n "pages.xray.SpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockCountryConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -164,12 +164,12 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigIRIp"}}' desc='{{ i18n "pages.xray.xrayConfigIRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigIRDomain"}}' desc='{{ i18n "pages.xray.xrayConfigIRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigChinaIp"}}' desc='{{ i18n "pages.xray.xrayConfigChinaIpDesc"}}' v-model="ChinaIpSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigChinaDomain"}}' desc='{{ i18n "pages.xray.xrayConfigChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigRussiaIp"}}' desc='{{ i18n "pages.xray.xrayConfigRussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigRussiaDomain"}}' desc='{{ i18n "pages.xray.xrayConfigRussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.IRIp"}}' desc='{{ i18n "pages.xray.IRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.IRDomain"}}' desc='{{ i18n "pages.xray.IRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaIp"}}' desc='{{ i18n "pages.xray.ChinaIpDesc"}}' v-model="ChinaIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaDomain"}}' desc='{{ i18n "pages.xray.ChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaIp"}}' desc='{{ i18n "pages.xray.RussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaDomain"}}' desc='{{ i18n "pages.xray.RussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -180,12 +180,12 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectIRIp"}}' desc='{{ i18n "pages.xray.xrayConfigDirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectIRDomain"}}' desc='{{ i18n "pages.xray.xrayConfigDirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectChinaIp"}}' desc='{{ i18n "pages.xray.xrayConfigDirectChinaIpDesc"}}' v-model="ChinaIpDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectChinaDomain"}}' desc='{{ i18n "pages.xray.xrayConfigDirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectRussiaIp"}}' desc='{{ i18n "pages.xray.xrayConfigDirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigDirectRussiaDomain"}}' desc='{{ i18n "pages.xray.xrayConfigDirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRIp"}}' desc='{{ i18n "pages.xray.DirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRDomain"}}' desc='{{ i18n "pages.xray.DirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaIp"}}' desc='{{ i18n "pages.xray.DirectChinaIpDesc"}}' v-model="ChinaIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -196,8 +196,8 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.xray.xrayConfigGoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.xray.xrayConfigNetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleIPv4"}}' desc='{{ i18n "pages.xray.GoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixIPv4"}}' desc='{{ i18n "pages.xray.NetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.warpConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -208,10 +208,10 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.xray.xrayConfigGoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.xray.xrayConfigOpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.xray.xrayConfigNetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.xray.xrayConfigSpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleWARP"}}' desc='{{ i18n "pages.xray.GoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -527,7 +527,7 @@
                 ips: {
                     local: ["geoip:private"],
                     cn: ["geoip:cn"],
-                    ir: ["ext:geoip_IR.dat:ir","ext:geoip_IR.dat:arvancloud","ext:geoip_IR.dat:derakcloud","ext:geoip_IR.dat:iranserver"],
+                    ir: ["ext:geoip_IR.dat:ir","ext:geoip_IR.dat:arvancloud","ext:geoip_IR.dat:derakcloud","ext:geoip_IR.dat:iranserver","ext:geoip_IR.dat:parspack"],
                     ru: ["geoip:ru"],
                 },
                 domains: {

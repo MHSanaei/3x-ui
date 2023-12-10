@@ -137,7 +137,7 @@ class DBInbound {
         }
     }
     
-	genInboundLinks() {
+	genInboundLinks(remarkModel) {
         const inbound = this.toInbound();
         return inbound.genInboundLinks(this.remark,remarkModel);
     }
