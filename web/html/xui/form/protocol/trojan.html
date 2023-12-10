@@ -24,7 +24,7 @@
     <a-form layout="inline">
         <a-form-item label="Fallbacks">
             <a-row>
-                <a-button type="primary" size="small" @click="inbound.settings.addTrojanFallback()">
+                <a-button type="primary" size="small" @click="inbound.settings.addFallback()">
                     +
                 </a-button>
             </a-row>
@@ -35,7 +35,7 @@
     <a-form v-for="(fallback, index) in inbound.settings.fallbacks" layout="inline">
         <a-divider style="margin:0;">
             fallback[[ index + 1 ]]
-            <a-icon type="delete" @click="() => inbound.settings.delTrojanFallback(index)"
+            <a-icon type="delete" @click="() => inbound.settings.delFallback(index)"
                     style="color: rgb(255, 77, 79);cursor: pointer;"/>
         </a-divider>
         <table width="100%">
