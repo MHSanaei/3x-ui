@@ -433,11 +433,11 @@ style attribute {
 /* change basic colors */
 .ant-tag-blue {
     background-color: #edf4fa;
-    border-color: #a9c5e7;
-    color: #0e49b5;
+    border-color: #76ccb4;
+    color: #199270;
 }
 .ant-tag-green {
-    background-color: #eef9f7;
+    background-color: #eafff9;
     border-color: #89d9cc;
     color: #00ad91;
 }
@@ -743,7 +743,7 @@ style attribute {
 }
 
 .dark .ant-tag-green {
-    background-color: #121b2b;
+    background-color: #112421;
     border-color: #144840;
     color: #33bca5;
 }
