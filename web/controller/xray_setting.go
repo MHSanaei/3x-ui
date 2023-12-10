@@ -10,6 +10,7 @@ type XraySettingController struct {
 	XraySettingService service.XraySettingService
 	SettingService     service.SettingService
 	InboundService     service.InboundService
+	XrayService        service.XrayService
 }
 
 func NewXraySettingController(g *gin.RouterGroup) *XraySettingController {
@@ -23,6 +24,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/", a.getXraySetting)
 	g.POST("/update", a.updateSetting)
+	g.GET("/getXrayResult", a.getXrayResult)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 }
 
@@ -54,4 +56,8 @@ func (a *XraySettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+func (a *XraySettingController) getXrayResult(c *gin.Context) {
+	jsonObj(c, a.XrayService.GetXrayResult(), nil)
 }
