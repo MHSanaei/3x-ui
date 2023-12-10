@@ -311,6 +311,7 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
 | `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
+| `POST` | `"/onlines"`                       | Get Online users ( list of emails )       |
 
 \*- The field `clientId` should be filled by:
 
@@ -318,7 +319,9 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 - `client.password` for TROJAN
 - `client.email` for Shadowsocks
 
-- [Postman Collection](https://gist.github.com/mehdikhody/9a862801a2e41f6b5fb6bbc7e1326044)
+
+- [API Documentation](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
 </details>
 
 # Environment Variables

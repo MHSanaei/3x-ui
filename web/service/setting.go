@@ -31,8 +31,10 @@ var defaultValueMap = map[string]string{
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
 	"sessionMaxAge":      "0",
+	"pageSize":           "0",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
+	"remarkModel":        "-ieo",
 	"timeLocation":       "Asia/Tehran",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
@@ -53,6 +55,7 @@ var defaultValueMap = map[string]string{
 	"subUpdates":         "12",
 	"subEncrypt":         "true",
 	"subShowInfo":        "true",
+	"subURI":             "",
 }
 
 type SettingService struct {
@@ -70,7 +73,7 @@ func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 	db := database.GetDB()
 	settings := make([]*model.Setting, 0)
-	err := db.Model(model.Setting{}).Find(&settings).Error
+	err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
 	if err != nil {
 		return nil, err
 	}
@@ -309,6 +312,10 @@ func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
 }
 
+func (s *SettingService) GetRemarkModel() (string, error) {
+	return s.getString("remarkModel")
+}
+
 func (s *SettingService) GetSecretStatus() (bool, error) {
 	return s.getBool("secretEnable")
 }
@@ -406,6 +413,14 @@ func (s *SettingService) GetSubShowInfo() (bool, error) {
 	return s.getBool("subShowInfo")
 }
 
+func (s *SettingService) GetSubURI() (string, error) {
+	return s.getString("subURI")
+}
+
+func (s *SettingService) GetPageSize() (int, error) {
+	return s.getInt("pageSize")
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := allSetting.CheckValid(); err != nil {
 		return err
@@ -425,4 +440,72 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 		}
 	}
 	return common.Combine(errs...)
+}
+
+func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
+	var jsonData interface{}
+	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
+	if err != nil {
+		return nil, err
+	}
+	return jsonData, nil
+}
+
+func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
+	type settingFunc func() (interface{}, error)
+	settings := map[string]settingFunc{
+		"expireDiff":  func() (interface{}, error) { return s.GetExpireDiff() },
+		"trafficDiff": func() (interface{}, error) { return s.GetTrafficDiff() },
+		"pageSize":    func() (interface{}, error) { return s.GetPageSize() },
+		"defaultCert": func() (interface{}, error) { return s.GetCertFile() },
+		"defaultKey":  func() (interface{}, error) { return s.GetKeyFile() },
+		"tgBotEnable": func() (interface{}, error) { return s.GetTgbotenabled() },
+		"subEnable":   func() (interface{}, error) { return s.GetSubEnable() },
+		"subURI":      func() (interface{}, error) { return s.GetSubURI() },
+		"remarkModel": func() (interface{}, error) { return s.GetRemarkModel() },
+	}
+
+	result := make(map[string]interface{})
+
+	for key, fn := range settings {
+		value, err := fn()
+		if err != nil {
+			return "", err
+		}
+		result[key] = value
+	}
+
+	if result["subEnable"].(bool) && result["subURI"].(string) == "" {
+		subURI := ""
+		subPort, _ := s.GetSubPort()
+		subPath, _ := s.GetSubPath()
+		subDomain, _ := s.GetSubDomain()
+		subKeyFile, _ := s.GetSubKeyFile()
+		subCertFile, _ := s.GetSubCertFile()
+		subTLS := false
+		if subKeyFile != "" && subCertFile != "" {
+			subTLS = true
+		}
+		if subDomain == "" {
+			subDomain = strings.Split(host, ":")[0]
+		}
+		if subTLS {
+			subURI = "https://"
+		} else {
+			subURI = "http://"
+		}
+		if (subPort == 443 && subTLS) || (subPort == 80 && !subTLS) {
+			subURI += subDomain
+		} else {
+			subURI += fmt.Sprintf("%s:%d", subDomain, subPort)
+		}
+		if subPath[0] == byte('/') {
+			subURI += subPath
+		} else {
+			subURI += "/" + subPath
+		}
+		result["subURI"] = subURI
+	}
+
+	return result, nil
 }

@@ -1,8 +1,11 @@
 {{define "clientsModal"}}
 <a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
          :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
+    <template v-if="isEdit">
+        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+    </template>
     {{template "form/client"}}
 </a-modal>
 <script>
@@ -35,7 +38,7 @@
             this.isEdit = isEdit;
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
-            this.clients = this.getClients(this.inbound.protocol, this.inbound.settings);
+            this.clients = this.inbound.clients;
             this.index = index === null ? this.clients.length : index;
             this.delayedStart = false;
             if (isEdit) {
@@ -48,16 +51,7 @@
             }
             this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
             this.confirm = confirm;
-        },
-        getClients(protocol, clientSettings) {
-            switch (protocol) {
-                case Protocols.VMESS: return clientSettings.vmesses;
-                case Protocols.VLESS: return clientSettings.vlesses;
-                case Protocols.TROJAN: return clientSettings.trojans;
-                case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
-                default: return null;
-            }
-        },
+        },  
         getClientId(protocol, client) {
             switch (protocol) {
                 case Protocols.TROJAN: return client.password;
@@ -109,8 +103,11 @@
             get isExpiry() {
                 return this.clientModal.isEdit && this.client.expiryTime >0 ? (this.client.expiryTime < new Date().getTime()) : false;
             },
-            get statsColor() {
-                return usageColor(clientStats.up + clientStats.down, app.trafficDiff, this.client.totalGB);
+            get delayedStart() {
+                return this.clientModal.delayedStart;
+            },
+            set delayedStart(value) {
+                this.clientModal.delayedStart = value;
             },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
@@ -151,7 +148,7 @@
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {

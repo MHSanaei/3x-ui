@@ -1,3 +1,21 @@
+class Msg {
+    constructor(success, msg, obj) {
+        this.success = false;
+        this.msg = "";
+        this.obj = null;
+
+        if (success != null) {
+            this.success = success;
+        }
+        if (msg != null) {
+            this.msg = msg;
+        }
+        if (obj != null) {
+            this.obj = obj;
+        }
+    }
+}
+
 class HttpUtil {
     static _handleMsg(msg) {
         if (!(msg instanceof Msg)) {
@@ -158,7 +176,7 @@ class ObjectUtil {
                 }
             }
         } else {
-            return obj.toString().toLowerCase().indexOf(key.toLowerCase()) >= 0;
+            return this.isEmpty(obj) ? false : obj.toString().toLowerCase().indexOf(key.toLowerCase()) >= 0;
         }
         return false;
     }

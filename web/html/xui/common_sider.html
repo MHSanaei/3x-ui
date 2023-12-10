@@ -11,6 +11,10 @@
     <a-icon type="setting"></a-icon>
     <span>{{ i18n "menu.settings"}}</span>
 </a-menu-item>
+<a-menu-item key="{{ .base_path }}panel/xray">
+    <a-icon type="tool"></a-icon>
+    <span>{{ i18n "menu.xray"}}</span>
+</a-menu-item>
 <!--<a-menu-item key="{{ .base_path }}panel/clients">-->
 <!--    <a-icon type="laptop"></a-icon>-->
 <!--    <span>Client</span>-->
@@ -26,7 +30,7 @@
 <a-layout-sider :theme="themeSwitcher.currentTheme" id="sider" collapsible breakpoint="md" collapsed-width="0">
     <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
-            <a-icon type="bg-colors"></a-icon>
+            <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
             <theme-switch />
         </a-menu-item>
     </a-menu>
@@ -38,14 +42,14 @@
 <a-drawer id="sider-drawer" placement="left" :closable="false"
           @close="siderDrawer.close()"
           :visible="siderDrawer.visible"
-          :wrap-class-name="themeSwitcher.darkDrawerClass"
+          :wrap-class-name="themeSwitcher.currentTheme"
           :wrap-style="{ padding: 0 }">
     <div class="drawer-handle" @click="siderDrawer.change()" slot="handle">
         <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
     </div>
     <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
         <a-menu-item mode="inline">
-            <a-icon type="bg-colors"></a-icon>
+            <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
             <theme-switch />
         </a-menu-item>
     </a-menu>

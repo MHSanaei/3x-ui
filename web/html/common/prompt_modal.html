@@ -1,8 +1,7 @@
 {{define "promptModal"}}
 <a-modal id="prompt-modal" v-model="promptModal.visible" :title="promptModal.title"
          :closable="true" @ok="promptModal.ok" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
-         :ok-text="promptModal.okText" cancel-text='{{ i18n "cancel" }}'>
+         :ok-text="promptModal.okText" cancel-text='{{ i18n "cancel" }}' :class="themeSwitcher.currentTheme">
     <a-input id="prompt-modal-input" :type="promptModal.type"
              v-model="promptModal.value"
              :autosize="{minRows: 10, maxRows: 20}"
