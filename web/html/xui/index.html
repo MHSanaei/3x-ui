@@ -94,12 +94,16 @@
                         <a-card hoverable>
                             {{ i18n "pages.index.xrayStatus" }}:
                             <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
-                            <a-tooltip v-if="status.xray.state === State.Error">
-                                <template slot="title">
-                                    <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
+                            <a-popover v-if="status.xray.state === State.Error"
+                                :overlay-class-name="themeSwitcher.currentTheme">
+                                <span slot="title" style="font-size: 12pt">Error in running xray-core
+                                    <a-tag color="purple" style="cursor: pointer; float: right;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                                </span>
+                                <template slot="content">
+                                    <p style="max-width: 400px" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
                                 </template>
                                 <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
+                            </a-popover>
                             <a-tag color="purple" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
                             <a-tag color="purple" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
                             <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
@@ -252,7 +256,7 @@
         </template>
     </a-modal>
 
-    <a-modal id="log-modal" v-model="logModal.visible" title="X-UI logs"
+    <a-modal id="log-modal" v-model="logModal.visible" title="Logs"
              :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
              :class="themeSwitcher.currentTheme"
              width="800px"
@@ -285,7 +289,7 @@
                 <a-checkbox v-model="logModal.syslog" @change="openLogs()"></a-checkbox>
             </a-form-item>
             <a-form-item>
-                <button class="ant-btn ant-btn-primary" @click="openLogs()"><a-icon type="sync"></a-icon> Reload</button>
+                <a-button class="ant-btn ant-btn-primary" :loading="logModal.loading" @click="openLogs()"><a-icon :spin="logModal.loading" type="sync"></a-icon> Reload</a-button>
             </a-form-item>
             <a-form-item>
                 <a-button type="primary" style="margin-bottom: 10px;"
@@ -294,7 +298,7 @@
                 </a-button>
             </a-form-item>
         </a-form>
-        <div v-model="logModal.logs" class="ant-input" style="height: 400px; overflow: scroll;"><pre>[[ logModal.logs ]]</pre></div>
+        <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto;" v-html="logModal.logs"></div>
     </a-modal>
 
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
@@ -426,9 +430,46 @@
         rows: 20,
         level: 'info',
         syslog: false,
+        loading: false,
         show(logs) {
             this.visible = true;
-            this.logs = logs? logs.join("\n"): "No Record...";
+            this.logs = logs? this.formatLogs(logs) : "No Record...";
+        },
+        formatLogs(logs) {
+            let formattedLogs = '';
+            const levels = ["DEBUG","INFO","WARNING","ERROR"];
+            const levelColors = ["#7a316f","#008771","#f37b24","#cf3c3c","#bcbcbc"];
+
+            logs.forEach((log, index) => {
+                let [data, message] = log.split(" - ",2);
+                const parts = data.split(" ")
+                if(index>0) formattedLogs += '<br>';
+
+                if (parts.length === 3) {
+                    const d = parts[0];
+                    const t = parts[1];
+                    const level = parts[2];
+                    const levelIndex = levels.indexOf(level,levels) || 4;
+
+                    //formattedLogs += `<span style="color: gray;">${index + 1}.</span>`;
+                    formattedLogs += `<span style="color: ${levelColors[0]};">${d} ${t}</span> `;
+                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${level}</span>`;
+                } else {
+                    const levelIndex = levels.indexOf(data,levels) || 4;
+                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${data}</span>`;
+                }
+
+                if(message){
+                    if(message.startsWith("XRAY:"))
+                        message = "<b>XRAY: </b>" + message.substring(5);
+                    else
+                        message = "<b>X-UI: </b>" + message;
+                }
+
+                formattedLogs += message ? ' - ' + message : '';
+            });
+
+            return formattedLogs;
         },
         hide() {
             this.visible = false;
@@ -530,13 +571,14 @@
                 }
             },
             async openLogs(){
-                this.loading(true);
+                logModal.loading = true;
                 const msg = await HttpUtil.post('server/logs/'+logModal.rows,{level: logModal.level, syslog: logModal.syslog});
-                this.loading(false);
                 if (!msg.success) {
                     return;
                 }
                 logModal.show(msg.obj);
+                await PromiseUtil.sleep(500);
+                logModal.loading = false;
             },
             async openConfig() {
                 this.loading(true);
