@@ -876,7 +876,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		orders['i'] = inbound.Remark
 	}
 	if len(extra) > 0 {
-		orders['e'] = extra
+		orders['o'] = extra
 	}
 
 	var remark []string
