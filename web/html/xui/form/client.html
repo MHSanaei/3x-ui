@@ -43,30 +43,30 @@
             </td>
         </tr>
         <tr v-if="client.email && app.subSettings.enable">
-            <td>Subscription</td>
+            <td>Subscription <a-icon @click="client.subId = RandomUtil.randomLowerAndNum(16)" type="sync"></a-icon></td>
             <td>
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
                     </template>
-                    <a-icon @click="client.subId = RandomUtil.randomLowerAndNum(16)" type="sync"> </a-icon>
                 </a-tooltip>
                 <a-form-item>
-                    <a-input v-model.trim="client.subId" style="width: 150px;"></a-input>
+                    <a-input v-model.trim="client.subId" style="width: 250px;"></a-input>
                 </a-form-item>
             </td>
         </tr>
         <tr v-if="client.email && app.tgBotEnable">
-            <td>Telegram ID</td>
-            <td>
+            <td>Telegram ID
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
                     </template>
                     <a-icon type="question-circle" theme="filled"></a-icon>
                 </a-tooltip>
+            </td>
+            <td>
                 <a-form-item>
-                    <a-input v-model.trim="client.tgId"></a-input>
+                    <a-input v-model.trim="client.tgId" style="width: 250px"></a-input>
                 </a-form-item>
             </td>
         </tr>
