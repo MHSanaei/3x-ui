@@ -92,8 +92,12 @@ style attribute {
 }
 .ant-table-body {
     overflow-x: auto !important;
-    margin: 4px 0;
 }
+
+tr.ant-table-expanded-row td>.ant-table-wrapper {
+    padding: 4px 0;
+}
+
 .ant-card-hoverable {
     cursor: auto;
     cursor: pointer;
