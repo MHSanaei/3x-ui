@@ -20,7 +20,7 @@
             ok-text='{{ i18n "reset"}}'
             cancel-text='{{ i18n "cancel"}}'>
             <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #3c89e8' : 'color: blue'"></a-icon>
-            <a-icon style="font-size: 24px;" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
+            <a-icon style="font-size: 24px; cursor: pointer;" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
         </a-popconfirm>
     </a-tooltip>
     <a-tooltip>
@@ -32,7 +32,7 @@
             ok-type="danger"
             cancel-text='{{ i18n "cancel"}}'>
             <a-icon slot="icon" type="question-circle-o" style="color: #e04141"></a-icon>
-            <a-icon style="font-size: 24px" class="delete-icon" type="delete" v-if="isRemovable(record.id)"></a-icon>
+            <a-icon style="font-size: 24px; cursor: pointer;" class="delete-icon" type="delete" v-if="isRemovable(record.id)"></a-icon>
         </a-popconfirm>
     </a-tooltip>
 </template>
