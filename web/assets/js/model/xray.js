@@ -1913,11 +1913,11 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
         this.fallbacks = fallbacks;
     }
 
-    addTrojanFallback() {
+    addFallback() {
         this.fallbacks.push(new Inbound.TrojanSettings.Fallback());
     }
 
-    delTrojanFallback(index) {
+    delFallback(index) {
         this.fallbacks.splice(index, 1);
     }
 
@@ -1925,13 +1925,14 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
             json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
-            Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
-    }
+            json.fallbacks.map(fallback => Inbound.TrojanSettings.Fallback.fromJson(fallback))
+            );
+        }
 
     toJson() {
         return {
             clients: Inbound.TrojanSettings.toJsonArray(this.trojans),
-            fallbacks: Inbound.TrojanSettings.toJsonArray(this.fallbacks),
+            fallbacks: Inbound.TrojanSettings.toJsonArray(this.fallbacks)
         };
     }
 };
