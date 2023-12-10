@@ -437,8 +437,8 @@
         },
         formatLogs(logs) {
             let formattedLogs = '';
-            const levels = ["DEBUG","INFO","WARNING","ERROR"];
-            const levelColors = ["#7a316f","#008771","#f37b24","#cf3c3c","#bcbcbc"];
+            const levels = ["DEBUG","INFO","NOTICE","WARNING","ERROR"];
+            const levelColors = ["#3c89e8","#008771","#008771","#f37b24","#e04141","#bcbcbc"];
 
             logs.forEach((log, index) => {
                 let [data, message] = log.split(" - ",2);
@@ -449,13 +449,13 @@
                     const d = parts[0];
                     const t = parts[1];
                     const level = parts[2];
-                    const levelIndex = levels.indexOf(level,levels) || 4;
+                    const levelIndex = levels.indexOf(level,levels) || 5;
 
                     //formattedLogs += `<span style="color: gray;">${index + 1}.</span>`;
                     formattedLogs += `<span style="color: ${levelColors[0]};">${d} ${t}</span> `;
                     formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${level}</span>`;
                 } else {
-                    const levelIndex = levels.indexOf(data,levels) || 4;
+                    const levelIndex = levels.indexOf(data,levels) || 5;
                     formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${data}</span>`;
                 }
 

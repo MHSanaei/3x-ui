@@ -38,21 +38,48 @@
             <a-icon type="delete" @click="() => inbound.settings.delTrojanFallback(index)"
                     style="color: rgb(255, 77, 79);cursor: pointer;"/>
         </a-divider>
-        <a-form-item label="Name">
-            <a-input v-model="fallback.name"></a-input>
-        </a-form-item>
-        <a-form-item label="Alpn">
-            <a-input v-model="fallback.alpn"></a-input>
-        </a-form-item>
-        <a-form-item label="Path">
-            <a-input v-model="fallback.path"></a-input>
-        </a-form-item>
-        <a-form-item label="Dest">
-            <a-input v-model="fallback.dest"></a-input>
-        </a-form-item>
-        <a-form-item label="xVer">
-            <a-input-number v-model="fallback.xver"></a-input-number>
-        </a-form-item>
+        <table width="100%">
+            <tr>
+                <td style="width: 20%;">Name</td>
+                <td>
+                    <a-form-item>
+                        <a-input v-model="fallback.name" style="width: 250px"></a-input>
+                    </a-form-item>            
+                </td>
+            </tr>
+            <tr>
+                <td>Alpn</td>
+                <td>
+                    <a-form-item>
+                        <a-input v-model="fallback.alpn" style="width: 250px"></a-input>
+                    </a-form-item>
+                </td>
+            </tr>
+            <tr>
+                <td>Path</td>
+                <td>
+                    <a-form-item>
+                        <a-input v-model="fallback.path" style="width: 250px"></a-input>
+                    </a-form-item>
+                </td>
+            </tr>
+            <tr>
+                <td>Dest</td>
+                <td>
+                    <a-form-item>
+                        <a-input v-model="fallback.dest" style="width: 250px"></a-input>
+                    </a-form-item>
+                </td>
+            </tr>
+            <tr>
+                <td>xVer</td>
+                <td>
+                    <a-form-item>
+                        <a-input-number v-model="fallback.xver" :min="0" :max="2"></a-input-number>
+                    </a-form-item>
+                </td>
+            </tr>
+    </table>
     </a-form>
     <a-divider style="margin:0;"></a-divider>
 </template>

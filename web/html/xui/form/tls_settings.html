@@ -5,26 +5,25 @@
     <a-divider style="margin:0;"></a-divider>
     <table width="100%" class="ant-table-tbody">
         <tr>
-            <td>
-                <span>{{ i18n "security" }}</span>
-            </td>
-            <td>
-                <a-radio-group v-model="inbound.stream.security" button-style="solid">
-                    <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
-                        </template>
-                        <a-radio-button v-if="inbound.canEnableXtls()" value="xtls">XTLS</a-radio-button>
-                    </a-tooltip>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
-                        </template>
-                        <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
-                    </a-tooltip>
-                    <a-radio-button value="tls">TLS</a-radio-button>
-                </a-radio-group>
+            <td colspan="2">
+                <a-form-item label='{{ i18n "security" }}'>
+                    <a-radio-group v-model="inbound.stream.security" button-style="solid">
+                        <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
+                        <a-tooltip>
+                            <template slot="title">
+                                <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
+                            </template>
+                            <a-radio-button v-if="inbound.canEnableXtls()" value="xtls">XTLS</a-radio-button>
+                        </a-tooltip>
+                        <a-tooltip>
+                            <template slot="title">
+                                <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
+                            </template>
+                            <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
+                        </a-tooltip>
+                        <a-radio-button value="tls">TLS</a-radio-button>
+                    </a-radio-group>
+                </a-form-item>
             </td>
         </tr>
 
