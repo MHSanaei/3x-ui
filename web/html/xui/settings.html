@@ -308,31 +308,6 @@
             saveBtnDisable: true,
             user: {},
             lang: getLang(),
-            showAlert: false,
-            remarkModels: {i:'Inbound',e:'Email',o:'Other'},
-            remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
-            remarkSample: '',
-            get remarkModel() {
-                rm = this.allSetting.remarkModel;
-                return rm.length>1 ? rm.substring(1).split('') : [];
-            },
-            set remarkModel(value) {
-                rs = this.allSetting.remarkModel[0];
-                this.allSetting.remarkModel = rs + value.join('');
-                this.changeRemarkSample();
-            },
-            get remarkSeparator() {
-                return this.allSetting.remarkModel.length > 1 ? this.allSetting.remarkModel.charAt(0) : '-';
-            },
-            set remarkSeparator(value) {
-                this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
-                this.changeRemarkSample();
-            },
-            changeRemarkSample(){
-                sample = []
-                this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
-                this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
-            }            
         },
         methods: {
             loading(spinning = true) {
