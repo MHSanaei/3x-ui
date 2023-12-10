@@ -58,7 +58,6 @@
     </a-badge>
     </a-tooltip>
     [[ client.email ]]
-    <a-tag v-if="!isClientEnabled(record, client.email)" color="red">{{ i18n "depleted" }}</a-tag>
 </template>                                    
 <template slot="traffic" slot-scope="text, client">
     <a-popover :overlay-class-name="themeSwitcher.currentTheme">
