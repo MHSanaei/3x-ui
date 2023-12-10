@@ -16,7 +16,7 @@ body {
     font-feature-settings: "tnum";
 }
 html {
-    --antd-wave-shadow-color: #0a7557;
+    --antd-wave-shadow-color: #008771;
     line-height: 1.15;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
@@ -25,8 +25,8 @@ html {
 }
 
 ::selection {
-    color: #0a7557;
-    background-color: #0a755730;
+    color: #008771;
+    background-color: #cfe8e4;
 }
 
 #app {
@@ -171,11 +171,11 @@ style attribute {
 }
 
 .ant-menu:not(.ant-menu-horizontal) .ant-menu-item-selected {
-    background-color: #0a7557 !important;
+    background-color: #006655 !important;
     background-image: linear-gradient(
         270deg,
         rgba(123, 199, 77, 0) 30%,
-        #00ab80,
+        #009980,
         rgba(123, 199, 77, 0) 100%
     );
     background-repeat: no-repeat;
@@ -210,8 +210,8 @@ style attribute {
 .ant-menu-submenu-active,
 .ant-menu-submenu-title:hover,
 .ant-menu:not(.ant-menu-inline) .ant-menu-submenu-open {
-    color: #0a7557;
-    background-color: #dce9f5;
+    color: #008771;
+    background-color: rgb(232 244 242);
     border-radius: 0.5rem;
 }
 
@@ -434,12 +434,12 @@ style attribute {
 .ant-tag-blue {
     background-color: #edf4fa;
     border-color: #a9c5e7;
-    color: #0a7557;
+    color: #0e49b5;
 }
 .ant-tag-green {
-    background-color: #f6ffed;
-    border-color: #b7eb8f;
-    color: #389e0d;
+    background-color: #eef9f7;
+    border-color: #89d9cc;
+    color: #00ad91;
 }
 .ant-tag-purple {
     background-color: #f2eaf1;
@@ -448,15 +448,15 @@ style attribute {
 }
 .ant-tag-orange,
 .ant-alert-warning {
-    background-color: #fff6e6;
-    border-color: #ffd98c;
-    color: #ffa031;
+    background-color: #ffeee1;
+    border-color: #fec093;
+    color: #f37b24;
 }
 .ant-tag-red,
 .ant-alert-error {
-    background-color: #fff0f0;
-    border-color: #fb9d9d;
-    color: #e04141;
+    background-color: #ffe9e9;
+    border-color: #ff9e9e;
+    color: #cf3c3c;
 }
 
 .ant-input::placeholder {
@@ -465,7 +465,7 @@ style attribute {
 
 .ant-input:hover,
 .ant-input:focus {
-    background-color: #edf4fa;
+    background-color: rgb(232 244 242);
 }
 
 .delete-icon:hover {
@@ -473,14 +473,14 @@ style attribute {
 }
 
 .normal-icon:hover {
-    color: #0a7557;
+    color: #008771;
 }
 
 /* DARK THEME */
 
 .dark ::selection {
     color: #fff;
-    background-color: #0a7557;
+    background-color: #008771;
 }
 
 .dark .normal-icon:hover {
@@ -631,28 +631,28 @@ style attribute {
 .dark .ant-input-number:focus,
 .dark .ant-input:hover,
 .dark .ant-input:focus {
-    background-color: rgb(10 117 87 / 30%);
-    border-color: #0a7557;
+    background-color: rgba(0, 135, 113, 0.3);
+    border-color: #008771;
 }
 
 .dark .ant-btn:not(.ant-btn-primary):not(.ant-btn-danger) {
     color: rgba(255, 255, 255, 0.65);
     background-color: rgb(10 117 87 / 30%);
-    border: 1px solid #0a7557;
+    border: 1px solid #008771;
 }
 
 .dark .ant-radio-button-wrapper,
 .dark .ant-radio-button-wrapper:before {
     color: rgb(255 255 255 / 65%);
-    background-color: rgb(14 73 181 / 30%);
-    border-color: #0a7557;
+    background-color: rgba(0, 135, 113, 0.3);
+    border-color: #008771;
 }
 
 .dark .ant-btn:focus:not(.ant-btn-primary):not(.ant-btn-danger),
 .dark .ant-btn:hover:not(.ant-btn-primary):not(.ant-btn-danger) {
     color: #fff;
     background-color: rgb(10 117 87 / 50%);
-    border-color: #0a7557;
+    border-color: #008771;
 }
 
 .dark .ant-btn-primary[disabled],
@@ -668,7 +668,7 @@ style attribute {
     > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
     > td,
 .dark .client-table-odd-row {
-    background-color: #0A755722;
+    background-color: #00877122;
 }
 
 .dark .ant-table-row-expand-icon {
@@ -678,9 +678,9 @@ style attribute {
 }
 
 .dark .ant-table-row-expand-icon:hover {
-    color: #0a7557;
+    color: #008771;
     background-color: #fff0;
-    border-color: #0a7557;
+    border-color: #008771;
 }
 
 .dark .ant-switch:not(.ant-switch-checked),
@@ -743,9 +743,9 @@ style attribute {
 }
 
 .dark .ant-tag-green {
-    background-color: #142429;
-    border-color: #23432c;
-    color: #61bf39;
+    background-color: #121b2b;
+    border-color: #144840;
+    color: #33bca5;
 }
 
 .dark .ant-tag-purple {
@@ -765,7 +765,7 @@ style attribute {
 }
 
 .dark .ant-calendar-selected-day .ant-calendar-date {
-    background-color: #0a7557 !important;
+    background-color: #008771 !important;
     color: #fff;
 }
 
@@ -785,7 +785,7 @@ style attribute {
     color: #fff;
     font-weight: 600;
     outline: none;
-    background-color: #0a7557;
+    background-color: #008771;
 }
 
 .dark .ant-calendar-time-picker-select {
@@ -847,28 +847,28 @@ style attribute {
 }
 
 .ant-calendar-date:hover {
-    background-color: #dae9f5;
+    background-color: rgb(232 244 242);
 }
 
 .ant-calendar-date:active {
-    background-color: #dae9f5;
+    background-color: rgb(232 244 242);
     color: rgba(0, 0, 0, 0.65);
 }
 
 .ant-calendar-today .ant-calendar-date {
-    color: #0a7557;
+    color: #008771;
     font-weight: 700;
-    border-color: #0a7557;
+    border-color: #008771;
 }
 
 .dark .ant-calendar-today .ant-calendar-date {
     color: #fff;
     font-weight: 700;
-    border-color: #0a7557;
+    border-color: #008771;
 }
 
 .ant-calendar-selected-day .ant-calendar-date {
-    background: #0a7557;
+    background: #008771;
     color: #ffffff;
 }
 
@@ -907,11 +907,11 @@ li.ant-select-dropdown-menu-item:empty:after {
 .ant-select-selection:hover,
 .ant-input-number-focused,
 .ant-input-number:hover {
-    background-color: #edf4fa;
+    background-color: rgb(232 244 242);
 }
 
 .dark .ant-input-number-handler:active {
-    background-color: #0a7557;
+    background-color: #008771;
 }
 
 .dark .ant-input-number-handler:hover .ant-input-number-handler-down-inner,
@@ -982,7 +982,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     .ant-calendar-decade-panel-selected-cell
     .ant-calendar-decade-panel-decade:hover {
     color: #fff;
-    background-color: #0a7557;
+    background-color: #008771;
 }
 
 .dark .ant-calendar-last-month-cell .ant-calendar-date,
@@ -996,8 +996,8 @@ li.ant-select-dropdown-menu-item:empty:after {
 
 .dark .ant-calendar-today .ant-calendar-date:hover {
     color: #fff;
-    border-color: #0a7557;
-    background-color: #0a7557;
+    border-color: #008771;
+    background-color: #008771;
 }
 
 .dark
@@ -1015,13 +1015,13 @@ li.ant-select-dropdown-menu-item:empty:after {
 }
 
 .dark .ant-checkbox-inner {
-    background-color: rgba(14, 73, 181, 0.3);
-    border-color: rgba(14, 73, 181, 0.3);
+    background-color: rgba(0, 135, 113, 0.3);
+    border-color: rgba(0, 135, 113, 0.3);
 }
 
 .dark .ant-checkbox-checked .ant-checkbox-inner {
-    background-color: #0a7557;
-    border-color: #0a7557;
+    background-color: #008771;
+    border-color: #008771;
 }
 
 .dark .ant-calendar-input {
@@ -1042,4 +1042,37 @@ li.ant-select-dropdown-menu-item:empty:after {
 
 .ant-input-number {
     overflow: clip;
+}
+
+.ant-calendar-year-panel-year:hover,
+.ant-calendar-decade-panel-decade:hover,
+.ant-calendar-month-panel-month:hover,
+.ant-dropdown-menu-item:hover,
+.ant-dropdown-menu-submenu-title:hover,
+.ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+.ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled),
+.ant-table-tbody
+    > tr.ant-table-row-hover:not(.ant-table-expanded-row):not(
+        .ant-table-row-selected
+    )
+    > td,
+.ant-table-tbody
+    > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
+    > td,
+.ant-table-thead
+    > tr.ant-table-row-hover:not(.ant-table-expanded-row):not(
+        .ant-table-row-selected
+    )
+    > td,
+.ant-table-thead
+    > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
+    > td {
+    background-color: rgb(232 244 242);
+}
+
+.dark .ant-dropdown-menu-item:hover,
+.dark .ant-dropdown-menu-submenu-title:hover,
+.dark .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+.dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled) {
+    background-color: #313f5a;
 }
