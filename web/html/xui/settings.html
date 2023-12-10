@@ -8,8 +8,11 @@
         }
     }
 
-    .ant-col-sm-24 {
-        margin-top: 10px;
+    @media (max-width: 768px) {
+        .ant-tabs-nav .ant-tabs-tab {
+            margin: 0;
+            padding: 12px .5rem;
+        }
     }
 
     .ant-tabs-bar {
@@ -18,10 +21,6 @@
 
     .ant-list-item {
         display: block;
-    }
-
-    :not(.ant-card-dark)>.ant-tabs-top-bar {
-        background: white;
     }
 
     .alert-msg {
@@ -71,25 +70,63 @@
     }
 </style>
 <body>
-<a-layout id="app" v-cloak>
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     {{ template "commonSider" . }}
-    <a-layout id="content-layout" :style="themeSwitcher.bgStyle">
+    <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="500" tip="loading">
+            <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <a-space direction="vertical">
-                    <a-space direction="horizontal">
-                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
-                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
-                    </a-space>
-                    <a-tabs style="margin:1rem 0.5rem;" default-active-key="1" :class="themeSwitcher.darkCardClass">
+                    <a-card hoverable style="margin-bottom: .5rem;">
+                        <a-row>
+                            <a-col :xs="24" :sm="8" style="padding: 4px;">
+                                <a-space direction="horizontal">
+                                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
+                                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
+                                </a-space>
+                            </a-col>
+                            <a-col :xs="24" :sm="16">
+                                <template>
+                                    <div>
+                                        <template>
+                                            <div>
+                                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                                </a-back-top>
+                                                <a-alert type="warning" style="float: right; width: fit-content"
+                                                message='{{ i18n "pages.settings.infoDesc" }}'
+                                                show-icon
+                                                >
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </a-col>
+                        </a-row>
+                    </a-card>
+                    <a-tabs default-active-key="1">
                         <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
-                            <a-row :xs="24" :sm="24" :lg="12">
-                                <h2 class="alert-msg">
-                                    <a-icon type="warning"></a-icon>
-                                    {{ i18n "pages.settings.infoDesc" }}
-                                </h2>
-                            </a-row>
-                            <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
+                            <a-list item-layout="horizontal">
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.remarkModel"}}'>
+                                                <template slot="description">{{ i18n "pages.settings.sampleRemark"}}: <i>#[[ remarkSample ]]</i></template>
+                                            </a-list-item-meta>
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-input-group style="width: 100%;">
+                                                <a-select style="padding-right: .5rem; min-width: 80%; width: auto;"
+                                                    mode="multiple"
+                                                    v-model="remarkModel"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                                    <a-select-option v-for="(value, key) in remarkModels" :value="key">[[ value ]]</a-select-option>
+                                                </a-select>
+                                                <a-select style="width: 20%;" v-model="remarkSeparator" :dropdown-class-name="themeSwitcher.currentTheme">
+                                                    <a-select-option v-for="key in remarkSeparators" :value="key">[[ key ]]</a-select-option>
+                                                </a-select>
+                                            </a-input-group>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningDomain"}}' desc='{{ i18n "pages.settings.panelListeningDomainDesc"}}' v-model="allSetting.webDomain"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="0"></setting-list-item>
@@ -97,6 +134,7 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
+                                <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.timeZone"}}' desc='{{ i18n "pages.settings.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
@@ -112,7 +150,7 @@
                                                     ref="selectLang"
                                                     v-model="lang"
                                                     @change="setLang(lang)"
-                                                    :dropdown-class-name="themeSwitcher.darkCardClass"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme"
                                                     style="width: 100%"
                                                 >
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
@@ -127,244 +165,77 @@
                             </a-list>
                         </a-tab-pane>
                         <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
-                            <a-tabs class="ant-card-dark-securitybox-nohover" default-active-key="sec-1" :class="themeSwitcher.darkCardClass">
-                                <a-tab-pane key="sec-1" tab='{{ i18n "pages.settings.security.admin"}}'>
-                                    <a-form :style="'padding: 20px;' + themeSwitcher.textStyle">
-                                        <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
-                                            <a-input v-model="user.oldUsername" style="max-width: 300px"></a-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.currentPassword"}}'>
-                                            <password-input v-model="user.oldPassword" style="max-width: 300px"></password-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.newUsername"}}'>
-                                            <a-input v-model="user.newUsername" style="max-width: 300px"></a-input>
-                                        </a-form-item>
-                                        <a-form-item label='{{ i18n "pages.settings.newPassword"}}'>
-                                            <password-input v-model="user.newPassword" style="max-width: 300px"></password-input>
-                                        </a-form-item>
-                                        <a-form-item>
-                                            <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
-                                        </a-form-item>
-                                    </a-form>
-                                </a-tab-pane>
-                                <a-tab-pane key="sec-2" tab='{{ i18n "pages.settings.security.secret"}}'>
-                                    <a-form :style="'padding: 20px;' + themeSwitcher.textStyle">
-                                        <a-list-item style="padding: 20px">
-                                            <a-row>
-                                                <a-col :lg="24" :xl="12">
-                                                    <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}' description='{{ i18n "pages.settings.security.loginSecurityDesc" }}' />
-                                                </a-col>
-                                                <a-col :lg="24" :xl="12">
-                                                    <template>
-                                                        <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                                                    </template>
-                                                </a-col>
-                                            </a-row>
-                                        </a-list-item>
-                                        <a-list-item style="padding: 20px">
-                                            <a-row>
-                                                <a-col :lg="24" :xl="12">
-                                                    <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}' description='{{ i18n "pages.settings.security.secretTokenDesc" }}' />
-                                                </a-col>
-                                                <a-col :lg="24" :xl="12">
-                                                    <svg 
-                                                        @click="getNewSecret"
-                                                        xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="anticon anticon-question-circle" viewBox="0 0 16 16"><path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"/><path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5.002 5.002 0 0 0 8 3zM3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.1z"/> 
-                                                    </svg>
-                                                    <template>
-                                                        <a-textarea type="text" id='token' :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
-                                                    </template>
-                                                </a-col>
-                                            </a-row>
-                                        </a-list-item>
-                                        <a-button type="primary" @click="updateSecret">{{ i18n "confirm" }}</a-button>
-                                    </a-form>
-                                </a-tab-pane>
-                            </a-tabs>
+                            <a-divider>{{ i18n "pages.settings.security.admin"}}</a-divider>
+                            <a-form style="padding: 20px;" layout="inline">
+                                <table cellpadding="2">
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.oldUsername"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <a-input v-model="user.oldUsername" style="width: 200px"></a-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.currentPassword"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <password-input v-model="user.oldPassword" style="width: 200px"></password-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.newUsername"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <a-input v-model="user.newUsername" style="width: 200px"></a-input>
+                                            </a-form-item>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>{{ i18n "pages.settings.newPassword"}}:</td>
+                                        <td>
+                                            <a-form-item>
+                                                <password-input v-model="user.newPassword" style="width: 200px"></password-input>
+                                            </a-form-item>            
+                                        </td>
+                                    </tr>
+                                </table>
+                                <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                            </a-form>
+                            <a-divider>{{ i18n "pages.settings.security.secret"}}</a-divider>
+                            <a-form style="padding: 20px;">
+                                <a-list-item>
+                                    <a-row>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}' description='{{ i18n "pages.settings.security.loginSecurityDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                                                <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync" @click="getNewSecret"></a-icon>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-list-item>
+                                    <a-row>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}' description='{{ i18n "pages.settings.security.secretTokenDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-textarea type="text" :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
+                            </a-form>
                         </a-tab-pane>
 
-                        <a-tab-pane key="3" tab='{{ i18n "pages.settings.xrayConfiguration"}}'>
-                            <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
-                                <a-divider style="padding: 20px;">{{ i18n "pages.settings.actions"}}</a-divider>
-                                <a-space direction="horizontal" style="padding: 0px 20px">
-                                    <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
-                                </a-space>
-                                <a-divider style="padding: 20px;">{{ i18n "pages.settings.templates.title"}} </a-divider>
-                                <a-row :xs="24" :sm="24" :lg="12">
-                                    <h2 class="alert-msg">
-                                        <a-icon type="warning"></a-icon>
-                                        {{ i18n "pages.settings.infoDesc" }}
-                                    </h2>
-                                </a-row>
-                                <a-tabs class="ant-card-dark-box-nohover" default-active-key="tpl-1" :class="themeSwitcher.darkCardClass" style="padding: 20px 20px;">
-                                    <a-tab-pane key="tpl-1" tab='{{ i18n "pages.settings.templates.basicTemplate"}}' style="padding-top: 20px;">
-                                        <a-collapse>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.generalConfigs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.generalConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <a-list-item>
-                                                    <a-row style="padding: 20px">
-                                                        <a-col :lg="24" :xl="12">
-                                                            <a-list-item-meta 
-                                                                title='{{ i18n "pages.settings.templates.xrayConfigFreedomStrategy" }}'
-                                                                description='{{ i18n "pages.settings.templates.xrayConfigFreedomStrategyDesc" }}'/>
-                                                        </a-col>
-                                                        <a-col :lg="24" :xl="12">
-                                                            <template>
-                                                                <a-select
-                                                                    v-model="freedomStrategy"
-                                                                    :dropdown-class-name="themeSwitcher.darkCardClass"
-                                                                    style="width: 100%">
-                                                                    <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
-                                                                </a-select>
-                                                            </template>
-                                                        </a-col>
-                                                    </a-row>
-                                                </a-list-item>
-                                                <a-row style="padding: 20px">
-                                                    <a-col :lg="24" :xl="12">
-                                                        <a-list-item-meta 
-                                                            title='{{ i18n "pages.settings.templates.xrayConfigRoutingStrategy" }}'
-                                                            description='{{ i18n "pages.settings.templates.xrayConfigRoutingStrategyDesc" }}'/>
-                                                    </a-col>
-                                                    <a-col :lg="24" :xl="12">
-                                                        <template>
-                                                            <a-select
-                                                                v-model="routingStrategy"
-                                                                :dropdown-class-name="themeSwitcher.darkCardClass"
-                                                                style="width: 100%">
-                                                                <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
-                                                            </a-select>
-                                                        </template>
-                                                    </a-col>
-                                                </a-row>
-                                            </a-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.blockConfigs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.blockConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigTorrent"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigPrivateIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigPrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigAds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigAdsDesc"}}' v-model="AdsSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigFamily"}}' desc='{{ i18n "pages.settings.templates.xrayConfigFamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpeedtest"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.blockCountryConfigs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.blockCountryConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigIRIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigIRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigIRDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigIRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigChinaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigChinaIpDesc"}}' v-model="ChinaIpSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigChinaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigRussiaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigRussiaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.directCountryConfigs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.directCountryConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectIRIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectIRDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectChinaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectChinaIpDesc"}}' v-model="ChinaIpDirectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectChinaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectRussiaIp"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigDirectRussiaDomain"}}' desc='{{ i18n "pages.settings.templates.xrayConfigDirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.ipv4Configs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.ipv4ConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigGoogleIPv4"}}' desc='{{ i18n "pages.settings.templates.xrayConfigGoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixIPv4"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.warpConfigs"}}'>
-                                                <a-row :xs="24" :sm="24" :lg="12">
-                                                    <h2 class="collapse-title">
-                                                        <a-icon type="warning"></a-icon>
-                                                        {{ i18n "pages.settings.templates.warpConfigsDesc" }}
-                                                    </h2>
-                                                </a-row>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigGoogleWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigGoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigOpenAIWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigOpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigNetflixWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigNetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
-                                                <setting-list-item type="switch" title='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARP"}}' desc='{{ i18n "pages.settings.templates.xrayConfigSpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                        </a-collapse>
-                                    </a-tab-pane>
-                                    <a-tab-pane key="tpl-2" tab='{{ i18n "pages.settings.templates.manualLists"}}' style="padding-top: 20px;">
-                                        <a-row :xs="24" :sm="24" :lg="12">
-                                            <h2 class="collapse-title">
-                                                <a-icon type="warning"></a-icon>
-                                                {{ i18n "pages.settings.templates.manualListsDesc" }}
-                                            </h2>
-                                        </a-row>
-                                        <a-collapse>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedIPs"}}'>
-                                                <setting-list-item type="textarea" v-model="manualBlockedIPs"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualBlockedDomains"}}'>
-                                                <setting-list-item type="textarea" v-model="manualBlockedDomains"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectIPs"}}'>
-                                                <setting-list-item type="textarea" v-model="manualDirectIPs"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualDirectDomains"}}'>
-                                                <setting-list-item type="textarea" v-model="manualDirectDomains"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualIPv4Domains"}}'>
-                                                <setting-list-item type="textarea" v-model="manualIPv4Domains"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.manualWARPDomains"}}'>
-                                                <setting-list-item type="textarea" v-model="manualWARPDomains"></setting-list-item>
-                                            </a-collapse-panel>
-                                        </a-collapse>
-                                    </a-tab-pane>
-                                    <a-tab-pane key="tpl-3" tab='{{ i18n "pages.settings.templates.advancedTemplate"}}' style="padding-top: 20px;">
-                                        <a-collapse>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}'>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigInbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigInboundsDesc"}}' v-model="inboundSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigOutbounds"}}'>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigOutbounds"}}' desc='{{ i18n "pages.settings.templates.xrayConfigOutboundsDesc"}}' v-model="outboundSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                            <a-collapse-panel header='{{ i18n "pages.settings.templates.xrayConfigRoutings"}}'>
-                                                <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigRoutings"}}' desc='{{ i18n "pages.settings.templates.xrayConfigRoutingsDesc"}}' v-model="routingRuleSettings"></setting-list-item>
-                                            </a-collapse-panel>
-                                        </a-collapse>
-                                    </a-tab-pane>
-                                    <a-tab-pane key="tpl-4" tab='{{ i18n "pages.settings.templates.completeTemplate"}}' style="padding-top: 20px;">
-                                        <setting-list-item type="textarea" title='{{ i18n "pages.settings.templates.xrayConfigTemplate"}}' desc='{{ i18n "pages.settings.templates.xrayConfigTemplateDesc"}}' v-model="allSetting.xrayTemplateConfig"></setting-list-item>
-                                    </a-tab-pane>
-                                </a-tabs>
-                            </a-list>
-                        </a-tab-pane>
-
-                        <a-tab-pane key="4" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
-                            <a-row :xs="24" :sm="24" :lg="12">
-                                <h2 class="alert-msg">
-                                    <a-icon type="warning"></a-icon>
-                                    {{ i18n "pages.settings.infoDesc" }}
-                                </h2>
-                            </a-row>
-                            <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
+                        <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
+                            <a-list item-layout="horizontal">
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.telegramBotEnable" }}' desc='{{ i18n "pages.settings.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.telegramToken"}}' desc='{{ i18n "pages.settings.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.telegramChatId"}}' desc='{{ i18n "pages.settings.telegramChatIdDesc"}}' v-model="allSetting.tgBotChatId"></setting-list-item>
@@ -383,7 +254,7 @@
                                                 <a-select
                                                     ref="selectBotLang"
                                                     v-model="allSetting.tgLang"
-                                                    :dropdown-class-name="themeSwitcher.darkCardClass"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme"
                                                     style="width: 100%"
                                                 >
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
@@ -397,14 +268,8 @@
                                 </a-list-item>
                             </a-list>
                         </a-tab-pane>
-                        <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }}'>
-                            <a-row :xs="24" :sm="24" :lg="12">
-                                <h2 class="alert-msg">
-                                    <a-icon type="warning"></a-icon>
-                                    {{ i18n "pages.settings.infoDesc" }}
-                                </h2>
-                            </a-row>
-                            <a-list item-layout="horizontal" :style="themeSwitcher.textStyle">
+                        <a-tab-pane key="4" tab='{{ i18n "pages.settings.subSettings" }}'>
+                            <a-list item-layout="horizontal">
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.subEnable"}}' desc='{{ i18n "pages.settings.subEnableDesc"}}' v-model="allSetting.subEnable"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.subEncrypt"}}' desc='{{ i18n "pages.settings.subEncryptDesc"}}' v-model="allSetting.subEncrypt"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.subShowInfo"}}' desc='{{ i18n "pages.settings.subShowInfoDesc"}}' v-model="allSetting.subShowInfo"></setting-list-item>
@@ -414,6 +279,7 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subPath"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subCertPath"}}' desc='{{ i18n "pages.settings.subCertPathDesc"}}' v-model="allSetting.subCertFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subKeyPath"}}' desc='{{ i18n "pages.settings.subKeyPathDesc"}}' v-model="allSetting.subKeyFile"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.subUpdates"}}' desc='{{ i18n "pages.settings.subUpdatesDesc"}}' v-model="allSetting.subUpdates"></setting-list-item>
                             </a-list>
                         </a-tab-pane>
@@ -424,6 +290,7 @@
     </a-layout>
 </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
 {{template "component/password" .}}
 {{template "component/setting"}}
@@ -435,80 +302,12 @@
             siderDrawer,
             themeSwitcher,
             spinning: false,
+            changeSecret: false,
             oldAllSetting: new AllSetting(),
             allSetting: new AllSetting(),
             saveBtnDisable: true,
-            user: new User(),
+            user: {},
             lang: getLang(),
-            ipv4Settings: {
-                tag: "IPv4",
-                protocol: "freedom",
-                settings: {
-                    domainStrategy: "UseIPv4"
-                }
-            },
-            warpSettings: {
-                tag: "WARP",
-                protocol: "socks",
-                settings: {
-                    servers: [
-                        {
-                            address: "127.0.0.1",
-                            port: 40000
-                        }
-                    ]
-                }
-            },
-            directSettings: {
-                tag: "direct",
-                protocol: "freedom"
-            },
-            outboundDomainStrategies: ["AsIs", "UseIP", "UseIPv4", "UseIPv6"],
-            routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
-            settingsData: {
-                protocols: {
-                    bittorrent: ["bittorrent"],
-                },
-                ips: {
-                    local: ["geoip:private"],
-                    cn: ["geoip:cn"],
-                    ir: ["ext:geoip_IR.dat:ir","ext:geoip_IR.dat:arvancloud","ext:geoip_IR.dat:derakcloud","ext:geoip_IR.dat:iranserver","ext:geoip_IR.dat:parspack"],
-                    ru: ["geoip:ru"],
-                },
-                domains: {
-                    ads: [
-                        "geosite:category-ads-all",
-                        "ext:geosite_IR.dat:category-ads-all"
-                    ],
-                    speedtest: ["geosite:speedtest"],
-                    openai: ["geosite:openai"],
-                    google: ["geosite:google"],
-                    spotify: ["geosite:spotify"],
-                    netflix: ["geosite:netflix"],
-                    cn: [
-                        "geosite:cn",
-                        "regexp:.*\\.cn$"
-                    ],
-                    ru: [
-                        "geosite:category-gov-ru",
-                        "regexp:.*\\.ru$"
-                    ],
-                    ir: [
-                        "regexp:.*\\.ir$",
-                        "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
-                        "ext:geosite_IR.dat:ir"  // have rules to bypass all .ir domains.
-                    ]
-                },
-                familyProtectDNS: {
-                    "servers": [
-                        "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
-                        "1.0.0.3",
-                        "94.140.14.15",  // https://adguard-dns.io/kb/general/dns-providers/
-                        "94.140.15.16"
-                    ],
-                    "queryStrategy": "UseIPv4"
-                },
-            }
         },
         methods: {
             loading(spinning = true) {
@@ -521,6 +320,7 @@
                 if (msg.success) {
                     this.oldAllSetting = new AllSetting(msg.obj);
                     this.allSetting = new AllSetting(msg.obj);
+                    app.changeRemarkSample();
                     this.saveBtnDisable = true;
                 }
                 await this.fetchUserSecret();
@@ -547,6 +347,7 @@
                     this.$confirm({
                         title: '{{ i18n "pages.settings.restartPanel" }}',
                         content: '{{ i18n "pages.settings.restartPanelDesc" }}',
+                        class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "sure" }}',
                         cancelText: '{{ i18n "cancel" }}',
                         onOk: () => resolve(),
@@ -558,7 +359,9 @@
                 if (msg.success) {
                     this.loading(true);
                     await PromiseUtil.sleep(5000);
-                    const { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+                    var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+                    if (host == this.oldAllSetting.webDomain) host = null;
+                    if (port == this.oldAllSetting.webPort) port = null;
                     const isTLS = webCertFile !== "" || webKeyFile !== "";
                     const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
                     window.location.replace(url);
@@ -591,12 +394,14 @@
                 return randomString;
             },
             async getNewSecret() {
-                this.loading(true);
-                await PromiseUtil.sleep(600);
-                const newSecret = this.generateRandomString(64);
-                this.user.loginSecret = newSecret;
-                document.getElementById("token").textContent = newSecret;
-                this.loading(false);
+                if (!this.changeSecret) {
+                    this.changeSecret = true;
+                    this.user.loginSecret = '';
+                    const newSecret = this.generateRandomString(64);
+                    await PromiseUtil.sleep(1000);
+                    this.user.loginSecret = newSecret;
+                    this.changeSecret = false;
+                }
             },
             async toggleToken(value) {
                 if (value) {
@@ -605,83 +410,6 @@
                 this.user.loginSecret = "";
                 }
             },
-            async resetXrayConfigToDefault() {
-                this.loading(true);
-                const msg = await HttpUtil.get("/panel/setting/getDefaultJsonConfig");
-                this.loading(false);
-                if (msg.success) {
-                    this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
-                    this.saveBtnDisable = true;
-                }
-            },
-            syncRulesWithOutbound(tag, setting) {
-                const newTemplateSettings = {...this.templateSettings};
-                const haveRules = newTemplateSettings.routing.rules.some((r) => r?.outboundTag === tag);
-                const outboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.tag === tag);
-                if (!haveRules && outboundIndex >= 0) {
-                    newTemplateSettings.outbounds.splice(outboundIndex, 1);
-                }
-                if (haveRules && outboundIndex === -1) {
-                    newTemplateSettings.outbounds.push(setting);
-                }
-                this.templateSettings = newTemplateSettings;
-            },
-            templateRuleGetter(routeSettings) {
-                const { property, outboundTag } = routeSettings;
-                let result = [];
-                if (this.templateSettings != null) {
-                    this.templateSettings.routing.rules.forEach(
-                        (routingRule) => {
-                            if (
-                                routingRule.hasOwnProperty(property) &&
-                                routingRule.hasOwnProperty("outboundTag") &&
-                                routingRule.outboundTag === outboundTag
-                            ) {
-                                result.push(...routingRule[property]);
-                            }
-                        }
-                    );
-                }
-                return result;
-            },
-            templateRuleSetter(routeSettings) {
-                const { data, property, outboundTag } = routeSettings;
-                const oldTemplateSettings = this.templateSettings;
-                const newTemplateSettings = oldTemplateSettings;
-                currentProperty = this.templateRuleGetter({ outboundTag, property })
-                if (currentProperty.length == 0) {
-                    const propertyRule = {
-                        type: "field",
-                        outboundTag,
-                        [property]: data
-                    };
-                    newTemplateSettings.routing.rules.push(propertyRule);
-                }
-                else {
-                    const newRules = [];
-                    insertedOnce = false;
-                    newTemplateSettings.routing.rules.forEach(
-                        (routingRule) => {
-                            if (
-                                routingRule.hasOwnProperty(property) &&
-                                routingRule.hasOwnProperty("outboundTag") &&
-                                routingRule.outboundTag === outboundTag
-                            ) {
-                                if (!insertedOnce && data.length > 0) {
-                                    insertedOnce = true;
-                                    routingRule[property] = data;
-                                    newRules.push(routingRule);
-                                }
-                            }
-                            else {
-                                newRules.push(routingRule);
-                            }
-                        }
-                    );
-                    newTemplateSettings.routing.rules = newRules;
-                }
-                this.templateSettings = newTemplateSettings;
-            }
         },
         async mounted() {
             await this.getAllSetting();
@@ -689,429 +417,6 @@
                 await PromiseUtil.sleep(600);
                 this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
             }
-        },
-        computed: {
-            templateSettings: {
-                get: function () { return this.allSetting.xrayTemplateConfig ? JSON.parse(this.allSetting.xrayTemplateConfig) : null; },
-                set: function (newValue) { this.allSetting.xrayTemplateConfig = JSON.stringify(newValue, null, 2); },
-            },
-            inboundSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.inbounds = JSON.parse(newValue);
-                    this.templateSettings = newTemplateSettings;
-                },
-            },
-            outboundSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.outbounds, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.outbounds = JSON.parse(newValue);
-                    this.templateSettings = newTemplateSettings;
-                },
-            },
-            routingRuleSettings: {
-                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.routing.rules = JSON.parse(newValue);
-                    this.templateSettings = newTemplateSettings;
-                },
-            },
-            freedomStrategy: {
-                get: function () {
-                    if (!this.templateSettings) return "AsIs";
-                    freedomOutbound = this.templateSettings.outbounds.find((o) => o.protocol === "freedom" && !o.tag);
-                    if (!freedomOutbound) return "AsIs";
-                    if (!freedomOutbound.settings || !freedomOutbound.settings.domainStrategy) return "AsIs";
-                    return freedomOutbound.settings.domainStrategy;
-                },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    freedomOutboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.protocol === "freedom" && !o.tag);
-                    if (!newTemplateSettings.outbounds[freedomOutboundIndex].settings) {
-                        newTemplateSettings.outbounds[freedomOutboundIndex].settings = {"domainStrategy": newValue};
-                    } else {
-                        newTemplateSettings.outbounds[freedomOutboundIndex].settings.domainStrategy = newValue;
-                    }
-                    this.templateSettings = newTemplateSettings;
-                }
-            },
-            routingStrategy: {
-                get: function () {
-                    if (!this.templateSettings || !this.templateSettings.routing || !this.templateSettings.routing.domainStrategy) return "AsIs";
-                    return this.templateSettings.routing.domainStrategy;
-                },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.routing.domainStrategy = newValue;
-                    this.templateSettings = newTemplateSettings;
-                }
-            },
-            blockedIPs: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "blocked", property: "ip" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "blocked", property: "ip", data: newValue });
-                }
-            },
-            blockedDomains: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "blocked", property: "domain" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "blocked", property: "domain", data: newValue });
-                }
-            },
-            blockedProtocols: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "blocked", property: "protocol" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "blocked", property: "protocol", data: newValue });
-                }
-            },
-            directIPs: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "direct", property: "ip" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "direct", property: "ip", data: newValue });
-                    this.syncRulesWithOutbound("direct", this.directSettings);
-                }
-            },
-            directDomains: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "direct", property: "domain" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "direct", property: "domain", data: newValue });
-                    this.syncRulesWithOutbound("direct", this.directSettings);
-                }
-            },
-            ipv4Domains: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "IPv4", property: "domain", data: newValue });
-                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
-                }
-            },
-            warpDomains: {
-                get: function () {
-                    return this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
-                },
-                set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "WARP", property: "domain", data: newValue });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
-                }
-            },
-            manualBlockedIPs: {
-                get: function () { return JSON.stringify(this.blockedIPs, null, 2); },
-                set: debounce(function (value) { this.blockedIPs = JSON.parse(value); }, 1000)
-            },
-            manualBlockedDomains: {
-                get: function () { return JSON.stringify(this.blockedDomains, null, 2); },
-                set: debounce(function (value) { this.blockedDomains = JSON.parse(value); }, 1000)
-            },
-            manualDirectIPs: {
-                get: function () { return JSON.stringify(this.directIPs, null, 2); },
-                set: debounce(function (value) { this.directIPs = JSON.parse(value); }, 1000)
-            },
-            manualDirectDomains: {
-                get: function () { return JSON.stringify(this.directDomains, null, 2); },
-                set: debounce(function (value) { this.directDomains = JSON.parse(value); }, 1000)
-            },
-            manualIPv4Domains: {
-                get: function () { return JSON.stringify(this.ipv4Domains, null, 2); },
-                set: debounce(function (value) { this.ipv4Domains = JSON.parse(value); }, 1000)
-            },
-            manualWARPDomains: {
-                get: function () { return JSON.stringify(this.warpDomains, null, 2); },
-                set: debounce(function (value) { this.warpDomains = JSON.parse(value); }, 1000)
-            },
-            torrentSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedProtocols = [...this.blockedProtocols, ...this.settingsData.protocols.bittorrent];
-                    } else {
-                        this.blockedProtocols = this.blockedProtocols.filter(data => !this.settingsData.protocols.bittorrent.includes(data));
-                    }
-                },
-            },
-            privateIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.local, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.local];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.local.includes(data));
-                    }
-                },
-            },
-            AdsSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ads, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ads];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ads.includes(data));
-                    }
-                },
-            },
-            SpeedTestSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.speedtest, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.speedtest];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.speedtest.includes(data));
-                    }
-                },
-            },
-            familyProtectSettings: {
-                get: function () {
-                    if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
-                    return doAllItemsExist(this.templateSettings.dns.servers, this.settingsData.familyProtectDNS.servers);
-                },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    if (newValue) {
-                        newTemplateSettings.dns = this.settingsData.familyProtectDNS;
-                    } else {
-                        delete newTemplateSettings.dns;
-                    }
-                    this.templateSettings = newTemplateSettings;
-                },
-            },
-            GoogleIPv4Settings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.ipv4Domains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.google];
-                    } else {
-                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.google.includes(data));
-                    }
-                },
-            },
-            NetflixIPv4Settings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.ipv4Domains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.netflix];
-                    } else {
-                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.netflix.includes(data));
-                    }
-                },
-            },
-            IRIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ir, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ir];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ir.includes(data));
-                    }
-                }
-            },
-            IRDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ir, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ir];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ir.includes(data));
-                    }
-                }
-            },
-            ChinaIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.cn, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.cn];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.cn.includes(data));
-                    }
-                }
-            },
-            ChinaDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.cn, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.cn];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.cn.includes(data));
-                    }
-                }
-            },
-            RussiaIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ru, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ru];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ru.includes(data));
-                    }
-                }
-            },
-            RussiaDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ru, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ru];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ru.includes(data));
-                    }
-                }
-            },
-            IRIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ir, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ir];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ir.includes(data));
-                    }
-                }
-            },
-            IRDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ir, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ir];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ir.includes(data));
-                    }
-                }
-            },
-            ChinaIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.cn, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.cn];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.cn.includes(data));
-                    }
-                }
-            },
-            ChinaDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.cn, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.cn];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.cn.includes(data));
-                    }
-                }
-            },
-            RussiaIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ru, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ru];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ru.includes(data));
-                    }
-                }
-            },
-            RussiaDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ru, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ru];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ru.includes(data));
-                    }
-                }
-            },
-            GoogleWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.google];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.google.includes(data));
-                    }
-                },
-            },
-            OpenAIWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.openai, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.openai];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.openai.includes(data));
-                    }
-                },
-            },
-            NetflixWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.netflix];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.netflix.includes(data));
-                    }
-                },
-            },
-            SpotifyWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.spotify, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.spotify];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.spotify.includes(data));
-                    }
-                },
-            },
         },
     });
 </script>

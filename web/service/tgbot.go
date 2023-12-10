@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 	"x-ui/config"
+	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/util/common"
@@ -1416,6 +1417,12 @@ func (t *Tgbot) getExhausted() string {
 func (t *Tgbot) sendBackup(chatId int64) {
 	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
+
+	// Update by manually trigger a checkpoint operation
+	err := database.Checkpoint()
+	if err != nil {
+		logger.Warning("Error in trigger a checkpoint operation: ", err)
+	}
 
 	file, err := os.Open(config.GetDBPath())
 	if err != nil {

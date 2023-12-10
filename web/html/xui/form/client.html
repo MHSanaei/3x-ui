@@ -1,161 +1,223 @@
 {{define "form/client"}}
 <a-form layout="inline" v-if="client">
-    <template v-if="isEdit">
-        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">
-            Account is (Expired|Traffic Ended) And Disabled
-        </a-tag>
-    </template>
-    <a-form-item label='{{ i18n "pages.inbounds.enable" }}'>
-        <a-switch v-model="client.enable"></a-switch>
-    </a-form-item>
-    <br>
-    <a-form-item>
-        <span slot="label">
-            <span>{{ i18n "pages.inbounds.email" }}</span>
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.emailDesc" }}</span>
+    <table width="100%" class="ant-table-tbody">
+        <tr>
+            <td>{{ i18n "pages.inbounds.enable" }}</td>
+            <td>
+                <a-form-item>
+                    <a-switch v-model="client.enable"></a-switch>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <span>{{ i18n "pages.inbounds.email" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.emailDesc" }}</span>
+                    </template>
+                    <a-icon type="sync" @click="client.email = RandomUtil.randomLowerAndNum(9)"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input v-model.trim="client.email" style="width: 250px"></a-input>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
+            <td>password
+                <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS" @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
+                <a-icon v-if="inbound.protocol === Protocols.TROJAN" @click="client.password = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input v-model.trim="client.password" style="width: 250px"></a-input>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
+            <td>ID <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"></a-icon></td>
+            <td>
+                <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
+            </td>
+        </tr>
+        <tr v-if="client.email && app.subSettings.enable">
+            <td>Subscription <a-icon @click="client.subId = RandomUtil.randomLowerAndNum(16)" type="sync"></a-icon></td>
+            <td>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
+                    </template>
+                </a-tooltip>
+                <a-form-item>
+                    <a-input v-model.trim="client.subId" style="width: 250px;"></a-input>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="client.email && app.tgBotEnable">
+            <td>Telegram ID
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input v-model.trim="client.tgId" style="width: 250px"></a-input>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input-number v-model="client.limitIp" min="0"></a-input-number>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="client.email && client.limitIp > 0 && isEdit">
+            <td>
+                <span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
+                    </template>
+                    <span style="color: #FF4D4F">
+                        <a-icon type="delete" @click="clearDBClientIps(client.email)"></a-icon>
+                    </span>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form layout="block">
+                    <a-textarea id="clientIPs" readonly @click="getDBClientIps(client.email)"
+                        placeholder="Click To Get IPs" :auto-size="{ minRows: 5, maxRows: 10 }">
+                    </a-textarea>
+                </a-form>
+            </td>
+        </tr>
+        <tr v-if="inbound.xtls">
+            <td>Flow</td>
+            <td>
+                <a-form-item>
+                    <a-select v-model="client.flow" style="width: 200px"
+                        :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="">{{ i18n "none" }}</a-select-option>
+                        <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+                    </a-select>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-else-if="inbound.canEnableTlsFlow()">
+            <td>Flow</td>
+            <td>
+                <a-form-item>
+                    <a-select v-model="client.flow" style="width: 200px"
+                        :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                        <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+                    </a-select>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+                <a-tooltip>
+                    <template slot="title">
+                        0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+                </a-form-item>
+                <template v-if="isEdit && clientStats">
+                    <br>
+                    <span> {{ i18n "usage" }}:</span>
+                    <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">
+                        [[ sizeFormat(clientStats.up) ]] /
+                        [[ sizeFormat(clientStats.down) ]]
+                        ([[ sizeFormat(clientStats.up + clientStats.down) ]])
+                    </a-tag>
+                    <a-tooltip>
+                        <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
+                        <a-icon type="retweet"
+                            @click="resetClientTraffic(client.email,clientStats.inboundId,$event.target)"
+                            v-if="client.email.length > 0"></a-icon>
+                    </a-tooltip>
                 </template>
-            </a-tooltip>
-        </span>
-        <a-icon @click="client.email = RandomUtil.randomLowerAndNum(8)" type="sync"> </a-icon>
-        <a-input v-model.trim="client.email" style="width: 200px;"></a-input>
-    </a-form-item>
-    <a-form-item label="Password" v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
-        <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS" @click="client.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
-        <a-icon v-if="inbound.protocol === Protocols.TROJAN" @click="client.password = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
-        <a-input v-model.trim="client.password" style="width: 300px;"></a-input>
-    </a-form-item>
-    <br>
-    <a-form-item label="ID" v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
-        <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"> </a-icon>
-        <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
-    </a-form-item>
-	<a-form-item v-if="client.email && app.subSettings.enable">
-        <span slot="label">
-            Subscription
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-icon @click="client.subId = RandomUtil.randomLowerAndNum(16)" type="sync"> </a-icon>
-        <a-input v-model.trim="client.subId" style="width: 150px;"></a-input>
-    </a-form-item>
-    <a-form-item v-if="client.email && app.tgBotEnable" >
-        <span slot="label">
-            Telegram ID
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-input v-model.trim="client.tgId"></a-input>
-    </a-form-item>
-	<a-form-item>
-		<span slot="label">
-			<span>{{ i18n "pages.inbounds.IPLimit" }}</span>
-			<a-tooltip>
-				<template slot="title">
-				<span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
-				</template>
-				<a-icon type="question-circle" theme="filled"></a-icon>
-			</a-tooltip>
-		</span>
-		<a-input-number v-model="client.limitIp" min="0"></a-input-number>
-	</a-form-item>
-	<a-form-item v-if="client.email && client.limitIp > 0 && isEdit">
-        <span slot="label">
-          <span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
-          <a-tooltip>
-            <template slot="title">
-              <span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
-            </template>
-            <a-icon type="question-circle" theme="filled"></a-icon>
-          </a-tooltip>
-          <a-tooltip>
-            <template slot="title">
-              <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
-            </template>
-            <span style="color: #FF4D4F">
-              <a-icon type="delete" @click="clearDBClientIps(client.email)"></a-icon>
-            </span>
-          </a-tooltip>
-        </span>
-        <a-form layout="block">
-          <a-textarea id="clientIPs" readonly 
-            @click="getDBClientIps(client.email)"
-            placeholder="Click To Get IPs"
-            :auto-size="{ minRows: 5, maxRows: 10 }"
-          >
-          </a-textarea>
-        </a-form>
-    </a-form-item>
-    <br>
-    <a-form-item v-if="inbound.xtls" label="Flow">
-        <a-select v-model="client.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option value="">{{ i18n "none" }}</a-select-option>
-            <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item v-else-if="inbound.canEnableTlsFlow()" label="Flow">
-        <a-select v-model="client.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-            <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item>
-        <span slot="label">
-            <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
-            <a-tooltip>
-                <template slot="title">
-                    0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
-        <template v-if="isEdit && clientStats">
-            <br>
-            <span> {{ i18n "usage" }}:</span>
-            <a-tag :color="statsColor">
-                [[ sizeFormat(clientStats.up) ]] / 
-                [[ sizeFormat(clientStats.down) ]]
-                ([[ sizeFormat(clientStats.up + clientStats.down) ]])
-            </a-tag>
-            <a-tooltip>
-                <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
-                <a-icon type="retweet" @click="resetClientTraffic(client.email,clientStats.inboundId,$event.target)"
-                        v-if="client.email.length > 0"></a-icon>
-            </a-tooltip>
-        </template>        
-    </a-form-item>
-    <br>
-    <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
-        <a-switch v-model="clientModal.delayedStart" @click="client._expiryTime=0"></a-switch>
-    </a-form-item>
-    <br>
-    <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientModal.delayedStart">
-        <a-input-number v-model="delayedExpireDays" :min="0"></a-input-number>
-    </a-form-item>
-    <a-form-item v-else>
-        <span slot="label">
-            <span>{{ i18n "pages.inbounds.expireDate" }}</span>
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                       :dropdown-class-name="themeSwitcher.darkCardClass"
-                       v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
-        <a-tag color="red" v-if="isExpiry">Expired</a-tag>
-    </a-form-item>
+            </td>
+        </tr>
+        <tr>
+            <td>{{ i18n "pages.client.delayedStart" }}</td>
+            <td>
+                <a-form-item>
+                    <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="delayedStart">
+            <td>{{ i18n "pages.client.expireDays" }}</td>
+            <td>
+                <a-form-item>
+                    <a-input-number v-model="delayedExpireDays" :min="0"></a-input-number>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-else>
+            <td>
+                <span>{{ i18n "pages.inbounds.expireDate" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+                        :dropdown-class-name="themeSwitcher.currentTheme" v-model="client._expiryTime"
+                        style="width: 170px;"></a-date-picker>
+                    <a-tag color="red" v-if="isEdit && isExpiry">Expired</a-tag>
+                </a-form-item>
+            </td>
+        </tr>
+        <tr v-if="client.expiryTime != 0">
+            <td>
+                <span>{{ i18n "pages.client.renew" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.client.renewDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle" theme="filled"></a-icon>
+                </a-tooltip>
+            </td>
+            <td>
+                <a-form-item>
+                    <a-input-number v-model.number="client.reset" :min="0"></a-input-number>
+                </a-form-item>
+            </td>
+        </tr>
+    </table>
 </a-form>
 {{end}}

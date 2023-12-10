@@ -2,7 +2,8 @@
 <!-- select stream network -->
 <a-form layout="inline">
     <a-form-item label='{{ i18n "transmission" }}'>
-        <a-select v-model="inbound.stream.network" @change="streamNetworkChange" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-select v-model="inbound.stream.network" @change="streamNetworkChange"
+            :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100px;">
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="kcp">KCP</a-select-option>
             <a-select-option value="ws">WS</a-select-option>
