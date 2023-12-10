@@ -95,7 +95,7 @@ style attribute {
 }
 
 tr.ant-table-expanded-row td>.ant-table-wrapper {
-    padding: 4px 0;
+    margin: -12px -16px -13px;
 }
 
 .ant-card-hoverable {
