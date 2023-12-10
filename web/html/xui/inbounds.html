@@ -447,7 +447,7 @@
         title: "ID",
         align: 'right',
         dataIndex: "id",
-        width: 30,
+        width: 40,
         responsive: ["xs"],
     }, {
         title: '{{ i18n "pages.inbounds.operate" }}',
@@ -487,7 +487,7 @@
     }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
         align: 'center',
-        width: 40,
+        width: 60,
         scopedSlots: { customRender: 'expiryTime' },
     }];
 
@@ -515,9 +515,9 @@
     }];
 
     const innerColumns = [
-        { title: '{{ i18n "pages.inbounds.operate" }}', width: 50, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 20, scopedSlots: { customRender: 'enable' } },
-        { title: '{{ i18n "online" }}', width: 20, scopedSlots: { customRender: 'online' } },
+        { title: '{{ i18n "pages.inbounds.operate" }}', width: 65, scopedSlots: { customRender: 'actions' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
