@@ -477,7 +477,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 alpn=[ALPN_OPTION.HTTP1,ALPN_OPTION.H2],
                 settings=new TlsStreamSettings.Settings()) {
         super();
-        this.server = serverName;
+        this.sni = serverName;
         this.minVersion = minVersion;
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
@@ -519,7 +519,7 @@ class TlsStreamSettings extends XrayCommonClass {
 
     toJson() {
         return {
-            serverName: this.server,
+            serverName: this.sni,
             minVersion: this.minVersion,
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
@@ -1080,7 +1080,7 @@ class Inbound extends XrayCommonClass {
     }
 
     get serverName() {
-        if (this.stream.isTls) return this.stream.tls.server;
+        if (this.stream.isTls) return this.stream.tls.sni;
         if (this.stream.isXtls) return this.stream.xtls.server;
         if (this.stream.isReality) return this.stream.reality.serverNames;
         return "";
@@ -1233,7 +1233,7 @@ class Inbound extends XrayCommonClass {
 
         if (security === 'tls') {
             if (!ObjectUtil.isEmpty(this.stream.tls.sni)){
-                obj.sni = this.stream.tls.server;
+                obj.sni = this.stream.tls.sni;
             }
             if (!ObjectUtil.isEmpty(this.stream.tls.settings.fingerprint)){
                 obj.fp = this.stream.tls.settings.fingerprint;
@@ -1311,8 +1311,8 @@ class Inbound extends XrayCommonClass {
                 if(this.stream.tls.settings.allowInsecure){
                     params.set("allowInsecure", "1");
                 }
-                if (!ObjectUtil.isEmpty(this.stream.tls.server)){
-                    params.set("sni", this.stream.tls.server);
+                if (!ObjectUtil.isEmpty(this.stream.tls.sni)){
+                    params.set("sni", this.stream.tls.sni);
                 }
                 if (type == "tcp" && !ObjectUtil.isEmpty(flow)) {
                     params.set("flow", flow);
@@ -1425,8 +1425,8 @@ class Inbound extends XrayCommonClass {
                 if(this.stream.tls.settings.allowInsecure){
                     params.set("allowInsecure", "1");
                 }
-                if (!ObjectUtil.isEmpty(this.stream.tls.server)){
-                    params.set("sni", this.stream.tls.server);
+                if (!ObjectUtil.isEmpty(this.stream.tls.sni)){
+                    params.set("sni", this.stream.tls.sni);
                 }
             }
         }
@@ -1506,8 +1506,8 @@ class Inbound extends XrayCommonClass {
                 if(this.stream.tls.settings.allowInsecure){
                     params.set("allowInsecure", "1");
                 }
-                if (!ObjectUtil.isEmpty(this.stream.tls.server)){
-                    params.set("sni", this.stream.tls.server);
+                if (!ObjectUtil.isEmpty(this.stream.tls.sni)){
+                    params.set("sni", this.stream.tls.sni);
                 }
             }
         }
@@ -1601,7 +1601,7 @@ class Inbound extends XrayCommonClass {
         if(this.clients){
            let links = [];
            this.clients.forEach((client) => {
-                genAllLinks(remark,remarkModel,client).forEach(l => {
+                this.genAllLinks(remark,remarkModel,client).forEach(l => {
                     links.push(l.link);
                 })
             });
@@ -1797,8 +1797,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
             Protocols.VLESS,
             json.clients.map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
             json.decryption || 'none',
-            json.fallbacks.map(fallback => Inbound.VLESSSettings.Fallback.fromJson(fallback)),
-        );
+            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks),);
     }
 
     toJson() {
@@ -1925,8 +1924,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
             json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
-            json.fallbacks.map(fallback => Inbound.TrojanSettings.Fallback.fromJson(fallback))
-            );
+            Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
         }
 
     toJson() {
