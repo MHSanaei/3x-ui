@@ -18,7 +18,7 @@
             <td v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
                 <table>
                     <tr>
-                        <td>{{ i18n "transmission" }}</td><td><a-tag color="blue">[[ inbound.network ]]</a-tag></td>
+                        <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
                     </tr>
                     <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
                         <tr>
@@ -53,11 +53,11 @@
         <tr colspan="2" v-if="dbInbound.hasLink()">
             <td>
                 {{ i18n "security" }}
-                <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[ inbound.stream.security ]]</a-tag>
+                <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'blue'">[[ inbound.stream.security ]]</a-tag>
                 <br />
                 <template v-if="inbound.stream.security != 'none'">
                 {{ i18n "domainName" }}
-                <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+                <a-tag :color="inbound.serverName ? 'blue' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
                 </template>
             </td>
         </tr>
@@ -65,13 +65,13 @@
     <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">
         <tr>
             <td>{{ i18n "encryption" }}</td>
-            <td><a-tag color="blue">[[ inbound.settings.method ]]</a-tag></td>
+            <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
         </tr><tr v-if="inbound.isSS2022">
             <td>{{ i18n "password" }}</td>
             <td><a-tag>[[ inbound.settings.password ]]</a-tag></td>
         </tr><tr>
             <td>{{ i18n "pages.inbounds.network" }}</td>
-            <td><a-tag color="blue">[[ inbound.settings.network ]]</a-tag></td>
+            <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
         </tr>
     </table>
     <template v-if="infoModal.clientSettings">
@@ -79,7 +79,7 @@
         <table style="margin-bottom: 10px;">
             <tr>
                 <td>{{ i18n "pages.inbounds.email" }}</td>
-                <td><a-tag color="blue">[[ infoModal.clientSettings.email ]]</a-tag></td>
+                <td><a-tag color="green">[[ infoModal.clientSettings.email ]]</a-tag></td>
             </tr>
             <tr v-if="infoModal.clientSettings.id">
                 <td>ID</td>
@@ -96,7 +96,7 @@
             <tr>
                 <td>{{ i18n "status" }}</td>
                 <td>
-                    <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
+                    <a-tag v-if="isEnable" color="green">{{ i18n "enabled" }}</a-tag>
                     <a-tag v-else>{{ i18n "disabled" }}</a-tag>
                     <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
                 </td>
@@ -104,7 +104,7 @@
             <tr v-if="infoModal.clientStats">
                 <td>{{ i18n "usage" }}</td>
                 <td>
-                    <a-tag color="blue">[[ sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
+                    <a-tag color="green">[[ sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
                     <a-tag>↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
                 </td>
             </tr>
@@ -133,7 +133,7 @@
                         [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
                     </a-tag>
                 </template>
-                <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="blue">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</a-tag>
+                <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="green">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</a-tag>
                 <a-tag v-else color="purple" class="infinite-tag">&infin;</a-tag>
             </td>
         </tr>
@@ -167,7 +167,7 @@
     <template v-if="dbInbound.hasLink()">
         <a-divider>URL</a-divider>
         <a-row v-for="(link,index) in infoModal.links">
-            <a-col :span="22"><a-tag color="blue">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+            <a-col :span="22"><a-tag color="green">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
             <a-col :span="2" style="text-align: right;">
                 <a-tooltip title='{{ i18n "copy" }}'>
                     <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
@@ -182,7 +182,7 @@
         <template v-if="dbInbound.isSS && !inbound.isSSMultiUser">
             <a-divider>URL</a-divider>
             <a-row v-for="(link,index) in infoModal.links">
-                <a-col :span="22"><a-tag color="blue">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+                <a-col :span="22"><a-tag color="green">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
                 <a-col :span="2" style="text-align: right;">
                     <a-tooltip title='{{ i18n "copy" }}'>
                         <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
@@ -199,10 +199,10 @@
                 <th>{{ i18n "pages.inbounds.network" }}</th>
                 <th>FollowRedirect</th>
             </tr><tr>
-                <td><a-tag color="blue">[[ inbound.settings.address ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.port ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.network ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.followRedirect ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.address ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.port ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.followRedirect ]]</a-tag></td>
             </tr>
         </table>
         <table v-if="dbInbound.isSocks" style="margin-bottom: 10px; width: 100%;">
@@ -223,8 +223,8 @@
                 <td>{{ i18n "password" }}</td>
             </tr><tr v-for="account,index in inbound.settings.accounts">
                 <td>[[ index ]]</td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.pass ]]</a-tag></td>
+                <td><a-tag color="green">[[ account.user ]]</a-tag></td>
+                <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
         </template>
     </table>
@@ -235,8 +235,8 @@
                 <th>{{ i18n "password" }}</th>
             </tr><tr v-for="account,index in inbound.settings.accounts">
                 <td>[[ index ]]</td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.pass ]]</a-tag></td>
+                <td><a-tag color="green">[[ account.user ]]</a-tag></td>
+                <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
         </table>
     </template>

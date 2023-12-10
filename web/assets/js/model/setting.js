@@ -3,7 +3,7 @@ class AllSetting {
     constructor(data) {
         this.webListen = "";
         this.webDomain = "";
-        this.webPort = 54321;
+        this.webPort = 2053;
         this.webCertFile = "";
         this.webKeyFile = "";
         this.webBasePath = "/";
@@ -19,7 +19,9 @@ class AllSetting {
         this.tgBotBackup = false;
         this.tgBotLoginNotify = false;
         this.tgCpu = "";
-        this.tgLang = "";
+        this.tgLang = "en-US";
+        this.xrayTemplateConfig = "";
+        this.secretEnable = false;
         this.subEnable = false;
         this.subListen = "";
         this.subPort = "2096";
