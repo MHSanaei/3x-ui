@@ -433,13 +433,13 @@ style attribute {
 /* change basic colors */
 .ant-tag-blue {
     background-color: #edf4fa;
-    border-color: #76ccb4;
-    color: #199270;
+    border-color: #a9c5e7;
+    color: #0e49b5;
 }
 .ant-tag-green {
     background-color: #eafff9;
-    border-color: #89d9cc;
-    color: #00ad91;
+    border-color: #76ccb4;
+    color: #199270;
 }
 .ant-tag-purple {
     background-color: #f2eaf1;
