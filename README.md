@@ -365,12 +365,13 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 # Pictures
 
-![1](./media/1.png)
-![2](./media/2.png)
-![3](./media/3.png)
-![4](./media/4.png)
-![5](./media/5.png)
-![6](./media/6.png)
+![1](./media/0.png)
+![2](./media/1.png)
+![3](./media/2.png)
+![4](./media/3.png)
+![5](./media/4.png)
+![6](./media/5.png)
+![7](./media/6.png)
 
 ## Stargazers over time
 
