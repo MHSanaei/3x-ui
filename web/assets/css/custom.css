@@ -790,16 +790,22 @@ style attribute {
 
 .has-warning .ant-input,
 .has-warning .ant-input:hover {
-    background-color: #fff6e6;
-    border-color: #ffd98c;
+    background-color: #ffeee1;
+    border-color: #fec093;
 }
 
 .has-warning .ant-input::placeholder {
-    color: #faad14;
+    color: #f37b24;
 }
 
 .has-warning .ant-input:not([disabled]):hover {
-    border-color: #ffd98c;
+    border-color: #fec093;
+}
+
+.ant-modal-confirm-confirm .ant-modal-confirm-body>.anticon, .ant-modal-confirm-warning .ant-modal-confirm-body>.anticon,
+.ant-alert-warning .ant-alert-icon,
+.has-warning.has-feedback .ant-form-item-children-icon {
+    color: #f37b24;
 }
 
 .dark .has-warning .ant-input,
@@ -1038,6 +1044,16 @@ li.ant-select-dropdown-menu-item:empty:after {
 
 .ant-input-number {
     overflow: clip;
+}
+
+.tag-of-wrap {
+	text-wrap: pretty;
+	overflow-wrap: anywhere;
+	max-width: 200px;
+}
+
+.ant-modal-body {
+    overflow-x: auto;
 }
 
 .ant-calendar-year-panel-year:hover,
