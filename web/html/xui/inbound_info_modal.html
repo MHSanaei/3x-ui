@@ -11,7 +11,7 @@
         <tr><td>
                 <table>
                     <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="purple">[[ dbInbound.protocol ]]</a-tag></td></tr>
-                    <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag>[[ dbInbound.address ]]</a-tag></td></tr>
+                    <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag class="tag-of-wrap">[[ dbInbound.address ]]</a-tag></td></tr>
                     <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag>[[ dbInbound.port ]]</a-tag></td></tr>
                 </table>
             </td>
@@ -24,28 +24,28 @@
                         <tr>
                             <td>{{ i18n "host" }}</td>
                             <td v-if="inbound.host"><a-tag>[[ inbound.host ]]</a-tag></td>
-                            <td v-else><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+                            <td v-else><a-tag class="tag-of-wrap" color="orange">{{ i18n "none" }}</a-tag></td></tr>
                         </tr>
                         <tr>
                             <td>{{ i18n "path" }}</td>
-                            <td v-if="inbound.path"><a-tag>[[ inbound.path ]]</a-tag></td>
+                            <td v-if="inbound.path"><a-tag class="tag-of-wrap">[[ inbound.path ]]</a-tag></td>
                             <td v-else><a-tag color="orange">{{ i18n "none" }}</a-tag></td>
                         </tr>
                     </template>
 
                     <template v-if="inbound.isQuic">
-                        <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag>[[ inbound.quicSecurity ]]</a-tag></td></tr>
-                        <tr><td>quic {{ i18n "password" }}</td><td><a-tag>[[ inbound.quicKey ]]</a-tag></td></tr>
-                        <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag>[[ inbound.quicType ]]</a-tag></td></tr>
+                        <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag class="tag-of-wrap">[[ inbound.quicSecurity ]]</a-tag></td></tr>
+                        <tr><td>quic {{ i18n "password" }}</td><td><a-tag class="tag-of-wrap">[[ inbound.quicKey ]]</a-tag></td></tr>
+                        <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag class="tag-of-wrap">[[ inbound.quicType ]]</a-tag></td></tr>
                     </template>
         
                     <template v-if="inbound.isKcp">
-                        <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag>[[ inbound.kcpType ]]</a-tag></td></tr>
-                        <tr><td>kcp {{ i18n "password" }}</td><td><a-tag>[[ inbound.kcpSeed ]]</a-tag></td></tr>
+                        <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag class="tag-of-wrap">[[ inbound.kcpType ]]</a-tag></td></tr>
+                        <tr><td>kcp {{ i18n "password" }}</td><td><a-tag class="tag-of-wrap">[[ inbound.kcpSeed ]]</a-tag></td></tr>
                     </template>
         
                     <template v-if="inbound.isGrpc">
-                        <tr><td>grpc serviceName</td><td><a-tag>[[ inbound.serviceName ]]</a-tag></td></tr>
+                        <tr><td>grpc serviceName</td><td><a-tag class="tag-of-wrap">[[ inbound.serviceName ]]</a-tag></td></tr>
                         <tr><td>grpc multiMode</td><td><a-tag>[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
                     </template>
                 </table>
@@ -68,7 +68,7 @@
             <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
         </tr><tr v-if="inbound.isSS2022">
             <td>{{ i18n "password" }}</td>
-            <td><a-tag>[[ inbound.settings.password ]]</a-tag></td>
+            <td><a-tag class="tag-of-wrap-l">[[ inbound.settings.password ]]</a-tag></td>
         </tr><tr>
             <td>{{ i18n "pages.inbounds.network" }}</td>
             <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -83,7 +83,7 @@
             </tr>
             <tr v-if="infoModal.clientSettings.id">
                 <td>ID</td>
-                <td><a-tag>[[ infoModal.clientSettings.id ]]</a-tag></td>
+                <td><a-tag class="tag-of-wrap-l">[[ infoModal.clientSettings.id ]]</a-tag></td>
             </tr>
             <tr v-if="infoModal.inbound.canEnableTlsFlow()">
                 <td>Flow</td>
@@ -91,7 +91,7 @@
             </tr>
             <tr v-if="infoModal.clientSettings.password">
                 <td>Password</td>
-                <td><a-tag>[[ infoModal.clientSettings.password ]]</a-tag></td>
+                <td><a-tag class="tag-of-wrap-l">[[ infoModal.clientSettings.password ]]</a-tag></td>
             </tr>
             <tr>
                 <td>{{ i18n "status" }}</td>
