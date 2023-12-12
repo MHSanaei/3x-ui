@@ -1062,6 +1062,10 @@ li.ant-select-dropdown-menu-item:empty:after {
     overflow-x: auto;
 }
 
+.ant-collapse-content>.ant-collapse-content-box {
+    overflow-x: auto;
+}
+
 .ant-calendar-year-panel-year:hover,
 .ant-calendar-decade-panel-decade:hover,
 .ant-calendar-month-panel-month:hover,
