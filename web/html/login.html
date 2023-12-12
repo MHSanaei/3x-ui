@@ -55,14 +55,6 @@
       opacity: 1;
     }
   }
-  @keyframes wave {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
   .wave {
     opacity: 0.6;
     position: absolute;
@@ -74,16 +66,16 @@
     margin-left: -3000px;
     transform-origin: 50% 48%;
     border-radius: 46%;
-    animation: wave 72s infinite linear;
     pointer-events: none;
+    rotate: 125deg;
   }
   .wave2 {
-    animation: wave 88s infinite linear;
-    opacity: 0.3;
+    opacity: 0.4;
+    rotate: 70deg;
   }
   .wave3 {
-    animation: wave 80s infinite linear;
-    opacity: 0.1;
+    opacity: 0.2;
+    rotate: 90deg;
   }
   .under {
     background-color: #dbf5ed;
