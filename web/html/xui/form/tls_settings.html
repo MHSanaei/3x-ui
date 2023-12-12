@@ -227,10 +227,8 @@
                     <td>
                         <a-form-item>
                             <a-radio-group v-model="cert.useFile" button-style="solid">
-                                <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath"
-                                    }}</a-radio-button>
-                                <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent"
-                                    }}</a-radio-button>
+                                <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath"}}</a-radio-button>
+                                <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent"}}</a-radio-button>
                             </a-radio-group>
                             <a-button v-if="index === 0" type="primary" size="small"
                                 @click="inbound.stream.xtls.addCert()" style="margin-left: 10px">+</a-button>
@@ -259,8 +257,9 @@
                     <tr>
                         <td></td>
                         <td>
-                            <a-button type="primary" icon="import" @click="setDefaultCertData(index)">{{ i18n
-                                "pages.inbounds.setDefaultCert" }}</a-button>
+                            <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">
+                                {{ i18n "pages.inbounds.setDefaultCert" }}
+                            </a-button>
                         </td>
                     </tr>
                 </template>
