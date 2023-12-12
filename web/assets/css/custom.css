@@ -1052,6 +1052,12 @@ li.ant-select-dropdown-menu-item:empty:after {
 	max-width: 200px;
 }
 
+.tag-of-wrap-l {
+	text-wrap: pretty;
+	overflow-wrap: anywhere;
+	max-width: 350px;
+}
+
 .ant-modal-body {
     overflow-x: auto;
 }
