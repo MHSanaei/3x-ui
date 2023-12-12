@@ -39,7 +39,7 @@
         <tr v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
             <td>ID <a-icon @click="client.id = RandomUtil.randomUUID()" type="sync"></a-icon></td>
             <td>
-                <a-input v-model.trim="client.id" style="width: 300px;"></a-input>
+                <a-input v-model.trim="client.id" style="width: 250px;"></a-input>
             </td>
         </tr>
         <tr v-if="client.email && app.subSettings.enable">
