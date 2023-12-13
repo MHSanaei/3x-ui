@@ -2,149 +2,100 @@
 <a-modal id="rule-modal" v-model="ruleModal.visible" :title="ruleModal.title" @ok="ruleModal.ok"
          :confirm-loading="ruleModal.confirmLoading" :closable="true" :mask-closable="false"
          :ok-text="ruleModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
-    <a-form layout="inline">
-        <table width="100%" class="ant-table-tbody">
-            <tr>
-            <td style="width: 30%;">Domain Matcher</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="ruleModal.rule.domainMatcher" style="width: 250px;" :dropdown-class-name="themeSwitcher.currentTheme">
+    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label='Domain Matcher'>
+                    <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
                         <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
                     </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Source IPs
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
-                    <a-icon type="question-circle"></a-icon>
+                    Source IPs <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="ruleModal.rule.source" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Source Port
+            </template>
+            <a-input v-model.trim="ruleModal.rule.source"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">Source Port
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
-                    <a-icon type="question-circle"></a-icon>
+                    Source Port <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="ruleModal.rule.sourcePort" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Network</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="ruleModal.rule.network" style="width: 250px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="x in ['','tcp','tdp','tcp,udp']" :value="x">[[ x ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Protocol</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="ruleModal.rule.protocol" style="width: 250px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="x in ['','http','tls','bittorrent']" :value="x">[[ x ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td colspan="2">
-                <a-form-item>
-                    <span>Attributes</span>
-                    <a-button size="small" style="margin-left: 10px" @click="ruleModal.rule.attrs.push(['', ''])">+</a-button>
-                    <a-input-group compact v-for="(attr,index) in ruleModal.rule.attrs">
-                        <a-input style="width: 50%" v-model="attr[0]" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
-                            <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
-                        </a-input>
-                        <a-input style="width: 50%" v-model="attr[1]" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
-                            <a-button slot="addonAfter" size="small" @click="ruleModal.rule.attrs.splice(index,1)">-</a-button>
-                        </a-input>
-                    </a-input-group>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>IP
+            </template>
+            <a-input v-model.trim="ruleModal.rule.sourcePort"></a-input>
+        </a-form-item>
+        <a-form-item label='Network'>
+            <a-select v-model="ruleModal.rule.network" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x in ['','tcp','tdp','tcp,udp']" :value="x">[[ x ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Protocol'>
+            <a-select v-model="ruleModal.rule.protocol" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x in ['','http','tls','bittorrent']" :value="x">[[ x ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Attributes'>
+            <a-button size="small" style="margin-left: 10px" @click="ruleModal.rule.attrs.push(['', ''])">+</a-button>
+        </a-form-item>
+        <a-form-item :wrapper-col="{span: 24}">
+            <a-input-group compact v-for="(attr,index) in ruleModal.rule.attrs">
+                <a-input style="width: 50%" v-model="attr[0]" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+                    <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+                </a-input>
+                <a-input style="width: 50%" v-model="attr[1]" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+                    <a-button slot="addonAfter" size="small" @click="ruleModal.rule.attrs.splice(index,1)">-</a-button>
+                </a-input>
+            </a-input-group>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
-                    <a-icon type="question-circle"></a-icon>
+                    IP <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="ruleModal.rule.ip" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Domain
+            </template>
+            <a-input v-model.trim="ruleModal.rule.ip"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
-                    <a-icon type="question-circle"></a-icon>
+                    Domain <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="ruleModal.rule.domain" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Port
+            </template>
+            <a-input v-model.trim="ruleModal.rule.domain"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
-                    <a-icon type="question-circle"></a-icon>
+                    Port <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="ruleModal.rule.port" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Inbound Tags</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="ruleModal.rule.inboundTag" mode="multiple" style="width: 250px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="tag in ruleModal.inboundTags" :value="tag">[[ tag ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Outbound Tag</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="ruleModal.rule.outboundTag" style="width: 250px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="tag in ruleModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
+            </template>
+            <a-input v-model.trim="ruleModal.rule.port"></a-input>
+        </a-form-item>
+        <a-form-item label='Inbound Tags'>
+            <a-select v-model="ruleModal.rule.inboundTag" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in ruleModal.inboundTags" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Outbound Tag'>
+            <a-select v-model="ruleModal.rule.outboundTag" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in ruleModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
     </table>
     </a-form>
 </a-modal>
