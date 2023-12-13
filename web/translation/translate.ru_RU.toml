@@ -473,7 +473,6 @@
 "manualDirectDomains" = "Список прямых доменов"
 "manualIPv4Domains" = "Список доменов IPv4"
 "manualWARPDomains" = "Список доменов WARP"
->>>>>>> c501c29ceae66bdc25c8cbe7053da273fdb4cb43
 
 [pages.settings.security]
 "admin" = "Админ"
