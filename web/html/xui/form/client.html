@@ -70,7 +70,7 @@
                     <span>{{ i18n "pages.inbounds.IPLimitDesc"}}</span>
                 </template>
                     <span>{{ i18n "pages.inbounds.IPLimit"}} </span>
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
         <a-input-number v-model="client.limitIp" min="0"></a-input-number>
@@ -82,7 +82,7 @@
                     <span>{{ i18n "pages.inbounds.IPLimitlogDesc" }}</span>
                 </template>
                     <span>{{ i18n "pages.inbounds.IPLimitlog" }}</span>
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
         <a-tooltip>
@@ -123,8 +123,7 @@
         </template>
         <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
     </a-form-item>
-    <a-form-item v-if="isEdit && clientStats">
-        {{ i18n "usage" }}
+    <a-form-item v-if="isEdit && clientStats" label='{{ i18n "usage" }}'>
         <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">
             [[ sizeFormat(clientStats.up) ]] /
             [[ sizeFormat(clientStats.down) ]]
@@ -146,11 +145,9 @@
     <a-form-item v-else>
         <template slot="label">
             <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
-                </template>
-                <span>{{ i18n "pages.inbounds.expireDate" }}</span>
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <template slot="title">{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</template>
+                {{ i18n "pages.inbounds.expireDate" }}
+                <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
         <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
@@ -160,11 +157,9 @@
     <a-form-item v-if="client.expiryTime != 0">
         <template slot="label">
             <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.client.renewDesc" }}</span>
-                </template>
+                <template slot="title">{{ i18n "pages.client.renewDesc" }}</template>
                 {{ i18n "pages.client.renew" }}
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
         <a-input-number v-model.number="client.reset" :min="0"></a-input-number>
