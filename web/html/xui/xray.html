@@ -3,7 +3,6 @@
 {{template "head" .}}
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.css">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.css">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 
 <script src="{{ .base_path }}assets/js/model/outbound.js"></script>
@@ -28,6 +27,10 @@
         .ant-tabs-nav .ant-tabs-tab {
             margin: 0;
             padding: 12px .5rem;
+        }
+        .ant-table-thead > tr > th,
+        .ant-table-tbody > tr > td {
+            padding: 10px 0px;
         }
     }
 

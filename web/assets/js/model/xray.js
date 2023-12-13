@@ -602,7 +602,7 @@ class XtlsStreamSettings extends XrayCommonClass {
                 alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new XtlsStreamSettings.Settings()) {
         super();
-        this.server = serverName;
+        this.sni = serverName;
         this.certs = certificates;
         this.alpn = alpn;
         this.settings = settings;
@@ -636,7 +636,7 @@ class XtlsStreamSettings extends XrayCommonClass {
 
     toJson() {
         return {
-            serverName: this.server,
+            serverName: this.sni,
             certificates: XtlsStreamSettings.toJsonArray(this.certs),
             alpn: this.alpn,
             settings: this.settings,
@@ -1081,7 +1081,7 @@ class Inbound extends XrayCommonClass {
 
     get serverName() {
         if (this.stream.isTls) return this.stream.tls.sni;
-        if (this.stream.isXtls) return this.stream.xtls.server;
+        if (this.stream.isXtls) return this.stream.xtls.sni;
         if (this.stream.isReality) return this.stream.reality.serverNames;
         return "";
     }
@@ -1326,8 +1326,8 @@ class Inbound extends XrayCommonClass {
             if(this.stream.xtls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
-            if (!ObjectUtil.isEmpty(this.stream.xtls.server)){
-                params.set("sni", this.stream.xtls.server);
+            if (!ObjectUtil.isEmpty(this.stream.xtls.sni)){
+                params.set("sni", this.stream.xtls.sni);
 			}
             params.set("flow", flow);
         }
@@ -1533,8 +1533,8 @@ class Inbound extends XrayCommonClass {
             if(this.stream.xtls.settings.allowInsecure){
                 params.set("allowInsecure", "1");
             }
-            if (this.stream.xtls.settings.serverName !== ''){
-                params.set("sni", this.stream.xtls.settings.serverName);
+            if (!ObjectUtil.isEmpty(this.stream.xtls.sni)){
+                params.set("sni", this.stream.xtls.sni);
 			}
             params.set("flow", flow);
         }

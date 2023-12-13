@@ -476,7 +476,7 @@ class Outbound extends CommonClass {
         if(data.length !=2) return null;
         switch(data[0].toLowerCase()){
             case Protocols.VMess:
-                return this.fromVmessLink(JSON.parse(atob(data[1])));
+                return this.fromVmessLink(JSON.parse(Base64.decode(data[1])));
             case Protocols.VLESS:
             case Protocols.Trojan:
             case 'ss':
@@ -493,8 +493,8 @@ class Outbound extends CommonClass {
         if (network === 'tcp') {
             stream.tcp = new TcpStreamSettings(
                 json.type,
-                json.host ? json.host.split(','): [],
-                json.path ? json.path.split(','): []);
+                json.host ?? '',
+                json.path ?? '');
         } else if (network === 'kcp') {
             stream.kcp = new KcpStreamSettings();
             stream.type = json.type;
@@ -505,7 +505,7 @@ class Outbound extends CommonClass {
             stream.network = 'http'
             stream.http = new HttpStreamSettings(
                 json.path,
-                json.host ? json.host.split(',') : []);
+                json.host);
         } else if (network === 'quic') {
             stream.quic = new QuicStreamSettings(
                 json.host ? json.host : 'none',
@@ -570,7 +570,7 @@ class Outbound extends CommonClass {
             let sni=url.searchParams.get('sni') ?? '';
             let sid=url.searchParams.get('sid') ?? '';
             let spx=url.searchParams.get('spx') ?? '';
-            stream.tls = new RealityStreamSettings(pbk, fp, sni, sid, spx);
+            stream.reality  = new RealityStreamSettings(pbk, fp, sni, sid, spx);
         }
 
         let data = link.split('?');

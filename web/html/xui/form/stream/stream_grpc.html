@@ -1,22 +1,10 @@
 {{define "form/streamGRPC"}}
-<a-form layout="inline">
-    <table width="100%" class="ant-table-tbody">
-        <tr>
-            <td>serviceName</td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="inbound.stream.grpc.serviceName" style="width: 250px;"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>MultiMode</td>
-            <td>
-                <a-form-item>
-                    <a-switch v-model="inbound.stream.grpc.multiMode"></a-switch>
-                </a-form-item>
-            </td>
-        </tr>
-    </table>
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="Service Name">
+        <a-input v-model.trim="inbound.stream.grpc.serviceName" style="width: 250px;"></a-input>
+    </a-form-item>
+    <a-form-item label="MultiMode">
+        <a-switch v-model="inbound.stream.grpc.multiMode"></a-switch>
+    </a-form-item>
 </a-form>
 {{end}}

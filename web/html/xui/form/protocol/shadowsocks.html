@@ -1,6 +1,5 @@
 {{define "form/shadowsocks"}}
-<a-form layout="inline">
-    <template v-if="inbound.isSSMultiUser">
+<template v-if="inbound.isSSMultiUser">
     <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.shadowsockses.slice(0,1)" v-if="!isEdit">  
         <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
             {{template "form/client"}}
@@ -20,40 +19,39 @@
             </table>
         </a-collapse-panel>
     </a-collapse>
-    </template>
-    <table width="100%" class="ant-table-tbody">
-        <tr>
-            <td>{{ i18n "encryption" }}</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="inbound.settings.method" style="width: 250px;" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr v-if="inbound.isSS2022">
-            <td>{{ i18n "password" }}
-                <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
-            </td>
-            <td>
-                <a-form-item>
-                    <a-input v-model.trim="inbound.settings.password" style="width: 250px"></a-input>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>{{ i18n "pages.inbounds.network" }}</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option value="tcp,udp">tcp+udp</a-select-option>
-                        <a-select-option value="tcp">tcp</a-select-option>
-                        <a-select-option value="udp">udp</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-    </table>
-</a-form>
+</template>
+<table width="100%" class="ant-table-tbody">
+    <tr>
+        <td>{{ i18n "encryption" }}</td>
+        <td>
+            <a-form-item>
+                <a-select v-model="inbound.settings.method" style="width: 250px;" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+                </a-select>
+            </a-form-item>
+        </td>
+    </tr>
+    <tr v-if="inbound.isSS2022">
+        <td>{{ i18n "password" }}
+            <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
+        </td>
+        <td>
+            <a-form-item>
+                <a-input v-model.trim="inbound.settings.password" style="width: 250px"></a-input>
+            </a-form-item>
+        </td>
+    </tr>
+    <tr>
+        <td>{{ i18n "pages.inbounds.network" }}</td>
+        <td>
+            <a-form-item>
+                <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option value="tcp,udp">tcp+udp</a-select-option>
+                    <a-select-option value="tcp">tcp</a-select-option>
+                    <a-select-option value="udp">udp</a-select-option>
+                </a-select>
+            </a-form-item>
+        </td>
+    </tr>
+</table>
 {{end}}

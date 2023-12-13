@@ -98,6 +98,11 @@
                         client.flow = "";
                     });
                 }
+                if ((this.inModal.inbound.protocol == Protocols.VLESS || this.inModal.inbound.protocol == Protocols.TROJAN) && !inModal.inbound.xtls) {
+                    this.inModal.inbound.settings.vlesses.forEach(client => {
+                        client.flow = "";
+                    });
+                }
             },
             SSMethodChange() {
                 if (this.inModal.inbound.isSSMultiUser) {
