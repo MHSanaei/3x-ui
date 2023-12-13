@@ -89,6 +89,13 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		}
 	}
 
+	tgBotProxy, err := t.settingService.GetTgBotProxy()
+	if err != nil || tgBotProxy == "" {
+		logger.Warning("Telegram proxy not valid use direct connection")
+	} else {
+		
+	}
+
 	bot, err = telego.NewBot(tgBottoken)
 	if err != nil {
 		fmt.Println("Get tgbot's api error:", err)

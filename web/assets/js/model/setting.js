@@ -14,6 +14,7 @@ class AllSetting {
         this.remarkModel = "-ieo";
         this.tgBotEnable = false;
         this.tgBotToken = "";
+        this.tgBotProxy = "";
         this.tgBotChatId = "";
         this.tgRunTime = "@daily";
         this.tgBotBackup = false;

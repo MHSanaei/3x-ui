@@ -28,6 +28,7 @@ type AllSetting struct {
 	RemarkModel      string `json:"remarkModel" form:"remarkModel"`
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`
+	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`
 	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`
 	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`
