@@ -172,7 +172,7 @@
                         <span>{{ i18n "pages.client.renew" }}</span>
                     </template>
                     Short Ids
-                    <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId().join(',')" type="sync">
+                    <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"> </a-icon>
                     </a-icon>
             </template>
             <a-input v-model.trim="inbound.stream.reality.shortIds" style="width:250px"></a-input>
