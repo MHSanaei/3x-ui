@@ -852,6 +852,13 @@ style attribute {
     user-select: none;
 }
 
+.ant-calendar-date,
+.ant-calendar-year-panel-year,
+.ant-calendar-decade-panel-decade,
+.ant-calendar-month-panel-month {
+    border-radius: 5px;
+}
+
 .ant-calendar-date:hover {
     background-color: rgb(232 244 242);
 }
@@ -908,7 +915,7 @@ li.ant-select-dropdown-menu-item:empty:after {
 .ant-select-dropdown.ant-select-dropdown--multiple
     .ant-select-dropdown-menu-item-selected:hover
     .ant-select-selected-icon {
-    color: #3c89e8;
+    color: #008771;
 }
 .ant-select-selection:hover,
 .ant-input-number-focused,
@@ -1048,4 +1055,47 @@ li.ant-select-dropdown-menu-item:empty:after {
 
 .ant-input-number {
     overflow: clip;
+}
+
+.ant-modal-body,
+.ant-collapse-content>.ant-collapse-content-box {
+    overflow-x: auto;
+}
+
+.ant-calendar-year-panel-year:hover,
+.ant-calendar-decade-panel-decade:hover,
+.ant-calendar-month-panel-month:hover,
+.ant-dropdown-menu-item:hover,
+.ant-dropdown-menu-submenu-title:hover,
+.ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+.ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled),
+.ant-table-tbody
+    > tr.ant-table-row-hover:not(.ant-table-expanded-row):not(
+        .ant-table-row-selected
+    )
+    > td,
+.ant-table-tbody
+    > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
+    > td,
+.ant-table-thead
+    > tr.ant-table-row-hover:not(.ant-table-expanded-row):not(
+        .ant-table-row-selected
+    )
+    > td,
+.ant-table-thead
+    > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
+    > td {
+    background-color: rgb(232 244 242);
+}
+
+.dark .ant-dropdown-menu-item:hover,
+.dark .ant-dropdown-menu-submenu-title:hover,
+.dark .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+.dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled) {
+    background-color: #313f5a;
+}
+
+.ant-popover-inner-content {
+    max-height: 400px;
+    overflow-y: auto;
 }
