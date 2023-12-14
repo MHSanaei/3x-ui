@@ -4,6 +4,7 @@ import (
 	"embed"
 	"fmt"
 	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -20,6 +21,8 @@ import (
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpproxy"
 )
 
 var bot *telego.Bot
@@ -93,10 +96,10 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	if err != nil || tgBotProxy == "" {
 		logger.Warning("Telegram proxy not valid use direct connection")
 	} else {
-		
+
 	}
 
-	bot, err = telego.NewBot(tgBottoken)
+	bot, err = t.NewBot(tgBottoken, tgBotProxy)
 	if err != nil {
 		fmt.Println("Get tgbot's api error:", err)
 		return err
@@ -110,6 +113,23 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	return nil
+}
+
+func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
+	if proxyUrl == "" || !strings.HasPrefix(proxyUrl, "socks5://") {
+		logger.Warning("invalid socks5 url, start with default")
+		return telego.NewBot(token)
+	}
+
+	_, err := url.Parse(proxyUrl)
+	if err != nil {
+		logger.Warning("cant parse proxy url, use default instance for tgbot:", err)
+		return telego.NewBot(token)
+	}
+
+	return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
+		Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
+	}))
 }
 
 func (t *Tgbot) IsRunning() bool {
