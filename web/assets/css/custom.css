@@ -915,7 +915,7 @@ li.ant-select-dropdown-menu-item:empty:after {
 .ant-select-dropdown.ant-select-dropdown--multiple
     .ant-select-dropdown-menu-item-selected:hover
     .ant-select-selected-icon {
-    color: #3c89e8;
+    color: #008771;
 }
 .ant-select-selection:hover,
 .ant-input-number-focused,
@@ -1086,4 +1086,11 @@ li.ant-select-dropdown-menu-item:empty:after {
     > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
     > td {
     background-color: rgb(232 244 242);
+}
+
+.dark .ant-dropdown-menu-item:hover,
+.dark .ant-dropdown-menu-submenu-title:hover,
+.dark .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+.dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled) {
+    background-color: #313f5a;
 }
