@@ -1,52 +1,51 @@
 {{define "form/streamTCP"}}
 <!-- tcp type -->
-<a-form layout="inline">
-    <a-form-item label="AcceptProxyProtocol">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="Accept Proxy Protocol" v-if="inbound.canEnableTls()">
         <a-switch v-model="inbound.stream.tcp.acceptProxyProtocol"></a-switch>
     </a-form-item>
     <a-form-item label='HTTP {{ i18n "camouflage" }}'>
         <a-switch
-                :checked="inbound.stream.tcp.type === 'http'"
-                @change="checked => inbound.stream.tcp.type = checked ? 'http' : 'none'">
+            :checked="inbound.stream.tcp.type === 'http'"
+            @change="checked => inbound.stream.tcp.type = checked ? 'http' : 'none'">
         </a-switch>
     </a-form-item>
 </a-form>
 
 <!-- tcp request -->
-<a-form v-if="inbound.stream.tcp.type === 'http'" layout="inline">
+<a-form v-if="inbound.stream.tcp.type === 'http'" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestVersion" }}'>
         <a-input v-model.trim="inbound.stream.tcp.request.version"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestMethod" }}'>
-        <a-input v-model.trim="inbound.stream.tcp.request.method"></a-input>
+                    <a-input v-model.trim="inbound.stream.tcp.request.method"></a-input>
     </a-form-item>
-    <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestPath" }}'>
-        <a-row v-for="(path, index) in inbound.stream.tcp.request.path">
-            <a-input v-model.trim="inbound.stream.tcp.request.path[index]"></a-input>
-        </a-row>
-    </a-form-item>
-    <br>
     <a-form-item>
-        <a-row>
-            <span>{{ i18n "pages.inbounds.stream.general.requestHeader" }}:</span>
-            <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.request.addHeader('Host', 'xxx.com')">+</a-button>
-        </a-row>
-        <a-input-group v-for="(header, index) in inbound.stream.tcp.request.headers">
-            <a-input style="width: 50%" v-model.trim="header.name"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.name" }}'></a-input>
-            <a-input style="width: 50%" v-model.trim="header.value"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.value" }}'>
-                <template slot="addonAfter">
-                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.request.removeHeader(index)">-</a-button>
-                </template>
+        <template slot="label">{{ i18n "pages.inbounds.stream.tcp.requestPath" }}
+            <a-button size="small" @click="inbound.stream.tcp.request.addPath('/')">+</a-button>
+        </template>
+        <template v-for="(path, index) in inbound.stream.tcp.request.path">
+            <a-input v-model.trim="inbound.stream.tcp.request.path[index]">
+                <a-button size="small" slot="addonAfter"
+                @click="inbound.stream.tcp.request.removePath(index)"
+                v-if="inbound.stream.tcp.request.path.length>1">-</a-button>
+            </a-input>
+        </template>
+    </a-form-item> 
+    <a-form-item label='{{ i18n "pages.inbounds.stream.general.requestHeader" }}'>
+        <a-button size="small" @click="inbound.stream.tcp.request.addHeader('', '')">+</a-button>
+    </a-form-item>
+    <a-form-item :wrapper-col="{span:24}">
+        <a-input-group compact v-for="(header, index) in inbound.stream.tcp.request.headers">
+            <a-input style="width: 50%" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+                <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+            </a-input>
+            <a-input style="width: 50%" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+                <a-button slot="addonAfter" size="small" @click="inbound.stream.tcp.request.removeHeader(index)">-</a-button>
             </a-input>
         </a-input-group>
     </a-form-item>
-    
-</a-form>
-
-<!-- tcp response -->
-<a-form v-if="inbound.stream.tcp.type === 'http'" layout="inline">
+        <!-- tcp response -->
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.responseVersion" }}'>
         <a-input v-model.trim="inbound.stream.tcp.response.version"></a-input>
     </a-form-item>
@@ -56,18 +55,19 @@
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.responseStatusDescription" }}'>
         <a-input v-model.trim="inbound.stream.tcp.response.reason"></a-input>
     </a-form-item>
-    <a-form-item>
-        <a-row>
-            <span>{{ i18n "pages.inbounds.stream.tcp.responseHeader" }}:</span>
-            <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.response.addHeader('Content-Type', 'application/octet-stream')">+</a-button>
-        </a-row>
-        <a-input-group v-for="(header, index) in inbound.stream.tcp.response.headers">
-            <a-input style="width: 50%" v-model.trim="header.name"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.name" }}'></a-input>
+    <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.responseHeader" }}'>
+        <a-button size="small"
+            @click="inbound.stream.tcp.response.addHeader('Content-Type', 'application/octet-stream')">+</a-button>
+    </a-form-item>
+    <a-form-item :wrapper-col="{span:24}">
+        <a-input-group compact v-for="(header, index) in inbound.stream.tcp.response.headers">
+            <a-input style="width: 50%" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+                <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+            </a-input>
             <a-input style="width: 50%" v-model.trim="header.value"
-                     addon-before='{{ i18n "pages.inbounds.stream.general.value" }}'>
+                        placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
                 <template slot="addonAfter">
-                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tcp.response.removeHeader(index)">-</a-button>
+                    <a-button size="small" @click="inbound.stream.tcp.response.removeHeader(index)">-</a-button>
                 </template>
             </a-input>
         </a-input-group>

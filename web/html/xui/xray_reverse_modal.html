@@ -1,0 +1,140 @@
+{{define "reverseModal"}}
+<a-modal id="reverse-modal" v-model="reverseModal.visible" :title="reverseModal.title" @ok="reverseModal.ok"
+         :confirm-loading="reverseModal.confirmLoading" :closable="true" :mask-closable="false"
+         :ok-text="reverseModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
+    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+            <a-select v-model="reverseModal.reverse.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x,y in reverseTypes" :value="y">[[ x ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}'>
+            <a-input v-model.trim="reverseModal.reverse.tag"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.outbound.domain" }}'>
+            <a-input v-model.trim="reverseModal.reverse.domain"></a-input>
+        </a-form-item>
+        <template v-if="reverseModal.reverse.type=='bridge'">
+        <a-form-item label='{{ i18n "pages.xray.outbound.intercon" }}'>
+            <a-select v-model="reverseModal.rules[0].outboundTag" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x in reverseModal.outboundTags" :value="x">[[ x ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.rules.outbound" }}'>
+            <a-select v-model="reverseModal.rules[1].outboundTag" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x in reverseModal.outboundTags" :value="x">[[ x ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        </template>
+        <template v-else>
+            <a-form-item label='{{ i18n "pages.xray.outbound.intercon" }}'>
+                <a-checkbox-group
+                    v-model="reverseModal.rules[0].inboundTag"
+                    :options="reverseModal.inboundTags"></a-checkbox-group>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.xray.rules.inbound" }}'>
+                <a-checkbox-group
+                    v-model="reverseModal.rules[1].inboundTag"
+                    :options="reverseModal.inboundTags"></a-checkbox-group>
+            </a-form-item>
+        </template>
+    </table>
+    </a-form>
+</a-modal>
+<script>
+    const reverseModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        confirm: null,
+        reverse: {
+            tag: "",
+            type: "",
+            domain: ""
+        },
+        rules: [
+            { outboundTag: '', inboundTag: []},
+            { outboundTag: '', inboundTag: []}
+        ],
+        inboundTags: [],
+        outboundTags: [],
+        ok() {
+            reverseModal.rules[0].domain = ["full:" + reverseModal.reverse.domain];
+            reverseModal.rules[0].type = 'field';
+            reverseModal.rules[1].type = 'field';
+
+            if(reverseModal.reverse.type == 'bridge'){
+                reverseModal.rules[0].inboundTag = [reverseModal.reverse.tag];
+                reverseModal.rules[1].inboundTag = [reverseModal.reverse.tag];
+            } else {
+                reverseModal.rules[0].outboundTag = reverseModal.reverse.tag;
+                reverseModal.rules[1].outboundTag = reverseModal.reverse.tag;
+            }
+            ObjectUtil.execute(reverseModal.confirm, reverseModal.reverse, reverseModal.rules);
+        },
+        show({ title='', okText='{{ i18n "sure" }}', reverse, rules, confirm=(reverse, rules)=>{}, isEdit=false  }) {
+            this.title = title;
+            this.okText = okText;
+            this.confirm = confirm;
+            this.visible = true;
+            if(isEdit) {
+                this.reverse = {
+                    tag: reverse.tag,
+                    type: reverse.type,
+                    domain: reverse.domain,
+                };
+                    reverse;
+                rules0 = rules.filter(r => r.domain != null);
+                if(rules0.length == 0) rules0 = [{ outboundTag: '', domain: ["full:" + this.reverse.domain], inboundTag: []}];
+                rules1 = rules.filter(r => r.domain == null);
+                if(rules1.length == 0) rules1 = [{ outboundTag: '', inboundTag: []}];
+                this.rules = [];
+                this.rules.push({
+                    domain: rules0[0].domain,
+                    outboundTag: rules0[0].outboundTag,
+                    inboundTag: rules0.map(r => r.inboundTag).flat()
+                });
+                this.rules.push({
+                    outboundTag: rules1[0].outboundTag,
+                    inboundTag: rules1.map(r => r.inboundTag).flat()
+                });
+            } else {
+                this.reverse = {
+                    tag: "reverse-" + app.reverseData.length,
+                    type: "bridge",
+                    domain: "reverse.xui"
+                }
+                this.rules = [
+                    { outboundTag: '', inboundTag: []},
+                    { outboundTag: '', inboundTag: []}
+                ]
+            }
+            this.isEdit = isEdit;
+            this.inboundTags = app.templateSettings.inbounds.filter((i) => !ObjectUtil.isEmpty(i.tag)).map(obj => obj.tag);
+            this.inboundTags.push(...app.inboundTags);
+            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
+        },
+        close() {
+            reverseModal.visible = false;
+            reverseModal.loading(false);
+        },
+        loading(loading) {
+            reverseModal.confirmLoading = loading;
+        },
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#reverse-modal',
+        data: {
+            reverseModal: reverseModal,
+            reverseTypes: { bridge: '{{ i18n "pages.xray.outbound.bridge" }}', portal:'{{ i18n "pages.xray.outbound.portal" }}'},
+        },
+        methods: {
+        }
+    });
+
+</script>
+{{end}}

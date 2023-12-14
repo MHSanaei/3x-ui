@@ -1,8 +1,9 @@
 {{define "form/streamSettings"}}
 <!-- select stream network -->
-<a-form layout="inline">
-    <a-form-item label='{{ i18n "transmission" }}'>
-        <a-select v-model="inbound.stream.network" @change="streamNetworkChange" :dropdown-class-name="themeSwitcher.darkCardClass">
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="{{ i18n "transmission" }}">
+        <a-select v-model="inbound.stream.network" @change="streamNetworkChange"
+            :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="kcp">KCP</a-select-option>
             <a-select-option value="ws">WS</a-select-option>
@@ -42,7 +43,6 @@
 <template v-if="inbound.stream.network === 'grpc'">
     {{template "form/streamGRPC"}}
 </template>
-
 <!-- sockopt -->
 <template>
     {{template "form/streamSockopt"}}

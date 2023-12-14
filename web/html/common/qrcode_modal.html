@@ -1,7 +1,7 @@
 {{define "qrcodeModal"}}
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
          :closable="true"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :footer="null"
          width="300px">
     <a-tag color="green" style="margin-bottom: 10px;display: block;text-align: center;">
@@ -13,7 +13,7 @@
     </template>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <template v-for="(row, index) in qrModal.qrcodes">
-        <a-tag color="orange" style="margin-top: 10px;display: block;text-align: center;">[[ row.remark ]]</a-tag>
+        <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
         <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas>
     </template>
 </a-modal>
@@ -22,39 +22,25 @@
 
     const qrModal = {
         title: '',
-        clientIndex: 0,
-        inbound: new Inbound(),
         dbInbound: new DBInbound(),
         client: null,
         qrcodes: [],
         clipboard: null,
         visible: false,
         subId: '',
-        show: function (title = '', dbInbound = new DBInbound(), clientIndex = 0) {
+        show: function (title = '', dbInbound, client) {
             this.title = title;
-            this.clientIndex = clientIndex;
             this.dbInbound = dbInbound;
             this.inbound = dbInbound.toInbound();
-            settings = JSON.parse(this.inbound.settings);
-            this.client = settings.clients[clientIndex];
-            remark = [this.dbInbound.remark, ( this.client ? this.client.email : '')].filter(Boolean).join('-');
-            address = this.dbInbound.address;
+            this.client = client;
             this.subId = '';
             this.qrcodes = [];
-            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
-                this.inbound.stream.tls.settings.domains.forEach((domain) => {
-                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
-                    this.qrcodes.push({
-                        remark: remarkText,
-                        link: this.inbound.genLink(domain.domain, remarkText, clientIndex)
-                    });
-                });
-            } else {
+            this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
                 this.qrcodes.push({
-                    remark: remark,
-                    link: this.inbound.genLink(address, remark, clientIndex)
+                    remark: l.remark,
+                    link: l.link
                 });
-            }
+            });
             this.visible = true;
         },
         close: function () {
@@ -86,8 +72,7 @@
                 });
             },
             genSubLink(subID) {
-                const { domain: host, port, tls: isTLS, path: base } = app.subSettings;
-                return buildURL({ host, port, isTLS, base, path: subID+'?name='+remark });
+                return app.subSettings.subURI+subID;
             }
         },
         updated() {

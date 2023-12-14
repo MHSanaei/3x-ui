@@ -8,27 +8,60 @@
         }
     }
 
+    @media (max-width: 768px) {
+        .ant-card-body {
+            padding: .5rem;
+        }
+    }
+
     .ant-col-sm-24 {
-        margin-top: 10px;
+        margin: 0.5rem -2rem 0.5rem 2rem;
     }
     tr.hideExpandIcon .ant-table-row-expand-icon {
         display: none;
     }
+    .infinite-tag {
+        padding: 0 5px;
+        border-radius: 2rem;
+        min-width: 50px;
+    }
+    .infinite-bar .ant-progress-inner .ant-progress-bg {
+        background-color: #F2EAF1;
+        border: #D5BED2 solid 1px;
+    }
+    .dark .infinite-bar .ant-progress-inner .ant-progress-bg {
+        background-color: #3c1536;
+        border: #7a316f solid 1px;
+    }
+    .ant-collapse {
+        margin: 5px 0;
+    }
+    .online-animation .ant-badge-status-dot {
+        animation: 1.2s ease infinite normal none running onlineAnimation;
+    }
+    @keyframes onlineAnimation {
+        0%, 50%, 100%   { transform: scale(1);  opacity:  1; }
+        10%             { transform: scale(1.5); opacity: .2; }
+    }
+    .info-large-tag {
+        max-width: 200px;
+        overflow: hidden;
+    }
 </style>
 
 <body>
-<a-layout id="app" v-cloak>
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     {{ template "commonSider" . }}
-    <a-layout id="content-layout" :style="themeSwitcher.bgStyle">
+    <a-layout id="content-layout">
         <a-layout-content>
-            <a-spin :spinning="spinning" :delay="500" tip="loading">
+            <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <transition name="list" appear>
                     <a-tag v-if="false" color="red" style="margin-bottom: 10px">
                         Please go to the panel settings as soon as possible to modify the username and password, otherwise there may be a risk of leaking account information
                     </a-tag>
                 </transition>
                 <transition name="list" appear>
-                    <a-card hoverable style="margin-bottom: 20px;" :class="themeSwitcher.darkCardClass">
+                    <a-card hoverable>
                         <a-row>
                             <a-col :xs="24" :sm="24" :lg="12">
                                 {{ i18n "pages.inbounds.totalDownUp" }}:
@@ -43,39 +76,59 @@
                                 <a-tag color="green">[[ dbInbounds.length ]]</a-tag>
                             </a-col>
                             <a-col :xs="24" :sm="24" :lg="12">
+                                <template>
+                                    <div>
+                                        <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                        </a-back-top>
                                 {{ i18n "clients" }}:
                                 <a-tag color="green">[[ total.clients ]]</a-tag>
-                                <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.deactive">[[ clientEmail ]]</p>
                                     </template>
                                     <a-tag v-if="total.deactive.length">[[ total.deactive.length ]]</a-tag>
                                 </a-popover>
-                                <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.depleted">[[ clientEmail ]]</p>
                                     </template>
                                     <a-tag color="red" v-if="total.depleted.length">[[ total.depleted.length ]]</a-tag>
                                 </a-popover>
-                                <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                     <template slot="content">
                                         <p v-for="clientEmail in total.expiring">[[ clientEmail ]]</p>
                                     </template>
                                     <a-tag color="orange" v-if="total.expiring.length">[[ total.expiring.length ]]</a-tag>
                                 </a-popover>
+                                <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template slot="content">
+                                        <p v-for="clientEmail in onlineClients">[[ clientEmail ]]</p>
+                                    </template>
+                                    <a-tag color="blue" v-if="onlineClients.length">[[ onlineClients.length ]]</a-tag>
+                                </a-popover>
+                            </div>
+                        </template>
                             </a-col>
                         </a-row>
                     </a-card>
                 </transition>
                 <transition name="list" appear>
-                    <a-card hoverable :class="themeSwitcher.darkCardClass">
+                    <a-card hoverable>
                         <div slot="title">
                             <a-row>
-                                <a-col :xs="24" :sm="24" :lg="12">
-                                    <a-button type="primary" icon="plus" @click="openAddInbound">{{ i18n "pages.inbounds.addInbound" }}</a-button>
+                                <a-col :xs="12" :sm="12" :lg="12">
+                                    <a-button type="primary" icon="plus" @click="openAddInbound">
+                                        <template v-if="!isMobile">{{ i18n "pages.inbounds.addInbound" }}</template>
+                                    </a-button>
                                     <a-dropdown :trigger="['click']">
-                                        <a-button type="primary" icon="menu">{{ i18n "pages.inbounds.generalActions" }}</a-button>
+                                        <a-button type="primary" icon="menu">
+                                            <template v-if="!isMobile">{{ i18n "pages.inbounds.generalActions" }}</template>
+                                        </a-button>
                                         <a-menu slot="overlay" @click="a => generalActions(a)" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item key="import">
+                                                <a-icon type="import"></a-icon>
+                                                {{ i18n "pages.inbounds.importInbound" }}
+                                            </a-menu-item>
                                             <a-menu-item key="export">
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export" }}
@@ -95,12 +148,12 @@
                                         </a-menu>
                                     </a-dropdown>
                                 </a-col>
-                                <a-col :xs="24" :sm="24" :lg="12" style="text-align: right;">
+                                <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
                                     <a-select v-model="refreshInterval"
                                               style="width: 65px;"
                                               v-if="isRefreshEnabled"
                                               @change="changeRefreshInterval"
-                                              :dropdown-class-name="themeSwitcher.darkCardClass">
+                                              :dropdown-class-name="themeSwitcher.currentTheme">
                                         <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
                                     </a-select>
                                     <a-icon type="sync" :spin="refreshing" @click="manualRefresh" style="margin: 0 5px;"></a-icon>
@@ -108,31 +161,36 @@
                                 </a-col>
                             </a-row>
                         </div>
-                        <a-switch v-model="enableFilter"
-                            checked-children='{{ i18n "search" }}' un-checked-children='{{ i18n "filter" }}'
-                            @change="toggleFilter" style="margin-right: 10px;">
-                        </a-switch>
-                        <a-input v-if="!enableFilter" v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus style="max-width: 300px"></a-input>
-                        <a-radio-group v-if="enableFilter" v-model="filterBy" @change="filterInbounds" button-style="solid">
-                            <a-radio-button value="">{{ i18n "none" }}</a-radio-button>
-                            <a-radio-button value="deactive">{{ i18n "disabled" }}</a-radio-button>
-                            <a-radio-button value="depleted">{{ i18n "depleted" }}</a-radio-button>
-                            <a-radio-button value="expiring">{{ i18n "depletingSoon" }}</a-radio-button>
-                        </a-radio-group>
-                        <a-table :columns="columns" :row-key="dbInbound => dbInbound.id"
+                        <div style="display: flex; align-items: center; justify-content: flex-start;">
+                            <a-switch v-model="enableFilter"
+                                style="margin-right: .5rem;"
+                                @change="toggleFilter">
+                                <a-icon slot="checkedChildren" type="search"></a-icon>
+                                <a-icon slot="unCheckedChildren" type="filter"></a-icon>
+                            </a-switch>
+                            <a-input v-if="!enableFilter" v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus style="max-width: 300px" :size="isMobile ? 'small' : ''"></a-input>
+                            <a-radio-group v-if="enableFilter" v-model="filterBy" @change="filterInbounds" button-style="solid" :size="isMobile ? 'small' : ''">
+                                <a-radio-button value="">{{ i18n "none" }}</a-radio-button>
+                                <a-radio-button value="deactive">{{ i18n "disabled" }}</a-radio-button>
+                                <a-radio-button value="depleted">{{ i18n "depleted" }}</a-radio-button>
+                                <a-radio-button value="expiring">{{ i18n "depletingSoon" }}</a-radio-button>
+                                <a-radio-button value="online">{{ i18n "online" }}</a-radio-button>
+                            </a-radio-group>
+                        </div>
+                        <a-back-top></a-back-top>
+                        <a-table :columns="isMobile ? mobileColums : columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
-                                 :loading="spinning" :scroll="{ x: 1200 }"
-                                 :pagination="false"
+                                 :scroll="isMobile ? {} : { x: 1000 }"
+                                 :pagination=pagination(searchedInbounds)
                                  :expand-icon-as-cell="false"
                                  :expand-row-by-click="false"
                                  :expand-icon-column-index="0"
-                                 :row-class-name="dbInbound => (dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || (dbInbound.isSS && dbInbound.toInbound().isSSMultiUser) ? '' : 'hideExpandIcon')"
-                                 style="margin-top: 20px"
-                                 @change="() => getDBInbounds()">
+                                 :indent-size="0"
+                                 :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
+                                 style="margin-top: 10px">
                             <template slot="action" slot-scope="text, dbInbound">
-                                <a-icon type="edit" style="font-size: 22px" @click="openEditInbound(dbInbound.id);"></a-icon>
                                 <a-dropdown :trigger="['click']">
-                                    <a @click="e => e.preventDefault()">{{ i18n "pages.inbounds.operate" }}</a>
+                                    <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 20px; text-decoration: solid;"></a-icon>
                                     <a-menu slot="overlay" @click="a => clickAction(a, dbInbound)" :theme="themeSwitcher.currentTheme">
                                         <a-menu-item key="edit">
                                             <a-icon type="edit"></a-icon>
@@ -142,7 +200,7 @@
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
                                         </a-menu-item>
-                                        <template v-if="dbInbound.isTrojan || dbInbound.isVLess || dbInbound.isVMess || (dbInbound.isSS && dbInbound.toInbound().isSSMultiUser)">
+                                        <template v-if="dbInbound.isMultiUser()">
                                             <a-menu-item key="addClient">
                                                 <a-icon type="user-add"></a-icon>
                                                 {{ i18n "pages.client.add"}}
@@ -170,6 +228,10 @@
                                                 {{ i18n "info"}}
                                             </a-menu-item>
                                         </template>
+                                        <a-menu-item key="clipboard">
+                                            <a-icon type="copy"></a-icon>
+                                            {{ i18n "pages.inbounds.copyToClipboard" }}
+                                        </a-menu-item>
                                         <a-menu-item key="resetTraffic">
                                             <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                                         </a-menu-item>
@@ -181,43 +243,53 @@
                                                 <a-icon type="delete"></a-icon> {{ i18n "delete"}}
                                             </span>
                                         </a-menu-item>
+                                        <a-menu-item v-if="isMobile">
+                                            <a-switch size="small" v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
+                                            {{ i18n "pages.inbounds.enable" }}
+                                        </a-menu-item>
                                     </a-menu>
                                 </a-dropdown>
                             </template>
                             <template slot="protocol" slot-scope="text, dbInbound">
-                                <a-tag style="margin:0;" color="blue">[[ dbInbound.protocol ]]</a-tag>
+                                <a-tag style="margin:0;" color="purple">[[ dbInbound.protocol ]]</a-tag>
                                 <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
                                     <a-tag style="margin:0;" color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
-                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="cyan">TLS</a-tag>
-                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXtls" color="cyan">XTLS</a-tag>
-                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="cyan">Reality</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="blue">TLS</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isXtls" color="blue">XTLS</a-tag>
+                                    <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="blue">Reality</a-tag>
                                 </template>
                             </template>
                             <template slot="clients" slot-scope="text, dbInbound">
                                 <template v-if="clientCount[dbInbound.id]">
                                     <a-tag style="margin:0;" color="green">[[ clientCount[dbInbound.id].clients ]]</a-tag>
-                                    <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                    <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].deactive">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
                                     </a-popover>
-                                    <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                    <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].depleted">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
                                     </a-popover>
-                                    <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.darkClass">
+                                    <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
                                         <template slot="content">
                                             <p v-for="clientEmail in clientCount[dbInbound.id].expiring">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" color="orange" v-if="clientCount[dbInbound.id].expiring.length">[[ clientCount[dbInbound.id].expiring.length ]]</a-tag>
                                     </a-popover>
+                                    <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                        <template slot="content">
+                                            <p v-for="clientEmail in clientCount[dbInbound.id].online">[[ clientEmail ]]</p>
+                                        </template>
+                                        <a-tag style="margin:0; padding: 0 2px;" color="blue" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>
+                                    </a-popover>  
                                 </template>
                             </template>
                             <template slot="traffic" slot-scope="text, dbInbound">
-                                <a-popover :overlay-class-name="themeSwitcher.darkClass">
+                                <a-popover :overlay-class-name="themeSwitcher.currentTheme">
                                     <template slot="content">
                                         <table cellpadding="2" width="100%">
                                             <tr>
@@ -230,7 +302,7 @@
                                             </tr>
                                         </table>
                                     </template>
-                                    <a-tag :color="dbInbound.total == 0 ? 'green' : dbInbound.up + dbInbound.down < dbInbound.total ? 'cyan' : 'red'">
+                                    <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
                                         [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
                                         <template v-if="dbInbound.total > 0">
                                             [[ sizeFormat(dbInbound.total) ]]
@@ -245,35 +317,117 @@
                                 <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
                             </template>
                             <template slot="expiryTime" slot-scope="text, dbInbound">
-                                <template v-if="dbInbound.expiryTime > 0">
-                                    <a-tag v-if="dbInbound.isExpiry" color="red">
+                                <a-popover v-if="dbInbound.expiryTime > 0" :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template slot="content">
                                         [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
+                                    </template>
+                                    <a-tag style="min-width: 50px;" :color="usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
+                                        [[ remainedDays(dbInbound._expiryTime) ]]
                                     </a-tag>
-                                    <a-tag v-else color="blue">
-                                        [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
-                                    </a-tag>
-                                </template>
-                                <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
+                                </a-popover>
+                                <a-tag v-else color="purple" class="infinite-tag">&infin;</a-tag>
+                            </template>
+                            <template slot="info" slot-scope="text, dbInbound">
+                                <a-popover placement="bottomRight" :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+                                    <template slot="content">
+                                        <table cellpadding="2">
+                                            <tr>
+                                                <td>{{ i18n "pages.inbounds.protocol" }}</td>
+                                                <td>
+                                                    <a-tag style="margin:0;" color="purple">[[ dbInbound.protocol ]]</a-tag>
+                                                    <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                                                        <a-tag style="margin:0;" color="blue">[[ dbInbound.toInbound().stream.network ]]</a-tag>
+                                                        <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="green">tls</a-tag>
+                                                        <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="green">reality</a-tag>
+                                                    </template>                    
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ i18n "pages.inbounds.port" }}</td>
+                                                <td><a-tag>[[ dbInbound.port ]]</a-tag></td>
+                                            </tr>
+                                            <tr v-if="clientCount[dbInbound.id]">
+                                                <td>{{ i18n "clients" }}</td>
+                                                <td>
+                                                    <a-tag style="margin:0;" color="blue">[[ clientCount[dbInbound.id].clients ]]</a-tag>
+                                                    <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                                        <template slot="content">
+                                                            <p v-for="clientEmail in clientCount[dbInbound.id].deactive">[[ clientEmail ]]</p>
+                                                        </template>
+                                                        <a-tag style="margin:0; padding: 0 2px;" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
+                                                    </a-popover>
+                                                    <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                                        <template slot="content">
+                                                            <p v-for="clientEmail in clientCount[dbInbound.id].depleted">[[ clientEmail ]]</p>
+                                                        </template>
+                                                        <a-tag style="margin:0; padding: 0 2px;" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
+                                                    </a-popover>
+                                                    <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                                        <template slot="content">
+                                                            <p v-for="clientEmail in clientCount[dbInbound.id].expiring">[[ clientEmail ]]</p>
+                                                        </template>
+                                                        <a-tag style="margin:0; padding: 0 2px;" color="orange" v-if="clientCount[dbInbound.id].expiring.length">[[ clientCount[dbInbound.id].expiring.length ]]</a-tag>
+                                                    </a-popover>
+                                                    <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
+                                                        <template slot="content">
+                                                            <p v-for="clientEmail in clientCount[dbInbound.id].online">[[ clientEmail ]]</p>
+                                                        </template>
+                                                        <a-tag style="margin:0; padding: 0 2px;" color="green" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>
+                                                    </a-popover>                
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ i18n "pages.inbounds.traffic" }}</td>
+                                                <td>
+                                                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                                                        <template slot="content">
+                                                            <table cellpadding="2" width="100%">
+                                                                <tr>
+                                                                    <td>↑[[ sizeFormat(dbInbound.up) ]]</td>
+                                                                    <td>↓[[ sizeFormat(dbInbound.down) ]]</td>
+                                                                </tr>
+                                                                <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
+                                                                    <td>{{ i18n "remained" }}</td>
+                                                                    <td>[[ sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
+                                                                </tr>
+                                                            </table>
+                                                        </template>
+                                                        <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
+                                                            [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
+                                                            <template v-if="dbInbound.total > 0">
+                                                                [[ sizeFormat(dbInbound.total) ]]
+                                                            </template>
+                                                            <template v-else>&infin;</template>
+                                                        </a-tag>
+                                                    </a-popover>                    
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td>{{ i18n "pages.inbounds.expireDate" }}</td>
+                                                <td>
+                                                    <a-tag style="min-width: 50px; text-align: center;" v-if="dbInbound.expiryTime > 0" :color="dbInbound.isExpiry? 'red': 'blue'">
+                                                        [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
+                                                    </a-tag>
+                                                    <a-tag v-else style="text-align: center;" color="purple" class="infinite-tag">&infin;</a-tag>                    
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </template>
+                                    <a-badge>
+                                        <a-icon v-if="!dbInbound.enable" slot="count" type="pause-circle" :style="'color: ' + themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-icon>
+                                        <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
+                                            <a-icon type="info"></a-icon>
+                                        </a-button>
+                                    </a-badge>
+                                </a-popover>
                             </template>
                             <template slot="expandedRowRender" slot-scope="record">
                                 <a-table
-                                v-if="(record.protocol === Protocols.VLESS) || (record.protocol === Protocols.VMESS)"
-                                :row-key="client => client.id"
-                                :columns="innerColumns"
-                                :data-source="getInboundClients(record)"
-                                :pagination="false"
-                                style="margin-left: 20px;"
-                                >
-                                    {{template "client_table"}}
-                                </a-table>
-                                <a-table
-                                v-else-if="record.protocol === Protocols.TROJAN || record.toInbound().isSSMultiUser"
-                                :row-key="client => client.id"
-                                :columns="innerTrojanColumns"
-                                :data-source="getInboundClients(record)"
-                                :pagination="false"
-                                style="margin-left: 20px;"
-                                >
+                                    :row-key="client => client.id"
+                                    :columns="isMobile ? innerMobileColumns : innerColumns"
+                                    :data-source="getInboundClients(record)"
+                                    :pagination=pagination(getInboundClients(record))
+                                    style="margin: -12px 2px -13px;">
                                     {{template "client_table"}}
                                 </a-table>
                             </template>
@@ -285,13 +439,20 @@
     </a-layout>
 </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/base64/base64.min.js"></script>
+<script src="{{ .base_path }}assets/qrcode/qrious.min.js"></script>
+<script src="{{ .base_path }}assets/clipboard/clipboard.min.js"></script>
+<script src="{{ .base_path }}assets/uri/URI.min.js"></script>
+<script src="{{ .base_path }}assets/js/model/xray.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
 <script>
     const columns = [{
         title: "ID",
         align: 'right',
         dataIndex: "id",
-        width: 30,
+        width: 40,
+        responsive: ["xs"],
     }, {
         title: '{{ i18n "pages.inbounds.operate" }}',
         align: 'center',
@@ -320,7 +481,7 @@
     }, {
         title: '{{ i18n "clients" }}',
         align: 'left',
-        width: 40,
+        width: 50,
         scopedSlots: { customRender: 'clients' },
     }, {
         title: '{{ i18n "pages.inbounds.traffic" }}',
@@ -330,26 +491,46 @@
     }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
         align: 'center',
-        width: 80,
+        width: 60,
         scopedSlots: { customRender: 'expiryTime' },
     }];
 
+    const mobileColums = [{
+        title: "ID",
+        align: 'right',
+        dataIndex: "id",
+        width: 10,
+        responsive: ["s"],
+    }, {
+        title: '{{ i18n "pages.inbounds.operate" }}',
+        align: 'center',
+        width: 25,
+        scopedSlots: { customRender: 'action' },
+    }, {
+        title: '{{ i18n "pages.inbounds.remark" }}',
+        align: 'left',
+        width: 70,
+        dataIndex: "remark",
+    }, {
+        title: '{{ i18n "pages.inbounds.info" }}',
+        align: 'center',
+        width: 10,
+        scopedSlots: { customRender: 'info' },
+    }];
+
     const innerColumns = [
-        { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "pages.inbounds.operate" }}', width: 65, scopedSlots: { customRender: 'actions' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 50, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 50, scopedSlots: { customRender: 'expiryTime' } },
-        { title: 'UUID', width: 120, dataIndex: "id" },
+        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
     ];
 
-    const innerTrojanColumns = [
-        { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 40, scopedSlots: { customRender: 'enable' } },
-        { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-        { title: '{{ i18n "pages.inbounds.traffic" }}', width: 50, scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 50, scopedSlots: { customRender: 'expiryTime' } },
-        { title: '{{ i18n "password" }}', width: 170, dataIndex: "password" },
+    const innerMobileColumns = [
+        { title: '{{ i18n "pages.inbounds.operate" }}', width: 10, align: 'center', scopedSlots: { customRender: 'actionMenu' } },
+        { title: '{{ i18n "pages.inbounds.client" }}', width: 90, align: 'left', scopedSlots: { customRender: 'client' } },
+        { title: '{{ i18n "pages.inbounds.info" }}', width: 10, align: 'center', scopedSlots: { customRender: 'info' } },
     ];
 
     const app = new Vue({
@@ -370,17 +551,18 @@
             defaultCert: '',
             defaultKey: '',
             clientCount: [],
+            onlineClients: [],
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
             refreshing: false,
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
-                port: 0,
-                path: '',
-                domain: '',
-                tls: false
+                subURI : ''
             },
-            tgBotEnable: false
+            remarkModel: '-ieo',
+            tgBotEnable: false,
+            pageSize: 0,
+            isMobile: window.innerWidth <= 768,
         },
         methods: {
             loading(spinning = true) {
@@ -393,10 +575,18 @@
                     this.refreshing = false;
                     return;
                 }
+                await this.getOnlineUsers();
                 this.setInbounds(msg.obj);
                 setTimeout(() => {
                     this.refreshing = false;
                 }, 500);
+            },
+            async getOnlineUsers() {
+                const msg = await HttpUtil.post('/panel/inbound/onlines');
+                if (!msg.success) {
+                    return;
+                }
+                this.onlineClients = msg.obj != null ? msg.obj : [];
             },
             async getDefaultSettings() {
                 const msg = await HttpUtil.post('/panel/setting/defaultSettings');
@@ -411,11 +601,10 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
-                        port: subPort,
-                        path: subPath,
-                        domain: subDomain,
-                        tls: subTLS
+                        subURI: subURI
                     };
+                    this.pageSize = pageSize;
+                    this.remarkModel = remarkModel;
                 }
             },
             setInbounds(dbInbounds) {
@@ -441,8 +630,8 @@
                 }
             },
             getClientCounts(dbInbound, inbound) {
-                let clientCount = 0, active = [], deactive = [], depleted = [], expiring = [];
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                let clientCount = 0, active = [], deactive = [], depleted = [], expiring = [], online = [];
+                clients = inbound.clients;
                 clientStats = dbInbound.clientStats
                 now = new Date().getTime()
                 if (clients) {
@@ -450,6 +639,7 @@
                     if (dbInbound.enable) {
                         clients.forEach(client => {
                             client.enable ? active.push(client.email) : deactive.push(client.email);
+                            if(this.isClientOnline(client.email)) online.push(client.email);
                         });
                         clientStats.forEach(client => {
                             if (!client.enable) {
@@ -471,6 +661,7 @@
                     deactive: deactive,
                     depleted: depleted,
                     expiring: expiring,
+                    online: online,
                 };
             },
             searchInbounds(key) {
@@ -530,6 +721,9 @@
             },
             generalActions(action) {
                 switch (action.key) {
+                    case "import":
+                        this.importInbound();
+                        break;
                     case "export":
                         this.exportAllLinks();
                         break;
@@ -547,10 +741,10 @@
             clickAction(action, dbInbound) {
                 switch (action.key) {
                     case "qrcode":
-                        this.showQrcode(dbInbound);
+                        this.showQrcode(dbInbound.id);
                         break;
                     case "showInfo":
-                        this.showInfo(dbInbound);
+                        this.showInfo(dbInbound.id);
                         break;
                     case "edit":
                         this.openEditInbound(dbInbound.id);
@@ -563,6 +757,9 @@
                         break;
                     case "export":
                         this.inboundLinks(dbInbound.id);
+                        break;
+                    case "clipboard":
+                        this.copyToClipboard(dbInbound.id);
                         break;
                     case "resetTraffic":
                         this.resetTraffic(dbInbound.id);
@@ -586,6 +783,7 @@
                     title: '{{ i18n "pages.inbounds.cloneInbound"}} \"' + dbInbound.remark + '\"',
                     content: '{{ i18n "pages.inbounds.cloneInboundContent"}}',
                     okText: '{{ i18n "pages.inbounds.cloneInboundOk"}}',
+                    class: themeSwitcher.currentTheme,
                     cancelText: '{{ i18n "cancel" }}',
                     onOk: () => {
                         const baseInbound = dbInbound.toInbound();
@@ -752,7 +950,7 @@
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => {
@@ -767,31 +965,26 @@
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.deleteInbound"}}',
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/panel/inbound/del/' + dbInboundId),
                 });
             },
-            delClient(dbInboundId, client) {
+            delClient(dbInboundId, client,confirmation = true) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 clientId = this.getClientId(dbInbound.protocol, client);
-                this.$confirm({
-                    title: '{{ i18n "pages.inbounds.deleteInbound"}}',
-                    content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
-                    class: themeSwitcher.darkCardClass,
-                    okText: '{{ i18n "delete"}}',
-                    cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`),
-                });
-            },
-            getClients(protocol, clientSettings) {
-                switch (protocol) {
-                    case Protocols.VMESS: return clientSettings.vmesses;
-                    case Protocols.VLESS: return clientSettings.vlesses;
-                    case Protocols.TROJAN: return clientSettings.trojans;
-                    case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
-                    default: return null;
+                if (confirmation){
+                    this.$confirm({
+                        title: '{{ i18n "pages.inbounds.deleteClient"}}',
+                        content: '{{ i18n "pages.inbounds.deleteClientContent"}}',
+                        class: themeSwitcher.currentTheme,
+                        okText: '{{ i18n "delete"}}',
+                        cancelText: '{{ i18n "cancel"}}',
+                        onOk: () => this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`),
+                    });
+                } else {
+                    this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
                 }
             },
             getClientId(protocol, client) {
@@ -805,7 +998,7 @@
                 newDbInbound = new DBInbound(dbInbound);
                 if (dbInbound.listen.startsWith("@")){
                     rootInbound = this.inbounds.find((i) => 
-                        i.tls && 
+                        i.isTcp && 
                         ['trojan','vless'].includes(i.protocol) &&
                         i.settings.fallbacks.find(f => f.dest === dbInbound.listen)
                     );
@@ -813,18 +1006,27 @@
                         newDbInbound.listen = rootInbound.listen;
                         newDbInbound.port = rootInbound.port;
                         newInbound = newDbInbound.toInbound();
-                        newInbound.stream.security = 'tls';
+                        newInbound.stream.security = rootInbound.stream.security;
                         newInbound.stream.tls = rootInbound.stream.tls;
+                        newInbound.stream.externalProxy = rootInbound.stream.externalProxy;
                         newDbInbound.streamSettings = newInbound.stream.toString();
                     }
                 }
                 return newDbInbound;
             },
-            showQrcode(dbInbound, clientIndex) {
+            showQrcode(dbInboundId, client) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, clientIndex);
+                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client);
             },
-            showInfo(dbInbound, index) {
+            showInfo(dbInboundId, client) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                index=0;
+                if (dbInbound.isMultiUser()){
+                    inbound = dbInbound.toInbound();
+                    clients = inbound.clients;
+                    index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                }
                 newDbInbound = this.checkFallback(dbInbound);
                 infoModal.show(newDbInbound, index);
             },
@@ -836,7 +1038,7 @@
                 this.loading()
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 inbound = dbInbound.toInbound();
-                clients = this.getClients(dbInbound.protocol, inbound.settings);
+                clients = inbound.clients;
                 index = this.findIndexOfClient(dbInbound.protocol, clients, client);
                 clients[index].enable = !clients[index].enable;
                 clientId = this.getClientId(dbInbound.protocol, clients[index]);
@@ -850,31 +1052,27 @@
                 }
             },
             getInboundClients(dbInbound) {
-                if (dbInbound.protocol == Protocols.VLESS) {
-                    return dbInbound.toInbound().settings.vlesses;
-                } else if (dbInbound.protocol == Protocols.VMESS) {
-                    return dbInbound.toInbound().settings.vmesses;
-                } else if (dbInbound.protocol == Protocols.TROJAN) {
-                    return dbInbound.toInbound().settings.trojans;
-                } else if (dbInbound.protocol == Protocols.SHADOWSOCKS) {
-                    return dbInbound.toInbound().settings.shadowsockses;
-                }
+                return dbInbound.toInbound().clients;
             },
-            resetClientTraffic(client, dbInboundId) {
-                this.$confirm({
-                    title: '{{ i18n "pages.inbounds.resetTraffic"}}',
-                    content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
-                    okText: '{{ i18n "reset"}}',
-                    cancelText: '{{ i18n "cancel"}}',
-                    onOk: () => this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
-                })
+            resetClientTraffic(client, dbInboundId, confirmation = true) {
+                if (confirmation){
+                    this.$confirm({
+                        title: '{{ i18n "pages.inbounds.resetTraffic"}}',
+                        content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
+                        class: themeSwitcher.currentTheme,
+                        okText: '{{ i18n "reset"}}',
+                        cancelText: '{{ i18n "cancel"}}',
+                        onOk: () => this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
+                    })
+                } else {
+                    this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
+                }
             },
             resetAllTraffic() {
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetAllTrafficTitle"}}',
                     content: '{{ i18n "pages.inbounds.resetAllTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/panel/inbound/resetAllTraffics'),
@@ -884,7 +1082,7 @@
                 this.$confirm({
                     title: dbInboundId > 0 ? '{{ i18n "pages.inbounds.resetInboundClientTrafficTitle"}}' : '{{ i18n "pages.inbounds.resetAllClientTrafficTitle"}}',
                     content: dbInboundId > 0 ? '{{ i18n "pages.inbounds.resetInboundClientTrafficContent"}}' : '{{ i18n "pages.inbounds.resetAllClientTrafficContent"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/panel/inbound/resetAllClientTraffics/' + dbInboundId),
@@ -894,48 +1092,117 @@
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.delDepletedClientsTitle"}}',
                     content: '{{ i18n "pages.inbounds.delDepletedClientsContent"}}',
-                    class: themeSwitcher.darkCardClass,
-                    okText: '{{ i18n "reset"}}',
+                    class: themeSwitcher.currentTheme,
+                    okText: '{{ i18n "delete"}}',
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: () => this.submit('/panel/inbound/delDepletedClients/' + dbInboundId),
                 })
             },
             isExpiry(dbInbound, index) {
-                return dbInbound.toInbound().isExpiry(index)
+                return dbInbound.toInbound().isExpiry(index);
             },
             getUpStats(dbInbound, email) {
-                if (email.length == 0) return 0
-                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
-                return clientStats ? clientStats.up : 0
+                if (email.length == 0) return 0;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                return clientStats ? clientStats.up : 0;
             },
             getDownStats(dbInbound, email) {
-                if (email.length == 0) return 0
-                clientStats = dbInbound.clientStats.find(stats => stats.email === email)
-                return clientStats ? clientStats.down : 0
-            },
-            statsColor(dbInbound, email) {
-                if(email.length == 0) return 'blue';
+                if (email.length == 0) return 0;
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
-                return usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
+                return clientStats ? clientStats.down : 0;
+            },
+            getSumStats(dbInbound, email) {
+                if (email.length == 0) return 0;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                return clientStats ? clientStats.up + clientStats.down : 0;
+            },
+            getRemStats(dbInbound, email) {
+                if (email.length == 0) return 0;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                if (!clientStats) return 0;
+                remained = clientStats.total - (clientStats.up + clientStats.down);
+                return remained>0 ? remained : 0;
+            },
+            clientStatsColor(dbInbound, email) {
+                if (email.length == 0) return clientUsageColor();
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                return clientUsageColor(clientStats, app.trafficDiff)
+            },
+            statsProgress(dbInbound, email) {
+                if (email.length == 0) return 100;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                if (!clientStats) return 0;
+                if (clientStats.total == 0) return 100;
+                return 100*(clientStats.down + clientStats.up)/clientStats.total;
+            },
+            expireProgress(expTime, reset) {
+                now = new Date().getTime();
+                remainedSeconds = expTime < 0 ? -expTime/1000 : (expTime-now)/1000;
+                resetSeconds = reset * 86400;
+                if (remainedSeconds >= resetSeconds) return 0;
+                return 100*(1-(remainedSeconds/resetSeconds));
+            },
+            remainedDays(expTime){
+                if (expTime == 0) return null;
+                if (expTime < 0) return formatSecond(expTime/-1000);
+                now = new Date().getTime();
+                if (expTime < now) return '{{ i18n "depleted" }}';
+                return formatSecond((expTime-now)/1000);
+            },
+            statsExpColor(dbInbound, email){
+                if (email.length == 0) return '#7a316f';
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                if (!clientStats) return '#7a316f';
+                statsColor = usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
+                expColor = usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
+                switch (true) {
+                    case statsColor == "red" || expColor == "red":
+                        return "#cf3c3c"; // Red
+                    case statsColor == "orange" || expColor == "orange":
+                        return "#f37b24"; // Orange
+                    case statsColor == "green" || expColor == "green":
+                        return "#008771"; // Green
+                    default:
+                        return "#7a316f"; // purple
+                }
             },
             isClientEnabled(dbInbound, email) {
-                clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null
-                return clientStats ? clientStats['enable'] : true
+                clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null;
+                return clientStats ? clientStats['enable'] : true;
             },
-            isRemovable(dbInbound_id) {
-                return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInbound_id)).length > 1
+            isClientOnline(email) {
+                return this.onlineClients.includes(email);
+            },
+            isRemovable(dbInboundId) {
+                return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1
             },
             inboundLinks(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks, newDbInbound.remark);
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(), newDbInbound.remark);
+            },
+            importInbound() {
+                promptModal.open({
+                    title: '{{ i18n "pages.inbounds.importInbound" }}',
+                    type: 'textarea',
+                    value: '',
+                    okText: '{{ i18n "pages.inbounds.import" }}',
+                    confirm: async (dbInboundText) => {
+                        await this.submit('/panel/inbound/import', {data: dbInboundText}, promptModal);
+                        promptModal.close();
+                    },
+                });
             },
             exportAllLinks() {
-                let copyText = '';
+                let copyText = [];
                 for (const dbInbound of this.dbInbounds) {
-                    copyText += dbInbound.genInboundLinks
+                    copyText.push(dbInbound.genInboundLinks(this.remarkModel));
                 }
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText, 'All-Inbounds');
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText.join('\r\n'), 'All-Inbounds');
+            },
+            copyToClipboard(dbInboundId) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                txtModal.show('{{ i18n "pages.inbounds.inboundData" }}', JSON.stringify(dbInbound, null, 2));
             },
             async startDataRefreshLoop() {
                 while (this.isRefreshEnabled) {
@@ -963,6 +1230,30 @@
                     this.spinning = false;
                 }
             },
+            pagination(obj){
+                if (this.pageSize > 0 && obj.length>this.pageSize) {
+                    // Set page options based on object size
+                    sizeOptions = []
+                    for (i=this.pageSize;i<=obj.length;i=i+this.pageSize) {
+                        sizeOptions.push(i.toString());
+                    }
+                    // Add option to see all in one page
+                    sizeOptions.push(i.toString());
+
+                    p = {
+                        showSizeChanger: true,
+                        size: 'small',
+                        position: 'bottom',
+                        pageSize: this.pageSize,
+                        pageSizeOptions: sizeOptions
+                    }
+                    return p
+                }
+                return false
+            },
+            onResize() {
+                this.isMobile = window.innerWidth <= 768;
+            }
         },
         watch: {
             searchKey: debounce(function (newVal) {
@@ -970,6 +1261,8 @@
             }, 500)
         },
         mounted() {
+            window.addEventListener('resize', this.onResize);
+            this.onResize();
             this.loading();
             this.getDefaultSettings();
             if (this.isRefreshEnabled) {

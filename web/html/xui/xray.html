@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.css">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
+
+<script src="{{ .base_path }}assets/js/model/outbound.js"></script>
+<script src="{{ .base_path }}assets/codemirror/codemirror.js"></script>
+<script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
+<script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/lint/lint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/lint/javascript-lint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/hint/javascript-hint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/foldcode.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/foldgutter.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/brace-fold.js"></script>
+<style>
+    @media (min-width: 769px) {
+        .ant-layout-content {
+            margin: 24px 16px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ant-tabs-nav .ant-tabs-tab {
+            margin: 0;
+            padding: 12px .5rem;
+        }
+        .ant-table-thead > tr > th,
+        .ant-table-tbody > tr > td {
+            padding: 10px 0px;
+        }
+    }
+
+    .ant-tabs-bar {
+        margin: 0;
+    }
+
+    .ant-list-item {
+        display: block;
+    }
+
+    .collapse-title {
+        color: inherit;
+        font-weight: bold;
+        font-size: 18px;
+        padding: 10px 20px;
+        border-bottom: 2px solid;
+    }
+
+    .collapse-title > i {
+        color: inherit;
+        font-size: 24px;
+    }
+</style>
+<body>
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+    {{ template "commonSider" . }}
+    <a-layout id="content-layout">
+        <a-layout-content>
+            <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+                <a-space direction="vertical">
+                    <a-card hoverable style="margin-bottom: .5rem;">
+                        <a-row>
+                            <a-col :xs="24" :sm="8" style="padding: 4px;">
+                                <a-space direction="horizontal">
+                                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
+                                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
+                                    <a-popover v-if="restartResult"
+                                        :overlay-class-name="themeSwitcher.currentTheme">
+                                        <span slot="title" style="font-size: 12pt">Error in running xray-core</span>
+                                        <template slot="content">
+                                            <p style="max-width: 400px" v-for="line in restartResult.split('\n')">[[ line ]]</p>
+                                        </template>
+                                        <a-icon type="question-circle"></a-icon>
+                                    </a-popover>
+                                </a-space>
+                            </a-col>
+                            <a-col :xs="24" :sm="16">
+                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                </a-back-top>
+                                <a-alert type="warning" style="float: right; width: fit-content"
+                                message='{{ i18n "pages.settings.infoDesc" }}'
+                                show-icon
+                                >
+                            </a-col>
+                        </a-row>
+                    </a-card>
+                    <a-tabs class="ant-card-dark-box-nohover" default-active-key="tpl-1"
+                    @change="(activeKey) => { if(activeKey == 'tpl-4') this.changeCode(); }"
+                    :class="themeSwitcher.currentTheme">
+                        <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
+                            <a-space direction="horizontal" style="padding: 20px 20px">
+                                <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
+                            </a-space>
+                            <a-collapse>
+                                <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.generalConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <a-list-item>
+                                        <a-row style="padding: 20px">
+                                            <a-col :lg="24" :xl="12">
+                                                <a-list-item-meta 
+                                                    title='{{ i18n "pages.xray.FreedomStrategy" }}'
+                                                    description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'/>
+                                            </a-col>
+                                            <a-col :lg="24" :xl="12">
+                                                <template>
+                                                    <a-select
+                                                        v-model="freedomStrategy"
+                                                        :dropdown-class-name="themeSwitcher.currentTheme"
+                                                        style="width: 100%">
+                                                        <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
+                                                    </a-select>
+                                                </template>
+                                            </a-col>
+                                        </a-row>
+                                    </a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta 
+                                                title='{{ i18n "pages.xray.RoutingStrategy" }}'
+                                                description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'/>
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select
+                                                    v-model="routingStrategy"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme"
+                                                    style="width: 100%">
+                                                    <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.blockConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Torrent"}}' desc='{{ i18n "pages.xray.TorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.PrivateIp"}}' desc='{{ i18n "pages.xray.PrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Ads"}}' desc='{{ i18n "pages.xray.AdsDesc"}}' v-model="AdsSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Speedtest"}}' desc='{{ i18n "pages.xray.SpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.blockCountryConfigs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.blockCountryConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.IRIp"}}' desc='{{ i18n "pages.xray.IRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.IRDomain"}}' desc='{{ i18n "pages.xray.IRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaIp"}}' desc='{{ i18n "pages.xray.ChinaIpDesc"}}' v-model="ChinaIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaDomain"}}' desc='{{ i18n "pages.xray.ChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaIp"}}' desc='{{ i18n "pages.xray.RussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaDomain"}}' desc='{{ i18n "pages.xray.RussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.directCountryConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRIp"}}' desc='{{ i18n "pages.xray.DirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRDomain"}}' desc='{{ i18n "pages.xray.DirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaIp"}}' desc='{{ i18n "pages.xray.DirectChinaIpDesc"}}' v-model="ChinaIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.ipv4ConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleIPv4"}}' desc='{{ i18n "pages.xray.GoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixIPv4"}}' desc='{{ i18n "pages.xray.NetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.warpConfigs"}}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.warpConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
+                                    </a-row>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleWARP"}}' desc='{{ i18n "pages.xray.GoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+                                </a-collapse-panel>
+                            </a-collapse>
+                        </a-tab-pane>
+                        <a-tab-pane key="tpl-2" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
+                            <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
+                            message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
+                            <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
+                            <a-table :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
+                                :row-key="r => r.key"
+                                :data-source="routingRuleData"
+                                :scroll="isMobile ? {} : { x: 1000 }"
+                                :pagination="false"
+                                :indent-size="0"
+                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'">
+                                <template slot="action" slot-scope="text, rule, index">
+                                    [[ index+1 ]]
+                                    <a-dropdown :trigger="['click']">
+                                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
+                                                <a-icon type="vertical-align-top"></a-icon>
+                                                {{ i18n "pages.xray.rules.first"}}
+                                            </a-menu-item>
+                                            <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
+                                                <a-icon type="arrow-up"></a-icon>
+                                                {{ i18n "pages.xray.rules.up"}}
+                                            </a-menu-item>
+                                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
+                                                <a-icon type="arrow-down"></a-icon>
+                                                {{ i18n "pages.xray.rules.down"}}
+                                            </a-menu-item>
+                                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,routingRuleData.length-1)">
+                                                <a-icon type="vertical-align-bottom"></a-icon>
+                                                {{ i18n "pages.xray.rules.last"}}
+                                            </a-menu-item>
+                                            <a-menu-item @click="editRule(index)">
+                                                <a-icon type="edit"></a-icon>
+                                                {{ i18n "edit" }}
+                                            </a-menu-item>
+                                            <a-menu-item @click="deleteRule(index)">
+                                                <span style="color: #FF4D4F">
+                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                </span>
+                                            </a-menu-item>
+                                        </a-menu>
+                                    </a-dropdown>
+                                </template>
+                                <template slot="inbound" slot-scope="text, rule, index">
+                                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                                        <template slot="content">
+                                            <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
+                                            <p v-if="rule.user">User email: [[ rule.user ]]</p>
+                                        </template>
+                                        [[ [rule.inboundTag,rule.user].join('\n') ]]
+                                    </a-popover>
+                                </template>
+                                <template slot="outbound" slot-scope="text, rule, index">
+                                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                                        <template slot="content">
+                                            <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
+                                        </template>
+                                        [[ rule.outboundTag ]]
+                                    </a-popover>
+                                </template>
+                                <template slot="info" slot-scope="text, rule, index">
+                                    <a-popover placement="bottomRight"
+                                        v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
+                                        :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+                                        <template slot="content">
+                                            <table cellpadding="2" style="max-width: 300px;">
+                                                <tr v-if="rule.source">
+                                                    <td>Source</td>
+                                                    <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.sourcePort">
+                                                    <td>Source Port</td>
+                                                    <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.network">
+                                                    <td>Network</td>
+                                                    <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.protocol">
+                                                    <td>Protocol</td>
+                                                    <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.attrs">
+                                                    <td>Attrs</td>
+                                                    <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.ip">
+                                                    <td>IP</td>
+                                                    <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.domain">
+                                                    <td>Domain</td>
+                                                    <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                                <tr v-if="rule.port">
+                                                    <td>Port</td>
+                                                    <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
+                                                </tr>
+                                            </table>
+                                        </template>
+                                        <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
+                                            <a-icon type="info"></a-icon>
+                                        </a-button>
+                                    </a-popover>
+                                </template>
+                            </a-table>
+                        </a-tab-pane>
+                        <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
+                            <a-button type="primary" icon="plus" @click="addOutbound()">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                            <a-button type="primary" icon="plus" @click="addReverse()">{{ i18n "pages.xray.outbound.addReverse" }}</a-button>
+                            <a-row>
+                                <a-col :sm="24" :md="12">
+                                    <p style="margin: 10px;">{{ i18n "pages.xray.Outbounds"}}</p>
+                                    <a-table :columns="outboundColumns" bordered
+                                    :row-key="r => r.key"
+                                    :data-source="outboundData"
+                                    :scroll="isMobile ? {} : { x: 200 }"
+                                    :pagination="false"
+                                    :indent-size="0"
+                                    :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
+                                        <template slot="action" slot-scope="text, outbound, index">
+                                            [[ index+1 ]]
+                                            <a-dropdown :trigger="['click']">
+                                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                    <a-menu-item @click="editOutbound(index)">
+                                                        <a-icon type="edit"></a-icon>
+                                                        {{ i18n "edit" }}
+                                                    </a-menu-item>
+                                                    <a-menu-item @click="deleteOutbound(index)">
+                                                        <span style="color: #FF4D4F">
+                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                        </span>
+                                                    </a-menu-item>
+                                                </a-menu>
+                                            </a-dropdown>
+                                        </template>
+                                        <template slot="address" slot-scope="text, outbound, index">
+                                            <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
+                                        </template>
+                                        <template slot="protocol" slot-scope="text, outbound, index">
+                                            <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
+                                            <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
+                                                <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
+                                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
+                                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
+                                            </template>
+                                        </template>
+                                    </a-table>
+                                </a-col>
+                                <a-col :sm="24" :md="12" v-if="reverseData.length>0">
+                                    <p style="margin: 10px;">{{ i18n "pages.xray.outbound.reverse"}}</p>
+                                    <a-table :columns="reverseColumns" bordered
+                                    :row-key="r => r.key"
+                                    :data-source="reverseData"
+                                    :scroll="isMobile ? {} : { x: 200 }"
+                                    :pagination="false"
+                                    :indent-size="0"
+                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                        <template slot="action" slot-scope="text, reverse, index">
+                                            [[ index+1 ]]
+                                            <a-dropdown :trigger="['click']">
+                                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                    <a-menu-item @click="editReverse(index)">
+                                                        <a-icon type="edit"></a-icon>
+                                                        {{ i18n "edit" }}
+                                                    </a-menu-item>
+                                                    <a-menu-item @click="deleteReverse(index)">
+                                                        <span style="color: #FF4D4F">
+                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                        </span>
+                                                    </a-menu-item>
+                                                </a-menu>
+                                            </a-dropdown>
+                                        </template>
+                                    </a-table>
+                                </a-col>
+                            </a-row>
+                        </a-tab-pane>
+                        <a-tab-pane key="tpl-4" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
+                            <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
+                            <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
+                                <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
+                                <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
+                                <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
+                                <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
+                            </a-radio-group>
+                            <textarea style="position:absolute; left: -800px;" id="xraySetting"></textarea>
+                        </a-tab-pane>
+                    </a-tabs>
+                </a-space>
+            </a-spin>
+        </a-layout-content>
+    </a-layout>
+</a-layout>
+{{template "js" .}}
+{{template "component/themeSwitcher" .}}
+{{template "component/setting"}}
+{{template "ruleModal"}}
+{{template "outModal"}}
+{{template "reverseModal"}}
+<script>
+        const rulesColumns = [
+        { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.rules.source"}}', children: [
+            { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
+            { title: 'port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
+        { title: '{{ i18n "pages.inbounds.network"}}', children: [
+            { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
+            { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 10, ellipsis: true },
+            { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 20, ellipsis: true } ]}, 
+        { title: '{{ i18n "pages.xray.rules.dest"}}', children: [
+            { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
+            { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
+            { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
+        { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
+            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 20, ellipsis: true },
+            { title: 'User email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 20 },
+    ];
+
+    const rulesMobileColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.rules.inbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'inbound' } },
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'outbound' } },
+        { title: '{{ i18n "pages.xray.rules.info"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'info' } },
+    ];
+
+    const outboundColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "protocol"}}', align: 'center', width: 50, scopedSlots: { customRender: 'protocol' }  },
+        { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+    ];
+
+    const reverseColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.type"}}', dataIndex: 'type', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
+    ];
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#app',
+        data: {
+            siderDrawer,
+            themeSwitcher,
+            isDarkTheme: themeSwitcher.isDarkTheme,
+            spinning: false,
+            oldXraySetting: '',
+            xraySetting: '',
+            inboundTags: [],
+            saveBtnDisable: true,
+            restartResult: '',
+            isMobile: window.innerWidth <= 768,
+            advSettings: 'xraySetting',
+            cm: null,
+            cmOptions: {
+                lineNumbers: true,
+                mode: "application/json",
+                lint: true,
+                styleActiveLine: true,
+                matchBrackets: true,
+                theme: "xq",
+                autoCloseTags: true,
+                lineWrapping: true,
+                indentUnit: 2,
+                indentWithTabs: true,
+                smartIndent: true,
+                tabSize: 2,
+                lineWiseCopyCut: false,
+                foldGutter: true,
+                gutters: [
+                    "CodeMirror-lint-markers",
+                    "CodeMirror-linenumbers",
+                    "CodeMirror-foldgutter",
+                ],
+            },
+            ipv4Settings: {
+                tag: "IPv4",
+                protocol: "freedom",
+                settings: {
+                    domainStrategy: "UseIPv4"
+                }
+            },
+            warpSettings: {
+                tag: "WARP",
+                protocol: "socks",
+                settings: {
+                    servers: [
+                        {
+                            address: "127.0.0.1",
+                            port: 40000
+                        }
+                    ]
+                }
+            },
+            directSettings: {
+                tag: "direct",
+                protocol: "freedom"
+            },
+            outboundDomainStrategies: ["AsIs", "UseIP", "UseIPv4", "UseIPv6"],
+            routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
+            settingsData: {
+                protocols: {
+                    bittorrent: ["bittorrent"],
+                },
+                ips: {
+                    local: ["geoip:private"],
+                    cn: ["geoip:cn"],
+                    ir: ["ext:geoip_IR.dat:ir"],
+                    ru: ["geoip:ru"],
+                },
+                domains: {
+                    ads: [
+                        "geosite:category-ads-all",
+                        "ext:geosite_IR.dat:category-ads-all"
+                    ],
+                    speedtest: ["geosite:speedtest"],
+                    openai: ["geosite:openai"],
+                    google: ["geosite:google"],
+                    spotify: ["geosite:spotify"],
+                    netflix: ["geosite:netflix"],
+                    cn: [
+                        "geosite:cn",
+                        "regexp:.*\\.cn$"
+                    ],
+                    ru: [
+                        "geosite:category-gov-ru",
+                        "regexp:.*\\.ru$"
+                    ],
+                    ir: [
+                        "regexp:.*\\.ir$",
+                        "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
+                        "ext:geosite_IR.dat:ir"  // have rules to bypass all .ir domains.
+                    ]
+                },
+                familyProtectDNS: {
+                    "servers": [
+                        "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
+                        "1.0.0.3",
+                        "94.140.14.15",  // https://adguard-dns.io/kb/general/dns-providers/
+                        "94.140.15.16"
+                    ],
+                    "queryStrategy": "UseIPv4"
+                },
+            }
+        },
+        methods: {
+            loading(spinning = true) {
+                this.spinning = spinning;
+            },
+            async getXraySetting() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/xray/");
+                this.loading(false);
+                if (msg.success) {
+                    result = JSON.parse(msg.obj);
+                    xs = JSON.stringify(result.xraySetting, null, 2);
+                    this.oldXraySetting = xs;
+                    this.xraySetting = xs;
+                    this.inboundTags = result.inboundTags;
+                    this.saveBtnDisable = true;
+                }
+            },
+            async updateXraySetting() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/xray/update", {xraySetting : this.xraySetting});
+                this.loading(false);
+                if (msg.success) {
+                    await this.getXraySetting();
+                }
+            },
+            async restartXray() {
+                this.loading(true);
+                const msg = await HttpUtil.post("server/restartXrayService");
+                this.loading(false);
+                if (msg.success) {
+                    await PromiseUtil.sleep(500);
+                    await this.getXrayResult();
+                }
+                this.loading(false);
+            },
+            async getXrayResult() {
+                const msg = await HttpUtil.get("/panel/xray/getXrayResult");
+                    if(msg.success){
+                        this.restartResult=msg.obj;
+                        if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
+                    }
+            },
+            async fetchUserSecret() {
+                this.loading(true);
+                const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
+                if (userMessage.success) {
+                    this.user = userMessage.obj;
+                }
+                this.loading(false);
+            },
+            async updateSecret() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
+                if (msg.success) {
+                    this.user = msg.obj;
+                    window.location.replace(basePath + "logout");
+                }
+                this.loading(false);
+                await this.updateXraySetting();
+            },
+            generateRandomString(length) {
+                var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+                let randomString = "";
+                for (let i = 0; i < length; i++) {
+                    randomString += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return randomString;
+            },
+            async getNewSecret() {
+                this.loading(true);
+                await PromiseUtil.sleep(600);
+                const newSecret = this.generateRandomString(64);
+                this.user.loginSecret = newSecret;
+                document.getElementById("token").textContent = newSecret;
+                this.loading(false);
+            },
+            async toggleToken(value) {
+                if (value) {
+                await this.getNewSecret();
+                } else {
+                this.user.loginSecret = "";
+                }
+            },
+            async resetXrayConfigToDefault() {
+                this.loading(true);
+                const msg = await HttpUtil.get("/panel/setting/getDefaultJsonConfig");
+                this.loading(false);
+                if (msg.success) {
+                    this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
+                    this.saveBtnDisable = true;
+                }
+            },
+            syncRulesWithOutbound(tag, setting) {
+                const newTemplateSettings = {...this.templateSettings};
+                const haveRules = newTemplateSettings.routing.rules.some((r) => r?.outboundTag === tag);
+                const outboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.tag === tag);
+                if (!haveRules && outboundIndex >= 0) {
+                    newTemplateSettings.outbounds.splice(outboundIndex, 1);
+                }
+                if (haveRules && outboundIndex === -1) {
+                    newTemplateSettings.outbounds.push(setting);
+                }
+                this.templateSettings = newTemplateSettings;
+            },
+            templateRuleGetter(routeSettings) {
+                const { property, outboundTag } = routeSettings;
+                let result = [];
+                if (this.templateSettings != null) {
+                    this.templateSettings.routing.rules.forEach(
+                        (routingRule) => {
+                            if (
+                                routingRule.hasOwnProperty(property) &&
+                                routingRule.hasOwnProperty("outboundTag") &&
+                                routingRule.outboundTag === outboundTag
+                            ) {
+                                result.push(...routingRule[property]);
+                            }
+                        }
+                    );
+                }
+                return result;
+            },
+            templateRuleSetter(routeSettings) {
+                const { data, property, outboundTag } = routeSettings;
+                const oldTemplateSettings = this.templateSettings;
+                const newTemplateSettings = oldTemplateSettings;
+                currentProperty = this.templateRuleGetter({ outboundTag, property })
+                if (currentProperty.length == 0) {
+                    const propertyRule = {
+                        type: "field",
+                        outboundTag,
+                        [property]: data
+                    };
+                    newTemplateSettings.routing.rules.push(propertyRule);
+                }
+                else {
+                    const newRules = [];
+                    insertedOnce = false;
+                    newTemplateSettings.routing.rules.forEach(
+                        (routingRule) => {
+                            if (
+                                routingRule.hasOwnProperty(property) &&
+                                routingRule.hasOwnProperty("outboundTag") &&
+                                routingRule.outboundTag === outboundTag
+                            ) {
+                                if (!insertedOnce && data.length > 0) {
+                                    insertedOnce = true;
+                                    routingRule[property] = data;
+                                    newRules.push(routingRule);
+                                }
+                            }
+                            else {
+                                newRules.push(routingRule);
+                            }
+                        }
+                    );
+                    newTemplateSettings.routing.rules = newRules;
+                }
+                this.templateSettings = newTemplateSettings;
+            },
+            changeCode() {
+                if(this.cm != null) {
+                    this.cm.toTextArea();
+                }
+                textAreaObj = document.getElementById('xraySetting');
+                textAreaObj.value = this[this.advSettings];
+                this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
+                this.cm.on('change',editor => {
+                    value = editor.getValue();
+                    if(this.isJsonString(value)){
+                        this[this.advSettings] = value;
+                    }
+                });
+            },
+            isJsonString(str) {
+                try {
+                    JSON.parse(str);
+                } catch (e) {
+                    return false;
+                }
+                return true;
+            },
+            findOutboundAddress(o) {
+                serverObj = null;
+                switch(o.protocol){
+                    case Protocols.VMess:
+                    case Protocols.VLESS:
+                        serverObj = o.settings.vnext;
+                        break;
+                    case Protocols.HTTP:
+                    case Protocols.Socks:
+                    case Protocols.Shadowsocks:
+                    case Protocols.Trojan:
+                        serverObj = o.settings.servers;
+                        break;
+                    case Protocols.DNS:
+                        return [o.settings.address + ':' + o.settings.port];
+                    default:
+                        return null;
+                }
+                return serverObj ? serverObj.map(obj => obj.address + ':' + obj.port) : null;
+            },
+            addOutbound(){
+                outModal.show({
+                    title: '{{ i18n "pages.xray.outbound.addOutbound"}}',
+                    okText: '{{ i18n "pages.xray.outbound.addOutbound" }}',
+                    confirm: (outbound) => {
+                        outModal.loading();
+                        if(outbound.tag.length > 0){
+                            this.templateSettings.outbounds.push(outbound);
+                            this.outboundSettings = JSON.stringify(this.templateSettings.outbounds);
+                        }
+                        outModal.close();
+                    },
+                    isEdit: false,
+                    tags: this.templateSettings.outbounds.map(obj => obj.tag)
+                });
+            },
+            editOutbound(index){
+                outModal.show({
+                    title: '{{ i18n "pages.xray.outbound.editOutbound"}} ' + (index+1),
+                    outbound: app.templateSettings.outbounds[index],
+                    confirm: (outbound) => {
+                        outModal.loading();
+                        this.templateSettings.outbounds[index] = outbound;
+                        this.outboundSettings = JSON.stringify(this.templateSettings.outbounds);
+                        outModal.close();
+                    },
+                    isEdit: true,
+                    tags: this.outboundData.filter((o) => o.key != index ).map(obj => obj.tag)
+                });
+            },
+            deleteOutbound(index){
+                outbounds = this.templateSettings.outbounds;
+                outbounds.splice(index,1);
+                this.outboundSettings = JSON.stringify(outbounds);
+            },
+            addReverse(){
+                reverseModal.show({
+                    title: '{{ i18n "pages.xray.outbound.addReverse"}}',
+                    okText: '{{ i18n "pages.xray.outbound.addReverse" }}',
+                    confirm: (reverse, rules) => {
+                        reverseModal.loading();
+                        if(reverse.tag.length > 0){
+                            newTemplateSettings = this.templateSettings;
+                            if(newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
+                            if(newTemplateSettings.reverse[reverse.type+'s']  == undefined) newTemplateSettings.reverse[reverse.type+'s'] = [];
+                            newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            this.templateSettings = newTemplateSettings;
+
+                            // Add related rules
+                            this.templateSettings.routing.rules.push(...rules);
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        reverseModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editReverse(index){
+                if(this.reverseData[index].type == "bridge") {
+                    oldRules = this.templateSettings.routing.rules.filter(r => r.inboundTag && r.inboundTag[0] == this.reverseData[index].tag);
+                } else {
+                    oldRules = this.templateSettings.routing.rules.filter(r => r.outboundTag && r.outboundTag == this.reverseData[index].tag);
+                }
+                reverseModal.show({
+                    title: '{{ i18n "pages.xray.outbound.editReverse"}} ' + (index+1),
+                    reverse: this.reverseData[index],
+                    rules: oldRules,
+                    confirm: (reverse, rules) => {
+                        reverseModal.loading();
+                        if(reverse.tag.length > 0){
+                            oldtag = this.reverseData[index].tag;
+                            this.deleteReverse(index);
+                            newTemplateSettings = this.templateSettings;
+                            if(newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
+                            if(newTemplateSettings.reverse[reverse.type+'s']  == undefined) newTemplateSettings.reverse[reverse.type+'s'] = [];
+                            newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            this.templateSettings = newTemplateSettings;
+
+                            // Adjust Rules
+                            newRules = this.templateSettings.routing.rules.filter(r => r.outboundTag != oldtag && (r.inboundTag && !r.inboundTag.includes(oldtag)));
+                            newRules.push(...rules)
+                            this.routingRuleSettings = JSON.stringify(newRules);
+                        }
+                        reverseModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteReverse(index){
+                oldData = this.reverseData[index];
+                newTemplateSettings = this.templateSettings;
+                reverseTypeObj = newTemplateSettings.reverse[oldData.type+'s'];
+                realIndex = reverseTypeObj.findIndex(r => r.tag==oldData.tag && r.domain==oldData.domain);
+                newTemplateSettings.reverse[oldData.type+'s'].splice(realIndex,1);
+
+                if(reverseTypeObj.length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type+'s');
+                if(Object.keys(newTemplateSettings.reverse).length === 0) Reflect.deleteProperty(newTemplateSettings, 'reverse');
+
+                newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag && (r.inboundTag && !r.inboundTag.includes(oldData.tag)));
+                newTemplateSettings.routing.rules = newRules;
+                
+                this.templateSettings = newTemplateSettings;
+            },
+            addRule(){
+                ruleModal.show({
+                    title: '{{ i18n "pages.xray.rules.add"}}',
+                    okText: '{{ i18n "pages.xray.rules.add" }}',
+                    confirm: (rule) => {
+                        ruleModal.loading();
+                        if(JSON.stringify(rule).length > 3){
+                            this.templateSettings.routing.rules.push(rule);
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        ruleModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editRule(index){
+                ruleModal.show({
+                    title: '{{ i18n "pages.xray.rules.edit"}} ' + (index+1),
+                    rule: app.templateSettings.routing.rules[index],
+                    confirm: (rule) => {
+                        ruleModal.loading();
+                        if(JSON.stringify(rule).length > 3){
+                            this.templateSettings.routing.rules[index] = rule;
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        ruleModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            replaceRule(old_index,new_index){
+                rules = this.templateSettings.routing.rules;
+                if (new_index >= rules.length) rules.push(undefined);
+                rules.splice(new_index, 0, rules.splice(old_index, 1)[0]);
+                this.routingRuleSettings = JSON.stringify(rules);
+            },
+            deleteRule(index){
+                rules = this.templateSettings.routing.rules;
+                rules.splice(index,1);
+                this.routingRuleSettings = JSON.stringify(rules);
+            }
+        },
+        async mounted() {
+            await this.getXraySetting();
+            await this.getXrayResult();
+            while (true) {
+                await PromiseUtil.sleep(600);
+                this.saveBtnDisable = this.oldXraySetting === this.xraySetting;
+            }
+        },
+        computed: {
+            templateSettings: {
+                get: function () { return this.xraySetting ? JSON.parse(this.xraySetting) : null; },
+                set: function (newValue) { this.xraySetting = JSON.stringify(newValue, null, 2); },
+            },
+            inboundSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.inbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            outboundSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.outbounds, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.outbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            outboundData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null) {
+                        this.templateSettings.outbounds.forEach((o, index) => {
+                            data.push({'key': index, ...o});
+                        });
+                    }
+                    return data;
+                },
+            },
+            reverseData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null && this.templateSettings.reverse != null) {
+                        if(this.templateSettings.reverse.bridges) {
+                            this.templateSettings.reverse.bridges.forEach((o, index) => {
+                                data.push({'key': index, 'type':'bridge', ...o});
+                            });
+                        }
+                        if(this.templateSettings.reverse.portals){
+                            this.templateSettings.reverse.portals.forEach((o, index) => {
+                                data.push({'key': index, 'type':'portal', ...o});
+                            });
+                        }
+                    }
+                    return data;
+                },
+            },
+            routingRuleSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.routing.rules = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            routingRuleData: {
+                get: function () {
+                    data = [];
+                    if (this.templateSettings != null) {
+                        this.templateSettings.routing.rules.forEach((r, index) => {
+                            data.push({'key': index, ...r});
+                        });
+                        // Make rules readable
+                        data.forEach(r => {
+                            if(r.domain) r.domain = r.domain.join(',')
+                            if(r.ip) r.ip = r.ip.join(',')
+                            if(r.source) r.source = r.source.join(',');
+                            if(r.user) r.user = r.user.join(',')
+                            if(r.inboundTag) r.inboundTag = r.inboundTag.join(',')
+                            if(r.protocol) r.protocol = r.protocol.join(',')
+                            if(r.attrs) r.attrs = JSON.stringify(r.attrs, null, 2)
+                        });
+                    }
+                    return data;
+                }
+            },
+            freedomStrategy: {
+                get: function () {
+                    if (!this.templateSettings) return "AsIs";
+                    freedomOutbound = this.templateSettings.outbounds.find((o) => o.protocol === "freedom" && o.tag == "direct");
+                    if (!freedomOutbound) return "AsIs";
+                    if (!freedomOutbound.settings || !freedomOutbound.settings.domainStrategy) return "AsIs";
+                    return freedomOutbound.settings.domainStrategy;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    freedomOutboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.protocol === "freedom" && o.tag == "direct");
+                    if(freedomOutboundIndex == -1){
+                        newTemplateSettings.outbounds.push({protocol: "freedom", tag: "direct", settings: { "domainStrategy": newValue }});
+                    } else if (!newTemplateSettings.outbounds[freedomOutboundIndex].settings) {
+                        newTemplateSettings.outbounds[freedomOutboundIndex].settings = {"domainStrategy": newValue};
+                    } else {
+                        newTemplateSettings.outbounds[freedomOutboundIndex].settings.domainStrategy = newValue;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            routingStrategy: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.routing || !this.templateSettings.routing.domainStrategy) return "AsIs";
+                    return this.templateSettings.routing.domainStrategy;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.routing.domainStrategy = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            blockedIPs: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "ip" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "ip", data: newValue });
+                }
+            },
+            blockedDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "domain", data: newValue });
+                }
+            },
+            blockedProtocols: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "protocol" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "protocol", data: newValue });
+                }
+            },
+            directIPs: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "direct", property: "ip" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "direct", property: "ip", data: newValue });
+                    this.syncRulesWithOutbound("direct", this.directSettings);
+                }
+            },
+            directDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "direct", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "direct", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("direct", this.directSettings);
+                }
+            },
+            ipv4Domains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "IPv4", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
+                }
+            },
+            warpDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "WARP", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("WARP", this.warpSettings);
+                }
+            },
+            manualBlockedIPs: {
+                get: function () { return JSON.stringify(this.blockedIPs, null, 2); },
+                set: debounce(function (value) { this.blockedIPs = JSON.parse(value); }, 1000)
+            },
+            manualBlockedDomains: {
+                get: function () { return JSON.stringify(this.blockedDomains, null, 2); },
+                set: debounce(function (value) { this.blockedDomains = JSON.parse(value); }, 1000)
+            },
+            manualDirectIPs: {
+                get: function () { return JSON.stringify(this.directIPs, null, 2); },
+                set: debounce(function (value) { this.directIPs = JSON.parse(value); }, 1000)
+            },
+            manualDirectDomains: {
+                get: function () { return JSON.stringify(this.directDomains, null, 2); },
+                set: debounce(function (value) { this.directDomains = JSON.parse(value); }, 1000)
+            },
+            manualIPv4Domains: {
+                get: function () { return JSON.stringify(this.ipv4Domains, null, 2); },
+                set: debounce(function (value) { this.ipv4Domains = JSON.parse(value); }, 1000)
+            },
+            manualWARPDomains: {
+                get: function () { return JSON.stringify(this.warpDomains, null, 2); },
+                set: debounce(function (value) { this.warpDomains = JSON.parse(value); }, 1000)
+            },
+            torrentSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedProtocols = [...this.blockedProtocols, ...this.settingsData.protocols.bittorrent];
+                    } else {
+                        this.blockedProtocols = this.blockedProtocols.filter(data => !this.settingsData.protocols.bittorrent.includes(data));
+                    }
+                },
+            },
+            privateIpSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.local, this.blockedIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.local];
+                    } else {
+                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.local.includes(data));
+                    }
+                },
+            },
+            AdsSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.ads, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ads];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ads.includes(data));
+                    }
+                },
+            },
+            SpeedTestSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.speedtest, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.speedtest];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.speedtest.includes(data));
+                    }
+                },
+            },
+            familyProtectSettings: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
+                    return doAllItemsExist(this.templateSettings.dns.servers, this.settingsData.familyProtectDNS.servers);
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns = this.settingsData.familyProtectDNS;
+                    } else {
+                        delete newTemplateSettings.dns;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            GoogleIPv4Settings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.google, this.ipv4Domains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.google];
+                    } else {
+                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.google.includes(data));
+                    }
+                },
+            },
+            NetflixIPv4Settings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.netflix, this.ipv4Domains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.netflix];
+                    } else {
+                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.netflix.includes(data));
+                    }
+                },
+            },
+            IRIpSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.ir, this.blockedIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ir];
+                    } else {
+                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ir.includes(data));
+                    }
+                }
+            },
+            IRDomainSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.ir, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ir];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ir.includes(data));
+                    }
+                }
+            },
+            ChinaIpSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.cn, this.blockedIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.cn];
+                    } else {
+                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.cn.includes(data));
+                    }
+                }
+            },
+            ChinaDomainSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.cn, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.cn];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.cn.includes(data));
+                    }
+                }
+            },
+            RussiaIpSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.ru, this.blockedIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ru];
+                    } else {
+                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ru.includes(data));
+                    }
+                }
+            },
+            RussiaDomainSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.ru, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ru];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ru.includes(data));
+                    }
+                }
+            },
+            IRIpDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.ir, this.directIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ir];
+                    } else {
+                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ir.includes(data));
+                    }
+                }
+            },
+            IRDomainDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.ir, this.directDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ir];
+                    } else {
+                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ir.includes(data));
+                    }
+                }
+            },
+            ChinaIpDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.cn, this.directIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.cn];
+                    } else {
+                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.cn.includes(data));
+                    }
+                }
+            },
+            ChinaDomainDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.cn, this.directDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.cn];
+                    } else {
+                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.cn.includes(data));
+                    }
+                }
+            },
+            RussiaIpDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.ru, this.directIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ru];
+                    } else {
+                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ru.includes(data));
+                    }
+                }
+            },
+            RussiaDomainDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.ru, this.directDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ru];
+                    } else {
+                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ru.includes(data));
+                    }
+                }
+            },
+            GoogleWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.google];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.google.includes(data));
+                    }
+                },
+            },
+            OpenAIWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.openai, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.openai];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.openai.includes(data));
+                    }
+                },
+            },
+            NetflixWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.netflix, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.netflix];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.netflix.includes(data));
+                    }
+                },
+            },
+            SpotifyWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.spotify, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.spotify];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.spotify.includes(data));
+                    }
+                },
+            },
+        },
+    });
+</script>
+</body>
+</html>

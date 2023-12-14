@@ -1,0 +1,307 @@
+{{define "form/outbound"}}
+<!-- base -->
+<a-tabs :active-key="outModal.activeKey"  style="padding: 0; background-color: transparent;" @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
+<a-tab-pane key="1" tab="Form">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label='{{ i18n "protocol" }}'>
+            <a-select v-model="outbound.protocol" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x,y in Protocols" :value="x">[[ y ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}' has-feedback :validate-status="outModal.duplicateTag? 'warning' : 'success'">
+            <a-input v-model.trim="outbound.tag" @change="outModal.check()" placeholder='{{ i18n "pages.xray.outbound.tagDesc" }}'></a-input>
+        </a-form-item>
+
+<!-- freedom settings-->
+<template v-if="outbound.protocol === Protocols.Freedom">
+        <a-form-item label='Strategy'>
+            <a-select
+            v-model="outbound.settings.domainStrategy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Fragment'>
+            <a-switch
+                :checked="Object.keys(outbound.settings.fragment).length >0"
+                @change="checked => outbound.settings.fragment = checked ? new Outbound.FreedomSettings.Fragment() : {}">
+            </a-switch>
+        </a-form-item>
+    <template v-if="Object.keys(outbound.settings.fragment).length >0">
+        <a-form-item label='Packets'>
+            <a-select
+            v-model="outbound.settings.fragment.packets"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['1-3','tlshello']" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Length'>
+            <a-input v-model.trim="outbound.settings.fragment.length"></a-input>
+        </a-form-item>
+        <a-form-item label='Interval'>
+            <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
+        </a-form-item>
+    </template>
+</template>
+
+<!-- blackhole settings -->
+<template v-if="outbound.protocol === Protocols.Blackhole">
+        <a-form-item label='Response Type'>
+            <a-select
+            v-model="outbound.settings.type"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['', 'none','http']" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+</template>
+
+<!-- dns settings -->
+<template v-if="outbound.protocol === Protocols.DNS">
+        <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
+            <a-select
+            v-model="outbound.settings.network"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+</template>
+
+<!-- Address + Port -->
+<template v-if="outbound.hasAddressPort()">
+        <a-form-item label='{{ i18n "pages.inbounds.address" }}'>
+            <a-input v-model.trim="outbound.settings.address"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
+            <a-input-number v-model.number="outbound.settings.port" :min="1" :max="65532"></a-input-number>
+        </a-form-item>
+</template>
+
+<!-- Vnext (vless/vmess) settings -->
+<template v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
+        <a-form-item label='ID'>
+            <a-input v-model.trim="outbound.settings.id"></a-input>
+        </a-form-item>
+    <!-- vless settings -->
+    <template v-if="outbound.canEnableTlsFlow()">
+        <a-form-item label='Flow'>
+            <a-select v-model="outbound.settings.flow" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+    </template>
+</template>
+
+<!-- Servers (trojan/shadowsocks/socks/http) settings -->
+<template v-if="outbound.hasServers()">
+    <template v-if="outbound.hasUsername()">
+        <a-form-item label='{{ i18n "username" }}'>
+            <a-input v-model.trim="outbound.settings.user"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "password" }}'>
+            <a-input v-model.trim="outbound.settings.password"></a-input>
+        </a-form-item>
+    </template>
+    <!-- shadowsocks -->
+    <template v-if="outbound.protocol === Protocols.Shadowsocks">
+        <a-form-item label='{{ i18n "encryption" }}'>
+            <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='UDP over TCP'>
+            <a-switch v-model="outbound.settings.uot"></a-switch>
+        </a-form-item>
+    </template>
+</template>
+
+<!-- stream settings -->
+<template v-if="outbound.canEnableStream()">
+        <a-form-item label='{{ i18n "transmission" }}'>
+            <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="tcp">TCP</a-select-option>
+                <a-select-option value="kcp">KCP</a-select-option>
+                <a-select-option value="ws">WS</a-select-option>
+                <a-select-option value="http">HTTP2</a-select-option>
+                <a-select-option value="quic">QUIC</a-select-option>
+                <a-select-option value="grpc">gRPC</a-select-option>
+            </a-select>
+        </a-form-item>
+    <template v-if="outbound.stream.network === 'tcp'">
+        <a-form-item label='HTTP {{ i18n "camouflage" }}'>
+            <a-switch
+                :checked="outbound.stream.tcp.type === 'http'"
+                @change="checked => outbound.stream.tcp.type = checked ? 'http' : 'none'">
+            </a-switch>
+        </a-form-item>
+        <template v-if="outbound.stream.tcp.type == 'http'">
+        <a-form-item label='{{ i18n "host" }}'>
+            <a-input v-model.trim="outbound.stream.tcp.host"></a-input>
+        </a-form-item> 
+        <a-form-item label='{{ i18n "path" }}'>
+            <a-input v-model.trim="outbound.stream.tcp.path"></a-input>
+        </a-form-item> 
+        </template>
+    </template>
+    
+    <!-- kcp -->
+    <template v-if="outbound.stream.network === 'kcp'">
+        <a-form-item label='{{ i18n "camouflage" }}'>
+            <a-select v-model="outbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="none">none (not camouflage)</a-select-option>
+                <a-select-option value="srtp">srtp (video call)</a-select-option>
+                <a-select-option value="utp">utp (BT download)</a-select-option>
+                <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
+                <a-select-option value="dtls">dtls (DTLS 1.2 packages)</a-select-option>
+                <a-select-option value="wireguard">wireguard (wireguard packages)</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "password" }}'>
+            <a-input v-model="outbound.stream.kcp.seed"></a-input>
+        </a-form-item>
+        <a-form-item label='mtu'>
+            <a-input-number v-model.number="outbound.stream.kcp.mtu"></a-input-number>
+        </a-form-item>
+        <a-form-item label='tti (ms)'>
+            <a-input-number v-model.number="outbound.stream.kcp.tti"></a-input-number>
+        </a-form-item>
+        <a-form-item label='uplink capacity (MB/S)'>
+            <a-input-number v-model.number="outbound.stream.kcp.upCap"></a-input-number>
+        </a-form-item> 
+        <a-form-item label='downlink capacity (MB/S)'>
+            <a-input-number v-model.number="outbound.stream.kcp.downCap"></a-input-number>
+        </a-form-item>
+        <a-form-item label='congestion'>
+            <a-switch v-model="outbound.stream.kcp.congestion"></a-switch>
+        </a-form-item>
+        <a-form-item label='read buffer size (MB)'>
+            <a-input-number v-model.number="outbound.stream.kcp.readBuffer"></a-input-number>
+        </a-form-item>
+        <a-form-item label='write buffer size (MB)'>
+            <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"></a-input-number>
+        </a-form-item>
+    </template>
+    
+    <!-- ws -->
+    <template v-if="outbound.stream.network === 'ws'">
+        <a-form-item label='{{ i18n "host" }}'>
+            <a-input v-model="outbound.stream.ws.host"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "path" }}'>
+            <a-form-item><a-input v-model.trim="outbound.stream.ws.path"></a-input>
+        </a-form-item>
+    </template>
+    
+    <!-- http -->
+    <template v-if="outbound.stream.network === 'http'">
+        <a-form-item label='{{ i18n "host" }}'>
+            <a-input v-model.trim="outbound.stream.http.host"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "path" }}'>
+            <a-input v-model.trim="outbound.stream.http.path"></a-input>
+        </a-form-item>
+    </template>
+    
+    <!-- quic -->
+    <template v-if="outbound.stream.network === 'quic'">
+        <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
+            <a-select v-model="outbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="none">none</a-select-option>
+                <a-select-option value="aes-128-gcm">aes-128-gcm</a-select-option>
+                <a-select-option value="chacha20-poly1305">chacha20-poly1305</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "password" }}'>
+            <a-input v-model.trim="outbound.stream.quic.key"></a-input>
+        </a-form-item> 
+        <a-form-item label='{{ i18n "camouflage" }}'>
+            <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="none">none (not camouflage)</a-select-option>
+                <a-select-option value="srtp">srtp (video call)</a-select-option>
+                <a-select-option value="utp">utp (BT download)</a-select-option>
+                <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
+                <a-select-option value="dtls">dtls (DTLS 1.2 packages)</a-select-option>
+                <a-select-option value="wireguard">wireguard (wireguard packages)</a-select-option>
+            </a-select>
+        </a-form-item>
+    </template>
+    
+    <!-- grpc -->
+    <template v-if="outbound.stream.network === 'grpc'">
+        <a-form-item label='serviceName'>
+            <a-input v-model.trim="outbound.stream.grpc.serviceName"></a-input>
+        </a-form-item>
+        <a-form-item label='MultiMode'>
+            <a-switch v-model="outbound.stream.grpc.multiMode"></a-switch>
+        </a-form-item>
+    </template>
+</template>
+
+<!-- tls settings -->
+<template v-if="outbound.canEnableTls()">
+        <a-form-item label='{{ i18n "security" }}'>
+            <a-radio-group v-model="outbound.stream.security" button-style="solid">
+                <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
+                <a-radio-button value="tls">TLS</a-radio-button>
+                <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
+            </a-radio-group>
+        </a-form-item>
+        <template v-if="outbound.stream.isTls">
+            <a-form-item label="SNI" placeholder="Server Name Indication">
+                <a-input v-model.trim="outbound.stream.tls.serverName"></a-input>
+            </a-form-item>
+            <a-form-item label="uTLS">
+                <a-select v-model="outbound.stream.tls.fingerprint"
+                            :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option value=''>None</a-select-option>
+                    <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item label="ALPN">
+                <a-select
+                    mode="multiple"
+                   
+                    :dropdown-class-name="themeSwitcher.currentTheme"
+                    v-model="outbound.stream.tls.alpn">
+                    <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item label="Allow insecure">
+                <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
+            </a-form-item>
+        </template>
+        
+        <!-- reality settings -->
+        <template v-if="outbound.stream.isReality">
+                <a-form-item label='{{ i18n "domainName" }}'>
+                    <a-input v-model.trim="outbound.stream.reality.serverName"></a-input>
+                </a-form-item>
+                <a-form-item label="uTLS">
+                    <a-select v-model="outbound.stream.reality.fingerprint"
+                                :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+                    </a-select>
+                </a-form-item>
+                <a-form-item label="Short Id">
+                    <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
+                </a-form-item>
+                <a-form-item label="SpiderX">
+                    <a-input v-model.trim="outbound.stream.reality.spiderX" style="width:250px"></a-input>
+                </a-form-item>
+                <a-form-item label="Public Key">
+                            <a-input v-model.trim="outbound.stream.reality.publicKey"></a-input>
+                </a-form-item>
+        </template>
+</template>
+</a-form>
+</a-tab-pane>
+<a-tab-pane key="2" tab="JSON" force-render="true">
+    <a-form-item style="margin: 10px 0">
+        Link: <a-input v-model.trim="outModal.link" style="width: 300px; margin-right: 5px;" placeholder="vmess:// vless:// trojan:// ss://"></a-input>
+        <a-button @click="convertLink" type="primary"><a-icon type="form"></a-icon></a-button>
+    </a-form-item>
+        <textarea style="position:absolute; left: -800px;" id="outboundJson"></textarea>
+</a-tab-pane>
+</a-tabs>
+{{end}}

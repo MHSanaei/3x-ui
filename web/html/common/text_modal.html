@@ -1,7 +1,7 @@
 {{define "textModal"}}
 <a-modal id="text-modal" v-model="txtModal.visible" :title="txtModal.title"
          :closable="true" ok-text='{{ i18n "copy" }}' cancel-text='{{ i18n "close" }}'
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :ok-button-props="{attrs:{id:'txt-modal-ok-btn'}}">
     <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" type="primary" style="margin-bottom: 10px;"
               :href="'data:application/text;charset=utf-8,' + encodeURIComponent(txtModal.content)"
@@ -31,7 +31,10 @@
                     this.clipboard = new ClipboardJS('#txt-modal-ok-btn', {
                         text: () => this.content,
                     });
-                    this.clipboard.on('success', () => app.$message.success('{{ i18n "copied" }}'));
+                    this.clipboard.on('success', () => {
+                        app.$message.success('{{ i18n "copied" }}')
+                        this.close();
+                    });
                 }
             });
         },

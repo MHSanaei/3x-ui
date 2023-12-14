@@ -134,6 +134,32 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 			inbound.Settings = string(modifiedSettings)
 		}
+
+		if len(inbound.StreamSettings) > 0 {
+			// Unmarshal stream JSON
+			var stream map[string]interface{}
+			json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+
+			// Remove the "settings" field under "tlsSettings" and "realitySettings"
+			tlsSettings, ok1 := stream["tlsSettings"].(map[string]interface{})
+			realitySettings, ok2 := stream["realitySettings"].(map[string]interface{})
+			if ok1 || ok2 {
+				if ok1 {
+					delete(tlsSettings, "settings")
+				} else if ok2 {
+					delete(realitySettings, "settings")
+				}
+			}
+
+			delete(stream, "externalProxy")
+
+			newStream, err := json.MarshalIndent(stream, "", "  ")
+			if err != nil {
+				return nil, err
+			}
+			inbound.StreamSettings = string(newStream)
+		}
+
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}

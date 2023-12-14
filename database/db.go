@@ -112,3 +112,12 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	}
 	return bytes.Equal(buf, signature), nil
 }
+
+func Checkpoint() error {
+	// Update WAL
+	err := db.Exec("PRAGMA wal_checkpoint;").Error
+	if err != nil {
+		return err
+	}
+	return nil
+}

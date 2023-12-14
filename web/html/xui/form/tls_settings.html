@@ -1,219 +1,194 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
-<a-form layout="inline" v-if="inbound.canSetTls()">
-    <a-form-item v-if="inbound.canEnableTls()" label="TLS">
-        <a-switch v-model="inbound.tls">
-        </a-switch>
-    </a-form-item>
-    <a-form-item v-if="inbound.canEnableReality()">
-        <span slot="label">
-            Reality
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
-                </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
-            </a-tooltip>
-        </span>
-        <a-switch v-model="inbound.reality"></a-switch>
-    </a-form-item>
-    <a-form-item v-if="inbound.canEnableXtls()">
-        <span slot="label">
-            XTLS
+<a-form v-if="inbound.canEnableTls()" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-divider style="margin:0;"></a-divider>
+    <a-form-item label='{{ i18n "security" }}'>
+        <a-radio-group v-model="inbound.stream.security" button-style="solid">
+            <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
             <a-tooltip>
                 <template slot="title">
                     <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
                 </template>
-                <a-icon type="question-circle" theme="filled"></a-icon>
+                <a-radio-button v-if="inbound.canEnableXtls()" value="xtls">XTLS</a-radio-button>
             </a-tooltip>
-        </span>
-        <a-switch v-model="inbound.xtls"></a-switch>
-    </a-form-item>
-</a-form>
-
-<!-- tls settings -->
-<a-form v-if="inbound.tls" layout="inline">
-    <a-form-item label='Multi Domain'>
-        <a-switch v-model="multiDomain"></a-switch>
-    </a-form-item>
-    <a-form-item v-if="multiDomain">
-        <a-row>
-            <span>Domains:</span>
-            <a-button v-if="multiDomain" type="primary" size="small" @click="inbound.stream.tls.settings.domains.push({remark: '', domain: ''})" style="margin-left: 10px">+</a-button>
-        </a-row>
-        <a-input-group v-for="(row, index) in inbound.stream.tls.settings.domains">
-            <a-input style="width: 40%" v-model.trim="row.remark" addon-before='{{ i18n "remark" }}'></a-input>
-            <a-input style="width: 60%" v-model.trim="row.domain" addon-before='{{ i18n "host" }}'>
-                <template slot="addonAfter">
-                    <a-button type="primary" size="small" style="margin-left: 10px" @click="inbound.stream.tls.settings.domains.splice(index, 1)">-</a-button>
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
                 </template>
-            </a-input>
-        </a-input-group>
+                <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
+            </a-tooltip>
+            <a-radio-button value="tls">TLS</a-radio-button>
+        </a-radio-group>
     </a-form-item>
-    <a-form-item v-else label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.tls.server" style="width: 250px"></a-input>
-    </a-form-item>
-    <a-form-item label="CipherSuites">
-        <a-select v-model="inbound.stream.tls.cipherSuites" style="width: 300px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option value="">auto</a-select-option>
-            <a-select-option v-for="key in TLS_CIPHER_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label="MinVersion">
-        <a-select v-model="inbound.stream.tls.minVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label="MaxVersion">
-        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 60px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label="SNI" placeholder="Server Name Indication">
-        <a-input v-model.trim="inbound.stream.tls.settings.serverName" style="width: 250px"></a-input>
-    </a-form-item>
-    <a-form-item label="uTLS">
-        <a-select v-model="inbound.stream.tls.settings.fingerprint"
-                  style="width: 170px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option value=''>None</a-select-option>
-            <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label="Alpn">
-        <a-select
-            mode="multiple"
-            style="width: 250px"
-            :dropdown-class-name="themeSwitcher.darkCardClass"
-            v-model="inbound.stream.tls.alpn">
-            <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <br>
-    <a-form-item label="Allow insecure">
-        <a-switch v-model="inbound.stream.tls.settings.allowInsecure"></a-switch>
-    </a-form-item>
-    <br>
-    <a-form-item label="Reject Unknown SNI">
-        <a-switch v-model="inbound.stream.tls.rejectUnknownSni"></a-switch>
-    </a-form-item>
-    <template v-for="cert,index in inbound.stream.tls.certs">
-        <a-form-item label='{{ i18n "certificate" }}'>
-            <a-radio-group v-model="cert.useFile" button-style="solid">
-                <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
-                <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
-            </a-radio-group>
-            <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()" style="margin-left: 10px">+</a-button>
-            <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small" @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button>
-        </a-form-item>
-        <template v-if="cert.useFile">
-            <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
-                <a-input v-model.trim="cert.certFile" style="width:300px;"></a-input>
-            </a-form-item>
-            <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
-                <a-input v-model.trim="cert.keyFile" style="width:300px;"></a-input>
-            </a-form-item>
-            <a-button type="primary" icon="import" @click="setDefaultCertData(index)">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
-        </template>
-        <template v-else>
-            <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
-            </a-form-item>
-            <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
-            </a-form-item>
-        </template>
-        <br>
-        <a-form-item label="ocspStapling">
-            <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
-        </a-form-item>
-    </template>
-</a-form>
 
-<!-- xtls settings -->
-<a-form v-else-if="inbound.xtls" layout="inline">
-    <a-form-item label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.xtls.server"></a-input>
-    </a-form-item>
-    <a-form-item label="SNI" placeholder="Server Name Indication">
-        <a-input v-model.trim="inbound.stream.xtls.settings.serverName" style="width: 250px"></a-input>
-    </a-form-item>
-    <a-form-item label="Alpn">
-        <a-checkbox-group v-model="inbound.stream.xtls.alpn" style="width:200px">
-            <a-checkbox v-for="key in ALPN_OPTION" :value="key">[[ key ]]</a-checkbox>
-        </a-checkbox-group>
-    </a-form-item>
-    <a-form-item label="Allow insecure">
-        <a-switch v-model="inbound.stream.xtls.settings.allowInsecure"></a-switch>
-    </a-form-item>
-    <template v-for="cert,index in inbound.stream.xtls.certs">
-        <a-form-item label='{{ i18n "certificate" }}'>
-            <a-radio-group v-model="cert.useFile" button-style="solid">
-                <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
-                <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
-            </a-radio-group>
-            <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.xtls.addCert()" style="margin-left: 10px">+</a-button>
-            <a-button v-if="inbound.stream.xtls.certs.length>1" type="primary" size="small" @click="inbound.stream.xtls.removeCert(index)" style="margin-left: 10px">-</a-button> 
+    <!-- tls settings -->
+    <template v-if="inbound.stream.isTls">
+        <a-form-item label="SNI" placeholder="Server Name Indication">
+            <a-input v-model.trim="inbound.stream.tls.sni"></a-input>
         </a-form-item>
-        <template v-if="cert.useFile">
-            <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
-                <a-input v-model.trim="cert.certFile" style="width:300px;"></a-input>
+        <a-form-item label="CipherSuites">
+            <a-select v-model="inbound.stream.tls.cipherSuites" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="">auto</a-select-option>
+                <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[ value ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Min/Max Version">
+            <a-input-group compact>
+                <a-select v-model="inbound.stream.tls.minVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+                </a-select>
+                <a-select v-model="inbound.stream.tls.maxVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+                </a-select>
+            </a-input-group>
+        </a-form-item>
+        <a-form-item label="uTLS">
+            <a-select v-model="inbound.stream.tls.settings.fingerprint"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value=''>None</a-select-option>
+                <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="ALPN">
+            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+                v-model="inbound.stream.tls.alpn">
+                <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Allow insecure">
+            <a-switch v-model="inbound.stream.tls.settings.allowInsecure"></a-switch>
+        </a-form-item>
+        <a-form-item label="Reject Unknown SNI">
+            <a-switch v-model="inbound.stream.tls.rejectUnknownSni"></a-switch>
+        </a-form-item>
+        <template v-for="cert,index in inbound.stream.tls.certs">
+            <a-form-item label='{{ i18n "certificate" }}'>
+                <a-radio-group v-model="cert.useFile" button-style="solid">
+                    <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+                    <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+                </a-radio-group>
+                <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()"
+                    style="margin-left: 10px">+</a-button>
+                <a-button v-if="inbound.stream.tls.certs.length>1" type="primary" size="small"
+                    @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button>
             </a-form-item>
-            <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
-                <a-input v-model.trim="cert.keyFile" style="width:300px;"></a-input>
-            </a-form-item>
-            <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">{{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
-        </template>
-        <template v-else>
-            <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.cert"></a-input>
-            </a-form-item>
-            <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-                <a-input type="textarea" :rows="3" style="width:300px;" v-model="cert.key"></a-input>
+            <template v-if="cert.useFile">
+                <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
+                    <a-input v-model.trim="cert.certFile" style="width:250px;"></a-input>
+                </a-form-item>
+                <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
+                    <a-input v-model.trim="cert.keyFile" style="width:250px;"></a-input>
+                </a-form-item>
+                <a-form-item label=" ">
+                    <a-button type="primary" icon="import" @click="setDefaultCertData(index)">{{ i18n
+                        "pages.inbounds.setDefaultCert" }}</a-button>
+                </a-form-item>
+            </template>
+            <template v-else>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.cert"></a-input>
+                </a-form-item>
+                <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.key"></a-input>
+                </a-form-item>
+            </template>
+            <a-form-item label='ocspStapling'>
+                <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
             </a-form-item>
         </template>
     </template>
-</a-form>
 
-<!-- reality settings -->
-<a-form v-else-if="inbound.reality" layout="inline">
-    <a-form-item label="Show">
-        <a-switch v-model="inbound.stream.reality.show">
-        </a-switch>
-    </a-form-item>
-    <a-form-item label="xVer">
-        <a-input-number v-model="inbound.stream.reality.xver" :min="0" style="width: 60px"></a-input-number>
-    </a-form-item>
-    <a-form-item label="uTLS">
-        <a-select v-model="inbound.stream.reality.settings.fingerprint" 
-                    style="width: 135px" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
-    <a-form-item label='{{ i18n "domainName" }}'>
-        <a-input v-model.trim="inbound.stream.reality.settings.serverName" style="width: 250px"></a-input>
-    </a-form-item>
-	<a-form-item label="Dest">
-        <a-input v-model.trim="inbound.stream.reality.dest" style="width: 300px"></a-input>
-    </a-form-item>
-    <a-form-item label="Server Names">
-        <a-input v-model.trim="inbound.stream.reality.serverNames" style="width: 300px"></a-input>
-    </a-form-item>
-    <a-form-item label="ShortIds">
-        <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"> </a-icon>
-        <a-input v-model.trim="inbound.stream.reality.shortIds" style="width: 150px;"></a-input>
-    </a-form-item>
-    <br>
-    <a-form-item label="SpiderX">
-        <a-input v-model.trim="inbound.stream.reality.settings.spiderX" style="width: 150px;"></a-input>
-    </a-form-item>
-    <a-form-item label="Private Key">
-        <a-input v-model.trim="inbound.stream.reality.privateKey" style="width: 300px"></a-input>
-    </a-form-item>
-    <a-form-item label="Public Key">
-        <a-input v-model.trim="inbound.stream.reality.settings.publicKey" style="width: 300px"></a-input>
-    </a-form-item>
-    <a-form-item>
-        <a-button type="primary" icon="import" @click="getNewX25519Cert">Get New Key</a-button>
-    </a-form-item>
+    <!-- xtls settings -->
+    <template v-else-if="inbound.xtls">
+        <a-form-item label="SNI" placeholder="Server Name Indication">
+            <a-input v-model.trim="inbound.stream.xtls.sni"></a-input>
+        </a-form-item>
+        <a-form-item label="ALPN">
+            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+                v-model="inbound.stream.xtls.alpn">
+                <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Allow insecure">
+            <a-switch v-model="inbound.stream.xtls.settings.allowInsecure"></a-switch>
+        </a-form-item>
+        <template v-for="cert,index in inbound.stream.xtls.certs">
+            <a-form-item label='{{ i18n "certificate" }}'>
+                <a-radio-group v-model="cert.useFile" button-style="solid">
+                    <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+                    <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+                </a-radio-group>
+                <a-button v-if="index === 0" type="primary" size="small" @click="inbound.stream.xtls.addCert()"
+                    style="margin-left: 10px">+</a-button>
+                <a-button v-if="inbound.stream.xtls.certs.length>1" type="primary" size="small"
+                    @click="inbound.stream.xtls.removeCert(index)" style="margin-left: 10px">-</a-button>
+            </a-form-item>
+            <template v-if="cert.useFile">
+                <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
+                    <a-input v-model.trim="cert.certFile" style="width:250px;"></a-input>
+                </a-form-item>
+                <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
+                    <a-input v-model.trim="cert.keyFile" style="width:250px;"></a-input>
+                </a-form-item>
+                <a-form-item label=" ">
+                    <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">{{ i18n
+                        "pages.inbounds.setDefaultCert" }}</a-button>
+                </a-form-item>
+            </template>
+            <template v-else>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.cert"></a-input>
+                </a-form-item>
+                <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.key"></a-input>
+                </a-form-item>
+            </template>
+        </template>
+    </template>
+    <!-- reality settings -->
+    <template v-if="inbound.stream.isReality">
+        <a-form-item label='Show'>
+            <a-switch v-model="inbound.stream.reality.show"></a-switch>
+        </a-form-item>
+        <a-form-item label='Xver'>
+            <a-input-number v-model.number="inbound.stream.reality.xver" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label='uTLS'>
+            <a-select v-model="inbound.stream.reality.settings.fingerprint"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Dest'>
+            <a-input v-model.trim="inbound.stream.reality.dest"></a-input>
+        </a-form-item>
+        <a-form-item label='Server Names'>
+            <a-input v-model.trim="inbound.stream.reality.serverNames"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.client.renew" }}</span>
+                    </template>
+                    Short Ids
+                    <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"> </a-icon>
+                    </a-icon>
+            </template>
+            <a-input v-model.trim="inbound.stream.reality.shortIds" style="width:250px"></a-input>
+        </a-form-item>
+        <a-form-item label='SpiderX'>
+            <a-input v-model.trim="inbound.stream.reality.settings.spiderX" style="width:250px"></a-input>
+        </a-form-item>
+        <a-form-item label='Private Key'>
+            <a-input v-model.trim="inbound.stream.reality.privateKey"></a-input>
+        </a-form-item>
+        <a-form-item label='Public Key'>
+            <a-input v-model.trim="inbound.stream.reality.settings.publicKey"></a-input>
+        </a-form-item>
+        <a-form-item label=" ">
+            <a-button type="primary" icon="import" @click="getNewX25519Cert">Get new cert</a-button>
+        </a-form-item>
+    </template>
 </a-form>
 {{end}}

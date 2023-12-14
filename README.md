@@ -23,10 +23,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 # Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v1.7.9`:
+To install your desired version you can add the version to the end of install command. Example for ver `v2.0.1`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v1.7.9
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.1
 ```
 
 # SSL
@@ -311,6 +311,7 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
 | `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
+| `POST` | `"/onlines"`                       | Get Online users ( list of emails )       |
 
 \*- The field `clientId` should be filled by:
 
@@ -318,7 +319,9 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 - `client.password` for TROJAN
 - `client.email` for Shadowsocks
 
-- [Postman Collection](https://gist.github.com/mehdikhody/9a862801a2e41f6b5fb6bbc7e1326044)
+
+- [API Documentation](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
 </details>
 
 # Environment Variables
@@ -368,6 +371,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ![4](./media/4.png)
 ![5](./media/5.png)
 ![6](./media/6.png)
+![7](./media/7.png)
 
 ## Stargazers over time
 

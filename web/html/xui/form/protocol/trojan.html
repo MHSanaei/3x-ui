@@ -1,123 +1,29 @@
 {{define "form/trojan"}}
-<a-form layout="inline" style="padding: 10px 0px;">
-    <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">
-        <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-            <a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.email" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.emailDesc" }}</span>
-                        </template>
-                    </a-tooltip>
-                </span>
-                <a-icon @click="client.email = RandomUtil.randomLowerAndNum(8)" type="sync"> </a-icon>
-                <a-input v-model.trim="client.email" style="width: 200px;"></a-input>
-            </a-form-item>
-            <a-form-item label="Password">
-                <a-icon @click="client.password = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
-                <a-input v-model.trim="client.password" style="width: 150px;"></a-input>
-            </a-form-item>
-            <a-form-item v-if="client.email && app.subSettings.enable">
-                <span slot="label">
-                    Subscription
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-icon @click="client.subId = RandomUtil.randomLowerAndNum(16)" type="sync"> </a-icon>
-                <a-input v-model.trim="client.subId" style="width: 150px;"></a-input>
-            </a-form-item>
-            <a-form-item v-if="client.email && app.tgBotEnable">
-                <span slot="label">
-                    Telegram ID
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input v-model.trim="client.tgId"></a-input>
-            </a-form-item>
-            <a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input-number v-model="client.limitIp" min="0"></a-input-number>
-            </a-form-item>
-            <br>
-            <a-form-item v-if="inbound.xtls" label="Flow">
-                <a-select v-model="client.flow" style="width: 150px" :dropdown-class-name="themeSwitcher.darkCardClass">
-                    <a-select-option value="">{{ i18n "none" }}</a-select-option>
-                    <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
-                    <a-tooltip>
-                        <template slot="title">
-                            0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
-            </a-form-item>
-            <br>
-            <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
-                <a-switch v-model="delayedStart" @click="client._expiryTime=0"></a-switch>
-            </a-form-item>
-            <br>
-            <a-form-item v-if="delayedStart" label='{{ i18n "pages.client.expireDays" }}'>
-                <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
-            </a-form-item>
-            <a-form-item v-else>
-                <span slot="label">
-                    <span>{{ i18n "pages.inbounds.expireDate" }}</span>
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                                :dropdown-class-name="themeSwitcher.darkCardClass"
-                                v-model="client._expiryTime" style="width: 170px;"></a-date-picker>
-            </a-form-item>
-        </a-collapse-panel>
-    </a-collapse>
-    <a-collapse v-else>
-        <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.trojans.length">
-            <table width="100%">
-                <tr class="client-table-header">
-                    <th>{{ i18n "pages.inbounds.email" }}</th>
-                    <th>Password</th>
-                </tr>
-                <tr v-for="(client, index) in inbound.settings.trojans" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
-                    <td>[[ client.email ]]</td>
-                    <td>[[ client.password ]]</td>
-                </tr>
-            </table>
-        </a-collapse-panel>
-    </a-collapse>
-</a-form>
-<template v-if="inbound.isTcp">
+<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">  
+    <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+        {{template "form/client"}}
+    </a-collapse-panel>
+</a-collapse>
+<a-collapse v-else>
+    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.trojans.length">
+        <table width="100%">
+            <tr class="client-table-header">
+                <th>{{ i18n "pages.inbounds.email" }}</th>
+                <th>Password</th>
+            </tr>
+            <tr v-for="(client, index) in inbound.settings.trojans" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+                <td>[[ client.email ]]</td>
+                <td>[[ client.password ]]</td>
+            </tr>
+        </table>
+    </a-collapse-panel>
+</a-collapse>
+<template v-if="inbound.isTcp && !inbound.stream.isReality">
     <a-form layout="inline">
         <a-form-item label="Fallbacks">
             <a-row>
-                <a-button type="primary" size="small" @click="inbound.settings.addTrojanFallback()">
+                <a-button type="primary" size="small"
+                        @click="inbound.settings.addFallback()">
                     +
                 </a-button>
             </a-row>
@@ -125,28 +31,28 @@
     </a-form>
 
     <!-- trojan fallbacks -->
-    <a-form v-for="(fallback, index) in inbound.settings.fallbacks" layout="inline">
-        <a-divider>
-            fallback[[ index + 1 ]]
-            <a-icon type="delete" @click="() => inbound.settings.delTrojanFallback(index)"
+    <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+        <a-divider style="margin:0;">
+            Fallback[[ index + 1 ]]
+            <a-icon type="delete" @click="() => inbound.settings.delFallback(index)"
                     style="color: rgb(255, 77, 79);cursor: pointer;"/>
         </a-divider>
-        <a-form-item label="Name">
+        <a-form-item label='Name'>
             <a-input v-model="fallback.name"></a-input>
-        </a-form-item>
-        <a-form-item label="Alpn">
+        </a-form-item>            
+        <a-form-item label='Alpn'>
             <a-input v-model="fallback.alpn"></a-input>
         </a-form-item>
-        <a-form-item label="Path">
+        <a-form-item label='Path'>
             <a-input v-model="fallback.path"></a-input>
         </a-form-item>
-        <a-form-item label="Dest">
+        <a-form-item label='Dest'>
             <a-input v-model="fallback.dest"></a-input>
         </a-form-item>
-        <a-form-item label="xVer">
-            <a-input-number v-model="fallback.xver"></a-input-number>
+        <a-form-item label='xVer'>
+            <a-input-number v-model="fallback.xver" :min="0" :max="2"></a-input-number>
         </a-form-item>
-        <a-divider v-if="inbound.settings.fallbacks.length - 1 === index"/>
     </a-form>
+    <a-divider style="margin:0;"></a-divider>
 </template>
 {{end}}

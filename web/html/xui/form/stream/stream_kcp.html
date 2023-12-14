@@ -1,47 +1,38 @@
 {{define "form/streamKCP"}}
-<a-form layout="inline">
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "camouflage" }}'>
-        <a-select v-model="inbound.stream.kcp.type" style="width: 280px;" :dropdown-class-name="themeSwitcher.darkCardClass">
-            <a-select-option value="none">None (Not Camouflage)</a-select-option>
-            <a-select-option value="srtp">SRTP (Camouflage Video Call)</a-select-option>
-            <a-select-option value="utp">UTP (Camouflage BT Download)</a-select-option>
-            <a-select-option value="wechat-video">Wechat-Video (Camouflage WeChat Video)</a-select-option>
-            <a-select-option value="dtls">DTLS (Camouflage DTLS 1.2 Packages)</a-select-option>
-            <a-select-option value="wireguard">Wireguard (Camouflage Wireguard Packages)</a-select-option>
+        <a-select v-model="inbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="none">none (not camouflage)</a-select-option>
+            <a-select-option value="srtp">SRTP (video call)</a-select-option>
+            <a-select-option value="utp">UTP (BT DownloaD)</a-select-option>
+            <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
+            <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
+            <a-select-option value="wireguard">WireGuard (WireGuard packages)</a-select-option>
         </a-select>
     </a-form-item>
-    <br>
     <a-form-item label='{{ i18n "password" }}'>
-        <a-icon @click="inbound.stream.kcp.seed = RandomUtil.randomSeq(10)" type="sync"> </a-icon>
-        <a-input v-model="inbound.stream.kcp.seed" style="width: 150px;" ></a-input>
+        <a-input v-model="inbound.stream.kcp.seed"></a-input>
     </a-form-item>
-    <br>
-    <a-form-item label="MTU">
-        <a-input-number v-model="inbound.stream.kcp.mtu"></a-input-number>
+    <a-form-item label='MTU'>
+        <a-input-number v-model.number="inbound.stream.kcp.mtu"></a-input-number>
     </a-form-item>
-    <br>
-    <a-form-item label="TTI (ms)">
-        <a-input-number v-model="inbound.stream.kcp.tti"></a-input-number>
+    <a-form-item label='TTI(ms)'>
+        <a-input-number v-model.number="inbound.stream.kcp.tti"></a-input-number>
     </a-form-item>
-    <br>
-    <a-form-item label="Uplink Capacity (MB/S)">
-        <a-input-number v-model="inbound.stream.kcp.upCap"></a-input-number>
+    <a-form-item label='Uplink(Mb/s)'>
+        <a-input-number v-model.number="inbound.stream.kcp.upCap"></a-input-number>
+    </a-form-item> 
+    <a-form-item label='Downlink(Mb/s)'>
+        <a-input-number v-model.number="inbound.stream.kcp.downCap"></a-input-number>
     </a-form-item>
-    <br>
-    <a-form-item label="Downlink Capacity (MB/S)">
-        <a-input-number v-model="inbound.stream.kcp.downCap"></a-input-number>
-    </a-form-item>
-    <br>
-    <a-form-item label="Congestion">
+    <a-form-item label='Congestion'>
         <a-switch v-model="inbound.stream.kcp.congestion"></a-switch>
     </a-form-item>
-    <br>
-    <a-form-item label="Read Buffer Size (MB)">
-        <a-input-number v-model="inbound.stream.kcp.readBuffer"></a-input-number>
+    <a-form-item label='Read buffer(MB)'>
+        <a-input-number v-model.number="inbound.stream.kcp.readBuffer"></a-input-number>
     </a-form-item>
-    <br>
-    <a-form-item label="Write Buffer Size (MB)">
-        <a-input-number v-model="inbound.stream.kcp.writeBuffer"></a-input-number>
+    <a-form-item label='Write buffer(MB)'>
+        <a-input-number v-model.number="inbound.stream.kcp.writeBuffer"></a-input-number>
     </a-form-item>
 </a-form>
 {{end}}

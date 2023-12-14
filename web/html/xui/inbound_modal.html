@@ -1,7 +1,7 @@
 {{define "inboundModal"}}
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" @ok="inModal.ok"
          :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
+         :class="themeSwitcher.currentTheme"
          :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
     {{template "form/inbound"}}
 </a-modal>
@@ -43,15 +43,6 @@
         loading(loading) {
             inModal.confirmLoading = loading;
         },
-        getClients(protocol, clientSettings) {
-            switch (protocol) {
-                case Protocols.VMESS: return clientSettings.vmesses;
-                case Protocols.VLESS: return clientSettings.vlesses;
-                case Protocols.TROJAN: return clientSettings.trojans;
-                case Protocols.SHADOWSOCKS: return clientSettings.shadowsockses;
-                default: return null;
-            }
-        },
     };
 
     new Vue({
@@ -70,7 +61,7 @@
                 return inModal.isEdit;
             },
             get client() {
-                return inModal.getClients(this.inbound.protocol, this.inbound.settings)[0];
+                return inModal.inbound.clients[0];
             },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
@@ -78,28 +69,36 @@
             set delayedExpireDays(days) {
                 this.client.expiryTime = -86400000 * days;
             },
-            get multiDomain() {
-                return this.inbound.stream.tls.settings.domains.length > 0;
+            get externalProxy() {
+                return this.inbound.stream.externalProxy.length > 0;
             },
-            set multiDomain(value) {
+            set externalProxy(value) {
                 if (value) {
-                    inModal.inbound.stream.tls.server = "";
-                    inModal.inbound.stream.tls.settings.domains = [{ remark: "", domain: window.location.hostname }];
+                    inModal.inbound.stream.externalProxy = [{
+                        forceTls: "same",
+                        dest: window.location.hostname,
+                        port: inModal.inbound.port,
+                        remark: ""
+                    }];
                 } else {
-                    inModal.inbound.stream.tls.server = "";
-                    inModal.inbound.stream.tls.settings.domains = [];
+                    inModal.inbound.stream.externalProxy = [];
                 }
             }
         },
         methods: {
             streamNetworkChange() {
-                if (!inModal.inbound.canSetTls()) {
+                if (!inModal.inbound.canEnableTls()) {
                     this.inModal.inbound.stream.security = 'none';
                 }
                 if (!inModal.inbound.canEnableReality()) {
                     this.inModal.inbound.reality = false;
                 }
                 if (this.inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
+                    this.inModal.inbound.settings.vlesses.forEach(client => {
+                        client.flow = "";
+                    });
+                }
+                if ((this.inModal.inbound.protocol == Protocols.VLESS || this.inModal.inbound.protocol == Protocols.TROJAN) && !inModal.inbound.xtls) {
                     this.inModal.inbound.settings.vlesses.forEach(client => {
                         client.flow = "";
                     });

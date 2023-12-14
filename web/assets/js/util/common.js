@@ -52,13 +52,15 @@ function safeBase64(str) {
 
 function formatSecond(second) {
     if (second < 60) {
-        return second.toFixed(0) + ' s';
+        return second.toFixed(0) + 's';
     } else if (second < 3600) {
-        return (second / 60).toFixed(0) + ' m';
+        return (second / 60).toFixed(0) + 'm';
     } else if (second < 3600 * 24) {
-        return (second / 3600).toFixed(0) + ' h';
+        return (second / 3600).toFixed(0) + 'h';
     } else {
-        return (second / 3600 / 24).toFixed(0) + ' d';
+        day = Math.floor(second / 3600 / 24);
+        remain = ((second/3600) - (day*24)).toFixed(0);
+        return day + 'd' + (remain > 0 ? ' ' + remain + 'h' : '');
     }
 }
 
@@ -72,7 +74,7 @@ function addZero(num) {
 
 function toFixed(num, n) {
     n = Math.pow(10, n);
-    return Math.round(num * n) / n;
+    return Math.floor(num * n) / n;
 }
 
 function debounce(fn, delay) {
@@ -115,15 +117,52 @@ function setCookie(cname, cvalue, exdays) {
 function usageColor(data, threshold, total) {
     switch (true) {
         case data === null:
-            return 'blue';
-        case total <= 0:
-            return 'blue';
+            return "purple";
+        case total < 0:
+            return "green";
+        case total == 0:
+            return "purple";
         case data < total - threshold:
-            return 'cyan';
+            return "green";
         case data < total:
-            return 'orange';
+            return "orange";
         default:
-            return 'red';
+            return "red";
+    }
+}
+
+function clientUsageColor(clientStats, trafficDiff) {
+    switch (true) {
+        case !clientStats || clientStats.total == 0:
+            return "#7a316f"; // purple
+        case clientStats.up + clientStats.down < clientStats.total - trafficDiff:
+            return "#008771"; // Green
+        case clientStats.up + clientStats.down < clientStats.total:
+            return "#f37b24"; // Orange
+        default:
+            return "#cf3c3c"; // Red
+    }
+}
+
+function userExpiryColor(threshold, client, isDark = false) {
+    if (!client.enable) {
+        return isDark ? '#2c3950' : '#bcbcbc';
+    }
+    now = new Date().getTime(),
+    expiry = client.expiryTime;
+    switch (true) {
+        case expiry === null:
+            return "#7a316f"; // purple
+        case expiry < 0:
+            return "#008771"; // Green
+        case expiry == 0:
+            return "#7a316f"; // purple
+        case now < expiry - threshold:
+            return "#008771"; // Green
+        case now < expiry:
+            return "#f37b24"; // Orange
+        default:
+            return "#cf3c3c"; // Red
     }
 }
 

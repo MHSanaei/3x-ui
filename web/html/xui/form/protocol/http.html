@@ -1,19 +1,21 @@
 {{define "form/http"}}
-<a-form layout="inline">
-    <a-form-item>
-        <a-row>
-            <a-button type="primary" size="small" @click="inbound.settings.addAccount(new Inbound.SocksSettings.SocksAccount())">+</a-button>
-        </a-row>
-        <a-input-group v-for="(account, index) in inbound.settings.accounts">
-            <a-input style="width: 45%" v-model.trim="account.user"
-                addon-before='{{ i18n "username" }}'></a-input>
-            <a-input style="width: 55%" v-model.trim="account.pass"
-                addon-before='{{ i18n "password" }}'>
+<a-form>
+        <table style="width: 100%; text-align: center; margin-bottom: 10px;">
+            <tr>
+                <td width="45%">{{ i18n "username" }}</td>
+                <td width="45%">{{ i18n "password" }}</td>
+                <td><a-button size="small" @click="inbound.settings.addAccount(new Inbound.HttpSettings.HttpAccount())">+</a-button></td>
+            </tr>
+        </table>
+        <a-input-group compact v-for="(account, index) in inbound.settings.accounts" style="margin-bottom: 10px;">
+            <a-input style="width: 50%" v-model.trim="account.user" placeholder='{{ i18n "username" }}'>
+                <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+            </a-input>
+            <a-input style="width: 50%" v-model.trim="account.pass" placeholder='{{ i18n "password" }}'>
                 <template slot="addonAfter">
-                    <a-button type="primary" size="small" @click="inbound.settings.delAccount(index)">-</a-button>
+                    <a-button size="small" @click="inbound.settings.delAccount(index)">-</a-button>
                 </template>
             </a-input>
         </a-input-group>
-    </a-form-item>
 </a-form>
 {{end}}

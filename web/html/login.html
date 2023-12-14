@@ -2,65 +2,232 @@
 <html lang="en">
 {{template "head" .}}
 <style>
-
-    #app {
-        padding-top: 100px;
+  h1 {
+    text-align: center;
+    margin: 20px 0 50px 0;
+  }
+  .ant-btn,
+  .ant-input {
+    height: 50px;
+    border-radius: 30px;
+  }
+  .ant-input-group-addon {
+    border-radius: 0 30px 30px 0;
+    width: 50px;
+    font-size: 18px;
+  }
+  .ant-input-affix-wrapper .ant-input-prefix {
+    left: 23px;
+  }
+  .ant-input-affix-wrapper .ant-input:not(:first-child) {
+    padding-left: 50px;
+  }
+  .centered {
+    display: flex;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: bold;
+  }
+  #app {
+    overflow: hidden;
+  }
+  #login {
+    animation: charge 0.5s both;
+    background-color: #fff;
+    border-radius: 2rem;
+    padding: 3rem;
+    transition: all 0.3s;
+  }
+  #login:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.09);
+  }
+  @keyframes charge {
+    from {
+      transform: translateY(5rem);
+      opacity: 0;
     }
-
-    h1 {
-        text-align: center;
-        color: #fff;
-        margin: 20px 0 50px 0;
+    to {
+      transform: translateY(0);
+      opacity: 1;
     }
+  }
+  .wave {
+    opacity: 0.6;
+    position: absolute;
+    top: 80%;
+    left: 60%;
+    width: 6000px;
+    height: 6000px;
+    background-color: rgba(0, 135, 113, 0.08);
+    margin-left: -3000px;
+    transform-origin: 50% 50%;
+    pointer-events: none;
+    rotate: 115deg;
+  }
+  .wave2 {
+    opacity: 0.4;
+    rotate: 105deg;
+  }
+  .wave3 {
+    opacity: 0.2;
+    rotate: 62deg;
+  }
+  .under {
+    background-color: #dbf5ed;
+  }
+  .dark .wave {
+    background: rgb(10 117 87 / 20%);
+  }
+  .dark .under {
+    background-color: #101828;
+  }
+  .dark #login {
+    background-color: #151f31;
+  }
+  .dark h1 {
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .ant-form-item {
+    margin-bottom: 16px;
+  }
 
-    .ant-btn, .ant-input {
-        height: 50px;
-        border-radius: 30px;
+  .ant-btn-primary-login {
+    width: 100%;
+  }
+  .ant-btn-primary-login:focus,
+  .ant-btn-primary-login:hover {
+    color: #fff;
+    background-color: #006655;
+    border-color: #006655;
+    background-image: linear-gradient(
+      270deg,
+      rgba(123, 199, 77, 0) 30%,
+      #009980,
+      rgba(123, 199, 77, 0) 100%
+    );
+    background-repeat: no-repeat;
+    animation: ma-bg-move ease-in-out 5s infinite;
+    background-position-x: -500px;
+    width: 95%;
+    animation-delay: -0.5s;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.045);
+  }
+  .ant-btn-primary-login.active,
+  .ant-btn-primary-login:active {
+    color: #fff;
+    background-color: #006655;
+    border-color: #006655;
+  }
+  @keyframes ma-bg-move {
+    0% {
+      background-position: -500px 0;
     }
-
-    .ant-input-group-addon {
-        border-radius: 0 30px 30px 0;
-        width: 50px;
-        font-size: 18px;
+    50% {
+      background-position: 1000px 0;
     }
-
-    .ant-input-affix-wrapper .ant-input-prefix {
-        left: 23px;
+    100% {
+      background-position: 1000px 0;
     }
-
-    .ant-input-affix-wrapper .ant-input:not(:first-child) {
-        padding-left: 50px;
+  }
+  .wave-btn-bg {
+    position: relative;
+    border-radius: 25px;
+    width: 100%;
+  }
+  .dark .wave-btn-bg {
+    color: #fff;
+    position: relative;
+    background-color: #0a7557;
+    border: 2px double transparent;
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-size: 300%;
+    transition: all 0.5s ease;
+    width: 100%;
+  }
+  .dark .wave-btn-bg:hover {animation: wave-btn-tara 4s ease infinite;}
+  .dark .wave-btn-bg-cl {
+    background-image: linear-gradient(rgba(13, 14, 33, 0), rgba(13, 14, 33, 0)),
+      radial-gradient(circle at left top, #006655, #009980, #006655) !important;
+    border-radius: 3em;
+  }
+  .dark .wave-btn-bg-cl:hover {
+    width: 95%;
+  }
+  .dark .wave-btn-bg-cl:before {
+    position: absolute;
+    content: "";
+    top: -5px;
+    left: -5px;
+    bottom: -5px;
+    right: -5px;
+    z-index: -1;
+    background: inherit;
+    background-size: inherit;
+    border-radius: 4em;
+    opacity: 0;
+    transition: 0.5s;
+  }
+  .dark .wave-btn-bg-cl:hover::before {
+    opacity: 1;
+    filter: blur(20px);
+    animation: wave-btn-tara 8s linear infinite;
+  }
+  @keyframes wave-btn-tara {
+    to {
+      background-position: 300%;
     }
-
-    .centered {
-        display: flex;
-        text-align: center;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .title {
-        font-size: 32px;
-        font-weight: bold;
-    }
-
+  }
+  .dark .ant-btn-primary-login {
+    font-size: 14px;
+    color: #fff;
+    text-align: center;
+    background-image: linear-gradient(
+      rgba(13, 14, 33, 0.45),
+      rgba(13, 14, 33, 0.35)
+    );
+    border-radius: 2rem;
+    border: none;
+    outline: none;
+    background-color: transparent;
+    height: 46px;
+    position: relative;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    padding: 0 15px;
+    width: 100%;
+    animation: none;
+    background-position-x: 0;
+    box-shadow: none;
+  }
 </style>
 <body>
-<a-layout id="app" v-cloak class="login" :class="themeSwitcher.darkCardClass">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     <transition name="list" appear>
-        <a-layout-content>
+        <a-layout-content class="under" style="min-height: 0;">
+            <div class='wave'></div>
+            <div class='wave wave2'></div>
+            <div class='wave wave3'></div>
+            <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto;">
+            <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
-                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
+                <a-col>
                     <h1 class="title">{{ i18n "pages.login.title" }}</h1>
                 </a-col>
             </a-row>
             <a-row type="flex" justify="center">
-                <a-col :xs="22" :sm="20" :md="16" :lg="12" :xl="8">
+                <a-col span="24">
                     <a-form>
                         <a-form-item>
                             <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
                                      @keydown.enter.native="login" autofocus>
-                                <a-icon slot="prefix" type="user" :style="'font-size: 16px;' + themeSwitcher.textStyle" />
+                                <a-icon slot="prefix" type="user" style="font-size: 16px;"/>
                             </a-input>
                         </a-form-item>
                         <a-form-item>
@@ -76,18 +243,20 @@
                         </a-form-item>
                         <a-form-item>
                             <a-row justify="center" class="centered">
-                                <a-button type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
-                                          :style="loading ? { width: '50px' } : { display: 'block', width: '100%' }">
-                                    [[ loading ? '' : '{{ i18n "login" }}' ]]
-                                </a-button>
+                                <div class="wave-btn-bg wave-btn-bg-cl">
+                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
+                                              :style="loading ? { width: '50px' } : { display: 'inline-block' }">
+                                        [[ loading ? '' : '{{ i18n "login" }}' ]]
+                                    </a-button>
+                                </div>
                             </a-row>
                         </a-form-item>
                         <a-form-item>
                             <a-row justify="center" class="centered">
-                                <a-col :span="12">
-                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" :dropdown-class-name="themeSwitcher.darkCardClass">
-                                        <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                                            <span role="img" :aria-label="l.name" v-text="l.icon"></span>
+                                <a-col :span="24">
+                                    <a-select ref="selectLang" v-model="lang" @change="setLang(lang)" style="width: 150px;" :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="l.value" label="English" v-for="l in supportLangs">
+                                            <span role="img" aria-label="l.name" v-text="l.icon"></span>
                                             &nbsp;&nbsp;<span v-text="l.name"></span>
                                         </a-select-option>
                                     </a-select>
@@ -96,11 +265,18 @@
                         </a-form-item>
                         <a-form-item>
                             <a-row justify="center" class="centered">
-                                <theme-switch />
+                                <a-col>
+                                    <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>&nbsp;
+                                </a-col>
+                                <a-col>
+                                    <theme-switch />
+                                </a-col>
                             </a-row>
                         </a-form-item>
                     </a-form>
                 </a-col>
+            </a-row>
+            </a-col>
             </a-row>
         </a-layout-content>
     </transition>
@@ -109,6 +285,12 @@
 {{template "component/themeSwitcher" .}}
 {{template "component/password" .}}
 <script>
+    class User {
+        constructor() {
+            this.username = "";
+            this.password = "";
+        }
+    }
 
     const app = new Vue({
         delimiters: ['[[', ']]'],
@@ -121,7 +303,6 @@
             lang: ""
         },
         async created() {
-            this.updateBackground();
             this.lang = getLang();
             this.secretEnable = await this.getSecretStatus();
         },
@@ -143,21 +324,8 @@
                     return msg.obj;
                 }
             },
-            updateBackground() {
-                const leftColor = RandomUtil.randomIntRange(0x222222, 0xFFFFFF / 2).toString(16);
-                const rightColor = RandomUtil.randomIntRange(0xFFFFFF / 2, 0xDDDDDD).toString(16);
-                const deg = RandomUtil.randomIntRange(0, 360);
-                const background = `linear-gradient(${deg}deg, #${leftColor} 10%, #${rightColor} 100%)`;
-                document.querySelector('#app').style.background = this.themeSwitcher.isDarkTheme ? colors.dark.bg : background;
-            },
-        },
-        watch: {
-            'themeSwitcher.isDarkTheme'(newVal, oldVal) {
-                this.updateBackground();
-            },
         },
     });
-
 </script>
 </body>
 </html>

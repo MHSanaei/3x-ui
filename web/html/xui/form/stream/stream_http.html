@@ -1,12 +1,19 @@
 {{define "form/streamHTTP"}}
-<a-form layout="inline">
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "path" }}'>
         <a-input v-model.trim="inbound.stream.http.path"></a-input>
     </a-form-item>
-    <a-form-item label="Host">
-        <a-row v-for="(host, index) in inbound.stream.http.host">
-            <a-input v-model.trim="inbound.stream.http.host[index]"></a-input>
-        </a-row>
+    <a-form-item>
+        <template slot="label">{{ i18n "host" }}
+            <a-button size="small" @click="inbound.stream.http.addHost()">+</a-button>
+        </template>
+        <template v-for="(host, index) in inbound.stream.http.host">
+            <a-input v-model.trim="inbound.stream.http.host[index]">
+                <a-button size="small" slot="addonAfter"
+                @click="inbound.stream.http.removeHost(index)"
+                v-if="inbound.stream.http.host.length>1">-</a-button>
+            </a-input>
+        </template>
     </a-form-item>
 </a-form>
 {{end}}

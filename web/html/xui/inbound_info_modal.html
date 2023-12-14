@@ -3,71 +3,89 @@
     v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}'
     :closable="true"
     :mask-closable="true"
-    :class="themeSwitcher.darkCardClass"
     :footer="null"
     width="600px"
+    :class="themeSwitcher.currentTheme"
     >
-    <table style="margin-bottom: 10px; width: 100%;">
-        <tr><td>
-                <table>
-                    <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="green">[[ dbInbound.protocol ]]</a-tag></td></tr>
-                    <tr><td>{{ i18n "pages.inbounds.address" }}</td><td><a-tag color="blue">[[ dbInbound.address ]]</a-tag></td></tr>
-                    <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag color="green">[[ dbInbound.port ]]</a-tag></td></tr>
-                </table>
-            </td>
-            <td v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-                <table>
-                    <tr>
-                        <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
-                    </tr>
-                    <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
-                        <tr v-if="inbound.host"><td>{{ i18n "host" }}</td><td><a-tag color="green">[[ inbound.host ]]</a-tag></td></tr>
-                        <tr v-else><td>{{ i18n "host" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
-
-                        <tr v-if="inbound.path"><td>{{ i18n "path" }}</td><td><a-tag color="green">[[ inbound.path ]]</a-tag></td></tr>
-                        <tr v-else><td>{{ i18n "path" }}</td><td><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
-                    </template>
-
-                    <template v-if="inbound.isQuic">
-                        <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.quicSecurity ]]</a-tag></td></tr>
-                        <tr><td>quic {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.quicKey ]]</a-tag></td></tr>
-                        <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag color="green">[[ inbound.quicType ]]</a-tag></td></tr>
-                    </template>
-
-                    <template v-if="inbound.isKcp">
-                        <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag color="green">[[ inbound.kcpType ]]</a-tag></td></tr>
-                        <tr><td>kcp {{ i18n "password" }}</td><td><a-tag color="green">[[ inbound.kcpSeed ]]</a-tag></td></tr>
-                    </template>
-
-                    <template v-if="inbound.isGrpc">
-                        <tr><td>grpc serviceName</td><td><a-tag color="green">[[ inbound.serviceName ]]</a-tag></td></tr>
-                        <tr><td>grpc multiMode</td><td><a-tag color="green">[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
-                    </template>
-                </table>
-            </td></tr>
-        <tr colspan="2" v-if="dbInbound.hasLink()">
-            <td v-if="inbound.tls">
-                tls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                tls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
-            </td>
-            <td v-else-if="inbound.xtls">
-                xtls: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                xtls {{ i18n "domainName" }}: <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
-            </td>
-            <td v-else-if="inbound.reality">
-                reality: <a-tag color="green">{{ i18n "enabled" }}</a-tag><br />
-                reality Destination: <a-tag :color="inbound.stream.reality.dest ? 'green' : 'orange'">[[ inbound.stream.reality.dest ]]</a-tag>
-            </td>
-            <td v-else>tls: <a-tag color="red">{{ i18n "disabled" }}</a-tag></td>
-        </tr>
-    </table>
+    <a-row>
+        <a-col :xs="24" :md="12">
+            <table>
+                <tr><td>{{ i18n "protocol" }}</td><td><a-tag color="purple">[[ dbInbound.protocol ]]</a-tag></td></tr>
+                <tr><td>{{ i18n "pages.inbounds.address" }}</td><td>
+                    <a-tooltip :title="[[ dbInbound.address ]]">
+                        <a-tag class="info-large-tag">[[ dbInbound.address ]]</a-tag>
+                    </a-tooltip>
+                </td></tr>
+                <tr><td>{{ i18n "pages.inbounds.port" }}</td><td><a-tag>[[ dbInbound.port ]]</a-tag></td></tr>
+            </table>
+        </a-col>
+        <a-col :xs="24" :md="12">
+        <template v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+            <table>
+                <tr>
+                    <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
+                </tr>
+            <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
+                <tr>
+                    <td>{{ i18n "host" }}</td>
+                    <td v-if="inbound.host">
+                        <a-tooltip :title="[[ inbound.host ]]">
+                            <a-tag class="info-large-tag">[[ inbound.host ]]</a-tag>
+                        </a-tooltip>
+                    </td>
+                    <td v-else><a-tag color="orange">{{ i18n "none" }}</a-tag></td></tr>
+                </tr>
+                <tr>
+                    <td>{{ i18n "path" }}</td>
+                    <td v-if="inbound.path">
+                        <a-tooltip :title="[[ inbound.path ]]">
+                            <a-tag class="info-large-tag">[[ inbound.path ]]</a-tag>
+                        </a-tooltip>
+                    <td v-else><a-tag color="orange">{{ i18n "none" }}</a-tag></td>
+                </tr>
+            </template>
+            
+            <template v-if="inbound.isQuic">
+                <tr><td>quic {{ i18n "encryption" }}</td><td><a-tag>[[ inbound.quicSecurity ]]</a-tag></td></tr>
+                <tr><td>quic {{ i18n "password" }}</td><td><a-tag>[[ inbound.quicKey ]]</a-tag></td></tr>
+                <tr><td>quic {{ i18n "camouflage" }}</td><td><a-tag>[[ inbound.quicType ]]</a-tag></td></tr>
+            </template>
+            
+            <template v-if="inbound.isKcp">
+                <tr><td>kcp {{ i18n "encryption" }}</td><td><a-tag>[[ inbound.kcpType ]]</a-tag></td></tr>
+                <tr><td>kcp {{ i18n "password" }}</td><td><a-tag>[[ inbound.kcpSeed ]]</a-tag></td></tr>
+            </template>
+            
+            <template v-if="inbound.isGrpc">
+                <tr><td>grpc serviceName</td><td>
+                    <a-tooltip :title="[[ inbound.serviceName ]]">
+                        <a-tag class="info-large-tag">[[ inbound.serviceName ]]</a-tag>
+                    </a-tooltip>
+                <tr><td>grpc multiMode</td><td><a-tag>[[ inbound.stream.grpc.multiMode ]]</a-tag></td></tr>
+            </template>
+            </table>
+        </template>
+        </a-col>
+        <template v-if="dbInbound.hasLink()">
+            {{ i18n "security" }}
+            <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[ inbound.stream.security ]]</a-tag>
+            <br />
+            <template v-if="inbound.stream.security != 'none'">
+            {{ i18n "domainName" }}
+            <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+            </template>
+        </template>
     <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">
         <tr>
             <td>{{ i18n "encryption" }}</td>
             <td><a-tag color="green">[[ inbound.settings.method ]]</a-tag></td>
         </tr><tr v-if="inbound.isSS2022">
             <td>{{ i18n "password" }}</td>
-            <td><a-tag color="blue">[[ inbound.settings.password ]]</a-tag></td>
+            <td>
+                <a-tooltip :title="[[ inbound.settings.password  ]]">
+                    <a-tag class="info-large-tag">[[ inbound.settings.password  ]]</a-tag>
+                </a-tooltip>
+            </td>
         </tr><tr>
             <td>{{ i18n "pages.inbounds.network" }}</td>
             <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
@@ -82,21 +100,29 @@
             </tr>
             <tr v-if="infoModal.clientSettings.id">
                 <td>ID</td>
-                <td><a-tag color="green">[[ infoModal.clientSettings.id ]]</a-tag></td>
+                <td><a-tag>[[ infoModal.clientSettings.id ]]</a-tag></td>
             </tr>
             <tr v-if="infoModal.inbound.canEnableTlsFlow()">
                 <td>Flow</td>
-                <td><a-tag color="green">[[ infoModal.clientSettings.flow ]]</a-tag></td>
+                <td><a-tag>[[ infoModal.clientSettings.flow ]]</a-tag></td>
+            </tr>
+            <tr v-if="infoModal.inbound.xtls">
+                <td>Flow</td>
+                <td><a-tag>[[ infoModal.clientSettings.flow ]]</a-tag></td>
             </tr>
             <tr v-if="infoModal.clientSettings.password">
-                <td>Password</td>
-                <td><a-tag color="green">[[ infoModal.clientSettings.password ]]</a-tag></td>
+                <td>{{ i18n "password" }}</td>
+                <td>
+                    <a-tooltip :title="[[ infoModal.clientSettings.password  ]]">
+                        <a-tag class="info-large-tag">[[ infoModal.clientSettings.password  ]]</a-tag>
+                    </a-tooltip>
+                </td>
             </tr>
             <tr>
                 <td>{{ i18n "status" }}</td>
                 <td>
-                    <a-tag v-if="isEnable" color="blue">{{ i18n "enabled" }}</a-tag>
-                    <a-tag v-else color="red">{{ i18n "disabled" }}</a-tag>
+                    <a-tag v-if="isEnable" color="green">{{ i18n "enabled" }}</a-tag>
+                    <a-tag v-else>{{ i18n "disabled" }}</a-tag>
                     <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
                 </td>
             </tr>
@@ -104,84 +130,84 @@
                 <td>{{ i18n "usage" }}</td>
                 <td>
                     <a-tag color="green">[[ sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
-                    <a-tag color="blue">↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
+                    <a-tag>↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
                 </td>
             </tr>
         </table>
-        <table style="margin-bottom: 10px; width: 100%;">
+        <table style="margin-bottom: 10px; width: 100%; text-align: center;">
             <tr>
                 <th>{{ i18n "remained" }}</th>
                 <th>{{ i18n "pages.inbounds.totalFlow" }}</th>
                 <th>{{ i18n "pages.inbounds.expireDate" }}</th>
             </tr>
-        <tr>
-            <td>
-                <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
-                    [[ sizeFormat(infoModal.clientSettings.totalGB - infoModal.clientStats.up - infoModal.clientStats.down) ]]
-                </a-tag>
-            </td>
-            <td>
-                <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
-                    [[ sizeFormat(infoModal.clientSettings.totalGB) ]]
-                </a-tag>
-                <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
-            </td>
-            <td>
-                <template v-if="infoModal.clientSettings.expiryTime > 0">
-                    <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)">
-                        [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
+            <tr>
+                <td>
+                    <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
+                        [[ sizeFormat(infoModal.clientSettings.totalGB - infoModal.clientStats.up - infoModal.clientStats.down) ]]
                     </a-tag>
-                </template>
-                <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="cyan">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</a-tag>
-                <a-tag v-else color="green">{{ i18n "indefinite" }}</a-tag>
-            </td>
-        </tr>
-    </table>
-    <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
-        <a-divider>Subscription link</a-divider>
-        <a-row>
-            <a-col :span="22"><a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a></a-col>
-            <a-col :span="2">
-                <a-tooltip title='{{ i18n "copy" }}'>
-                    <button class="ant-btn ant-btn-primary" id="copy-sub-link" @click="copyToClipboard('copy-sub-link', infoModal.subLink)">
-                        <a-icon type="snippets"></a-icon>
-                    </button>
-                </a-tooltip>
-            </a-col>
-        </a-row>
+                </td>
+                <td>
+                    <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)">
+                        [[ sizeFormat(infoModal.clientSettings.totalGB) ]]
+                    </a-tag>
+                    <a-tag v-else color="purple" class="infinite-tag">&infin;</a-tag>
+                </td>
+                <td>
+                    <template v-if="infoModal.clientSettings.expiryTime > 0">
+                        <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)">
+                            [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
+                        </a-tag>
+                    </template>
+                    <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="green">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}</a-tag>
+                    <a-tag v-else color="purple" class="infinite-tag">&infin;</a-tag>
+                </td>
+            </tr>
+        </table>
+        <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
+            <a-divider>Subscription link</a-divider>
+            <a-row>
+                <a-col :sx="24" :md="22"><a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a></a-col>
+                <a-col :sx="24" :md="2" style="text-align: right;">
+                    <a-tooltip title='{{ i18n "copy" }}'>
+                        <button class="ant-btn ant-btn-primary" id="copy-sub-link" @click="copyToClipboard('copy-sub-link', infoModal.subLink)">
+                            <a-icon type="snippets"></a-icon>
+                        </button>
+                    </a-tooltip>
+                </a-col>
+            </a-row>
+        </template>
+        <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
+            <a-divider>Telegram ID</a-divider>
+            <a-row>
+                <a-col :sx="24" :md="22"><a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></a-col>
+                <a-col :sx="24" :md="2" style="text-align: right;">
+                    <a-tooltip title='{{ i18n "copy" }}'>
+                        <button class="ant-btn ant-btn-primary" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)">
+                            <a-icon type="snippets"></a-icon>
+                        </button>
+                    </a-tooltip>
+                </a-col>
+            </a-row>
+        </template>
+        <template v-if="dbInbound.hasLink()">
+            <a-divider>URL</a-divider>
+            <a-row v-for="(link,index) in infoModal.links">
+                <a-col :sx="24" :md="22"><a-tag color="green">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+                <a-col :sx="24" :md="2" style="text-align: right;">
+                    <a-tooltip title='{{ i18n "copy" }}'>
+                        <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
+                            <a-icon type="snippets"></a-icon>
+                        </button>
+                    </a-tooltip>
+                </a-col>
+            </a-row>
+        </template>
     </template>
-    <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
-        <a-divider>Telegram Username</a-divider>
-        <a-row>
-            <a-col :span="22"><a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></a-col>
-            <a-col :span="2">
-                <a-tooltip title='{{ i18n "copy" }}'>
-                    <button class="ant-btn ant-btn-primary" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)">
-                        <a-icon type="snippets"></a-icon>
-                    </button>
-                </a-tooltip>
-            </a-col>
-        </a-row>
-    </template>
-    <template v-if="dbInbound.hasLink()">
-        <a-divider>URL</a-divider>
-        <a-row v-for="(link,index) in infoModal.links">
-            <a-col :span="22"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
-            <a-col :span="2" style="text-align: right;">
-                <a-tooltip title='{{ i18n "copy" }}'>
-                    <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
-                        <a-icon type="snippets"></a-icon>
-                    </button>
-                </a-tooltip>
-            </a-col>
-        </a-row>
-    </template>
-</template>
     <template v-else>
         <template v-if="dbInbound.isSS && !inbound.isSSMultiUser">
             <a-divider>URL</a-divider>
             <a-row v-for="(link,index) in infoModal.links">
-                <a-col :span="22"><a-tag color="cyan">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
+                <a-col :span="22"><a-tag color="green">[[ link.remark ]]</a-tag><br />[[ link.link ]]</a-col>
                 <a-col :span="2" style="text-align: right;">
                     <a-tooltip title='{{ i18n "copy" }}'>
                         <button class="ant-btn ant-btn-primary" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)">
@@ -199,9 +225,9 @@
                 <th>FollowRedirect</th>
             </tr><tr>
                 <td><a-tag color="green">[[ inbound.settings.address ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.port ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.port ]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.network ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.followRedirect ]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.followRedirect ]]</a-tag></td>
             </tr>
         </table>
         <table v-if="dbInbound.isSocks" style="margin-bottom: 10px; width: 100%;">
@@ -212,29 +238,29 @@
             </tr>
             <tr>
                 <td><a-tag color="green">[[ inbound.settings.auth ]]</a-tag></td>
-                <td><a-tag color="blue">[[ inbound.settings.udp]]</a-tag></td>
+                <td><a-tag color="green">[[ inbound.settings.udp]]</a-tag></td>
                 <td><a-tag color="green">[[ inbound.settings.ip ]]</a-tag></td>
             </tr>
             <template v-if="inbound.settings.auth == 'password'">
-                <tr>
+            <tr>
                 <td> </td>
                 <td>{{ i18n "username" }}</td>
                 <td>{{ i18n "password" }}</td>
             </tr><tr v-for="account,index in inbound.settings.accounts">
-                <td><a-tag color="green">[[ index ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
+                <td>[[ index ]]</td>
+                <td><a-tag color="green">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
-        </template>
-    </table>
-    <table v-if="dbInbound.isHTTP" style="margin-bottom: 10px; width: 100%;">
+            </template>
+        </table>
+        <table v-if="dbInbound.isHTTP" style="margin-bottom: 10px; width: 100%;">
             <tr>
                 <th> </th>
                 <th>{{ i18n "username" }}</th>
                 <th>{{ i18n "password" }}</th>
             </tr><tr v-for="account,index in inbound.settings.accounts">
-                <td><a-tag color="green">[[ index ]]</a-tag></td>
-                <td><a-tag color="blue">[[ account.user ]]</a-tag></td>
+                <td>[[ index ]]</td>
+                <td><a-tag color="green">[[ account.user ]]</a-tag></td>
                 <td><a-tag color="green">[[ account.pass ]]</a-tag></td>
             </tr>
         </table>
@@ -245,7 +271,6 @@
         visible: false,
         inbound: new Inbound(),
         dbInbound: new DBInbound(),
-        settings: null,
         clientSettings: null,
         clientStats: [],
         upStats: 0,
@@ -260,27 +285,10 @@
             this.index = index;
             this.inbound = dbInbound.toInbound();
             this.dbInbound = new DBInbound(dbInbound);
-            this.settings = JSON.parse(this.inbound.settings);
-            this.clientSettings = this.settings.clients ? Object.values(this.settings.clients)[index] : null;
-            this.isExpired = this.inbound.isExpiry(index);
-            this.clientStats = this.settings.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            remark = [this.dbInbound.remark, ( this.clientSettings ? this.clientSettings.email : '')].filter(Boolean).join('-');
-            address = this.dbInbound.address;
-            this.links = [];
-            if (this.inbound.tls && !ObjectUtil.isArrEmpty(this.inbound.stream.tls.settings.domains)) {
-                this.inbound.stream.tls.settings.domains.forEach((domain) => {
-                    remarkText = [remark, domain.remark].filter(Boolean).join('-');
-                    this.links.push({
-                        remark: remarkText,
-                        link: this.inbound.genLink(domain.domain, remarkText, index)
-                    });
-                });
-            } else {
-                this.links.push({
-                    remark: remark,
-                    link: this.inbound.genLink(address, remark, index)
-                });
-            }
+            this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
+            this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index): this.dbInbound.isExpiry;
+            this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+            this.links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, this.clientSettings);
             if (this.clientSettings) {
                 if (this.clientSettings.subId) {
                     this.subLink = this.genSubLink(this.clientSettings.subId);
@@ -295,8 +303,7 @@
             infoModal.visible = false;
         },
         genSubLink(subID) {
-            const { domain: host, port, tls: isTLS, path: base } = app.subSettings;
-            return buildURL({ host, port, isTLS, base, path: subID+'?name='+remark });
+            return app.subSettings.subURI+subID;
         }
     };
 
@@ -312,24 +319,24 @@
                 return this.infoModal.inbound;
             },
             get isActive() {
-                if (infoModal.clientStats) {
+                if(infoModal.clientStats){
                     return infoModal.clientStats.enable;
                 }
-                return infoModal.dbInbound.isEnable;
+                return true;
             },
             get isEnable() {
-                if (infoModal.clientSettings) {
+                if(infoModal.clientSettings){
                     return infoModal.clientSettings.enable;
                 }
                 return infoModal.dbInbound.isEnable;
             },
         },
         methods: {
-            copyToClipboard(elmentId, content) {
+            copyToClipboard(elmentId,content) {
                 this.infoModal.clipboard = new ClipboardJS('#' + elmentId, {
-                    text: () => content,
-                });
-                this.infoModal.clipboard.on('success', () => {
+                        text: () => content,
+                    });
+                this.infoModal.clipboard.on('success', () => { 
                     app.$message.success('{{ i18n "copied" }}')
                     this.infoModal.clipboard.destroy();
                 });
@@ -338,6 +345,7 @@
                 return usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
             }
         },
+        
     });
 
 </script>

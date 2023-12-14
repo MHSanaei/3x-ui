@@ -6,6 +6,9 @@
         .ant-layout-content {
             margin: 24px 16px;
         }
+        .ant-card-hoverable {
+            margin-inline: 0.3rem;
+        }
     }
 
     .ant-col-sm-24 {
@@ -18,21 +21,20 @@
 </style>
 
 <body>
-<a-layout id="app" v-cloak>
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     {{ template "commonSider" . }}
-    <a-layout id="content-layout" :style="themeSwitcher.bgStyle">
+    <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
             <transition name="list" appear>
                 <a-row>
-                    <a-card hoverable :class="themeSwitcher.darkCardClass">
+                    <a-card hoverable>
                         <a-row>
                             <a-col :sm="24" :md="12">
                                 <a-row>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.cpu.color"
-                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.cpu.percent"></a-progress>
                                         <div>CPU:  [[ cpuCoreFormat(status.cpuCores) ]]</div>
                                         <div>Speed:  [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
@@ -40,7 +42,6 @@
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.mem.color"
-                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.mem.percent"></a-progress>
                                         <div>
                                             {{ i18n "pages.index.memory"}}: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
@@ -53,7 +54,6 @@
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.swap.color"
-                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.swap.percent"></a-progress>
                                         <div>
                                             Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
@@ -62,7 +62,6 @@
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.disk.color"
-                                                    :class="themeSwitcher.darkCardClass"
                                                     :percent="status.disk.percent"></a-progress>
                                         <div>
                                             {{ i18n "pages.index.hard"}}: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
@@ -77,37 +76,41 @@
             <transition name="list" appear>
                 <a-row>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             3X: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
                             Xray: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                             <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             {{ i18n "menu.link" }}:
-                            <a-tag color="blue" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             {{ i18n "pages.index.xrayStatus" }}:
                             <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
-                            <a-tooltip v-if="status.xray.state === State.Error">
-                                <template slot="title">
-                                    <p v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
+                            <a-popover v-if="status.xray.state === State.Error"
+                                :overlay-class-name="themeSwitcher.currentTheme">
+                                <span slot="title" style="font-size: 12pt">Error in running xray-core
+                                    <a-tag color="purple" style="cursor: pointer; float: right;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                                </span>
+                                <template slot="content">
+                                    <p style="max-width: 400px" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
                                 </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
-                            </a-tooltip>
-                            <a-tag color="blue" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
-                            <a-tag color="blue" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
-                            <a-tag color="blue" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
+                                <a-icon type="question-circle"></a-icon>
+                            </a-popover>
+                            <a-tag color="purple" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
+                            <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             {{ i18n "pages.index.operationHours" }}:
                             Xray:
                             <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
@@ -116,18 +119,18 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
                             <a-tooltip>
                                 <template slot="title">
                                     {{ i18n "pages.index.systemLoadDesc" }}
                                 </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
+                                <a-icon type="question-circle"></a-icon>
                             </a-tooltip>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             {{ i18n "usage"}}:
                             Memory [[ sizeFormat(status.appStats.mem) ]] -
                             Threads [[ status.appStats.threads ]]
@@ -135,7 +138,7 @@
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
                                     IPv4:
@@ -143,7 +146,7 @@
                                         <template slot="title">
                                             [[ status.publicIP.ipv4 ]]
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -152,14 +155,14 @@
                                         <template slot="title">
                                             [[ status.publicIP.ipv6 ]]
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>                    
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
                                     TCP:  [[ status.tcpCount ]]
@@ -167,7 +170,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionTcpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -176,14 +179,14 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionUdpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
                                     <a-icon type="arrow-up"></a-icon>
@@ -192,7 +195,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.upSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -202,14 +205,14 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.downSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :md="12">
-                        <a-card hoverable :class="themeSwitcher.darkCardClass">
+                        <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
                                     <a-icon type="cloud-upload"></a-icon>
@@ -218,7 +221,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.totalSent" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -228,7 +231,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.totalReceive" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
@@ -241,21 +244,21 @@
 
     <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}'
              :closable="true" @ok="() => versionModal.visible = false"
-             :class="themeSwitcher.darkCardClass"
+             :class="themeSwitcher.currentTheme"
              footer="">
         <h2>{{ i18n "pages.index.xraySwitchClick"}}</h2>
         <h2>{{ i18n "pages.index.xraySwitchClickDesk"}}</h2>
         <template v-for="version, index in versionModal.versions">
-            <a-tag :color="index % 2 == 0 ? 'blue' : 'green'"
+            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'"
                    style="margin: 10px" @click="switchV2rayVersion(version)">
                 [[ version ]]
             </a-tag>
         </template>
     </a-modal>
 
-    <a-modal id="log-modal" v-model="logModal.visible" title="X-UI logs"
+    <a-modal id="log-modal" v-model="logModal.visible" title="Logs"
              :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
-             :class="themeSwitcher.darkCardClass"
+             :class="themeSwitcher.currentTheme"
              width="800px"
              footer="">
         <a-form layout="inline">
@@ -263,7 +266,7 @@
                 <a-select v-model="logModal.rows"
                 style="width: 80px"
                 @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.darkCardClass">
+                :dropdown-class-name="themeSwitcher.currentTheme">
                     <a-select-option value="10">10</a-select-option>
                     <a-select-option value="20">20</a-select-option>
                     <a-select-option value="50">50</a-select-option>
@@ -274,7 +277,7 @@
                 <a-select v-model="logModal.level"
                 style="width: 120px"
                 @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.darkCardClass">
+                :dropdown-class-name="themeSwitcher.currentTheme">
                     <a-select-option value="debug">Debug</a-select-option>
                     <a-select-option value="info">Info</a-select-option>
                     <a-select-option value="notice">Notice</a-select-option>
@@ -286,7 +289,7 @@
                 <a-checkbox v-model="logModal.syslog" @change="openLogs()"></a-checkbox>
             </a-form-item>
             <a-form-item>
-                <button class="ant-btn ant-btn-primary" @click="openLogs()"><a-icon type="sync"></a-icon> Reload</button>
+                <a-button class="ant-btn ant-btn-primary" :loading="logModal.loading" @click="openLogs()"><a-icon :spin="logModal.loading" type="sync"></a-icon> Reload</a-button>
             </a-form-item>
             <a-form-item>
                 <a-button type="primary" style="margin-bottom: 10px;"
@@ -295,17 +298,16 @@
                 </a-button>
             </a-form-item>
         </a-form>
-        <a-input type="textarea" v-model="logModal.logs" disabled="true"
-                :autosize="{ minRows: 10, maxRows: 22}"></a-input>
+        <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto;" v-html="logModal.logs"></div>
     </a-modal>
 
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
-            :closable="true" :class="themeSwitcher.darkCardClass"
+            :closable="true" :class="themeSwitcher.currentTheme"
             @ok="() => backupModal.hide()" @cancel="() => backupModal.hide()">
-        <p style="color: inherit; font-size: 16px; padding: 4px 2px;">
-            <a-icon type="warning" style="color: inherit; font-size: 20px;"></a-icon>
-            [[ backupModal.description ]]
-        </p>
+            <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
+            :message="backupModal.description"
+            show-icon
+            ></a-alert>
         <a-space direction="horizontal" style="text-align: center" style="margin-bottom: 10px;">
             <a-button type="primary" @click="exportDatabase()">
                 [[ backupModal.exportText ]]
@@ -318,6 +320,7 @@
 
 </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/clipboard/clipboard.min.js"></script>
 {{template "component/themeSwitcher" .}}
 {{template "textModal"}}
 <script>
@@ -346,11 +349,11 @@
         get color() {
             const percent = this.percent;
             if (percent < 80) {
-                return '#67C23A';
+                return '#008771'; // Green
             } else if (percent < 90) {
-                return '#E6A23C';
+                return "#f37b24"; // Orange
             } else {
-                return '#F56C6C';
+                return "#cf3c3c"; // Red
             }
         }
     }
@@ -427,9 +430,46 @@
         rows: 20,
         level: 'info',
         syslog: false,
+        loading: false,
         show(logs) {
             this.visible = true;
-            this.logs = logs? logs.join("\n"): "No Record...";
+            this.logs = logs? this.formatLogs(logs) : "No Record...";
+        },
+        formatLogs(logs) {
+            let formattedLogs = '';
+            const levels = ["DEBUG","INFO","NOTICE","WARNING","ERROR"];
+            const levelColors = ["#3c89e8","#008771","#008771","#f37b24","#e04141","#bcbcbc"];
+
+            logs.forEach((log, index) => {
+                let [data, message] = log.split(" - ",2);
+                const parts = data.split(" ")
+                if(index>0) formattedLogs += '<br>';
+
+                if (parts.length === 3) {
+                    const d = parts[0];
+                    const t = parts[1];
+                    const level = parts[2];
+                    const levelIndex = levels.indexOf(level,levels) || 5;
+
+                    //formattedLogs += `<span style="color: gray;">${index + 1}.</span>`;
+                    formattedLogs += `<span style="color: ${levelColors[0]};">${d} ${t}</span> `;
+                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${level}</span>`;
+                } else {
+                    const levelIndex = levels.indexOf(data,levels) || 5;
+                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${data}</span>`;
+                }
+
+                if(message){
+                    if(message.startsWith("XRAY:"))
+                        message = "<b>XRAY: </b>" + message.substring(5);
+                    else
+                        message = "<b>X-UI: </b>" + message;
+                }
+
+                formattedLogs += message ? ' - ' + message : '';
+            });
+
+            return formattedLogs;
         },
         hide() {
             this.visible = false;
@@ -504,7 +544,7 @@
                     title: '{{ i18n "pages.index.xraySwitchVersionDialog"}}',
                     content: '{{ i18n "pages.index.xraySwitchVersionDialogDesc"}}' + ` ${version}?`,
                     okText: '{{ i18n "confirm"}}',
-                    class: themeSwitcher.darkCardClass,
+                    class: themeSwitcher.currentTheme,
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         versionModal.hide();
@@ -531,13 +571,14 @@
                 }
             },
             async openLogs(){
-                this.loading(true);
+                logModal.loading = true;
                 const msg = await HttpUtil.post('server/logs/'+logModal.rows,{level: logModal.level, syslog: logModal.syslog});
-                this.loading(false);
                 if (!msg.success) {
                     return;
                 }
                 logModal.show(msg.obj);
+                await PromiseUtil.sleep(500);
+                logModal.loading = false;
             },
             async openConfig() {
                 this.loading(true);

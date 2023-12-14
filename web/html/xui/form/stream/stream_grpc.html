@@ -1,9 +1,9 @@
 {{define "form/streamGRPC"}}
-<a-form layout="inline">
-    <a-form-item label="ServiceName">
-        <a-input v-model.trim="inbound.stream.grpc.serviceName"></a-input>
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="Service Name">
+        <a-input v-model.trim="inbound.stream.grpc.serviceName" style="width: 250px;"></a-input>
     </a-form-item>
-    <a-form-item label="Multi Mode">
+    <a-form-item label="MultiMode">
         <a-switch v-model="inbound.stream.grpc.multiMode"></a-switch>
     </a-form-item>
 </a-form>

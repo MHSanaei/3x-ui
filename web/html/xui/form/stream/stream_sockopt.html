@@ -1,46 +1,26 @@
 {{define "form/streamSockopt"}}
-<a-form layout="inline">
+<a-divider style="margin:0;"></a-divider>
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label="Transparent Proxy">
         <a-switch v-model="inbound.stream.sockoptSwitch"></a-switch>
     </a-form-item>
-    <table width="100%" class="ant-table-tbody" v-if="inbound.stream.sockoptSwitch">
-        <tr>
-            <td>Accept Proxy Protocol</td>
-            <td>
-                <a-form-item>
-                    <a-switch v-model="inbound.stream.sockopt.acceptProxyProtocol"></a-switch>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>TCP FastOpen</td>
-            <td>
-                <a-form-item>
-                    <a-switch v-model.trim="inbound.stream.sockopt.tcpFastOpen"></a-switch>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>Route Mark</td>
-            <td>
-                <a-form-item>
-                    <a-input-number v-model="inbound.stream.sockopt.mark" :min="0"></a-input-number>
-                </a-form-item>
-            </td>
-        </tr>
-        <tr>
-            <td>T-Proxy</td>
-            <td>
-                <a-form-item>
-                    <a-select v-model="inbound.stream.sockopt.tproxy" style="width: 250px;"
-                        :dropdown-class-name="themeSwitcher.darkCardClass">
-                        <a-select-option value="off">OFF</a-select-option>
-                        <a-select-option value="redirect">Redirect</a-select-option>
-                        <a-select-option value="tproxy">T-Proxy</a-select-option>
-                    </a-select>
-                </a-form-item>
-            </td>
-        </tr>
-    </table>
+    <template v-if="inbound.stream.sockoptSwitch">
+        <a-form-item label="Accept Proxy Protocol">
+            <a-switch v-model="inbound.stream.sockopt.acceptProxyProtocol"></a-switch>
+        </a-form-item>
+        <a-form-item label="TCP FastOpen">
+            <a-switch v-model.trim="inbound.stream.sockopt.tcpFastOpen"></a-switch>
+        </a-form-item>
+        <a-form-item label="Route Mark">
+            <a-input-number v-model="inbound.stream.sockopt.mark" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label="T-Proxy">
+            <a-select v-model="inbound.stream.sockopt.tproxy" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="off">OFF</a-select-option>
+                <a-select-option value="redirect">Redirect</a-select-option>
+                <a-select-option value="tproxy">T-Proxy</a-select-option>
+            </a-select>
+        </a-form-item>
+    </template>
 </a-form>
 {{end}}

@@ -1,121 +1,123 @@
 {{define "clientsBulkModal"}}
-<a-modal id="client-bulk-modal" v-model="clientsBulkModal.visible" :title="clientsBulkModal.title" @ok="clientsBulkModal.ok"
-         :confirm-loading="clientsBulkModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.darkCardClass"
-         :ok-text="clientsBulkModal.okText" cancel-text='{{ i18n "close" }}'>
-    <a-form layout="inline">
+<a-modal id="client-bulk-modal" v-model="clientsBulkModal.visible" :title="clientsBulkModal.title"
+    @ok="clientsBulkModal.ok" :confirm-loading="clientsBulkModal.confirmLoading" :closable="true" :mask-closable="false"
+    :ok-text="clientsBulkModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='{{ i18n "pages.client.method" }}'>
-            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid" style="width: 350px" :dropdown-class-name="themeSwitcher.darkCardClass">
+            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid"
+                :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option :value="0">Random</a-select-option>
                 <a-select-option :value="1">Random+Prefix</a-select-option>
                 <a-select-option :value="2">Random+Prefix+Num</a-select-option>
                 <a-select-option :value="3">Random+Prefix+Num+Postfix</a-select-option>
-                <a-select-option :value="4">Prefix+Num+Postfix [ BE CAREFUL! ]</a-select-option>
+                <a-select-option :value="4">Prefix+Num+Postfix</a-select-option>
             </a-select>
-        </a-form-item><br />
-        <a-form-item v-if="clientsBulkModal.emailMethod>1">
-            <span slot="label">{{ i18n "pages.client.first" }}</span>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.first" }}' v-if="clientsBulkModal.emailMethod>1">
             <a-input-number v-model="clientsBulkModal.firstNum" :min="1"></a-input-number>
         </a-form-item>
-        <a-form-item v-if="clientsBulkModal.emailMethod>1">
-            <span slot="label">{{ i18n "pages.client.last" }}</span>
+        <a-form-item label='{{ i18n "pages.client.last" }}' v-if="clientsBulkModal.emailMethod>1">
             <a-input-number v-model="clientsBulkModal.lastNum" :min="clientsBulkModal.firstNum"></a-input-number>
         </a-form-item>
-        <a-form-item v-if="clientsBulkModal.emailMethod>0">
-            <span slot="label">{{ i18n "pages.client.prefix" }}</span>
-            <a-input v-model="clientsBulkModal.emailPrefix" style="width: 120px"></a-input>
+        <a-form-item label='{{ i18n "pages.client.prefix" }}' v-if="clientsBulkModal.emailMethod>0">
+            <a-input v-model="clientsBulkModal.emailPrefix"></a-input>
         </a-form-item>
-        <a-form-item v-if="clientsBulkModal.emailMethod>2">
-            <span slot="label">{{ i18n "pages.client.postfix" }}</span>
-            <a-input v-model="clientsBulkModal.emailPostfix" style="width: 120px"></a-input>
+        <a-form-item label='{{ i18n "pages.client.postfix" }}' v-if="clientsBulkModal.emailMethod>2">
+            <a-input v-model="clientsBulkModal.emailPostfix"></a-input>
         </a-form-item>
-        <a-form-item v-if="clientsBulkModal.emailMethod < 2">
-            <span slot="label">{{ i18n "pages.client.clientCount" }}</span>
+        <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
-        <a-form-item v-if="app.subSettings.enable">
-                <span slot="label">
-                    Subscription
-                    <a-tooltip>
-                        <template slot="title">
-                            <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
-                        </template>
-                        <a-icon type="question-circle" theme="filled"></a-icon>
-                    </a-tooltip>
-                </span>
-                <a-input v-model.trim="clientsBulkModal.subId"></a-input>
-        </a-form-item>
-        <a-form-item v-if="app.tgBotEnable">
-            <span slot="label">
-                Telegram ID
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
-                    </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
-        </a-form-item>
-        <br>
-        <a-form-item>
-            <span slot="label">
-                <span>{{ i18n "pages.inbounds.IPLimit" }}</span>
-                <a-tooltip>
-                    <template slot="title">
-                    <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
-                    </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
-                </a-tooltip>
-            </span>
-            <a-input-number v-model="clientsBulkModal.limitIp" min="0"></a-input-number>
-        </a-form-item>
-        <br>
-        <a-form-item v-if="clientsBulkModal.inbound.xtls" label="Flow">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
-                <a-select-option value="">{{ i18n "none" }}</a-select-option>
-                <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-            </a-select>
-        </a-form-item>
-        <a-form-item v-if="clientsBulkModal.inbound.canEnableTlsFlow()" label="Flow" layout="inline">
-            <a-select v-model="clientsBulkModal.flow" style="width: 200px" :dropdown-class-name="themeSwitcher.darkCardClass">
+        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.canEnableTlsFlow()">
+            <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
+        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.xtls">
+            <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item v-if="app.subSettings.enable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
+                    </template>
+                    Subscription
+                    <a-icon @click="clientsBulkModal.subId = RandomUtil.randomLowerAndNum(16)" type="sync"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input v-model.trim="clientsBulkModal.subId"></a-input>
+        </a-form-item>
+        <a-form-item v-if="app.tgBotEnable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
+                    </template>
+                    Telegram ID
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
+        </a-form-item>
         <a-form-item>
-            <span slot="label">
-                <span>{{ i18n "pages.inbounds.totalFlow" }}</span> (GB)
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                    </template>
+                    <span>{{ i18n "pages.inbounds.IPLimit" }} </span>
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model="clientsBulkModal.limitIp" min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
                     </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
+                    {{ i18n "pages.inbounds.totalFlow" }} (GB)
+                    <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </span>
-        <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
+            </template>
+            <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
-        <br>
         <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
         </a-form-item>
-        <br>
         <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientsBulkModal.delayedStart">
-            <a-input-number v-model="delayedExpireDays" :min="0"></a-input-number>
+            <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item v-else>
-            <span slot="label">
-                <span>{{ i18n "pages.inbounds.expireDate" }}</span>
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
                     </template>
-                    <a-icon type="question-circle" theme="filled"></a-icon>
+                    {{ i18n "pages.inbounds.expireDate" }}
+                    <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
-            </span>
+            </template>
             <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                           :dropdown-class-name="themeSwitcher.darkCardClass"
-                           v-model="clientsBulkModal.expiryTime" style="width: 300px;"></a-date-picker>
+                :dropdown-class-name="themeSwitcher.currentTheme" v-model="clientsBulkModal.expiryTime"></a-date-picker>
+        </a-form-item>
+        <a-form-item v-if="clientsBulkModal.expiryTime != 0">
+            <template slot="label">
+                <span>{{ i18n "pages.client.renew" }}</span>
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.client.renewDesc" }}</span>
+                    </template>
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model.number="clientsBulkModal.reset" :min="0"></a-input-number>
         </a-form-item>
     </a-form>
 </a-modal>
@@ -142,6 +144,7 @@
         tgId: "",
         flow: "",
         delayedStart: false,
+        reset: 0,
         ok() {
             clients = [];
             method = clientsBulkModal.emailMethod;
@@ -170,6 +173,7 @@
                 if (clientsBulkModal.inbound.xtls) {
                     newClient.flow = clientsBulkModal.flow;
                 }
+                newClient.reset = clientsBulkModal.reset;
                 clients.push(newClient);
             }
             ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
@@ -199,6 +203,7 @@
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;
+            this.reset = 0;
         },
         newClient(protocol) {
             switch (protocol) {
