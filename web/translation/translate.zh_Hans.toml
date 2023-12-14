@@ -378,7 +378,7 @@
 "completeTemplate" = "全部"
 
 [pages.xray.rules]
-"firsto" = "第一个"
+"first" = "第一个"
 "last" = "最后"
 "up" = "向上"
 "down" = "向下"
@@ -399,7 +399,7 @@
 "tag" = "标签"
 "tagDesc" = "独特的标签"
 "address" = "地址"
-"rreverse" = "反转"
+"reverse" = "反转"
 "domain" = "域名"
 "type" = "类型"
 "bridge" = "桥"

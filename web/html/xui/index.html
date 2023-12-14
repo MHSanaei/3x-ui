@@ -102,7 +102,7 @@
                                 <template slot="content">
                                     <p style="max-width: 400px" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
                                 </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
+                                <a-icon type="question-circle"></a-icon>
                             </a-popover>
                             <a-tag color="purple" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
                             <a-tag color="purple" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
@@ -125,7 +125,7 @@
                                 <template slot="title">
                                     {{ i18n "pages.index.systemLoadDesc" }}
                                 </template>
-                                <a-icon type="question-circle" theme="filled"></a-icon>
+                                <a-icon type="question-circle"></a-icon>
                             </a-tooltip>
                         </a-card>
                     </a-col>
@@ -146,7 +146,7 @@
                                         <template slot="title">
                                             [[ status.publicIP.ipv4 ]]
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -155,7 +155,7 @@
                                         <template slot="title">
                                             [[ status.publicIP.ipv6 ]]
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
@@ -170,7 +170,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionTcpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -179,7 +179,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionUdpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
@@ -195,7 +195,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.upSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -205,7 +205,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.downSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
@@ -221,7 +221,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.totalSent" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                                 <a-col :span="12">
@@ -231,7 +231,7 @@
                                         <template slot="title">
                                             {{ i18n "pages.index.totalReceive" }}
                                         </template>
-                                        <a-icon type="question-circle" theme="filled"></a-icon>
+                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
                                 </a-col>
                             </a-row>
