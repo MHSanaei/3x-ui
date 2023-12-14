@@ -1094,3 +1094,8 @@ li.ant-select-dropdown-menu-item:empty:after {
 .dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled) {
     background-color: #313f5a;
 }
+
+.ant-popover-inner-content {
+    max-height: 400px;
+    overflow-y: auto;
+}
