@@ -27,7 +27,7 @@ arch3xui() {
     case "$(uname -m)" in
     x86_64 | x64 | amd64) echo 'amd64' ;;
     armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | arm | armv7l ) echo 'arm32' ;;
+    armv7* | armv7 | arm | arm32 ) echo 'arm32' ;;
     *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
