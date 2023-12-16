@@ -78,7 +78,7 @@
 "hard" = "Жесткий диск"
 "xrayStatus" = "Статус"
 "stopXray" = "Остановить Xray"
-"restartXray" = "Рестарт Xray"
+"restartXray" = "Перезапустить Xray"
 "xraySwitch" = "Переключить версию"
 "xraySwitchClick" = "Выберите желаемую версию"
 "xraySwitchClickDesk" = "Выбирайте внимательно, так как старые версии могут быть несовместимы с текущими конфигурациями"
@@ -300,7 +300,7 @@
 [pages.xray]
 "title" = "Настройки Xray"
 "save" = "Сохранить настройки"
-"restart" = "Перезапустить рентген"
+"restart" = "Перезапустить Xray"
 "basicTemplate" = "Базовый шаблон"
 "advancedTemplate" = "Расширенный шаблон"
 "generalConfigs" = "Основные настройки"
