@@ -55,7 +55,11 @@ elif [[ "${release}" == "debian" ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
-    echo "OS is ArchLinux"
+    echo "Your OS is ArchLinux"
+elif [[ "${release}" == "manjaro" ]]; then
+    echo "Your OS is Manjaro"
+elif [[ "${release}" == "armbian" ]]; then
+    echo "Your OS is Armbian"
 fi
 
 
@@ -579,7 +583,7 @@ ssl_cert_issue() {
     fi
     # install socat second
     case "${release}" in
-        ubuntu|debian)
+        ubuntu|debian|armbian)
             apt update && apt install socat -y ;;
         centos)
             yum -y update && yum -y install socat ;;
