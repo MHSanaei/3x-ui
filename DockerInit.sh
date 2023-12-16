@@ -9,6 +9,10 @@ case $1 in
         ARCH="arm64-v8a"
         FNAME="arm64"
         ;;
+    armv7 | arm | arm32)
+        ARCH="arm32-v7a"
+        FNAME="arm32"
+        ;;
     *)
         ARCH="64"
         FNAME="amd64"
