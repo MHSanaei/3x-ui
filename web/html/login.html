@@ -56,35 +56,12 @@
       opacity: 1;
     }
   }
-  .wave {
-    opacity: 0.6;
-    position: absolute;
-    top: 80%;
-    left: 60%;
-    width: 6000px;
-    height: 6000px;
-    background-color: rgba(0, 135, 113, 0.08);
-    margin-left: -3000px;
-    transform-origin: 50% 50%;
-    pointer-events: none;
-    rotate: 115deg;
-  }
-  .wave2 {
-    opacity: 0.4;
-    rotate: 105deg;
-  }
-  .wave3 {
-    opacity: 0.2;
-    rotate: 62deg;
-  }
   .under {
-    background-color: #dbf5ed;
-  }
-  .dark .wave {
-    background: rgb(10 117 87 / 20%);
+    background-color: #c7ebe2;
+    z-index: 0;
   }
   .dark .under {
-    background-color: #101828;
+    background-color: #0f2d32;
   }
   .dark #login {
     background-color: #151f31;
@@ -95,7 +72,6 @@
   .ant-form-item {
     margin-bottom: 16px;
   }
-
   .ant-btn-primary-login {
     width: 100%;
   }
@@ -206,14 +182,84 @@
     background-position-x: 0;
     box-shadow: none;
   }
+  .waves-header {
+    position: fixed;
+    width: 100%;
+    text-align: center;
+    background-color: #dbf5ed;
+    color: white;
+    z-index: -1;
+  }
+  .dark .waves-header {
+    background-color: #101828;
+  }
+  .waves-inner-header {
+    height: 50vh;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .waves {
+    position: relative;
+    width: 100%;
+    height: 15vh;
+    margin-bottom: -5px; /*Fix for safari gap*/
+    min-height: 100px;
+    max-height: 150px;
+  }
+  .parallax > use {
+    animation: move-forever 25s cubic-bezier(0.55, 0.5, 0.45, 0.5) infinite;
+  }
+  .dark .parallax > use {
+    fill: rgb(10 117 87 / 20%);
+  }
+  .parallax > use:nth-child(1) {
+    animation-delay: -2s;
+    animation-duration: 7s;
+    opacity: 0.2;
+  }
+  .parallax > use:nth-child(2) {
+    animation-delay: -3s;
+    animation-duration: 10s;
+    opacity: 0.4;
+  }
+  .parallax > use:nth-child(3) {
+    animation-delay: -4s;
+    animation-duration: 13s;
+    opacity: 0.6;
+  }
+  @keyframes move-forever {
+    0% {
+      transform: translate3d(-90px, 0, 0);
+    }
+    100% {
+      transform: translate3d(85px, 0, 0);
+    }
+  }
+  @media (max-width: 768px) {
+    .waves {
+      height: 40px;
+      min-height: 40px;
+    }
+  }
 </style>
 <body>
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     <transition name="list" appear>
         <a-layout-content class="under" style="min-height: 0;">
-            <div class='wave'></div>
-            <div class='wave wave2'></div>
-            <div class='wave wave3'></div>
+            <div class="waves-header">
+                <div class="waves-inner-header"></div>
+                <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+                    <defs>
+                        <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+                    </defs>
+                    <g class="parallax">
+                        <use xlink:href="#gentle-wave" x="48" y="3" fill="rgba(0, 135, 113, 0.08)" />
+                        <use xlink:href="#gentle-wave" x="48" y="5" fill="rgba(0, 135, 113, 0.08)" />
+                        <use xlink:href="#gentle-wave" x="48" y="7" fill="rgba(0, 135, 113, 0.08)" />
+                    </g>
+                </svg>
+            </div>
             <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto;">
             <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
