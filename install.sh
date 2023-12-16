@@ -70,8 +70,8 @@ install_base() {
         centos|fedora)
             yum -y update && yum install -y -q wget curl tar
             ;;
-        arch)
-            pacman -Syu --noconfirm wget curl tar
+        arch|manjaro)
+            pacman -Syu && pacman -Syu --noconfirm wget curl tar
             ;;
         *)
             apt-get update && apt-get upgrade -y && apt install -y -q wget curl tar
