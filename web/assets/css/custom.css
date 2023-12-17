@@ -680,7 +680,7 @@ style attribute {
 .dark .ant-table-row-expand-icon {
     color: #fff;
     background-color: #fff0;
-    border-color: #9ea2a8;
+    border-color: rgb(255 255 255 / 20%);
 }
 
 .dark .ant-table-row-expand-icon:hover {
@@ -1098,4 +1098,17 @@ li.ant-select-dropdown-menu-item:empty:after {
 .ant-popover-inner-content {
     max-height: 400px;
     overflow-y: auto;
+}
+
+.ant-table-row-expand-icon {
+    border-radius: 6px;
+}
+
+.qr-bg {
+    background-color: #fff;
+    display: flex;
+    justify-content: center;
+    align-content: center;
+    padding: 0.5rem;
+    border-radius: 1rem;
 }
