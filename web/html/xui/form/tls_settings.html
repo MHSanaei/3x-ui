@@ -74,10 +74,10 @@
             </a-form-item>
             <template v-if="cert.useFile">
                 <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
-                    <a-input v-model.trim="cert.certFile" style="width:250px;"></a-input>
+                    <a-input v-model.trim="cert.certFile"></a-input>
                 </a-form-item>
                 <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
-                    <a-input v-model.trim="cert.keyFile" style="width:250px;"></a-input>
+                    <a-input v-model.trim="cert.keyFile"></a-input>
                 </a-form-item>
                 <a-form-item label=" ">
                     <a-button type="primary" icon="import" @click="setDefaultCertData(index)">{{ i18n
@@ -86,10 +86,10 @@
             </template>
             <template v-else>
                 <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.cert"></a-input>
+                    <a-input type="textarea" :rows="3" v-model="cert.cert"></a-input>
                 </a-form-item>
                 <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.key"></a-input>
+                    <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
                 </a-form-item>
             </template>
             <a-form-item label='ocspStapling'>
@@ -125,10 +125,10 @@
             </a-form-item>
             <template v-if="cert.useFile">
                 <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
-                    <a-input v-model.trim="cert.certFile" style="width:250px;"></a-input>
+                    <a-input v-model.trim="cert.certFile"></a-input>
                 </a-form-item>
                 <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
-                    <a-input v-model.trim="cert.keyFile" style="width:250px;"></a-input>
+                    <a-input v-model.trim="cert.keyFile"></a-input>
                 </a-form-item>
                 <a-form-item label=" ">
                     <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">{{ i18n
@@ -137,10 +137,10 @@
             </template>
             <template v-else>
                 <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
-                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.cert"></a-input>
+                    <a-input type="textarea" :rows="3" v-model="cert.cert"></a-input>
                 </a-form-item>
                 <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
-                    <a-input type="textarea" :rows="3" style="width:250px;" v-model="cert.key"></a-input>
+                    <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
                 </a-form-item>
             </template>
         </template>
@@ -175,10 +175,10 @@
                     <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"> </a-icon>
                     </a-icon>
             </template>
-            <a-input v-model.trim="inbound.stream.reality.shortIds" style="width:250px"></a-input>
+            <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
         </a-form-item>
         <a-form-item label='SpiderX'>
-            <a-input v-model.trim="inbound.stream.reality.settings.spiderX" style="width:250px"></a-input>
+            <a-input v-model.trim="inbound.stream.reality.settings.spiderX"></a-input>
         </a-form-item>
         <a-form-item label='Private Key'>
             <a-input v-model.trim="inbound.stream.reality.privateKey"></a-input>

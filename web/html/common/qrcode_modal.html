@@ -9,12 +9,12 @@
     </a-tag>
     <template v-if="app.subSettings.enable && qrModal.subId">
         <a-divider>Subscription</a-divider>
-        <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" style="width: 100%; height: 100%;"></canvas>
+        <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" style="width: 100%; height: 100%;"></canvas></div>
     </template>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <template v-for="(row, index) in qrModal.qrcodes">
         <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
-        <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas>
+        <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas></div>
     </template>
 </a-modal>
 
