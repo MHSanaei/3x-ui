@@ -362,6 +362,8 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - CentOS 8+
 - Fedora 36+
 - Arch Linux
+- Manjaro
+- Armbian (for ARM devices)
 
 # Pictures
 
