@@ -12,10 +12,10 @@
     </a-form-item> 
     <a-form-item label='{{ i18n "camouflage" }}'>
         <a-select v-model="inbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="none">none (not camouflage)</a-select-option>
-            <a-select-option value="srtp">SRTP (video call)</a-select-option>
-            <a-select-option value="utp">UTP (BT Download)</a-select-option>
-            <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
+            <a-select-option value="none">none (No Obfuscation)</a-select-option>
+            <a-select-option value="srtp">SRTP (Video Call)</a-select-option>
+            <a-select-option value="utp">uTP (Bittorrent)</a-select-option>
+            <a-select-option value="wechat-video">WeChat Video</a-select-option>
             <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
             <a-select-option value="wireguard">WireGuard (WireGuard Packages)</a-select-option>
         </a-select>
