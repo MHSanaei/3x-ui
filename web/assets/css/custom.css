@@ -857,8 +857,11 @@ style attribute {
 .ant-calendar-date,
 .ant-calendar-year-panel-year,
 .ant-calendar-decade-panel-decade,
-.ant-calendar-month-panel-month {
-    border-radius: 5px;
+.ant-calendar-month-panel-month,
+.ant-checkbox-inner,
+.ant-checkbox-checked:after,
+.ant-table-row-expand-icon {
+    border-radius: 6px;
 }
 
 .ant-calendar-date:hover {
@@ -1104,12 +1107,6 @@ li.ant-select-dropdown-menu-item:empty:after {
 .ant-popover-inner-content {
     max-height: 400px;
     overflow-y: auto;
-}
-
-.ant-checkbox-inner,
-.ant-checkbox-checked:after,
-.ant-table-row-expand-icon {
-    border-radius: 6px;
 }
 
 .qr-bg {
