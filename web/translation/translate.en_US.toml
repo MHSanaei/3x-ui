@@ -373,7 +373,7 @@
 "InboundsDesc" = "Change the configuration template to accept specific clients."
 "Outbounds" = "Outbounds"
 "OutboundsDesc" = "Change the configuration template to define outgoing ways for this server."
-"Routings" = "routing rules."
+"Routings" = "Routing Rules"
 "RoutingsDesc" = "The priority of each rule is important!"
 "completeTemplate" = "All"
 
