@@ -1097,6 +1097,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     background-color: #313f5a;
 }
 
+.ant-select-dropdown,
 .ant-popover-inner {
     overflow-x: hidden;
 }
