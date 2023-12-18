@@ -73,8 +73,8 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("Sub port is not a valid port:", s.SubPort)
 	}
 
-	if s.SubPort == s.WebPort {
-		return common.NewError("Sub and Web could not use same port:", s.SubPort)
+	if (s.SubPort == s.WebPort) && (s.WebListen == s.SubListen) {
+		return common.NewError("Sub and Web could not use same ip:port, ", s.SubListen, ":", s.SubPort, " & ", s.WebListen, ":", s.WebPort)
 	}
 
 	if s.WebCertFile != "" || s.WebKeyFile != "" {
