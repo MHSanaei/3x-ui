@@ -18,6 +18,7 @@ body {
 html {
     --antd-wave-shadow-color: #008771;
     line-height: 1.15;
+    text-size-adjust: 100%;
     -webkit-text-size-adjust: 100%;
     -ms-text-size-adjust: 100%;
     -ms-overflow-style: scrollbar;
@@ -850,6 +851,7 @@ style attribute {
 .ant-menu,
 .ant-radio-button-wrapper {
     user-select: none;
+    -webkit-user-select: none;
 }
 
 .ant-calendar-date,
@@ -1095,6 +1097,9 @@ li.ant-select-dropdown-menu-item:empty:after {
     background-color: #313f5a;
 }
 
+.ant-popover-inner {
+    overflow-x: hidden;
+}
 .ant-popover-inner-content {
     max-height: 400px;
     overflow-y: auto;
