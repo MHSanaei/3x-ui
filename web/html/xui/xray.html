@@ -190,6 +190,8 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
+									<setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNDomain"}}' desc='{{ i18n "pages.xray.DirectVNDomainDesc"}}' v-model="VNDomainDirectSettings"></setting-list-item>									
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -533,11 +535,13 @@
                     cn: ["geoip:cn"],
                     ir: ["ext:geoip_IR.dat:ir"],
                     ru: ["geoip:ru"],
+					vn: ["ext:geoip_VN.dat:vn"],
                 },
                 domains: {
                     ads: [
                         "geosite:category-ads-all",
-                        "ext:geosite_IR.dat:category-ads-all"
+                        "ext:geosite_IR.dat:category-ads-all",
+						"ext:geosite_VN.dat:category-ads-all"
                     ],
                     speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
@@ -556,7 +560,11 @@
                         "regexp:.*\\.ir$",
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
                         "ext:geosite_IR.dat:ir"  // have rules to bypass all .ir domains.
-                    ]
+                    ],
+					vn: [
+					    "regexp:.*\\.vn$",
+                        "ext:geosite_VN.dat:vn"
+					]
                 },
                 familyProtectDNS: {
                     "servers": [
@@ -1278,6 +1286,30 @@
                     }
                 }
             },
+			VNIpSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.vn, this.blockedIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.vn];
+                    } else {
+                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.vn.includes(data));
+                    }
+                }
+            },
+            VNDomainSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.vn, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.vn];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.vn.includes(data));
+                    }
+                }
+            },
             IRIpDirectSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.ips.ir, this.directIPs);
@@ -1350,6 +1382,30 @@
                     }
                 }
             },
+			VNIpDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.ips.vn, this.directIPs);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.vn];
+                    } else {
+                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.vn.includes(data));
+                    }
+                }
+            },
+            VNDomainDirectSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.vn, this.directDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.vn];
+                    } else {
+                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.vn.includes(data));
+                    }
+                }
+            },			
             GoogleWARPSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
