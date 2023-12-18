@@ -1106,6 +1106,8 @@ li.ant-select-dropdown-menu-item:empty:after {
     overflow-y: auto;
 }
 
+.ant-checkbox-inner,
+.ant-checkbox-checked:after,
 .ant-table-row-expand-icon {
     border-radius: 6px;
 }
