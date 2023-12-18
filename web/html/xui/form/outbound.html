@@ -160,25 +160,25 @@
         <a-form-item label='{{ i18n "password" }}'>
             <a-input v-model="outbound.stream.kcp.seed"></a-input>
         </a-form-item>
-        <a-form-item label='mtu'>
+        <a-form-item label='MTU'>
             <a-input-number v-model.number="outbound.stream.kcp.mtu"></a-input-number>
         </a-form-item>
-        <a-form-item label='tti (ms)'>
+        <a-form-item label='TTI (ms)'>
             <a-input-number v-model.number="outbound.stream.kcp.tti"></a-input-number>
         </a-form-item>
-        <a-form-item label='uplink capacity (MB/S)'>
+        <a-form-item label='Uplink Capacity (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.upCap"></a-input-number>
         </a-form-item> 
-        <a-form-item label='downlink capacity (MB/S)'>
+        <a-form-item label='Downlink Capacity (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.downCap"></a-input-number>
         </a-form-item>
-        <a-form-item label='congestion'>
+        <a-form-item label='Congestion'>
             <a-switch v-model="outbound.stream.kcp.congestion"></a-switch>
         </a-form-item>
-        <a-form-item label='read buffer size (MB)'>
+        <a-form-item label='Read Buffer Size (MB)'>
             <a-input-number v-model.number="outbound.stream.kcp.readBuffer"></a-input-number>
         </a-form-item>
-        <a-form-item label='write buffer size (MB)'>
+        <a-form-item label='Write Buffer Size (MB)'>
             <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"></a-input-number>
         </a-form-item>
     </template>
@@ -217,22 +217,22 @@
         </a-form-item> 
         <a-form-item label='{{ i18n "camouflage" }}'>
             <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="none">none (not camouflage)</a-select-option>
-                <a-select-option value="srtp">srtp (video call)</a-select-option>
-                <a-select-option value="utp">utp (BT download)</a-select-option>
-                <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
-                <a-select-option value="dtls">dtls (DTLS 1.2 packages)</a-select-option>
-                <a-select-option value="wireguard">wireguard (wireguard packages)</a-select-option>
+                <a-select-option value="none">none (No Obfuscation)</a-select-option>
+                <a-select-option value="srtp">SRTP (Video Call)</a-select-option>
+                <a-select-option value="utp">uTP (Bittorrent)</a-select-option>
+                <a-select-option value="wechat-video">WeChat Video</a-select-option>
+                <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
+                <a-select-option value="wireguard">WireGuard (WireGuard Packages)</a-select-option>
             </a-select>
         </a-form-item>
     </template>
     
     <!-- grpc -->
     <template v-if="outbound.stream.network === 'grpc'">
-        <a-form-item label='serviceName'>
+        <a-form-item label='Service Name'>
             <a-input v-model.trim="outbound.stream.grpc.serviceName"></a-input>
         </a-form-item>
-        <a-form-item label='MultiMode'>
+        <a-form-item label='Multi Mode'>
             <a-switch v-model="outbound.stream.grpc.multiMode"></a-switch>
         </a-form-item>
     </template>
@@ -267,7 +267,7 @@
                     <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
                 </a-select>
             </a-form-item>
-            <a-form-item label="Allow insecure">
+            <a-form-item label="Allow Insecure">
                 <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
             </a-form-item>
         </template>
@@ -283,7 +283,7 @@
                         <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
                     </a-select>
                 </a-form-item>
-                <a-form-item label="Short Id">
+                <a-form-item label="Short Ids">
                     <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
                 </a-form-item>
                 <a-form-item label="SpiderX">
