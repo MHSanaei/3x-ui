@@ -1,6 +1,6 @@
 {{define "form/socks"}}
 <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label='{{ i18n "pages.inbounds.enable" }} udp'>
+    <a-form-item label='{{ i18n "pages.inbounds.enable" }} UDP'>
         <a-switch v-model="inbound.settings.udp"></a-switch>
     </a-form-item>
     <a-form-item label="IP" v-if="inbound.settings.udp">
