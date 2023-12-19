@@ -59,7 +59,7 @@
 "settings" = "面板设置"
 "xray" = "Xray 设置"
 "logout" = "退出登录"
-"link" = "其他"
+"link" = "管理"
 
 [pages.login]
 "title" = "登录"

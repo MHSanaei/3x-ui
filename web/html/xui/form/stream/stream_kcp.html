@@ -2,10 +2,10 @@
 <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "camouflage" }}'>
         <a-select v-model="inbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="none">none (not camouflage)</a-select-option>
-            <a-select-option value="srtp">SRTP (video call)</a-select-option>
-            <a-select-option value="utp">UTP (BT DownloaD)</a-select-option>
-            <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
+            <a-select-option value="none">none (No Obfuscation)</a-select-option>
+            <a-select-option value="srtp">SRTP (Video Call)</a-select-option>
+            <a-select-option value="utp">uTP (Bittorrent)</a-select-option>
+            <a-select-option value="wechat-video">WeChat Video</a-select-option>
             <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
             <a-select-option value="wireguard">WireGuard (WireGuard packages)</a-select-option>
         </a-select>
@@ -16,22 +16,22 @@
     <a-form-item label='MTU'>
         <a-input-number v-model.number="inbound.stream.kcp.mtu"></a-input-number>
     </a-form-item>
-    <a-form-item label='TTI(ms)'>
+    <a-form-item label='TTI (ms)'>
         <a-input-number v-model.number="inbound.stream.kcp.tti"></a-input-number>
     </a-form-item>
-    <a-form-item label='Uplink(Mb/s)'>
+    <a-form-item label='Uplink (MB/s)'>
         <a-input-number v-model.number="inbound.stream.kcp.upCap"></a-input-number>
     </a-form-item> 
-    <a-form-item label='Downlink(Mb/s)'>
+    <a-form-item label='Downlink (MB/s)'>
         <a-input-number v-model.number="inbound.stream.kcp.downCap"></a-input-number>
     </a-form-item>
     <a-form-item label='Congestion'>
         <a-switch v-model="inbound.stream.kcp.congestion"></a-switch>
     </a-form-item>
-    <a-form-item label='Read buffer(MB)'>
+    <a-form-item label='Read Buffer (MB)'>
         <a-input-number v-model.number="inbound.stream.kcp.readBuffer"></a-input-number>
     </a-form-item>
-    <a-form-item label='Write buffer(MB)'>
+    <a-form-item label='Write Buffer (MB)'>
         <a-input-number v-model.number="inbound.stream.kcp.writeBuffer"></a-input-number>
     </a-form-item>
 </a-form>
