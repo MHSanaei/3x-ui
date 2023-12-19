@@ -59,7 +59,7 @@
 "settings" = "Настройки панели"
 "xray" = "Настройки Xray"
 "logout" = "Выход"
-"link" = "Прочее"
+"link" = "менеджмент"
 
 [pages.login]
 "title" = "Логин"

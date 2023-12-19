@@ -161,9 +161,9 @@
                                 </a-col>
                             </a-row>
                         </div>
-                        <div style="display: flex; align-items: center; justify-content: flex-start;">
+                        <div :style="isMobile ? '' : 'display: flex; align-items: center; justify-content: flex-start;'">
                             <a-switch v-model="enableFilter"
-                                style="margin-right: .5rem;"
+                                :style="(isMobile ? 'margin' : 'margin-right') + ': .5rem;'"
                                 @change="toggleFilter">
                                 <a-icon slot="checkedChildren" type="search"></a-icon>
                                 <a-icon slot="unCheckedChildren" type="filter"></a-icon>
