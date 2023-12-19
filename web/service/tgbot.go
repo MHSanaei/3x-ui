@@ -672,6 +672,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.searchClient(chatId, email, callbackQuery.Message.MessageID)
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+					logger.Error(err)
 				}
 			}
 			return

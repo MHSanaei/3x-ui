@@ -1184,6 +1184,32 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 	return nil
 }
 
+func (s *InboundService) checkIsEnabledByEmail(clientEmail string) (bool, error) {
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return false, err
+	}
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+
+	isEnable := false
+
+	for _, client := range clients {
+		if client.Email == clientEmail {
+			isEnable = client.Enable
+			break
+		}
+	}
+
+	return isEnable, err
+}
+
 func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, error) {
 	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
