@@ -851,17 +851,27 @@
                     confirm: (reverse, rules) => {
                         reverseModal.loading();
                         if(reverse.tag.length > 0){
-                            oldtag = this.reverseData[index].tag;
-                            this.deleteReverse(index);
+                            oldData = this.reverseData[index];
                             newTemplateSettings = this.templateSettings;
-                            if(newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
-                            if(newTemplateSettings.reverse[reverse.type+'s']  == undefined) newTemplateSettings.reverse[reverse.type+'s'] = [];
-                            newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            oldReverseIndex = newTemplateSettings.reverse[oldData.type+'s'].findIndex(rs => rs.tag == oldData.tag);
+                            oldRuleIndex0 = oldRules.length>0 ? newTemplateSettings.routing.rules.findIndex(r => JSON.stringify(r) == JSON.stringify(oldRules[0])) : -1;
+                            oldRuleIndex1 = oldRules.length==2 ? newTemplateSettings.routing.rules.findIndex(r => JSON.stringify(r) == JSON.stringify(oldRules[1])) : -1;
+                            if(oldData.type == reverse.type){
+                                newTemplateSettings.reverse[oldData.type + 's'][oldReverseIndex] = { tag: reverse.tag, domain: reverse.domain };
+                            } else {
+                                newTemplateSettings.reverse[oldData.type+'s'].splice(oldReverseIndex,1);
+                                // delete empty object
+                                if(newTemplateSettings.reverse[oldData.type+'s'].length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type+'s');
+                                // add other type of reverse if it is not exist
+                                if(!newTemplateSettings.reverse[reverse.type+'s']) newTemplateSettings.reverse[reverse.type+'s'] = [];
+                                newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            }
                             this.templateSettings = newTemplateSettings;
 
                             // Adjust Rules
-                            newRules = this.templateSettings.routing.rules.filter(r => r.outboundTag != oldtag && (r.inboundTag && !r.inboundTag.includes(oldtag)));
-                            newRules.push(...rules)
+                            newRules = this.templateSettings.routing.rules;
+                            oldRuleIndex0 != -1 ? newRules[oldRuleIndex0] = rules[0] : newRules.push(rules[0]);
+                            oldRuleIndex1 != -1 ? newRules[oldRuleIndex1] = rules[1] : newRules.push(rules[1]);
                             this.routingRuleSettings = JSON.stringify(newRules);
                         }
                         reverseModal.close();
@@ -876,10 +886,17 @@
                 realIndex = reverseTypeObj.findIndex(r => r.tag==oldData.tag && r.domain==oldData.domain);
                 newTemplateSettings.reverse[oldData.type+'s'].splice(realIndex,1);
 
+                // delete empty objects
                 if(reverseTypeObj.length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type+'s');
                 if(Object.keys(newTemplateSettings.reverse).length === 0) Reflect.deleteProperty(newTemplateSettings, 'reverse');
 
-                newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag && (r.inboundTag && !r.inboundTag.includes(oldData.tag)));
+                // delete related routing rules
+                newRules = newTemplateSettings.routing.rules;
+                if(oldData.type == "bridge"){
+                    newRules = newTemplateSettings.routing.rules.filter(r => !( r.inboundTag && r.inboundTag.length == 1 && r.inboundTag[0] == oldData.tag));
+                } else if(oldData.type == "portal"){
+                    newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
+                }
                 newTemplateSettings.routing.rules = newRules;
                 
                 this.templateSettings = newTemplateSettings;
