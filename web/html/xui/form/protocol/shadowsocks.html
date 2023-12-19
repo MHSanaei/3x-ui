@@ -20,38 +20,28 @@
         </a-collapse-panel>
     </a-collapse>
 </template>
-<table width="100%" class="ant-table-tbody">
-    <tr>
-        <td>{{ i18n "encryption" }}</td>
-        <td>
-            <a-form-item>
-                <a-select v-model="inbound.settings.method" style="width: 250px;" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
-                </a-select>
-            </a-form-item>
-        </td>
-    </tr>
-    <tr v-if="inbound.isSS2022">
-        <td>{{ i18n "password" }}
-            <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"> </a-icon>
-        </td>
-        <td>
-            <a-form-item>
-                <a-input v-model.trim="inbound.settings.password" style="width: 250px"></a-input>
-            </a-form-item>
-        </td>
-    </tr>
-    <tr>
-        <td>{{ i18n "pages.inbounds.network" }}</td>
-        <td>
-            <a-form-item>
-                <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value="tcp,udp">tcp+udp</a-select-option>
-                    <a-select-option value="tcp">tcp</a-select-option>
-                    <a-select-option value="udp">udp</a-select-option>
-                </a-select>
-            </a-form-item>
-        </td>
-    </tr>
-</table>
+<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='{{ i18n "encryption" }}'>
+        <a-select v-model="inbound.settings.method" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item v-if="inbound.isSS2022">
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "password" }}</span>
+                </template> Password <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="inbound.settings.password"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
+        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="tcp,udp">TCP,UDP</a-select-option>
+            <a-select-option value="tcp">TCP</a-select-option>
+            <a-select-option value="udp">UDP</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
 {{end}}

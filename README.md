@@ -23,10 +23,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 # Install custom version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v2.0.1`:
+To install your desired version you can add the version to the end of install command. Example for ver `v2.0.2`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.1
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.2
 ```
 
 # SSL
@@ -362,6 +362,8 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - CentOS 8+
 - Fedora 36+
 - Arch Linux
+- Manjaro
+- Armbian (for ARM devices)
 
 # Pictures
 

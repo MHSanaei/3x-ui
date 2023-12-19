@@ -26,7 +26,8 @@ echo "The OS release is: $release"
 arch3xui() {
     case "$(uname -m)" in
     x86_64 | x64 | amd64) echo 'amd64' ;;
-    armv8 | arm64 | aarch64) echo 'arm64' ;;
+    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
+    armv7* | armv7 | arm | arm32 ) echo 'arm32' ;;
     *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
@@ -54,7 +55,11 @@ elif [[ "${release}" == "debian" ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
-    echo "OS is ArchLinux"
+    echo "Your OS is ArchLinux"
+elif [[ "${release}" == "manjaro" ]]; then
+    echo "Your OS is Manjaro"
+elif [[ "${release}" == "armbian" ]]; then
+    echo "Your OS is Armbian"
 
 else
     echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
@@ -63,13 +68,13 @@ fi
 install_base() {
     case "${release}" in
         centos|fedora)
-            yum install -y -q wget curl tar
+            yum -y update && yum install -y -q wget curl tar
             ;;
-        arch)
-            pacman -Syu --noconfirm wget curl tar
+        arch|manjaro)
+            pacman -Syu && pacman -Syu --noconfirm wget curl tar
             ;;
         *)
-            apt install -y -q wget curl tar
+            apt-get update && apt install -y -q wget curl tar
             ;;
     esac
 }
@@ -78,7 +83,7 @@ install_base() {
 # This function will be called when user installed x-ui out of security
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
-    read -p "Do you want to continue with the modification [y/n]? ": config_confirm
+    read -p "Do you want to continue with the modification [y/n]?": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
         read -p "Please set up your username:" config_account
         echo -e "${yellow}Your username will be:${config_account}${plain}"
