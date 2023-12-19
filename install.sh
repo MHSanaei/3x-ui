@@ -74,7 +74,7 @@ install_base() {
             pacman -Syu && pacman -Syu --noconfirm wget curl tar
             ;;
         *)
-            apt-get update && apt-get upgrade -y && apt install -y -q wget curl tar
+            apt-get update && apt install -y -q wget curl tar
             ;;
     esac
 }
