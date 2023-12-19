@@ -81,6 +81,17 @@
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
                     </template>
+                    User <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input v-model.trim="ruleModal.rule.user"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.xray.rules.useComma" }}</span>
+                    </template>
                     Port <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>
