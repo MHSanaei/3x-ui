@@ -1146,6 +1146,8 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1231,6 +1233,8 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, er
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1292,6 +1296,8 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1350,6 +1356,8 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1411,6 +1419,8 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
