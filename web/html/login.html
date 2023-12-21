@@ -114,6 +114,7 @@
     position: relative;
     border-radius: 25px;
     width: 100%;
+    transition: all 0.3s cubic-bezier(.645,.045,.355,1);
   }
   .dark .wave-btn-bg {
     color: #fff;
@@ -123,7 +124,6 @@
     background-origin: border-box;
     background-clip: padding-box, border-box;
     background-size: 300%;
-    transition: all 0.3s cubic-bezier(.645,.045,.355,1);
     width: 100%;
     z-index: 1;
   }
@@ -291,8 +291,7 @@
                         <a-form-item>
                             <a-row justify="center" class="centered">
                                 <div class="wave-btn-bg wave-btn-bg-cl" :style="loading ? { width: '54px' } : { display: 'inline-block' }">
-                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined"
-                                              :style="loading ? { width: '50px' } : { display: 'inline-block' }">
+                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined">
                                         [[ loading ? '' : '{{ i18n "login" }}' ]]
                                     </a-button>
                                 </div>
