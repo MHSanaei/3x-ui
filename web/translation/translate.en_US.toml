@@ -59,7 +59,7 @@
 "settings" = "Panel Settings"
 "xray" = "Xray Settings"
 "logout" = "Logout"
-"link" = "Management"
+"link" = "Manage"
 
 [pages.login]
 "title" = "Login"
@@ -79,7 +79,7 @@
 "xrayStatus" = "Status"
 "stopXray" = "Stop"
 "restartXray" = "Restart"
-"xraySwitch" = "SwitchV"
+"xraySwitch" = "Version"
 "xraySwitchClick" = "Choose the version you want to switch to."
 "xraySwitchClickDesk" = "Choose wisely, as older versions may not be compatible with current configurations."
 "operationHours" = "Uptime"
