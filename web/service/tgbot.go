@@ -713,40 +713,36 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	}
 
-	// Respond to the callback query, telling Telegram to show the user
-	// a message with the data received.
-	t.sendCallbackAnswerTgBot(callbackQuery.ID, callbackQuery.Data)
-
 	switch callbackQuery.Data {
 	case "get_usage":
-		t.I18nBot("tgbot.buttons.serverUsage")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.serverUsage"))
 		t.SendMsgToTgbot(chatId, t.getServerUsage())
 	case "inbounds":
-		t.I18nBot("tgbot.buttons.getInbounds")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.getInbounds"))
 		t.SendMsgToTgbot(chatId, t.getInboundUsages())
 	case "deplete_soon":
-		t.I18nBot("tgbot.buttons.depleteSoon")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.depleteSoon"))
 		t.SendMsgToTgbot(chatId, t.getExhausted())
 	case "get_backup":
-		t.I18nBot("tgbot.buttons.dbBackup")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.dbBackup"))
 		t.sendBackup(chatId)
 	case "get_banlogs":
-		t.I18nBot("tgbot.buttons.getBanLogs")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.getBanLogs"))
 		t.sendBanLogs(chatId, true)
 	case "client_traffic":
-		t.I18nBot("tgbot.buttons.clientUsage")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientUsage"))
 		t.getClientUsage(chatId, callbackQuery.From.Username, strconv.FormatInt(callbackQuery.From.ID, 10))
 	case "client_commands":
-		t.I18nBot("tgbot.buttons.commands")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
 	case "onlines":
-		t.I18nBot("tgbot.buttons.onlines")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.onlines"))
 		t.onlineClients(chatId)
 	case "onlines_refresh":
-		t.I18nBot("tgbot.answers.successfulOperation")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
 		t.onlineClients(chatId, callbackQuery.Message.MessageID)
 	case "commands":
-		t.I18nBot("tgbot.buttons.commands")
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpAdminCommands"))
 	}
 }
@@ -1356,7 +1352,7 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	onlines := p.GetOnlineClients()
 	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(len(onlines)))
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
-		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines"))))
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines_refresh"))))
 
 	if len(onlines) > 0 {
 		for _, online := range onlines {
