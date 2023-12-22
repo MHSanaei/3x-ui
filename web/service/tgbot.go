@@ -1357,7 +1357,7 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	if len(onlines) > 0 {
 		for _, online := range onlines {
 			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage"+online))))
+				tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage "+online))))
 		}
 	}
 
