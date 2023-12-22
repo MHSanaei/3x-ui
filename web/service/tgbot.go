@@ -257,6 +257,9 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
+			case "client_get_usage":
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.email", "Email=="+email))
+				t.searchClient(chatId, email)
 			case "client_refresh":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.clientRefreshSuccess", "Email=="+email))
 				t.searchClient(chatId, email, callbackQuery.Message.MessageID)
@@ -716,22 +719,34 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 	switch callbackQuery.Data {
 	case "get_usage":
+		t.I18nBot("tgbot.buttons.serverUsage")
 		t.SendMsgToTgbot(chatId, t.getServerUsage())
 	case "inbounds":
+		t.I18nBot("tgbot.buttons.getInbounds")
 		t.SendMsgToTgbot(chatId, t.getInboundUsages())
 	case "deplete_soon":
+		t.I18nBot("tgbot.buttons.depleteSoon")
 		t.SendMsgToTgbot(chatId, t.getExhausted())
 	case "get_backup":
+		t.I18nBot("tgbot.buttons.dbBackup")
 		t.sendBackup(chatId)
 	case "get_banlogs":
+		t.I18nBot("tgbot.buttons.getBanLogs")
 		t.sendBanLogs(chatId, true)
 	case "client_traffic":
+		t.I18nBot("tgbot.buttons.clientUsage")
 		t.getClientUsage(chatId, callbackQuery.From.Username, strconv.FormatInt(callbackQuery.From.ID, 10))
 	case "client_commands":
+		t.I18nBot("tgbot.buttons.commands")
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
 	case "onlines":
+		t.I18nBot("tgbot.buttons.onlines")
 		t.onlineClients(chatId)
+	case "onlines_refresh":
+		t.I18nBot("tgbot.answers.successfulOperation")
+		t.onlineClients(chatId, callbackQuery.Message.MessageID)
 	case "commands":
+		t.I18nBot("tgbot.buttons.commands")
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpAdminCommands"))
 	}
 }
@@ -1333,22 +1348,27 @@ func (t *Tgbot) getExhausted() string {
 	return output
 }
 
-func (t *Tgbot) onlineClients(chatId int64) {
+func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	if !p.IsRunning() {
 		return
 	}
 
 	onlines := p.GetOnlineClients()
 	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(len(onlines)))
+	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
+		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines"))))
+
 	if len(onlines) > 0 {
-		keyboard := tu.InlineKeyboard()
-		for index, online := range onlines {
+		for _, online := range onlines {
 			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(fmt.Sprintf("%d: %s\r\n", index+1, online)).WithCallbackData(t.encodeQuery("client_"+online))))
+				tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage"+online))))
 		}
-		t.SendMsgToTgbot(chatId, output, keyboard)
+	}
+
+	if len(messageID) > 0 {
+		t.editMessageTgBot(chatId, messageID[0], output, keyboard)
 	} else {
-		t.SendMsgToTgbot(chatId, output)
+		t.SendMsgToTgbot(chatId, output, keyboard)
 	}
 }
 
