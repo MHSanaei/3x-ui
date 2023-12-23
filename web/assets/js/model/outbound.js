@@ -839,12 +839,12 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
     }
 };
 Outbound.SocksSettings = class extends CommonClass {
-    constructor(address, port, user, password) {
+    constructor(address, port, user, pass) {
         super();
         this.address = address;
         this.port = port;
         this.user = user;
-        this.password = password;
+        this.pass = pass;
     }
 
     static fromJson(json={}) {
@@ -854,7 +854,7 @@ Outbound.SocksSettings = class extends CommonClass {
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].password) ? '' : servers[0].users[0].password,
+            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
         );
     }
 
@@ -863,18 +863,18 @@ Outbound.SocksSettings = class extends CommonClass {
             servers: [{
                 address: this.address,
                 port: this.port,
-                users: ObjectUtil.isEmpty(this.user) ? [] : [{user: this.user, password: this.password}],
+                users: ObjectUtil.isEmpty(this.user) ? [] : [{user: this.user, pass: this.pass}],
             }],
         };
     }
 };
 Outbound.HttpSettings = class extends CommonClass {
-    constructor(address, port, user, password) {
+    constructor(address, port, user, pass) {
         super();
         this.address = address;
         this.port = port;
         this.user = user;
-        this.password = password;
+        this.pass = pass;
     }
 
     static fromJson(json={}) {
@@ -884,7 +884,7 @@ Outbound.HttpSettings = class extends CommonClass {
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].password) ? '' : servers[0].users[0].password,
+            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
         );
     }
 
@@ -893,7 +893,7 @@ Outbound.HttpSettings = class extends CommonClass {
             servers: [{
                 address: this.address,
                 port: this.port,
-                users: ObjectUtil.isEmpty(this.user) ? [] : [{user: this.user, password: this.password}],
+                users: ObjectUtil.isEmpty(this.user) ? [] : [{user: this.user, pass: this.pass}],
             }],
         };
     }
