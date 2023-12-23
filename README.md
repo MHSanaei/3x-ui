@@ -354,16 +354,18 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
 - [Iran Hosted Domains](https://github.com/bootmortis/iran-hosted-domains) (License: **MIT**): _A comprehensive list of Iranian domains and services that are hosted within the country._
 - [PersianBlocker](https://github.com/MasterKia/PersianBlocker) (License: **AGPLv3**): _An optimal and extensive list to block ads and trackers on Persian websites._
-
+- [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _A hosted domain hosted in Vietnam and blocklist with the most efficiency for Vietnamese._
+  
 # Suggestion System
 
 - Ubuntu 20.04+
 - Debian 10+
-- CentOS 8+
+- CentOS 7+
 - Fedora 36+
 - Arch Linux
 - Manjaro
-- Armbian (for ARM devices)
+- Armbian (Distribution for ARM devices)
+- Almalinux (Replace for CentOS)
 
 # Pictures
 
