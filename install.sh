@@ -27,7 +27,7 @@ arch3xui() {
     case "$(uname -m)" in
     x86_64 | x64 | amd64) echo 'amd64' ;;
     armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | armv7 | arm | arm32 ) echo 'arm32' ;;
+    armv7* | armv7 | arm | arm32 ) echo 'arm' ;;
     *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
@@ -54,6 +54,11 @@ elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
+
+elif [[ "${release}" == "almalinux" ]]; then
+    if [[ ${os_version} -lt 9 ]]; then
+        echo -e "${red} Please use AlmaLinux 9 or higher ${plain}\n" && exit 1
+    fi
 elif [[ "${release}" == "arch" ]]; then
     echo "Your OS is ArchLinux"
 elif [[ "${release}" == "manjaro" ]]; then
@@ -67,7 +72,7 @@ fi
 
 install_base() {
     case "${release}" in
-        centos|fedora)
+        centos|fedora|almalinux)
             yum -y update && yum install -y -q wget curl tar
             ;;
         arch|manjaro)
