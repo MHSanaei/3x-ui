@@ -99,12 +99,12 @@ confirm_restart() {
 }
 
 before_show_menu() {
-    echo && echo -n -e "${yellow}Press enter to return to the dev menu: ${plain}" && read temp
+    echo && echo -n -e "${yellow}Press enter to return to the main menu: ${plain}" && read temp
     show_menu
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/quydang04/3x-ui/dev/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -123,7 +123,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/quydang04/3x-ui/dev/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         exit 0
@@ -167,8 +167,8 @@ reset_user() {
     [[ -z $config_account ]] && config_account=$(date +%s%N | md5sum | cut -c 1-8)
     read -rp "Please set the login password [default is a random password]: " config_password
     [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
-    /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
-    /usr/local/x-ui/x-ui setting -remove_secret >/dev/null 2>&1
+    /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/main/null 2>&1
+    /usr/local/x-ui/x-ui setting -remove_secret >/main/null 2>&1
     echo -e "Panel login username has been reset to: ${green} ${config_account} ${plain}"
     echo -e "Panel login password has been reset to: ${green} ${config_password} ${plain}"
     echo -e "${yellow} Panel login secret token disabled ${plain}"
@@ -357,7 +357,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/quydang04/3x-ui/raw/dev/x-ui.sh
+    wget -O /usr/bin/x-ui -N --no-check-certificate https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -464,7 +464,7 @@ show_xray_status() {
 }
 
 open_ports() {
-    if ! command -v ufw &>/dev/null; then
+    if ! command -v ufw &>/main/null; then
         echo "ufw firewall is not installed. Installing now..."
         apt-get update
         apt-get install -y ufw
@@ -552,11 +552,11 @@ install_acme() {
     return 0
 }
 
-ssl_cert_issue_dev() {
+ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL"
     echo -e "${green}\t2.${plain} Revoke"
     echo -e "${green}\t3.${plain} Force Renew"
-    echo -e "${green}\t0.${plain} Back to dev Menu"
+    echo -e "${green}\t0.${plain} Back to main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
         0)
@@ -564,22 +564,22 @@ ssl_cert_issue_dev() {
         1) 
             ssl_cert_issue ;;
         2) 
-            local dodev=""
-            read -p "Please enter your dodev name to revoke the certificate: " dodev
-            ~/.acme.sh/acme.sh --revoke -d ${dodev}
+            local domain=""
+            read -p "Please enter your domain name to revoke the certificate: " domain
+            ~/.acme.sh/acme.sh --revoke -d ${domain}
             LOGI "Certificate revoked"
             ;;
         3)
-            local dodev=""
-            read -p "Please enter your dodev name to forcefully renew an SSL certificate: " dodev
-            ~/.acme.sh/acme.sh --renew -d ${dodev} --force ;;
+            local domain=""
+            read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
+            ~/.acme.sh/acme.sh --renew -d ${domain} --force ;;
         *) echo "Invalid choice" ;;
     esac
 }
 
 ssl_cert_issue() {
     # check for acme.sh first
-    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+    if ! command -v ~/.acme.sh/acme.sh &>/main/null; then
         echo "acme.sh could not be found. we will install it"
         install_acme
         if [ $? -ne 0 ]; then
@@ -606,24 +606,24 @@ ssl_cert_issue() {
         LOGI "install socat succeed..."
     fi
 
-    # get the dodev here,and we need verify it
-    local dodev=""
-    read -p "Please enter your dodev name:" dodev
-    LOGD "your dodev is:${dodev},check it..."
+    # get the domain here,and we need verify it
+    local domain=""
+    read -p "Please enter your domain name:" domain
+    LOGD "your domain is:${domain},check it..."
     # here we need to judge whether there exists cert already
     local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
 
-    if [ ${currentCert} == ${dodev} ]; then
+    if [ ${currentCert} == ${domain} ]; then
         local certInfo=$(~/.acme.sh/acme.sh --list)
         LOGE "system already has certs here,can not issue again,current certs details:"
         LOGI "$certInfo"
         exit 1
     else
-        LOGI "your dodev is ready for issuing cert now..."
+        LOGI "your domain is ready for issuing cert now..."
     fi
 
     # create a directory for install cert
-    certPath="/root/cert/${dodev}"
+    certPath="/root/cert/${domain}"
     if [ ! -d "$certPath" ]; then
         mkdir -p "$certPath"
     else
@@ -641,22 +641,22 @@ ssl_cert_issue() {
     # NOTE:This should be handled by user
     # open the port and kill the occupied progress
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
-    ~/.acme.sh/acme.sh --issue -d ${dodev} --standalone --httpport ${WebPort}
+    ~/.acme.sh/acme.sh --issue -d ${domain} --standalone --httpport ${WebPort}
     if [ $? -ne 0 ]; then
         LOGE "issue certs failed,please check logs"
-        rm -rf ~/.acme.sh/${dodev}
+        rm -rf ~/.acme.sh/${domain}
         exit 1
     else
         LOGE "issue certs succeed,installing certs..."
     fi
     # install cert
-    ~/.acme.sh/acme.sh --installcert -d ${dodev} \
-        --key-file /root/cert/${dodev}/privkey.pem \
-        --fullchain-file /root/cert/${dodev}/fullchain.pem
+    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+        --key-file /root/cert/${domain}/privkey.pem \
+        --fullchain-file /root/cert/${domain}/fullchain.pem
 
     if [ $? -ne 0 ]; then
         LOGE "install certs failed,exit"
-        rm -rf ~/.acme.sh/${dodev}
+        rm -rf ~/.acme.sh/${domain}
         exit 1
     else
         LOGI "install certs succeed,enable auto renew..."
@@ -681,12 +681,12 @@ ssl_cert_issue_CF() {
     LOGI "This Acme script requires the following data:"
     LOGI "1.Cloudflare Registered e-mail"
     LOGI "2.Cloudflare Global API Key"
-    LOGI "3.The dodev name that has been resolved dns to the current server by Cloudflare"
+    LOGI "3.The domain name that has been resolved dns to the current server by Cloudflare"
     LOGI "4.The script applies for a certificate. The default installation path is /root/cert "
     confirm "Confirmed?[y/n]" "y"
     if [ $? -eq 0 ]; then
         # check for acme.sh first
-        if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        if ! command -v ~/.acme.sh/acme.sh &>/main/null; then
             echo "acme.sh could not be found. we will install it"
             install_acme
             if [ $? -ne 0 ]; then
@@ -694,7 +694,7 @@ ssl_cert_issue_CF() {
                 exit 1
             fi
         fi
-        CF_Dodev=""
+        CF_Domain=""
         CF_GlobalKey=""
         CF_AccountEmail=""
         certPath=/root/cert
@@ -704,9 +704,9 @@ ssl_cert_issue_CF() {
             rm -rf $certPath
             mkdir $certPath
         fi
-        LOGD "Please set a dodev name:"
-        read -p "Input your dodev here:" CF_Dodev
-        LOGD "Your dodev name is set to:${CF_Dodev}"
+        LOGD "Please set a domain name:"
+        read -p "Input your domain here:" CF_Domain
+        LOGD "Your domain name is set to:${CF_Domain}"
         LOGD "Please set the API key:"
         read -p "Input your key here:" CF_GlobalKey
         LOGD "Your API key is:${CF_GlobalKey}"
@@ -720,15 +720,15 @@ ssl_cert_issue_CF() {
         fi
         export CF_Key="${CF_GlobalKey}"
         export CF_Email=${CF_AccountEmail}
-        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Dodev} -d *.${CF_Dodev} --log
+        ~/.acme.sh/acme.sh --issue --dns dns_cf -d ${CF_Domain} -d *.${CF_Domain} --log
         if [ $? -ne 0 ]; then
             LOGE "Certificate issuance failed, script exiting..."
             exit 1
         else
             LOGI "Certificate issued Successfully, Installing..."
         fi
-        ~/.acme.sh/acme.sh --installcert -d ${CF_Dodev} -d *.${CF_Dodev} --ca-file /root/cert/ca.cer \
-        --cert-file /root/cert/${CF_Dodev}.cer --key-file /root/cert/${CF_Dodev}.key \
+        ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
+        --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
         --fullchain-file /root/cert/fullchain.cer
         if [ $? -ne 0 ]; then
             LOGE "Certificate installation failed, script exiting..."
@@ -757,13 +757,13 @@ warp_cloudflare() {
     echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
     echo -e "${green}\t3.${plain} Turn on/off WireProxy"
     echo -e "${green}\t4.${plain} Uninstall WARP"
-    echo -e "${green}\t0.${plain} Back to dev Menu"
+    echo -e "${green}\t0.${plain} Back to main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
         0)
             show_menu ;;
         1) 
-            bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/dev/install_warp_proxy.sh)
+            bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
             ;;
         2) 
             warp a
@@ -780,21 +780,21 @@ warp_cloudflare() {
 
 run_speedtest() {
     # Check if Speedtest is already installed
-    if ! command -v speedtest &> /dev/null; then
+    if ! command -v speedtest &> /main/null; then
         # If not installed, install it
         local pkg_manager=""
         local speedtest_install_script=""
         
-        if command -v dnf &> /dev/null; then
+        if command -v dnf &> /main/null; then
             pkg_manager="dnf"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v yum &> /dev/null; then
+        elif command -v yum &> /main/null; then
             pkg_manager="yum"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v apt-get &> /dev/null; then
+        elif command -v apt-get &> /main/null; then
             pkg_manager="apt-get"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
-        elif command -v apt &> /dev/null; then
+        elif command -v apt &> /main/null; then
             pkg_manager="apt"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
         fi
@@ -876,14 +876,14 @@ iplimit_remove_conflicts() {
     done
 }
 
-iplimit_dev() {
+iplimit_main() {
     echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Unban Everyone"
     echo -e "${green}\t4.${plain} Check Logs"
     echo -e "${green}\t5.${plain} fail2ban status"
     echo -e "${green}\t6.${plain} Uninstall IP Limit"
-    echo -e "${green}\t0.${plain} Back to dev Menu"
+    echo -e "${green}\t0.${plain} Back to main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
         0)
@@ -893,7 +893,7 @@ iplimit_dev() {
             if [[ $? == 0 ]]; then
                 install_iplimit
             else
-                iplimit_dev
+                iplimit_main
             fi ;;
         2)
             read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
@@ -903,17 +903,17 @@ iplimit_dev() {
             else
                 echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
             fi
-            iplimit_dev ;;
+            iplimit_main ;;
         3)
             confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
             if [[ $? == 0 ]]; then
                 fail2ban-client reload --restart --unban 3x-ipl
                 echo -e "${green}All users Unbanned successfully.${plain}"
-                iplimit_dev
+                iplimit_main
             else
                 echo -e "${yellow}Cancelled.${plain}"
             fi
-            iplimit_dev ;;
+            iplimit_main ;;
         4)
             show_banlog
             ;;
@@ -928,7 +928,7 @@ iplimit_dev() {
 }
 
 install_iplimit() {
-    if ! command -v fail2ban-client &>/dev/null; then
+    if ! command -v fail2ban-client &>/main/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
         # Check the OS and install necessary packages
         case "${release}" in
@@ -1009,7 +1009,7 @@ remove_iplimit(){
             before_show_menu ;;
         0) 
             echo -e "${yellow}Cancelled.${plain}\n"
-            iplimit_dev ;;
+            iplimit_main ;;
         *) 
             echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
             remove_iplimit ;;
@@ -1117,13 +1117,13 @@ show_menu() {
         check_install && disable
         ;;
     15)
-        ssl_cert_issue_dev
+        ssl_cert_issue_main
         ;;
     16)
         ssl_cert_issue_CF
         ;;
     17)
-        iplimit_dev
+        iplimit_main
         ;;
     18)
         warp_cloudflare
