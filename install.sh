@@ -72,7 +72,7 @@ fi
 
 install_base() {
     case "${release}" in
-        centos|fedora)
+        centos|fedora|almalinux)
             yum -y update && yum install -y -q wget curl tar
             ;;
         arch|manjaro)
