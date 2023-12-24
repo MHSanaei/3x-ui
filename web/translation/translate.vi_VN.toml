@@ -329,6 +329,8 @@
 "AdsDesc" = "Thay đổi mẫu cấu hình để chặn quảng cáo."
 "Family" = "Chặn Phần mềm độc hại và Nội dung cho Người lớn"
 "FamilyDesc" = "Các trình giải quyết DNS để chặn phần mềm độc hại và nội dung cho bảo vệ gia đình."
+"Security" = "Chặn các trang web chứa phần mềm độc hại, lừa đảo và khai thác tnh đểiện tử"
+"SecurityDesc" = "Thay đổi mẫu cấu hình để bảo vệ Bảo mật."
 "Speedtest" = "Chặn Trang web Speedtest"
 "SpeedtestDesc" = "Thay đổi mẫu cấu hình để tránh kết nối đến các trang web Speedtest."
 "IRIp" = "Vô hiệu hóa kết nối đến dải IP của Iran"
