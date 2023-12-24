@@ -375,6 +375,8 @@
 "NetflixWARPDesc" = "Thêm định tuyến cho Netflix qua WARP."
 "SpotifyWARP" = "Định tuyến Spotify qua WARP."
 "SpotifyWARPDesc" = "Thêm định tuyến cho Spotify qua WARP."
+"IRWARP" = "Định tuyến tên miền của Iran qua WARP."
+"IRWARPDesc" = "Thêm định tuyến cho các tên miền của Iran qua WARP."
 "VNWARP" = "Định tuyến tên miền của Việt Nam qua WARP."
 "VNWARPDesc" = "Thêm định tuyến cho các tên miền của Việt Nam qua WARP."
 "Inbounds" = "Đầu vào"
