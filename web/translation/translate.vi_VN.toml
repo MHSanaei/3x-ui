@@ -74,12 +74,12 @@
 
 [pages.index]
 "title" = "Trạng thái hệ thống"
-"memory" = "Bộ nhớ"
-"hard" = "Ổ cứng"
-"xrayStatus" = "Trạng thái của Xray"
-"stopXray" = "Dừng Xray"
-"restartXray" = "Khởi động lại Xray"
-"xraySwitch" = "Chuyển đổi phiên bản"
+"memory" = "ĐẬP"
+"hard" = "Đĩa"
+"xrayStatus" = "Trạng thái"
+"stopXray" = "Dừng lại"
+"restartXray" = "Khởi động lại"
+"xraySwitch" = "Phiên bản"
 "xraySwitchClick" = "Chọn phiên bản mà bạn muốn chuyển đổi sang."
 "xraySwitchClickDesk" = "Hãy lựa chọn thận trọng, vì các phiên bản cũ có thể không tương thích với các cấu hình hiện tại."
 "operationHours" = "Thời gian hoạt động"
