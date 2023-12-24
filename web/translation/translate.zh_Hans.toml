@@ -79,7 +79,7 @@
 "xrayStatus" = "状态"
 "stopXray" = "停止"
 "restartXray" = "重启"
-"xraySwitch" = "切换版本"
+"xraySwitch" = "版本"
 "xraySwitchClick" = "点击你想切换的版本"
 "xraySwitchClickDesk" = "请谨慎选择，旧版本可能配置不兼容"
 "operationHours" = "系统正常运行时间"
