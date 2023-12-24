@@ -62,7 +62,6 @@
 "link" = "sự quản lý"
 
 [pages.login]
-"ohbtitle" = "OHB"
 "title" = "Đăng nhập"
 "loginAgain" = "Thời hạn đăng nhập đã hết. Vui lòng đăng nhập lại."
 
