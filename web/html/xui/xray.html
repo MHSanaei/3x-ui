@@ -221,6 +221,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+				    <setting-list-item type="switch" title='{{ i18n "pages.xray.VNWARP"}}' desc='{{ i18n "pages.xray.VNWARPDesc"}}' v-model="VNWARPSettings"></setting-list-item>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -543,7 +544,8 @@
                 domains: {
                     ads: [
                         "geosite:category-ads-all",
-                        "ext:geosite_IR.dat:category-ads-all"
+                        "ext:geosite_IR.dat:category-ads-all",
+			"ext:geosite_VN.dat:category-ads-all"
                     ],
                     security: [
                         "ext:geosite_IR.dat:malware",
@@ -572,12 +574,13 @@
 			"regexp:.*\\.vn$",
                         "ext:geosite_VN.dat:vn",
                         "ext:geosite_VN.dat:ads"
-		    ]
                 },
                 familyProtectDNS: {
                     "servers": [
                         "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
-                        "1.0.0.3"
+                        "1.0.0.3",
+			"94.140.14.15",  // https://adguard-dns.io/kb/general/dns-providers/
+                        "94.140.15.16"
                     ],
                     "queryStrategy": "UseIPv4"
                 },
@@ -1486,6 +1489,20 @@
                         this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.spotify];
                     } else {
                         this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.spotify.includes(data));
+                    }
+                },
+            },
+        },
+    },
+	VNWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.vn, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.vn];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.vn.includes(data));
                     }
                 },
             },
