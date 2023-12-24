@@ -173,7 +173,7 @@
 "setDefaultCert" = "Establecer certificado desde el panel"
 "xtlsDesc" = "La versión del núcleo de Xray debe ser 1.7.5"
 "realityDesc" = "La versión del núcleo de Xray debe ser 1.8.0 o superior."
-"telegramDesc" = "Utiliza el ID de Telegram sin @ o los IDs de chat (puedes obtenerlo aquí @userinfobot o usando el comando '/id' en el bot)."
+"telegramDesc" = "Utiliza el ID de Telegram con o sin @ o los IDs de chat (puedes obtenerlo aquí @userinfobot o usando el comando '/id' en el bot)."
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
 "info" = "Info"
 "same" = "misma"
@@ -459,7 +459,7 @@
 "usage" = "❗ ¡Por favor proporciona un texto para buscar!"
 "getID" = "🆔 Tu ID: <code>{{ .ID }}</code>"
 "helpAdminCommands" = "Buscar un correo electrónico de cliente:\r\n<code>/usage [Email]</code>\r\n \r\nBuscar entradas (con estadísticas de cliente):\r\n<code>/inbound [Nota]</code>"
-"helpClientCommands" = "Para buscar estadísticas, simplemente usa el siguiente comando:\r\n \r\n<code>/usage [UUID|Contraseña]</code>\r\n \r\nUsa UUID para vmess/vless y Contraseña para Trojan."
+"helpClientCommands" = "Para buscar estadísticas, simplemente usa el siguiente comando:\r\n \r\n<code>/usage [UUID|Contraseña]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%"
@@ -558,4 +558,4 @@
 "enableSuccess" = "✅ {{ .Email }} : Habilitado exitosamente."
 "disableSuccess" = "✅ {{ .Email }} : Deshabilitado exitosamente."
 "askToAddUserId" = "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su ID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu ID de usuario: <b>{{ .TgUserID }}</b>"
-"askToAddUserName" = "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su nombre de usuario o ID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu nombre de usuario: <b>@{{ .TgUserName }}</b>\r\n\r\nSu ID de usuario: <b>{{ .TgUserID }}</b>"
+"askToAddUserName" = "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su nombre de usuario o ID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu nombre de usuario: <b>@{{ .TgUserName }}</b>\r\n\r\nSu ID de usuario: <code>{{ .TgUserID }}</code>"

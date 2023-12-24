@@ -173,7 +173,7 @@
 "setDefaultCert" = "Đặt chứng chỉ từ bảng điều khiển"
 "xtlsDesc" = "Xray core cần phiên bản 1.7.5"
 "realityDesc" = "Xray core cần phiên bản 1.8.0 hoặc cao hơn."
-"telegramDesc" = "Sử dụng Telegram ID mà không cần ký hiệu @ hoặc chat IDs (bạn có thể nhận được nó ở đây @userinfobot hoặc sử dụng lệnh '/id' trong bot)"
+"telegramDesc" = "Sử dụng ID Telegram có hoặc không có @ hoặc chat IDs (bạn có thể nhận được nó ở đây @userinfobot hoặc sử dụng lệnh '/id' trong bot)"
 "subscriptionDesc" = "Bạn có thể tìm liên kết đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
 "info" = "Thông tin"
 "same" = "Giống nhau"
@@ -459,7 +459,7 @@
 "usage" = "❗ Vui lòng cung cấp văn bản để tìm kiếm!"
 "getID" = "🆔 ID của bạn: <code>{{ .ID }}</code>"
 "helpAdminCommands" = "Tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n \r\nTìm kiếm inbounds (với thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>"
-"helpClientCommands" = "Để tìm kiếm thống kê, hãy sử dụng lệnh sau:\r\n \r\n<code>/usage [UUID|Mật khẩu]</code>\r\n \r\nSử dụng UUID cho vmess/vless và Mật khẩu cho Trojan."
+"helpClientCommands" = "Để tìm kiếm thống kê, hãy sử dụng lệnh sau:\r\n \r\n<code>/usage [Email]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
@@ -558,4 +558,4 @@
 "enableSuccess" = "✅ {{ .Email }} : Đã Bật Thành Công."
 "disableSuccess" = "✅ {{ .Email }} : Đã Tắt Thành Công."
 "askToAddUserId" = "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nID người dùng của bạn: <b>{{ .TgUserID }}</b>"
-"askToAddUserName" = "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng tên người dùng hoặc ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nTên người dùng của bạn: <b>@{{ .TgUserName }}</b>\r\n\r\nID người dùng của bạn: <b>{{ .TgUserID }}</b>"
+"askToAddUserName" = "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng tên người dùng hoặc ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nTên người dùng của bạn: <b>@{{ .TgUserName }}</b>\r\n\r\nID người dùng của bạn: <code>{{ .TgUserID }}</code>"

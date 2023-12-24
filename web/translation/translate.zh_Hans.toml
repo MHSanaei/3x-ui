@@ -173,7 +173,7 @@
 "setDefaultCert" = "从面板设置证书"
 "xtlsDesc" = "Xray核心需要1.7.5"
 "realityDesc" = "Xray核心需要1.8.0及以上版本"
-"telegramDesc" = "使用 Telegram ID，不包含 @ 符号或聊天 ID（可以在 @userinfobot 处获取，或在机器人中使用'/id'命令）"
+"telegramDesc" = "使用 Telegram ID（带或不带 @） 符号或聊天 ID（可以在 @userinfobot 处获取，或在机器人中使用'/id'命令）"
 "subscriptionDesc" = "您可以在详细信息上找到您的子链接，也可以对多个配置使用相同的名称"
 "info" = "信息"
 "same" = "相同"
@@ -459,7 +459,7 @@
 "usage" = "❗ 请输入要搜索的文本！"
 "getID" = "🆔 您的ID为：<code>{{ .ID }}</code>"
 "helpAdminCommands" = "搜索客户端邮箱：\r\n<code>/usage [Email]</code>\r\n \r\n搜索入站连接（包含客户端统计信息）：\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n \r\n<code>/usage [UUID|Password]</code>\r\n \r\n对于vmess/vless，请使用UUID；对于Trojan，请使用密码。"
+"helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n \r\n<code>/usage [Email]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%"
@@ -558,4 +558,4 @@
 "enableSuccess" = "✅ {{ .Email }}：已成功启用。"
 "disableSuccess" = "✅ {{ .Email }}：已成功禁用。"
 "askToAddUserId" = "未找到您的配置！\r\n请向管理员询问，在您的配置中使用您的 Telegram 用户ID。\r\n\r\n您的用户ID：<b>{{ .TgUserID }}</b>"
-"askToAddUserName" = "未找到您的配置！\r\n请向管理员询问，在您的配置中使用您的 Telegram 用户名或用户ID。\r\n\r\n您的用户名：<b>@{{ .TgUserName }}</b>\r\n\r\n您的用户ID：<b>{{ .TgUserID }}</b>"
+"askToAddUserName" = "未找到您的配置！\r\n请向管理员询问，在您的配置中使用您的 Telegram 用户名或用户ID。\r\n\r\n您的用户名：<b>@{{ .TgUserName }}</b>\r\n\r\n您的用户ID：<code>{{ .TgUserID }}</code>"
