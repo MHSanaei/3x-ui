@@ -1377,8 +1377,6 @@ func (t *Tgbot) notifyExhausted() {
 	trDiff := int64(0)
 	exDiff := int64(0)
 	now := time.Now().Unix() * 1000
-	var disabledClients []xray.ClientTraffic
-	var exhaustedClients []xray.ClientTraffic
 
 	TrafficThreshold, err := t.settingService.GetTrafficDiff()
 	if err == nil && TrafficThreshold > 0 {
@@ -1393,12 +1391,12 @@ func (t *Tgbot) notifyExhausted() {
 		logger.Warning("Unable to load Inbounds", err)
 	}
 
+	var chatIDsDone []string
 	for _, inbound := range inbounds {
 		if inbound.Enable {
 			if len(inbound.ClientStats) > 0 {
 				clients, err := t.inboundService.GetClients(inbound)
 				if err == nil {
-					var chatIDsDone []string
 					for _, client := range clients {
 						if client.TgID != "" {
 							chatID, err := strconv.ParseInt(client.TgID, 10, 64)
@@ -1407,6 +1405,8 @@ func (t *Tgbot) notifyExhausted() {
 								continue
 							}
 							if !slices.Contains(chatIDsDone, client.TgID) && !checkAdmin(chatID) {
+								var disabledClients []xray.ClientTraffic
+								var exhaustedClients []xray.ClientTraffic
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
 								if err == nil {
 									output := t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
