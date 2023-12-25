@@ -1419,24 +1419,24 @@ func (t *Tgbot) notifyExhausted() {
 										} else {
 											disabledClients = append(disabledClients, *traffic)
 										}
-										if len(exhaustedClients) > 0 {
-											output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
-											if len(disabledClients) > 0 {
-												output += t.I18nBot("tgbot.clients") + ":"
-												for _, traffic := range disabledClients {
-													output += "   " + traffic.Email
-												}
-												output += "\r\n"
+									}
+									if len(exhaustedClients) > 0 {
+										output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
+										if len(disabledClients) > 0 {
+											output += t.I18nBot("tgbot.clients") + ":"
+											for _, traffic := range disabledClients {
+												output += "   " + traffic.Email
 											}
 											output += "\r\n"
-											output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients)))
-											for _, traffic := range exhaustedClients {
-												output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
-												output += "\r\n"
-											}
-											t.SendMsgToTgbot(chatID, output)
+										}
+										output += "\r\n"
+										output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedClients)))
+										for _, traffic := range exhaustedClients {
+											output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
+											output += "\r\n"
 										}
 									}
+									t.SendMsgToTgbot(chatID, output)
 									chatIDsDone = append(chatIDsDone, client.TgID)
 								}
 							}
