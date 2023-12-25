@@ -1665,9 +1665,7 @@ func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTr
 			logger.Error("Unable to get clients from inbound")
 		}
 		for _, client := range clients {
-			if client.TgID == tguname {
-				emails = append(emails, client.Email)
-			} else if client.TgID == tguname2 {
+			if client.TgID == tguname || client.TgID == tguname2 {
 				emails = append(emails, client.Email)
 			}
 		}

@@ -216,7 +216,11 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	case "usage":
 		onlyMessage = true
 		if len(commandArgs) > 0 {
-			t.searchClient(chatId, commandArgs[0], isAdmin)
+			if isAdmin {
+				t.searchClient(chatId, commandArgs[0], true)
+			} else {
+				t.getClientUsage(chatId, message.From.Username, strconv.FormatInt(message.From.ID, 10), commandArgs[0])
+			}
 		} else {
 			msg += t.I18nBot("tgbot.commands.usage")
 		}
@@ -833,6 +837,52 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	}
 }
 
+func (t *Tgbot) SendMsgToTgUsername(chatId string, msg string, replyMarkup ...telego.ReplyMarkup) {
+	if !isRunning {
+		return
+	}
+
+	if msg == "" {
+		logger.Info("[tgbot] message is empty!")
+		return
+	}
+
+	var allMessages []string
+	limit := 2000
+
+	// paging message if it is big
+	if len(msg) > limit {
+		messages := strings.Split(msg, "\r\n \r\n")
+		lastIndex := -1
+
+		for _, message := range messages {
+			if (len(allMessages) == 0) || (len(allMessages[lastIndex])+len(message) > limit) {
+				allMessages = append(allMessages, message)
+				lastIndex++
+			} else {
+				allMessages[lastIndex] += "\r\n \r\n" + message
+			}
+		}
+	} else {
+		allMessages = append(allMessages, msg)
+	}
+	for _, message := range allMessages {
+		params := telego.SendMessageParams{
+			ChatID:    tu.Username(chatId),
+			Text:      message,
+			ParseMode: "HTML",
+		}
+		if len(replyMarkup) > 0 {
+			params.ReplyMarkup = replyMarkup[0]
+		}
+		_, err := bot.SendMessage(&params)
+		if err != nil {
+			logger.Warning("Error sending telegram message :", err)
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
+
 func (t *Tgbot) SendMsgToTgbotAdmins(msg string, replyMarkup ...telego.ReplyMarkup) {
 	if len(replyMarkup) > 0 {
 		for _, adminId := range adminIds {
@@ -979,6 +1029,7 @@ func (t *Tgbot) getInboundUsages() string {
 			} else {
 				info += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
 			}
+			info += "\r\n"
 		}
 	}
 	return info
@@ -1068,7 +1119,7 @@ func (t *Tgbot) clientInfoMsg(traffic *xray.ClientTraffic, printEnabled bool, pr
 	return output
 }
 
-func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string) {
+func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string, email ...string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {
 		logger.Warning(err)
@@ -1076,30 +1127,51 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string)
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
+	traffics2, err := t.inboundService.GetClientTrafficTgBot(tgUserName)
+	if err != nil {
+		logger.Warning(err)
+		msg := t.I18nBot("tgbot.wentWrong")
+		t.SendMsgToTgbot(chatId, msg)
+		return
+	}
 
-	if len(traffics) == 0 {
+	if len(traffics) == 0 && len(traffics2) == 0 {
 		if len(tgUserName) == 0 {
-			msg := t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+tgUserID)
-			t.SendMsgToTgbot(chatId, msg)
-			return
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+tgUserID))
 		} else {
-			traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserName)
-			if err != nil {
-				logger.Warning(err)
-				msg := t.I18nBot("tgbot.wentWrong")
-				t.SendMsgToTgbot(chatId, msg)
-				return
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserName", "TgUserName=="+tgUserName, "TgUserID=="+tgUserID))
+		}
+		return
+	}
+
+	if len(traffics) != 0 {
+		if len(email) > 0 {
+			for _, traffic := range traffics {
+				if traffic.Email == email[0] {
+					t.searchClient(chatId, email[0], false)
+					t.SendAnswer(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), false)
+					return
+				}
 			}
-			if len(traffics) == 0 {
-				msg := t.I18nBot("tgbot.answers.askToAddUserName", "TgUserName=="+tgUserName, "TgUserID=="+tgUserID)
-				t.SendMsgToTgbot(chatId, msg)
-				return
+		} else {
+			for _, traffic := range traffics {
+				t.searchClient(chatId, traffic.Email, false)
 			}
 		}
 	}
-
-	for _, traffic := range traffics {
-		t.searchClient(chatId, traffic.Email, false)
+	if len(traffics2) != 0 {
+		if len(email) > 0 {
+			for _, traffic := range traffics2 {
+				if traffic.Email == email[0] {
+					t.searchClient(chatId, email[0], false)
+					break
+				}
+			}
+		} else {
+			for _, traffic := range traffics {
+				t.searchClient(chatId, traffic.Email, false)
+			}
+		}
 	}
 	t.SendAnswer(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), false)
 }
@@ -1392,15 +1464,16 @@ func (t *Tgbot) notifyExhausted() {
 			if len(inbound.ClientStats) > 0 {
 				clients, err := t.inboundService.GetClients(inbound)
 				if err == nil {
-					var chatIDsDone []int64
+					var chatIDsDone []string
 					for _, client := range clients {
 						if client.TgID != "" {
 							//convert tgID to chatID (also convert if it's username)
 							chatID, err := strconv.ParseInt(client.TgID, 10, 64)
+							chatUsername := ""
 							if err != nil {
-								chatID = tu.Username("@"+strings.Trim(client.TgID, "@")).ID
+								chatUsername = "@"+strings.Trim(client.TgID, "@")
 							}
-							if !slices.Contains(chatIDsDone, chatID) {
+							if !slices.Contains(chatIDsDone, strings.Trim(client.TgID, "@")) {
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
 								if err == nil {
 									output := t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
@@ -1428,10 +1501,15 @@ func (t *Tgbot) notifyExhausted() {
 												output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
 												output += "\r\n"
 											}
-											t.SendMsgToTgbot(chatID, output)
+											if chatUsername == "" {
+												t.SendMsgToTgbot(chatID, output)
+											} else {
+												t.SendMsgToTgUsername(chatUsername, output)
+											}
+											
 										}
 									}
-									chatIDsDone = append(chatIDsDone, chatID)
+									chatIDsDone = append(chatIDsDone, strings.Trim(client.TgID, "@"))
 								}
 							}
 						}
