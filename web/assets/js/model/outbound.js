@@ -854,9 +854,12 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
 Outbound.WireguardSettings = class extends CommonClass {
     constructor(secretKey, address, peers, mtu, workers, domainStrategy) {
         super();
-        this.secretKey = secretKey;
-        this.address = address ? [...address] : [''];
-        this.peers = peers ? peers.map((p) => ({ ...p })) : [];
+        this.secretKey = secretKey || '';
+        this.address = address ? [...address] : [];
+        this.peers = peers ? peers.map((p) => ({
+            ...p,
+            allowedIPs: p.allowedIPs ? [...p.allowedIPs] : [],
+        })) : [];
         this.mtu = mtu;
         this.workers = workers;
         this.domainStrategy = domainStrategy;
@@ -882,7 +885,9 @@ Outbound.WireguardSettings = class extends CommonClass {
 
     addPeer() {
         this.peers.push({
-            allowedIPs: [''],
+            endpoint: '',
+            publicKey: '',
+            allowedIPs: [],
         });
     }
 
@@ -902,27 +907,30 @@ Outbound.WireguardSettings = class extends CommonClass {
         this.peers[index].allowedIPs.splice(ipIndex, 1);
     }
 
-    optionalFields = ['mtu', 'workers', 'domainStrategy'];
+    optionalFields = ['mtu', 'workers', 'domainStrategy', 'address'];
     optionalPeerFields = ['allowedIPs', 'keepAlive', 'preSharedKey'];
 
     cleanUpOptionalFields(obj) {
+        const isEmpty = (v) =>  ObjectUtil.isEmpty(v) || ObjectUtil.isArrEmpty(v);
+
         return Object.entries(obj).reduce((memo, [key, value]) => {
             if (key === 'peers') {
                 memo[key] = value.map((peer) => {
                     return Object.entries(peer).reduce((pMemo, [pKey, pValue]) => {
-                        if (this.optionalPeerFields.includes(pKey) && ObjectUtil.isEmpty(pValue)) {
+                        if (this.optionalPeerFields.includes(pKey) && isEmpty(pValue)) {
                             return pMemo;
                         }
 
                         pMemo[pKey] = pValue;
                         return pMemo;
-                    });
+                    }, {});
                 });
-            } else if (this.optionalFields.includes(key) && ObjectUtil.isEmpty(value)) {
+            } else if (this.optionalFields.includes(key) && isEmpty(value)) {
                 return memo;
+            } else {
+                memo[key] = value;
             }
 
-            memo[key] = value;
             return memo;
         }, {});
     }
