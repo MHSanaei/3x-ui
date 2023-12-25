@@ -823,13 +823,14 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	} else {
 		allMessages = append(allMessages, msg)
 	}
-	for _, message := range allMessages {
+	for n, message := range allMessages {
 		params := telego.SendMessageParams{
 			ChatID:    tu.ID(chatId),
 			Text:      message,
 			ParseMode: "HTML",
 		}
-		if len(replyMarkup) > 0 {
+		//only add replyMarkup to last message
+		if len(replyMarkup) > 0 && n == len(allMessages)-1 {
 			params.ReplyMarkup = replyMarkup[0]
 		}
 		_, err := bot.SendMessage(&params)
