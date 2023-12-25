@@ -235,11 +235,14 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.unknown")
 	}
 
-	if onlyMessage {
-		t.SendMsgToTgbot(chatId, msg)
-		return
+	if msg != ""{
+		if onlyMessage {
+			t.SendMsgToTgbot(chatId, msg)
+			return
+		} else {
+			t.SendAnswer(chatId, msg, isAdmin)
+		}
 	}
-	t.SendAnswer(chatId, msg, isAdmin)
 }
 
 func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
@@ -1111,7 +1114,8 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserID string, email ...string) {
 
 	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
-	t.SendAnswer(chatId, t.I18nBot("tgbot.commands.pleaseChoose"), false)
+	output = t.I18nBot("tgbot.commands.pleaseChoose")
+	t.SendAnswer(chatId, output, false)
 }
 
 func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
@@ -1325,7 +1329,6 @@ func (t *Tgbot) getExhausted(chatId int64) {
 	output += t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.inbounds"))
 	output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledInbounds)))
 	output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(len(exhaustedInbounds)))
-	output += "\r\n"
 
 	if len(exhaustedInbounds) > 0 {
 		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.inbounds"))
@@ -1348,7 +1351,6 @@ func (t *Tgbot) getExhausted(chatId int64) {
 	output += t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
 	output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
 	output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(exhaustedCC))
-	output += "\r\n"
 	
 
 	if exhaustedCC > 0 {
@@ -1366,7 +1368,8 @@ func (t *Tgbot) getExhausted(chatId int64) {
 			cols = 2
 		}
 		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
-		t.SendMsgToTgbot(chatId, output, tu.InlineKeyboard(tu.InlineKeyboardCols(cols, buttons...)...))
+		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+		t.SendMsgToTgbot(chatId, output, keyboard)
 	} else {
 		output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 		t.SendMsgToTgbot(chatId, output)
@@ -1435,8 +1438,8 @@ func (t *Tgbot) notifyExhausted() {
 											output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
 											output += "\r\n"
 										}
+										t.SendMsgToTgbot(chatID, output)
 									}
-									t.SendMsgToTgbot(chatID, output)
 									chatIDsDone = append(chatIDsDone, client.TgID)
 								}
 							}
