@@ -26,8 +26,8 @@ echo "The OS release is: $release"
 arch3xui() {
     case "$(uname -m)" in
     x86_64 | x64 | amd64) echo 'amd64' ;;
-    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | armv7 | arm | arm32 ) echo 'arm' ;;
+    armv8 | arm64 | aarch64) echo 'arm64' ;;
+    armv7l) echo 'arm' ;;
     *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
@@ -54,17 +54,8 @@ elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
-
-elif [[ "${release}" == "almalinux" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use AlmaLinux 9 or higher ${plain}\n" && exit 1
-    fi
 elif [[ "${release}" == "arch" ]]; then
-    echo "Your OS is ArchLinux"
-elif [[ "${release}" == "manjaro" ]]; then
-    echo "Your OS is Manjaro"
-elif [[ "${release}" == "armbian" ]]; then
-    echo "Your OS is Armbian"
+    echo "OS is ArchLinux"
 
 else
     echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
@@ -72,23 +63,23 @@ fi
 
 install_base() {
     case "${release}" in
-        centos|fedora|almalinux)
-            yum -y update && yum install -y -q wget curl tar
+        centos|fedora)
+            yum install -y -q wget curl tar
             ;;
-        arch|manjaro)
-            pacman -Syu && pacman -Syu --noconfirm wget curl tar
+        arch)
+            pacman -Syu --noconfirm wget curl tar
             ;;
         *)
-            apt-get update && apt install -y -q wget curl tar
+            apt install -y -q wget curl tar
             ;;
     esac
 }
 
 
-# This function will be called when user installed x-ui out of security
+# This function will be called when user installed x-ui out of sercurity
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
-    read -p "Do you want to continue with the modification [y/n]?": config_confirm
+    read -p "Do you want to continue with the modification [y/n]? ": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
         read -p "Please set up your username:" config_account
         echo -e "${yellow}Your username will be:${config_account}${plain}"
@@ -124,20 +115,20 @@ install_x-ui() {
     cd /usr/local/
 
     if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/kenhtaymay/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
             echo -e "${red}Failed to fetch x-ui version, it maybe due to Github API restrictions, please try it later${plain}"
             exit 1
         fi
         echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/kenhtaymay/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz"
+        url="https://github.com/kenhtaymay/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz"
         echo -e "Begining to install x-ui $1"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
