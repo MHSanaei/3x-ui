@@ -820,6 +820,9 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 				allMessages[lastIndex] += "\r\n \r\n" + message
 			}
 		}
+		if strings.TrimSpace(allMessages[lastIndex]) == "" {
+			allMessages = allMessages[:len(allMessages)-1]
+		}
 	} else {
 		allMessages = append(allMessages, msg)
 	}
@@ -830,7 +833,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 			ParseMode: "HTML",
 		}
 		//only add replyMarkup to last message
-		if len(replyMarkup) > 0 && n == len(allMessages)-1 {
+		if len(replyMarkup) > 0 && n == (len(allMessages)-1) {
 			params.ReplyMarkup = replyMarkup[0]
 		}
 		_, err := bot.SendMessage(&params)
