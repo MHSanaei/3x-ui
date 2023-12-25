@@ -219,7 +219,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			if isAdmin {
 				t.searchClient(chatId, commandArgs[0])
 			} else {
-				t.getClientUsage(chatId, message.From.Username, strconv.FormatInt(message.From.ID, 10), commandArgs[0])
+				t.getClientUsage(chatId, strconv.FormatInt(message.From.ID, 10), commandArgs[0])
 			}
 		} else {
 			msg += t.I18nBot("tgbot.commands.usage")
@@ -732,7 +732,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.sendBanLogs(chatId, true)
 	case "client_traffic":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientUsage"))
-		t.getClientUsage(chatId, callbackQuery.From.Username, strconv.FormatInt(callbackQuery.From.ID, 10))
+		t.getClientUsage(chatId, strconv.FormatInt(callbackQuery.From.ID, 10))
 	case "client_commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpClientCommands"))
@@ -823,52 +823,6 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	for _, message := range allMessages {
 		params := telego.SendMessageParams{
 			ChatID:    tu.ID(chatId),
-			Text:      message,
-			ParseMode: "HTML",
-		}
-		if len(replyMarkup) > 0 {
-			params.ReplyMarkup = replyMarkup[0]
-		}
-		_, err := bot.SendMessage(&params)
-		if err != nil {
-			logger.Warning("Error sending telegram message :", err)
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-}
-
-func (t *Tgbot) SendMsgToTgUsername(chatId string, msg string, replyMarkup ...telego.ReplyMarkup) {
-	if !isRunning {
-		return
-	}
-
-	if msg == "" {
-		logger.Info("[tgbot] message is empty!")
-		return
-	}
-
-	var allMessages []string
-	limit := 2000
-
-	// paging message if it is big
-	if len(msg) > limit {
-		messages := strings.Split(msg, "\r\n \r\n")
-		lastIndex := -1
-
-		for _, message := range messages {
-			if (len(allMessages) == 0) || (len(allMessages[lastIndex])+len(message) > limit) {
-				allMessages = append(allMessages, message)
-				lastIndex++
-			} else {
-				allMessages[lastIndex] += "\r\n \r\n" + message
-			}
-		}
-	} else {
-		allMessages = append(allMessages, msg)
-	}
-	for _, message := range allMessages {
-		params := telego.SendMessageParams{
-			ChatID:    tu.Username(chatId),
 			Text:      message,
 			ParseMode: "HTML",
 		}
@@ -1119,7 +1073,7 @@ func (t *Tgbot) clientInfoMsg(traffic *xray.ClientTraffic, printEnabled bool, pr
 	return output
 }
 
-func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string, email ...string) {
+func (t *Tgbot) getClientUsage(chatId int64, tgUserID string, email ...string) {
 	traffics, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
 	if err != nil {
 		logger.Warning(err)
@@ -1127,25 +1081,16 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string,
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	traffics2, err := t.inboundService.GetClientTrafficTgBot(tgUserName)
-	if err != nil {
-		logger.Warning(err)
-		msg := t.I18nBot("tgbot.wentWrong")
-		t.SendMsgToTgbot(chatId, msg)
+
+	if len(traffics) == 0 {
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+tgUserID))
 		return
 	}
 
-	if len(traffics) == 0 && len(traffics2) == 0 {
-		if len(tgUserName) == 0 {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserId", "TgUserID=="+tgUserID))
-		} else {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.askToAddUserName", "TgUserName=="+tgUserName, "TgUserID=="+tgUserID))
-		}
-		return
-	}
+	output := ""
 
-	if len(email) > 0 {
-		if len(traffics) > 0 {
+	if len(traffics) > 0 {
+		if len(email) > 0 {
 			for _, traffic := range traffics {
 				if traffic.Email == email[0] {
 					output := t.clientInfoMsg(traffic, true, true, true, true, true, true)
@@ -1153,34 +1098,14 @@ func (t *Tgbot) getClientUsage(chatId int64, tgUserName string, tgUserID string,
 					return
 				}
 			}
-		}
-		if len(traffics2) > 0 {
-			for _, traffic := range traffics2 {
-				if traffic.Email == email[0] {
-					output := t.clientInfoMsg(traffic, true, true, true, true, true, true)
-					t.SendMsgToTgbot(chatId, output)
-					return
-				}
+			msg := t.I18nBot("tgbot.noResult")
+			t.SendMsgToTgbot(chatId, msg)
+			return
+		} else {
+			for _, traffic := range traffics {
+				output += t.clientInfoMsg(traffic, true, true, true, true, true, false)
+				output += "\r\n"
 			}
-		}
-		msg := t.I18nBot("tgbot.noResult")
-		t.SendMsgToTgbot(chatId, msg)
-		return
-	}
-
-	output := ""
-
-	if len(traffics) > 0 {
-		for _, traffic := range traffics {
-			output += t.clientInfoMsg(traffic, true, true, true, true, true, false)
-			output += "\r\n"
-		}
-	}
-
-	if len(traffics2) > 0 {
-		for _, traffic := range traffics2 {
-			output += t.clientInfoMsg(traffic, true, true, true, true, true, false)
-			output += "\r\n"
 		}
 	}
 
@@ -1476,13 +1401,12 @@ func (t *Tgbot) notifyExhausted() {
 					var chatIDsDone []string
 					for _, client := range clients {
 						if client.TgID != "" {
-							//convert tgID to chatID (also convert if it's username)
 							chatID, err := strconv.ParseInt(client.TgID, 10, 64)
-							chatUsername := ""
 							if err != nil {
-								chatUsername = "@"+strings.Trim(client.TgID, "@")
+								logger.Warning("TgID is not a number: ", client.TgID)
+								continue
 							}
-							if !slices.Contains(chatIDsDone, strings.Trim(client.TgID, "@")) {
+							if !slices.Contains(chatIDsDone, client.TgID) && !checkAdmin(chatID) {
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
 								if err == nil {
 									output := t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
@@ -1510,15 +1434,10 @@ func (t *Tgbot) notifyExhausted() {
 												output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
 												output += "\r\n"
 											}
-											if chatUsername == "" {
-												t.SendMsgToTgbot(chatID, output)
-											} else {
-												t.SendMsgToTgUsername(chatUsername, output)
-											}
-											
+											t.SendMsgToTgbot(chatID, output)
 										}
 									}
-									chatIDsDone = append(chatIDsDone, strings.Trim(client.TgID, "@"))
+									chatIDsDone = append(chatIDsDone, client.TgID)
 								}
 							}
 						}

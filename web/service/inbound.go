@@ -1649,12 +1649,10 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	return nil
 }
 
-func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTraffic, error) {
-	tguname = strings.Trim(tguname, "@")
-	tguname2 := "@" + tguname
+func (s *InboundService) GetClientTrafficTgBot(tgId string) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tguname)).Or("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tguname2)).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tgId)).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -1665,7 +1663,7 @@ func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTr
 			logger.Error("Unable to get clients from inbound")
 		}
 		for _, client := range clients {
-			if client.TgID == tguname || client.TgID == tguname2 {
+			if client.TgID == tgId {
 				emails = append(emails, client.Email)
 			}
 		}
