@@ -246,6 +246,8 @@
 "pageSize" = "分页大小"
 "pageSizeDesc" = "定义入站表的页面大小。设置 0 表示禁用"
 "remarkModel" = "备注模型和分隔符"
+"datepicker" = "日期选择器"
+"datepickerDescription" = "选择器日历类型指定到期日期"
 "sampleRemark" = "备注示例"
 "oldUsername" = "原用户名"
 "currentPassword" = "原密码"
@@ -422,7 +424,7 @@
 "loginSecurity" = "登录安全"
 "loginSecurityDesc" = "在用户登录页面中切换附加步骤"
 "secretToken" = "密钥"
-"secretTokenDesc" = "复制此密钥并将其保存在安全的地方；没有这个你将无法登录。这也无法从 x-ui 命令工具中恢复" 
+"secretTokenDesc" = "复制此密钥并将其保存在安全的地方；没有这个你将无法登录。这也无法从 x-ui 命令工具中恢复"
 
 [pages.settings.toasts]
 "modifySettings" = "修改设置"

@@ -246,6 +246,8 @@
 "pageSize" = "Pagination Size"
 "pageSizeDesc" = "Define page size for inbounds table. Set 0 to disable"
 "remarkModel" = "Remark Model and Seperation Charachter"
+"datepicker" = "Datepicker"
+"datepickerDescription" = "Selector calendar type specifies the expiration date"
 "sampleRemark" = "Sample Remark"
 "oldUsername" = "Current Username"
 "currentPassword" = "Current Password"

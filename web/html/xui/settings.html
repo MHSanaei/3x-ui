@@ -141,6 +141,27 @@
                                 <a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.settings.datepicker"}}'>
+                                                <template slot="description">{{ i18n "pages.settings.datepickerDescription"}}</template>
+                                            </a-list-item-meta>
+                                        </a-col>
+
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select style="width: 100%"
+                                                          :dropdown-class-name="themeSwitcher.currentTheme"
+                                                          v-model="datepicker">
+                                                    <a-select-option v-for="item in datepickerList" :value="item.value">
+                                                        <span v-text="item.name"></span>
+                                                    </a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
                                             <a-list-item-meta title="Language" />
                                         </a-col>
 
@@ -197,7 +218,7 @@
                                         <td>
                                             <a-form-item>
                                                 <password-input v-model="user.newPassword" style="width: 200px"></password-input>
-                                            </a-form-item>            
+                                            </a-form-item>
                                         </td>
                                     </tr>
                                 </table>
@@ -311,6 +332,7 @@
             showAlert: false,
             remarkModels: {i:'Inbound',e:'Email',o:'Other'},
             remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
+            datepickerList: [{name:'Gregorian (Standard)', value: 'gregorian'}, {name:'Jalalian (شمسی)', value: 'jalalian'}],
             remarkSample: '',
             get remarkModel() {
                 rm = this.allSetting.remarkModel;
@@ -328,11 +350,17 @@
                 this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
                 this.changeRemarkSample();
             },
+            get datepicker() {
+                return this.allSetting.datepicker ? this.allSetting.datepicker : 'gregorian';
+            },
+            set datepicker(value) {
+                this.allSetting.datepicker = value;
+            },
             changeRemarkSample(){
                 sample = []
                 this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
                 this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
-            }   
+            }
         },
         methods: {
             loading(spinning = true) {

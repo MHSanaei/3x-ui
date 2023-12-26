@@ -94,6 +94,9 @@
             get isEdit() {
                 return this.clientModal.isEdit;
             },
+            get datepicker() {
+                return app.datepicker;
+            },
             get isTrafficExhausted() {
                 if (!clientStats) return false
                 if (clientStats.total <= 0) return false

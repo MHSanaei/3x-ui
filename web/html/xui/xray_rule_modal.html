@@ -4,9 +4,9 @@
          :ok-text="ruleModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
     <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='Domain Matcher'>
-                    <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
-                    </a-select>
+            <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
+            </a-select>
         </a-form-item>
         <a-form-item>
             <template slot="label">
@@ -107,7 +107,7 @@
                 <a-select-option v-for="tag in ruleModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
             </a-select>
         </a-form-item>
-    </table>
+        </table>
     </a-form>
 </a-modal>
 <script>
@@ -214,11 +214,11 @@
 
             for (const [key, value] of Object.entries(rule)) {
                 if (
-                value !== null &&
-                value !== undefined &&
-                !(Array.isArray(value) && value.length === 0) &&
-                !(typeof value === 'object' && Object.keys(value).length === 0) &&
-                value !== ''
+                    value !== null &&
+                    value !== undefined &&
+                    !(Array.isArray(value) && value.length === 0) &&
+                    !(typeof value === 'object' && Object.keys(value).length === 0) &&
+                    value !== ''
                 ) {
                     newRule[key] = value;
                 }
