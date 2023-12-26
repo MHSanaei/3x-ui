@@ -850,9 +850,8 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
         };
     }
 };
-
 Outbound.WireguardSettings = class extends CommonClass {
-    constructor(secretKey, address, peers, mtu, workers, domainStrategy) {
+    constructor(secretKey, address, peers, mtu, workers, domainStrategy, reserved) {
         super();
         this.secretKey = secretKey || '';
         this.address = address ? [...address] : [];
@@ -863,6 +862,7 @@ Outbound.WireguardSettings = class extends CommonClass {
         this.mtu = mtu;
         this.workers = workers;
         this.domainStrategy = domainStrategy;
+        this.reserved = reserved;
     }
 
     static fromJson(json={}) {
@@ -872,6 +872,8 @@ Outbound.WireguardSettings = class extends CommonClass {
             json.peers,
             json.mtu,
             json.workers,
+            json.domainStrategy,
+            json.reserved,
         );
     }
 
@@ -907,7 +909,7 @@ Outbound.WireguardSettings = class extends CommonClass {
         this.peers[index].allowedIPs.splice(ipIndex, 1);
     }
 
-    optionalFields = ['mtu', 'workers', 'domainStrategy', 'address'];
+    optionalFields = ['mtu', 'workers', 'domainStrategy', 'address', 'reserved'];
     optionalPeerFields = ['allowedIPs', 'keepAlive', 'preSharedKey'];
 
     cleanUpOptionalFields(obj) {
@@ -943,6 +945,7 @@ Outbound.WireguardSettings = class extends CommonClass {
             mtu: this.mtu,
             workers: this.workers,
             domainStrategy: this.domainStrategy,
+            reserved: this.reserved,
         });
     }
 };
