@@ -63,6 +63,9 @@
             get client() {
                 return inModal.inbound.clients[0];
             },
+            get datepicker() {
+                return app.datepicker;
+            },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
             },

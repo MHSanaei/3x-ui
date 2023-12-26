@@ -56,6 +56,7 @@ var defaultValueMap = map[string]string{
 	"subEncrypt":         "true",
 	"subShowInfo":        "true",
 	"subURI":             "",
+	"datepicker":         "gregorian",
 }
 
 type SettingService struct {
@@ -417,6 +418,10 @@ func (s *SettingService) GetSubURI() (string, error) {
 	return s.getString("subURI")
 }
 
+func (s *SettingService) GetDatepicker() (string, error) {
+	return s.getString("datepicker")
+}
+
 func (s *SettingService) GetPageSize() (int, error) {
 	return s.getInt("pageSize")
 }
@@ -463,6 +468,7 @@ func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
 		"subEnable":   func() (interface{}, error) { return s.GetSubEnable() },
 		"subURI":      func() (interface{}, error) { return s.GetSubURI() },
 		"remarkModel": func() (interface{}, error) { return s.GetRemarkModel() },
+		"datepicker":  func() (interface{}, error) { return s.GetDatepicker() },
 	}
 
 	result := make(map[string]interface{})
