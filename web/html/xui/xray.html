@@ -70,7 +70,7 @@
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
                                     <a-popover v-if="restartResult"
-                                        :overlay-class-name="themeSwitcher.currentTheme">
+                                               :overlay-class-name="themeSwitcher.currentTheme">
                                         <span slot="title" style="font-size: 12pt">Error in running xray-core</span>
                                         <template slot="content">
                                             <p style="max-width: 400px" v-for="line in restartResult.split('\n')">[[ line ]]</p>
@@ -83,15 +83,15 @@
                                 <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
                                 </a-back-top>
                                 <a-alert type="warning" style="float: right; width: fit-content"
-                                message='{{ i18n "pages.settings.infoDesc" }}'
-                                show-icon
+                                         message='{{ i18n "pages.settings.infoDesc" }}'
+                                         show-icon
                                 >
                             </a-col>
                         </a-row>
                     </a-card>
                     <a-tabs class="ant-card-dark-box-nohover" default-active-key="tpl-1"
-                    @change="(activeKey) => { if(activeKey == 'tpl-4') this.changeCode(); }"
-                    :class="themeSwitcher.currentTheme">
+                            @change="(activeKey) => { if(activeKey == 'tpl-4') this.changeCode(); }"
+                            :class="themeSwitcher.currentTheme">
                         <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
                             <a-space direction="horizontal" style="padding: 20px 20px">
                                 <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
@@ -109,16 +109,16 @@
                                     <a-list-item>
                                         <a-row style="padding: 20px">
                                             <a-col :lg="24" :xl="12">
-                                                <a-list-item-meta 
-                                                    title='{{ i18n "pages.xray.FreedomStrategy" }}'
-                                                    description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'/>
+                                                <a-list-item-meta
+                                                        title='{{ i18n "pages.xray.FreedomStrategy" }}'
+                                                        description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'/>
                                             </a-col>
                                             <a-col :lg="24" :xl="12">
                                                 <template>
                                                     <a-select
-                                                        v-model="freedomStrategy"
-                                                        :dropdown-class-name="themeSwitcher.currentTheme"
-                                                        style="width: 100%">
+                                                            v-model="freedomStrategy"
+                                                            :dropdown-class-name="themeSwitcher.currentTheme"
+                                                            style="width: 100%">
                                                         <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                     </a-select>
                                                 </template>
@@ -127,22 +127,22 @@
                                     </a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta 
-                                                title='{{ i18n "pages.xray.RoutingStrategy" }}'
-                                                description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'/>
+                                            <a-list-item-meta
+                                                    title='{{ i18n "pages.xray.RoutingStrategy" }}'
+                                                    description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'/>
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select
-                                                    v-model="routingStrategy"
-                                                    :dropdown-class-name="themeSwitcher.currentTheme"
-                                                    style="width: 100%">
+                                                        v-model="routingStrategy"
+                                                        :dropdown-class-name="themeSwitcher.currentTheme"
+                                                        style="width: 100%">
                                                     <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
                                     </a-row>
-                                </a-list-item>
+                                    </a-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -157,6 +157,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.PrivateIp"}}' desc='{{ i18n "pages.xray.PrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.Ads"}}' desc='{{ i18n "pages.xray.AdsDesc"}}' v-model="AdsSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.Security"}}' desc='{{ i18n "pages.xray.SecurityDesc"}}' v-model="SecuritySettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.Speedtest"}}' desc='{{ i18n "pages.xray.SpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockCountryConfigs"}}'>
@@ -174,7 +175,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaDomain"}}' desc='{{ i18n "pages.xray.ChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaIp"}}' desc='{{ i18n "pages.xray.RussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaDomain"}}' desc='{{ i18n "pages.xray.RussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
-				    <setting-list-item type="switch" title='{{ i18n "pages.xray.VNIp"}}' desc='{{ i18n "pages.xray.VNIpDesc"}}' v-model="VNIpSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.VNIp"}}' desc='{{ i18n "pages.xray.VNIpDesc"}}' v-model="VNIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.VNDomain"}}' desc='{{ i18n "pages.xray.VNDomainDesc"}}' v-model="VNDomainSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
@@ -192,8 +193,8 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
-				    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
-                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNDomain"}}' desc='{{ i18n "pages.xray.DirectVNDomainDesc"}}' v-model="VNDomainDirectSettings"></setting-list-item>									
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNDomain"}}' desc='{{ i18n "pages.xray.DirectVNDomainDesc"}}' v-model="VNDomainDirectSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -225,15 +226,15 @@
                         </a-tab-pane>
                         <a-tab-pane key="tpl-2" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
                             <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
-                            message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
+                                     message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
                             <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
                             <a-table :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
-                                :row-key="r => r.key"
-                                :data-source="routingRuleData"
-                                :scroll="isMobile ? {} : { x: 1000 }"
-                                :pagination="false"
-                                :indent-size="0"
-                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'">
+                                     :row-key="r => r.key"
+                                     :data-source="routingRuleData"
+                                     :scroll="isMobile ? {} : { x: 1000 }"
+                                     :pagination="false"
+                                     :indent-size="0"
+                                     :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'">
                                 <template slot="action" slot-scope="text, rule, index">
                                     [[ index+1 ]]
                                     <a-dropdown :trigger="['click']">
@@ -286,8 +287,8 @@
                                 </template>
                                 <template slot="info" slot-scope="text, rule, index">
                                     <a-popover placement="bottomRight"
-                                        v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
-                                        :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+                                               v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
+                                               :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
                                         <template slot="content">
                                             <table cellpadding="2" style="max-width: 300px;">
                                                 <tr v-if="rule.source">
@@ -338,12 +339,12 @@
                                 <a-col :sm="24" :md="12">
                                     <p style="margin: 10px;">{{ i18n "pages.xray.Outbounds"}}</p>
                                     <a-table :columns="outboundColumns" bordered
-                                    :row-key="r => r.key"
-                                    :data-source="outboundData"
-                                    :scroll="isMobile ? {} : { x: 200 }"
-                                    :pagination="false"
-                                    :indent-size="0"
-                                    :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
+                                             :row-key="r => r.key"
+                                             :data-source="outboundData"
+                                             :scroll="isMobile ? {} : { x: 200 }"
+                                             :pagination="false"
+                                             :indent-size="0"
+                                             :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
                                         <template slot="action" slot-scope="text, outbound, index">
                                             [[ index+1 ]]
                                             <a-dropdown :trigger="['click']">
@@ -377,12 +378,12 @@
                                 <a-col :sm="24" :md="12" v-if="reverseData.length>0">
                                     <p style="margin: 10px;">{{ i18n "pages.xray.outbound.reverse"}}</p>
                                     <a-table :columns="reverseColumns" bordered
-                                    :row-key="r => r.key"
-                                    :data-source="reverseData"
-                                    :scroll="isMobile ? {} : { x: 200 }"
-                                    :pagination="false"
-                                    :indent-size="0"
-                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                             :row-key="r => r.key"
+                                             :data-source="reverseData"
+                                             :scroll="isMobile ? {} : { x: 200 }"
+                                             :pagination="false"
+                                             :indent-size="0"
+                                             :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
                                         <template slot="action" slot-scope="text, reverse, index">
                                             [[ index+1 ]]
                                             <a-dropdown :trigger="['click']">
@@ -427,22 +428,22 @@
 {{template "outModal"}}
 {{template "reverseModal"}}
 <script>
-        const rulesColumns = [
+    const rulesColumns = [
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.rules.source"}}', children: [
-            { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
-            { title: 'port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
+                { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
+                { title: 'port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
         { title: '{{ i18n "pages.inbounds.network"}}', children: [
-            { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
-            { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 10, ellipsis: true },
-            { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 20, ellipsis: true } ]}, 
+                { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
+                { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 10, ellipsis: true },
+                { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 20, ellipsis: true } ]},
         { title: '{{ i18n "pages.xray.rules.dest"}}', children: [
-            { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
-            { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
-            { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
+                { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
+                { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
+                { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
-            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 20, ellipsis: true },
-            { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
+                { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 20, ellipsis: true },
+                { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 20 },
     ];
 
@@ -537,12 +538,17 @@
                     cn: ["geoip:cn"],
                     ir: ["ext:geoip_IR.dat:ir"],
                     ru: ["geoip:ru"],
-		    vn: ["ext:geoip_VN.dat:vn"],
+                    vn: ["ext:geoip_VN.dat:vn"],
                 },
                 domains: {
                     ads: [
                         "geosite:category-ads-all",
                         "ext:geosite_IR.dat:category-ads-all"
+                    ],
+                    security: [
+                        "ext:geosite_IR.dat:malware",
+                        "ext:geosite_IR.dat:phishing",
+                        "ext:geosite_IR.dat:cryptominers"
                     ],
                     speedtest: ["geosite:speedtest"],
                     openai: ["geosite:openai"],
@@ -560,20 +566,18 @@
                     ir: [
                         "regexp:.*\\.ir$",
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
-                        "ext:geosite_IR.dat:ir"  // have rules to bypass all .ir domains.
+                        "ext:geosite_IR.dat:ir"
                     ],
-		    vn: [
-			"regexp:.*\\.vn$",
+                    vn: [
+                        "regexp:.*\\.vn$",
                         "ext:geosite_VN.dat:vn",
                         "ext:geosite_VN.dat:ads"
-		    ]
+                    ]
                 },
                 familyProtectDNS: {
                     "servers": [
                         "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
-                        "1.0.0.3",
-                        "94.140.14.15",  // https://adguard-dns.io/kb/general/dns-providers/
-                        "94.140.15.16"
+                        "1.0.0.3"
                     ],
                     "queryStrategy": "UseIPv4"
                 },
@@ -616,10 +620,10 @@
             },
             async getXrayResult() {
                 const msg = await HttpUtil.get("/panel/xray/getXrayResult");
-                    if(msg.success){
-                        this.restartResult=msg.obj;
-                        if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
-                    }
+                if(msg.success){
+                    this.restartResult=msg.obj;
+                    if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
+                }
             },
             async fetchUserSecret() {
                 this.loading(true);
@@ -657,9 +661,9 @@
             },
             async toggleToken(value) {
                 if (value) {
-                await this.getNewSecret();
+                    await this.getNewSecret();
                 } else {
-                this.user.loginSecret = "";
+                    this.user.loginSecret = "";
                 }
             },
             async resetXrayConfigToDefault() {
@@ -898,7 +902,7 @@
                     newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
                 }
                 newTemplateSettings.routing.rules = newRules;
-                
+
                 this.templateSettings = newTemplateSettings;
             },
             addRule(){
@@ -1182,6 +1186,18 @@
                     }
                 },
             },
+            SecuritySettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.security, this.blockedDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.security];
+                    } else {
+                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.security.includes(data));
+                    }
+                },
+            },
             SpeedTestSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.domains.speedtest, this.blockedDomains);
@@ -1305,7 +1321,7 @@
                     }
                 }
             },
-	    VNIpSettings: {
+            VNIpSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.ips.vn, this.blockedIPs);
                 },
@@ -1401,7 +1417,7 @@
                     }
                 }
             },
-	    VNIpDirectSettings: {
+            VNIpDirectSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.ips.vn, this.directIPs);
                 },
@@ -1424,7 +1440,7 @@
                         this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.vn.includes(data));
                     }
                 }
-            },			
+            },
             GoogleWARPSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
