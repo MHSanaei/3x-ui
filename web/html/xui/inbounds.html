@@ -446,6 +446,7 @@
 <script src="{{ .base_path }}assets/js/model/xray.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
+{{template "component/persianDatepicker" .}}
 <script>
     const columns = [{
         title: "ID",
@@ -539,6 +540,7 @@
         data: {
             siderDrawer,
             themeSwitcher,
+            persianDatepicker,
             spinning: false,
             inbounds: [],
             dbInbounds: [],
@@ -560,6 +562,7 @@
                 subURI : ''
             },
             remarkModel: '-ieo',
+            datepicker: 'gregorian',
             tgBotEnable: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
@@ -605,6 +608,7 @@
                     };
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
+                    this.datepicker = datepicker;
                 }
             },
             setInbounds(dbInbounds) {
