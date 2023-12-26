@@ -1117,3 +1117,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     padding: 0.5rem;
     border-radius: 1rem;
 }
+
+.ant-input-group-addon:not(:first-child):not(:last-child), .ant-input-group-wrap:not(:first-child):not(:last-child), .ant-input-group>.ant-input:not(:first-child):not(:last-child) {
+    border-radius: 0rem 1rem 1rem 0rem;
+}

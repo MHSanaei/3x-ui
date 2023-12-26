@@ -36,8 +36,8 @@
             </a-select>
         </a-form-item>
         <a-form-item label='Protocol'>
-            <a-select v-model="ruleModal.rule.protocol" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="x in ['','http','tls','bittorrent']" :value="x">[[ x ]]</a-select-option>
+            <a-select v-model="ruleModal.rule.protocol" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="x in ['http','tls','bittorrent']" :value="x">[[ x ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='Attributes'>

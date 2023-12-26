@@ -54,6 +54,10 @@ elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 10 ]]; then
         echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
     fi
+elif [[ "${release}" == "almalinux" ]]; then
+    if [[ ${os_version} -lt 9 ]]; then
+        echo -e "${red} Please use Almalinux 9 or higher ${plain}\n" && exit 1
+    fi
 elif [[ "${release}" == "arch" ]]; then
     echo "Your OS is ArchLinux"
 elif [[ "${release}" == "manjaro" ]]; then
@@ -124,6 +128,24 @@ update() {
         LOGI "Update is complete, Panel has automatically restarted "
         exit 0
     fi
+}
+
+custom_version() {
+    echo "Enter the panel version (like 2.0.0):"
+    read panel_version
+
+    if [ -z "$panel_version" ]; then
+        echo "Panel version cannot be empty. Exiting."
+    exit 1
+    fi
+
+    download_link="https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh"
+
+    # Use the entered panel version in the download link
+    install_command="bash <(curl -Ls $download_link) v$panel_version"
+
+    echo "Downloading and installing panel version $panel_version..."
+    eval $install_command
 }
 
 uninstall() {
@@ -1035,36 +1057,37 @@ show_menu() {
   ${green}3X-ui Panel Management Script${plain}
   ${green}0.${plain} Exit Script
 ————————————————
-  ${green}1.${plain} Install x-ui
-  ${green}2.${plain} Update x-ui
-  ${green}3.${plain} Uninstall x-ui
+  ${green}1.${plain} Install
+  ${green}2.${plain} Update
+  ${green}3.${plain} Custom Version
+  ${green}4.${plain} Uninstall
 ————————————————
-  ${green}4.${plain} Reset Username & Password & Secret Token
-  ${green}5.${plain} Reset Panel Settings
-  ${green}6.${plain} Change Panel Port
-  ${green}7.${plain} View Current Panel Settings
+  ${green}5.${plain} Reset Username & Password & Secret Token
+  ${green}6.${plain} Reset Settings
+  ${green}7.${plain} Change Port
+  ${green}8.${plain} View Current Settings
 ————————————————
-  ${green}8.${plain} Start x-ui
-  ${green}9.${plain} Stop x-ui
-  ${green}10.${plain} Restart x-ui
-  ${green}11.${plain} Check x-ui Status
-  ${green}12.${plain} Check x-ui Logs
+  ${green}9.${plain} Start
+  ${green}10.${plain} Stop
+  ${green}11.${plain} Restart
+  ${green}12.${plain} Check Status
+  ${green}13.${plain} Check Logs
 ————————————————
-  ${green}13.${plain} Enable x-ui On System Startup
-  ${green}14.${plain} Disable x-ui On System Startup
+  ${green}14.${plain} Enable x-ui On System Startup
+  ${green}15.${plain} Disable x-ui On System Startup
 ————————————————
-  ${green}15.${plain} SSL Certificate Management
-  ${green}16.${plain} Cloudflare SSL Certificate
-  ${green}17.${plain} IP Limit Management
-  ${green}18.${plain} WARP Management
+  ${green}16.${plain} SSL Certificate Management
+  ${green}17.${plain} Cloudflare SSL Certificate
+  ${green}18.${plain} IP Limit Management
+  ${green}19.${plain} WARP Management
 ————————————————
-  ${green}19.${plain} Enable BBR 
-  ${green}20.${plain} Update Geo Files
-  ${green}21.${plain} Active Firewall and open ports
-  ${green}22.${plain} Speedtest by Ookla
+  ${green}20.${plain} Enable BBR 
+  ${green}21.${plain} Update Geo Files
+  ${green}22.${plain} Active Firewall and open ports
+  ${green}23.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-22]: " num
+    echo && read -p "Please enter your selection [0-23]: " num
 
     case "${num}" in
     0)
@@ -1077,67 +1100,70 @@ show_menu() {
         check_install && update
         ;;
     3)
-        check_install && uninstall
+        check_install && custom_version
         ;;
     4)
-        check_install && reset_user
+        check_install && uninstall
         ;;
     5)
-        check_install && reset_config
+        check_install && reset_user
         ;;
     6)
-        check_install && set_port
+        check_install && reset_config
         ;;
     7)
-        check_install && check_config
+        check_install && set_port
         ;;
     8)
-        check_install && start
+        check_install && check_config
         ;;
     9)
-        check_install && stop
+        check_install && start
         ;;
     10)
-        check_install && restart
+        check_install && stop
         ;;
     11)
-        check_install && status
+        check_install && restart
         ;;
     12)
-        check_install && show_log
+        check_install && status
         ;;
     13)
-        check_install && enable
+        check_install && show_log
         ;;
     14)
-        check_install && disable
+        check_install && enable
         ;;
     15)
-        ssl_cert_issue_main
+        check_install && disable
         ;;
     16)
-        ssl_cert_issue_CF
+        ssl_cert_issue_main
         ;;
     17)
-        iplimit_main
+        ssl_cert_issue_CF
         ;;
     18)
-        warp_cloudflare
+        iplimit_main
         ;;
     19)
-        enable_bbr
+        warp_cloudflare
         ;;
     20)
-        update_geo
+        enable_bbr
         ;;
     21)
-        open_ports
+        update_geo
         ;;
     22)
+        open_ports
+        ;;
+    23)
         run_speedtest
         ;;    
     *)
-        LOGE "Please enter the correct number [0-22]"
+        LOGE "Please enter the correct number [0-23]"
         ;;
     esac
 }
