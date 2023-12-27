@@ -460,8 +460,8 @@
 "status" = "✅ Bot hoạt động bình thường!"
 "usage" = "❗ Vui lòng cung cấp văn bản để tìm kiếm!"
 "getID" = "🆔 ID của bạn: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n \r\nTìm kiếm inbounds (với thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>"
-"helpClientCommands" = "Để tìm kiếm thống kê, hãy sử dụng lệnh sau:\r\n \r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "Tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n\r\nTìm kiếm inbounds (với thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>"
+"helpClientCommands" = "Để tìm kiếm thống kê, hãy sử dụng lệnh sau:\r\n\r\n<code>/usage [Email]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
@@ -476,7 +476,7 @@
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"
 "ip" = "🌐 IP: {{ .IP }}\r\n"
-"ips" = "🔢 Các IP: \r\n{{ .IPs }}\r\n"
+"ips" = "🔢 Các IP:\r\n{{ .IPs }}\r\n"
 "serverUpTime" = "⏳ Thời gian hoạt động của máy chủ: {{ .UpTime }} {{ .Unit }}\r\n"
 "serverLoad" = "📈 Tải máy chủ: {{ .Load1 }}, {{ .Load2 }}, {{ .Load3 }}\r\n"
 "serverMemory" = "📋 Bộ nhớ máy chủ: {{ .Current }}/{{ .Total }}\r\n"
@@ -502,9 +502,9 @@
 "exhaustedCount" = "🚨 Số lần cạn kiệt {{ .Type }}:\r\n"
 "onlinesCount" = "🌐 Khách hàng trực tuyến: {{ .Count }}\r\n"
 "disabled" = "🛑 Vô hiệu hóa: {{ .Disabled }}\r\n"
-"depleteSoon" = "🔜 Sắp cạn kiệt: {{ .Deplete }}\r\n \r\n"
+"depleteSoon" = "🔜 Sắp cạn kiệt: {{ .Deplete }}\r\n\r\n"
 "backupTime" = "🗄 Thời gian sao lưu: {{ .Time }}\r\n"
-"refreshedOn" = "\r\n📋🔄 Đã cập nhật lần cuối vào: {{ .Time }}\r\n \r\n"
+"refreshedOn" = "\r\n📋🔄 Đã cập nhật lần cuối vào: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Có"
 "no" = "❌ Không"
 

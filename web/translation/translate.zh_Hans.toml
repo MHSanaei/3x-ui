@@ -460,8 +460,8 @@
 "status" = "✅ 机器人正常运行！"
 "usage" = "❗ 请输入要搜索的文本！"
 "getID" = "🆔 您的ID为：<code>{{ .ID }}</code>"
-"helpAdminCommands" = "搜索客户端邮箱：\r\n<code>/usage [Email]</code>\r\n \r\n搜索入站连接（包含客户端统计信息）：\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n \r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "搜索客户端邮箱：\r\n<code>/usage [Email]</code>\r\n\r\n搜索入站连接（包含客户端统计信息）：\r\n<code>/inbound [Remark]</code>"
+"helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n\r\n<code>/usage [Email]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%"
@@ -502,9 +502,9 @@
 "exhaustedCount" = "🚨 耗尽的{{ .Type }}数量：\r\n"
 "onlinesCount" = "🌐 在线客户：{{ .Count }}\r\n"
 "disabled" = "🛑 禁用：{{ .Disabled }}\r\n"
-"depleteSoon" = "🔜 即将耗尽：{{ .Deplete }}\r\n \r\n"
+"depleteSoon" = "🔜 即将耗尽：{{ .Deplete }}\r\n\r\n"
 "backupTime" = "🗄 备份时间：{{ .Time }}\r\n"
-"refreshedOn" = "\r\n📋🔄 刷新时间：{{ .Time }}\r\n \r\n"
+"refreshedOn" = "\r\n📋🔄 刷新时间：{{ .Time }}\r\n\r\n"
 "yes" = "✅ 是的"
 "no" = "❌ 没有"
 

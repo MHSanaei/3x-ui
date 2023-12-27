@@ -809,7 +809,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 
 	// paging message if it is big
 	if len(msg) > limit {
-		messages := strings.Split(msg, "\r\n \r\n")
+		messages := strings.Split(msg, "\r\n\r\n")
 		lastIndex := -1
 
 		for _, message := range messages {
@@ -817,10 +817,10 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 				allMessages = append(allMessages, message)
 				lastIndex++
 			} else {
-				allMessages[lastIndex] += "\r\n \r\n" + message
+				allMessages[lastIndex] += "\r\n\r\n" + message
 			}
 		}
-		if strings.TrimSpace(allMessages[lastIndex]) == "" {
+		if strings.TrimSpace(allMessages[len(allMessages)-1]) == "" {
 			allMessages = allMessages[:len(allMessages)-1]
 		}
 	} else {
@@ -905,7 +905,7 @@ func (t *Tgbot) getServerUsage() string {
 	if err != nil {
 		logger.Error("net.Interfaces failed, err: ", err.Error())
 		info += t.I18nBot("tgbot.messages.ip", "IP=="+t.I18nBot("tgbot.unknown"))
-		info += " \r\n"
+		info += "\r\n"
 	} else {
 		for i := 0; i < len(netInterfaces); i++ {
 			if (netInterfaces[i].Flags & net.FlagUp) != 0 {
@@ -1430,9 +1430,9 @@ func (t *Tgbot) notifyExhausted() {
 									if len(exhaustedClients) > 0 {
 										output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
 										if len(disabledClients) > 0 {
-											output += t.I18nBot("tgbot.clients") + ":"
+											output += t.I18nBot("tgbot.clients") + ":\r\n"
 											for _, traffic := range disabledClients {
-												output += "   " + traffic.Email
+												output += " " + traffic.Email
 											}
 											output += "\r\n"
 										}

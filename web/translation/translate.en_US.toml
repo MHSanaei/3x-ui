@@ -460,8 +460,8 @@
 "status" = "✅ Bot is OK!"
 "usage" = "❗ Please provide a text to search!"
 "getID" = "🆔 Your ID: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Search for a client email:\r\n<code>/usage [Email]</code>\r\n \r\nSearch for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "To search for statistics, just use the following command:\r\n \r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "Search for a client email:\r\n<code>/usage [Email]</code>\r\n\r\nSearch for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
+"helpClientCommands" = "To search for statistics, just use the following command:\r\n\r\n<code>/usage [Email]</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Load {{ .Percent }}% is more than threshold {{ .Threshold }}%"
@@ -476,7 +476,7 @@
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"
 "ip" = "🌐 IP: {{ .IP }}\r\n"
-"ips" = "🔢 IPs: \r\n{{ .IPs }}\r\n"
+"ips" = "🔢 IPs:\r\n{{ .IPs }}\r\n"
 "serverUpTime" = "⏳ Server Uptime: {{ .UpTime }} {{ .Unit }}\r\n"
 "serverLoad" = "📈 Server Load: {{ .Load1 }}, {{ .Load2 }}, {{ .Load3 }}\r\n"
 "serverMemory" = "📋 Server RAM: {{ .Current }}/{{ .Total }}\r\n"
@@ -502,9 +502,9 @@
 "exhaustedCount" = "🚨 Exhausted {{ .Type }} count:\r\n"
 "onlinesCount" = "🌐 Online clients: {{ .Count }}\r\n"
 "disabled" = "🛑 Disabled: {{ .Disabled }}\r\n"
-"depleteSoon" = "🔜 Deplete Soon: {{ .Deplete }}\r\n \r\n"
+"depleteSoon" = "🔜 Deplete Soon: {{ .Deplete }}\r\n\r\n"
 "backupTime" = "🗄 Backup Time: {{ .Time }}\r\n"
-"refreshedOn" = "\r\n📋🔄 Refreshed On: {{ .Time }}\r\n \r\n"
+"refreshedOn" = "\r\n📋🔄 Refreshed On: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Yes"
 "no" = "❌ No"
 
