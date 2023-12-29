@@ -55,10 +55,10 @@
 
 [menu]
 "dashboard" = "Trạng thái hệ thống"
-"inbounds" = "Inbounds"
+"inbounds" = "Đầu vào khách hàng"
 "settings" = "Cài đặt bảng điều khiển"
 "logout" = "Đăng xuất"
-"xray" = "Xray Cài đặt"
+"xray" = "Cài đặt Xray"
 "link" = "sự quản lý"
 
 [pages.login]
@@ -74,8 +74,8 @@
 
 [pages.index]
 "title" = "Trạng thái hệ thống"
-"memory" = "ĐẬP"
-"hard" = "Đĩa"
+"memory" = "Bộ nhớ"
+"hard" = "Đĩa(ổ cứng)"
 "xrayStatus" = "Trạng thái"
 "stopXray" = "Dừng lại"
 "restartXray" = "Khởi động lại"
@@ -85,11 +85,11 @@
 "operationHours" = "Thời gian hoạt động"
 "systemLoad" = "Tải hệ thống"
 "systemLoadDesc" = "trung bình tải hệ thống trong 1, 5 và 15 phút qua"
-"connectionTcpCountDesc" = "Tổng số kết nối TCP trên tất cả các card mạng."
-"connectionUdpCountDesc" = "Tổng số kết nối UDP trên tất cả các card mạng."
+"connectionTcpCountDesc" = "Tổng số kết nối TCP trên tất cả các thẻ mạng."
+"connectionUdpCountDesc" = "Tổng số kết nối UDP trên tất cả các thẻ mạng."
 "connectionCount" = "Số lượng kết nối"
-"upSpeed" = "Tổng tốc độ tải lên cho tất cả các card mạng."
-"downSpeed" = "Tổng tốc độ tải xuống cho tất cả các card mạng."
+"upSpeed" = "Tổng tốc độ tải lên cho tất cả các thẻ mạng."
+"downSpeed" = "Tổng tốc độ tải xuống cho tất cả các thẻ mạng."
 "totalSent" = "Tổng lưu lượng tải lên của tất cả các thẻ mạng kể từ khi hệ thống khởi động."
 "totalReceive" = "Tổng lưu lượng tải xuống trên tất cả các thẻ mạng kể từ khi hệ thống khởi động."
 "xraySwitchVersionDialog" = "Chuyển đổi Phiên bản Xray"
@@ -145,11 +145,11 @@
 "keyPath" = "Đường dẫn khóa riêng tư"
 "keyContent" = "Nội dung khóa riêng tư"
 "clickOnQRcode" = "Nhấn vào Mã QR để sao chép"
-"client" = "Client"
+"client" = "Máy Khách"
 "export" = "Xuất liên kết"
 "clone" = "Sao chép"
 "cloneInbound" = "Sao chép điểm vào (Inbound)"
-"cloneInboundContent" = "Tất cả cài đặt của điểm vào này, trừ Cổng, IP nghe và Clients, sẽ được áp dụng cho bản sao."
+"cloneInboundContent" = "Tất cả cài đặt của điểm vào này, trừ Cổng, IP nghe và máy khách, sẽ được áp dụng cho bản sao."
 "cloneInboundOk" = "Sao chép"
 "resetAllTraffic" = "Đặt lại lưu lượng cho tất cả điểm vào"
 "resetAllTrafficTitle" = "Đặt lại lưu lượng cho tất cả điểm vào"
@@ -298,7 +298,7 @@
 "subURIDesc" = "Thay đổi URI cơ sở của URL đăng ký để sử dụng ở phía sau proxy"
 
 [pages.xray]
-"title" = "Xray Cài đặt"
+"title" = "Cài đặt Xray"
 "save" = "Lưu cài đặt"
 "restart" = "Khởi động lại Xray"
 "basicTemplate" = "Mẫu Cơ bản"
