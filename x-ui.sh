@@ -595,6 +595,34 @@ ssl_cert_issue_main() {
     esac
 }
 
+multi_protocol() {
+    echo "This script only supports Vless and Vmess. if you use another protocols, DON'T INSTALL or get backup first! "
+    echo -e "${green}\t1.${plain} Install Multi Protocol Script"
+    echo -e "${green}\t2.${plain} Uninstall"
+    echo -e "${green}\t3.${plain} start service"
+    echo -e "${green}\t4.${plain} stop service"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+    case "$choice" in
+        0)
+            show_menu ;;
+        1) 
+            bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/install.sh --ipv4)
+            ;;
+        2) 
+            bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/unistall.sh --ipv4)
+            ;;
+        3)
+            systemctl start 3xui-multi-protocol
+            ;;
+        4)
+            systemctl stop 3xui-multi-protocol
+            ;;
+        *) echo "Invalid choice" ;;
+    esac
+}
+
+
 ssl_cert_issue() {
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
