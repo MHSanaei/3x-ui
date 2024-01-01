@@ -22,8 +22,11 @@ var job *CheckClientIpJob
 var disAllowedIps []string
 var ipFiles = []string{
 	xray.GetIPLimitLogPath(),
+xray.GetIPLimitPrevLogPath(),
 	xray.GetIPLimitBannedLogPath(),
+xray.GetIPLimitBannedPrevLogPath(),
 	xray.GetAccessPersistentLogPath(),
+xray.GetAccessPersistentPrevLogPath(),
 }
 
 func NewCheckClientIpJob() *CheckClientIpJob {
