@@ -44,6 +44,88 @@
     </template>
 </template>
 
+<!-- wireguard settings -->
+<template v-if="outbound.protocol === Protocols.Wireguard">
+        <a-form-item label='Secret Key'>
+            <a-input v-model.trim="outbound.settings.secretKey"></a-input>
+        </a-form-item>
+
+        <a-form-item label="Address">
+            <a-row>
+                <a-button size="small" @click="outbound.settings.addAddress()">
+                    +
+                </a-button>
+            </a-row>
+
+            <a-space direction="vertical">
+                <a-input-group compact v-for="(address, index) in outbound.settings.address">
+                    <a-input v-model.trim="outbound.settings.address[index]" style="width: calc(100% - 40px)"></a-input>
+                    <a-button type="delete" @click="outbound.settings.delAddress(index)">-</a-button>
+                </a-input-group>
+            </a-space>
+        </a-form-item>
+
+        <a-form-item label='MTU'>
+            <a-input placeholder="1420" type="number" min="0" v-model.number="outbound.settings.mtu"></a-input>
+        </a-form-item>
+
+        <a-form-item label='Workers'>
+            <a-input type="number" min="0" v-model.number="outbound.settings.workers"></a-input>
+        </a-form-item>
+        
+        <a-form-item label='Domain Strategy'>
+            <a-select
+            v-model="outbound.settings.domainStrategy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['', ...WireguardDomainStrategy]" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+
+        <a-form-item label="Peers">
+            <a-row>
+                <a-button type="primary" size="small"
+                        @click="outbound.settings.addPeer()">
+                    +
+                </a-button>
+            </a-row>
+        </a-form-item>
+
+        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+            <a-divider style="margin:0;">
+                Peer [[ index + 1 ]]
+                <a-icon type="delete" @click="() => outbound.settings.delPeer(index)"
+                        style="color: rgb(255, 77, 79);cursor: pointer;"/>
+            </a-divider>
+
+            <a-form-item label='Endpoint'>
+                <a-input v-model.trim="peer.endpoint"></a-input>
+            </a-form-item>
+            <a-form-item label='Public Key'>
+                <a-input v-model.trim="peer.publicKey"></a-input>
+            </a-form-item>
+            <a-form-item label='PreShared Key'>
+                <a-input v-model.trim="peer.preSharedKey"></a-input>
+            </a-form-item>
+            <a-form-item label='keepAlive'>
+                <a-input type="number" min="0" v-model.number="peer.keepAlive"></a-input>
+            </a-form-item>
+
+            <a-form-item label="Allowed IPs">
+                <a-row>
+                    <a-button size="small" @click="outbound.settings.addAllowedIP(index)">
+                        +
+                    </a-button>
+                </a-row>
+                <a-space direction="vertical">
+                    <a-input-group compact v-for="(allowedIp, ipIndex) in peer.allowedIPs">
+                        <a-input v-model.trim="peer.allowedIPs[ipIndex]" style="width: calc(100% - 40px)"></a-input>
+                        <a-button type="delete" @click="outbound.settings.delAllowedIP(index, ipIndex)">-</a-button>
+                    </a-input-group>
+                </a-space>
+            </a-form-item>
+        </a-form>
+</template>
+
 <!-- blackhole settings -->
 <template v-if="outbound.protocol === Protocols.Blackhole">
         <a-form-item label='Response Type'>

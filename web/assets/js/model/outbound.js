@@ -8,6 +8,7 @@ const Protocols = {
     Shadowsocks: "shadowsocks",
     Socks: "socks",
     HTTP: "http",
+    Wireguard: "wireguard",
 };
 
 const SSMethods = {
@@ -53,11 +54,20 @@ const outboundDomainStrategies = [
     "UseIPv6"
 ]
 
+const WireguardDomainStrategy = [
+    "ForceIP",
+    "ForceIPv4",
+    "ForceIPv4v6",
+    "ForceIPv6",
+    "ForceIPv6v4"
+];
+
 Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(ALPN_OPTION);
 Object.freeze(outboundDomainStrategies);
+Object.freeze(WireguardDomainStrategy);
 
 class CommonClass {
 
@@ -625,6 +635,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.Shadowsocks: return new Outbound.ShadowsocksSettings();
             case Protocols.Socks: return new Outbound.SocksSettings();
             case Protocols.HTTP: return new Outbound.HttpSettings();
+            case Protocols.Wireguard: return new Outbound.WireguardSettings();
             default: return null;
         }
     }
@@ -640,6 +651,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.Shadowsocks: return Outbound.ShadowsocksSettings.fromJson(json);
             case Protocols.Socks: return Outbound.SocksSettings.fromJson(json);
             case Protocols.HTTP: return Outbound.HttpSettings.fromJson(json);
+            case Protocols.Wireguard: return Outbound.WireguardSettings.fromJson(json);
             default: return null;
         }
     }
@@ -838,6 +850,106 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
         };
     }
 };
+Outbound.WireguardSettings = class extends CommonClass {
+    constructor(secretKey, address, peers, mtu, workers, domainStrategy, reserved) {
+        super();
+        this.secretKey = secretKey || '';
+        this.address = address ? [...address] : [];
+        this.peers = peers ? peers.map((p) => ({
+            ...p,
+            allowedIPs: p.allowedIPs ? [...p.allowedIPs] : [],
+        })) : [];
+        this.mtu = mtu;
+        this.workers = workers;
+        this.domainStrategy = domainStrategy;
+        this.reserved = reserved;
+    }
+
+    static fromJson(json={}) {
+        return new Outbound.WireguardSettings(
+            json.secretKey,
+            json.address,
+            json.peers,
+            json.mtu,
+            json.workers,
+            json.domainStrategy,
+            json.reserved,
+        );
+    }
+
+    addAddress() {
+        this.address.push('');
+    }
+
+    delAddress(index) {
+        this.address.splice(index, 1);
+    }
+
+    addPeer() {
+        this.peers.push({
+            endpoint: '',
+            publicKey: '',
+            allowedIPs: [],
+        });
+    }
+
+    delPeer(index) {
+        this.peers.splice(index, 1);
+    }
+
+    addAllowedIP(index) {
+        if (!this.peers[index].allowedIPs) {
+            this.peers[index].allowedIPs = [];
+        }
+
+        this.peers[index].allowedIPs.push('');
+    }
+
+    delAllowedIP(index, ipIndex) {
+        this.peers[index].allowedIPs.splice(ipIndex, 1);
+    }
+
+    optionalFields = ['mtu', 'workers', 'domainStrategy', 'address', 'reserved'];
+    optionalPeerFields = ['allowedIPs', 'keepAlive', 'preSharedKey'];
+
+    cleanUpOptionalFields(obj) {
+        const isEmpty = (v) =>  ObjectUtil.isEmpty(v) || ObjectUtil.isArrEmpty(v);
+
+        return Object.entries(obj).reduce((memo, [key, value]) => {
+            if (key === 'peers') {
+                memo[key] = value.map((peer) => {
+                    return Object.entries(peer).reduce((pMemo, [pKey, pValue]) => {
+                        if (this.optionalPeerFields.includes(pKey) && isEmpty(pValue)) {
+                            return pMemo;
+                        }
+
+                        pMemo[pKey] = pValue;
+                        return pMemo;
+                    }, {});
+                });
+            } else if (this.optionalFields.includes(key) && isEmpty(value)) {
+                return memo;
+            } else {
+                memo[key] = value;
+            }
+
+            return memo;
+        }, {});
+    }
+
+    toJson() {
+        return this.cleanUpOptionalFields({
+            secretKey: this.secretKey,
+            address: this.address,
+            peers: this.peers,
+            mtu: this.mtu,
+            workers: this.workers,
+            domainStrategy: this.domainStrategy,
+            reserved: this.reserved,
+        });
+    }
+};
+
 Outbound.SocksSettings = class extends CommonClass {
     constructor(address, port, user, pass) {
         super();
