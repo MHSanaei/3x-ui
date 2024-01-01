@@ -41,12 +41,24 @@ func GetIPLimitLogPath() string {
 	return config.GetLogFolder() + "/3xipl.log"
 }
 
+func GetIPLimitPrevLogPath() string {
+	return config.GetLogFolder() + "/3xipl.prev.log"
+}
+
 func GetIPLimitBannedLogPath() string {
 	return config.GetLogFolder() + "/3xipl-banned.log"
 }
 
+func GetIPLimitBannedPrevLogPath() string {
+	return config.GetLogFolder() + "/3xipl-banned.prev.log"
+}
+
 func GetAccessPersistentLogPath() string {
-	return config.GetLogFolder() + "/3xipl-access-persistent.log"
+	return config.GetLogFolder() + "/3xipl-ap.log"
+}
+
+func GetAccessPersistentPrevLogPath() string {
+	return config.GetLogFolder() + "/3xipl-ap.prev.log"
 }
 
 func GetAccessLogPath() string {

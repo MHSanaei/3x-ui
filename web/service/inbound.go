@@ -1146,6 +1146,8 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1184,6 +1186,32 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 	return nil
 }
 
+func (s *InboundService) checkIsEnabledByEmail(clientEmail string) (bool, error) {
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		return false, err
+	}
+	if inbound == nil {
+		return false, common.NewError("Inbound Not Found For Email:", clientEmail)
+	}
+
+	clients, err := s.GetClients(inbound)
+	if err != nil {
+		return false, err
+	}
+
+	isEnable := false
+
+	for _, client := range clients {
+		if client.Email == clientEmail {
+			isEnable = client.Enable
+			break
+		}
+	}
+
+	return isEnable, err
+}
+
 func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, error) {
 	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {
@@ -1205,6 +1233,8 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, er
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1266,6 +1296,8 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1324,6 +1356,8 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1385,6 +1419,8 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 		if oldClient.Email == clientEmail {
 			if inbound.Protocol == "trojan" {
 				clientId = oldClient.Password
+			} else if inbound.Protocol == "shadowsocks" {
+				clientId = oldClient.Email
 			} else {
 				clientId = oldClient.ID
 			}
@@ -1613,10 +1649,10 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	return nil
 }
 
-func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTraffic, error) {
+func (s *InboundService) GetClientTrafficTgBot(tgId string) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tguname)).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": "%s"%%`, tgId)).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
@@ -1627,7 +1663,7 @@ func (s *InboundService) GetClientTrafficTgBot(tguname string) ([]*xray.ClientTr
 			logger.Error("Unable to get clients from inbound")
 		}
 		for _, client := range clients {
-			if client.TgID == tguname {
+			if client.TgID == tgId {
 				emails = append(emails, client.Email)
 			}
 		}
