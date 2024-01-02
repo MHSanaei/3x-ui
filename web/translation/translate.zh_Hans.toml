@@ -257,6 +257,8 @@
 "telegramBotEnableDesc" = "重启面板生效"
 "telegramToken" = "电报机器人TOKEN"
 "telegramTokenDesc" = "重启面板生效"
+"telegramProxy" = "Socks5 代理"
+"telegramProxyDesc" = "如果您需要 Socks5 代理来连接 Telegram。 根据指南调整其设置。"
 "telegramChatId" = "以逗号分隔的多个 chatID 重启面板生效"
 "telegramChatIdDesc" = "多个聊天 ID 用逗号分隔。使用 @userinfobot 或在机器人中使用'/id'命令获取您的聊天 ID。"
 "telegramNotifyTime" = "电报机器人通知时间"
