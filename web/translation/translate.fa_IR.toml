@@ -255,6 +255,8 @@
 "telegramBotEnableDesc" = "از طریق بات تلگرام به امکانات این پنل متصل شوید"
 "telegramToken" = "توکن تلگرام"
 "telegramTokenDesc" = "توکن را باید از مدیر بات های تلگرام دریافت کنید @botfather"
+"telegramProxy" = "پروکسی Socks5"
+"telegramProxyDesc" = "اگر برای اتصال به تلگرام به پروکسی Socks5 نیاز دارید. تنظیمات خود را طبق راهنما تنظیم کنید.(socks5://[user:pass@]host:port)"
 "telegramChatId" = "آی دی تلگرام مدیریت"
 "telegramChatIdDesc" = "از @userinfobot یا دستور '/id' در ربات برای دریافت شناسه های چت خود استفاده کنید. با استفاده از کاما میتونید چند آی دی را از هم جدا کنید. "
 "telegramNotifyTime" = "مدت زمان نوتیفیکیشن ربات تلگرام"

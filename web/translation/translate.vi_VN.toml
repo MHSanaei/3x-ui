@@ -255,6 +255,8 @@
 "telegramBotEnableDesc" = "Kết nối với các tính năng của bảng điều khiển này thông qua bot Telegram"
 "telegramToken" = "Token Telegram"
 "telegramTokenDesc" = "Bạn phải nhận token từ quản lý bot Telegram @botfather"
+"telegramProxy" = "Socks5 Proxy"
+"telegramProxyDesc" = "Nếu bạn cần socks5 proxy để kết nối với Telegram. Điều chỉnh cài đặt của nó theo hướng dẫn.(socks5://[user:pass@]host:port)"
 "telegramChatId" = "Chat ID Telegram của quản trị viên"
 "telegramChatIdDesc" = "Nhiều Chat ID phân tách bằng dấu phẩy. Sử dụng @userinfobot hoặc sử dụng lệnh '/id' trong bot để lấy Chat ID của bạn."
 "telegramNotifyTime" = "Thời gian thông báo của bot Telegram"

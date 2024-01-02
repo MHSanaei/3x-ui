@@ -255,6 +255,8 @@
 "telegramBotEnableDesc" = "Conéctese a las funciones de este panel a través del bot de Telegram."
 "telegramToken" = "Token de Telegram"
 "telegramTokenDesc" = "Debe obtener el token del administrador de bots de Telegram @botfather."
+"telegramProxy" = "Socks5 Proxy"
+"telegramProxyDesc" = "Si necesita el proxy Socks5 para conectarse a Telegram. Ajuste su configuración según la guía.(socks5://user:pass@host:port)"
 "telegramChatId" = "IDs de Chat de Telegram para Administradores"
 "telegramChatIdDesc" = "IDs de Chat múltiples separados por comas. Use @userinfobot o use el comando '/id' en el bot para obtener sus IDs de Chat."
 "telegramNotifyTime" = "Hora de Notificación del Bot de Telegram"
