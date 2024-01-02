@@ -246,6 +246,8 @@
 "pageSize" = "分页大小"
 "pageSizeDesc" = "定义入站表的页面大小。设置 0 表示禁用"
 "remarkModel" = "备注模型和分隔符"
+"datepicker" = "日期选择器"
+"datepickerDescription" = "选择器日历类型指定到期日期"
 "sampleRemark" = "备注示例"
 "oldUsername" = "原用户名"
 "currentPassword" = "原密码"

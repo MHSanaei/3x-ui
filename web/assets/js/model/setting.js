@@ -12,6 +12,7 @@ class AllSetting {
         this.expireDiff = "";
         this.trafficDiff = "";
         this.remarkModel = "-ieo";
+        this.datepicker = "gregorian";
         this.tgBotEnable = false;
         this.tgBotToken = "";
         this.tgBotChatId = "";

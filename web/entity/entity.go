@@ -47,6 +47,7 @@ type AllSetting struct {
 	SubEncrypt       bool   `json:"subEncrypt" form:"subEncrypt"`
 	SubShowInfo      bool   `json:"subShowInfo" form:"subShowInfo"`
 	SubURI           string `json:"subURI" form:"subURI"`
+	Datepicker       string `json:"datepicker" form:"datepicker"`
 }
 
 func (s *AllSetting) CheckValid() error {

@@ -246,6 +246,8 @@
 "pageSize" = "Kích thước phân trang"
 "pageSizeDesc" = "Xác định kích thước trang cho bảng gửi đến. Đặt 0 để tắt"
 "remarkModel" = "Ghi chú mô hình và ký tự phân tách"
+"datepicker" = "bảng chọn ngày"
+"datepickerDescription" = "Loại lịch chọn chỉ định ngày hết hạn"
 "sampleRemark" = "Nhận xét mẫu"
 "oldUsername" = "Tên người dùng hiện tại"
 "currentPassword" = "Mật khẩu hiện tại"
