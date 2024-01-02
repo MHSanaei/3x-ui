@@ -257,6 +257,8 @@
 "telegramBotEnableDesc" = "Connect to the features of this panel through the Telegram bot."
 "telegramToken" = "Telegram Token"
 "telegramTokenDesc" = "The token you have got from @BotFather."
+"telegramProxy" = "Socks5 Proxy"
+"telegramProxyDesc" = "If you need the Socks5 proxy to connect to Telegram. Adjust its settings as per the guide."
 "telegramChatId" = "Telegram Admin Chat IDs"
 "telegramChatIdDesc" = "Multiple chat IDs separated by comma. use @userinfobot or use '/id' command in bot to get your Chat IDs."
 "telegramNotifyTime" = "Telegram bot notification time"
