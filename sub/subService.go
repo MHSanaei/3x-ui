@@ -20,6 +20,7 @@ type SubService struct {
 	address        string
 	showInfo       bool
 	remarkModel    string
+	datepicker     string
 	inboundService service.InboundService
 	settingService service.SettingService
 }
@@ -39,6 +40,10 @@ func (s *SubService) GetSubs(subId string, host string, showInfo bool) ([]string
 	if err != nil {
 		s.remarkModel = "-ieo"
 	}
+	s.datepicker, err = s.settingService.GetDatepicker()
+    if err != nil {
+        s.datepicker = "gregorian"
+    }
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
 		if err != nil {

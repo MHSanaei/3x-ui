@@ -246,6 +246,8 @@
 "pageSize" = "اندازه صفحه بندی جدول"
 "pageSizeDesc" = "اندازه صفحه را برای جدول سرویس ها تعریف کنید. 0: غیرفعال"
 "remarkModel" = "نام کانفیگ و جداکننده"
+"datepicker" = "انتخاب کننده تاریخ"
+"datepickerDescription" = "نوع تقویم انتخاب کننده تاریخ انقضا را مشخص میکند "
 "sampleRemark" = "نمونه نام"
 "oldUsername" = "نام کاربری فعلی"
 "currentPassword" = "رمز عبور فعلی"
