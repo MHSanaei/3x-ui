@@ -1,6 +1,8 @@
-# 3x-ui
+# 3X-UI
 
-> **Disclaimer: This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment**
+**A Fully Featured Panel Built on Xray Core**
+
+> **Disclaimer:** This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
@@ -8,20 +10,20 @@
 [![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-3x-ui panel supporting multi-protocol, **Multi-lang (English,Farsi,Chinese,Russian,Vietnamese,Spanish)**
+
 **If you think this project is helpful to you, you may wish to give a** :star2:
 
 **Buy Me a Coffee :**
 
-- Tron USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+- USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
-# Install & Upgrade
+## Install & Upgrade
 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-# Install custom version
+## Install Custom Version
 
 To install your desired version you can add the version to the end of install command. Example for ver `v2.0.2`:
 
@@ -29,7 +31,7 @@ To install your desired version you can add the version to the end of install co
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.2
 ```
 
-# SSL
+## SSL
 
 ```
 apt-get install certbot -y
@@ -39,27 +41,39 @@ certbot renew --dry-run
 
 You also can use `x-ui` menu then select `SSL Certificate Management`
 
-# Features
+## Languages
+
+- English
+- Farsi
+- Chinese
+- Russian
+- Vietnamese
+- Spanish
+
+
+## Features
 
 - System Status Monitoring
 - Search within all inbounds and clients
-- Support Dark/Light theme UI
-- Support multi-user multi-protocol, web page visualization operation
-- Supported protocols: vmess, vless, trojan, shadowsocks, dokodemo-door, socks, http
-- Support for configuring more transport configurations
-- Traffic statistics, limit traffic, limit expiration time
-- Customizable xray configuration templates
-- Support https access panel (self-provided domain name + ssl certificate)
-- Support one-click SSL certificate application and automatic renewal
+- Dark/Light theme
+- Supports multi-user and multi-protocol
+- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP
+- Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
+- Traffic statistics, traffic limit, expiration time limit
+- Customizable Xray configuration templates
+- Supports HTTPS access panel (self-provided domain name + SSL certificate)
+- Supports One-Click SSL certificate application and automatic renewal
 - For more advanced configuration items, please refer to the panel
-- Fix api routes (user setting will create with api)
-- Support to change configs by different items provided in panel
-- Support export/import database from panel
+- Fixes API routes (user setting will be created with API)
+- Supports changing configs by different items provided in the panel.
+- Supports export/import database from the panel
 
-# Manual Install & Upgrade
+## Manual Install & Upgrade
 
 <details>
-  <summary>Click for Manual Install details</summary>
+  <summary>Click for manual install details</summary>
+
+#### Usage
 
 1. To download the latest version of the compressed package directly to your server, run the following command:
 
@@ -88,10 +102,12 @@ systemctl restart x-ui
 
 </details>
 
-# Install with Docker
+## Install with Docker
 
 <details>
   <summary>Click for Docker details</summary>
+
+#### Usage
 
 1. Install Docker:
 
@@ -127,10 +143,10 @@ systemctl restart x-ui
 
 </details>
 
-# Default settings
+## Default Settings
 
 <details>
-  <summary>Click for Default settings details</summary>
+  <summary>Click for default settings details</summary>
 
 - Port: 2053
 - username and password will be generated randomly if you skip to modify your own security(x-ui "7")
@@ -147,12 +163,12 @@ After you set ssl on settings
 - https://yourdomain:2053/panel
 </details>
 
-# Xray Configurations:
+## Xray Configurations:
 
 <details>
-  <summary>Click for Xray Configurations details</summary>
+  <summary>Click for Xray configurations details</summary>
 
-**copy and paste to xray Configuration :** (you don't need to do this if you have a fresh install)
+**Copy & paste to xray Configuration:** (you don't need to do this if you have a fresh install)
 
 - [traffic](./media/configs/traffic.json)
 - [traffic + Block all Iran IP address](./media/configs/traffic+block-iran-ip.json)
@@ -162,10 +178,12 @@ After you set ssl on settings
 
 </details>
 
-# [WARP Configuration](https://gitlab.com/fscarmen/warp) (Optional)
+## [WARP Configuration](https://gitlab.com/fscarmen/warp) (Optional)
 
 <details>
-  <summary>Click for WARP Configuration details</summary>
+  <summary>Click for WARP configuration details</summary>
+
+#### Usage
 
 If you want to use routing to WARP follow steps as below:
 
@@ -175,7 +193,7 @@ If you want to use routing to WARP follow steps as below:
    warp u
    ```
 
-2. Install WARP on **socks proxy mode**:
+2. Install WARP on **SOCKS Proxy Mode**:
 
    ```sh
    bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
@@ -191,10 +209,12 @@ If you want to use routing to WARP follow steps as below:
 
 </details>
 
-# IP Limit
+## IP Limit
 
 <details>
-  <summary>Click for IP Limit details</summary>
+  <summary>Click for IP limit details</summary>
+
+#### Usage
 
 **Note: IP Limit won't work correctly when using IP Tunnel**
 
@@ -222,10 +242,12 @@ If you want to use routing to WARP follow steps as below:
 
 </details>
 
-# Telegram Bot
+## Telegram Bot
 
 <details>
-  <summary>Click for Telegram Bot details</summary>
+  <summary>Click for Telegram bot details</summary>
+
+#### Usage
 
 X-UI supports daily traffic notification, panel login reminder and other functions through the Tg robot. To use the Tg robot, you need to apply for the specific application tutorial. You can refer to the [blog](https://coderfan.net/how-to-use-telegram-bot-to-alarm-you-when-someone-login-into-your-vps.html)
 Set the robot-related parameters in the panel background, including:
@@ -238,16 +260,16 @@ Set the robot-related parameters in the panel background, including:
 - Tg robot Enable send backup in cycle runtime
 - Tg robot Enable CPU usage alarm threshold
 
-Reference syntax:
+**Reference syntax:**
 
-- 30 \* \* \* \* \* //Notify at the 30s of each point
-- 0 \*/10 \* \* \* \* //Notify at the first second of each 10 minutes
-- @hourly // hourly notification
-- @daily // Daily notification (00:00 in the morning)
-- @weekly // weekly notification
-- @every 8h // notify every 8 hours
+- `30 \* \* \* \* \*` - Notify at the 30s of each point
+- `0 \*/10 \* \* \* \*` - Notify at the first second of each 10 minutes
+- `@hourly` - Hourly notification
+- `@daily` - Daily notification (00:00 in the morning)
+- `@weekly` - weekly notification
+- `@every 8h` - Notify every 8 hours
 
-# Telegram Bot Features
+### Telegram Bot Features
 
 - Report periodic
 - Login notification
@@ -262,9 +284,8 @@ Reference syntax:
 - Check depleted users
 - Receive backup by request and in periodic reports
 - Multi language bot
-</details>
 
-# Setting up Telegram bot
+### Setting up Telegram bot
 
 - Start [Botfather](https://t.me/BotFather) in your Telegram account:
     ![Botfather](./media/botfather.png)
@@ -284,11 +305,14 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 - How to get Telegram user ID? Use this [bot](https://t.me/useridinfobot), Start the bot and it will give you the Telegram user ID.
 ![User ID](./media/user-id.png)
 
+</details>
 
-# API routes
+## API Routes
 
 <details>
   <summary>Click for API routes details</summary>
+
+#### Usage
 
 - `/login` with `POST` user data: `{username: '', password: ''}` for login
 - `/panel/api/inbounds` base for following actions:
@@ -324,10 +348,12 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 - [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
 </details>
 
-# Environment Variables
+## Environment Variables
 
 <details>
-  <summary>Click for Environment Variables details</summary>
+  <summary>Click for environment variables details</summary>
+
+#### Usage
 
 | Variable       |                      Type                      | Default       |
 | -------------- | :--------------------------------------------: | :------------ |
@@ -345,16 +371,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 </details>
 
-# A Special Thanks To
-
-- [alireza0](https://github.com/alireza0/)
-
-# Acknowledgment
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _A hosted domain hosted in Vietnam and blocklist with the most efficiency for Vietnamese._
-
-# Suggestion System
+## OS
 
 - Ubuntu 20.04+
 - Debian 10+
@@ -365,7 +382,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 - Armbian
 - AlmaLinux 9+
 
-# Pictures
+## Preview
 
 ![1](./media/1.png)
 ![2](./media/2.png)
@@ -375,6 +392,15 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ![6](./media/6.png)
 ![7](./media/7.png)
 
-## Stargazers over time
+## A Special Thanks to
+
+- [alireza0](https://github.com/alireza0/)
+
+## Acknowledgment
+
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
+- [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _A hosted domain hosted in Vietnam and blocklist with the most efficiency for Vietnamese._
+
+## Stargazers over Time
 
 [![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
