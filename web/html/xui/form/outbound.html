@@ -189,7 +189,7 @@
     <template v-if="outbound.protocol === Protocols.Shadowsocks">
         <a-form-item label='{{ i18n "encryption" }}'>
             <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+                <a-select-option v-for="(method,method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='UDP over TCP'>
