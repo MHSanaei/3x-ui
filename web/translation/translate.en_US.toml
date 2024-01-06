@@ -309,7 +309,7 @@
 "advancedTemplate" = "Advanced Template"
 "generalConfigs" = "General Strategy"
 "generalConfigsDesc" = "These options will provide general adjustments."
-"blockConfigs" = "Block Country"
+"blockConfigs" = "Block Basic"
 "blockConfigsDesc" = "These options will prevent users from connecting to specific protocols and websites."
 "blockCountryConfigs" = "Block Country"
 "blockCountryConfigsDesc" = "These options will prevent users from connecting to specific country domains."
