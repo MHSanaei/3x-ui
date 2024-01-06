@@ -106,7 +106,7 @@
             <a-form-item label='PreShared Key'>
                 <a-input v-model.trim="peer.preSharedKey"></a-input>
             </a-form-item>
-            <a-form-item label='keepAlive'>
+            <a-form-item label='KeepAlive'>
                 <a-input type="number" min="0" v-model.number="peer.keepAlive"></a-input>
             </a-form-item>
 
@@ -204,9 +204,9 @@
             <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
                     :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="tcp">TCP</a-select-option>
-                <a-select-option value="kcp">KCP</a-select-option>
+                <a-select-option value="kcp">mKCP</a-select-option>
                 <a-select-option value="ws">WS</a-select-option>
-                <a-select-option value="http">HTTP2</a-select-option>
+                <a-select-option value="http">H2</a-select-option>
                 <a-select-option value="quic">QUIC</a-select-option>
                 <a-select-option value="grpc">gRPC</a-select-option>
             </a-select>
@@ -232,12 +232,12 @@
     <template v-if="outbound.stream.network === 'kcp'">
         <a-form-item label='{{ i18n "camouflage" }}'>
             <a-select v-model="outbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="none">none (not camouflage)</a-select-option>
-                <a-select-option value="srtp">srtp (video call)</a-select-option>
-                <a-select-option value="utp">utp (BT download)</a-select-option>
-                <a-select-option value="wechat-video">wechat-video (WeChat video)</a-select-option>
-                <a-select-option value="dtls">dtls (DTLS 1.2 packages)</a-select-option>
-                <a-select-option value="wireguard">wireguard (wireguard packages)</a-select-option>
+                <a-select-option value="none">None</a-select-option>
+                <a-select-option value="srtp">SRTP</a-select-option>
+                <a-select-option value="utp">uTP</a-select-option>
+                <a-select-option value="wechat-video">Wechat Video</a-select-option>
+                <a-select-option value="dtls">DTLS 1.2</a-select-option>
+                <a-select-option value="wireguard">wireGuard</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "password" }}'>
@@ -249,19 +249,19 @@
         <a-form-item label='TTI (ms)'>
             <a-input-number v-model.number="outbound.stream.kcp.tti"></a-input-number>
         </a-form-item>
-        <a-form-item label='Uplink Capacity (MB/s)'>
+        <a-form-item label='Uplink (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.upCap"></a-input-number>
         </a-form-item> 
-        <a-form-item label='Downlink Capacity (MB/s)'>
+        <a-form-item label='Downlink (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.downCap"></a-input-number>
         </a-form-item>
         <a-form-item label='Congestion'>
             <a-switch v-model="outbound.stream.kcp.congestion"></a-switch>
         </a-form-item>
-        <a-form-item label='Read Buffer Size (MB)'>
+        <a-form-item label='Read Buffer (MB)'>
             <a-input-number v-model.number="outbound.stream.kcp.readBuffer"></a-input-number>
         </a-form-item>
-        <a-form-item label='Write Buffer Size (MB)'>
+        <a-form-item label='Write Buffer (MB)'>
             <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"></a-input-number>
         </a-form-item>
     </template>
@@ -290,9 +290,9 @@
     <template v-if="outbound.stream.network === 'quic'">
         <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
             <a-select v-model="outbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="none">none</a-select-option>
-                <a-select-option value="aes-128-gcm">aes-128-gcm</a-select-option>
-                <a-select-option value="chacha20-poly1305">chacha20-poly1305</a-select-option>
+                <a-select-option value="none">NONE</a-select-option>
+                <a-select-option value="aes-128-gcm">AES-128-GCM</a-select-option>
+                <a-select-option value="chacha20-poly1305">CHACHA20-POLY1305</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "password" }}'>
@@ -300,12 +300,12 @@
         </a-form-item> 
         <a-form-item label='{{ i18n "camouflage" }}'>
             <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="none">none (No Obfuscation)</a-select-option>
-                <a-select-option value="srtp">SRTP (Video Call)</a-select-option>
-                <a-select-option value="utp">uTP (Bittorrent)</a-select-option>
+                <a-select-option value="none">None</a-select-option>
+                <a-select-option value="srtp">SRTP</a-select-option>
+                <a-select-option value="utp">uTP</a-select-option>
                 <a-select-option value="wechat-video">WeChat Video</a-select-option>
-                <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
-                <a-select-option value="wireguard">WireGuard (WireGuard Packages)</a-select-option>
+                <a-select-option value="dtls">DTLS 1.2</a-select-option>
+                <a-select-option value="wireguard">WireGuard</a-select-option>
             </a-select>
         </a-form-item>
     </template>
@@ -366,7 +366,7 @@
                         <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
                     </a-select>
                 </a-form-item>
-                <a-form-item label="Short IDs">
+                <a-form-item label="Short ID">
                     <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
                 </a-form-item>
                 <a-form-item label="SpiderX">
