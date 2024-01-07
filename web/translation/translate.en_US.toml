@@ -431,7 +431,7 @@
 [pages.settings.toasts]
 "modifySettings" = "Modify Settings"
 "getSettings" = "Get Settings"
-"modifyUser" = "Modify Admin"
+"modifyUser" = "Modify User"
 "originalUserPassIncorrect" = "The Current username or password is invalid"
 "userPassMustBeNotEmpty" = "The new username and password is empty"
 
