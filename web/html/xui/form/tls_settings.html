@@ -28,7 +28,7 @@
         </a-form-item>
         <a-form-item label="Cipher Suites">
             <a-select v-model="inbound.stream.tls.cipherSuites" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="">AUTO</a-select-option>
+                <a-select-option value="">Auto</a-select-option>
                 <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[ value ]]</a-select-option>
             </a-select>
         </a-form-item>
