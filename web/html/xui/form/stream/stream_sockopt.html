@@ -1,7 +1,7 @@
 {{define "form/streamSockopt"}}
 <a-divider style="margin:5px 0 0;"></a-divider>
 <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label="Transparent Proxy">
+    <a-form-item label="TPROXY">
         <a-switch v-model="inbound.stream.sockoptSwitch"></a-switch>
     </a-form-item>
     <template v-if="inbound.stream.sockoptSwitch">
