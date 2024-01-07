@@ -100,8 +100,8 @@
 "backup" = "Backup & Restore"
 "backupTitle" = "Backup & Restore Database"
 "backupDescription" = "It is recommended to a make backup before importing a new database."
-"exportDatabase" = "Download Database"
-"importDatabase" = "Upload Database"
+"exportDatabase" = "Backup Database"
+"importDatabase" = "Restore Database"
 
 [pages.inbounds]
 "title" = "Inbounds"
