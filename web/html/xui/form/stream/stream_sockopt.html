@@ -14,11 +14,11 @@
         <a-form-item label="Route Mark">
             <a-input-number v-model="inbound.stream.sockopt.mark" :min="0"></a-input-number>
         </a-form-item>
-        <a-form-item label="TProxy">
+        <a-form-item label="TPROXY">
             <a-select v-model="inbound.stream.sockopt.tproxy" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="off">Off</a-select-option>
                 <a-select-option value="redirect">Redirect</a-select-option>
-                <a-select-option value="tproxy">TProxy</a-select-option>
+                <a-select-option value="tproxy">TPROXY</a-select-option>
             </a-select>
         </a-form-item>
     </template>
