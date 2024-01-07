@@ -99,7 +99,7 @@
 "config" = "Config"
 "backup" = "Backup & Restore"
 "backupTitle" = "Backup & Restore Database"
-"backupDescription" = "It is recommended to a make backup before importing a new database."
+"backupDescription" = "It is recommended to make a backup before importing a new database."
 "exportDatabase" = "Backup Database"
 "importDatabase" = "Restore Database"
 
