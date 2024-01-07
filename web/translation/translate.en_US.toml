@@ -54,7 +54,7 @@
 "security" = "Security"
 
 [menu]
-"dashboard" = "Overview"
+"dashboard" = "Status Overview"
 "inbounds" = "Inbounds"
 "settings" = "Panel Settings"
 "xray" = "Xray Configurations"
@@ -73,7 +73,7 @@
 "successLogin" = "Login"
 
 [pages.index]
-"title" = "Overview"
+"title" = "Status Overview"
 "memory" = "RAM"
 "hard" = "Disk"
 "xrayStatus" = "Status"
