@@ -8,7 +8,7 @@ const Protocols = {
     Shadowsocks: "shadowsocks",
     Socks: "socks",
     HTTP: "http",
-    Wireguard: "wireguard",
+    WireGuard: "wireguard",
 };
 
 const SSMethods = {
