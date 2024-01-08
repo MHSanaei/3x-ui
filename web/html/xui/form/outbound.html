@@ -45,7 +45,7 @@
 </template>
 
 <!-- wireguard settings -->
-<template v-if="outbound.protocol === Protocols.Wireguard">
+<template v-if="outbound.protocol === Protocols.WireGuard">
         <a-form-item label='Secret Key'>
             <a-input v-model.trim="outbound.settings.secretKey"></a-input>
         </a-form-item>
@@ -77,7 +77,7 @@
             <a-select
             v-model="outbound.settings.domainStrategy"
             :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['', ...WireguardDomainStrategy]" :value="s">[[ s ]]</a-select-option>
+                <a-select-option v-for="s in ['', ...WireGuardDomainStrategy]" :value="s">[[ s ]]</a-select-option>
             </a-select>
         </a-form-item>
 
