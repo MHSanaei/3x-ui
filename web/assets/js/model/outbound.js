@@ -54,7 +54,7 @@ const outboundDomainStrategies = [
     "UseIPv6"
 ]
 
-const WireguardDomainStrategy = [
+const WireGuardDomainStrategy = [
     "ForceIP",
     "ForceIPv4",
     "ForceIPv4v6",
@@ -67,7 +67,7 @@ Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(ALPN_OPTION);
 Object.freeze(outboundDomainStrategies);
-Object.freeze(WireguardDomainStrategy);
+Object.freeze(WireGuardDomainStrategy);
 
 class CommonClass {
 
@@ -635,7 +635,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.Shadowsocks: return new Outbound.ShadowsocksSettings();
             case Protocols.Socks: return new Outbound.SocksSettings();
             case Protocols.HTTP: return new Outbound.HttpSettings();
-            case Protocols.Wireguard: return new Outbound.WireguardSettings();
+            case Protocols.WireGuard: return new Outbound.WireGuardSettings();
             default: return null;
         }
     }
@@ -651,7 +651,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.Shadowsocks: return Outbound.ShadowsocksSettings.fromJson(json);
             case Protocols.Socks: return Outbound.SocksSettings.fromJson(json);
             case Protocols.HTTP: return Outbound.HttpSettings.fromJson(json);
-            case Protocols.Wireguard: return Outbound.WireguardSettings.fromJson(json);
+            case Protocols.WireGuard: return Outbound.WireGuardSettings.fromJson(json);
             default: return null;
         }
     }
@@ -850,7 +850,7 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
         };
     }
 };
-Outbound.WireguardSettings = class extends CommonClass {
+Outbound.WireGuardSettings = class extends CommonClass {
     constructor(secretKey, address, peers, mtu, workers, domainStrategy, reserved) {
         super();
         this.secretKey = secretKey || '';
@@ -866,7 +866,7 @@ Outbound.WireguardSettings = class extends CommonClass {
     }
 
     static fromJson(json={}) {
-        return new Outbound.WireguardSettings(
+        return new Outbound.WireGuardSettings(
             json.secretKey,
             json.address,
             json.peers,
