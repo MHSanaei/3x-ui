@@ -106,7 +106,7 @@
 [pages.inbounds]
 "title" = "Inbounds"
 "totalDownUp" = "Total Sent/Received"
-"totalUsage" = "Total Usage"
+"totalUsage" = "Total Flow Usage"
 "inboundCount" = "Number of Inbounds"
 "operate" = "Menu"
 "enable" = "Enable"
