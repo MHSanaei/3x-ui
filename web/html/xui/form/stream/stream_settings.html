@@ -1,7 +1,7 @@
 {{define "form/streamSettings"}}
 <!-- select stream network -->
 <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label="{{ i18n "transmission" }}">
+    <a-form-item label='{{ i18n "transmission" }}'>
         <a-select v-model="inbound.stream.network" @change="streamNetworkChange"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP</a-select-option>
