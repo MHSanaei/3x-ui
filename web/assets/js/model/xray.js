@@ -235,6 +235,7 @@ TcpStreamSettings.TcpRequest = class extends XrayCommonClass {
 
     toJson() {
         return {
+            version: this.version,
             method: this.method,
             path: ObjectUtil.clone(this.path),
             headers: XrayCommonClass.toV2Headers(this.headers),
