@@ -23,7 +23,7 @@
 <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "encryption" }}'>
         <a-select v-model="inbound.settings.method" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="method in SSMethods" :value="method">[[ method ]]</a-select-option>
+            <a-select-option v-for="(method,method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
         </a-select>
     </a-form-item>
     <a-form-item v-if="inbound.isSS2022">

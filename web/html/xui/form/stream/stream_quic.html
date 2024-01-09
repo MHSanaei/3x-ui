@@ -2,9 +2,9 @@
 <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
         <a-select v-model="inbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="none">none</a-select-option>
-            <a-select-option value="aes-128-gcm">aes-128-gcm</a-select-option>
-            <a-select-option value="chacha20-poly1305">chacha20-poly1305</a-select-option>
+            <a-select-option value="none">None</a-select-option>
+            <a-select-option value="aes-128-gcm">AES-128-GCM</a-select-option>
+            <a-select-option value="chacha20-poly1305">CHACHA20-POLY1305</a-select-option>
         </a-select>
     </a-form-item>
     <a-form-item label='{{ i18n "password" }}'>
@@ -12,12 +12,12 @@
     </a-form-item> 
     <a-form-item label='{{ i18n "camouflage" }}'>
         <a-select v-model="inbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="none">none (No Obfuscation)</a-select-option>
-            <a-select-option value="srtp">SRTP (Video Call)</a-select-option>
-            <a-select-option value="utp">uTP (Bittorrent)</a-select-option>
-            <a-select-option value="wechat-video">WeChat Video</a-select-option>
-            <a-select-option value="dtls">DTLS (DTLS 1.2 packages)</a-select-option>
-            <a-select-option value="wireguard">WireGuard (WireGuard Packages)</a-select-option>
+            <a-select-option value="none">None</a-select-option>
+            <a-select-option value="srtp">SRTP</a-select-option>
+            <a-select-option value="utp">uTP</a-select-option>
+            <a-select-option value="wechat-video">WeChat</a-select-option>
+            <a-select-option value="dtls">DTLS 1.2</a-select-option>
+            <a-select-option value="wireguard">WireGuard</a-select-option>
         </a-select>
     </a-form-item>
 </a-form>

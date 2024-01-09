@@ -96,7 +96,7 @@
                             <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
                             <a-popover v-if="status.xray.state === State.Error"
                                 :overlay-class-name="themeSwitcher.currentTheme">
-                                <span slot="title" style="font-size: 12pt">Error in running xray-core
+                                <span slot="title" style="font-size: 12pt">An error occurred while running Xray
                                     <a-tag color="purple" style="cursor: pointer; float: right;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
                                 </span>
                                 <template slot="content">
