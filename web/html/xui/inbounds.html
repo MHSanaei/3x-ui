@@ -1036,6 +1036,7 @@
             },
             switchEnable(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                dbInbound.enable = !dbInbound.enable;
                 this.submit(`/panel/inbound/update/${dbInboundId}`, dbInbound);
             },
             async switchEnableClient(dbInboundId, client) {
