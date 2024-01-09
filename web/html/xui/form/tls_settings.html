@@ -26,9 +26,9 @@
         <a-form-item label="SNI" placeholder="Server Name Indication">
             <a-input v-model.trim="inbound.stream.tls.sni"></a-input>
         </a-form-item>
-        <a-form-item label="CipherSuites">
+        <a-form-item label="Cipher Suites">
             <a-select v-model="inbound.stream.tls.cipherSuites" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="">auto</a-select-option>
+                <a-select-option value="">Auto</a-select-option>
                 <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[ value ]]</a-select-option>
             </a-select>
         </a-form-item>
@@ -92,7 +92,7 @@
                     <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
                 </a-form-item>
             </template>
-            <a-form-item label='ocspStapling'>
+            <a-form-item label='OCSP stapling'>
                 <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
             </a-form-item>
         </template>
@@ -162,7 +162,7 @@
         <a-form-item label='Dest'>
             <a-input v-model.trim="inbound.stream.reality.dest"></a-input>
         </a-form-item>
-        <a-form-item label='Server Names'>
+        <a-form-item label='SNI'>
             <a-input v-model.trim="inbound.stream.reality.serverNames"></a-input>
         </a-form-item>
         <a-form-item>
@@ -187,7 +187,7 @@
             <a-input v-model.trim="inbound.stream.reality.settings.publicKey"></a-input>
         </a-form-item>
         <a-form-item label=" ">
-            <a-button type="primary" icon="import" @click="getNewX25519Cert">Get new cert</a-button>
+            <a-button type="primary" icon="import" @click="getNewX25519Cert">Get New Cert</a-button>
         </a-form-item>
     </template>
 </a-form>
