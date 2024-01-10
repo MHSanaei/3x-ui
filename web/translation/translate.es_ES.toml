@@ -420,6 +420,14 @@
 "portal" = "portal"
 "intercon" = "Interconexión"
 
+[pages.xray.wireguard]
+"secretKey" = "Llave secreta"
+"publicKey" = "Llave pública"
+"allowedIPs" = "IP permitidas"
+"endpoint" = "Punto final"
+"psk" = "Clave precompartida"
+"domainStrategy" = "Estrategia de dominio"
+
 [pages.settings.security]
 "admin" = "Administrador"
 "secret" = "Token Secreto"

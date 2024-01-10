@@ -97,6 +97,11 @@
     {{template "form/http"}}
 </template>
 
+<!-- wireguard -->
+<template v-if="inbound.protocol === Protocols.WIREGUARD">
+    {{template "form/wireguard"}}
+</template>
+
 <!-- stream settings -->
 <template v-if="inbound.canEnableStream()">
     {{template "form/streamSettings"}}

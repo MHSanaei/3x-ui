@@ -420,6 +420,14 @@
 "portal" = "门户"
 "intercon" = "互连"
 
+[pages.xray.wireguard]
+"secretKey" = "密钥"
+"publicKey" = "公钥"
+"allowedIPs" = "允许的 IP"
+"endpoint" = "终点"
+"psk" = "共享密钥"
+"domainStrategy" = "域策略"
+
 [pages.settings.security]
 "admin" = "管理员"
 "secret" = "密钥"

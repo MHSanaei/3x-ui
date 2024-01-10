@@ -420,6 +420,14 @@
 "portal" = "پرتال"
 "intercon" = "اتصال میانی"
 
+[pages.xray.wireguard]
+"secretKey" = "کلید شخصی"
+"publicKey" = "کلید عمومی"
+"allowedIPs" = "آی‌پی‌های مجاز"
+"endpoint" = "نقطه پایانی"
+"psk" = "کلید مشترک"
+"domainStrategy" = "استراتژی حل دامنه"
+
 [pages.settings.security]
 "admin" = "مدیر"
 "secret" = "توکن امنیتی"

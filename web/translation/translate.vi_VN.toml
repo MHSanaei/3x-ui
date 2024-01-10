@@ -420,6 +420,14 @@
 "portal" = "Cổng thông tin"
 "intercon" = "Kết nối"
 
+[pages.xray.wireguard]
+"secretKey" = "Chìa khoá bí mật"
+"publicKey" = "Khóa công khai"
+"allowedIPs" = "IP được phép"
+"endpoint" = "Điểm cuối"
+"psk" = "Khóa chia sẻ"
+"domainStrategy" = "Chiến lược tên miền"
+
 [pages.settings.security]
 "admin" = "Quản trị viên"
 "secret" = "Mã thông báo bí mật"
