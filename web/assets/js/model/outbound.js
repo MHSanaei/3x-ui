@@ -8,7 +8,7 @@ const Protocols = {
     Shadowsocks: "shadowsocks",
     Socks: "socks",
     HTTP: "http",
-    Wireguard: "wireguard",
+    Wireguard: "wireguard"
 };
 
 const SSMethods = {
@@ -47,12 +47,12 @@ const ALPN_OPTION = {
     HTTP1: "http/1.1",
 };
 
-const outboundDomainStrategies = [
+const OutboundDomainStrategies = [
     "AsIs",
     "UseIP",
     "UseIPv4",
     "UseIPv6"
-]
+];
 
 const WireguardDomainStrategy = [
     "ForceIP",
@@ -66,7 +66,7 @@ Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(ALPN_OPTION);
-Object.freeze(outboundDomainStrategies);
+Object.freeze(OutboundDomainStrategies);
 Object.freeze(WireguardDomainStrategy);
 
 class CommonClass {
@@ -850,105 +850,6 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
         };
     }
 };
-Outbound.WireguardSettings = class extends CommonClass {
-    constructor(secretKey, address, peers, mtu, workers, domainStrategy, reserved) {
-        super();
-        this.secretKey = secretKey || '';
-        this.address = address ? [...address] : [];
-        this.peers = peers ? peers.map((p) => ({
-            ...p,
-            allowedIPs: p.allowedIPs ? [...p.allowedIPs] : [],
-        })) : [];
-        this.mtu = mtu;
-        this.workers = workers;
-        this.domainStrategy = domainStrategy;
-        this.reserved = reserved;
-    }
-
-    static fromJson(json={}) {
-        return new Outbound.WireguardSettings(
-            json.secretKey,
-            json.address,
-            json.peers,
-            json.mtu,
-            json.workers,
-            json.domainStrategy,
-            json.reserved,
-        );
-    }
-
-    addAddress() {
-        this.address.push('');
-    }
-
-    delAddress(index) {
-        this.address.splice(index, 1);
-    }
-
-    addPeer() {
-        this.peers.push({
-            endpoint: '',
-            publicKey: '',
-            allowedIPs: [],
-        });
-    }
-
-    delPeer(index) {
-        this.peers.splice(index, 1);
-    }
-
-    addAllowedIP(index) {
-        if (!this.peers[index].allowedIPs) {
-            this.peers[index].allowedIPs = [];
-        }
-
-        this.peers[index].allowedIPs.push('');
-    }
-
-    delAllowedIP(index, ipIndex) {
-        this.peers[index].allowedIPs.splice(ipIndex, 1);
-    }
-
-    optionalFields = ['mtu', 'workers', 'domainStrategy', 'address', 'reserved'];
-    optionalPeerFields = ['allowedIPs', 'keepAlive', 'preSharedKey'];
-
-    cleanUpOptionalFields(obj) {
-        const isEmpty = (v) =>  ObjectUtil.isEmpty(v) || ObjectUtil.isArrEmpty(v);
-
-        return Object.entries(obj).reduce((memo, [key, value]) => {
-            if (key === 'peers') {
-                memo[key] = value.map((peer) => {
-                    return Object.entries(peer).reduce((pMemo, [pKey, pValue]) => {
-                        if (this.optionalPeerFields.includes(pKey) && isEmpty(pValue)) {
-                            return pMemo;
-                        }
-
-                        pMemo[pKey] = pValue;
-                        return pMemo;
-                    }, {});
-                });
-            } else if (this.optionalFields.includes(key) && isEmpty(value)) {
-                return memo;
-            } else {
-                memo[key] = value;
-            }
-
-            return memo;
-        }, {});
-    }
-
-    toJson() {
-        return this.cleanUpOptionalFields({
-            secretKey: this.secretKey,
-            address: this.address,
-            peers: this.peers,
-            mtu: this.mtu,
-            workers: this.workers,
-            domainStrategy: this.domainStrategy,
-            reserved: this.reserved,
-        });
-    }
-};
 
 Outbound.SocksSettings = class extends CommonClass {
     constructor(address, port, user, pass) {
@@ -1007,6 +908,89 @@ Outbound.HttpSettings = class extends CommonClass {
                 port: this.port,
                 users: ObjectUtil.isEmpty(this.user) ? [] : [{user: this.user, pass: this.pass}],
             }],
+        };
+    }
+};
+
+Outbound.WireguardSettings = class extends CommonClass {
+    constructor(
+            mtu=1420, secretKey=Wireguard.generateKeypair().privateKey,
+            address='', workers=2, domainStrategy='', reserved='',
+            peers=[new Outbound.WireguardSettings.Peer()], kernelMode=false) {
+        super();
+        this.mtu = mtu;
+        this.secretKey = secretKey;
+        this.pubKey = secretKey.length>0 ? Wireguard.generateKeypair(secretKey).publicKey : '';
+        this.address = address instanceof Array ? address.join(',') : address;
+        this.workers = workers;
+        this.domainStrategy = domainStrategy;
+        this.reserved = reserved instanceof Array ? reserved.join(',') : reserved;
+        this.peers = peers;
+        this.kernelMode = kernelMode;
+    }
+
+    addPeer() {
+        this.peers.push(new Outbound.WireguardSettings.Peer());
+    }
+
+    delPeer(index) {
+        this.peers.splice(index, 1);
+    }
+
+    static fromJson(json={}){
+        return new Outbound.WireguardSettings(
+            json.mtu,
+            json.secretKey,
+            json.address,
+            json.workers,
+            json.domainStrategy,
+            json.reserved,
+            json.peers.map(peer => Outbound.WireguardSettings.Peer.fromJson(peer)),
+            json.kernelMode,
+        );
+    }
+
+    toJson() {
+        return {
+            mtu: this.mtu?? undefined,
+            secretKey: this.secretKey,
+            address: this.address ? this.address.split(",") : [],
+            workers: this.workers?? undefined,
+            domainStrategy: WireguardDomainStrategy.includes(this.domainStrategy) ? this.domainStrategy : undefined,
+            reserved: this.reserved ? this.reserved.split(",") : undefined,
+            peers: Outbound.WireguardSettings.Peer.toJsonArray(this.peers),
+            kernelMode: this.kernelMode,
+        };
+    }
+};
+
+Outbound.WireguardSettings.Peer = class extends CommonClass {
+    constructor(publicKey='', psk='', allowedIPs=['0.0.0.0/0','::/0'], endpoint='', keepAlive=0) {
+        super();
+        this.publicKey = publicKey;
+        this.psk = psk;
+        this.allowedIPs = allowedIPs;
+        this.endpoint = endpoint;
+        this.keepAlive = keepAlive;
+    }
+
+    static fromJson(json={}){
+        return new Outbound.WireguardSettings.Peer(
+            json.publicKey,
+            json.preSharedKey,
+            json.allowedIPs,
+            json.endpoint,
+            json.keepAlive
+        );
+    }
+
+    toJson() {
+        return {
+            publicKey: this.publicKey,
+            preSharedKey: this.psk.length>0 ? this.psk : undefined,
+            allowedIPs: this.allowedIPs ? this.allowedIPs.split(",") : undefined,
+            endpoint: this.endpoint,
+            keepAlive: this.keepAlive?? undefined,
         };
     }
 };
