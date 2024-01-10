@@ -1001,6 +1001,18 @@ class Inbound extends XrayCommonClass {
         }
     }
 
+    get xtls() {
+        return this.stream.security === 'xtls';
+    }
+
+    set xtls(isXtls) {
+        if (isXtls) {
+            this.stream.security = 'xtls';
+        } else {
+            this.stream.security = 'none';
+        }
+    }
+    
     get network() {
         return this.stream.network;
     }
