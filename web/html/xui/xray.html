@@ -119,7 +119,7 @@
                                                         v-model="freedomStrategy"
                                                         :dropdown-class-name="themeSwitcher.currentTheme"
                                                         style="width: 100%">
-                                                        <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
+                                                        <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                     </a-select>
                                                 </template>
                                             </a-col>
@@ -527,7 +527,7 @@
                 tag: "direct",
                 protocol: "freedom"
             },
-            outboundDomainStrategies: ["AsIs", "UseIP", "UseIPv4", "UseIPv6"],
+            OutboundDomainStrategies: ["AsIs", "UseIP", "UseIPv4", "UseIPv6"],
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
             settingsData: {
                 protocols: {

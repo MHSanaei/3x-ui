@@ -18,7 +18,7 @@
             <a-select
             v-model="outbound.settings.domainStrategy"
             :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in outboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
+                <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='Fragment'>
@@ -44,108 +44,116 @@
     </template>
 </template>
 
-<!-- wireguard settings -->
-<template v-if="outbound.protocol === Protocols.Wireguard">
-        <a-form-item label='Secret Key'>
-            <a-input v-model.trim="outbound.settings.secretKey"></a-input>
-        </a-form-item>
-
-        <a-form-item label="Address">
-            <a-row>
-                <a-button size="small" @click="outbound.settings.addAddress()">
-                    +
-                </a-button>
-            </a-row>
-
-            <a-space direction="vertical">
-                <a-input-group compact v-for="(address, index) in outbound.settings.address">
-                    <a-input v-model.trim="outbound.settings.address[index]" style="width: calc(100% - 40px)"></a-input>
-                    <a-button type="delete" @click="outbound.settings.delAddress(index)">-</a-button>
-                </a-input-group>
-            </a-space>
-        </a-form-item>
-
-        <a-form-item label='MTU'>
-            <a-input placeholder="1420" type="number" min="0" v-model.number="outbound.settings.mtu"></a-input>
-        </a-form-item>
-
-        <a-form-item label='Workers'>
-            <a-input type="number" min="0" v-model.number="outbound.settings.workers"></a-input>
-        </a-form-item>
-        
-        <a-form-item label='Domain Strategy'>
-            <a-select
-            v-model="outbound.settings.domainStrategy"
-            :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['', ...WireguardDomainStrategy]" :value="s">[[ s ]]</a-select-option>
-            </a-select>
-        </a-form-item>
-
-        <a-form-item label="Peers">
-            <a-row>
-                <a-button type="primary" size="small"
-                        @click="outbound.settings.addPeer()">
-                    +
-                </a-button>
-            </a-row>
-        </a-form-item>
-
-        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-            <a-divider style="margin:0;">
-                Peer [[ index + 1 ]]
-                <a-icon type="delete" @click="() => outbound.settings.delPeer(index)"
-                        style="color: rgb(255, 77, 79);cursor: pointer;"/>
-            </a-divider>
-
-            <a-form-item label='Endpoint'>
-                <a-input v-model.trim="peer.endpoint"></a-input>
-            </a-form-item>
-            <a-form-item label='Public Key'>
-                <a-input v-model.trim="peer.publicKey"></a-input>
-            </a-form-item>
-            <a-form-item label='PreShared Key'>
-                <a-input v-model.trim="peer.preSharedKey"></a-input>
-            </a-form-item>
-            <a-form-item label='Keep Alive'>
-                <a-input type="number" min="0" v-model.number="peer.keepAlive"></a-input>
-            </a-form-item>
-
-            <a-form-item label="Allowed IPs">
-                <a-row>
-                    <a-button size="small" @click="outbound.settings.addAllowedIP(index)">
-                        +
-                    </a-button>
-                </a-row>
-                <a-space direction="vertical">
-                    <a-input-group compact v-for="(allowedIp, ipIndex) in peer.allowedIPs">
-                        <a-input v-model.trim="peer.allowedIPs[ipIndex]" style="width: calc(100% - 40px)"></a-input>
-                        <a-button type="delete" @click="outbound.settings.delAllowedIP(index, ipIndex)">-</a-button>
-                    </a-input-group>
-                </a-space>
-            </a-form-item>
-        </a-form>
-</template>
-
 <!-- blackhole settings -->
 <template v-if="outbound.protocol === Protocols.Blackhole">
-        <a-form-item label='Response Type'>
-            <a-select
-            v-model="outbound.settings.type"
-            :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['', 'none','http']" :value="s">[[ s ]]</a-select-option>
-            </a-select>
-        </a-form-item>
+    <a-form-item label='Response Type'>
+        <a-select
+        v-model="outbound.settings.type"
+        :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['', 'none','http']" :value="s">[[ s ]]</a-select-option>
+        </a-select>
+    </a-form-item>
 </template>
 
 <!-- dns settings -->
 <template v-if="outbound.protocol === Protocols.DNS">
-        <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
-            <a-select
-            v-model="outbound.settings.network"
-            :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s ]]</a-select-option>
-            </a-select>
+    <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
+        <a-select
+        v-model="outbound.settings.network"
+        :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+</template>
+
+<!-- wireguard settings -->
+<template v-if="outbound.protocol === Protocols.Wireguard">
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.xray.rules.useComma" }}</span>
+                </template>
+                {{ i18n "pages.xray.outbound.address" }} <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="outbound.settings.address"></a-input>
+    </a-form-item>
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "reset" }}</span>
+                </template>
+                {{ i18n "pages.xray.wireguard.secretKey" }}
+                <a-icon type="sync"
+                    @click="[outbound.settings.pubKey, outbound.settings.secretKey] = Object.values(Wireguard.generateKeypair())">
+                </a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="outbound.settings.secretKey"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
+        <a-input disabled v-model="outbound.settings.pubKey"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.wireguard.domainStrategy" }}'>
+        <a-select v-model="outbound.settings.domainStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="wds in ['', ...WireguardDomainStrategy]" :value="wds">[[ wds ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label='MTU'>
+        <a-input-number v-model.number="outbound.settings.mtu"></a-input-number>
+    </a-form-item>
+    <a-form-item label='Workers'>
+        <a-input-number min="0" v-model.number="outbound.settings.workers"></a-input>
+    </a-form-item>
+    <a-form-item label='Kernel Mode'>
+        <a-switch v-model="outbound.settings.kernelMode"></a-switch>
+    </a-form-item>
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.xray.rules.useComma" }}</span>
+                </template>
+                Reserved <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model="outbound.settings.reserved"></a-input>
+    </a-form-item>
+    <a-form-item label="Peers">
+        <a-button type="primary" size="small" @click="outbound.settings.addPeer()">+</a-button>
+    </a-form-item>
+    <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-divider style="margin:0;">
+            Peer [[ index + 1 ]]
+            <a-icon v-if="outbound.settings.peers.length>1" type="delete" @click="() => outbound.settings.delPeer(index)"
+                    style="color: rgb(255, 77, 79);cursor: pointer;"/>
+        </a-divider>
+
+        <a-form-item label='{{ i18n "pages.xray.wireguard.endpoint" }}'>
+            <a-input v-model.trim="peer.endpoint"></a-input>
         </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
+            <a-input v-model.trim="peer.publicKey"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.wireguard.psk" }}'>
+            <a-input v-model.trim="peer.psk"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                {{ i18n "pages.xray.wireguard.allowedIPs" }} <a-button type="primary" size="small" @click="peer.allowedIPs.push('')">+</a-button>
+            </template>
+            <template v-for="(aip, index) in peer.allowedIPs" style="margin-bottom: 10px;">
+                <a-input v-model.trim="peer.allowedIPs[index]">
+                    <a-button v-if="peer.allowedIPs.length>1" slot="addonAfter" size="small" @click="peer.allowedIPs.splice(index, 1)">-</a-button>
+                </a-input>
+            </template>
+        </a-form-item>
+        <a-form-item label='Keep Alive'>
+            <a-input-number v-model.number="peer.keepAlive" :min="0"></a-input>
+        </a-form-item>    
+    </a-form>
 </template>
 
 <!-- Address + Port -->
@@ -163,8 +171,9 @@
         <a-form-item label='ID'>
             <a-input v-model.trim="outbound.settings.id"></a-input>
         </a-form-item>
-    <!-- vless settings -->
-    <template v-if="outbound.canEnableTlsFlow()">
+
+ <!-- vless settings -->
+ <template v-if="outbound.canEnableTlsFlow()">
         <a-form-item label='Flow'>
             <a-select v-model="outbound.settings.flow" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
@@ -185,8 +194,9 @@
             <a-input v-model.trim="outbound.settings.pass"></a-input>
         </a-form-item>
     </template>
-    <!-- shadowsocks -->
-    <template v-if="outbound.protocol === Protocols.Shadowsocks">
+
+<!-- shadowsocks -->
+<template v-if="outbound.protocol === Protocols.Shadowsocks">
         <a-form-item label='{{ i18n "encryption" }}'>
             <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="(method,method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
@@ -237,7 +247,7 @@
                 <a-select-option value="utp">uTP</a-select-option>
                 <a-select-option value="wechat-video">WeChat</a-select-option>
                 <a-select-option value="dtls">DTLS 1.2</a-select-option>
-                <a-select-option value="wireguard">wireGuard</a-select-option>
+                <a-select-option value="wireguard">WireGuard</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "password" }}'>
@@ -323,59 +333,54 @@
 
 <!-- tls settings -->
 <template v-if="outbound.canEnableTls()">
-        <a-form-item label='{{ i18n "security" }}'>
-            <a-radio-group v-model="outbound.stream.security" button-style="solid">
-                <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
-                <a-radio-button value="tls">TLS</a-radio-button>
-                <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
-            </a-radio-group>
+    <a-form-item label='{{ i18n "security" }}'>
+        <a-radio-group v-model="outbound.stream.security" button-style="solid">
+            <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
+            <a-radio-button value="tls">TLS</a-radio-button>
+            <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
+        </a-radio-group>
+    </a-form-item>
+    <template v-if="outbound.stream.isTls">
+        <a-form-item label="SNI" placeholder="Server Name Indication">
+            <a-input v-model.trim="outbound.stream.tls.serverName"></a-input>
         </a-form-item>
-        <template v-if="outbound.stream.isTls">
-            <a-form-item label="SNI" placeholder="Server Name Indication">
-                <a-input v-model.trim="outbound.stream.tls.serverName"></a-input>
-            </a-form-item>
-            <a-form-item label="uTLS">
-                <a-select v-model="outbound.stream.tls.fingerprint"
-                            :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value=''>None</a-select-option>
-                    <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="ALPN">
-                <a-select
-                    mode="multiple"
-                   
-                    :dropdown-class-name="themeSwitcher.currentTheme"
-                    v-model="outbound.stream.tls.alpn">
-                    <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="Allow Insecure">
-                <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
-            </a-form-item>
-        </template>
-        
-        <!-- reality settings -->
-        <template v-if="outbound.stream.isReality">
-                <a-form-item label='{{ i18n "domainName" }}'>
-                    <a-input v-model.trim="outbound.stream.reality.serverName"></a-input>
-                </a-form-item>
-                <a-form-item label="uTLS">
-                    <a-select v-model="outbound.stream.reality.fingerprint"
-                                :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
-                    </a-select>
-                </a-form-item>
-                <a-form-item label="Short ID">
-                    <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
-                </a-form-item>
-                <a-form-item label="SpiderX">
-                    <a-input v-model.trim="outbound.stream.reality.spiderX" style="width:250px"></a-input>
-                </a-form-item>
-                <a-form-item label="Public Key">
-                            <a-input v-model.trim="outbound.stream.reality.publicKey"></a-input>
-                </a-form-item>
-        </template>
+        <a-form-item label="uTLS">
+            <a-select v-model="outbound.stream.tls.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value=''>None</a-select-option>
+                <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="ALPN">
+            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+                v-model="outbound.stream.tls.alpn">
+                <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Allow Insecure">
+            <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
+        </a-form-item>
+    </template>
+
+    <!-- reality settings -->
+    <template v-if="outbound.stream.isReality">
+        <a-form-item label='{{ i18n "domainName" }}'>
+            <a-input v-model.trim="outbound.stream.reality.serverName"></a-input>
+        </a-form-item>
+        <a-form-item label="uTLS">
+            <a-select v-model="outbound.stream.reality.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Short ID">
+            <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
+        </a-form-item>
+        <a-form-item label="SpiderX">
+            <a-input v-model.trim="outbound.stream.reality.spiderX" style="width:250px"></a-input>
+        </a-form-item>
+        <a-form-item label="Public Key">
+            <a-input v-model.trim="outbound.stream.reality.publicKey"></a-input>
+        </a-form-item>
+    </template>
 </template>
 </a-form>
 </a-tab-pane>
