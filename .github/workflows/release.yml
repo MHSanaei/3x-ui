@@ -51,16 +51,17 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v1.8.7/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-64.zip
+            wget ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-arm64-v8a.zip
+            wget ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           else
-            wget https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-arm32-v7a.zip
+            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
           fi
