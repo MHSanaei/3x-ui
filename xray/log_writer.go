@@ -20,8 +20,13 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	lw.lastLine = messages[len(messages)-1]
 
 	for _, msg := range messages {
+		messageBody := msg
+
 		// Remove timestamp
-		messageBody := strings.TrimSpace(strings.SplitN(msg, " ", 3)[2])
+		splittedMsg := strings.SplitN(msg, " ", 3)
+		if len(splittedMsg) > 2 {
+			messageBody = strings.TrimSpace(strings.SplitN(msg, " ", 3)[2])
+		}
 
 		// Find level in []
 		startIndex := strings.Index(messageBody, "[")
