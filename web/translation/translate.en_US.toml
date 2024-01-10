@@ -54,11 +54,11 @@
 "security" = "Security"
 
 [menu]
-"dashboard" = "Overview"
-"inbounds" = "Inbounds"
-"settings" = "Panel Settings"
-"xray" = "Xray Configs"
-"logout" = "Log Out"
+"dashboard" = "OVERVIEW"
+"inbounds" = "INBOUNDS"
+"settings" = "PANEL SETTINGS"
+"xray" = "XRAY CONFIGS"
+"logout" = "LOG OUT"
 "link" = "Manage"
 
 [pages.login]
