@@ -77,8 +77,8 @@
                 <a-row>
                     <a-col :sm="24" :md="12">
                         <a-card hoverable>
-                            3X: <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                            Xray: <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
+                            3X-UI <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                            Xray <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                             <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
@@ -93,7 +93,7 @@
                     <a-col :sm="24" :md="12">
                         <a-card hoverable>
                             {{ i18n "pages.index.xrayStatus" }}:
-                            <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
+                            <a-tag :color="status.xray.color">[[ status.xray.state.toUpperCase() ]]</a-tag>
                             <a-popover v-if="status.xray.state === State.Error"
                                 :overlay-class-name="themeSwitcher.currentTheme">
                                 <span slot="title" style="font-size: 12pt">An error occurred while running Xray
@@ -112,9 +112,9 @@
                     <a-col :sm="24" :md="12">
                         <a-card hoverable>
                             {{ i18n "pages.index.operationHours" }}:
-                            Xray:
+                            Xray
                             <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            OS:
+                            OS
                             <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
@@ -246,8 +246,10 @@
              :closable="true" @ok="() => versionModal.visible = false"
              :class="themeSwitcher.currentTheme"
              footer="">
-        <h2>{{ i18n "pages.index.xraySwitchClick"}}</h2>
-        <h2>{{ i18n "pages.index.xraySwitchClickDesk"}}</h2>
+        <a-alert type="warning" style="margin-bottom: 12px; width: fit-content"
+        message='{{ i18n "pages.index.xraySwitchClickDesk" }}'
+        show-icon
+        ></a-alert>
         <template v-for="version, index in versionModal.versions">
             <a-tag :color="index % 2 == 0 ? 'purple' : 'green'"
                    style="margin: 10px" @click="switchV2rayVersion(version)">
