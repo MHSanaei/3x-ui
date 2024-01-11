@@ -90,7 +90,7 @@
                         </a-row>
                     </a-card>
                     <a-tabs class="ant-card-dark-box-nohover" default-active-key="tpl-1"
-                    @change="(activeKey) => { if(activeKey == 'tpl-4') this.changeCode(); }"
+                    @change="(activeKey) => { if(activeKey == 'tpl-advanced') this.changeCode(); }"
                     :class="themeSwitcher.currentTheme">
                         <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
                             <a-space direction="horizontal" style="padding: 20px 20px">
@@ -175,7 +175,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaDomain"}}' desc='{{ i18n "pages.xray.ChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaIp"}}' desc='{{ i18n "pages.xray.RussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaDomain"}}' desc='{{ i18n "pages.xray.RussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
-				    <setting-list-item type="switch" title='{{ i18n "pages.xray.VNIp"}}' desc='{{ i18n "pages.xray.VNIpDesc"}}' v-model="VNIpSettings"></setting-list-item>
+				                    <setting-list-item type="switch" title='{{ i18n "pages.xray.VNIp"}}' desc='{{ i18n "pages.xray.VNIpDesc"}}' v-model="VNIpSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.VNDomain"}}' desc='{{ i18n "pages.xray.VNDomainDesc"}}' v-model="VNDomainSettings"></setting-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
@@ -193,7 +193,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
-				    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
+				                    <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNDomain"}}' desc='{{ i18n "pages.xray.DirectVNDomainDesc"}}' v-model="VNDomainDirectSettings"></setting-list-item>									
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
@@ -333,79 +333,73 @@
                             </a-table>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
-                            <a-button type="primary" icon="plus" @click="addOutbound()">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
-                            <a-button type="primary" icon="plus" @click="addReverse()">{{ i18n "pages.xray.outbound.addReverse" }}</a-button>
-                            <a-row>
-                                <a-col :sm="24" :md="12">
-                                    <p style="margin: 10px;">{{ i18n "pages.xray.Outbounds"}}</p>
-                                    <a-table :columns="outboundColumns" bordered
-                                    :row-key="r => r.key"
-                                    :data-source="outboundData"
-                                    :scroll="isMobile ? {} : { x: 200 }"
-                                    :pagination="false"
-                                    :indent-size="0"
-                                    :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
-                                        <template slot="action" slot-scope="text, outbound, index">
-                                            [[ index+1 ]]
-                                            <a-dropdown :trigger="['click']">
-                                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                                    <a-menu-item @click="editOutbound(index)">
-                                                        <a-icon type="edit"></a-icon>
-                                                        {{ i18n "edit" }}
-                                                    </a-menu-item>
-                                                    <a-menu-item @click="deleteOutbound(index)">
-                                                        <span style="color: #FF4D4F">
-                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                        </span>
-                                                    </a-menu-item>
-                                                </a-menu>
-                                            </a-dropdown>
-                                        </template>
-                                        <template slot="address" slot-scope="text, outbound, index">
-                                            <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
-                                        </template>
-                                        <template slot="protocol" slot-scope="text, outbound, index">
-                                            <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
-                                            <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
-                                                <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
-                                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
-                                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
-                                            </template>
-                                        </template>
-                                    </a-table>
-                                </a-col>
-                                <a-col :sm="24" :md="12" v-if="reverseData.length>0">
-                                    <p style="margin: 10px;">{{ i18n "pages.xray.outbound.reverse"}}</p>
-                                    <a-table :columns="reverseColumns" bordered
-                                    :row-key="r => r.key"
-                                    :data-source="reverseData"
-                                    :scroll="isMobile ? {} : { x: 200 }"
-                                    :pagination="false"
-                                    :indent-size="0"
-                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
-                                        <template slot="action" slot-scope="text, reverse, index">
-                                            [[ index+1 ]]
-                                            <a-dropdown :trigger="['click']">
-                                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                                    <a-menu-item @click="editReverse(index)">
-                                                        <a-icon type="edit"></a-icon>
-                                                        {{ i18n "edit" }}
-                                                    </a-menu-item>
-                                                    <a-menu-item @click="deleteReverse(index)">
-                                                        <span style="color: #FF4D4F">
-                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                        </span>
-                                                    </a-menu-item>
-                                                </a-menu>
-                                            </a-dropdown>
-                                        </template>
-                                    </a-table>
-                                </a-col>
-                            </a-row>
+                            <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                            <a-table :columns="outboundColumns" bordered
+                            :row-key="r => r.key"
+                            :data-source="outboundData"
+                            :scroll="isMobile ? {} : { x: 200 }"
+                            :pagination="false"
+                            :indent-size="0"
+                            :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
+                                <template slot="action" slot-scope="text, outbound, index">
+                                    [[ index+1 ]]
+                                    <a-dropdown :trigger="['click']">
+                                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item @click="editOutbound(index)">
+                                                <a-icon type="edit"></a-icon>
+                                                {{ i18n "edit" }}
+                                            </a-menu-item>
+                                            <a-menu-item @click="deleteOutbound(index)">
+                                                <span style="color: #FF4D4F">
+                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                </span>
+                                            </a-menu-item>
+                                        </a-menu>
+                                    </a-dropdown>
+                                </template>
+                                <template slot="address" slot-scope="text, outbound, index">
+                                    <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
+                                </template>
+                                <template slot="protocol" slot-scope="text, outbound, index">
+                                    <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
+                                    <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
+                                        <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
+                                        <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
+                                        <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
+                                    </template>
+                                </template>
+                            </a-table>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-4" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-4" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
+                            <a-button type="primary" icon="plus" @click="addReverse()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addReverse" }}</a-button>
+                            <a-table :columns="reverseColumns" bordered
+                            :row-key="r => r.key"
+                            :data-source="reverseData"
+                            :scroll="isMobile ? {} : { x: 200 }"
+                            :pagination="false"
+                            :indent-size="0"
+                            :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                <template slot="action" slot-scope="text, reverse, index">
+                                    [[ index+1 ]]
+                                    <a-dropdown :trigger="['click']">
+                                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item @click="editReverse(index)">
+                                                <a-icon type="edit"></a-icon>
+                                                {{ i18n "edit" }}
+                                            </a-menu-item>
+                                            <a-menu-item @click="deleteReverse(index)">
+                                                <span style="color: #FF4D4F">
+                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                </span>
+                                            </a-menu-item>
+                                        </a-menu>
+                                    </a-dropdown>
+                                </template>
+                            </a-table>
+                        </a-tab-pane>
+                        <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
                             <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
                             <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
                                 <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
@@ -568,11 +562,11 @@
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
                         "ext:geosite_IR.dat:ir"
                     ],
-		    vn: [
-			"regexp:.*\\.vn$",
+		            vn: [
+			            "regexp:.*\\.vn$",
                         "ext:geosite_VN.dat:vn",
                         "ext:geosite_VN.dat:ads"
-		    ]
+                        ]
                 },
                 familyProtectDNS: {
                     "servers": [
@@ -1321,7 +1315,7 @@
                     }
                 }
             },
-	    VNIpSettings: {
+            VNIpSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.ips.vn, this.blockedIPs);
                 },
@@ -1417,7 +1411,7 @@
                     }
                 }
             },
-	    VNIpDirectSettings: {
+            VNIpDirectSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.ips.vn, this.directIPs);
                 },
@@ -1440,7 +1434,7 @@
                         this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.vn.includes(data));
                     }
                 }
-            },			
+            },
             GoogleWARPSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
