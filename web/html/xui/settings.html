@@ -187,42 +187,22 @@
                         </a-tab-pane>
                         <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
                             <a-divider>{{ i18n "pages.settings.security.admin"}}</a-divider>
-                            <a-form style="padding: 20px;" layout="inline">
-                                <table cellpadding="2">
-                                    <tr>
-                                        <td>{{ i18n "pages.settings.oldUsername"}}:</td>
-                                        <td>
-                                            <a-form-item>
-                                                <a-input v-model="user.oldUsername" style="width: 200px"></a-input>
-                                            </a-form-item>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{ i18n "pages.settings.currentPassword"}}:</td>
-                                        <td>
-                                            <a-form-item>
-                                                <password-input v-model="user.oldPassword" style="width: 200px"></password-input>
-                                            </a-form-item>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{ i18n "pages.settings.newUsername"}}:</td>
-                                        <td>
-                                            <a-form-item>
-                                                <a-input v-model="user.newUsername" style="width: 200px"></a-input>
-                                            </a-form-item>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td>{{ i18n "pages.settings.newPassword"}}:</td>
-                                        <td>
-                                            <a-form-item>
-                                                <password-input v-model="user.newPassword" style="width: 200px"></password-input>
-                                            </a-form-item>            
-                                        </td>
-                                    </tr>
-                                </table>
-                                <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                            <a-form  layout="horizontal" :colon="false" style="float: left; margin: 10px 0;" :label-col="{ md: {span:10} }" :wrapper-col="{ md: {span:14} }">
+                                <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
+                                    <a-input v-model="user.oldUsername"></a-input>
+                                </a-form-item>
+                                <a-form-item label='{{ i18n "pages.settings.currentPassword"}}'>
+                                    <password-input v-model="user.oldPassword"></password-input>
+                                </a-form-item>
+                                <a-form-item label='{{ i18n "pages.settings.newUsername"}}'>
+                                    <a-input v-model="user.newUsername"></a-input>
+                                </a-form-item>
+                                <a-form-item label='{{ i18n "pages.settings.newPassword"}}'>
+                                    <password-input v-model="user.newPassword"></password-input>
+                                </a-form-item>
+                                <a-form-item label=" ">
+                                    <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+                                </a-form-item>
                             </a-form>
                             <a-divider>{{ i18n "pages.settings.security.secret"}}</a-divider>
                             <a-form style="padding: 20px;">
