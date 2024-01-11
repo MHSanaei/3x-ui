@@ -204,17 +204,18 @@
 "obtain" = "Получить"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "Заголовок запроса"
+"request" = "Запрос"
+"response" = "Ответ"
 "name" = "Имя"
-"value" = "Значение"
+"value" = "Ценить"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "Версия запроса"
-"requestMethod" = "Метод запроса"
-"requestPath" = "Путь запроса"
-"responseVersion" = "Версия ответа"
-"responseStatus" = "Статус ответа"
-"responseStatusDescription" = "Описание статуса ответа"
+"version" = "Версия"
+"method" = "Метод"
+"path" = "Путь"
+"status" = "Положение дел"
+"statusDescription" = "Описание статуса"
+"requestHeader" = "Заголовок запроса"
 "responseHeader" = "Заголовок ответа"
 
 [pages.inbounds.stream.quic]

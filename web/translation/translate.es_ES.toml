@@ -204,18 +204,19 @@
 "obtain" = "Recibir"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "Encabezado de la Petición"
+"request" = "Pedido"
+"response" = "Respuesta"
 "name" = "Nombre"
 "value" = "Valor"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "Versión de la Petición"
-"requestMethod" = "Método de la Petición"
-"requestPath" = "Ruta de la Petición"
-"responseVersion" = "Versión de la Respuesta"
-"responseStatus" = "Estado de la Respuesta"
-"responseStatusDescription" = "Descripción del Estado de la Respuesta"
-"responseHeader" = "Encabezado de la Respuesta"
+"version" = "Versión"
+"method" = "Método"
+"path" = "Camino"
+"status" = "Estado"
+"statusDescription" = "Descripción de la Situación"
+"requestHeader" = "Encabezado de solicitud"
+"responseHeader" = "Encabezado de respuesta"
 
 [pages.inbounds.stream.quic]
 "encryption" = "Cifrado"

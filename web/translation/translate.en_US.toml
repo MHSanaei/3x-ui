@@ -204,17 +204,18 @@
 "obtain" = "Obtain"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "Request Header"
+"request" = "Request"
+"response" = "Response"
 "name" = "Name"
 "value" = "Value"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "Request Version"
-"requestMethod" = "Request Method"
-"requestPath" = "Request Path"
-"responseVersion" = "Response Version"
-"responseStatus" = "Response Status"
-"responseStatusDescription" = "Response Status Description"
+"version" = "Version"
+"method" = "Method"
+"path" = "Path"
+"status" = "Status"
+"statusDescription" = "Status Description"
+"requestHeader" = "Request Header"
 "responseHeader" = "Response Header"
 
 [pages.inbounds.stream.quic]

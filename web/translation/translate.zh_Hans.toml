@@ -204,17 +204,18 @@
 "obtain" = "获取"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "请求头"
-"name" = "名称"
-"value" = "值"
+"request" = "要求"
+"response" = "回复"
+"name" = "姓名"
+"value" = "价值"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "请求版本"
-"requestMethod" = "请求方法"
-"requestPath" = "请求路径"
-"responseVersion" = "响应版本"
-"responseStatus" = "响应状态"
-"responseStatusDescription" = "响应状态说明"
+"version" = "版本"
+"method" = "方法"
+"path" = "小路"
+"status" = "地位"
+"statusDescription" = "状态说明"
+"requestHeader" = "请求头"
 "responseHeader" = "响应头"
 
 [pages.inbounds.stream.quic]
