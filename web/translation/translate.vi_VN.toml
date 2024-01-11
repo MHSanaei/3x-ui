@@ -204,17 +204,18 @@
 "obtain" = "Nhận"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "Tiêu đề yêu cầu"
+"request" = "Lời yêu cầu"
+"response" = "Phản ứng"
 "name" = "Tên"
 "value" = "Giá trị"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "Phiên bản yêu cầu"
-"requestMethod" = "Phương thức yêu cầu"
-"requestPath" = "Đường dẫn yêu cầu"
-"responseVersion" = "Phiên bản phản hồi"
-"responseStatus" = "Trạng thái phản hồi"
-"responseStatusDescription" = "Mô tả trạng thái phản hồi"
+"version" = "Phiên bản"
+"method" = "Phương pháp"
+"path" = "Con đường"
+"status" = "Trạng thái"
+"statusDescription" = "Tình trạng Mô tả"
+"requestHeader" = "Tiêu đề yêu cầu"
 "responseHeader" = "Tiêu đề phản hồi"
 
 [pages.inbounds.stream.quic]

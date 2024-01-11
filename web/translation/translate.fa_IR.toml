@@ -204,17 +204,18 @@
 "obtain" = "Obtain"
 
 [pages.inbounds.stream.general]
-"requestHeader" = "درخواست سربرگ"
+"request" = "درخواست"
+"response" = "پاسخ"
 "name" = "نام"
 "value" = "مقدار"
 
 [pages.inbounds.stream.tcp]
-"requestVersion" = "ورژن درخواست"
-"requestMethod" = "متد درخواست"
-"requestPath" = "مسیر درخواست"
-"responseVersion" = "ورژن پاسخ"
-"responseStatus" = "وضعیت پاسخ"
-"responseStatusDescription" = "توضیحات وضعیت پاسخ"
+"version" = "ورژن"
+"method" = "متد"
+"path" = "مسیر"
+"status" = "وضعیت"
+"statusDescription" = "توضیحات وضعیت"
+"requestHeader" = "سربرگ درخواست"
 "responseHeader" = "سربرگ پاسخ"
 
 [pages.inbounds.stream.quic]
