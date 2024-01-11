@@ -58,6 +58,7 @@ var defaultValueMap = map[string]string{
 	"subShowInfo":        "true",
 	"subURI":             "",
 	"datepicker":         "gregorian",
+	"warp":               "",
 }
 
 type SettingService struct {
@@ -423,6 +424,10 @@ func (s *SettingService) GetSubShowInfo() (bool, error) {
 	return s.getBool("subShowInfo")
 }
 
+func (s *SettingService) GetPageSize() (int, error) {
+	return s.getInt("pageSize")
+}
+
 func (s *SettingService) GetSubURI() (string, error) {
 	return s.getString("subURI")
 }
@@ -431,8 +436,11 @@ func (s *SettingService) GetDatepicker() (string, error) {
 	return s.getString("datepicker")
 }
 
-func (s *SettingService) GetPageSize() (int, error) {
-	return s.getInt("pageSize")
+func (s *SettingService) GetWarp() (string, error) {
+	return s.getString("warp")
+}
+func (s *SettingService) SetWarp(data string) error {
+	return s.setString("warp", data)
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

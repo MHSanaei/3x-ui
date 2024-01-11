@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 
+<script src="{{ .base_path }}assets/base64/base64.min.js"></script>
 <script src="{{ .base_path }}assets/js/model/outbound.js"></script>
 <script src="{{ .base_path }}assets/codemirror/codemirror.js"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
@@ -80,12 +81,16 @@
                                 </a-space>
                             </a-col>
                             <a-col :xs="24" :sm="16">
-                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
-                                </a-back-top>
-                                <a-alert type="warning" style="float: right; width: fit-content"
-                                message='{{ i18n "pages.settings.infoDesc" }}'
-                                show-icon
-                                >
+                                <template>
+                                    <div>
+                                        <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                        </a-back-top>
+                                        <a-alert type="warning" style="float: right; width: fit-content"
+                                        message='{{ i18n "pages.settings.infoDesc" }}'
+                                        show-icon
+                                        >
+                                    </div>
+                                </template>
                             </a-col>
                         </a-row>
                     </a-card>
@@ -217,10 +222,12 @@
                                             </template>
                                         </a-alert>
                                     </a-row>
+                                <template v-if="WarpExist">
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleWARP"}}' desc='{{ i18n "pages.xray.GoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+                                </template>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -334,6 +341,7 @@
                         </a-tab-pane>
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
                             <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                            <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
                             <a-table :columns="outboundColumns" bordered
                             :row-key="r => r.key"
                             :data-source="outboundData"
@@ -421,12 +429,13 @@
 {{template "ruleModal"}}
 {{template "outModal"}}
 {{template "reverseModal"}}
+{{template "warpModal"}}
 <script>
         const rulesColumns = [
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.rules.source"}}', children: [
             { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
-            { title: 'port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
+            { title: 'Port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
         { title: '{{ i18n "pages.inbounds.network"}}', children: [
             { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
             { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 10, ellipsis: true },
@@ -461,6 +470,7 @@
         { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
         { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
     ];
+
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
@@ -505,23 +515,10 @@
                     domainStrategy: "UseIPv4"
                 }
             },
-            warpSettings: {
-                tag: "WARP",
-                protocol: "socks",
-                settings: {
-                    servers: [
-                        {
-                            address: "127.0.0.1",
-                            port: 40000
-                        }
-                    ]
-                }
-            },
             directSettings: {
                 tag: "direct",
                 protocol: "freedom"
             },
-            OutboundDomainStrategies: ["AsIs", "UseIP", "UseIPv4", "UseIPv6"],
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
             settingsData: {
                 protocols: {
@@ -532,7 +529,7 @@
                     cn: ["geoip:cn"],
                     ir: ["ext:geoip_IR.dat:ir"],
                     ru: ["geoip:ru"],
-		    vn: ["ext:geoip_VN.dat:vn"],
+                    vn: ["ext:geoip_VN.dat:vn"],
                 },
                 domains: {
                     ads: [
@@ -562,11 +559,11 @@
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
                         "ext:geosite_IR.dat:ir"
                     ],
-		            vn: [
-			            "regexp:.*\\.vn$",
+                    vn: [
+                        "regexp:.*\\.vn$",
                         "ext:geosite_VN.dat:vn",
                         "ext:geosite_VN.dat:ads"
-                        ]
+                    ]
                 },
                 familyProtectDNS: {
                     "servers": [
@@ -670,13 +667,13 @@
                 }
             },
             syncRulesWithOutbound(tag, setting) {
-                const newTemplateSettings = {...this.templateSettings};
+                const newTemplateSettings = this.templateSettings;
                 const haveRules = newTemplateSettings.routing.rules.some((r) => r?.outboundTag === tag);
                 const outboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.tag === tag);
-                if (!haveRules && outboundIndex >= 0) {
-                    newTemplateSettings.outbounds.splice(outboundIndex, 1);
+                if (!haveRules && outboundIndex > 0) {
+                    newTemplateSettings.outbounds.splice(outboundIndex);
                 }
-                if (haveRules && outboundIndex === -1) {
+                if (haveRules && outboundIndex < 0) {
                     newTemplateSettings.outbounds.push(setting);
                 }
                 this.templateSettings = newTemplateSettings;
@@ -774,6 +771,8 @@
                         break;
                     case Protocols.DNS:
                         return [o.settings.address + ':' + o.settings.port];
+                        case Protocols.Wireguard:
+                        return o.settings.peers.map(peer => peer.endpoint);
                     default:
                         return null;
                 }
@@ -939,13 +938,16 @@
                 rules = this.templateSettings.routing.rules;
                 rules.splice(index,1);
                 this.routingRuleSettings = JSON.stringify(rules);
+            },
+            showWarp(){
+                warpModal.show();
             }
         },
         async mounted() {
             await this.getXraySetting();
             await this.getXrayResult();
             while (true) {
-                await PromiseUtil.sleep(600);
+                await PromiseUtil.sleep(800);
                 this.saveBtnDisable = this.oldXraySetting === this.xraySetting;
             }
         },
@@ -1113,11 +1115,10 @@
             },
             warpDomains: {
                 get: function () {
-                    return this.templateRuleGetter({ outboundTag: "WARP", property: "domain" });
+                    return this.templateRuleGetter({ outboundTag: "warp", property: "domain" });
                 },
                 set: function (newValue) {
-                    this.templateRuleSetter({ outboundTag: "WARP", property: "domain", data: newValue });
-                    this.syncRulesWithOutbound("WARP", this.warpSettings);
+                    this.templateRuleSetter({ outboundTag: "warp", property: "domain", data: newValue });
                 }
             },
             manualBlockedIPs: {
@@ -1434,6 +1435,11 @@
                         this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.vn.includes(data));
                     }
                 }
+            },
+            WarpExist: {
+                get: function() {
+                    return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp")>=0  : false;
+                },
             },
             GoogleWARPSettings: {
                 get: function () {
