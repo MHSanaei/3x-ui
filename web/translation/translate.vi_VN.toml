@@ -62,7 +62,7 @@
 "link" = "sự quản lý"
 
 [pages.login]
-"title" = "Đăng nhập"
+"title" = "Chào mừng"
 "loginAgain" = "Thời hạn đăng nhập đã hết. Vui lòng đăng nhập lại."
 
 [pages.login.toasts]
@@ -195,10 +195,10 @@
 "prefix" = "Tiền tố"
 "postfix" = "Hậu tố"
 "delayedStart" = "Bắt đầu sau khi sử dụng lần đầu"
-"expireDays" = "Số ngày hết hạn"
+"expireDays" = "Khoảng thời gian"
 "days" = "ngày"
 "renew" = "Tự động gia hạn"
-"renewDesc" = "Tự động gia hạn những ngày sau khi hết hạn. 0 = tắt"
+"renewDesc" = "Tự động gia hạn sau khi hết hạn. (0 = tắt)(đơn vị: ngày)"
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"
