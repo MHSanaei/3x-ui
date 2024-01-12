@@ -51,7 +51,7 @@
 "usage" = "استفاده"
 "secretToken" = "توکن امنیتی"
 "remained" = "باقی‌مانده"
-"security" = "امنیت
+"security" = "امنیت"
 
 [menu]
 "dashboard" = "نمای کلی"
@@ -197,7 +197,7 @@
 "expireDays" = "مدت زمان"
 "days" = "(روز)"
 "renew" = "تمدید خودکار"
-"renewDesc" = "تمدید خودکار پس‌از ‌انقضا. 0 = غیرفعال - واحد: روز"
+"renewDesc" = "تمدید خودکار پس‌از ‌انقضا. 0 = غیرفعال. (واحد: روز)"
 
 [pages.inbounds.toasts]
 "obtain" = "فراهم‌سازی"
