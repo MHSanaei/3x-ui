@@ -248,7 +248,7 @@
 "pageSizeDesc" = "Define page size for inbounds table. (0 = disable)"
 "remarkModel" = "Remark Model & Separation Character"
 "datepicker" = "Calendar Type"
-"datepickerDescription" = "Scheduled tasks will run based on this calendar.
+"datepickerDescription" = "Scheduled tasks will run based on this calendar."
 "sampleRemark" = "Sample Remark"
 "oldUsername" = "Current Username"
 "currentPassword" = "Current Password"
