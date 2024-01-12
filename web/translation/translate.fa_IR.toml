@@ -150,6 +150,7 @@
 "clone" = "شبیه‌سازی"
 "cloneInbound" = "شبیه‌سازی ورودی"
 "cloneInboundContent" = "همه موارد این ورودی بجز پورت، آی‌پی و کاربر‌ها شبیه‌سازی خواهند شد"
+"cloneInboundOk" = "ساختن شبیه ساز"
 "resetAllTraffic" = "ریست ترافیک کل ورودی‌ها"
 "resetAllTrafficTitle" = "ریست ترافیک کل ورودی‌ها"
 "resetAllTrafficContent" = "آیا مطمئن به ریست ترافیک تمام ورودی‌ها هستید؟"
