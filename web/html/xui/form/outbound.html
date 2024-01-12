@@ -337,7 +337,7 @@
         <a-radio-group v-model="outbound.stream.security" button-style="solid">
             <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
             <a-radio-button value="tls">TLS</a-radio-button>
-            <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
+            <a-radio-button v-if="outbound.canEnableReality()" value="reality">REALITY</a-radio-button>
         </a-radio-group>
     </a-form-item>
     <template v-if="outbound.stream.isTls">
