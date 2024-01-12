@@ -51,12 +51,16 @@ elif [[ "${release}" == "fedora" ]]; then
         echo -e "${red}please use Fedora 36 or higher version! ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "debian" ]]; then
-    if [[ ${os_version} -lt 10 ]]; then
-        echo -e "${red} Please use Debian 10 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 11 ]]; then
+        echo -e "${red} Please use Debian 11 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "almalinux" ]]; then
     if [[ ${os_version} -lt 9 ]]; then
         echo -e "${red} Please use Almalinux 9 or higher ${plain}\n" && exit 1
+    fi
+elif [[ "${release}" == "rocky" ]]; then
+    if [[ ${os_version} -lt 9 ]]; then
+        echo -e "${red} Please use Rockylinux 9 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
     echo "Your OS is ArchLinux"
@@ -347,7 +351,7 @@ enable_bbr() {
         ubuntu|debian)
             apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
             ;;
-        centos)
+        centos|almalinux|rocky)
             yum -y update && yum -y install ca-certificates
             ;;
         fedora)
@@ -609,7 +613,7 @@ ssl_cert_issue() {
     case "${release}" in
         ubuntu|debian|armbian)
             apt update && apt install socat -y ;;
-        centos)
+        centos|almalinux|rocky)
             yum -y update && yum -y install socat ;;
         fedora)
             dnf -y update && dnf -y install socat ;;
@@ -979,7 +983,7 @@ install_iplimit() {
         case "${release}" in
             ubuntu|debian)
                 apt update && apt install fail2ban -y ;;
-            centos)
+            centos|almalinux|rocky)
                 yum -y update && yum -y install fail2ban ;;
             fedora)
                 dnf -y update && dnf -y install fail2ban ;;
@@ -1042,7 +1046,7 @@ remove_iplimit(){
             case "${release}" in
                 ubuntu|debian)
                     apt-get purge fail2ban -y;;
-                centos)
+                centos|almalinux|rocky)
                     yum remove fail2ban -y;;
                 fedora)
                     dnf remove fail2ban -y;;
