@@ -134,7 +134,7 @@
 "destinationPort" = "Puerto de Destino"
 "targetAddress" = "Dirección de Destino"
 "monitorDesc" = "Dejar en blanco por defecto"
-"meansNoLimit" = "Significa Sin Límite"
+"meansNoLimit" = " = illimitata. (unidad: GB)"
 "totalFlow" = "Flujo Total"
 "leaveBlankToNeverExpire" = "Dejar en Blanco para Nunca Expirar"
 "noRecommendKeepDefault" = "No hay requisitos especiales para mantener la configuración predeterminada"
