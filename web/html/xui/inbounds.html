@@ -244,7 +244,7 @@
                                             </span>
                                         </a-menu-item>
                                         <a-menu-item v-if="isMobile">
-                                            <a-switch size="small" v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
+                                            <a-switch size="small" v-model="dbInbound.enable" @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                                             {{ i18n "pages.inbounds.enable" }}
                                         </a-menu-item>
                                     </a-menu>
@@ -314,7 +314,7 @@
                                 </a-popover>
                             </template>
                             <template slot="enable" slot-scope="text, dbInbound">
-                                <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id)"></a-switch>
+                                <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                             </template>
                             <template slot="expiryTime" slot-scope="text, dbInbound">
                                 <a-popover v-if="dbInbound.expiryTime > 0" :overlay-class-name="themeSwitcher.currentTheme">
@@ -1034,9 +1034,9 @@
                 newDbInbound = this.checkFallback(dbInbound);
                 infoModal.show(newDbInbound, index);
             },
-            switchEnable(dbInboundId) {
+            switchEnable(dbInboundId,state) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                dbInbound.enable = !dbInbound.enable;
+                dbInbound.enable = state;
                 this.submit(`/panel/inbound/update/${dbInboundId}`, dbInbound);
             },
             async switchEnableClient(dbInboundId, client) {
