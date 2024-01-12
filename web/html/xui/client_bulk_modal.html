@@ -28,13 +28,13 @@
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
-        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.canEnableTlsFlow()">
+        <a-form-item label='TLS Flow' v-if="clientsBulkModal.inbound.canEnableTlsFlow()">
             <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.xtls">
+        <a-form-item label='XTLS Flow' v-if="clientsBulkModal.inbound.xtls">
             <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
                 <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
