@@ -62,7 +62,7 @@
 "link" = "管理"
 
 [pages.login]
-"title" = "登录"
+"title" = "欢迎"
 "loginAgain" = "登录时效已过，请重新登录"
 
 [pages.login.toasts]
@@ -195,10 +195,10 @@
 "prefix" = "前缀"
 "postfix" = "后缀"
 "delayedStart" = "首次使用后开始"
-"expireDays" = "过期天数"
+"expireDays" = "期间"
 "days" = "天"
 "renew" = "自动续订"
-"renewDesc" = "过期后自动续订。0 = 禁用"
+"renewDesc" = "到期后自动续订。(0 = 禁用)(单元: 天)"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"
