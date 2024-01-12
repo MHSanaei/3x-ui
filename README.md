@@ -374,13 +374,14 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ## OS
 
 - Ubuntu 20.04+
-- Debian 10+
+- Debian 11+
 - CentOS 8+
 - Fedora 36+
 - Arch Linux
 - Manjaro
 - Armbian
 - AlmaLinux 9+
+- Rockylinux 9+
 
 ## Preview
 
