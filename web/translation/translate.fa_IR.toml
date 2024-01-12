@@ -530,6 +530,7 @@
 "confirmClearIps" = "✅ تأیید پاک‌سازی آدرس‌های آی‌پی؟"
 "confirmRemoveTGUser" = "✅ تأیید حذف کاربر تلگرام؟"
 "confirmToggle" = "✅ تایید فعال/غیرفعال کردن کاربر؟"
+"dbBackup" = "دریافت پشتیبان"
 "serverUsage" = "استفاده از سیستم"
 "getInbounds" = "دریافت ورودی‌ها"
 "depleteSoon" = "به‌زودی به پایان خواهد رسید"
