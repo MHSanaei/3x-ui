@@ -134,7 +134,7 @@
 "destinationPort" = "目标端口"
 "targetAddress" = "目标地址"
 "monitorDesc" = "默认留空即可"
-"meansNoLimit" = " = 无限制（单位：GB"
+"meansNoLimit" = " = 无限制（单位：GB)"
 "totalFlow" = "总流量"
 "leaveBlankToNeverExpire" = "留空则永不到期"
 "noRecommendKeepDefault" = "没有特殊需求保持默认即可"
