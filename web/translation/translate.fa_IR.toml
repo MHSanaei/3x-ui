@@ -259,7 +259,7 @@
 "telegramToken" = "توکن تلگرام"
 "telegramTokenDesc" = "دریافت کنید @botfather توکن را می‌توانید از"
 "telegramProxy" = "SOCKS پراکسی"
-"telegramProxyDesc" = "اگر برای اتصال به تلگرام به پروکسی ساکس۵ نیاز دارید. تنظیمات خود را طبق راهنما تنظیم کنید."
+"telegramProxyDesc" = "برای اتصال به تلگرام فعال می کند. تنظیمات را طبق راهنما انجام دهیدSOCKS5 پراکسی
 "telegramChatId" = "آی‌دی چت مدیر"
 "telegramChatIdDesc" = "استفاده‌کنید'/id'یا دستور @userinfobot آی‌دی(های) چت تلگرام مدیر، برای دریافت شناسه‌های چت خود از"
 "telegramNotifyTime" = "زمان نوتیفیکیشن"
