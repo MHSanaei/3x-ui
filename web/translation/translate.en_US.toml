@@ -432,7 +432,7 @@
 [pages.settings.security]
 "admin" = "Admin"
 "secret" = "Secret Token"
-"loginSecurity" = "Login Security"
+"loginSecurity" = "Secure Login"
 "loginSecurityDesc" = "Adds an additional layer of authentication to provide more security."
 "secretToken" = "Secret Token"
 "secretTokenDesc" = "Please securely store this token in a safe place. This token is required for login and cannot be recovered."
@@ -440,7 +440,7 @@
 [pages.settings.toasts]
 "modifySettings" = "Modify Settings"
 "getSettings" = "Get Settings"
-"modifyUser" = "Modify User"
+"modifyUser" = "Modify Admin"
 "originalUserPassIncorrect" = "The Current username or password is invalid"
 "userPassMustBeNotEmpty" = "The new username and password is empty"
 
