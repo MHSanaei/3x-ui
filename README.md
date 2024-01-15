@@ -106,32 +106,19 @@ systemctl restart x-ui
 
 </details>
 
-## SSL Certificate
 
-<details>
-  <summary>Click for SSL Certificate</summary>
+## Recommended OS
 
-### Cloudflare
+- Ubuntu 20.04+
+- Debian 11+
+- CentOS 8+
+- Fedora 36+
+- Arch Linux
+- Manjaro
+- Armbian
+- AlmaLinux 9+
+- Rockylinux 9+
 
-The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
-
-- Cloudflare registered email
-- Cloudflare Global API Key
-- The domain name has been resolved to the current server through cloudflare
-
-**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
-
-
-### Certbot
-```
-apt-get install certbot -y
-certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
-certbot renew --dry-run
-```
-
-***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
-
-</details>
 
 ## Languages
 
@@ -169,24 +156,47 @@ certbot renew --dry-run
   ### Information
 
 - **Port:** 2053
-- **Username & Password:** It will generated randomly if you skip to modify your own security(x-ui "7")
-- **Database Path:** /etc/x-ui/x-ui.db
-- **Xray Config Path:** /usr/local/x-ui/bin/config.json
-
-*Before SSL Deployment*
-
-- **Web Panel Path:** 
-
+- **Username & Password:** It will be generated randomly if you skip modifying.
+- **Database Path:**
+  - /etc/x-ui/x-ui.db
+- **Xray Config Path:**
+  - /usr/local/x-ui/bin/config.json
+- **Web Panel Path w/o Deploying SSL:**
   - http://ip:2053/panel
   - http://domain:2053/panel
-
-*After SSL Deployment*
-
-- **Web Panel Path:**
-
-  - https://yourdomain:2053/panel
+- **Web Panel Path w/ Deploying SSL:**
+  - https://domain:2053/panel
  
 </details>
+
+
+## SSL Certificate
+
+<details>
+  <summary>Click for SSL Certificate</summary>
+
+### Cloudflare
+
+The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+
+- Cloudflare registered email
+- Cloudflare Global API Key
+- The domain name has been resolved to the current server through cloudflare
+
+**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+
+### Certbot
+```
+apt-get install certbot -y
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
+certbot renew --dry-run
+```
+
+***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+
+</details>
+
 
 ## Xray Configurations
 
@@ -400,17 +410,6 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 </details>
 
-## Recommended OS
-
-- Ubuntu 20.04+
-- Debian 11+
-- CentOS 8+
-- Fedora 36+
-- Arch Linux
-- Manjaro
-- Armbian
-- AlmaLinux 9+
-- Rockylinux 9+
 
 ## Preview
 
