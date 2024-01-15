@@ -76,7 +76,7 @@
             </table>
             <a-divider style="margin: 10px 0;">WARP {{ i18n "pages.xray.rules.outbound" }}</a-divider>
             <a-form :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-                <a-form-item label="{{ i18n "status" }}">
+                <a-form-item label='{{ i18n "status" }}'>
                     <template v-if="warpOutboundIndex>=0">
                         <a-tag color="green">{{ i18n "enabled" }}</a-tag>
                         <a-button @click="resetOutbound" :loading="warpModal.confirmLoading">{{ i18n "reset" }}</a-button>
@@ -113,7 +113,7 @@
         },
         async getData(){
             this.loading(true);
-            const msg = await HttpUtil.post('/xui/xray/warp/data');
+            const msg = await HttpUtil.post('/panel/xray/warp/data');
             this.loading(false);
             if (msg.success) {
                 this.warpData = msg.obj.length>0 ? JSON.parse(msg.obj): null;
@@ -152,7 +152,7 @@
             async register(){
                 warpModal.loading(true);
                 keys = Wireguard.generateKeypair();
-                const msg = await HttpUtil.post('/xui/xray/warp/reg',keys);
+                const msg = await HttpUtil.post('/panel/xray/warp/reg',keys);
                 if (msg.success) {
                     resp = JSON.parse(msg.obj);
                     warpModal.warpData = resp.data;
@@ -163,7 +163,7 @@
             },
             async updateLicense(l){
                 warpModal.loading(true);
-                const msg = await HttpUtil.post('/xui/xray/warp/license',{license: l});
+                const msg = await HttpUtil.post('/panel/xray/warp/license',{license: l});
                 if (msg.success) {
                     warpModal.warpData = JSON.parse(msg.obj);
                     warpModal.warpConfig = null;
@@ -173,7 +173,7 @@
             },
             async getConfig(){
                 warpModal.loading(true);
-                const msg = await HttpUtil.post('/xui/xray/warp/config');
+                const msg = await HttpUtil.post('/panel/xray/warp/config');
                 warpModal.loading(false);
                 if (msg.success) {
                     warpModal.warpConfig = JSON.parse(msg.obj);
