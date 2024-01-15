@@ -1,8 +1,6 @@
 # 3X-UI
 
-**A Fully Featured Panel Built on Xray Core**
-
-> **Disclaimer:** This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment
+**An Advanced Web Panel • Built on Xray Core**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
@@ -10,10 +8,12 @@
 [![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
+> **Disclaimer:** This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment
 
-**If you think this project is helpful to you, you may wish to give a** :star2:
+**If this project is helpful to you, you may wish to give it a**:star2:
 
-**Buy Me a Coffee :**
+<a href="#">
+  <img width="125" alt="image" src="https://github.com/MHSanaei/3x-ui/assets/115543613/7aa895dd-048a-42e7-989b-afd41a74e2e1.jpg"></a>
 
 - USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
 
@@ -25,49 +25,11 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install Custom Version
 
-To install your desired version you can add the version to the end of install command. Example for ver `v2.0.2`:
+To install your desired version, add the version to the end of the installation command. e.g., ver `v2.0.2`:
 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.2
 ```
-
-## SSL
-
-```
-apt-get install certbot -y
-certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
-certbot renew --dry-run
-```
-
-You also can use `x-ui` menu then select `SSL Certificate Management`
-
-## Languages
-
-- English
-- Farsi
-- Chinese
-- Russian
-- Vietnamese
-- Spanish
-
-
-## Features
-
-- System Status Monitoring
-- Search within all inbounds and clients
-- Dark/Light theme
-- Supports multi-user and multi-protocol
-- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP
-- Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
-- Traffic statistics, traffic limit, expiration time limit
-- Customizable Xray configuration templates
-- Supports HTTPS access panel (self-provided domain name + SSL certificate)
-- Supports One-Click SSL certificate application and automatic renewal
-- For more advanced configuration items, please refer to the panel
-- Fixes API routes (user setting will be created with API)
-- Supports changing configs by different items provided in the panel.
-- Supports export/import database from the panel
-
 ## Manual Install & Upgrade
 
 <details>
@@ -143,32 +105,106 @@ systemctl restart x-ui
 
 </details>
 
+
+## Recommended OS
+
+- Ubuntu 20.04+
+- Debian 11+
+- CentOS 8+
+- Fedora 36+
+- Arch Linux
+- Manjaro
+- Armbian
+- AlmaLinux 9+
+- Rockylinux 9+
+
+
+## Languages
+
+- English
+- Farsi
+- Chinese
+- Russian
+- Vietnamese
+- Spanish
+
+
+## Features
+
+- System Status Monitoring
+- Search within all inbounds and clients
+- Dark/Light theme
+- Supports multi-user and multi-protocol
+- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP
+- Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
+- Traffic statistics, traffic limit, expiration time limit
+- Customizable Xray configuration templates
+- Supports HTTPS access panel (self-provided domain name + SSL certificate)
+- Supports One-Click SSL certificate application and automatic renewal
+- For more advanced configuration items, please refer to the panel
+- Fixes API routes (user setting will be created with API)
+- Supports changing configs by different items provided in the panel.
+- Supports export/import database from the panel
+
+
 ## Default Settings
 
 <details>
   <summary>Click for default settings details</summary>
 
-- Port: 2053
-- username and password will be generated randomly if you skip to modify your own security(x-ui "7")
-- database path: /etc/x-ui/x-ui.db
-- xray config path: /usr/local/x-ui/bin/config.json
+  ### Information
 
-Before you set ssl on settings
-
-- http://ip:2053/panel
-- http://domain:2053/panel
-
-After you set ssl on settings
-
-- https://yourdomain:2053/panel
+- **Port:** 2053
+- **Username & Password:** It will be generated randomly if you skip modifying.
+- **Database Path:**
+  - /etc/x-ui/x-ui.db
+- **Xray Config Path:**
+  - /usr/local/x-ui/bin/config.json
+- **Web Panel Path w/o Deploying SSL:**
+  - http://ip:2053/panel
+  - http://domain:2053/panel
+- **Web Panel Path w/ Deploying SSL:**
+  - https://domain:2053/panel
+ 
 </details>
 
-## Xray Configurations:
+
+## SSL Certificate
+
+<details>
+  <summary>Click for SSL Certificate</summary>
+
+### Cloudflare
+
+The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+
+- Cloudflare registered email
+- Cloudflare Global API Key
+- The domain name has been resolved to the current server through cloudflare
+
+**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+
+### Certbot
+```
+apt-get install certbot -y
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
+certbot renew --dry-run
+```
+
+***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+
+</details>
+
+
+## Xray Configurations
 
 <details>
   <summary>Click for Xray configurations details</summary>
+  
+#### Usage
 
-**Copy & paste to xray Configuration:** (you don't need to do this if you have a fresh install)
+**1.** Copy & paste into the Advanced Xray Configuration:
 
 - [traffic](./media/configs/traffic.json)
 - [traffic + Block all Iran IP address](./media/configs/traffic+block-iran-ip.json)
@@ -176,9 +212,11 @@ After you set ssl on settings
 - [traffic + Block Ads + Use IPv4 for Google](./media/configs/traffic+block-ads+ipv4-google.json)
 - [traffic + Block Ads + Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP](./media/configs/traffic+block-ads+warp.json)
 
+***Tip:*** *You don't need to do this for a fresh install.*
+
 </details>
 
-## [WARP Configuration](https://gitlab.com/fscarmen/warp) (Optional)
+## [WARP Configuration](https://gitlab.com/fscarmen/warp)
 
 <details>
   <summary>Click for WARP configuration details</summary>
@@ -187,19 +225,19 @@ After you set ssl on settings
 
 If you want to use routing to WARP follow steps as below:
 
-1. If you already installed warp, you can uninstall using below command:
+**1.** If you already installed warp, you can uninstall using below command:
 
    ```sh
    warp u
    ```
 
-2. Install WARP on **SOCKS Proxy Mode**:
+**2.** Install WARP on **SOCKS Proxy Mode**:
 
    ```sh
    bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
    ```
 
-3. Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
+**3.** Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
 
    Config Features:
 
@@ -216,7 +254,7 @@ If you want to use routing to WARP follow steps as below:
 
 #### Usage
 
-**Note: IP Limit won't work correctly when using IP Tunnel**
+**Note:** IP Limit won't work correctly when using IP Tunnel
 
 - For versions up to `v1.6.1`:
 
@@ -249,16 +287,16 @@ If you want to use routing to WARP follow steps as below:
 
 #### Usage
 
-X-UI supports daily traffic notification, panel login reminder and other functions through the Tg robot. To use the Tg robot, you need to apply for the specific application tutorial. You can refer to the [blog](https://coderfan.net/how-to-use-telegram-bot-to-alarm-you-when-someone-login-into-your-vps.html)
-Set the robot-related parameters in the panel background, including:
+The web panel supports daily traffic, panel login, database backup, system status, client info, and other notification and functions through the Telegram Bot. To use the bot, you need to set the bot-related parameters in the panel, including:
 
-- Tg robot Token
-- Tg robot ChatId
-- Tg robot cycle runtime, in crontab syntax
-- Tg robot Expiration threshold
-- Tg robot Traffic threshold
-- Tg robot Enable send backup in cycle runtime
-- Tg robot Enable CPU usage alarm threshold
+- Telegram Token
+- Admin Chat ID(s)
+- Notification Time (in cron syntax)
+- Expiration Date Notification
+- Traffic Cap Notification
+- Database Backup
+- CPU Load Notification
+
 
 **Reference syntax:**
 
@@ -371,17 +409,6 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 </details>
 
-## OS
-
-- Ubuntu 20.04+
-- Debian 11+
-- CentOS 8+
-- Fedora 36+
-- Arch Linux
-- Manjaro
-- Armbian
-- AlmaLinux 9+
-- Rockylinux 9+
 
 ## Supported Architectures and Devices
 
