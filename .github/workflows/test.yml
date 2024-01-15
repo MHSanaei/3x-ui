@@ -37,17 +37,17 @@ jobs:
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm" ] {
+          elif [ "${{ matrix.platform }}" == "arm" ]; then
             export GOARCH=arm
             export GOARM=7
             export CC=arm-linux-gnueabihf-gcc
-          } elif [ "${{ matrix.platform }}" == "armv6l" ] {
+          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
             export GOARCH=arm
             export GOARM=6
             export CC=arm-linux-gnueabihf-gcc
-          } else {
+          else
             export GOARCH=${{ matrix.platform }}
-          }
+          fi
           go build -o xui-release -v main.go
           
           mkdir x-ui
@@ -94,7 +94,7 @@ jobs:
       - name: Package
         run: |
           if [ "${{ matrix.platform }}" == "arm" ]; then
-            tar -zcvf x-ui-linux-arm32-v7a.tar.gz x-ui
+            tar -zcvf x-ui-linux-arm32-v7.tar.gz x-ui
           elif [ "${{ matrix.platform }}" == "armv6l" ]; then
             tar -zcvf x-ui-linux-arm32-v6.tar.gz x-ui
           else
