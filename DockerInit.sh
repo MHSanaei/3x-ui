@@ -13,11 +13,16 @@ case $1 in
         ARCH="arm32-v7a"
         FNAME="arm32"
         ;;
+    armv6)
+        ARCH="arm32-v6"
+        FNAME="armv6"
+        ;;
     *)
         ARCH="64"
         FNAME="amd64"
         ;;
 esac
+
 
 mkdir -p build/bin
 cd build/bin
