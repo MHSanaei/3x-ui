@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, arm, armv6]
+        platform: [amd64, arm64, armv7, armv6]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
@@ -21,12 +21,12 @@ jobs:
         with:
           go-version: '1.21'
           
-      - name: Install dependencies for arm64, arm and armv6
-        if: matrix.platform == 'arm64' || matrix.platform == 'arm' || matrix.platform == 'armv6'
+      - name: Install dependencies for arm64, armv7 and armv6
+        if: matrix.platform == 'arm64' || matrix.platform == 'armv7' || matrix.platform == 'armv6'
         run: |
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
-          if [ "${{ matrix.platform }}" == "arm" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+          if [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
             sudo apt install gcc-arm-linux-gnueabihf
           fi
 
@@ -34,19 +34,11 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
+          export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
-            export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm" ]; then
-            export GOARCH=arm
-            export GOARM=7
+          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
             export CC=arm-linux-gnueabihf-gcc
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            export GOARCH=arm
-            export GOARM=6
-            export CC=arm-linux-gnueabihf-gcc
-          else
-            export GOARCH=${{ matrix.platform }}
           fi
           go build -o xui-release -v main.go
           
@@ -68,18 +60,14 @@ jobs:
             wget ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          elif [ "${{ matrix.platform }}" == "arm" ]; then
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
             wget ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+          else
             wget ${Xray_URL}Xray-linux-arm32-v6.zip
             unzip Xray-linux-arm32-v6.zip
             rm -f Xray-linux-arm32-v6.zip
-          else
-            wget ${Xray_URL}Xray-linux-${{ matrix.platform }}.zip
-            unzip Xray-linux-${{ matrix.platform }}.zip
-            rm -f Xray-linux-${{ matrix.platform }}.zip
           fi
           rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip_VN.dat geosite_VN.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
@@ -92,14 +80,7 @@ jobs:
           cd ../..
           
       - name: Package
-        run: |
-          if [ "${{ matrix.platform }}" == "arm" ]; then
-            tar -zcvf x-ui-linux-arm32-v7.tar.gz x-ui
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            tar -zcvf x-ui-linux-arm32-v6.tar.gz x-ui
-          else
-            tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
-          fi
+        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
         
       - name: Upload
         uses: svenstaro/upload-release-action@2.7.0
