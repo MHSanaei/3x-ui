@@ -28,9 +28,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          if [ "${{ matrix.platform }}" == "amd64" ]; then
-            # Add any amd64 specific dependencies here
-          elif [ "${{ matrix.platform }}" == "arm64" ]; then
+          if [ "${{ matrix.platform }}" == "arm64" ]; then
             sudo apt install gcc-aarch64-linux-gnu
           elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
             sudo apt install gcc-arm-linux-gnueabihf
@@ -42,8 +40,10 @@ jobs:
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
+            export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
           elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+            export GOARCH=arm
             export GOARM=7
             export CC=arm-linux-gnueabihf-gcc
           fi
