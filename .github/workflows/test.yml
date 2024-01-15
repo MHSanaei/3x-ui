@@ -37,13 +37,17 @@ jobs:
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "arm" ] || [ "${{ matrix.platform }}" == "armv6l" ]; then
+          elif [ "${{ matrix.platform }}" == "arm" ] {
+            export GOARCH=arm
+            export GOARM=7
+            export CC=arm-linux-gnueabihf-gcc
+          } elif [ "${{ matrix.platform }}" == "armv6l" ] {
             export GOARCH=arm
             export GOARM=6
             export CC=arm-linux-gnueabihf-gcc
-          else
+          } else {
             export GOARCH=${{ matrix.platform }}
-          fi
+          }
           go build -o xui-release -v main.go
           
           mkdir x-ui
@@ -64,10 +68,14 @@ jobs:
             wget ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          elif [ "${{ matrix.platform }}" == "arm" ] || [ "${{ matrix.platform }}" == "armv6l" ]; then
+          elif [ "${{ matrix.platform }}" == "arm" ]; then
             wget ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
+          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            unzip Xray-linux-arm32-v6.zip
+            rm -f Xray-linux-arm32-v6.zip
           else
             wget ${Xray_URL}Xray-linux-${{ matrix.platform }}.zip
             unzip Xray-linux-${{ matrix.platform }}.zip
@@ -84,7 +92,14 @@ jobs:
           cd ../..
           
       - name: Package
-        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+        run: |
+          if [ "${{ matrix.platform }}" == "arm" ]; then
+            tar -zcvf x-ui-linux-arm32-v7a.tar.gz x-ui
+          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
+            tar -zcvf x-ui-linux-arm32-v6.tar.gz x-ui
+          else
+            tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+          fi
         
       - name: Upload
         uses: svenstaro/upload-release-action@2.7.0
