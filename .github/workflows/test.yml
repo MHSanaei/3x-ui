@@ -33,19 +33,13 @@ jobs:
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
-          # Define Xray_URL before using it
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v1.8.7/"
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
-            unzip Xray-linux-arm32-v7a.zip
-            rm -f Xray-linux-arm32-v7a.zip
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            wget ${Xray_URL}Xray-linux-arm32-v6.zip
-            unzip Xray-linux-arm32-v6.zip
-            rm -f Xray-linux-arm32-v6.zip
+          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+            export GOARCH=arm
+            export GOARM=7
+            export CC=arm-linux-gnueabihf-gcc
           else
             export GOARCH=${{ matrix.platform }}
           fi
@@ -60,6 +54,7 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v1.8.7/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
