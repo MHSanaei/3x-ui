@@ -36,10 +36,14 @@ jobs:
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export GOARCH=arm64
             export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
-            export GOARCH=arm
-            export GOARM=7
-            export CC=arm-linux-gnueabihf-gcc
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
+            unzip Xray-linux-arm32-v7a.zip
+            rm -f Xray-linux-arm32-v7a.zip
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            unzip Xray-linux-arm32-v6.zip
+            rm -f Xray-linux-arm32-v6.zip
           else
             export GOARCH=${{ matrix.platform }}
           fi
@@ -63,10 +67,14 @@ jobs:
             wget ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
-          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
             wget ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            unzip Xray-linux-arm32-v6.zip
+            rm -f Xray-linux-arm32-v6.zip
           else
             wget ${Xray_URL}Xray-linux-${{ matrix.platform }}.zip
             unzip Xray-linux-${{ matrix.platform }}.zip
