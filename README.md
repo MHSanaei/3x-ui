@@ -1,6 +1,6 @@
 # 3X-UI
 
-**An Advanced Web Panel. Built on Xray Core.**
+**A Fully Featured Web Panel • Built on Xray Core**
 
 > **Disclaimer:** This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment
 
