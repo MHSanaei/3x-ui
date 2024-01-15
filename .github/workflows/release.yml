@@ -10,7 +10,11 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64]
+        platform:
+          - amd64
+          - arm64
+          - armv7
+          - armv6
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
@@ -20,12 +24,17 @@ jobs:
         uses: actions/setup-go@v5.0.0
         with:
           go-version: '1.21'
-          
-      - name: Install dependencies for arm64
-        if: matrix.platform == 'arm64'
+
+      - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt install gcc-aarch64-linux-gnu
+          if [ "${{ matrix.platform }}" == "amd64" ]; then
+            # Add any amd64 specific dependencies here
+          elif [ "${{ matrix.platform }}" == "arm64" ]; then
+            sudo apt install gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+            sudo apt install gcc-arm-linux-gnueabihf
+          fi
 
       - name: Build x-ui
         run: |
@@ -34,6 +43,9 @@ jobs:
           export GOARCH=${{ matrix.platform }}
           if [ "${{ matrix.platform }}" == "arm64" ]; then
             export CC=aarch64-linux-gnu-gcc
+          elif [ "${{ matrix.platform }}" == "armv7" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
+            export GOARM=7
+            export CC=arm-linux-gnueabihf-gcc
           fi
           go build -o xui-release -v main.go
           
@@ -51,12 +63,20 @@ jobs:
             wget ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
-          else
+          elif [ "${{ matrix.platform }}" == "arm64" ]; then
             wget ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
+            unzip Xray-linux-arm32-v7a.zip
+            rm -f Xray-linux-arm32-v7a.zip
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            unzip Xray-linux-arm32-v6.zip
+            rm -f Xray-linux-arm32-v6.zip
           fi
-          rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat
+          rm -f geoip.dat geosite.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
