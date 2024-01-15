@@ -75,7 +75,7 @@
 [pages.index]
 "title" = "Trạng thái hệ thống"
 "memory" = "Bộ nhớ"
-"hard" = "Đĩa(ổ cứng)"
+"hard" = "Dung lượng"
 "xrayStatus" = "Trạng thái"
 "stopXray" = "Dừng lại"
 "restartXray" = "Khởi động lại"
