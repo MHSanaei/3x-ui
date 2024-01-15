@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        platform: [amd64, arm64, arm, armv6l]
+        platform: [amd64, arm64, arm, armv6]
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
@@ -21,12 +21,12 @@ jobs:
         with:
           go-version: '1.21'
           
-      - name: Install dependencies for arm64, arm and armv6l
-        if: matrix.platform == 'arm64' || matrix.platform == 'arm' || matrix.platform == 'armv6l'
+      - name: Install dependencies for arm64, arm and armv6
+        if: matrix.platform == 'arm64' || matrix.platform == 'arm' || matrix.platform == 'armv6'
         run: |
           sudo apt-get update
           sudo apt install gcc-aarch64-linux-gnu
-          if [ "${{ matrix.platform }}" == "arm" ] || [ "${{ matrix.platform }}" == "armv6l" ]; then
+          if [ "${{ matrix.platform }}" == "arm" ] || [ "${{ matrix.platform }}" == "armv6" ]; then
             sudo apt install gcc-arm-linux-gnueabihf
           fi
 
@@ -41,7 +41,7 @@ jobs:
             export GOARCH=arm
             export GOARM=7
             export CC=arm-linux-gnueabihf-gcc
-          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
             export GOARCH=arm
             export GOARM=6
             export CC=arm-linux-gnueabihf-gcc
@@ -72,7 +72,7 @@ jobs:
             wget ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
-          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
             wget ${Xray_URL}Xray-linux-arm32-v6.zip
             unzip Xray-linux-arm32-v6.zip
             rm -f Xray-linux-arm32-v6.zip
@@ -95,7 +95,7 @@ jobs:
         run: |
           if [ "${{ matrix.platform }}" == "arm" ]; then
             tar -zcvf x-ui-linux-arm32-v7.tar.gz x-ui
-          elif [ "${{ matrix.platform }}" == "armv6l" ]; then
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
             tar -zcvf x-ui-linux-arm32-v6.tar.gz x-ui
           else
             tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
