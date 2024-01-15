@@ -25,10 +25,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install Custom Version
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.0.2`:
+To install your desired version, add the version to the end of the installation command. e.g., ver `v2.1.0`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.0.2
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.0
 ```
 ## Manual Install & Upgrade
 
@@ -135,7 +135,7 @@ systemctl restart x-ui
 - Search within all inbounds and clients
 - Dark/Light theme
 - Supports multi-user and multi-protocol
-- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP
+- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP, wireguard
 - Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
 - Traffic statistics, traffic limit, expiration time limit
 - Customizable Xray configuration templates

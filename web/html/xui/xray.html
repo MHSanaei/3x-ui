@@ -228,6 +228,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
                                 </template>
+                                <a-button v-else style="margin: 10px 0;" @click="showWarp">WARP {{ i18n "pages.xray.rules.outbound" }}</a-button>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -1140,10 +1141,6 @@
             manualIPv4Domains: {
                 get: function () { return JSON.stringify(this.ipv4Domains, null, 2); },
                 set: debounce(function (value) { this.ipv4Domains = JSON.parse(value); }, 1000)
-            },
-            manualWARPDomains: {
-                get: function () { return JSON.stringify(this.warpDomains, null, 2); },
-                set: debounce(function (value) { this.warpDomains = JSON.parse(value); }, 1000)
             },
             torrentSettings: {
                 get: function () {
