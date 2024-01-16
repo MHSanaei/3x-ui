@@ -160,18 +160,21 @@ install_x-ui() {
     tar zxvf x-ui-linux-$(arch3xui).tar.gz
     rm x-ui-linux-$(arch3xui).tar.gz -f
     cd x-ui
+    chmod +x x-ui
+
+    # Check the system's architecture and rename the file accordingly
+    if [[ $(arch3xui) == "armv6" || $(arch3xui) == "armv7" ]]; then
+    mv bin/xray-linux-$(arch3xui) bin/xray-linux-arm
+    chmod +x bin/xray-linux-arm
+    fi
+    
     chmod +x x-ui bin/xray-linux-$(arch3xui)
     cp -f x-ui.service /etc/systemd/system/
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install
-    #echo -e "If it is a new installation, the default web port is ${green}2053${plain}, The username and password are ${green}admin${plain} by default"
-    #echo -e "Please make sure that this port is not occupied by other procedures,${yellow} And make sure that port 2053 has been released${plain}"
-    #    echo -e "If you want to modify the 2053 to other ports and enter the x-ui command to modify it, you must also ensure that the port you modify is also released"
-    #echo -e ""
-    #echo -e "If it is updated panel, access the panel in your previous way"
-    #echo -e ""
+
     systemctl daemon-reload
     systemctl enable x-ui
     systemctl start x-ui
@@ -193,6 +196,7 @@ install_x-ui() {
     echo -e "x-ui uninstall    - Uninstall x-ui"
     echo -e "----------------------------------------------"
 }
+
 
 echo -e "${green}Running...${plain}"
 install_base
