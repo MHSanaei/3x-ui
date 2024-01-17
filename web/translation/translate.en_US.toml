@@ -476,7 +476,6 @@
 "helpAdminCommands" = "To search for a client email:\r\n<code>/usage [Email]</code>\r\n\r\nTo search for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
 "helpClientCommands" = "To search for statistics, use the following command:\r\n\r\n<code>/usage [Email]</code>"
 
-
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%"
 "selectUserFailed" = "❌ Error in user selection!"
@@ -522,7 +521,6 @@
 "yes" = "✅ Yes"
 "no" = "❌ No"
 
-
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
 "cancel" = "❌ Cancel"
@@ -555,7 +553,6 @@
 "confirmNumberAdd" = "✅ Confirm adding: {{ .Num }}"
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"
