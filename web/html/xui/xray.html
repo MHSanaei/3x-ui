@@ -1122,26 +1122,6 @@
                     this.templateRuleSetter({ outboundTag: "warp", property: "domain", data: newValue });
                 }
             },
-            manualBlockedIPs: {
-                get: function () { return JSON.stringify(this.blockedIPs, null, 2); },
-                set: debounce(function (value) { this.blockedIPs = JSON.parse(value); }, 1000)
-            },
-            manualBlockedDomains: {
-                get: function () { return JSON.stringify(this.blockedDomains, null, 2); },
-                set: debounce(function (value) { this.blockedDomains = JSON.parse(value); }, 1000)
-            },
-            manualDirectIPs: {
-                get: function () { return JSON.stringify(this.directIPs, null, 2); },
-                set: debounce(function (value) { this.directIPs = JSON.parse(value); }, 1000)
-            },
-            manualDirectDomains: {
-                get: function () { return JSON.stringify(this.directDomains, null, 2); },
-                set: debounce(function (value) { this.directDomains = JSON.parse(value); }, 1000)
-            },
-            manualIPv4Domains: {
-                get: function () { return JSON.stringify(this.ipv4Domains, null, 2); },
-                set: debounce(function (value) { this.ipv4Domains = JSON.parse(value); }, 1000)
-            },
             torrentSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);

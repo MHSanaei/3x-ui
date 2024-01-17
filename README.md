@@ -103,6 +103,15 @@ systemctl restart x-ui
       ghcr.io/mhsanaei/3x-ui:latest
    ```
 
+update to latest version
+
+   ```sh
+   cd 3x-ui
+   docker compose down
+   docker compose pull 3x-ui
+   docker compose up -d
+   ```
+
 </details>
 
 
@@ -196,26 +205,6 @@ certbot renew --dry-run
 
 </details>
 
-
-## Xray Configurations
-
-<details>
-  <summary>Click for Xray configurations details</summary>
-  
-#### Usage
-
-**1.** Copy & paste into the Advanced Xray Configuration:
-
-- [traffic](./media/configs/traffic.json)
-- [traffic + Block all Iran IP address](./media/configs/traffic+block-iran-ip.json)
-- [traffic + Block all Iran Domains](./media/configs/traffic+block-iran-domains.json)
-- [traffic + Block Ads + Use IPv4 for Google](./media/configs/traffic+block-ads+ipv4-google.json)
-- [traffic + Block Ads + Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP](./media/configs/traffic+block-ads+warp.json)
-
-***Tip:*** *You don't need to do this for a fresh install.*
-
-</details>
-
 ## [WARP Configuration](https://gitlab.com/fscarmen/warp)
 
 <details>
@@ -223,21 +212,21 @@ certbot renew --dry-run
 
 #### Usage
 
-If you want to use routing to WARP follow steps as below:
+If you want to use routing to WARP before v2.1.0 follow steps as below:
 
-**1.** If you already installed warp, you can uninstall using below command:
-
-   ```sh
-   warp u
-   ```
-
-**2.** Install WARP on **SOCKS Proxy Mode**:
+**1.** Install WARP on **SOCKS Proxy Mode**:
 
    ```sh
    bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
    ```
 
-**3.** Turn on the config you need in panel or [Copy and paste this file to Xray Configuration](./media/configs/traffic+block-ads+warp.json)
+**2.** If you already installed warp, you can uninstall using below command:
+
+   ```sh
+   warp u
+   ```
+
+**3.** Turn on the config you need in panel
 
    Config Features:
 
