@@ -37,7 +37,7 @@ type Inbound struct {
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`
-	Port           int      `json:"port" form:"port" gorm:"unique"`
+	Port           int      `json:"port" form:"port"`
 	Protocol       Protocol `json:"protocol" form:"protocol"`
 	Settings       string   `json:"settings" form:"settings"`
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
