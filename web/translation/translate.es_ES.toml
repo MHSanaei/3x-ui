@@ -1,6 +1,6 @@
 "username" = "Nombre de Usuario"
 "password" = "Contraseña"
-"login" = "Acceso"
+"login" = "Acceder"
 "confirm" = "Confirmar"
 "cancel" = "Cancelar"
 "close" = "Cerrar"
@@ -59,10 +59,10 @@
 "settings" = "Configuraciones"
 "xray" = "Configuración Xray"
 "logout" = "Cerrar Sesión"
-"link" = "Otro"
+"link" = "Gestionar"
 
 [pages.login]
-"title" = "Grata"
+"title" = "Bienvenido"
 "loginAgain" = "El límite de tiempo de inicio de sesión ha expirado. Por favor, inicia sesión nuevamente."
 
 [pages.login.toasts]
