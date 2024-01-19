@@ -991,6 +991,12 @@ install_iplimit() {
                 echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
                 exit 1 ;;
         esac
+
+        if ! command -v fail2ban-client &>/dev/null; then
+            echo -e "${red}Fail2ban installation failed.${plain}\n"
+            exit 1
+        fi
+
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
