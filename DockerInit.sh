@@ -5,6 +5,10 @@ case $1 in
         ARCH="64"
         FNAME="amd64"
         ;;
+    i386)
+        ARCH="32"
+        FNAME="i386"
+        ;;
     armv8 | arm64 | aarch64)
         ARCH="arm64-v8a"
         FNAME="arm64"
@@ -16,6 +20,10 @@ case $1 in
     armv6)
         ARCH="arm32-v6"
         FNAME="armv6"
+        ;;
+    armv5)
+        ARCH="arm32-v5"
+        FNAME="armv5"
         ;;
     *)
         ARCH="64"
@@ -29,7 +37,7 @@ cd build/bin
 
 wget "https://github.com/XTLS/Xray-core/releases/download/v1.8.7/Xray-linux-${ARCH}.zip"
 unzip "Xray-linux-${ARCH}.zip"
-rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip_VN.dat geosite_VN.dat
+rm -f "Xray-linux-${ARCH}.zip" geoip.dat geosite.dat
 mv xray "xray-linux-${FNAME}"
 
 wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
