@@ -5,9 +5,9 @@ case $1 in
         ARCH="64"
         FNAME="amd64"
         ;;
-    386)
-        ARCH="32"
-        FNAME="386"
+    x86)
+        ARCH="x86"
+        FNAME="x86"
         ;;
     armv8 | arm64 | aarch64)
         ARCH="arm64-v8a"
@@ -30,8 +30,6 @@ case $1 in
         FNAME="amd64"
         ;;
 esac
-
-
 
 mkdir -p build/bin
 cd build/bin
