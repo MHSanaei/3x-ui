@@ -15,7 +15,12 @@
         confirmLoading: false,
         title: '',
         okText: '',
-        isEdit: false,
+        group: {
+            isGroup: false,
+            currentClient: null,
+            inbounds: [],
+            clients: [],
+        },
         dbInbound: new DBInbound(),
         inbound: new Inbound(),
         clients: [],
@@ -28,30 +33,76 @@
             if (clientModal.isEdit) {
                 ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
             } else {
-                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
+                if (clientModal.group.isGroup) {
+                    const currentClient = clientModal.group.currentClient;
+
+                    clientModal.group.clients.forEach((client, index) => {
+                        const { email, limitIp, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
+
+                        client.email = `${email}-${index + 1}`;
+                        client.limitIp = limitIp;
+                        client.totalGB = totalGB;
+                        client.expiryTime = expiryTime;
+                        client.reset = reset;
+                        client.enable = enable;
+
+                        if (subId) {
+                            client.subId = subId;
+                        }
+                        if (tgId) {
+                            client.tgId = tgId;
+                        }
+                        if (flow) {
+                            client.flow = flow;
+                        }
+                    });
+                    ObjectUtil.execute(clientModal.confirm, clientModal.group.clients, clientModal.group.inbounds);
+                } else {
+                    ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
+                }
             }
         },
         show({ title = '', okText = '{{ i18n "sure" }}', index = null, dbInbound = null, confirm = () => { }, isEdit = false }) {
+            this.group = {
+                isGroup: false,
+                currentClient: null,
+                inbounds: [],
+                clients: [],
+            }
             this.visible = true;
             this.title = title;
             this.okText = okText;
             this.isEdit = isEdit;
+            if (Array.isArray(dbInbound)) {
+                this.group.isGroup = true;
+                dbInbound.forEach((dbInboundItem) => {
+                    this.showProcess(dbInboundItem);
+                    this.group.inbounds.push(dbInboundItem.id)
+                    this.group.clients.push(this.clients[this.index])
+                })
+                this.group.currentClient = this.clients[this.index]
+            } else {
+                this.showProcess(dbInbound, index);
+                if (isEdit) {
+                    if (this.clients[index].expiryTime < 0) {
+                        this.delayedStart = true;
+                    }
+                    this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
+                } else {
+                    this.addClient(this.inbound.protocol, this.clients);
+                }
+            }
+            this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
+            this.confirm = confirm;
+        },
+        showProcess(dbInbound, index = null) {
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.clients = this.inbound.clients;
             this.index = index === null ? this.clients.length : index;
             this.delayedStart = false;
-            if (isEdit) {
-                if (this.clients[index].expiryTime < 0) {
-                    this.delayedStart = true;
-                }
-                this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
-            } else {
-                this.addClient(this.inbound.protocol, this.clients);
-            }
-            this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
-            this.confirm = confirm;
-        },  
+            this.addClient(this.inbound.protocol, this.clients);
+        },
         getClientId(protocol, client) {
             switch (protocol) {
                 case Protocols.TROJAN: return client.password;
@@ -93,6 +144,9 @@
             },
             get isEdit() {
                 return this.clientModal.isEdit;
+            },
+            get isGroup() {
+                return this.clientModal.group.isGroup;
             },
             get datepicker() {
                 return app.datepicker;

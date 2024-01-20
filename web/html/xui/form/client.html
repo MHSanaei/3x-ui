@@ -15,7 +15,7 @@
         </template>
         <a-input v-model.trim="client.email"></a-input>
     </a-form-item>
-    <a-form-item v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
+    <a-form-item v-if="(inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS) && !isGroup">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
@@ -28,7 +28,7 @@
         </template>
         <a-input v-model.trim="client.password"></a-input>
     </a-form-item>
-    <a-form-item v-if="inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS">
+    <a-form-item v-if="(inbound.protocol === Protocols.VMESS || inbound.protocol === Protocols.VLESS) && !isGroup">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">

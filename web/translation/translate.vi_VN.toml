@@ -184,6 +184,7 @@
 
 [pages.client]
 "add" = "Thêm người dùng"
+"groupAdd" = "Thêm người dùng đăng ký"
 "edit" = "Chỉnh sửa người dùng"
 "submitAdd" = "Thêm"
 "submitEdit" = "Lưu thay đổi"

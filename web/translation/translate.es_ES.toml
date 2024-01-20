@@ -184,6 +184,7 @@
 
 [pages.client]
 "add" = "Agregar Cliente"
+"groupAdd" = "Agregar usuario de suscripción"
 "edit" = "Editar Cliente"
 "submitAdd" = "Agregar Cliente"
 "submitEdit" = "Guardar Cambios"
