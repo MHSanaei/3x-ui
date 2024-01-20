@@ -133,6 +133,8 @@ Supports a variety of different architectures and devices. Here are some of the 
 
 - **amd64**: This is the most common architecture for personal computers and servers. It supports most modern operating systems. 
 
+- **x86 / i386**: This architecture is prevalent in desktop and laptop computers. It's widely supported by various operating systems and applications. (Ex: Most Windows, macOS, and Linux systems)
+
 - **armv8 / arm64 / aarch64**: This is the architecture for modern mobile and embedded devices, including smartphones and tablets. (Ex: Raspberry Pi 4, Raspberry Pi 3, Raspberry Pi Zero 2/Zero 2 W, Orange Pi 3 LTS,...)
 
 - **armv7 / arm / arm32**: This is the architecture for older mobile and embedded devices. It is still widely used in many devices. (Ex: Orange Pi Zero LTS, Orange Pi PC Plus, Raspberry Pi 2,...)
@@ -140,8 +142,6 @@ Supports a variety of different architectures and devices. Here are some of the 
 - **armv6 / arm / arm32**: This is the architecture for very old embedded devices. While not as common as before, there are still some devices using this architecture. (Ex: Raspberry Pi 1, Raspberry Pi Zero/Zero W,...)
 
 - **armv5 / arm / arm32**: This is an older architecture primarily used in early embedded systems. While it's less common today, some legacy devices may still rely on this architecture. (Ex: Early versions of Raspberry Pi, some older smartphones)
-
-- **x86 / i386**: This architecture is prevalent in desktop and laptop computers. It's widely supported by various operating systems and applications. (Ex: Most Windows, macOS, and Linux systems)
   
 ## Languages
 
