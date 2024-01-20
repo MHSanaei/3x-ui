@@ -869,34 +869,32 @@ run_speedtest() {
 }
 
 create_iplimit_jails() {
-    # Set default bantime to 30 minutes if not provided
+    # Use default bantime if not passed => 30 minutes
     local bantime="${1:-30}"
 
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    # Create 3x-ipl jail configuration
-    jail_config="[3x-ipl]
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+[3x-ipl]
 enabled=true
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}
 maxretry=4
 findtime=60
-bantime=${bantime}m"
+bantime=${bantime}m
+EOF
 
-    echo "$jail_config" >/etc/fail2ban/jail.d/3x-ipl.conf
-
-    # Create 3x-ipl filter definition
-    filter_definition="[Definition]
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
+[Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
-ignoreregex ="
+ignoreregex =
+EOF
 
-    echo "$filter_definition" >/etc/fail2ban/filter.d/3x-ipl.conf
-
-    # Create 3x-ipl action Definition
-    action_definition="[INCLUDES]
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+[INCLUDES]
 before = iptables-common.conf
 
 [Definition]
@@ -916,9 +914,8 @@ actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
 actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
-[Init]"
-
-    echo "$action_definition" >/etc/fail2ban/action.d/3x-ipl.conf
+[Init]
+EOF
 
     echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
 }
