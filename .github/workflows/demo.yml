@@ -1,0 +1,127 @@
+name: Release 3X-UI
+
+on:
+  push:
+    tags:
+      - "*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        platform:
+          - amd64
+          - arm64
+          - armv7
+          - armv6
+          - 386
+          - armv5
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.1.1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5.0.0
+        with:
+          go-version: '1.21'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          if [ "${{ matrix.platform }}" == "arm64" ]; then
+            sudo apt install gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            sudo apt install gcc-arm-linux-gnueabihf
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            sudo apt install gcc-arm-linux-gnueabihf
+          elif [ "${{ matrix.platform }}" == "386" ]; then
+            sudo apt install gcc-i686-linux-gnu
+          elif [ "${{ matrix.platform }}" == "armv5" ]; then
+            sudo apt install gcc-arm-linux-gnueabi
+          fi
+
+      - name: Build x-ui
+        run: |
+          export CGO_ENABLED=1
+          export GOOS=linux
+          export GOARCH=${{ matrix.platform }}
+          if [ "${{ matrix.platform }}" == "arm64" ]; then
+            export GOARCH=arm64
+            export CC=aarch64-linux-gnu-gcc
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            export GOARCH=arm
+            export GOARM=7
+            export CC=arm-linux-gnueabihf-gcc
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            export GOARCH=arm
+            export GOARM=6
+            export CC=arm-linux-gnueabihf-gcc
+          elif [ "${{ matrix.platform }}" == "386" ]; then
+            export GOARCH=386
+            export CC=i686-linux-gnu-gcc
+          elif [ "${{ matrix.platform }}" == "armv5" ]; then
+            export GOARCH=arm
+            export GOARM=5
+            export CC=arm-linux-gnueabi-gcc
+          fi
+          go build -o xui-release -v main.go
+          
+          mkdir x-ui
+          cp xui-release x-ui/
+          cp x-ui.service x-ui/
+          cp x-ui.sh x-ui/
+          mv x-ui/xui-release x-ui/x-ui
+          mkdir x-ui/bin
+          cd x-ui/bin
+          
+          # Download dependencies
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v1.8.7/"
+          if [ "${{ matrix.platform }}" == "amd64" ]; then
+            wget ${Xray_URL}Xray-linux-64.zip
+            unzip Xray-linux-64.zip
+            rm -f Xray-linux-64.zip
+          elif [ "${{ matrix.platform }}" == "arm64" ]; then
+            wget ${Xray_URL}Xray-linux-arm64-v8a.zip
+            unzip Xray-linux-arm64-v8a.zip
+            rm -f Xray-linux-arm64-v8a.zip
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
+            unzip Xray-linux-arm32-v7a.zip
+            rm -f Xray-linux-arm32-v7a.zip
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            unzip Xray-linux-arm32-v6.zip
+            rm -f Xray-linux-arm32-v6.zip
+          elif [ "${{ matrix.platform }}" == "386" ]; then
+            wget ${Xray_URL}Xray-linux-32.zip
+            unzip Xray-linux-32.zip
+            rm -f Xray-linux-32.zip
+          elif [ "${{ matrix.platform }}" == "armv5" ]; then
+            wget ${Xray_URL}Xray-linux-arm32-v5.zip
+            unzip Xray-linux-arm32-v5.zip
+            rm -f Xray-linux-arm32-v5.zip
+          fi
+          rm -f geoip.dat geosite.dat
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+          wget -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+          wget -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+          wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
+          wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
+          mv xray xray-linux-${{ matrix.platform }}
+          cd ../..
+          
+      - name: Package
+        run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
+        
+      - name: Upload
+        uses: svenstaro/upload-release-action@2.7.0
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: x-ui-linux-${{ matrix.platform }}.tar.gz
+          asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
+          prerelease: true
+          overwrite: true
