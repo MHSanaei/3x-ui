@@ -167,6 +167,7 @@ install_x-ui() {
 
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch3xui) == "armv5" || $(arch3xui) == "armv6" || $(arch3xui) == "armv7" ]]; then
+
     mv bin/xray-linux-$(arch3xui) bin/xray-linux-arm
     chmod +x bin/xray-linux-arm
     fi
