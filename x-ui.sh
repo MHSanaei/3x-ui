@@ -982,12 +982,16 @@ iplimit_main() {
 install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+        
         # Check the OS and install necessary packages
         case "${release}" in
             ubuntu|debian)
-                apt update && apt install fail2ban -y ;;
+                wget -O fail2ban.deb https://github.com/fail2ban/fail2ban/releases/download/1.0.2/fail2ban_1.0.2-1.upstream1_all.deb
+                wget -O fail2ban.deb.asc https://github.com/fail2ban/fail2ban/releases/download/1.0.2/fail2ban_1.0.2-1.upstream1_all.deb.asc
+                dpkg -i fail2ban.deb ;;
             centos|almalinux|rocky)
-                yum -y update && yum -y install fail2ban ;;
+                yum update -y && yum install epel-release -y
+                yum -y install fail2ban ;;
             fedora)
                 dnf -y update && dnf -y install fail2ban ;;
             *)
@@ -1027,6 +1031,7 @@ install_iplimit() {
     # Launching fail2ban
     if ! systemctl is-active --quiet fail2ban; then
         systemctl start fail2ban
+        systemctl enable fail2ban
     else
         systemctl restart fail2ban
     fi
@@ -1054,11 +1059,15 @@ remove_iplimit(){
             systemctl stop fail2ban
             case "${release}" in
                 ubuntu|debian)
-                    apt-get purge fail2ban -y;;
+                    apt-get remove -y fail2ban
+                    apt-get purge -y fail2ban -y
+                    apt-get autoremove -y;;
                 centos|almalinux|rocky)
-                    yum remove fail2ban -y;;
+                    yum remove fail2ban -y
+                    yum autoremove -y;;
                 fedora)
-                    dnf remove fail2ban -y;;
+                    dnf remove fail2ban -y
+                    dnf autoremove -y;;
                 *)
                     echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
                     exit 1 ;;
