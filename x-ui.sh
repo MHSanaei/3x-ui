@@ -862,8 +862,11 @@ run_speedtest() {
 }
 
 create_iplimit_jails() {
-    # Use default bantime if not passed => 5 minutes
-    local bantime="${1:-5}"
+    # Use default bantime if not passed => 30 minutes
+    local bantime="${1:-30}"
+
+    # uncomment allowipv6 = auto in fail2ban.conf
+    sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
     cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
 [3x-ipl]
