@@ -998,9 +998,7 @@ install_iplimit() {
         # Check the OS and install necessary packages
         case "${release}" in
         ubuntu | debian)
-            wget -O fail2ban.deb https://github.com/fail2ban/fail2ban/releases/download/1.0.2/fail2ban_1.0.2-1.upstream1_all.deb
-            wget -O fail2ban.deb.asc https://github.com/fail2ban/fail2ban/releases/download/1.0.2/fail2ban_1.0.2-1.upstream1_all.deb.asc
-            dpkg -i fail2ban.deb
+            apt update && apt install fail2ban -y
             ;;
         centos | almalinux | rocky)
             yum update -y && yum install epel-release -y
