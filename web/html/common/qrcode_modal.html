@@ -11,10 +11,12 @@
         <a-divider>Subscription</a-divider>
         <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" style="width: 100%; height: 100%;"></canvas></div>
     </template>
-    <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-    <template v-for="(row, index) in qrModal.qrcodes">
-        <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
-        <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas></div>
+    <a-divider v-if="!isJustSub">{{ i18n "pages.inbounds.client" }}</a-divider>
+    <template v-if="!isJustSub">
+        <template v-for="(row, index) in qrModal.qrcodes">
+            <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
+            <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas></div>
+        </template>
     </template>
 </a-modal>
 
@@ -27,12 +29,14 @@
         qrcodes: [],
         clipboard: null,
         visible: false,
+        isJustSub: false,
         subId: '',
-        show: function (title = '', dbInbound, client) {
+        show: function (title = '', dbInbound, client, isJustSub = false) {
             this.title = title;
             this.dbInbound = dbInbound;
             this.inbound = dbInbound.toInbound();
             this.client = client;
+            this.isJustSub = isJustSub;
             this.subId = '';
             this.qrcodes = [];
             this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
@@ -53,6 +57,9 @@
         el: '#qrcode-modal',
         data: {
             qrModal: qrModal,
+            get isJustSub(){
+               return qrModal.isJustSub
+            }
         },
         methods: {
             copyToClipboard(elmentId, content) {

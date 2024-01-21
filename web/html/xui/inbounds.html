@@ -145,6 +145,10 @@
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
+                                            <a-menu-item v-if="subSettings.enable && dbInbounds.length > 0" key="addGroupClient">
+                                                <a-icon type="usergroup-add"></a-icon>
+                                                {{ i18n "pages.client.groupAdd"}}
+                                            </a-menu-item>
                                         </a-menu>
                                     </a-dropdown>
                                 </a-col>
@@ -285,7 +289,7 @@
                                             <p v-for="clientEmail in clientCount[dbInbound.id].online">[[ clientEmail ]]</p>
                                         </template>
                                         <a-tag style="margin:0; padding: 0 2px;" color="blue" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>
-                                    </a-popover>  
+                                    </a-popover>
                                 </template>
                             </template>
                             <template slot="traffic" slot-scope="text, dbInbound">
@@ -339,7 +343,7 @@
                                                         <a-tag style="margin:0;" color="blue">[[ dbInbound.toInbound().stream.network ]]</a-tag>
                                                         <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isTls" color="green">tls</a-tag>
                                                         <a-tag style="margin:0;" v-if="dbInbound.toInbound().stream.isReality" color="green">reality</a-tag>
-                                                    </template>                    
+                                                    </template>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -373,7 +377,7 @@
                                                             <p v-for="clientEmail in clientCount[dbInbound.id].online">[[ clientEmail ]]</p>
                                                         </template>
                                                         <a-tag style="margin:0; padding: 0 2px;" color="green" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>
-                                                    </a-popover>                
+                                                    </a-popover>
                                                 </td>
                                             </tr>
                                             <tr>
@@ -740,6 +744,9 @@
                     case "delDepletedClients":
                         this.delDepletedClients(-1)
                         break;
+                    case "addGroupClient":
+                        this.openGroupAddClient()
+                        break;
                 }
             },
             clickAction(action, dbInbound) {
@@ -883,6 +890,20 @@
 
                 await this.submit(`/panel/inbound/update/${dbInbound.id}`, data, inModal);
             },
+            openGroupAddClient() {
+                clientModal.show({
+                    title: '{{ i18n "pages.client.groupAdd"}}',
+                    okText: '{{ i18n "pages.client.submitAdd"}}',
+                    dbInbound: this.dbInbounds,
+                    confirm: async (clients, dbInboundIds) => {
+                        clientModal.loading();
+                        await this.addGroupClient(clients, dbInboundIds);
+                        clientModal.close();
+                        await this.showQrcode(dbInboundIds[0],clients[0], true)
+                    },
+                    isEdit: false
+                });
+            },
             openAddClient(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 clientModal.show({
@@ -893,6 +914,7 @@
                         clientModal.loading();
                         await this.addClient(clients, dbInboundId);
                         clientModal.close();
+                        await this.showQrcode(dbInboundId,clients)
                     },
                     isEdit: false
                 });
@@ -936,11 +958,24 @@
                 }
             },
             async addClient(clients, dbInboundId) {
-                const data = {
+                const data = [{
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
-                };
-                await this.submit(`/panel/inbound/addClient`, data);
+                }];
+
+                await this.submit(`/panel/inbound/addClient`, data, true)
+            },
+
+            async addGroupClient(clients, dbInboundIds) {
+                const data = []
+                dbInboundIds.forEach((dbInboundId, index) => {
+                    data.push({
+                        id: dbInboundId,
+                        settings: '{"clients": [' + clients[index].toString() + ']}',
+                    })
+                })
+
+                await this.submit(`/panel/inbound/addClient`, data, true)
             },
             async updateClient(client, dbInboundId, clientId) {
                 const data = {
@@ -1001,8 +1036,8 @@
             checkFallback(dbInbound) {
                 newDbInbound = new DBInbound(dbInbound);
                 if (dbInbound.listen.startsWith("@")){
-                    rootInbound = this.inbounds.find((i) => 
-                        i.isTcp && 
+                    rootInbound = this.inbounds.find((i) =>
+                        i.isTcp &&
                         ['trojan','vless'].includes(i.protocol) &&
                         i.settings.fallbacks.find(f => f.dest === dbInbound.listen)
                     );
@@ -1018,10 +1053,10 @@
                 }
                 return newDbInbound;
             },
-            showQrcode(dbInboundId, client) {
+            showQrcode(dbInboundId, client, isJustSub = false) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client);
+                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client, isJustSub);
             },
             showInfo(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1050,8 +1085,8 @@
                 await this.updateClient(clients[index], dbInboundId, clientId);
                 this.loading(false);
             },
-            async submit(url, data) {
-                const msg = await HttpUtil.postWithModal(url, data);
+            async submit(url, data, isJson = false) {
+                const msg = isJson ? await HttpUtil.postWithModalJson(url, data) : await HttpUtil.postWithModal(url, data);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
