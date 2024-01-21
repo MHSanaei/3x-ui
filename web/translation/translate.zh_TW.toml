@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "新增客戶端"
+"groupAdd" = "新增訂閱使用者"
+"isGroupEdit" = "群組編輯"
+"isGroupEditDesc" = "所有具有相同訂閱的用戶端都被編輯"
 "edit" = "編輯客戶端"
 "submitAdd" = "新增客戶端"
 "submitEdit" = "儲存修改"

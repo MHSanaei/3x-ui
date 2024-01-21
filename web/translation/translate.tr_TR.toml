@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "Müşteri Ekle"
+"groupAdd" = "Abonelik kullanıcısı ekle"
+"isGroupEdit" = "Grup düzenleme"
+"isGroupEditDesc" = "Aynı aboneliğe sahip tüm istemciler düzenlendi"
 "edit" = "Müşteriyi Düzenle"
 "submitAdd" = "Müşteri Ekle"
 "submitEdit" = "Değişiklikleri Kaydet"

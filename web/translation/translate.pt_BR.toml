@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "Adicionar Cliente"
+"groupAdd" = "Adicionar usuário de assinatura"
+"isGroupEdit" = "Edição de grupo"
+"isGroupEditDesc" = "Todos os clientes com a mesma assinatura são editados"
 "edit" = "Editar Cliente"
 "submitAdd" = "Adicionar Cliente"
 "submitEdit" = "Salvar Alterações"

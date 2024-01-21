@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "クライアント追加"
+"groupAdd" = "サブスクリプション ユーザーの追加"
+"isGroupEdit" = "グループの編集"
+"isGroupEditDesc" = "同じサブスクリプションを持つすべてのクライアントが編集されます"
 "edit" = "クライアント編集"
 "submitAdd" = "クライアント追加"
 "submitEdit" = "変更を保存"

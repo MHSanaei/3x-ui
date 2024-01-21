@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "Tambah Klien"
+"groupAdd" = "Tambahkan pengguna langganan"
+"isGroupEdit" = "Pengeditan grup"
+"isGroupEditDesc" = "Semua klien dengan langganan yang sama akan diedit"
 "edit" = "Edit Klien"
 "submitAdd" = "Tambah Klien"
 "submitEdit" = "Simpan Perubahan"
