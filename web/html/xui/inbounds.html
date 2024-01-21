@@ -145,7 +145,7 @@
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
-                                            <a-menu-item v-if="app.subSettings.enable" key="addGroupClient">
+                                            <a-menu-item v-if="subSettings.enable && dbInbounds.length > 0" key="addGroupClient">
                                                 <a-icon type="usergroup-add"></a-icon>
                                                 {{ i18n "pages.client.groupAdd"}}
                                             </a-menu-item>
