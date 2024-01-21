@@ -178,7 +178,7 @@
 "info" = "Info"
 "same" = "misma"
 "inboundData" = "Datos de entrada"
-"copyToClipboard" = "Copiar al portapapeles"
+"exportInbound" = "Exportación entrante"
 "import" = "Importar"
 "importInbound" = "Importar un entrante"
 

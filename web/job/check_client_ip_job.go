@@ -16,17 +16,18 @@ import (
 	"x-ui/xray"
 )
 
-type CheckClientIpJob struct{}
+type CheckClientIpJob struct {
+	disAllowedIps []string
+}
 
 var job *CheckClientIpJob
-var disAllowedIps []string
 var ipFiles = []string{
 	xray.GetIPLimitLogPath(),
-xray.GetIPLimitPrevLogPath(),
+	xray.GetIPLimitPrevLogPath(),
 	xray.GetIPLimitBannedLogPath(),
-xray.GetIPLimitBannedPrevLogPath(),
+	xray.GetIPLimitBannedPrevLogPath(),
 	xray.GetAccessPersistentLogPath(),
-xray.GetAccessPersistentPrevLogPath(),
+	xray.GetAccessPersistentPrevLogPath(),
 }
 
 func NewCheckClientIpJob() *CheckClientIpJob {
@@ -130,7 +131,6 @@ func (j *CheckClientIpJob) processLogFile() {
 		}
 	}
 
-	disAllowedIps = []string{}
 	shouldCleanLog := false
 
 	for clientEmail, ips := range InboundClientIps {
@@ -237,6 +237,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
 	shouldCleanLog := false
+	j.disAllowedIps = []string{}
 
 	// create iplimit log file channel
 	logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
@@ -255,7 +256,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 				shouldCleanLog = true
 
 				if limitIp < len(ips) && inbound.Enable {
-					disAllowedIps = append(disAllowedIps, ips[limitIp:]...)
+					j.disAllowedIps = append(j.disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
 						log.Printf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
 					}
@@ -263,8 +264,12 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 			}
 		}
 	}
-	logger.Debug("disAllowedIps ", disAllowedIps)
-	sort.Strings(disAllowedIps)
+
+	sort.Strings(j.disAllowedIps)
+
+	if len(j.disAllowedIps) > 0 {
+		logger.Debug("disAllowedIps ", j.disAllowedIps)
+	}
 
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error

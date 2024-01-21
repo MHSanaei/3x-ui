@@ -178,7 +178,7 @@
 "info" = "Info"
 "same" = "Same"
 "inboundData" = "Inbound's Data"
-"copyToClipboard" = "Copy to Clipboard"
+"exportInbound" = "Export Inbound"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
 
