@@ -970,6 +970,7 @@ iplimit_main() {
         confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
         if [[ $? == 0 ]]; then
             fail2ban-client reload --restart --unban 3x-ipl
+            truncate -s 0 "${iplimit_banned_log_path}"
             echo -e "${green}All users Unbanned successfully.${plain}"
             iplimit_main
         else
