@@ -178,7 +178,7 @@
 "info" = "Thông tin"
 "same" = "Giống nhau"
 "inboundData" = "Dữ liệu gửi đến"
-"copyToClipboard" = "Sao chép vào bảng nhớ tạm"
+"exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
 

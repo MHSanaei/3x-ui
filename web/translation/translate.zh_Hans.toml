@@ -178,7 +178,7 @@
 "info" = "信息"
 "same" = "相同"
 "inboundData" = "入站数据"
-"copyToClipboard" = "复制到剪贴板"
+"exportInbound" = "出口 入境"
 "import"="导入"
 "importInbound" = "导入入站"
 

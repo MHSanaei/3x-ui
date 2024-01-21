@@ -178,7 +178,7 @@
 "info" = "اطلاعات"
 "same" = "همسان"
 "inboundData" = "داده‌های ورودی"
-"copyToClipboard" = "کپی در حافظه"
+"exportInbound" = "استخراج ورودی"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
 
