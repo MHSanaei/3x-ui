@@ -74,9 +74,9 @@
 
 [pages.index]
 "title" = "Trạng thái hệ thống"
-"memory" = "Bộ nhớ"
+"memory" = "Ram"
 "hard" = "Dung lượng"
-"xrayStatus" = "Trạng thái"
+"xrayStatus" = "Trạng thái Xray"
 "stopXray" = "Dừng lại"
 "restartXray" = "Khởi động lại"
 "xraySwitch" = "Phiên bản"
@@ -178,7 +178,7 @@
 "info" = "Thông tin"
 "same" = "Giống nhau"
 "inboundData" = "Dữ liệu gửi đến"
-"copyToClipboard" = "Sao chép vào bảng nhớ tạm"
+"exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
 "isGroupEdit" = "Chỉnh sửa nhóm"
