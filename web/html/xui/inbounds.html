@@ -894,7 +894,7 @@
                 clientModal.show({
                     title: '{{ i18n "pages.client.groupAdd"}}',
                     okText: '{{ i18n "pages.client.submitAdd"}}',
-                    dbInbound: this.dbInbounds,
+                    dbInbounds: this.dbInbounds,
                     confirm: async (clients, dbInboundIds) => {
                         clientModal.loading();
                         await this.addGroupClient(clients, dbInboundIds);
@@ -939,6 +939,7 @@
                 clientModal.show({
                     title: '{{ i18n "pages.client.edit"}}',
                     okText: '{{ i18n "pages.client.submitEdit"}}',
+                    dbInbounds: this.dbInbounds,
                     dbInbound: dbInbound,
                     index: index,
                     confirm: async (client, dbInboundId, clientId) => {
@@ -958,10 +959,10 @@
                 }
             },
             async addClient(clients, dbInboundId) {
-                const data = [{
+                const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
-                }];
+                };
 
                 await this.submit(`/panel/inbound/addClient`, data, true)
             },
@@ -975,14 +976,28 @@
                     })
                 })
 
-                await this.submit(`/panel/inbound/addClient`, data, true)
+                await this.submit(`/panel/inbound/addGroupClient`, data, true)
             },
             async updateClient(client, dbInboundId, clientId) {
-                const data = {
-                    id: dbInboundId,
-                    settings: '{"clients": [' + client.toString() + ']}',
-                };
-                await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
+                if (Array.isArray(client) && Array.isArray(dbInboundId) && Array.isArray(clientId)){
+                    const data = []
+                    client.forEach((client, index) => {
+                        data.push({
+                            clientId: clientId[index],
+                            inbound: {
+                                id: dbInboundId[index],
+                                settings: '{"clients": [' + client.toString() + ']}',
+                            }
+                        })
+                    })
+                    await this.submit(`/panel/inbound/updateClients`, data, true);
+                }else{
+                    const data = {
+                        id: dbInboundId,
+                        settings: '{"clients": [' + client.toString() + ']}',
+                    };
+                    await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
+                }
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);

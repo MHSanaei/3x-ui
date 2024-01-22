@@ -181,6 +181,8 @@
 "exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
+"isGroupEdit" = "Chỉnh sửa nhóm"
+"isGroupEditDesc" = "Tất cả người dùng có cùng đăng ký đều được chỉnh sửa"
 
 [pages.client]
 "add" = "Thêm người dùng"
