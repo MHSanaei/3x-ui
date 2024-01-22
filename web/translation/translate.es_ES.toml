@@ -181,6 +181,8 @@
 "copyToClipboard" = "Copiar al portapapeles"
 "import" = "Importar"
 "importInbound" = "Importar un entrante"
+"isGroupEdit" = "Edición de grupo"
+"isGroupEditDesc" = "Se editan todos los usuarios con la misma suscripción"
 
 [pages.client]
 "add" = "Agregar Cliente"

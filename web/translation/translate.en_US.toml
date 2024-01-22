@@ -181,6 +181,8 @@
 "copyToClipboard" = "Copy to Clipboard"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
+"isGroupEdit" = "Group editing"
+"isGroupEditDesc" = "All clients with the same subscription are edited"
 
 [pages.client]
 "add" = "Add Client"

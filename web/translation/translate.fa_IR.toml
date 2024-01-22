@@ -181,6 +181,8 @@
 "copyToClipboard" = "کپی در حافظه"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
+"isGroupEdit" = "ویرایش گروهی"
+"isGroupEditDesc" = "تمامی کاربران با سابسکریپشن یکسان ویرایش می‌شوند"
 
 [pages.client]
 "add" = "کاربر جدید"
