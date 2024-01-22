@@ -181,6 +181,8 @@
 "exportInbound" = "出口 入境"
 "import"="导入"
 "importInbound" = "导入入站"
+"isGroupEdit" = "分组编辑"
+"isGroupEditDesc" = "编辑具有相同订阅的所有用户"
 
 [pages.client]
 "add" = "添加客户端"
