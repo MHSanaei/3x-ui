@@ -1243,7 +1243,7 @@
                     value: '',
                     okText: '{{ i18n "pages.inbounds.import" }}',
                     confirm: async (dbInboundText) => {
-                        await this.submit('/panel/inbound/import', {data: dbInboundText}, promptModal);
+                        await this.submit('/panel/inbound/import', {data: dbInboundText});
                         promptModal.close();
                     },
                 });
