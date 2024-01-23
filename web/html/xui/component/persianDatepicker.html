@@ -3,7 +3,7 @@
     <div>
         <a-input :value="value" type="text" v-model="date" data-jdp class="persian-datepicker"
                  @input="$emit('input', convertToGregorian($event.target.value)); jalaliDatepicker.hide();"
-                 placeholder="انتخاب تاریخ">
+                 :placeholder="placeholder">
             <template #addonAfter>
                 <a-icon type="calendar" style="font-size: 16px;"/>
             </template>
@@ -21,7 +21,7 @@
     const persianDatepicker = {};
 
     Vue.component('persian-datepicker', {
-        props: ['dropdown-class-name', 'format', 'value'],
+        props: ['placeholder', 'format', 'value'],
         template: `{{template "component/persianDatepickerTemplate"}}`,
         data() {
             return {
@@ -48,7 +48,7 @@
             listenToDatepicker() {
                 jalaliDatepicker.startWatch({
                     time: true,
-                    container: '.ant-modal-wrap',
+                    zIndex: '9999',
                     hideAfterChange: true,
                     useDropDownYears: false,
                     changeMonthRotateYear: true,

@@ -11,6 +11,7 @@
   function createThemeSwitcher() {
     const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
     const theme = isDarkTheme ? 'dark' : 'light';
+    document.querySelector('body').setAttribute('class', theme)
     return {
       isDarkTheme,
       get currentTheme() {
@@ -19,6 +20,7 @@
       toggleTheme() {
         this.isDarkTheme = !this.isDarkTheme;
         localStorage.setItem('dark-mode', this.isDarkTheme);
+        document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light')
       },
     };
   }
