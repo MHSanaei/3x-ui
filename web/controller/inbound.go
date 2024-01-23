@@ -162,10 +162,8 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 }
 
 func (a *InboundController) addInboundClient(c *gin.Context) {
-	var requestData []model.Inbound
-
-    err := c.ShouldBindJSON(&requestData)
-
+	data := &model.Inbound{}
+    err := c.ShouldBind(data)
     if err != nil {
         jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
         return
@@ -173,20 +171,15 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 
     needRestart := true
 
-    for _, data := range requestData {
-
-        needRestart, err = a.inboundService.AddInboundClient(&data)
-        if err != nil {
-            jsonMsg(c, "Something went wrong!", err)
-            return
-        }
+    needRestart, err = a.inboundService.AddInboundClient(data)
+    if err != nil {
+        jsonMsg(c, "Something went wrong!", err)
+        return
     }
-
     jsonMsg(c, "Client(s) added", nil)
     if err == nil && needRestart {
         a.xrayService.SetToNeedRestart()
     }
-
 }
 
 func (a *InboundController) addGroupInboundClient(c *gin.Context) {
