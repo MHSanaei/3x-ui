@@ -251,6 +251,7 @@
 "pageSizeDesc" = "(اندازه صفحه برای جدول ورودی‌ها.(0 = غیرفعال"
 "remarkModel" = "نام‌کانفیگ و جداکننده"
 "datepicker" = "نوع تقویم"
+"datepickerPlaceholder" = "انتخاب تاریخ"
 "datepickerDescription" = "وظایف برنامه ریزی شده بر اساس این تقویم اجرا می‌شود"
 "sampleRemark" = "نمونه‌نام"
 "oldUsername" = "نام‌کاربری فعلی"
