@@ -251,6 +251,7 @@
 "pageSizeDesc" = "Xác định kích thước trang cho bảng gửi đến. Đặt 0 để tắt"
 "remarkModel" = "Ghi chú mô hình và ký tự phân tách"
 "datepicker" = "Kiểu lịch"
+"datepickerPlaceholder" = "Chọn ngày"
 "datepickerDescription" = "Tác vụ chạy theo lịch trình sẽ chạy theo kiểu lịch này."
 "sampleRemark" = "Nhận xét mẫu"
 "oldUsername" = "Tên người dùng hiện tại"
