@@ -964,7 +964,7 @@
                     settings: '{"clients": [' + clients.toString() + ']}',
                 };
 
-                await this.submit(`/panel/inbound/addClient`, data, true)
+                await this.submit(`/panel/inbound/addClient`, data)
             },
 
             async addGroupClient(clients, dbInboundIds) {
