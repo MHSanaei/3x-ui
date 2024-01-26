@@ -181,12 +181,9 @@
 "exportInbound" = "Export Inbound"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
-"isGroupEdit" = "Group editing"
-"isGroupEditDesc" = "All clients with the same subscription are edited"
 
 [pages.client]
 "add" = "Add Client"
-"groupAdd" = "Add subscription user"
 "edit" = "Edit Client"
 "submitAdd" = "Add Client"
 "submitEdit" = "Save Changes"

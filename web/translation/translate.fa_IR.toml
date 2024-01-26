@@ -181,12 +181,9 @@
 "exportInbound" = "استخراج ورودی"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
-"isGroupEdit" = "ویرایش گروهی"
-"isGroupEditDesc" = "تمامی کاربران با سابسکریپشن یکسان ویرایش می‌شوند"
 
 [pages.client]
 "add" = "کاربر جدید"
-"groupAdd" = "کاربر جدید سابسکریپشن"
 "edit" = "ویرایش کاربر"
 "submitAdd" = "اضافه کردن"
 "submitEdit" = "ذخیره تغییرات"

@@ -1,7 +1,6 @@
 package controller
 
 import (
-    "errors"
 	"encoding/json"
 	"fmt"
 	"strconv"
@@ -33,9 +32,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
-	g.POST("/addGroupClient", a.addGroupInboundClient)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
-	g.POST("/updateClients", a.updateGroupInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
@@ -163,51 +160,23 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 
 func (a *InboundController) addInboundClient(c *gin.Context) {
 	data := &model.Inbound{}
-    err := c.ShouldBind(data)
-    if err != nil {
-        jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
-        return
-    }
+	err := c.ShouldBind(data)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
+		return
+	}
 
-    needRestart := true
+	needRestart := true
 
-    needRestart, err = a.inboundService.AddInboundClient(data)
-    if err != nil {
-        jsonMsg(c, "Something went wrong!", err)
-        return
-    }
-    jsonMsg(c, "Client(s) added", nil)
-    if err == nil && needRestart {
-        a.xrayService.SetToNeedRestart()
-    }
-}
-
-func (a *InboundController) addGroupInboundClient(c *gin.Context) {
-	var requestData []model.Inbound
-
-    err := c.ShouldBindJSON(&requestData)
-
-    if err != nil {
-        jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
-        return
-    }
-
-    needRestart := true
-
-    for _, data := range requestData {
-
-        needRestart, err = a.inboundService.AddInboundClient(&data)
-        if err != nil {
-            jsonMsg(c, "Something went wrong!", err)
-            return
-        }
-    }
-
-    jsonMsg(c, "Client(s) added", nil)
-    if err == nil && needRestart {
-        a.xrayService.SetToNeedRestart()
-    }
-
+	needRestart, err = a.inboundService.AddInboundClient(data)
+	if err != nil {
+		jsonMsg(c, "Something went wrong!", err)
+		return
+	}
+	jsonMsg(c, "Client(s) added", nil)
+	if err == nil && needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
 }
 
 func (a *InboundController) delInboundClient(c *gin.Context) {
@@ -252,56 +221,6 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 	if err == nil && needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-}
-
-func (a *InboundController) updateGroupInboundClient(c *gin.Context) {
-    var requestData []map[string]interface{}
-
-    if err := c.ShouldBindJSON(&requestData); err != nil {
-        jsonMsg(c, I18nWeb(c, "pages.inbounds.update"), err)
-        return
-    }
-
-    needRestart := false
-
-    for _, item := range requestData {
-
-        inboundMap, ok := item["inbound"].(map[string]interface{})
-        if !ok {
-            jsonMsg(c, "Something went wrong!", errors.New("Failed to convert 'inbound' to map"))
-            return
-        }
-
-        clientId, ok := item["clientId"].(string)
-        if !ok {
-            jsonMsg(c, "Something went wrong!", errors.New("Failed to convert 'clientId' to string"))
-            return
-        }
-
-        inboundJSON, err := json.Marshal(inboundMap)
-        if err != nil {
-            jsonMsg(c, "Something went wrong!", err)
-            return
-        }
-
-        var inboundModel model.Inbound
-        if err := json.Unmarshal(inboundJSON, &inboundModel); err != nil {
-            jsonMsg(c, "Something went wrong!", err)
-            return
-        }
-
-        if restart, err := a.inboundService.UpdateInboundClient(&inboundModel, clientId); err != nil {
-            jsonMsg(c, "Something went wrong!", err)
-            return
-        } else {
-            needRestart = needRestart || restart
-        }
-    }
-
-    jsonMsg(c, "Client updated", nil)
-    if needRestart {
-        a.xrayService.SetToNeedRestart()
-    }
 }
 
 func (a *InboundController) resetClientTraffic(c *gin.Context) {
