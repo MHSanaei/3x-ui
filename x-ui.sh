@@ -806,34 +806,6 @@ warp_cloudflare() {
     esac
 }
 
-multi_protocol() {
-    echo "This script only supports Vless and Vmess. if you use another protocols, DON'T INSTALL or get backup first! "
-    echo -e "${green}\t1.${plain} Install Multi Protocol Script"
-    echo -e "${green}\t2.${plain} Uninstall"
-    echo -e "${green}\t3.${plain} Start Service"
-    echo -e "${green}\t4.${plain} Stop Service"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
-    case "$choice" in
-    0)
-        show_menu
-        ;;
-    1)
-        bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/install.sh --ipv4)
-        ;;
-    2)
-        bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/unistall.sh --ipv4)
-        ;;
-    3)
-        systemctl start 3xui-multi-protocol
-        ;;
-    4)
-        systemctl stop 3xui-multi-protocol
-        ;;
-    *) echo "Invalid choice" ;;
-    esac
-}
-
 run_speedtest() {
     # Check if Speedtest is already installed
     if ! command -v speedtest &>/dev/null; then
@@ -1145,22 +1117,21 @@ show_menu() {
   ${green}12.${plain} Check Status
   ${green}13.${plain} Check Logs
 ————————————————
-  ${green}14.${plain} Enable x-ui On System Startup
-  ${green}15.${plain} Disable x-ui On System Startup
+  ${green}14.${plain} Enable Autostart
+  ${green}15.${plain} Disable Autostart
 ————————————————
   ${green}16.${plain} SSL Certificate Management
   ${green}17.${plain} Cloudflare SSL Certificate
   ${green}18.${plain} IP Limit Management
   ${green}19.${plain} WARP Management
-  ${green}20.${plain} Multi Protocol Management
 ————————————————
-  ${green}21.${plain} Enable BBR 
-  ${green}22.${plain} Update Geo Files
-  ${green}23.${plain} Active Firewall and open ports
-  ${green}24.${plain} Speedtest by Ookla
+  ${green}20.${plain} Enable BBR 
+  ${green}21.${plain} Update Geo Files
+  ${green}22.${plain} Active Firewall and open ports
+  ${green}23.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-24]: " num
+    echo && read -p "Please enter your selection [0-23]: " num
 
     case "${num}" in
     0)
@@ -1224,22 +1195,19 @@ show_menu() {
         warp_cloudflare
         ;;
     20)
-        multi_protocol
-        ;;
-    21)
         enable_bbr
         ;;
-    22)
+    21)
         update_geo
         ;;
-    23)
+    22)
         open_ports
         ;;
-    24)
+    23)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-24]"
+        LOGE "Please enter the correct number [0-23]"
         ;;
     esac
 }
