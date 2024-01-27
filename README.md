@@ -106,10 +106,19 @@ systemctl restart x-ui
 update to latest version
 
    ```sh
-   cd 3x-ui
-   docker compose down
-   docker compose pull 3x-ui
-   docker compose up -d
+    cd 3x-ui
+    docker compose down
+    docker compose pull 3x-ui
+    docker compose up -d
+   ```
+
+remove 3x-ui from docker 
+
+   ```sh
+    docker stop 3x-ui
+    docker rm 3x-ui
+    cd --
+    rm -r 3x-ui
    ```
 
 </details>
