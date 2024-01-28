@@ -54,11 +54,11 @@
 "security" = "Security"
 
 [menu]
-"dashboard" = "OVERVIEW"
-"inbounds" = "INBOUNDS"
-"settings" = "PANEL SETTINGS"
-"xray" = "XRAY CONFIGS"
-"logout" = "LOG OUT"
+"dashboard" = "Overview"
+"inbounds" = "Inbounds"
+"settings" = "Panel Settings"
+"xray" = "Xray Configs"
+"logout" = "Log Out"
 "link" = "Manage"
 
 [pages.login]
@@ -178,7 +178,7 @@
 "info" = "Info"
 "same" = "Same"
 "inboundData" = "Inbound's Data"
-"copyToClipboard" = "Copy to Clipboard"
+"exportInbound" = "Export Inbound"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
 
@@ -248,6 +248,7 @@
 "pageSizeDesc" = "Define page size for inbounds table. (0 = disable)"
 "remarkModel" = "Remark Model & Separation Character"
 "datepicker" = "Calendar Type"
+"datepickerPlaceholder" = "Select date"
 "datepickerDescription" = "Scheduled tasks will run based on this calendar."
 "sampleRemark" = "Sample Remark"
 "oldUsername" = "Current Username"
@@ -319,7 +320,7 @@
 "ipv4Configs" = "IPv4 Routing"
 "ipv4ConfigsDesc" = "These options will route traffic based on a specific destination via IPv4."
 "warpConfigs" = "WARP Routing"
-"warpConfigsDesc" = "These options will route traffic based on a specific destination via WARP. (follow the guide on the Panel’s GitHub)"
+"warpConfigsDesc" = "These options will route traffic based on a specific destination via WARP."
 "Template" = "Advanced Xray Configuration Template"
 "TemplateDesc" = "The final Xray config file will be generated based on this template."
 "FreedomStrategy" = "Freedom Protocol Strategy"

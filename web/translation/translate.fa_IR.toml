@@ -178,7 +178,7 @@
 "info" = "اطلاعات"
 "same" = "همسان"
 "inboundData" = "داده‌های ورودی"
-"copyToClipboard" = "کپی در حافظه"
+"exportInbound" = "استخراج ورودی"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
 
@@ -248,6 +248,7 @@
 "pageSizeDesc" = "(اندازه صفحه برای جدول ورودی‌ها.(0 = غیرفعال"
 "remarkModel" = "نام‌کانفیگ و جداکننده"
 "datepicker" = "نوع تقویم"
+"datepickerPlaceholder" = "انتخاب تاریخ"
 "datepickerDescription" = "وظایف برنامه ریزی شده بر اساس این تقویم اجرا می‌شود"
 "sampleRemark" = "نمونه‌نام"
 "oldUsername" = "نام‌کاربری فعلی"

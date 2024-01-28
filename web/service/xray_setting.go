@@ -80,7 +80,7 @@ func (s *XraySettingService) RegWarp(secretKey string, publicKey string) (string
 	hostName, _ := os.Hostname()
 	data := fmt.Sprintf(`{"key":"%s","tos":"%s","type": "PC","model": "x-ui", "name": "%s"}`, publicKey, tos, hostName)
 
-	url := fmt.Sprintf("https://api.cloudflareclient.com/v0a2158/reg")
+	url := "https://api.cloudflareclient.com/v0a2158/reg"
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte(data)))
 	if err != nil {

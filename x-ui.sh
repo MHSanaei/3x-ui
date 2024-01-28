@@ -70,12 +70,10 @@ elif [[ "${release}" == "armbian" ]]; then
     echo "Your OS is Armbian"
 fi
 
-
 # Declare Variables
 log_folder="${XUI_LOG_FOLDER:=/var/log}"
 iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
-
 
 confirm() {
     if [[ $# > 1 ]]; then
@@ -140,7 +138,7 @@ custom_version() {
 
     if [ -z "$panel_version" ]; then
         echo "Panel version cannot be empty. Exiting."
-    exit 1
+        exit 1
     fi
 
     download_link="https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh"
@@ -329,15 +327,15 @@ show_log() {
 }
 
 show_banlog() {
-  if test -f "${iplimit_banned_log_path}"; then
-    if [[ -s "${iplimit_banned_log_path}" ]]; then
-      cat ${iplimit_banned_log_path}
+    if test -f "${iplimit_banned_log_path}"; then
+        if [[ -s "${iplimit_banned_log_path}" ]]; then
+            cat ${iplimit_banned_log_path}
+        else
+            echo -e "${red}Log file is empty.${plain}\n"
+        fi
     else
-      echo -e "${red}Log file is empty.${plain}\n"  
+        echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
     fi
-  else
-    echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
-  fi
 }
 
 enable_bbr() {
@@ -348,19 +346,19 @@ enable_bbr() {
 
     # Check the OS and install necessary packages
     case "${release}" in
-        ubuntu|debian)
-            apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
-            ;;
-        centos|almalinux|rocky)
-            yum -y update && yum -y install ca-certificates
-            ;;
-        fedora)
-            dnf -y update && dnf -y install ca-certificates
-            ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1
-            ;;
+    ubuntu | debian)
+        apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
+        ;;
+    centos | almalinux | rocky)
+        yum -y update && yum -y install ca-certificates
+        ;;
+    fedora)
+        dnf -y update && dnf -y install ca-certificates
+        ;;
+    *)
+        echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+        exit 1
+        ;;
     esac
 
     # Enable BBR
@@ -581,21 +579,24 @@ ssl_cert_issue_main() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
-        0)
-            show_menu ;;
-        1) 
-            ssl_cert_issue ;;
-        2) 
-            local domain=""
-            read -p "Please enter your domain name to revoke the certificate: " domain
-            ~/.acme.sh/acme.sh --revoke -d ${domain}
-            LOGI "Certificate revoked"
-            ;;
-        3)
-            local domain=""
-            read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
-            ~/.acme.sh/acme.sh --renew -d ${domain} --force ;;
-        *) echo "Invalid choice" ;;
+    0)
+        show_menu
+        ;;
+    1)
+        ssl_cert_issue
+        ;;
+    2)
+        local domain=""
+        read -p "Please enter your domain name to revoke the certificate: " domain
+        ~/.acme.sh/acme.sh --revoke -d ${domain}
+        LOGI "Certificate revoked"
+        ;;
+    3)
+        local domain=""
+        read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
+        ~/.acme.sh/acme.sh --renew -d ${domain} --force
+        ;;
+    *) echo "Invalid choice" ;;
     esac
 }
 
@@ -611,15 +612,19 @@ ssl_cert_issue() {
     fi
     # install socat second
     case "${release}" in
-        ubuntu|debian|armbian)
-            apt update && apt install socat -y ;;
-        centos|almalinux|rocky)
-            yum -y update && yum -y install socat ;;
-        fedora)
-            dnf -y update && dnf -y install socat ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1 ;;
+    ubuntu | debian | armbian)
+        apt update && apt install socat -y
+        ;;
+    centos | almalinux | rocky)
+        yum -y update && yum -y install socat
+        ;;
+    fedora)
+        dnf -y update && dnf -y install socat
+        ;;
+    *)
+        echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+        exit 1
+        ;;
     esac
     if [ $? -ne 0 ]; then
         LOGE "install socat failed, please check logs"
@@ -750,8 +755,8 @@ ssl_cert_issue_CF() {
             LOGI "Certificate issued Successfully, Installing..."
         fi
         ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} --ca-file /root/cert/ca.cer \
-        --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
-        --fullchain-file /root/cert/fullchain.cer
+            --cert-file /root/cert/${CF_Domain}.cer --key-file /root/cert/${CF_Domain}.key \
+            --fullchain-file /root/cert/fullchain.cer
         if [ $? -ne 0 ]; then
             LOGE "Certificate installation failed, script exiting..."
             exit 1
@@ -782,72 +787,46 @@ warp_cloudflare() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
-        0)
-            show_menu ;;
-        1) 
-            bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
-            ;;
-        2) 
-            warp a
-            ;;
-        3)
-            warp y
-            ;;
-        4)
-            warp u
-            ;;
-        *) echo "Invalid choice" ;;
-    esac
-}
-
-multi_protocol() {
-    echo "This script only supports Vless and Vmess. if you use another protocols, DON'T INSTALL or get backup first! "
-    echo -e "${green}\t1.${plain} Install Multi Protocol Script"
-    echo -e "${green}\t2.${plain} Uninstall"
-    echo -e "${green}\t3.${plain} Start Service"
-    echo -e "${green}\t4.${plain} Stop Service"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
-    case "$choice" in
-        0)
-            show_menu ;;
-        1) 
-            bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/install.sh --ipv4)
-            ;;
-        2) 
-            bash <(curl -Ls https://raw.githubusercontent.com/M4mmad/3xui-multi-protocol/master/unistall.sh --ipv4)
-            ;;
-        3)
-            systemctl start 3xui-multi-protocol
-            ;;
-        4)
-            systemctl stop 3xui-multi-protocol
-            ;;
-        *) echo "Invalid choice" ;;
+    0)
+        show_menu
+        ;;
+    1)
+        bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
+        ;;
+    2)
+        warp a
+        ;;
+    3)
+        warp y
+        ;;
+    4)
+        warp u
+        ;;
+    *) echo "Invalid choice" ;;
     esac
 }
 
 run_speedtest() {
     # Check if Speedtest is already installed
-    if ! command -v speedtest &> /dev/null; then
+    if ! command -v speedtest &>/dev/null; then
         # If not installed, install it
         local pkg_manager=""
         local speedtest_install_script=""
-        
-        if command -v dnf &> /dev/null; then
+
+        if command -v dnf &>/dev/null; then
             pkg_manager="dnf"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v yum &> /dev/null; then
+        elif command -v yum &>/dev/null; then
             pkg_manager="yum"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v apt-get &> /dev/null; then
+        elif command -v apt-get &>/dev/null; then
             pkg_manager="apt-get"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
-        elif command -v apt &> /dev/null; then
+        elif command -v apt &>/dev/null; then
             pkg_manager="apt"
             speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
         fi
-        
+
         if [[ -z $pkg_manager ]]; then
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
@@ -862,8 +841,11 @@ run_speedtest() {
 }
 
 create_iplimit_jails() {
-    # Use default bantime if not passed => 5 minutes
-    local bantime="${1:-5}"
+    # Use default bantime if not passed => 30 minutes
+    local bantime="${1:-30}"
+
+    # Uncomment 'allowipv6 = auto' in fail2ban.conf
+    sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
     cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
 [3x-ipl]
@@ -907,7 +889,7 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
 [Init]
 EOF
 
-    echo -e "${green}Created Ip Limit jail files with a bantime of ${bantime} minutes.${plain}"
+    echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
 }
 
 iplimit_remove_conflicts() {
@@ -935,62 +917,80 @@ iplimit_main() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
-        0)
-            show_menu ;;
-        1)
-            confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
-            if [[ $? == 0 ]]; then
-                install_iplimit
-            else
-                iplimit_main
-            fi ;;
-        2)
-            read -rp "Please enter new Ban Duration in Minutes [default 5]: " NUM
-            if [[ $NUM =~ ^[0-9]+$ ]]; then
-                create_iplimit_jails ${NUM}
-                systemctl restart fail2ban
-            else
-                echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
-            fi
-            iplimit_main ;;
-        3)
-            confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
-            if [[ $? == 0 ]]; then
-                fail2ban-client reload --restart --unban 3x-ipl
-                echo -e "${green}All users Unbanned successfully.${plain}"
-                iplimit_main
-            else
-                echo -e "${yellow}Cancelled.${plain}"
-            fi
-            iplimit_main ;;
-        4)
-            show_banlog
-            ;;
-        5)
-            service fail2ban status
-            ;;
+    0)
+        show_menu
+        ;;
+    1)
+        confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
+        if [[ $? == 0 ]]; then
+            install_iplimit
+        else
+            iplimit_main
+        fi
+        ;;
+    2)
+        read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
+        if [[ $NUM =~ ^[0-9]+$ ]]; then
+            create_iplimit_jails ${NUM}
+            systemctl restart fail2ban
+        else
+            echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
+        fi
+        iplimit_main
+        ;;
+    3)
+        confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
+        if [[ $? == 0 ]]; then
+            fail2ban-client reload --restart --unban 3x-ipl
+            truncate -s 0 "${iplimit_banned_log_path}"
+            echo -e "${green}All users Unbanned successfully.${plain}"
+            iplimit_main
+        else
+            echo -e "${yellow}Cancelled.${plain}"
+        fi
+        iplimit_main
+        ;;
+    4)
+        show_banlog
+        ;;
+    5)
+        service fail2ban status
+        ;;
 
-        6)
-            remove_iplimit ;;
-        *) echo "Invalid choice" ;;
+    6)
+        remove_iplimit
+        ;;
+    *) echo "Invalid choice" ;;
     esac
 }
 
 install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+
         # Check the OS and install necessary packages
         case "${release}" in
-            ubuntu|debian)
-                apt update && apt install fail2ban -y ;;
-            centos|almalinux|rocky)
-                yum -y update && yum -y install fail2ban ;;
-            fedora)
-                dnf -y update && dnf -y install fail2ban ;;
-            *)
-                echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-                exit 1 ;;
+        ubuntu | debian)
+            apt update && apt install fail2ban -y
+            ;;
+        centos | almalinux | rocky)
+            yum update -y && yum install epel-release -y
+            yum -y install fail2ban
+            ;;
+        fedora)
+            dnf -y update && dnf -y install fail2ban
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1
+            ;;
         esac
+
+        if ! command -v fail2ban-client &>/dev/null; then
+            echo -e "${red}Fail2ban installation failed.${plain}\n"
+            exit 1
+        fi
+
         echo -e "${green}Fail2ban installed successfully!${plain}\n"
     else
         echo -e "${yellow}Fail2ban is already installed.${plain}\n"
@@ -1018,6 +1018,7 @@ install_iplimit() {
     # Launching fail2ban
     if ! systemctl is-active --quiet fail2ban; then
         systemctl start fail2ban
+        systemctl enable fail2ban
     else
         systemctl restart fail2ban
     fi
@@ -1027,41 +1028,53 @@ install_iplimit() {
     before_show_menu
 }
 
-remove_iplimit(){
+remove_iplimit() {
     echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
     echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
     echo -e "${green}\t0.${plain} Abort"
     read -p "Choose an option: " num
     case "$num" in
-        1) 
-            rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-            rm -f /etc/fail2ban/action.d/3x-ipl.conf
-            rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-            systemctl restart fail2ban
-            echo -e "${green}IP Limit removed successfully!${plain}\n"
-            before_show_menu ;;
-        2)  
-            rm -rf /etc/fail2ban
-            systemctl stop fail2ban
-            case "${release}" in
-                ubuntu|debian)
-                    apt-get purge fail2ban -y;;
-                centos|almalinux|rocky)
-                    yum remove fail2ban -y;;
-                fedora)
-                    dnf remove fail2ban -y;;
-                *)
-                    echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
-                    exit 1 ;;
-            esac
-            echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
-            before_show_menu ;;
-        0) 
-            echo -e "${yellow}Cancelled.${plain}\n"
-            iplimit_main ;;
-        *) 
-            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-            remove_iplimit ;;
+    1)
+        rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+        rm -f /etc/fail2ban/action.d/3x-ipl.conf
+        rm -f /etc/fail2ban/jail.d/3x-ipl.conf
+        systemctl restart fail2ban
+        echo -e "${green}IP Limit removed successfully!${plain}\n"
+        before_show_menu
+        ;;
+    2)
+        rm -rf /etc/fail2ban
+        systemctl stop fail2ban
+        case "${release}" in
+        ubuntu | debian)
+            apt-get remove -y fail2ban
+            apt-get purge -y fail2ban -y
+            apt-get autoremove -y
+            ;;
+        centos | almalinux | rocky)
+            yum remove fail2ban -y
+            yum autoremove -y
+            ;;
+        fedora)
+            dnf remove fail2ban -y
+            dnf autoremove -y
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
+            exit 1
+            ;;
+        esac
+        echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
+        before_show_menu
+        ;;
+    0)
+        echo -e "${yellow}Cancelled.${plain}\n"
+        iplimit_main
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        remove_iplimit
+        ;;
     esac
 }
 
@@ -1104,22 +1117,21 @@ show_menu() {
   ${green}12.${plain} Check Status
   ${green}13.${plain} Check Logs
 ————————————————
-  ${green}14.${plain} Enable x-ui On System Startup
-  ${green}15.${plain} Disable x-ui On System Startup
+  ${green}14.${plain} Enable Autostart
+  ${green}15.${plain} Disable Autostart
 ————————————————
   ${green}16.${plain} SSL Certificate Management
   ${green}17.${plain} Cloudflare SSL Certificate
   ${green}18.${plain} IP Limit Management
   ${green}19.${plain} WARP Management
-  ${green}20.${plain} Multi Protocol Management
 ————————————————
-  ${green}21.${plain} Enable BBR 
-  ${green}22.${plain} Update Geo Files
-  ${green}23.${plain} Active Firewall and open ports
-  ${green}24.${plain} Speedtest by Ookla
+  ${green}20.${plain} Enable BBR 
+  ${green}21.${plain} Update Geo Files
+  ${green}22.${plain} Active Firewall and open ports
+  ${green}23.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-24]: " num
+    echo && read -p "Please enter your selection [0-23]: " num
 
     case "${num}" in
     0)
@@ -1183,22 +1195,19 @@ show_menu() {
         warp_cloudflare
         ;;
     20)
-        multi_protocol
-        ;;
-    21)
         enable_bbr
         ;;
-    22)
+    21)
         update_geo
         ;;
-    23)
+    22)
         open_ports
         ;;
-    24)
+    23)
         run_speedtest
-        ;;    
+        ;;
     *)
-        LOGE "Please enter the correct number [0-24]"
+        LOGE "Please enter the correct number [0-23]"
         ;;
     esac
 }

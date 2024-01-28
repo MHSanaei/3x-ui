@@ -317,7 +317,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		oldInbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
 	}
 
-
 	needRestart := false
 	s.xrayApi.Init(p.GetAPIPort())
 	if s.xrayApi.DelInbound(tag) == nil {
@@ -507,6 +506,10 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		} else {
 			newClients = append(newClients, client)
 		}
+	}
+
+	if len(newClients) == 0 {
+		return false, common.NewError("no client remained in Inbound")
 	}
 
 	settings["clients"] = newClients

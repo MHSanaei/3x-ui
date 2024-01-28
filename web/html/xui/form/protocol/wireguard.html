@@ -32,10 +32,28 @@
             <a-icon v-if="inbound.settings.peers.length>1" type="delete" @click="() => inbound.settings.delPeer(index)"
                     style="color: rgb(255, 77, 79);cursor: pointer;"/>
         </a-divider>
-        <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "reset" }}</span>
+                    </template>
+                    {{ i18n "pages.xray.wireguard.publicKey" }}
+                    <a-icon @click="peer.publicKey = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
+                </a-tooltip>
+            </template>
             <a-input v-model.trim="peer.publicKey"></a-input>
         </a-form-item>
-        <a-form-item label='{{ i18n "pages.xray.wireguard.psk" }}'>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "reset" }}</span>
+                    </template>
+                    {{ i18n "pages.xray.wireguard.psk" }}
+                    <a-icon @click="peer.psk = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
+                </a-tooltip>
+            </template>
             <a-input v-model.trim="peer.psk"></a-input>
         </a-form-item>
         <a-form-item>
