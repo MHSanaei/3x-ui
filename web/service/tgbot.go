@@ -6,9 +6,9 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
-	"slices"
 	"time"
 	"x-ui/config"
 	"x-ui/database"
@@ -260,7 +260,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.unknown")
 	}
 
-	if msg != ""{
+	if msg != "" {
 		if onlyMessage {
 			t.SendMsgToTgbot(chatId, msg)
 			return
@@ -346,7 +346,7 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						tu.InlineKeyboardButton("40 GB").WithCallbackData(t.encodeQuery("limit_traffic_c "+email+" 40")),
 					),
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton("50 GB").WithCallbackData(t.encodeQuery("limit_traffic_c "+email+" 60")),
+						tu.InlineKeyboardButton("50 GB").WithCallbackData(t.encodeQuery("limit_traffic_c "+email+" 50")),
 						tu.InlineKeyboardButton("60 GB").WithCallbackData(t.encodeQuery("limit_traffic_c "+email+" 60")),
 						tu.InlineKeyboardButton("80 GB").WithCallbackData(t.encodeQuery("limit_traffic_c "+email+" 80")),
 					),
@@ -1022,7 +1022,7 @@ func (t *Tgbot) getInboundUsages() string {
 }
 
 func (t *Tgbot) clientInfoMsg(traffic *xray.ClientTraffic, printEnabled bool, printOnline bool, printActive bool,
-								printDate bool, printTraffic bool, printRefreshed bool) string {
+	printDate bool, printTraffic bool, printRefreshed bool) string {
 
 	now := time.Now().Unix()
 	expiryTime := ""
@@ -1380,7 +1380,6 @@ func (t *Tgbot) getExhausted(chatId int64) {
 	output += t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
 	output += t.I18nBot("tgbot.messages.disabled", "Disabled=="+strconv.Itoa(len(disabledClients)))
 	output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+strconv.Itoa(exhaustedCC))
-	
 
 	if exhaustedCC > 0 {
 		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.clients"))
@@ -1490,7 +1489,6 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	output := t.I18nBot("tgbot.messages.onlinesCount", "Count=="+fmt.Sprint(onlinesCount))
 	keyboard := tu.InlineKeyboard(tu.InlineKeyboardRow(
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines_refresh"))))
-	
 
 	if onlinesCount > 0 {
 		var buttons []telego.InlineKeyboardButton
