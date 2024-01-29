@@ -914,8 +914,8 @@ Outbound.HttpSettings = class extends CommonClass {
 
 Outbound.WireguardSettings = class extends CommonClass {
     constructor(
-            mtu=1420, secretKey=Wireguard.generateKeypair().privateKey,
-            address=[''], workers=2, domainStrategy='ForceIP', reserved='',
+            mtu=1420, secretKey='',
+            address=[''], workers=2, domainStrategy='', reserved='',
             peers=[new Outbound.WireguardSettings.Peer()], kernelMode=false) {
         super();
         this.mtu = mtu;
@@ -965,7 +965,7 @@ Outbound.WireguardSettings = class extends CommonClass {
 };
 
 Outbound.WireguardSettings.Peer = class extends CommonClass {
-    constructor(publicKey=Wireguard.generateKeypair().publicKey, psk='', allowedIPs=['0.0.0.0/0','::/0'], endpoint='', keepAlive=0) {
+    constructor(publicKey='', psk='', allowedIPs=['0.0.0.0/0','::/0'], endpoint='', keepAlive=0) {
         super();
         this.publicKey = publicKey;
         this.psk = psk;

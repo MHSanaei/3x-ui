@@ -30,6 +30,34 @@ To install your desired version, add the version to the end of the installation 
 ```
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.2
 ```
+
+## SSL Certificate
+
+<details>
+  <summary>Click for SSL Certificate</summary>
+
+### Cloudflare
+
+The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+
+- Cloudflare registered email
+- Cloudflare Global API Key
+- The domain name has been resolved to the current server through cloudflare
+
+**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+
+### Certbot
+```
+apt-get install certbot -y
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
+certbot renew --dry-run
+```
+
+***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+
+</details>
+
 ## Manual Install & Upgrade
 
 <details>
@@ -199,34 +227,6 @@ Supports a variety of different architectures and devices. Here are some of the 
 - **Web Panel Path w/ Deploying SSL:**
   - https://domain:2053/panel
  
-</details>
-
-
-## SSL Certificate
-
-<details>
-  <summary>Click for SSL Certificate</summary>
-
-### Cloudflare
-
-The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
-
-- Cloudflare registered email
-- Cloudflare Global API Key
-- The domain name has been resolved to the current server through cloudflare
-
-**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
-
-
-### Certbot
-```
-apt-get install certbot -y
-certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
-certbot renew --dry-run
-```
-
-***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
-
 </details>
 
 ## [WARP Configuration](https://gitlab.com/fscarmen/warp)
