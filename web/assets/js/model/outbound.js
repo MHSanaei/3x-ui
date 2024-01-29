@@ -861,13 +861,13 @@ Outbound.SocksSettings = class extends CommonClass {
     }
 
     static fromJson(json={}) {
-        servers = json.servers;
+        let servers = json.servers;
         if(ObjectUtil.isArrEmpty(servers)) servers=[{users: [{}]}];
         return new Outbound.SocksSettings(
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
+            ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].pass,
         );
     }
 
@@ -891,13 +891,13 @@ Outbound.HttpSettings = class extends CommonClass {
     }
 
     static fromJson(json={}) {
-        servers = json.servers;
+        let servers = json.servers;
         if(ObjectUtil.isArrEmpty(servers)) servers=[{users: [{}]}];
         return new Outbound.HttpSettings(
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
+            ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].pass,
         );
     }
 
