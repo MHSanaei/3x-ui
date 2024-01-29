@@ -341,8 +341,15 @@
                             </a-table>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
-                            <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
-                            <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
+                            <a-row>
+                                <a-col :xs="12" :sm="12" :lg="12">
+                                    <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                                    <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
+                                </a-col>
+                                <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
+                                    <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"/>
+                                </a-col>
+                            </a-row>
                             <a-table :columns="outboundColumns" bordered
                             :row-key="r => r.key"
                             :data-source="outboundData"
@@ -489,6 +496,7 @@
             inboundTags: [],
             outboundsTraffic: [],
             saveBtnDisable: true,
+            refreshing: false,
             restartResult: '',
             isMobile: window.innerWidth <= 768,
             advSettings: 'xraySetting',
@@ -834,6 +842,22 @@
                 outbounds = this.templateSettings.outbounds;
                 outbounds.splice(index,1);
                 this.outboundSettings = JSON.stringify(outbounds);
+            },
+            async refreshOutboundTraffic() {
+                if (!this.refreshing) {
+                    this.refreshing = true;
+                    await this.getOutboundsTraffic();
+
+                    data = []
+                    if (this.templateSettings != null) {
+                        this.templateSettings.outbounds.forEach((o, index) => {
+                            data.push({'key': index, ...o});
+                        });
+                    }
+
+                    this.outboundData = data;
+                    this.refreshing = false;
+                }
             },
             addReverse(){
                 reverseModal.show({
