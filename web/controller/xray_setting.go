@@ -10,6 +10,7 @@ type XraySettingController struct {
 	XraySettingService service.XraySettingService
 	SettingService     service.SettingService
 	InboundService     service.InboundService
+	OutboundService    service.OutboundService
 	XrayService        service.XrayService
 }
 
@@ -27,6 +28,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getXrayResult", a.getXrayResult)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.POST("/warp/:action", a.warp)
+	g.GET("/getOutboundsTraffic", a.getOutboundsTraffic)
 }
 
 func (a *XraySettingController) getXraySetting(c *gin.Context) {
@@ -83,4 +85,13 @@ func (a *XraySettingController) warp(c *gin.Context) {
 	}
 
 	jsonObj(c, resp, err)
+}
+
+func (a *XraySettingController) getOutboundsTraffic(c *gin.Context) {
+	outboundsTraffic, err := a.OutboundService.GetOutboundsTraffic()
+	if err != nil {
+		jsonMsg(c, "Error getting traffics", err)
+		return
+	}
+	jsonObj(c, outboundsTraffic, nil)
 }
