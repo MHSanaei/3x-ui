@@ -53,7 +53,7 @@ func initInbound() error {
 }
 
 func initOutbound() error {
-	return db.AutoMigrate(&model.Outbound{})
+	return db.AutoMigrate(&model.OutboundTraffics{})
 }
 
 func initSetting() error {

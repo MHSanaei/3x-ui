@@ -45,7 +45,7 @@ type Inbound struct {
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 }
 
-type Outbound struct {
+type OutboundTraffics struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	Tag   string `json:"tag" form:"tag" gorm:"unique"`
 	Up    int64  `json:"up" form:"up" gorm:"default:0"`

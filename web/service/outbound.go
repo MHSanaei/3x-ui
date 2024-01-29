@@ -3,6 +3,7 @@ package service
 import (
 	"x-ui/database"
 	"x-ui/database/model"
+	"x-ui/logger"
 	"x-ui/xray"
 
 	"gorm.io/gorm"
@@ -43,9 +44,9 @@ func (s *OutboundService) addOutboundTraffic(tx *gorm.DB, traffics []*xray.Traff
 	for _, traffic := range traffics {
 		if traffic.IsOutbound {
 
-			var outbound model.Outbound
+			var outbound model.OutboundTraffics
 
-			err = tx.Model(&model.Outbound{}).Where("tag = ?", traffic.Tag).
+			err = tx.Model(&model.OutboundTraffics{}).Where("tag = ?", traffic.Tag).
 				FirstOrCreate(&outbound).Error
 			if err != nil {
 				return err
@@ -63,4 +64,17 @@ func (s *OutboundService) addOutboundTraffic(tx *gorm.DB, traffics []*xray.Traff
 		}
 	}
 	return nil
+}
+
+func (s *OutboundService) GetOutboundsTraffic() ([]*model.OutboundTraffics, error) {
+	db := database.GetDB()
+	var traffics []*model.OutboundTraffics
+
+	err := db.Model(model.OutboundTraffics{}).Find(&traffics).Error
+	if err != nil {
+		logger.Warning(err)
+		return nil, err
+	}
+
+	return traffics, nil
 }
