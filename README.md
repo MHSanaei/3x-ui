@@ -287,7 +287,6 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
     "log": {
     "access": "./access.log",
     "dnsLog": false,
-    "error": "./error.log",
     "loglevel": "warning"
     },
   ```
