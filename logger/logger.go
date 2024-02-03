@@ -65,6 +65,16 @@ func Infof(format string, args ...interface{}) {
 	addToBuffer("INFO", fmt.Sprintf(format, args...))
 }
 
+func Notice(args ...interface{}) {
+	logger.Notice(args...)
+	addToBuffer("NOTICE", fmt.Sprint(args...))
+}
+
+func Noticef(format string, args ...interface{}) {
+	logger.Noticef(format, args...)
+	addToBuffer("NOTICE", fmt.Sprintf(format, args...))
+}
+
 func Warning(args ...interface{}) {
 	logger.Warning(args...)
 	addToBuffer("WARNING", fmt.Sprint(args...))
