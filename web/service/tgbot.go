@@ -115,14 +115,19 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 }
 
 func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
-	if proxyUrl == "" || !strings.HasPrefix(proxyUrl, "socks5://") {
-		logger.Warning("invalid socks5 url, start with default")
+	if proxyUrl == "" {
+		// No proxy URL provided, use default instance
+		return telego.NewBot(token)
+	}
+
+	if !strings.HasPrefix(proxyUrl, "socks5://") {
+		logger.Warning("Invalid socks5 URL, starting with default")
 		return telego.NewBot(token)
 	}
 
 	_, err := url.Parse(proxyUrl)
 	if err != nil {
-		logger.Warning("cant parse proxy url, use default instance for tgbot:", err)
+		logger.Warning("Can't parse proxy URL, using default instance for tgbot:", err)
 		return telego.NewBot(token)
 	}
 
