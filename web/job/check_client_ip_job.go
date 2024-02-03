@@ -94,8 +94,14 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() {
 
 func (j *CheckClientIpJob) processLogFile() {
 	accessLogPath := xray.GetAccessLogPath()
+
+	if accessLogPath == "none" {
+		logger.Warning("Access log is set to 'none' check your Xray Configs")
+		return
+	}
+
 	if accessLogPath == "" {
-		logger.Warning("access.log doesn't exist in your config.json")
+		logger.Warning("Access log doesn't exist in your Xray Configs")
 		return
 	}
 

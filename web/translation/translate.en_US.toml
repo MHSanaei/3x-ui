@@ -309,8 +309,8 @@
 "restart" = "Restart Xray"
 "basicTemplate" = "Basics"
 "advancedTemplate" = "Advanced"
-"generalConfigs" = "General Strategy"
-"generalConfigsDesc" = "These options will determine general strategy adjustments."
+"generalConfigs" = "General"
+"generalConfigsDesc" = "These options will determine general adjustments."
 "blockConfigs" = "Protection Shield"
 "blockConfigsDesc" = "These options will block traffic based on specific requested protocols and websites."
 "blockCountryConfigs" = "Block Country"
@@ -392,6 +392,10 @@
 "Routings" = "Routing Rules"
 "RoutingsDesc" = "The priority of each rule is important!"
 "completeTemplate" = "All"
+"logLevel" = "Log Level"
+"logLevelDesc" = "The log level for error logs, indicating the information that needs to be recorded."
+"accessLog" = "Access Log"
+"accessLogDesc" = "The file path for the access log. The special value 'none' disabled access logs"
 
 [pages.xray.rules]
 "first" = "First"

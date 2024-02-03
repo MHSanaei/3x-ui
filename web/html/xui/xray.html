@@ -147,6 +147,40 @@
                                             </template>
                                         </a-col>
                                     </a-row>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta 
+                                                title='{{ i18n "pages.xray.logLevel" }}'
+                                                description='{{ i18n "pages.xray.logLevelDesc" }}'/>
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select
+                                                    v-model="setLogLevel"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme"
+                                                    style="width: 100%">
+                                                    <a-select-option v-for="s in logLevel" :value="s">[[ s ]]</a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta 
+                                                title='{{ i18n "pages.xray.accessLog" }}'
+                                                description='{{ i18n "pages.xray.accessLogDesc" }}'/>
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select
+                                                    v-model="setAccessLog"
+                                                    :dropdown-class-name="themeSwitcher.currentTheme"
+                                                    style="width: 100%">
+                                                    <a-select-option v-for="s in access" :value="s">[[ s ]]</a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
                                 </a-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
@@ -534,6 +568,8 @@
                 protocol: "freedom"
             },
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
+            logLevel: ["none" , "debug" , "info" , "warning", "error"],
+            access: ["none" , "./access.log" ],
             settingsData: {
                 protocols: {
                     bittorrent: ["bittorrent"],
@@ -1106,6 +1142,28 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.routing.domainStrategy = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            setLogLevel: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.loglevel) return "warning";
+                    return this.templateSettings.log.loglevel;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.loglevel = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            setAccessLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.access) return "none";
+                    return this.templateSettings.log.access;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.access = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },

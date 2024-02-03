@@ -392,6 +392,10 @@
 "Routings" = "路由规则"
 "RoutingsDesc" = "每条规则的优先级都很重要"
 "completeTemplate" = "全部"
+"logLevel" = "日志级别"
+"logLevelDesc" = "错误日志的日志级别，表示需要记录的信息。"
+"accessLog" = "访问日志"
+"accessLogDesc" = "访问日志的文件路径。 特殊值“none”禁用访问日志"
 
 [pages.xray.rules]
 "first" = "第一个"
