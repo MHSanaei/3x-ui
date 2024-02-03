@@ -1568,30 +1568,44 @@ func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
 
 	file, err := os.Open(xray.GetIPLimitBannedPrevLogPath())
 	if err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.File(file),
-		)
-		_, err = bot.SendDocument(document)
-		if err != nil {
-			logger.Error("Error in uploading backup: ", err)
+		// Check if the file is non-empty before attempting to upload
+		fileInfo, _ := file.Stat()
+		if fileInfo.Size() > 0 {
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.File(file),
+			)
+			_, err = bot.SendDocument(document)
+			if err != nil {
+				logger.Error("Error in uploading IPLimitBannedPrevLog: ", err)
+			}
+		} else {
+			logger.Warning("IPLimitBannedPrevLog file is empty, not uploading.")
 		}
+		file.Close()
 	} else {
-		logger.Error("Error in opening db file for backup: ", err)
+		logger.Error("Error in opening IPLimitBannedPrevLog file for backup: ", err)
 	}
 
 	file, err = os.Open(xray.GetIPLimitBannedLogPath())
 	if err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.File(file),
-		)
-		_, err = bot.SendDocument(document)
-		if err != nil {
-			logger.Error("Error in uploading config.json: ", err)
+		// Check if the file is non-empty before attempting to upload
+		fileInfo, _ := file.Stat()
+		if fileInfo.Size() > 0 {
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.File(file),
+			)
+			_, err = bot.SendDocument(document)
+			if err != nil {
+				logger.Error("Error in uploading IPLimitBannedLog: ", err)
+			}
+		} else {
+			logger.Warning("IPLimitBannedLog file is empty, not uploading.")
 		}
+		file.Close()
 	} else {
-		logger.Error("Error in opening config.json file for backup: ", err)
+		logger.Error("Error in opening IPLimitBannedLog file for backup: ", err)
 	}
 }
 
