@@ -392,6 +392,10 @@
 "Routings" = "Quy tắc định tuyến"
 "RoutingsDesc" = "Mức độ ưu tiên của mỗi quy tắc đều quan trọng!"
 "completeTemplate" = "All"
+"logLevel" = "Mức đăng nhập"
+"logLevelDesc" = "Cấp độ nhật ký cho nhật ký lỗi, cho biết thông tin cần được ghi lại."
+"accessLog" = "Nhật ký truy cập"
+"accessLogDesc" = "Đường dẫn tệp cho nhật ký truy cập. Nhật ký truy cập bị vô hiệu hóa có giá trị đặc biệt 'không'"
 
 [pages.xray.rules]
 "first" = "Đầu tiên"

@@ -1,7 +1,8 @@
 {
   "log": {
-    "loglevel": "warning",
-    "error": "./error.log"
+    "access": "none",
+    "dnsLog": false,
+    "loglevel": "warning"
   },
   "api": {
     "tag": "api",

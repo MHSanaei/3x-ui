@@ -392,6 +392,10 @@
 "Routings" = "Reglas de enrutamiento"
 "RoutingsDesc" = "¡La prioridad de cada regla es importante!"
 "completeTemplate" = "Todos"
+"logLevel" = "Nivel de registro"
+"logLevelDesc" = "El nivel de registro para registros de errores, que indica la información que debe registrarse."
+"accessLog" = "Registro de acceso"
+"accessLogDesc" = "La ruta del archivo para el registro de acceso. El valor especial 'ninguno' deshabilita los registros de acceso"
 
 [pages.xray.rules]
 "first" = "Primero"
