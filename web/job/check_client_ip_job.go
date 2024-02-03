@@ -1,7 +1,9 @@
 package job
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -97,12 +99,16 @@ func (j *CheckClientIpJob) processLogFile() {
 		return
 	}
 
-	data, err := os.ReadFile(accessLogPath)
-	InboundClientIps := make(map[string][]string)
+	file, err := os.Open(accessLogPath)
 	j.checkError(err)
+	defer file.Close()
 
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
+	InboundClientIps := make(map[string][]string)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
 		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
 		emailRegx, _ := regexp.Compile(`email:.+`)
 
@@ -131,6 +137,8 @@ func (j *CheckClientIpJob) processLogFile() {
 		}
 	}
 
+	j.checkError(scanner.Err())
+
 	shouldCleanLog := false
 
 	for clientEmail, ips := range InboundClientIps {
@@ -141,7 +149,6 @@ func (j *CheckClientIpJob) processLogFile() {
 		} else {
 			shouldCleanLog = j.updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
-
 	}
 
 	// added delay before cleaning logs to reduce chance of logging IP that already has been banned
@@ -151,12 +158,16 @@ func (j *CheckClientIpJob) processLogFile() {
 		// copy access log to persistent file
 		logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 		j.checkError(err)
-		input, err := os.ReadFile(accessLogPath)
-		j.checkError(err)
-		if _, err := logAccessP.Write(input); err != nil {
-			j.checkError(err)
-		}
 		defer logAccessP.Close()
+
+		// reopen the access log file for reading
+		file, err := os.Open(accessLogPath)
+		j.checkError(err)
+		defer file.Close()
+
+		// copy access log content to persistent file
+		_, err = io.Copy(logAccessP, file)
+		j.checkError(err)
 
 		// clean access log
 		if err := os.Truncate(xray.GetAccessLogPath(), 0); err != nil {
