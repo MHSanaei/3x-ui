@@ -25,10 +25,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install Custom Version
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.1.2`:
+To install your desired version, add the version to the end of the installation command. e.g., ver `v2.1.3`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.2
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.3
 ```
 
 ## SSL Certificate
@@ -281,13 +281,14 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
     2. Select `IP Limit Management`.
     3. Choose the appropriate options based on your needs.
    
-  - make sure you have access.log on your Xray Configuration
+  - make sure you have ./access.log on your Xray Configuration after v2.1.3 we have an option for it
   
   ```sh
     "log": {
-    "loglevel": "warning",
     "access": "./access.log",
-    "error": "./error.log"
+    "dnsLog": false,
+    "error": "./error.log",
+    "loglevel": "warning"
     },
   ```
 
