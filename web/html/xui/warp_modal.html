@@ -140,6 +140,7 @@
                             mtu: 1420,
                             secretKey: warpModal.warpData.private_key,
                             address: Object.values(config.interface.addresses),
+                            domainStrategy: 'ForceIP',
                             peers: [{
                                 publicKey: peer.public_key,
                                 endpoint: peer.endpoint.host,

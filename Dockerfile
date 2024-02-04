@@ -1,11 +1,9 @@
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
+FROM golang:1.21-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
-ENV CGO_ENABLED=1
-ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 
 RUN apk --no-cache --update add \
   build-base \
@@ -15,6 +13,8 @@ RUN apk --no-cache --update add \
 
 COPY . .
 
+ENV CGO_ENABLED=1
+ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
 
@@ -28,11 +28,13 @@ WORKDIR /app
 RUN apk add --no-cache --update \
   ca-certificates \
   tzdata \
-  fail2ban
+  fail2ban \
+  bash
 
-COPY --from=builder  /app/build/ /app/
-COPY --from=builder  /app/DockerEntrypoint.sh /app/
-COPY --from=builder  /app/x-ui.sh /usr/bin/x-ui
+COPY --from=builder /app/build/ /app/
+COPY --from=builder /app/DockerEntrypoint.sh /app/
+COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
+
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -47,4 +49,5 @@ RUN chmod +x \
   /usr/bin/x-ui
 
 VOLUME [ "/etc/x-ui" ]
+CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

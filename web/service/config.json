@@ -1,7 +1,8 @@
 {
   "log": {
-    "loglevel": "warning",
-    "error": "./error.log"
+    "access": "none",
+    "dnsLog": false,
+    "loglevel": "warning"
   },
   "api": {
     "tag": "api",
@@ -24,6 +25,7 @@
   ],
   "outbounds": [
     {
+      "tag": "direct",
       "protocol": "freedom",
       "settings": {}
     },
@@ -42,7 +44,9 @@
     },
     "system": {
       "statsInboundDownlink": true,
-      "statsInboundUplink": true
+      "statsInboundUplink": true,
+      "statsOutboundDownlink": true,
+      "statsOutboundUplink": true
     }
   },
   "routing": {

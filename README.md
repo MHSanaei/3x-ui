@@ -25,11 +25,39 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Install Custom Version
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.1.1`:
+To install your desired version, add the version to the end of the installation command. e.g., ver `v2.1.3`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.1
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.1.3
 ```
+
+## SSL Certificate
+
+<details>
+  <summary>Click for SSL Certificate</summary>
+
+### Cloudflare
+
+The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+
+- Cloudflare registered email
+- Cloudflare Global API Key
+- The domain name has been resolved to the current server through cloudflare
+
+**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+
+### Certbot
+```
+apt-get install certbot -y
+certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
+certbot renew --dry-run
+```
+
+***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+
+</details>
+
 ## Manual Install & Upgrade
 
 <details>
@@ -106,10 +134,19 @@ systemctl restart x-ui
 update to latest version
 
    ```sh
-   cd 3x-ui
-   docker compose down
-   docker compose pull 3x-ui
-   docker compose up -d
+    cd 3x-ui
+    docker compose down
+    docker compose pull 3x-ui
+    docker compose up -d
+   ```
+
+remove 3x-ui from docker 
+
+   ```sh
+    docker stop 3x-ui
+    docker rm 3x-ui
+    cd --
+    rm -r 3x-ui
    ```
 
 </details>
@@ -192,34 +229,6 @@ Supports a variety of different architectures and devices. Here are some of the 
  
 </details>
 
-
-## SSL Certificate
-
-<details>
-  <summary>Click for SSL Certificate</summary>
-
-### Cloudflare
-
-The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
-
-- Cloudflare registered email
-- Cloudflare Global API Key
-- The domain name has been resolved to the current server through cloudflare
-
-**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
-
-
-### Certbot
-```
-apt-get install certbot -y
-certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
-certbot renew --dry-run
-```
-
-***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
-
-</details>
-
 ## [WARP Configuration](https://gitlab.com/fscarmen/warp)
 
 <details>
@@ -272,13 +281,13 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
     2. Select `IP Limit Management`.
     3. Choose the appropriate options based on your needs.
    
-  - make sure you have access.log on your Xray Configuration
+  - make sure you have ./access.log on your Xray Configuration after v2.1.3 we have an option for it
   
   ```sh
     "log": {
-    "loglevel": "warning",
     "access": "./access.log",
-    "error": "./error.log"
+    "dnsLog": false,
+    "loglevel": "warning"
     },
   ```
 

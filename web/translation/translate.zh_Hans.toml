@@ -181,12 +181,9 @@
 "exportInbound" = "出口 入境"
 "import"="导入"
 "importInbound" = "导入入站"
-"isGroupEdit" = "分组编辑"
-"isGroupEditDesc" = "编辑具有相同订阅的所有用户"
 
 [pages.client]
 "add" = "添加客户端"
-"groupAdd" = "添加订阅用户"
 "edit" = "编辑客户端"
 "submitAdd" = "添加客户端"
 "submitEdit" = "保存修改"
@@ -395,6 +392,10 @@
 "Routings" = "路由规则"
 "RoutingsDesc" = "每条规则的优先级都很重要"
 "completeTemplate" = "全部"
+"logLevel" = "日志级别"
+"logLevelDesc" = "错误日志的日志级别，表示需要记录的信息。"
+"accessLog" = "访问日志"
+"accessLogDesc" = "访问日志的文件路径。 特殊值“none”禁用访问日志"
 
 [pages.xray.rules]
 "first" = "第一个"
