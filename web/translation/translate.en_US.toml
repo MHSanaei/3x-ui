@@ -407,6 +407,7 @@
 "dest" = "Destination"
 "inbound" = "Inbound"
 "outbound" = "Outbound"
+"balancer" = "Balancer"
 "info" = "Info"
 "add" = "Add Rule"
 "edit" = "Edit Rule"
@@ -433,6 +434,7 @@
 "balancerStrategy" = "Strategy"
 "balancerSelectors" = "Selectors"
 "tag" = "Tag"
+"balancerDesc" = "balancerTag and outboundTag must choose one of the two. outboundTag Effective when specified at the same time."
 
 [pages.xray.wireguard]
 "secretKey" = "Secret Key"

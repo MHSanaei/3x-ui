@@ -327,6 +327,14 @@
                                         [[ rule.outboundTag ]]
                                     </a-popover>
                                 </template>
+                                <template slot="balancer" slot-scope="text, rule, index">
+                                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                                        <template slot="content">
+                                            <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
+                                        </template>
+                                        [[ rule.balancerTag ]]
+                                    </a-popover>
+                                </template>
                                 <template slot="info" slot-scope="text, rule, index">
                                     <a-popover placement="bottomRight"
                                         v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
@@ -526,9 +534,10 @@
             { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
             { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
-            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 20, ellipsis: true },
+            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
             { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
-        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 20 },
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 15 },
+        { title: '{{ i18n "pages.xray.rules.balancer"}}', dataIndex: 'balancerTag', align: 'center', width: 15 },
     ];
 
     const rulesMobileColumns = [
@@ -971,6 +980,7 @@
                 });
             },
             editBalancer(index) {
+                const oldTag = this.balancersData[index].tag;
                 balancerModal.show({
                     title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
                     okText: '{{ i18n "pages.xray.balancer.editBalancer"}}',
@@ -979,7 +989,6 @@
                     confirm: (balancer) => {
                         balancerModal.loading();
                         newTemplateSettings = this.templateSettings;
-                        let oldTag = this.balancersData[index].tag;
 
                         let tmpBalancer = {
                             'tag': balancer.tag,
@@ -1010,7 +1019,7 @@
                 newTemplateSettings = this.templateSettings;
 
                 //remove from balancers
-                let oldTag = this.balancersData[index].tag;
+                const oldTag = this.balancersData[index].tag;
                 this.balancersData.splice(index, 1);
 
                 // remove from settings
