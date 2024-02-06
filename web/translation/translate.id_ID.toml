@@ -53,7 +53,7 @@
 "remained" = "Tersisa"
 "security" = "Keamanan"
 
-[Menu]
+[menu]
 "dashboard" = "Ikhtisar"
 "inbounds" = "Masuk"
 "settings" = "Pengaturan Panel"
@@ -76,7 +76,9 @@
 "title" = "Ikhtisar"
 "memory" = "RAM"
 "hard" = "Disk"
-"xrayStatus" = "Status"
+"machineInfo" = "Mesin"
+"hostname" = "Nama komputer"
+"xrayStatus" = "Xray"
 "stopXray" = "Stop"
 "restartXray" = "Restart"
 "xraySwitch" = "Versi"
