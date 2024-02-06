@@ -107,6 +107,19 @@
                 <a-select-option v-for="tag in ruleModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
             </a-select>
         </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.xray.balancer.balancerDesc" }}</span>
+                    </template>
+                    Balancer Tag <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-select v-model="ruleModal.rule.balancerTag" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in ruleModal.balancerTags" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
     </table>
     </a-form>
 </a-modal>
@@ -133,11 +146,12 @@
             protocol: [],
             attrs: [],
             outboundTag: "",
+            balancerTag: "",
         },
         inboundTags: [],
         outboundTags: [],
         users: [],
-        balancerTag: [],
+        balancerTags: [],
         ok() {
             newRule = ruleModal.getResult();
             ObjectUtil.execute(ruleModal.confirm, newRule);
@@ -160,6 +174,7 @@
                 this.rule.protocol = rule.protocol;
                 this.rule.attrs = rule.attrs ? Object.entries(rule.attrs) : [];
                 this.rule.outboundTag = rule.outboundTag;
+                this.rule.balancerTag = rule.balancerTag ? rule.balancerTag : ""
             } else {
                 this.rule = {
                     domainMatcher: "",
@@ -174,6 +189,7 @@
                     protocol: [],
                     attrs: [],
                     outboundTag: "",
+                    balancerTag: "",
                 }
             }
             this.isEdit = isEdit;
@@ -185,6 +201,10 @@
                     this.inboundTags.push(...app.templateSettings.reverse.bridges.map(b => b.tag));
                 }
                 if(app.templateSettings.reverse.portals) this.outboundTags.push(...app.templateSettings.reverse.portals.map(b => b.tag));
+            }
+
+            if (app.templateSettings.routing && app.templateSettings.routing.balancers) {
+                this.balancerTags = app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)
             }
         },
         close() {
@@ -211,6 +231,7 @@
             rule.protocol = value.protocol;
             rule.attrs = Object.fromEntries(value.attrs);
             rule.outboundTag = value.outboundTag;
+            rule.balancerTag = value.balancerTag;
 
             for (const [key, value] of Object.entries(rule)) {
                 if (

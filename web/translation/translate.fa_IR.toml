@@ -388,6 +388,7 @@
 "Inbounds" = "ورودی‌ها"
 "InboundsDesc" = "پذیرش کلاینت خاص"
 "Outbounds" = "خروجی‌ها"
+"Balancers" = "بالانسرها"
 "OutboundsDesc" = "مسیر ترافیک خروجی را تنظیم کنید"
 "Routings" = "قوانین مسیریابی"
 "RoutingsDesc" = "اولویت هر قانون مهم است"
@@ -406,6 +407,7 @@
 "dest" = "مقصد"
 "inbound" = "ورودی"
 "outbound" = "خروجی"
+"balancer" = "بالانسر"
 "info" = "اطلاعات"
 "add" = "افزودن قانون"
 "edit" = "ویرایش قانون"
@@ -425,6 +427,15 @@
 "bridge" = "پل"
 "portal" = "پورتال"
 "intercon" = "اتصال میانی"
+
+[pages.xray.balancer]
+"addBalancer" = "افزودن بالانسر"
+"editBalancer" = "ویرایش بالانسر"
+"balancerStrategy" = "استراتژی"
+"balancerSelectors" = "انتخاب‌گرها"
+"tag" = "برچسب"
+"tagDesc" = "برچسب یگانه"
+"balancerDesc" = "امکان استفاده همزمان balancerTag و outboundTag باهم وجود ندارد. درصورت استفاده همزمان فقط outboundTag عمل خواهد کرد."
 
 [pages.xray.wireguard]
 "secretKey" = "کلید شخصی"

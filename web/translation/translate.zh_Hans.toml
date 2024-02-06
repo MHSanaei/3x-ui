@@ -388,6 +388,7 @@
 "Inbounds" = "入站"
 "InboundsDesc" = "更改配置模板接受特殊客户端"
 "Outbounds" = "出站"
+"Balancers" = "平衡器"
 "OutboundsDesc" = "更改配置模板定义此服务器的传出方式"
 "Routings" = "路由规则"
 "RoutingsDesc" = "每条规则的优先级都很重要"
@@ -406,6 +407,7 @@
 "dest" = "目的地"
 "inbound" = "入站"
 "outbound" = "出站"
+"balancer" = "平衡器"
 "info" = "信息"
 "add" = "添加规则"
 "edit" = "编辑规则"
@@ -425,6 +427,15 @@
 "bridge" = "桥"
 "portal" = "门户"
 "intercon" = "互连"
+
+[pages.xray.balancer]
+"addBalancer" = "添加平衡器"
+"editBalancer" = "编辑平衡器"
+"balancerStrategy" = "战略"
+"balancerSelectors" = "选择器"
+"tag" = "标签"
+"tagDesc" = "唯一标记"
+"balancerDesc" = "不能同时使用balancerTag和outboundTag。 如果同时使用，则只有outboundTag起作用。"
 
 [pages.xray.wireguard]
 "secretKey" = "密钥"

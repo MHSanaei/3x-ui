@@ -388,6 +388,7 @@
 "Inbounds" = "Inbounds"
 "InboundsDesc" = "Accepting the specific clients."
 "Outbounds" = "Outbounds"
+"Balancers" = "Balancers"
 "OutboundsDesc" = "Set the outgoing traffic pathway."
 "Routings" = "Routing Rules"
 "RoutingsDesc" = "The priority of each rule is important!"
@@ -406,6 +407,7 @@
 "dest" = "Destination"
 "inbound" = "Inbound"
 "outbound" = "Outbound"
+"balancer" = "Balancer"
 "info" = "Info"
 "add" = "Add Rule"
 "edit" = "Edit Rule"
@@ -425,6 +427,15 @@
 "bridge" = "Bridge"
 "portal" = "Portal"
 "intercon" = "Interconnection"
+
+[pages.xray.balancer]
+"addBalancer" = "Add Balancer"
+"editBalancer" = "Edit Balancer"
+"balancerStrategy" = "Strategy"
+"balancerSelectors" = "Selectors"
+"tag" = "Tag"
+"tagDesc" = "Unique Tag"
+"balancerDesc" = "It is not possible to use balancerTag and outboundTag at the same time. If used at the same time, only outboundTag will work."
 
 [pages.xray.wireguard]
 "secretKey" = "Secret Key"
