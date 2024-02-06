@@ -1,19 +1,19 @@
 {{define "menuItems"}}
 <a-menu-item key="{{ .base_path }}panel/">
     <a-icon type="dashboard"></a-icon>
-    <span>{{ i18n "menu.dashboard"}}</span>
+    <span><strong>{{ i18n "menu.dashboard"}}</strong></span>
 </a-menu-item>
 <a-menu-item key="{{ .base_path }}panel/inbounds">
     <a-icon type="user"></a-icon>
-    <span>{{ i18n "menu.inbounds"}}</span>
+    <span><strong>{{ i18n "menu.inbounds"}}</strong></span>
 </a-menu-item>
 <a-menu-item key="{{ .base_path }}panel/settings">
     <a-icon type="setting"></a-icon>
-    <span>{{ i18n "menu.settings"}}</span>
+    <span><strong>{{ i18n "menu.settings"}}</strong></span>
 </a-menu-item>
 <a-menu-item key="{{ .base_path }}panel/xray">
     <a-icon type="tool"></a-icon>
-    <span>{{ i18n "menu.xray"}}</span>
+    <span><strong>{{ i18n "menu.xray"}}</strong></span>
 </a-menu-item>
 <!--<a-menu-item key="{{ .base_path }}panel/clients">-->
 <!--    <a-icon type="laptop"></a-icon>-->
@@ -21,7 +21,7 @@
 <!--</a-menu-item>-->
 <a-menu-item key="{{ .base_path }}logout">
     <a-icon type="logout"></a-icon>
-    <span>{{ i18n "menu.logout"}}</span>
+    <span><strong>{{ i18n "menu.logout"}}</strong></span>
 </a-menu-item>
 {{end}}
 
