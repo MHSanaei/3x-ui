@@ -265,7 +265,8 @@
             <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
                 <a-col>
-                    <h1 class="title">{{ i18n "pages.login.title" }}</h1>
+                    <h1 class="title" style="margin-bottom: 5px; font-size: 24px;">3X-UI</h1>
+                    <h2 class="title">{{ i18n "pages.login.title" }}</h2>
                 </a-col>
             </a-row>
             <a-row type="flex" justify="center">
@@ -291,7 +292,7 @@
                         <a-form-item>
                             <a-row justify="center" class="centered">
                                 <div class="wave-btn-bg wave-btn-bg-cl" :style="loading ? { width: '54px' } : { display: 'inline-block' }">
-                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : undefined">
+                                    <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login" :icon="loading ? 'poweroff' : 'login'" style="font-weight: bold;">
                                         [[ loading ? '' : '{{ i18n "login" }}' ]]
                                     </a-button>
                                 </div>
