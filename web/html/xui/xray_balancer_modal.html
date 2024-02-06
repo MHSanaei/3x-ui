@@ -15,7 +15,7 @@
         <a-form-item label='{{ i18n "pages.xray.balancer.tag" }}' has-feedback
             :validate-status="balancerModal.duplicateTag? 'warning' : 'success'">
             <a-input v-model.trim="balancerModal.balancer.tag" @change="balancerModal.check()"
-                placeholder='{{ i18n "balancerModal.balancer.tagDesc" }}'></a-input>
+                placeholder='{{ i18n "pages.xray.balancer.tagDesc" }}'></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.balancer.balancerStrategy" }}'>
             <a-select v-model="balancerModal.balancer.strategy" :dropdown-class-name="themeSwitcher.currentTheme">
