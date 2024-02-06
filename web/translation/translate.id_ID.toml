@@ -20,7 +20,7 @@
 "check" = "Centang"
 "indefinite" = "Tak Terbatas"
 "unlimited" = "Tanpa Batas"
-"none" = "Tidak Ada"
+"none" = "None"
 "qrCode" = "Kode QR"
 "info" = "Informasi Lebih Lanjut"
 "edit" = "Edit"
@@ -390,6 +390,7 @@
 "Inbounds" = "Masuk"
 "InboundsDesc" = "Menerima klien tertentu."
 "Outbounds" = "Keluar"
+"Balancers" = "Penyeimbang"
 "OutboundsDesc" = "Atur jalur lalu lintas keluar."
 "Routings" = "Aturan Pengalihan"
 "RoutingsDesc" = "Prioritas setiap aturan penting!"
@@ -408,6 +409,7 @@
 "dest" = "Tujuan"
 "inbound" = "Masuk"
 "outbound" = "Keluar"
+"balancer" = "Pengimbang"
 "info" = "Info"
 "add" = "Tambahkan Aturan"
 "edit" = "Edit Aturan"
@@ -427,6 +429,15 @@
 "bridge" = "Jembatan"
 "portal" = "Portal"
 "intercon" = "Interkoneksi"
+
+[pages.xray.balancer]
+"addBalancer" = "Tambahkan Penyeimbang"
+"editBalancer" = "Sunting Penyeimbang"
+"balancerStrategy" = "Strategi"
+"balancerSelectors" = "Penyeleksi"
+"tag" = "Menandai"
+"tagDesc" = "Label Unik"
+"balancerDesc" = "BalancerTag dan outboundTag tidak dapat digunakan secara bersamaan. Jika digunakan secara bersamaan, hanya outboundTag yang akan berfungsi."
 
 [pages.xray.wireguard]
 "secretKey" = "Kunci Rahasia"

@@ -88,7 +88,7 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() {
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil {
-		logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+		logger.Error("fail2ban is not installed. IP limiting may not work properly.")
 	}
 }
 
@@ -96,12 +96,12 @@ func (j *CheckClientIpJob) processLogFile() {
 	accessLogPath := xray.GetAccessLogPath()
 
 	if accessLogPath == "none" {
-		logger.Warning("Access log is set to 'none' check your Xray Configs")
+		logger.Error("Access log is set to 'none' check your Xray Configs")
 		return
 	}
 
 	if accessLogPath == "" {
-		logger.Warning("Access log doesn't exist in your Xray Configs")
+		logger.Error("Access log doesn't exist in your Xray Configs")
 		return
 	}
 
