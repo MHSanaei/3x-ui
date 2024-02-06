@@ -983,7 +983,7 @@
                 const oldTag = this.balancersData[index].tag;
                 balancerModal.show({
                     title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
-                    okText: '{{ i18n "pages.xray.balancer.editBalancer"}}',
+                    okText: '{{ i18n "sure" }}',
                     balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
                     balancer: this.balancersData[index],
                     confirm: (balancer) => {
