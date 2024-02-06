@@ -434,7 +434,8 @@
 "balancerStrategy" = "Strategy"
 "balancerSelectors" = "Selectors"
 "tag" = "Tag"
-"balancerDesc" = "balancerTag and outboundTag must choose one of the two. outboundTag Effective when specified at the same time."
+"tagDesc" = "Unique Tag"
+"balancerDesc" = "It is not possible to use balancerTag and outboundTag at the same time. If used at the same time, only outboundTag will work."
 
 [pages.xray.wireguard]
 "secretKey" = "Secret Key"
