@@ -440,8 +440,8 @@
         loading: false,
         show(logs) {
             this.visible = true;
-            this.logs = logs;
-            this.formattedLogs = logs.length > 0 ? this.formatLogs(logs) : "No Record...";
+            this.logs = logs || []; 
+            this.formattedLogs = this.logs.length > 0 ? this.formatLogs(this.logs) : "No Record...";
         },
         formatLogs(logs) {
             let formattedLogs = '';
