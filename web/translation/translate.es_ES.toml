@@ -388,6 +388,7 @@
 "Inbounds" = "Entrante"
 "InboundsDesc" = "Cambia la plantilla de configuración para aceptar clientes específicos."
 "Outbounds" = "Salidas"
+"Balancers" = "Equilibradores"
 "OutboundsDesc" = "Cambia la plantilla de configuración para definir formas de salida para este servidor."
 "Routings" = "Reglas de enrutamiento"
 "RoutingsDesc" = "¡La prioridad de cada regla es importante!"
@@ -406,6 +407,7 @@
 "dest" = "Destino"
 "inbound" = "Entrante"
 "outbound" = "saliente"
+"balancer" = "Balancín"
 "info" = "Información"
 "add" = "Agregar regla"
 "edit" = "Editar regla"
@@ -425,6 +427,15 @@
 "bridge" = "puente"
 "portal" = "portal"
 "intercon" = "Interconexión"
+
+[pages.xray.balancer]
+"addBalancer" = "Agregar equilibrador"
+"editBalancer" = "Editar balanceador"
+"balancerStrategy" = "Estrategia"
+"balancerSelectors" = "Selectores"
+"tag" = "Etiqueta"
+"tagDesc" = "etiqueta única"
+"balancerDesc" = "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag."
 
 [pages.xray.wireguard]
 "secretKey" = "Llave secreta"

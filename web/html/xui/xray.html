@@ -327,6 +327,14 @@
                                         [[ rule.outboundTag ]]
                                     </a-popover>
                                 </template>
+                                <template slot="balancer" slot-scope="text, rule, index">
+                                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                                        <template slot="content">
+                                            <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
+                                        </template>
+                                        [[ rule.balancerTag ]]
+                                    </a-popover>
+                                </template>
                                 <template slot="info" slot-scope="text, rule, index">
                                     <a-popover placement="bottomRight"
                                         v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
@@ -452,6 +460,41 @@
                                 </template>
                             </a-table>
                         </a-tab-pane>
+                        <a-tab-pane key="tpl-balancers" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
+                            <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.balancer.addBalancer"}}</a-button>
+                            <a-table :columns="balancerColumns" bordered
+                            :row-key="r => r.key"
+                            :data-source="balancersData"
+                            :scroll="isMobile ? {} : { x: 200 }"
+                            :pagination="false"
+                            :indent-size="0"
+                            :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                <template slot="action" slot-scope="text, balancer, index">
+                                    [[ index+1 ]]
+                                    <a-dropdown :trigger="['click']">
+                                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item @click="editBalancer(index)">
+                                                <a-icon type="edit"></a-icon>
+                                                {{ i18n "edit" }}
+                                            </a-menu-item>
+                                            <a-menu-item @click="deleteBalancer(index)">
+                                                <span style="color: #FF4D4F">
+                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                </span>
+                                            </a-menu-item>
+                                        </a-menu>
+                                    </a-dropdown>
+                                </template>
+                                <template slot="strategy" slot-scope="text, balancer, index">
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                                </template>
+                                <template slot="selector" slot-scope="text, balancer, index">
+                                    <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
+                                </template>
+                            </a-table>                            
+                        </a-tab-pane>
                         <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
                             <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
                             <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
@@ -474,6 +517,7 @@
 {{template "ruleModal"}}
 {{template "outModal"}}
 {{template "reverseModal"}}
+{{template "balancerModal"}}
 {{template "warpModal"}}
 <script>
         const rulesColumns = [
@@ -490,9 +534,10 @@
             { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
             { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
-            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 20, ellipsis: true },
+            { title: 'Inbound Tag', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
             { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
-        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 20 },
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 15 },
+        { title: '{{ i18n "pages.xray.rules.balancer"}}', dataIndex: 'balancerTag', align: 'center', width: 15 },
     ];
 
     const rulesMobileColumns = [
@@ -515,6 +560,13 @@
         { title: '{{ i18n "pages.xray.outbound.type"}}', dataIndex: 'type', align: 'center', width: 50 },
         { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
         { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
+    ];
+
+    const balancerColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.balancer.balancerStrategy"}}', align: 'center', width: 50, scopedSlots: { customRender: 'strategy' }},
+        { title: '{{ i18n "pages.xray.balancer.balancerSelectors"}}', align: 'center', width: 100, scopedSlots: { customRender: 'selector' }},
     ];
 
     const app = new Vue({
@@ -895,6 +947,95 @@
                     this.refreshing = false;
                 }
             },
+            addBalancer() {
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    okText: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: {
+                        tag: '',
+                        strategy: 'random',
+                        selector: []
+                    },
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+                        if (newTemplateSettings.routing.balancers == undefined) {
+                            newTemplateSettings.routing.balancers = [];
+                        }
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector
+                        };
+                        if (balancer.strategy == 'roundRobin') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                        }
+                        newTemplateSettings.routing.balancers.push(tmpBalancer);
+                        this.templateSettings = newTemplateSettings;
+                        balancerModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editBalancer(index) {
+                const oldTag = this.balancersData[index].tag;
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
+                    okText: '{{ i18n "sure" }}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: this.balancersData[index],
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector
+                        };
+                        if (balancer.strategy == 'roundRobin') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                        }
+
+                        newTemplateSettings.routing.balancers[index] = tmpBalancer;
+                        // change edited tag if used in rule section
+                        if (oldTag != balancer.tag) {
+                            newTemplateSettings.routing.rules.forEach((rule) => {
+                                if (rule.balancerTag && rule.balancerTag == oldTag) {
+                                    rule.balancerTag = balancer.tag;
+                                }
+                            });
+                        }
+                        this.templateSettings = newTemplateSettings;
+                        balancerModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteBalancer(index) {
+                newTemplateSettings = this.templateSettings;
+
+                //remove from balancers
+                const oldTag = this.balancersData[index].tag;
+                this.balancersData.splice(index, 1);
+
+                // remove from settings
+                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag == oldTag);
+                newTemplateSettings.routing.balancers.splice(realIndex, 1);
+
+                // remove related routing rules
+                let rules = [];
+                newTemplateSettings.routing.rules.forEach((r) => {
+                    if (!r.balancerTag || r.balancerTag != oldTag) {
+                        rules.push(r);
+                    }
+                });
+                newTemplateSettings.routing.rules = rules;
+                this.templateSettings = newTemplateSettings;
+            },
             addReverse(){
                 reverseModal.show({
                     title: '{{ i18n "pages.xray.outbound.addReverse"}}',
@@ -1083,6 +1224,27 @@
                     }
                     return data;
                 },
+            },
+            balancersData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
+                        this.templateSettings.routing.balancers.forEach((o, index) => {
+                            let strategy = "random"
+                            if (o.strategy && o.strategy.type == "roundRobin") {
+                                strategy = o.strategy.type
+                            }
+
+                            data.push({ 
+                                'key': index,
+                                'tag': o.tag ? o.tag : "",
+                                'strategy': strategy,
+                                'selector': o.selector ? o.selector : []
+                            });
+                        });
+                    }
+                    return data;
+                }
             },
             routingRuleSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
