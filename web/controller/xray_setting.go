@@ -29,6 +29,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.POST("/warp/:action", a.warp)
 	g.GET("/getOutboundsTraffic", a.getOutboundsTraffic)
+	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 }
 
 func (a *XraySettingController) getXraySetting(c *gin.Context) {
@@ -94,4 +95,14 @@ func (a *XraySettingController) getOutboundsTraffic(c *gin.Context) {
 		return
 	}
 	jsonObj(c, outboundsTraffic, nil)
+}
+
+func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
+	tag := c.PostForm("tag")
+	err := a.OutboundService.ResetOutboundTraffic(tag)
+	if err != nil {
+		jsonMsg(c, "Error in reset outbound traffics", err)
+		return
+	}
+	jsonObj(c, "", nil)
 }
