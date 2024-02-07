@@ -385,11 +385,13 @@
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
                             <a-row>
                                 <a-col :xs="12" :sm="12" :lg="12">
-                                    <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                                    <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n
+                                        "pages.xray.outbound.addOutbound" }}</a-button>
                                     <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
                                 </a-col>
                                 <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
-                                    <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"/>
+                                    <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
+                                    <a-icon type="retweet" @click="resetOutboundTraffic(-1)"></a-icon>
                                 </a-col>
                             </a-row>
                             <a-table :columns="outboundColumns" bordered
@@ -407,6 +409,11 @@
                                             <a-menu-item @click="editOutbound(index)">
                                                 <a-icon type="edit"></a-icon>
                                                 {{ i18n "edit" }}
+                                            </a-menu-item>
+                                            <a-menu-item @click="resetOutboundTraffic(index)">
+                                                <span>
+                                                    <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic"}}
+                                                </span>
                                             </a-menu-item>
                                             <a-menu-item @click="deleteOutbound(index)">
                                                 <span style="color: #FF4D4F">
@@ -945,6 +952,16 @@
 
                     this.outboundData = data;
                     this.refreshing = false;
+                }
+            },
+            async resetOutboundTraffic(index) {
+                let tag = "-alltags-";
+                if (index >= 0) {
+                    tag = this.outboundData[index].tag ? this.outboundData[index].tag : ""
+                }
+                const msg = await HttpUtil.post("/panel/xray/resetOutboundsTraffic", { tag: tag });
+                if (msg.success) {
+                    await this.refreshOutboundTraffic();
                 }
             },
             addBalancer() {
