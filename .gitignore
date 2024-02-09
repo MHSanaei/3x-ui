@@ -5,6 +5,7 @@
 *.tar.gz
 access.log
 error.log
+.env
 tmp
 main
 backup/

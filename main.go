@@ -16,6 +16,7 @@ import (
 	"x-ui/web/global"
 	"x-ui/web/service"
 
+	_ "github.com/joho/godotenv/autoload"
 	"github.com/op/go-logging"
 )
 
