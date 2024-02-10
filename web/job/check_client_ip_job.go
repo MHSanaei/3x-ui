@@ -25,7 +25,6 @@ type CheckClientIpJob struct {
 var job *CheckClientIpJob
 var ipFiles = []string{
 	xray.GetIPLimitLogPath(),
-	xray.GetIPLimitPrevLogPath(),
 	xray.GetIPLimitBannedLogPath(),
 	xray.GetIPLimitBannedPrevLogPath(),
 	xray.GetAccessPersistentLogPath(),
@@ -65,8 +64,23 @@ func (j *CheckClientIpJob) clearLogTime() {
 }
 
 func (j *CheckClientIpJob) clearAccessLog() {
+	
 	accessLogPath := xray.GetAccessLogPath()
-	err := os.Truncate(accessLogPath, 0)
+	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	j.checkError(err)
+	defer logAccessP.Close()
+
+	// reopen the access log file for reading
+	file, err := os.Open(accessLogPath)
+	j.checkError(err)
+	defer file.Close()
+
+	// copy access log content to persistent file
+	_, err = io.Copy(logAccessP, file)
+	j.checkError(err)
+
+	// clean access log
+	err = os.Truncate(accessLogPath, 0)
 	j.checkError(err)
 }
 
@@ -177,24 +191,7 @@ func (j *CheckClientIpJob) processLogFile() {
 	time.Sleep(time.Second * 2)
 
 	if shouldCleanLog {
-		// copy access log to persistent file
-		logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		j.checkError(err)
-		defer logAccessP.Close()
-
-		// reopen the access log file for reading
-		file, err := os.Open(accessLogPath)
-		j.checkError(err)
-		defer file.Close()
-
-		// copy access log content to persistent file
-		_, err = io.Copy(logAccessP, file)
-		j.checkError(err)
-
-		// clean access log
-		if err := os.Truncate(xray.GetAccessLogPath(), 0); err != nil {
-			j.checkError(err)
-		}
+		j.clearAccessLog()
 	}
 }
 

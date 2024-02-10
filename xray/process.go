@@ -41,10 +41,6 @@ func GetIPLimitLogPath() string {
 	return config.GetLogFolder() + "/3xipl.log"
 }
 
-func GetIPLimitPrevLogPath() string {
-	return config.GetLogFolder() + "/3xipl.prev.log"
-}
-
 func GetIPLimitBannedLogPath() string {
 	return config.GetLogFolder() + "/3xipl-banned.log"
 }
