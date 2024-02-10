@@ -64,7 +64,6 @@ func (j *CheckClientIpJob) clearLogTime() {
 }
 
 func (j *CheckClientIpJob) clearAccessLog() {
-	
 	accessLogPath := xray.GetAccessLogPath()
 	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	j.checkError(err)
