@@ -6,11 +6,14 @@ import (
 )
 
 func NewLogWriter() *LogWriter {
-	return &LogWriter{}
+	return &LogWriter{
+		listeners: &[]func(line string){},
+	}
 }
 
 type LogWriter struct {
-	lastLine string
+	lastLine  string
+	listeners *[]func(line string)
 }
 
 func (lw *LogWriter) Write(m []byte) (n int, err error) {
@@ -33,7 +36,8 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 		endIndex := strings.Index(messageBody, "]")
 		if startIndex != -1 && endIndex != -1 && startIndex < endIndex {
 			level := strings.TrimSpace(messageBody[startIndex+1 : endIndex])
-			msgBody := "XRAY: " + strings.TrimSpace(messageBody[endIndex+1:])
+			rawMsg := strings.TrimSpace(messageBody[endIndex+1:])
+			msgBody := "XRAY: " + rawMsg
 
 			// Map the level to the appropriate logger function
 			switch level {
@@ -48,6 +52,11 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 			default:
 				logger.Debug("XRAY: " + msg)
 			}
+
+			// Notify listeners of the message
+			for _, listener := range *lw.listeners {
+				listener(messageBody)
+			}
 		} else if msg != "" {
 			logger.Debug("XRAY: " + msg)
 			return len(m), nil
@@ -55,4 +64,12 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	}
 
 	return len(m), nil
+}
+
+// SetListener adds a listener to the log writer
+// The listener will be called with each line of the log
+// that is written to the log writer
+// We use this method to prevent reading the log file for better performance
+func (lw *LogWriter) SetListener(listener func(line string)) {
+	*lw.listeners = append(*lw.listeners, listener)
 }
