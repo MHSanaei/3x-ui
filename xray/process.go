@@ -218,6 +218,12 @@ func (p *process) Start() (err error) {
 	cmd.Stdout = p.logWriter
 	cmd.Stderr = p.logWriter
 
+	// Listen to client connections from the stdout of xray
+	// It is better this way than reading the log file
+	// because reading a file causes a lot of IO operations
+	// and system calls which is not efficient
+	NewClientIPListener(p).Start()
+
 	go func() {
 		err := cmd.Run()
 		if err != nil {
