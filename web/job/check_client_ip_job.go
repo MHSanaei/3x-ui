@@ -62,6 +62,23 @@ func (j *CheckClientIpJob) Run() {
 		j.checkFail2BanInstalled()
 		j.processLogFile()
 	}
+
+	if !j.hasLimitIp() && xray.GetAccessLogPath() == "./access.log" {
+		go j.clearLogTime()
+	}
+}
+
+func (j *CheckClientIpJob) clearLogTime() {
+	for {
+		time.Sleep(time.Hour)
+		j.clearAccessLog()
+	}
+}
+
+func (j *CheckClientIpJob) clearAccessLog() {
+	accessLogPath := xray.GetAccessLogPath()
+	err := os.Truncate(accessLogPath, 0)
+	j.checkError(err)
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
@@ -180,7 +197,7 @@ func (j *CheckClientIpJob) processLogFile() {
 		matches := ipRegx.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			ip := matches[1]
-			if ip == "127.0.0.1" || ip == "[::1]" {
+			if ip == "127.0.0.1" {
 				continue
 			}
 
