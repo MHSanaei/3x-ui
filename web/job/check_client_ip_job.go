@@ -38,6 +38,17 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
+	// check if access log path is empty
+	// if it is, process xray stdout and not the access log file
+	accessLogPath := xray.GetAccessLogPath()
+	if accessLogPath == "" {
+		err := j.processXrayStdout()
+		if err != nil {
+			j.checkError(err)
+		}
+
+		return
+	}
 
 	// create files required for iplimit if not exists
 	for i := 0; i < len(ipFiles); i++ {
@@ -90,6 +101,54 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() {
 	if err != nil {
 		logger.Error("fail2ban is not installed. IP limiting may not work properly.")
 	}
+}
+
+// processXrayStdout processes the xray stdout for client IPs
+// this is used when the access log is set to empty string or null
+// in the xray config
+//
+// This is the same as the processLogfile function but for xray stdout
+// instead of the access log file, it processes the xray stdout
+// witch is more efficient and faster because it doesn't need to do
+// any system call to read the file
+//
+// This potentially can prevent the database look in lower specs machines,
+// because of lower I/O operations
+func (j *CheckClientIpJob) processXrayStdout() error {
+	listener, err := xray.GetClientIPListener()
+	if err != nil {
+		return err
+	}
+
+	// unban every banned ip eveytime the job runs
+	// in our case, every 10 seconds
+	listener.UnbanAllIPs()
+
+	for clientEmail, ips := range listener.InboundClientIps {
+		logger.Info("Inbound Client IPs: ", clientEmail, " => ", ips)
+
+		inboundClientIps, err := j.getInboundClientIps(clientEmail)
+		sort.Strings(ips)
+
+		if err != nil {
+			_ = j.addInboundClientIps(clientEmail, ips)
+		} else {
+			j.updateInboundClientIps(inboundClientIps, clientEmail, ips)
+		}
+
+		// add disallowed ips to the banned list
+		for _, ip := range j.disAllowedIps {
+			listener.BanIP(ip)
+		}
+
+		// clears the inbound client IPs after processing
+		delete(listener.InboundClientIps, clientEmail)
+	}
+
+	// block the banned ips
+	listener.ProcessBlacklist()
+
+	return nil
 }
 
 func (j *CheckClientIpJob) processLogFile() {
