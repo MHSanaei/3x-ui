@@ -77,8 +77,8 @@
                 <a-row>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">3X-UI v{{ .cur_ver }}</a-tag></a>
-                            <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">Xray v[[ status.xray.version ]]</a-tag>
+                            <b>{{ i18n "pages.index.panelInfo" }}:</b>
+                            <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
                             <a rel="noopener" href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@Panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
@@ -106,7 +106,7 @@
                             </a-popover>
                             <a-tag color="purple" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
                             <a-tag color="purple" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
-                            <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
@@ -143,17 +143,8 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                                    <b>{{ i18n "pages.index.machineInfo" }}:</b>
+                            <b>{{ i18n "pages.index.pubilcIpInfo" }}:</b>
                                 <a-tag>
-                                    <a-tooltip>
-                                        <template slot="title">
-                                            {{ i18n "pages.index.hostname" }}
-                                        </template>
-                                            [[ status.publicIP.hostname ]]
-                                        </template>
-                                    </a-tooltip>
-                                </a-tag>
-                                <a-tag v-if="status.publicIP.ipv4">
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv4
                                         <template slot="title">
@@ -161,7 +152,7 @@
                                         </template>
                                     </a-tooltip>
                                 </a-tag>
-                                <a-tag v-if="status.publicIP.ipv6">
+                                <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv6
                                         <template slot="title">
@@ -384,7 +375,7 @@
             this.mem = new CurTotal(0, 0);
             this.netIO = { up: 0, down: 0 };
             this.netTraffic = { sent: 0, recv: 0 };
-            this.publicIP = { hostname:"", ipv4: 0, ipv6: 0 };
+            this.publicIP = { ipv4: 0, ipv6: 0 };
             this.swap = new CurTotal(0, 0);
             this.tcpCount = 0;
             this.udpCount = 0;
