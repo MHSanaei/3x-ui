@@ -77,8 +77,8 @@
                 <a-row>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            3X-UI <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                            Xray <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
+                            <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">3X-UI v{{ .cur_ver }}</a-tag></a>
+                            <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">Xray v[[ status.xray.version ]]</a-tag>
                             <a rel="noopener" href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@Panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
@@ -113,10 +113,8 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             {{ i18n "pages.index.operationHours" }}:
-                            Xray
-                            <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            OS
-                            <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
+                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
@@ -206,7 +204,7 @@
                                     <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-up"></a-icon>
-                                    Upload: [[ sizeFormat(status.netIO.up) ]]/s
+                                    Up: [[ sizeFormat(status.netIO.up) ]]/s
                                         <template slot="title">
                                             {{ i18n "pages.index.upSpeed" }}
                                         </template>
@@ -217,7 +215,7 @@
                                     <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-down"></a-icon>
-                                    Download: [[ sizeFormat(status.netIO.down) ]]/s
+                                    Down: [[ sizeFormat(status.netIO.down) ]]/s
                                         <template slot="title">
                                             {{ i18n "pages.index.downSpeed" }}
                                         </template>
@@ -268,7 +266,7 @@
         ></a-alert>
         <template v-for="version, index in versionModal.versions">
             <a-tag :color="index % 2 == 0 ? 'purple' : 'green'"
-                   style="margin: 10px" @click="switchV2rayVersion(version)">
+                   style="margin-right: 10px" @click="switchV2rayVersion(version)">
                 [[ version ]]
             </a-tag>
         </template>
