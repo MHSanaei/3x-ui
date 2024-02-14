@@ -18,6 +18,10 @@
     .ant-card-dark h2 {
         color: hsla(0, 0%, 100%, .65);
     }
+
+    b {
+        font-weight: 500;
+    }
 </style>
 
 <body>
@@ -36,15 +40,15 @@
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.cpu.color"
                                                     :percent="status.cpu.percent"></a-progress>
-                                        <div>CPU: [[ cpuCoreFormat(status.cpuCores) ]]</div>
-                                        <div>Speed: [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                                        <div><b>CPU:</b> [[ cpuCoreFormat(status.cpuCores) ]]</div>
+                                        <div><b>Speed:</b> [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.mem.color"
                                                     :percent="status.mem.percent"></a-progress>
                                         <div>
-                                            {{ i18n "pages.index.memory"}}: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
+                                            <b>{{ i18n "pages.index.memory"}}:</b> [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
                                         </div>
                                     </a-col>
                                 </a-row>
@@ -56,7 +60,7 @@
                                                     :stroke-color="status.swap.color"
                                                     :percent="status.swap.percent"></a-progress>
                                         <div>
-                                            Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
+                                            <b>Swap:</b> [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
                                         </div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
@@ -64,7 +68,7 @@
                                                     :stroke-color="status.disk.color"
                                                     :percent="status.disk.percent"></a-progress>
                                         <div>
-                                            {{ i18n "pages.index.hard"}}: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
+                                            <b>{{ i18n "pages.index.hard"}}:</b> [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
                                         </div>
                                     </a-col>
                                 </a-row>
@@ -84,15 +88,14 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "menu.link" }}:
-                            <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
-                            <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
-                            <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
+                            <b>{{ i18n "pages.index.operationHours" }}:</b>
+                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.xrayStatus" }}:
+                            <b>{{ i18n "pages.index.xrayStatus" }}:</b>
                             <a-tag style="text-transform: capitalize;" :color="status.xray.color">[[ status.xray.state ]]
                             </a-tag>
                             <a-popover v-if="status.xray.state === State.Error"
@@ -112,14 +115,15 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.operationHours" }}:
-                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
+                            <b>{{ i18n "menu.link" }}:</b>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.systemLoad" }}:
+                            <b>{{ i18n "pages.index.systemLoad" }}:</b>
                             <a-tag>
                             <a-tooltip>
                                 [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
@@ -132,7 +136,7 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "usage"}}:
+                            <b>{{ i18n "usage"}}:</b>
                             <a-tag>
                             RAM [[ sizeFormat(status.appStats.mem) ]]
                             </a-tag>
@@ -143,7 +147,7 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                                    {{ i18n "pages.index.machineInfo" }}:
+                                    <b>{{ i18n "pages.index.machineInfo" }}:</b>
                                 <a-tag>
                                     <a-tooltip>
                                         <template slot="title">
