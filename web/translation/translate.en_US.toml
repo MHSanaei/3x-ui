@@ -76,7 +76,6 @@
 "title" = "Overview"
 "memory" = "RAM"
 "hard" = "Disk"
-"panelInfo" = "3X-UI"
 "xrayStatus" = "Xray"
 "stopXray" = "Stop"
 "restartXray" = "Restart"
