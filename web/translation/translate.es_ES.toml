@@ -76,7 +76,6 @@
 "title" = "Estado del Sistema"
 "memory" = "Memoria"
 "hard" = "Disco Duro"
-"panelInfo" = "3X-UI"
 "xrayStatus" = "Xray"
 "stopXray" = "Detener"
 "restartXray" = "Reiniciar"
