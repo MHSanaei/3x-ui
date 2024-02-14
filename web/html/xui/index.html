@@ -143,8 +143,9 @@
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            <b>{{ i18n "pages.index.pubilcIpInfo" }}:</b>
-                                <a-tag>
+                            <a-row>
+                                <a-col :span="12">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv4
                                         <template slot="title">
@@ -152,6 +153,8 @@
                                         </template>
                                     </a-tooltip>
                                 </a-tag>
+                            </a-col>
+                            <a-col :span="12">
                                 <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv6
@@ -159,7 +162,9 @@
                                             [[ status.publicIP.ipv6 ]]
                                         </template>
                                     </a-tooltip>
-                                </a-tag>
+                                    </a-tag>
+                                </a-col>
+                            </a-row>
                         </a-card>
                     </a-col>                    
                     <a-col :sm="24" :lg="12">
