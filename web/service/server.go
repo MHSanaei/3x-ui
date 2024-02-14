@@ -74,8 +74,9 @@ type Status struct {
 		Recv uint64 `json:"recv"`
 	} `json:"netTraffic"`
 	PublicIP struct {
-		IPv4 string `json:"ipv4"`
-		IPv6 string `json:"ipv6"`
+		HostName string `json:"hostname"`
+		IPv4     string `json:"ipv4"`
+		IPv6     string `json:"ipv6"`
 	} `json:"publicIP"`
 	AppStats struct {
 		Threads uint32 `json:"threads"`
@@ -209,8 +210,22 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	status.PublicIP.IPv4 = getPublicIP("https://api.ipify.org")
-	status.PublicIP.IPv6 = getPublicIP("https://api6.ipify.org")
+	status.PublicIP.HostName, _ = os.Hostname()
+	// get ip address
+	netInterfaces, _ := net.Interfaces()
+	for i := 0; i < len(netInterfaces); i++ {
+		if len(netInterfaces[i].Flags) > 2 && netInterfaces[i].Flags[0] == "up" && netInterfaces[i].Flags[1] != "loopback" {
+			addrs := netInterfaces[i].Addrs
+
+			for _, address := range addrs {
+				if strings.Contains(address.Addr, ".") {
+					status.PublicIP.IPv4 += address.Addr + " "
+				} else if address.Addr[0:6] != "fe80::" {
+					status.PublicIP.IPv6 += address.Addr + " "
+				}
+			}
+		}
+	}
 
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
