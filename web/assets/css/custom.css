@@ -1132,10 +1132,6 @@ li.ant-select-dropdown-menu-item:empty:after {
     margin-right: 6px;
 }
 
-.ant-card-body {
-    padding: 20px;
-}
-
 b, strong {
     font-weight: 500;
 }
