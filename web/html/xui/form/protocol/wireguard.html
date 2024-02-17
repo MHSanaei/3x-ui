@@ -38,9 +38,15 @@
                     <template slot="title">
                         <span>{{ i18n "reset" }}</span>
                     </template>
-                    {{ i18n "pages.xray.wireguard.publicKey" }}
-                    <a-icon @click="peer.publicKey = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
+                    {{ i18n "pages.xray.wireguard.secretKey" }}
+                    <a-icon @click="[peer.publicKey, peer.privateKey] = Object.values(Wireguard.generateKeypair())"type="sync"> </a-icon>
                 </a-tooltip>
+            </template>
+            <a-input v-model.trim="peer.privateKey"></a-input>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                {{ i18n "pages.xray.wireguard.publicKey" }}
             </template>
             <a-input v-model.trim="peer.publicKey"></a-input>
         </a-form-item>
@@ -51,7 +57,7 @@
                         <span>{{ i18n "reset" }}</span>
                     </template>
                     {{ i18n "pages.xray.wireguard.psk" }}
-                    <a-icon @click="peer.psk = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
+                    <a-icon @click="peer.psk = Wireguard.keyToBase64(Wireguard.generatePresharedKey())"type="sync"> </a-icon>
                 </a-tooltip>
             </template>
             <a-input v-model.trim="peer.psk"></a-input>

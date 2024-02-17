@@ -35,12 +35,21 @@
             this.client = client;
             this.subId = '';
             this.qrcodes = [];
-            this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
-                this.qrcodes.push({
-                    remark: l.remark,
-                    link: l.link
+            if (this.inbound.protocol == Protocols.WIREGUARD){
+                this.inbound.genInboundLinks(dbInbound.remark).split('\r\n').forEach((l,index) =>{
+                    this.qrcodes.push({
+                        remark: "Peer " + (index+1),
+                        link: l
+                    });
                 });
-            });
+            } else {
+                this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
+                    this.qrcodes.push({
+                        remark: l.remark,
+                        link: l.link
+                    });
+                });
+            }
             this.visible = true;
         },
         close: function () {
