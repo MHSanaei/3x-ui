@@ -1,6 +1,7 @@
 package xray
 
 import (
+	"regexp"
 	"strings"
 	"x-ui/logger"
 )
@@ -14,26 +15,18 @@ type LogWriter struct {
 }
 
 func (lw *LogWriter) Write(m []byte) (n int, err error) {
+	regex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]+)\] (.+)$`)
 	// Convert the data to a string
 	message := strings.TrimSpace(string(m))
 	messages := strings.Split(message, "\n")
 	lw.lastLine = messages[len(messages)-1]
 
 	for _, msg := range messages {
-		messageBody := msg
+		matches := regex.FindStringSubmatch(msg)
 
-		// Remove timestamp
-		splittedMsg := strings.SplitN(msg, " ", 3)
-		if len(splittedMsg) > 2 {
-			messageBody = strings.TrimSpace(strings.SplitN(msg, " ", 3)[2])
-		}
-
-		// Find level in []
-		startIndex := strings.Index(messageBody, "[")
-		endIndex := strings.Index(messageBody, "]")
-		if startIndex != -1 && endIndex != -1 && startIndex < endIndex {
-			level := strings.TrimSpace(messageBody[startIndex+1 : endIndex])
-			msgBody := "XRAY: " + strings.TrimSpace(messageBody[endIndex+1:])
+		if len(matches) > 3 {
+			level := matches[2]
+			msgBody := matches[3]
 
 			// Map the level to the appropriate logger function
 			switch level {
