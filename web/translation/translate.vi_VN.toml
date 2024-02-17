@@ -76,7 +76,7 @@
 "title" = "Trạng thái hệ thống"
 "memory" = "Ram"
 "hard" = "Dung lượng"
-"xrayStatus" = "Trạng thái Xray"
+"xrayStatus" = "Xray"
 "stopXray" = "Dừng lại"
 "restartXray" = "Khởi động lại"
 "xraySwitch" = "Phiên bản"

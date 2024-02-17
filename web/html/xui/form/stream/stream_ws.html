@@ -7,7 +7,7 @@
         <a-input v-model.trim="inbound.stream.ws.path"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
-        <a-button size="small" @click="inbound.stream.ws.addHeader('host', '')">+</a-button>
+        <a-button size="small" @click="inbound.stream.ws.addHeader('Host', '')">+</a-button>
     </a-form-item>
     <a-form-item :wrapper-col="{span:24}">
         <a-input-group compact v-for="(header, index) in inbound.stream.ws.headers">

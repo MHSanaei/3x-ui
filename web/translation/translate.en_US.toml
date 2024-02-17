@@ -76,7 +76,7 @@
 "title" = "Overview"
 "memory" = "RAM"
 "hard" = "Disk"
-"xrayStatus" = "Status"
+"xrayStatus" = "Xray"
 "stopXray" = "Stop"
 "restartXray" = "Restart"
 "xraySwitch" = "Version"
