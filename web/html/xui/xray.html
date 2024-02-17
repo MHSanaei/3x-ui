@@ -406,6 +406,10 @@
                                     <a-dropdown :trigger="['click']">
                                         <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
                                         <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
+                                                <a-icon type="vertical-align-top"></a-icon>
+                                                {{ i18n "pages.xray.rules.first"}}
+                                            </a-menu-item>
                                             <a-menu-item @click="editOutbound(index)">
                                                 <a-icon type="edit"></a-icon>
                                                 {{ i18n "edit" }}
@@ -936,6 +940,11 @@
             deleteOutbound(index){
                 outbounds = this.templateSettings.outbounds;
                 outbounds.splice(index,1);
+                this.outboundSettings = JSON.stringify(outbounds);
+            },
+            setFirstOutbound(index){
+                outbounds = this.templateSettings.outbounds;
+                outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
                 this.outboundSettings = JSON.stringify(outbounds);
             },
             async refreshOutboundTraffic() {
