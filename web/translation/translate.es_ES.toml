@@ -311,6 +311,8 @@
 "advancedTemplate" = "Plantilla Avanzada"
 "generalConfigs" = "Configuraciones Generales"
 "generalConfigsDesc" = "Estas opciones proporcionarán ajustes generales."
+"logConfigs" = "Registro"
+"logConfigsDesc" = "Los registros pueden afectar la eficiencia de su servidor. Se recomienda habilitarlo sabiamente solo en caso de sus necesidades."
 "blockConfigs" = "Configuraciones de Bloqueo"
 "blockConfigsDesc" = "Estas opciones evitarán que los usuarios se conecten a protocolos y sitios web específicos."
 "blockCountryConfigs" = "Configuraciones de Bloqueo por País"
@@ -397,6 +399,8 @@
 "logLevelDesc" = "El nivel de registro para registros de errores, que indica la información que debe registrarse."
 "accessLog" = "Registro de acceso"
 "accessLogDesc" = "La ruta del archivo para el registro de acceso. El valor especial 'ninguno' deshabilita los registros de acceso"
+"errorLog" = "Registro de errores"
+"errorLogDesc" = "La ruta del archivo para el registro de errores. El valor especial 'ninguno' deshabilitó los registros de errores"
 
 [pages.xray.rules]
 "first" = "Primero"

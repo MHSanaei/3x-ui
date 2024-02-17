@@ -311,6 +311,8 @@
 "advancedTemplate" = "Lanjutan"
 "generalConfigs" = "Strategi Umum"
 "generalConfigsDesc" = "Opsi ini akan menentukan penyesuaian strategi umum."
+"logConfigs" = "Catatan"
+"logConfigsDesc" = "Log dapat mempengaruhi efisiensi server Anda. Disarankan untuk mengaktifkannya dengan bijak hanya jika diperlukan"
 "blockConfigs" = "Pelindung"
 "blockConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan protokol dan situs web yang diminta."
 "blockCountryConfigs" = "Blokir Negara"
@@ -397,6 +399,8 @@
 "logLevelDesc" = "Tingkat log untuk log kesalahan, menunjukkan informasi yang perlu dicatat."
 "accessLog" = "Log Akses"
 "accessLogDesc" = "Jalur file untuk log akses. Nilai khusus 'tidak ada' menonaktifkan log akses"
+"errorLog" = "Catatan eror"
+"errorLogDesc" = "Jalur file untuk log kesalahan. Nilai khusus 'tidak ada' menonaktifkan log kesalahan"
 
 [pages.xray.rules]
 "first" = "Pertama"
