@@ -311,6 +311,8 @@
 "advancedTemplate" = "高级模板部件"
 "generalConfigs" = "通用配置"
 "generalConfigsDesc" = "这些选项将提供一般调整"
+"logConfigs"="日志"
+"logConfigsDesc" = "日志可能会影响您服务器的效率。建议仅在您需要时明智地启用它"
 "blockConfigs" = "阻塞配置"
 "blockConfigsDesc" = "这些选项将阻止用户连接到特定协议和网站"
 "blockCountryConfigs" = "阻止国家配置"
@@ -397,6 +399,8 @@
 "logLevelDesc" = "错误日志的日志级别，表示需要记录的信息。"
 "accessLog" = "访问日志"
 "accessLogDesc" = "访问日志的文件路径。 特殊值“none”禁用访问日志"
+"errorLog" = "错误日志"
+"errorLogDesc" = "错误日志的文件路径。 特殊值“none”禁用错误日志"
 
 [pages.xray.rules]
 "first" = "第一个"
