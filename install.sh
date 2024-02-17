@@ -82,16 +82,16 @@ fi
 install_base() {
     case "${release}" in
     centos | almalinux | rocky)
-        yum -y update && yum install -y -q wget curl tar
+        yum -y update && yum install -y -q wget curl tar tzdata
         ;;
     fedora)
-        dnf -y update && dnf install -y -q wget curl tar
+        dnf -y update && dnf install -y -q wget curl tar tzdata
         ;;
     arch | manjaro)
-        pacman -Syu && pacman -Syu --noconfirm wget curl tar
+        pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
     *)
-        apt-get update && apt install -y -q wget curl tar
+        apt-get update && apt install -y -q wget curl tar tzdata
         ;;
     esac
 }
