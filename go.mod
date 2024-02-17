@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/gzip v0.0.6
 	github.com/gin-gonic/gin v1.9.1
 	github.com/goccy/go-json v0.10.2
-	github.com/mymmrac/telego v0.29.0
+	github.com/mymmrac/telego v0.29.1
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pelletier/go-toml/v2 v2.1.1
