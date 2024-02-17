@@ -76,7 +76,7 @@
 "title" = "Estado del Sistema"
 "memory" = "Memoria"
 "hard" = "Disco Duro"
-"xrayStatus" = "Estado de"
+"xrayStatus" = "Xray"
 "stopXray" = "Detener"
 "restartXray" = "Reiniciar"
 "xraySwitch" = "Versión"

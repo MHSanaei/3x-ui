@@ -1050,12 +1050,17 @@ li.ant-select-dropdown-menu-item:empty:after {
     color: rgba(255, 255, 255, 0.25);
 }
 
+.ant-input-group.ant-input-group-compact-addon:not(:first-child):not(
+    :last-child
+  ),
+.ant-input-group.ant-input-group-compact-wrap:not(:first-child):not(
+    :last-child
+  ),
+.ant-input-group.ant-input-group-compact
+  > .ant-input:not(:first-child):not(:last-child),
+.ant-input-number-handler,
 .ant-input-number-handler-wrap {
-    border-radius: 0;
-}
-
-.ant-input-number-handler {
-    border-radius: 0;
+  border-radius: 0;
 }
 
 .ant-input-number {
@@ -1089,7 +1094,8 @@ li.ant-select-dropdown-menu-item:empty:after {
     > td,
 .ant-table-thead
     > tr:hover:not(.ant-table-expanded-row):not(.ant-table-row-selected)
-    > td {
+    > td,
+.ant-calendar-time-picker-select li:hover {
     background-color: rgb(232 244 242);
 }
 
@@ -1120,4 +1126,12 @@ li.ant-select-dropdown-menu-item:empty:after {
 
 .ant-input-group-addon:not(:first-child):not(:last-child), .ant-input-group-wrap:not(:first-child):not(:last-child), .ant-input-group>.ant-input:not(:first-child):not(:last-child) {
     border-radius: 0rem 1rem 1rem 0rem;
+}
+
+.ant-tag {
+    margin-right: 6px;
+}
+
+b, strong {
+    font-weight: 500;
 }
