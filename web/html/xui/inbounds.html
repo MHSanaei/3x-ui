@@ -200,7 +200,7 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <a-menu-item key="qrcode" v-if="dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser">
+                                        <a-menu-item key="qrcode" v-if="(dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser) || dbInbound.isWireguard">
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
                                         </a-menu-item>
