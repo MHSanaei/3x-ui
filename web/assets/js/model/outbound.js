@@ -418,7 +418,7 @@ class Outbound extends CommonClass {
     }
 
     canEnableTls() {
-        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan].includes(this.protocol)) return false;
+        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "quic", "grpc"].includes(this.stream.network);
     }
 
