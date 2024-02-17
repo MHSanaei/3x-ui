@@ -1557,7 +1557,7 @@ class Inbound extends XrayCommonClass {
         const orderChars = remarkModel.slice(1);
         let orders = {
             'i': remark,
-            'e': client ? client.email : '',
+            'e': email,
             'o': '',
           };
         if(ObjectUtil.isArrEmpty(this.stream.externalProxy)){
