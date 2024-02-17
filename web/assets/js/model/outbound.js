@@ -418,7 +418,7 @@ class Outbound extends CommonClass {
     }
 
     canEnableTls() {
-        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan].includes(this.protocol)) return false;
+        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "quic", "grpc"].includes(this.stream.network);
     }
 
@@ -861,13 +861,13 @@ Outbound.SocksSettings = class extends CommonClass {
     }
 
     static fromJson(json={}) {
-        servers = json.servers;
+        let servers = json.servers;
         if(ObjectUtil.isArrEmpty(servers)) servers=[{users: [{}]}];
         return new Outbound.SocksSettings(
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
+            ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].pass,
         );
     }
 
@@ -891,13 +891,13 @@ Outbound.HttpSettings = class extends CommonClass {
     }
 
     static fromJson(json={}) {
-        servers = json.servers;
+        let servers = json.servers;
         if(ObjectUtil.isArrEmpty(servers)) servers=[{users: [{}]}];
         return new Outbound.HttpSettings(
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
-            ObjectUtil.isArrEmpty(servers[0].pass) ? '' : servers[0].users[0].pass,
+            ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].pass,
         );
     }
 
@@ -914,8 +914,8 @@ Outbound.HttpSettings = class extends CommonClass {
 
 Outbound.WireguardSettings = class extends CommonClass {
     constructor(
-            mtu=1420, secretKey=Wireguard.generateKeypair().privateKey,
-            address=[''], workers=2, domainStrategy='ForceIPv6v4', reserved='',
+            mtu=1420, secretKey='',
+            address=[''], workers=2, domainStrategy='', reserved='',
             peers=[new Outbound.WireguardSettings.Peer()], kernelMode=false) {
         super();
         this.mtu = mtu;
@@ -965,7 +965,7 @@ Outbound.WireguardSettings = class extends CommonClass {
 };
 
 Outbound.WireguardSettings.Peer = class extends CommonClass {
-    constructor(publicKey=Wireguard.generateKeypair().publicKey, psk='', allowedIPs=['0.0.0.0/0','::/0'], endpoint='', keepAlive=0) {
+    constructor(publicKey='', psk='', allowedIPs=['0.0.0.0/0','::/0'], endpoint='', keepAlive=0) {
         super();
         this.publicKey = publicKey;
         this.psk = psk;

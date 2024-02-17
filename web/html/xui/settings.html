@@ -76,15 +76,15 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <a-space direction="vertical">
-                    <a-card hoverable style="margin-bottom: .5rem;">
-                        <a-row>
-                            <a-col :xs="24" :sm="8" style="padding: 4px;">
+                    <a-card hoverable style="margin-bottom: .5rem; overflow-x: hidden;">
+                        <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
+                            <a-col :xs="24" :sm="10" style="padding: 4px;">
                                 <a-space direction="horizontal">
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
                                 </a-space>
                             </a-col>
-                            <a-col :xs="24" :sm="16">
+                            <a-col :xs="24" :sm="14">
                                 <template>
                                     <div>
                                         <template>

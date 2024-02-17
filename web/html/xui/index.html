@@ -18,6 +18,14 @@
     .ant-card-dark h2 {
         color: hsla(0, 0%, 100%, .65);
     }
+
+    .ant-tag-df {
+        color: rgb(0 0 0 / 80%);
+    }
+
+    .dark .ant-tag-df {
+        color: rgb(255 255 255 / 80%);
+    }
 </style>
 
 <body>
@@ -36,15 +44,15 @@
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.cpu.color"
                                                     :percent="status.cpu.percent"></a-progress>
-                                        <div>CPU:  [[ cpuCoreFormat(status.cpuCores) ]]</div>
-                                        <div>Speed:  [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                                        <div><b>CPU:</b> [[ cpuCoreFormat(status.cpuCores) ]]</div>
+                                        <div><b>Speed:</b> [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
                                         <a-progress type="dashboard" status="normal"
                                                     :stroke-color="status.mem.color"
                                                     :percent="status.mem.percent"></a-progress>
                                         <div>
-                                            {{ i18n "pages.index.memory"}}: [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
+                                            <b>{{ i18n "pages.index.memory"}}:</b> [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
                                         </div>
                                     </a-col>
                                 </a-row>
@@ -56,7 +64,7 @@
                                                     :stroke-color="status.swap.color"
                                                     :percent="status.swap.percent"></a-progress>
                                         <div>
-                                            Swap: [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
+                                            <b>Swap:</b> [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
                                         </div>
                                     </a-col>
                                     <a-col :span="12" style="text-align: center">
@@ -64,7 +72,7 @@
                                                     :stroke-color="status.disk.color"
                                                     :percent="status.disk.percent"></a-progress>
                                         <div>
-                                            {{ i18n "pages.index.hard"}}: [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
+                                            <b>{{ i18n "pages.index.hard"}}:</b> [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
                                         </div>
                                     </a-col>
                                 </a-row>
@@ -75,25 +83,25 @@
             </transition>
             <transition name="list" appear>
                 <a-row>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            3X-UI <a href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                            Xray <a-tag color="green" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
-                            <a href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@panel3xui</a-tag></a>
+                            <b>3X-UI:</b>
+                            <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                            <a rel="noopener" href="https://t.me/panel3xui" target="_blank"><a-tag color="green">@Panel3xui</a-tag></a>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "menu.link" }}:
-                            <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
-                            <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
-                            <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
+                            <b>{{ i18n "pages.index.operationHours" }}:</b>
+                            <a-tag class="ant-tag-df">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag class="ant-tag-df">OS [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.xrayStatus" }}:
-                            <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
+                            <b>{{ i18n "pages.index.xrayStatus" }}:</b>
+                            <a-tag style="text-transform: capitalize;" :color="status.xray.color">[[ status.xray.state ]]
+                            </a-tag>
                             <a-popover v-if="status.xray.state === State.Error"
                                 :overlay-class-name="themeSwitcher.currentTheme">
                                 <span slot="title" style="font-size: 12pt">An error occurred while running Xray
@@ -106,137 +114,143 @@
                             </a-popover>
                             <a-tag color="purple" style="cursor: pointer;" @click="stopXrayService">{{ i18n "pages.index.stopXray" }}</a-tag>
                             <a-tag color="purple" style="cursor: pointer;" @click="restartXrayService">{{ i18n "pages.index.restartXray" }}</a-tag>                    
-                            <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">{{ i18n "pages.index.xraySwitch" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openSelectV2rayVersion">v[[ status.xray.version ]]</a-tag>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.operationHours" }}:
-                            Xray
-                            <a-tag color="green">[[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            OS
-                            <a-tag color="green">[[ formatSecond(status.uptime) ]]</a-tag>
+                            <b>{{ i18n "menu.link" }}:</b>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
+                            <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "pages.index.systemLoad" }}: [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                            <b>{{ i18n "pages.index.systemLoad" }}:</b>
+                            <a-tag class="ant-tag-df">
                             <a-tooltip>
+                                [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
                                 <template slot="title">
                                     {{ i18n "pages.index.systemLoadDesc" }}
                                 </template>
-                                <a-icon type="question-circle"></a-icon>
                             </a-tooltip>
+                            </a-tag>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
-                            {{ i18n "usage"}}:
-                            RAM [[ sizeFormat(status.appStats.mem) ]] -
-                            Threads [[ status.appStats.threads ]]
-                            </a-tooltip>
+                            <b>{{ i18n "usage"}}:</b>
+                            <a-tag class="ant-tag-df">
+                            RAM [[ sizeFormat(status.appStats.mem) ]]
+                            </a-tag>
+                            <a-tag class="ant-tag-df">
+                                Threads [[ status.appStats.threads ]]
+                            </a-tag>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-icon type="global"></a-icon>
-                                    IPv4:
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="global"></a-icon> IPv4
                                         <template slot="title">
                                             [[ status.publicIP.ipv4 ]]
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
-                                </a-col>
-                                <a-col :span="12">
-                                    <a-icon type="global"></a-icon>
-                                    IPv6:
+                                </a-tag>
+                            </a-col>
+                            <a-col :span="12">
+                                <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="global"></a-icon> IPv6
                                         <template slot="title">
                                             [[ status.publicIP.ipv6 ]]
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>                    
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-icon type="swap"></a-icon>
-                                    TCP:  [[ status.tcpCount ]]
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="swap"></a-icon> TCP:  [[ status.tcpCount ]]
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionTcpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-icon type="swap"></a-icon>
-                                    UDP:  [[ status.udpCount ]]
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="swap"></a-icon> UDP:  [[ status.udpCount ]]
                                         <template slot="title">
                                             {{ i18n "pages.index.connectionUdpCountDesc" }}
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-icon type="arrow-up"></a-icon>
-                                    [[ sizeFormat(status.netIO.up) ]]/s
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="arrow-up"></a-icon>
+                                    Up: [[ sizeFormat(status.netIO.up) ]]/s
                                         <template slot="title">
                                             {{ i18n "pages.index.upSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-icon type="arrow-down"></a-icon>
-                                    [[ sizeFormat(status.netIO.down) ]]/s
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                    <a-icon type="arrow-down"></a-icon>
+                                    Down: [[ sizeFormat(status.netIO.down) ]]/s
                                         <template slot="title">
                                             {{ i18n "pages.index.downSpeed" }}
                                         </template>
-                                        <a-icon type="question-circle"></a-icon>
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                             </a-row>
                         </a-card>
                     </a-col>
-                    <a-col :sm="24" :md="12">
+                    <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-icon type="cloud-upload"></a-icon>
-                                    [[ sizeFormat(status.netTraffic.sent) ]]
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                        <a-icon type="cloud-upload"></a-icon>
                                         <template slot="title">
                                             {{ i18n "pages.index.totalSent" }}
-                                        </template>
-                                        <a-icon type="question-circle"></a-icon>
+                                        </template> Out: [[ sizeFormat(status.netTraffic.sent) ]]
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-icon type="cloud-download"></a-icon>
-                                    [[ sizeFormat(status.netTraffic.recv) ]]
+                                    <a-tag class="ant-tag-df">
                                     <a-tooltip>
+                                        <a-icon type="cloud-download"></a-icon>
                                         <template slot="title">
                                             {{ i18n "pages.index.totalReceive" }}
-                                        </template>
-                                        <a-icon type="question-circle"></a-icon>
+                                        </template> In: [[ sizeFormat(status.netTraffic.recv) ]]
                                     </a-tooltip>
+                                    </a-tag>
                                 </a-col>
                             </a-row>
                         </a-card>
@@ -256,7 +270,7 @@
         ></a-alert>
         <template v-for="version, index in versionModal.versions">
             <a-tag :color="index % 2 == 0 ? 'purple' : 'green'"
-                   style="margin: 10px" @click="switchV2rayVersion(version)">
+                   style="margin-right: 10px" @click="switchV2rayVersion(version)">
                 [[ version ]]
             </a-tag>
         </template>
@@ -440,8 +454,8 @@
         loading: false,
         show(logs) {
             this.visible = true;
-            this.logs = logs;
-            this.formattedLogs = logs.length > 0 ? this.formatLogs(logs) : "No Record...";
+            this.logs = logs || []; 
+            this.formattedLogs = this.logs.length > 0 ? this.formatLogs(this.logs) : "No Record...";
         },
         formatLogs(logs) {
             let formattedLogs = '';

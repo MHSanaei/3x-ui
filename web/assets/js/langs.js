@@ -29,6 +29,11 @@ const supportLangs = [
         value: 'es-ES',
         icon: '🇪🇸',
     },
+    {
+        name: 'Indonesian',
+        value: 'id-ID',
+        icon: '🇮🇩',
+    },
 ];
 
 function getLang() {

@@ -20,7 +20,7 @@
 "check" = "Kiểm tra"
 "indefinite" = "Không xác định"
 "unlimited" = "Không giới hạn"
-"none" = "Không có"
+"none" = "None"
 "qrCode" = "Mã QR"
 "info" = "Thông tin thêm"
 "edit" = "Chỉnh sửa"
@@ -76,7 +76,7 @@
 "title" = "Trạng thái hệ thống"
 "memory" = "Ram"
 "hard" = "Dung lượng"
-"xrayStatus" = "Trạng thái Xray"
+"xrayStatus" = "Xray"
 "stopXray" = "Dừng lại"
 "restartXray" = "Khởi động lại"
 "xraySwitch" = "Phiên bản"
@@ -388,10 +388,15 @@
 "Inbounds" = "Đầu vào"
 "InboundsDesc" = "Thay đổi mẫu cấu hình để chấp nhận các máy khách cụ thể."
 "Outbounds" = "Đầu ra"
+"Balancers" = "Cân bằng"
 "OutboundsDesc" = "Thay đổi mẫu cấu hình để xác định các cách ra đi cho máy chủ này."
 "Routings" = "Quy tắc định tuyến"
 "RoutingsDesc" = "Mức độ ưu tiên của mỗi quy tắc đều quan trọng!"
 "completeTemplate" = "All"
+"logLevel" = "Mức đăng nhập"
+"logLevelDesc" = "Cấp độ nhật ký cho nhật ký lỗi, cho biết thông tin cần được ghi lại."
+"accessLog" = "Nhật ký truy cập"
+"accessLogDesc" = "Đường dẫn tệp cho nhật ký truy cập. Nhật ký truy cập bị vô hiệu hóa có giá trị đặc biệt 'không'"
 
 [pages.xray.rules]
 "first" = "Đầu tiên"
@@ -402,6 +407,7 @@
 "dest" = "Đích"
 "inbound" = "Vào"
 "outbound" = "Ra"
+"balancer" = "Cân bằng"
 "info" = "Thông tin"
 "add" = "Thêm quy tắc"
 "edit" = "Chỉnh sửa quy tắc"
@@ -421,6 +427,15 @@
 "bridge" = "Cầu"
 "portal" = "Cổng thông tin"
 "intercon" = "Kết nối"
+
+[pages.xray.balancer]
+"addBalancer" = "Thêm cân bằng"
+"editBalancer" = "Chỉnh sửa cân bằng"
+"balancerStrategy" = "Chiến lược"
+"balancerSelectors" = "Bộ chọn"
+"tag" = "Thẻ"
+"tagDesc" = "thẻ duy nhất"
+"balancerDesc" = "Không thể sử dụng balancerTag và outboundTag cùng một lúc. Nếu sử dụng cùng lúc thì chỉ outboundTag mới hoạt động."
 
 [pages.xray.wireguard]
 "secretKey" = "Khoá bí mật"

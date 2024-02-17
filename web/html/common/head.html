@@ -9,6 +9,16 @@
     <link rel="stylesheet" href="{{ .base_path }}assets/css/custom.css?{{ .cur_ver }}">
     <link rel=”icon” type=”image/x-icon” href="{{ .base_path }}assets/favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="{{ .base_path }}assets/favicon.ico">
+    <link rel="manifest" href="{{ .base_path }}assets/manifest.json">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('{{ .base_path }}assets/js/sw.js')
+                .then(function () {
+                    console.log('Service Worker Registered');
+                });
+        }
+    </script>
     <style>
         [v-cloak] {
             display: none;

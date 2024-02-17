@@ -1,7 +1,9 @@
 package job
 
 import (
+	"bufio"
 	"encoding/json"
+	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -23,7 +25,6 @@ type CheckClientIpJob struct {
 var job *CheckClientIpJob
 var ipFiles = []string{
 	xray.GetIPLimitLogPath(),
-	xray.GetIPLimitPrevLogPath(),
 	xray.GetIPLimitBannedLogPath(),
 	xray.GetIPLimitBannedPrevLogPath(),
 	xray.GetAccessPersistentLogPath(),
@@ -49,6 +50,37 @@ func (j *CheckClientIpJob) Run() {
 		j.checkFail2BanInstalled()
 		j.processLogFile()
 	}
+
+	if !j.hasLimitIp() && xray.GetAccessLogPath() == "./access.log" {
+		go j.clearLogTime()
+	}
+}
+
+func (j *CheckClientIpJob) clearLogTime() {
+	for {
+		time.Sleep(time.Hour)
+		j.clearAccessLog()
+	}
+}
+
+func (j *CheckClientIpJob) clearAccessLog() {
+	accessLogPath := xray.GetAccessLogPath()
+	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	j.checkError(err)
+	defer logAccessP.Close()
+
+	// reopen the access log file for reading
+	file, err := os.Open(accessLogPath)
+	j.checkError(err)
+	defer file.Close()
+
+	// copy access log content to persistent file
+	_, err = io.Copy(logAccessP, file)
+	j.checkError(err)
+
+	// clean access log
+	err = os.Truncate(accessLogPath, 0)
+	j.checkError(err)
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
@@ -86,30 +118,40 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() {
 
 	err := exec.Command(cmd, args...).Run()
 	if err != nil {
-		logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+		logger.Error("fail2ban is not installed. IP limiting may not work properly.")
 	}
 }
 
 func (j *CheckClientIpJob) processLogFile() {
 	accessLogPath := xray.GetAccessLogPath()
-	if accessLogPath == "" {
-		logger.Warning("access.log doesn't exist in your config.json")
+
+	if accessLogPath == "none" {
+		logger.Error("Access log is set to 'none' check your Xray Configs")
 		return
 	}
 
-	data, err := os.ReadFile(accessLogPath)
-	InboundClientIps := make(map[string][]string)
-	j.checkError(err)
+	if accessLogPath == "" {
+		logger.Error("Access log doesn't exist in your Xray Configs")
+		return
+	}
 
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
-		ipRegx, _ := regexp.Compile(`[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+`)
+	file, err := os.Open(accessLogPath)
+	j.checkError(err)
+	defer file.Close()
+
+	InboundClientIps := make(map[string][]string)
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		ipRegx, _ := regexp.Compile(`(\d+\.\d+\.\d+\.\d+).* accepted`)
 		emailRegx, _ := regexp.Compile(`email:.+`)
 
-		matchesIp := ipRegx.FindString(line)
-		if len(matchesIp) > 0 {
-			ip := string(matchesIp)
-			if ip == "127.0.0.1" || ip == "1.1.1.1" {
+		matches := ipRegx.FindStringSubmatch(line)
+		if len(matches) > 1 {
+			ip := matches[1]
+			if ip == "127.0.0.1" {
 				continue
 			}
 
@@ -124,12 +166,13 @@ func (j *CheckClientIpJob) processLogFile() {
 					continue
 				}
 				InboundClientIps[matchesEmail] = append(InboundClientIps[matchesEmail], ip)
-
 			} else {
 				InboundClientIps[matchesEmail] = append(InboundClientIps[matchesEmail], ip)
 			}
 		}
 	}
+
+	j.checkError(scanner.Err())
 
 	shouldCleanLog := false
 
@@ -141,27 +184,13 @@ func (j *CheckClientIpJob) processLogFile() {
 		} else {
 			shouldCleanLog = j.updateInboundClientIps(inboundClientIps, clientEmail, ips)
 		}
-
 	}
 
 	// added delay before cleaning logs to reduce chance of logging IP that already has been banned
 	time.Sleep(time.Second * 2)
 
 	if shouldCleanLog {
-		// copy access log to persistent file
-		logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		j.checkError(err)
-		input, err := os.ReadFile(accessLogPath)
-		j.checkError(err)
-		if _, err := logAccessP.Write(input); err != nil {
-			j.checkError(err)
-		}
-		defer logAccessP.Close()
-
-		// clean access log
-		if err := os.Truncate(xray.GetAccessLogPath(), 0); err != nil {
-			j.checkError(err)
-		}
+		j.clearAccessLog()
 	}
 }
 
