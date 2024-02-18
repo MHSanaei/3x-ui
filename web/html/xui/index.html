@@ -313,7 +313,7 @@
             </a-form-item>
             <a-form-item>
                 <a-button type="primary" style="margin-bottom: 10px;"
-                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs.join('\n'))" download="x-ui.log">
+                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs)" download="x-ui.log">
                     {{ i18n "download" }} x-ui.log
                 </a-button>
             </a-form-item>
@@ -446,16 +446,15 @@
 
     const logModal = {
         visible: false,
-        logs: [],
-        formattedLogs: '',
+        logs: '',
         rows: 20,
         level: 'info',
         syslog: false,
         loading: false,
         show(logs) {
             this.visible = true;
-            this.logs = logs || []; 
-            this.formattedLogs = this.logs.length > 0 ? this.formatLogs(this.logs) : "No Record...";
+            this.logs = logs; 
+            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
         },
         formatLogs(logs) {
             let formattedLogs = '';
