@@ -179,10 +179,10 @@
         <template v-if="app.tgBotEnable && infoModal.clientSettings.tgId">
             <a-divider>Telegram ID</a-divider>
             <a-row>
-                <a-col :sx="24" :md="22"><a :href="[[ infoModal.tgLink ]]" target="_blank">@[[ infoModal.clientSettings.tgId ]]</a></a-col>
+                <a-col :sx="24" :md="22">[[ infoModal.clientSettings.tgId ]]</a-col>
                 <a-col :sx="24" :md="2" style="text-align: right;">
                     <a-tooltip title='{{ i18n "copy" }}'>
-                        <button class="ant-btn ant-btn-primary" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', '@' + infoModal.clientSettings.tgId)">
+                        <button class="ant-btn ant-btn-primary" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', infoModal.clientSettings.tgId)">
                             <a-icon type="snippets"></a-icon>
                         </button>
                     </a-tooltip>
@@ -283,23 +283,49 @@
             </tr>
         <template v-for="(peer, index) in inbound.settings.peers">
             <tr>
-                <td colspan="2"><a-tag>Peer [[ index + 1 ]]</a-tag></td>
+                <td colspan="2"><a-divider>Peer [[ index + 1 ]]</a-divider></td>
             </tr>
             <tr class="client-table-odd-row">
+                <td>{{ i18n "pages.xray.wireguard.secretKey" }}</td>
+                <td>[[ peer.privateKey ]]</td>
+            </tr>
+            <tr>
                 <td>{{ i18n "pages.xray.wireguard.publicKey" }}</td>
                 <td>[[ peer.publicKey ]]</td>
             </tr>
-            <tr>
+            <tr class="client-table-odd-row">
                 <td>{{ i18n "pages.xray.wireguard.psk" }}</td>
                 <td>[[ peer.psk ]]</td>
             </tr>
-            <tr class="client-table-odd-row">
+            <tr>
                 <td>{{ i18n "pages.xray.wireguard.allowedIPs" }}</td>
                 <td>[[ peer.allowedIPs.join(",") ]]</td>
             </tr>
-            <tr>
+            <tr class="client-table-odd-row">
                 <td>Keep Alive</td>
                 <td>[[ peer.keepAlive ]]</td>
+            </tr>
+            <tr>
+                <td colspan="2">
+                    <a-row>
+                        <a-col :span="22" style="overflow-wrap: anywhere;">
+                            <a-tag color="blue">Config</a-tag>
+                            <div 
+                            v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)"
+                            style="border-radius: 1rem; padding: 0.5rem;"
+                            class="client-table-odd-row"></div>
+                        </a-col>
+                        <a-col :span="2" style="text-align: right;">
+                            <a-tooltip title='{{ i18n "copy" }}'>
+                                <button class="ant-btn ant-btn-primary"
+                                    :id="'copy-url-link-'+index"
+                                    @click="copyToClipboard('copy-url-link-'+index, infoModal.links[index])">
+                                    <a-icon type="snippets"></a-icon>
+                                </button>
+                            </a-tooltip>
+                        </a-col>
+                    </a-row>
+                </td>
             </tr>
         </table>
         </template>
@@ -319,7 +345,6 @@
         index: null,
         isExpired: false,
         subLink: '',
-        tgLink: '',
         show(dbInbound, index) {
             this.index = index;
             this.inbound = dbInbound.toInbound();
@@ -327,13 +352,14 @@
             this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
             this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index): this.dbInbound.isExpiry;
             this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
-            this.links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, this.clientSettings);
+            if (this.inbound.protocol == Protocols.WIREGUARD){
+                this.links = this.inbound.genInboundLinks(dbInbound.remark).split('\r\n')
+            } else {
+                this.links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, this.clientSettings);
+            }
             if (this.clientSettings) {
                 if (this.clientSettings.subId) {
                     this.subLink = this.genSubLink(this.clientSettings.subId);
-                }
-                if (this.clientSettings.tgId) {
-                    this.tgLink = "https://t.me/" + this.clientSettings.tgId;
                 }
             }
             this.visible = true;

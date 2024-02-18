@@ -134,28 +134,10 @@
         <a-form-item label='{{ i18n "pages.xray.wireguard.endpoint" }}'>
             <a-input v-model.trim="peer.endpoint"></a-input>
         </a-form-item>
-        <a-form-item>
-            <template slot="label">
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "reset" }}</span>
-                    </template>
-                    {{ i18n "pages.xray.wireguard.publicKey" }}
-                    <a-icon @click="peer.publicKey = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
-                </a-tooltip>
-            </template>
+        <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
             <a-input v-model.trim="peer.publicKey"></a-input>
         </a-form-item>
-        <a-form-item>
-            <template slot="label">
-                <a-tooltip>
-                    <template slot="title">
-                        <span>{{ i18n "reset" }}</span>
-                    </template>
-                    {{ i18n "pages.xray.wireguard.psk" }}
-                    <a-icon @click="peer.psk = publicKey=Wireguard.generateKeypair().publicKey"type="sync"> </a-icon>
-                </a-tooltip>
-            </template>
+        <a-form-item label='{{ i18n "pages.xray.wireguard.psk" }}'>
             <a-input v-model.trim="peer.psk"></a-input>
         </a-form-item>
         <a-form-item>
@@ -189,7 +171,6 @@
         <a-form-item label='ID'>
             <a-input v-model.trim="outbound.settings.id"></a-input>
         </a-form-item>
-
  <!-- vless settings -->
  <template v-if="outbound.canEnableTlsFlow()">
         <a-form-item label='Flow'>
@@ -212,18 +193,23 @@
             <a-input v-model.trim="outbound.settings.pass"></a-input>
         </a-form-item>
     </template>
-
-<!-- shadowsocks -->
-<template v-if="outbound.protocol === Protocols.Shadowsocks">
+<!-- trojan/shadowsocks -->
+<template v-if="[Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
+        <a-form-item label='{{ i18n "password" }}'>
+        <a-input v-model.trim="outbound.settings.password"></a-input>
+        </a-form-item>
+    </template>
+    <!-- shadowsocks -->
+    <template v-if="outbound.protocol === Protocols.Shadowsocks">
         <a-form-item label='{{ i18n "encryption" }}'>
             <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="(method,method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
+                <a-select-option v-for="(method, method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='UDP over TCP'>
             <a-switch v-model="outbound.settings.uot"></a-switch>
         </a-form-item>
-    </template>
+  </template>
 </template>
 
 <!-- stream settings -->
@@ -363,13 +349,15 @@
             <a-input v-model.trim="outbound.stream.tls.serverName"></a-input>
         </a-form-item>
         <a-form-item label="uTLS">
-            <a-select v-model="outbound.stream.tls.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="outbound.stream.tls.fingerprint" 
+            :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value=''>None</a-select-option>
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label="ALPN">
-            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+            <a-select mode="multiple" 
+            :dropdown-class-name="themeSwitcher.currentTheme"
                 v-model="outbound.stream.tls.alpn">
                 <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
             </a-select>
@@ -381,11 +369,12 @@
 
     <!-- reality settings -->
     <template v-if="outbound.stream.isReality">
-        <a-form-item label='{{ i18n "domainName" }}'>
+        <a-form-item label="SNI">
             <a-input v-model.trim="outbound.stream.reality.serverName"></a-input>
         </a-form-item>
         <a-form-item label="uTLS">
-            <a-select v-model="outbound.stream.reality.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="outbound.stream.reality.fingerprint" 
+            :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>

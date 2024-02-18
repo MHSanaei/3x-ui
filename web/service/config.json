@@ -2,6 +2,7 @@
   "log": {
     "access": "none",
     "dnsLog": false,
+    "error": "./error.log",
     "loglevel": "warning"
   },
   "api": {

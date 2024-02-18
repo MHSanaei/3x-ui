@@ -150,6 +150,12 @@ custom_version() {
     eval $install_command
 }
 
+# Function to handle the deletion of the script file
+delete_script() {
+    rm "$0"  # Remove the script file itself
+    exit 1
+}
+
 uninstall() {
     confirm "Are you sure you want to uninstall the panel? xray will also uninstalled!" "n"
     if [[ $? != 0 ]]; then
@@ -167,12 +173,13 @@ uninstall() {
     rm /usr/local/x-ui/ -rf
 
     echo ""
-    echo -e "Uninstalled Successfully, If you want to remove this script, then after exiting the script run ${green}rm /usr/bin/x-ui -f${plain} to delete it."
+    echo -e "Uninstalled Successfully.\n"
+    echo "If you need to install this panel again, you can use below command:"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
     echo ""
-
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
+    # Trap the SIGTERM signal
+    trap delete_script SIGTERM
+    delete_script
 }
 
 reset_user() {
@@ -483,6 +490,33 @@ show_xray_status() {
     fi
 }
 
+firewall_menu() {
+    echo -e "${green}\t1.${plain} Install Firewall & open ports"
+    echo -e "${green}\t2.${plain} Allowed List"
+    echo -e "${green}\t3.${plain} Delete Ports from List"
+    echo -e "${green}\t4.${plain} Disable Firewall"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        open_ports
+        ;;
+    2)
+        sudo ufw status
+        ;;
+    3)
+        delete_ports
+        ;;
+    4)
+        sudo ufw disable
+        ;;
+    *) echo "Invalid choice" ;;
+    esac
+}
+
 open_ports() {
     if ! command -v ufw &>/dev/null; then
         echo "ufw firewall is not installed. Installing now..."
@@ -532,6 +566,37 @@ open_ports() {
     done
 
     # Confirm that the ports are open
+    ufw status | grep $ports
+}
+
+delete_ports() {
+    # Prompt the user to enter the ports they want to delete
+    read -p "Enter the ports you want to delete (e.g. 80,443,2053 or range 400-500): " ports
+
+    # Check if the input is valid
+    if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+        echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
+        exit 1
+    fi
+
+    # Delete the specified ports using ufw
+    IFS=',' read -ra PORT_LIST <<<"$ports"
+    for port in "${PORT_LIST[@]}"; do
+        if [[ $port == *-* ]]; then
+            # Split the range into start and end ports
+            start_port=$(echo $port | cut -d'-' -f1)
+            end_port=$(echo $port | cut -d'-' -f2)
+            # Loop through the range and delete each port
+            for ((i = start_port; i <= end_port; i++)); do
+                ufw delete allow $i
+            done
+        else
+            ufw delete allow "$port"
+        fi
+    done
+
+    # Confirm that the ports are deleted
+    echo "Deleted the specified ports:"
     ufw status | grep $ports
 }
 
@@ -1124,10 +1189,10 @@ show_menu() {
   ${green}17.${plain} Cloudflare SSL Certificate
   ${green}18.${plain} IP Limit Management
   ${green}19.${plain} WARP Management
+  ${green}20.${plain} Firewall Management
 ————————————————
-  ${green}20.${plain} Enable BBR 
-  ${green}21.${plain} Update Geo Files
-  ${green}22.${plain} Active Firewall and open ports
+  ${green}21.${plain} Enable BBR 
+  ${green}22.${plain} Update Geo Files
   ${green}23.${plain} Speedtest by Ookla
 "
     show_status
@@ -1195,13 +1260,13 @@ show_menu() {
         warp_cloudflare
         ;;
     20)
-        enable_bbr
+        firewall_menu
         ;;
     21)
-        update_geo
+        enable_bbr
         ;;
     22)
-        open_ports
+        update_geo
         ;;
     23)
         run_speedtest

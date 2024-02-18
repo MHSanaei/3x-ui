@@ -133,6 +133,10 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export" }}
                                             </a-menu-item>
+                                            <a-menu-item key="subs">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export" }} - {{ i18n "pages.settings.subSettings" }}
+                                            </a-menu-item>
                                             <a-menu-item key="resetInbounds">
                                                 <a-icon type="reload"></a-icon>
                                                 {{ i18n "pages.inbounds.resetAllTraffic" }}
@@ -141,7 +145,7 @@
                                                 <a-icon type="file-done"></a-icon>
                                                 {{ i18n "pages.inbounds.resetAllClientTraffics" }}
                                             </a-menu-item>
-                                            <a-menu-item key="delDepletedClients">
+                                            <a-menu-item key="delDepletedClients" style="color: #FF4D4F;">
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
@@ -196,7 +200,7 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <a-menu-item key="qrcode" v-if="dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser">
+                                        <a-menu-item key="qrcode" v-if="(dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser) || dbInbound.isWireguard">
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
                                         </a-menu-item>
@@ -217,7 +221,11 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}}
                                             </a-menu-item>
-                                            <a-menu-item key="delDepletedClients">
+                                            <a-menu-item key="subs">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}
+                                            </a-menu-item>
+                                            <a-menu-item key="delDepletedClients" style="color: #FF4D4F;">
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
@@ -578,6 +586,7 @@
                     this.refreshing = false;
                     return;
                 }
+
                 await this.getOnlineUsers();
                 this.setInbounds(msg.obj);
                 setTimeout(() => {
@@ -642,8 +651,12 @@
                     clientCount = clients.length;
                     if (dbInbound.enable) {
                         clients.forEach(client => {
-                            client.enable ? active.push(client.email) : deactive.push(client.email);
-                            if(this.isClientOnline(client.email)) online.push(client.email);
+                            if (client.enable && this.isClientOnline(client.email)) {
+                                active.push(client.email);
+                                online.push(client.email);
+                            } else {
+                                deactive.push(client.email);
+                            }
                         });
                         clientStats.forEach(client => {
                             if (!client.enable) {
@@ -668,6 +681,7 @@
                     online: online,
                 };
             },
+
             searchInbounds(key) {
                 if (ObjectUtil.isEmpty(key)) {
                     this.searchedInbounds = this.dbInbounds.slice();
@@ -731,6 +745,9 @@
                     case "export":
                         this.exportAllLinks();
                         break;
+                    case "subs":
+                        this.exportAllSubs();
+                        break;
                     case "resetInbounds":
                         this.resetAllTraffic();
                         break;
@@ -761,6 +778,9 @@
                         break;
                     case "export":
                         this.inboundLinks(dbInbound.id);
+                        break;
+                    case "subs":
+                        this.exportSubs(dbInbound.id);
                         break;
                     case "clipboard":
                         this.copyToClipboard(dbInbound.id);
@@ -1186,6 +1206,22 @@
                 newDbInbound = this.checkFallback(dbInbound);
                 txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(), newDbInbound.remark);
             },
+            exportSubs(dbInboundId) {
+                const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                const clients = this.getInboundClients(dbInbound);
+                let subLinks = []
+                if (clients != null){
+                    clients.forEach(c => {
+                        if (c.subId && c.subId.length>0){
+                            subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                        }
+                    })
+                }
+                txtModal.show(
+                    '{{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}',
+                    [...new Set(subLinks)].join('\n'),
+                    dbInbound.remark + "-Subs");
+            },
             importInbound() {
                 promptModal.open({
                     title: '{{ i18n "pages.inbounds.importInbound" }}',
@@ -1197,6 +1233,23 @@
                         promptModal.close();
                     },
                 });
+            },
+            exportAllSubs() {
+                let subLinks = []
+                for (const dbInbound of this.dbInbounds) {
+                    const clients = this.getInboundClients(dbInbound);
+                    if (clients != null){
+                        clients.forEach(c => {
+                            if (c.subId && c.subId.length>0){
+                                subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                            }
+                        })
+                    }
+                }
+                txtModal.show(
+                    '{{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}',
+                    [...new Set(subLinks)].join('\r\n'),
+                    'All-Inbounds-Subs');
             },
             exportAllLinks() {
                 let copyText = [];

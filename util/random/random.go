@@ -2,7 +2,6 @@ package random
 
 import (
 	"math/rand"
-	"time"
 )
 
 var numSeq [10]rune
@@ -13,8 +12,6 @@ var numUpperSeq [36]rune
 var allSeq [62]rune
 
 func init() {
-	rand.Seed(time.Now().UnixNano())
-
 	for i := 0; i < 10; i++ {
 		numSeq[i] = rune('0' + i)
 	}
@@ -40,4 +37,8 @@ func Seq(n int) string {
 		runes[i] = allSeq[rand.Intn(len(allSeq))]
 	}
 	return string(runes)
+}
+
+func Num(n int) int {
+	return rand.Intn(n)
 }

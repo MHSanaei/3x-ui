@@ -20,7 +20,7 @@
 "check" = "Verificar"
 "indefinite" = "Indefinido"
 "unlimited" = "Ilimitado"
-"none" = "Ninguno"
+"none" = "None"
 "qrCode" = "Código QR"
 "info" = "Más Información"
 "edit" = "Editar"
@@ -76,7 +76,7 @@
 "title" = "Estado del Sistema"
 "memory" = "Memoria"
 "hard" = "Disco Duro"
-"xrayStatus" = "Estado de"
+"xrayStatus" = "Xray"
 "stopXray" = "Detener"
 "restartXray" = "Reiniciar"
 "xraySwitch" = "Versión"
@@ -311,6 +311,8 @@
 "advancedTemplate" = "Plantilla Avanzada"
 "generalConfigs" = "Configuraciones Generales"
 "generalConfigsDesc" = "Estas opciones proporcionarán ajustes generales."
+"logConfigs" = "Registro"
+"logConfigsDesc" = "Los registros pueden afectar la eficiencia de su servidor. Se recomienda habilitarlo sabiamente solo en caso de sus necesidades."
 "blockConfigs" = "Configuraciones de Bloqueo"
 "blockConfigsDesc" = "Estas opciones evitarán que los usuarios se conecten a protocolos y sitios web específicos."
 "blockCountryConfigs" = "Configuraciones de Bloqueo por País"
@@ -388,6 +390,7 @@
 "Inbounds" = "Entrante"
 "InboundsDesc" = "Cambia la plantilla de configuración para aceptar clientes específicos."
 "Outbounds" = "Salidas"
+"Balancers" = "Equilibradores"
 "OutboundsDesc" = "Cambia la plantilla de configuración para definir formas de salida para este servidor."
 "Routings" = "Reglas de enrutamiento"
 "RoutingsDesc" = "¡La prioridad de cada regla es importante!"
@@ -396,6 +399,8 @@
 "logLevelDesc" = "El nivel de registro para registros de errores, que indica la información que debe registrarse."
 "accessLog" = "Registro de acceso"
 "accessLogDesc" = "La ruta del archivo para el registro de acceso. El valor especial 'ninguno' deshabilita los registros de acceso"
+"errorLog" = "Registro de errores"
+"errorLogDesc" = "La ruta del archivo para el registro de errores. El valor especial 'ninguno' deshabilitó los registros de errores"
 
 [pages.xray.rules]
 "first" = "Primero"
@@ -406,6 +411,7 @@
 "dest" = "Destino"
 "inbound" = "Entrante"
 "outbound" = "saliente"
+"balancer" = "Balancín"
 "info" = "Información"
 "add" = "Agregar regla"
 "edit" = "Editar regla"
@@ -425,6 +431,15 @@
 "bridge" = "puente"
 "portal" = "portal"
 "intercon" = "Interconexión"
+
+[pages.xray.balancer]
+"addBalancer" = "Agregar equilibrador"
+"editBalancer" = "Editar balanceador"
+"balancerStrategy" = "Estrategia"
+"balancerSelectors" = "Selectores"
+"tag" = "Etiqueta"
+"tagDesc" = "etiqueta única"
+"balancerDesc" = "No es posible utilizar balancerTag y outboundTag al mismo tiempo. Si se utilizan al mismo tiempo, sólo funcionará outboundTag."
 
 [pages.xray.wireguard]
 "secretKey" = "Llave secreta"

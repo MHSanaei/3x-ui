@@ -10,7 +10,6 @@ import (
 )
 
 type OutboundService struct {
-	xrayApi xray.XrayAPI
 }
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
@@ -77,4 +76,26 @@ func (s *OutboundService) GetOutboundsTraffic() ([]*model.OutboundTraffics, erro
 	}
 
 	return traffics, nil
+}
+
+func (s *OutboundService) ResetOutboundTraffic(tag string) error {
+	db := database.GetDB()
+
+	whereText := "tag "
+	if tag == "-alltags-" {
+		whereText += " <> ?"
+	} else {
+		whereText += " = ?"
+	}
+
+	result := db.Model(model.OutboundTraffics{}).
+		Where(whereText, tag).
+		Updates(map[string]interface{}{"up": 0, "down": 0, "total": 0})
+
+	err := result.Error
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

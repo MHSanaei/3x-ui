@@ -25,7 +25,6 @@ type CheckClientIpJob struct {
 var job *CheckClientIpJob
 var ipFiles = []string{
 	xray.GetIPLimitLogPath(),
-	xray.GetIPLimitPrevLogPath(),
 	xray.GetIPLimitBannedLogPath(),
 	xray.GetIPLimitBannedPrevLogPath(),
 	xray.GetAccessPersistentLogPath(),
@@ -51,6 +50,37 @@ func (j *CheckClientIpJob) Run() {
 		j.checkFail2BanInstalled()
 		j.processLogFile()
 	}
+
+	if !j.hasLimitIp() && xray.GetAccessLogPath() == "./access.log" {
+		go j.clearLogTime()
+	}
+}
+
+func (j *CheckClientIpJob) clearLogTime() {
+	for {
+		time.Sleep(time.Hour)
+		j.clearAccessLog()
+	}
+}
+
+func (j *CheckClientIpJob) clearAccessLog() {
+	accessLogPath := xray.GetAccessLogPath()
+	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+	j.checkError(err)
+	defer logAccessP.Close()
+
+	// reopen the access log file for reading
+	file, err := os.Open(accessLogPath)
+	j.checkError(err)
+	defer file.Close()
+
+	// copy access log content to persistent file
+	_, err = io.Copy(logAccessP, file)
+	j.checkError(err)
+
+	// clean access log
+	err = os.Truncate(accessLogPath, 0)
+	j.checkError(err)
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
@@ -121,7 +151,7 @@ func (j *CheckClientIpJob) processLogFile() {
 		matches := ipRegx.FindStringSubmatch(line)
 		if len(matches) > 1 {
 			ip := matches[1]
-			if ip == "127.0.0.1" || ip == "[::1]" {
+			if ip == "127.0.0.1" {
 				continue
 			}
 
@@ -160,24 +190,7 @@ func (j *CheckClientIpJob) processLogFile() {
 	time.Sleep(time.Second * 2)
 
 	if shouldCleanLog {
-		// copy access log to persistent file
-		logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		j.checkError(err)
-		defer logAccessP.Close()
-
-		// reopen the access log file for reading
-		file, err := os.Open(accessLogPath)
-		j.checkError(err)
-		defer file.Close()
-
-		// copy access log content to persistent file
-		_, err = io.Copy(logAccessP, file)
-		j.checkError(err)
-
-		// clean access log
-		if err := os.Truncate(xray.GetAccessLogPath(), 0); err != nil {
-			j.checkError(err)
-		}
+		j.clearAccessLog()
 	}
 }
 
