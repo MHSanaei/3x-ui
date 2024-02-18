@@ -31,13 +31,13 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 			// Map the level to the appropriate logger function
 			switch level {
 			case "Debug":
-				logger.Debug(msgBody)
+				logger.Debug("XRAY: " + msgBody)
 			case "Info":
-				logger.Info(msgBody)
+				logger.Info("XRAY: " + msgBody)
 			case "Warning":
-				logger.Warning(msgBody)
+				logger.Warning("XRAY: " + msgBody)
 			case "Error":
-				logger.Error(msgBody)
+				logger.Error("XRAY: " + msgBody)
 			default:
 				logger.Debug("XRAY: " + msg)
 			}

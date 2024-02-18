@@ -133,7 +133,7 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export" }}
                                             </a-menu-item>
-                                            <a-menu-item key="subs">
+                                            <a-menu-item key="subs" v-if="subSettings.enable">
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export" }} - {{ i18n "pages.settings.subSettings" }}
                                             </a-menu-item>
@@ -221,7 +221,7 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}}
                                             </a-menu-item>
-                                            <a-menu-item key="subs">
+                                            <a-menu-item key="subs" v-if="subSettings.enable">
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}
                                             </a-menu-item>
