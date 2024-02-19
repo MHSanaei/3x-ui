@@ -651,9 +651,9 @@
                     clientCount = clients.length;
                     if (dbInbound.enable) {
                         clients.forEach(client => {
-                            if (client.enable && this.isClientOnline(client.email)) {
+                            if (client.enable) {
                                 active.push(client.email);
-                                online.push(client.email);
+                                if (this.isClientOnline(client.email)) online.push(client.email);
                             } else {
                                 deactive.push(client.email);
                             }
