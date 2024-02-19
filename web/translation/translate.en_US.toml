@@ -449,6 +449,15 @@
 "psk" = "PreShared Key"
 "domainStrategy" = "Domain Strategy"
 
+[pages.xray.dns]
+"enable" = "Enable DNS"
+"enableDesc" = "Enable built-in DNS server"
+"strategy" = "Query Strategy"
+"strategyDesc" = "Overall strategy to resolve domain names"
+"add" = "Add Server"
+"edit" = "Edit Server"
+"domains" = "Domains"
+
 [pages.settings.security]
 "admin" = "Admin"
 "secret" = "Secret Token"

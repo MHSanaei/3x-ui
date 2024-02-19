@@ -449,6 +449,15 @@
 "psk" = "Clave precompartida"
 "domainStrategy" = "Estrategia de dominio"
 
+[pages.xray.dns]
+"enable" = "Habilitar DNS"
+"enableDesc" = "Habilitar servidor DNS integrado"
+"strategy" = "Estrategia de consulta"
+"strategyDesc" = "Estrategia general para resolver nombres de dominio"
+"add" = "Agregar servidor"
+"edit" = "Editar servidor"
+"domains" = "Dominios"
+
 [pages.settings.security]
 "admin" = "Administrador"
 "secret" = "Token Secreto"

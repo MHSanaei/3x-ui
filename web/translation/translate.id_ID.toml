@@ -449,6 +449,15 @@
 "psk" = "Kunci Pra-Bagi"
 "domainStrategy" = "Strategi Domain"
 
+[pages.xray.dns]
+"enable" = "Aktifkan DNS"
+"enableDesc" = "Aktifkan server DNS bawaan"
+"strategy" = "Strategi Kueri"
+"strategyDesc" = "Strategi keseluruhan untuk menyelesaikan nama domain"
+"add" = "Tambahkan Server"
+"edit" = "Sunting Server"
+"domains" = "Domains"
+
 [pages.settings.security]
 "admin" = "Admin"
 "secret" = "Token Rahasia"

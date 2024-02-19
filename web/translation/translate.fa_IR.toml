@@ -449,6 +449,15 @@
 "psk" = "کلید مشترک"
 "domainStrategy" = "استراتژی حل دامنه"
 
+[pages.xray.dns]
+"enable" = "فعال کردن حل دامنه"
+"enableDesc" = "سرور حل دامنه داخلی را فعال کنید"
+"strategy" = "استراتژی پرس‌وجو"
+"strategyDesc" = "استراتژی کلی برای حل نام دامنه"
+"add" = "افزودن سرور"
+"edit" = "ویرایش سرور"
+"domains" = "دامنه‌ها"
+
 [pages.settings.security]
 "admin" = "مدیر"
 "secret" = "توکن مخفی"
