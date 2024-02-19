@@ -1146,10 +1146,6 @@ class Inbound extends XrayCommonClass {
         return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol);
     }
 
-    canSniffing() {
-        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol);
-    }
-
     reset() {
         this.port = RandomUtil.randomIntRange(10000, 60000);
         this.listen = '';
