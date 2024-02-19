@@ -69,7 +69,17 @@ certbot renew --dry-run
 
 ```sh
 ARCH=$(uname -m)
-[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+case "${ARCH}" in
+  x86_64 | x64 | amd64) XUI_ARCH="amd64" ;;
+  i*86 | x86) XUI_ARCH="386" ;;
+  armv8* | armv8 | arm64 | aarch64) XUI_ARCH="arm64" ;;
+  armv7* | armv7) XUI_ARCH="armv7" ;;
+  armv6* | armv6) XUI_ARCH="armv6" ;;
+  armv5* | armv5) XUI_ARCH="armv5" ;;
+  *) XUI_ARCH="amd64" ;;
+esac
+
+
 wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
 ```
 
@@ -77,7 +87,16 @@ wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI
 
 ```sh
 ARCH=$(uname -m)
-[[ "${ARCH}" == "aarch64" || "${ARCH}" == "arm64" ]] && XUI_ARCH="arm64" || XUI_ARCH="amd64"
+case "${ARCH}" in
+  x86_64 | x64 | amd64) XUI_ARCH="amd64" ;;
+  i*86 | x86) XUI_ARCH="386" ;;
+  armv8* | armv8 | arm64 | aarch64) XUI_ARCH="arm64" ;;
+  armv7* | armv7) XUI_ARCH="armv7" ;;
+  armv6* | armv6) XUI_ARCH="armv6" ;;
+  armv5* | armv5) XUI_ARCH="armv5" ;;
+  *) XUI_ARCH="amd64" ;;
+esac
+
 cd /root/
 rm -rf x-ui/ /usr/local/x-ui/ /usr/bin/x-ui
 tar zxvf x-ui-linux-${XUI_ARCH}.tar.gz
@@ -164,22 +183,26 @@ remove 3x-ui from docker
 - AlmaLinux 9+
 - Rockylinux 9+
 
-## Compatible Architectures & Devices
+## Supported Architectures and Devices
 
-Supports a variety of different architectures and devices. Here are some of the main architectures that we support:
+<details>
+  <summary>Click for Supported Architectures and devices details</summary>
 
-- **amd64**: This is the most common architecture for personal computers and servers. It supports most modern operating systems. 
+Our platform offers compatibility with a diverse range of architectures and devices, ensuring flexibility across various computing environments. The following are key architectures that we support:
 
-- **x86 / i386**: This architecture is prevalent in desktop and laptop computers. It's widely supported by various operating systems and applications. (Ex: Most Windows, macOS, and Linux systems)
+- **amd64**: This prevalent architecture is the standard for personal computers and servers, accommodating most modern operating systems seamlessly.
 
-- **armv8 / arm64 / aarch64**: This is the architecture for modern mobile and embedded devices, including smartphones and tablets. (Ex: Raspberry Pi 4, Raspberry Pi 3, Raspberry Pi Zero 2/Zero 2 W, Orange Pi 3 LTS,...)
+- **x86 / i386**: Widely adopted in desktop and laptop computers, this architecture enjoys broad support from numerous operating systems and applications, including but not limited to Windows, macOS, and Linux systems.
 
-- **armv7 / arm / arm32**: This is the architecture for older mobile and embedded devices. It is still widely used in many devices. (Ex: Orange Pi Zero LTS, Orange Pi PC Plus, Raspberry Pi 2,...)
+- **armv8 / arm64 / aarch64**: Tailored for contemporary mobile and embedded devices, such as smartphones and tablets, this architecture is exemplified by devices like Raspberry Pi 4, Raspberry Pi 3, Raspberry Pi Zero 2/Zero 2 W, Orange Pi 3 LTS, and more.
 
-- **armv6 / arm / arm32**: This is the architecture for very old embedded devices. While not as common as before, there are still some devices using this architecture. (Ex: Raspberry Pi 1, Raspberry Pi Zero/Zero W,...)
+- **armv7 / arm / arm32**: Serving as the architecture for older mobile and embedded devices, it remains widely utilized in devices like Orange Pi Zero LTS, Orange Pi PC Plus, Raspberry Pi 2, among others.
 
-- **armv5 / arm / arm32**: This is an older architecture primarily used in early embedded systems. While it's less common today, some legacy devices may still rely on this architecture. (Ex: Early versions of Raspberry Pi, some older smartphones)
-  
+- **armv6 / arm / arm32**: Geared towards very old embedded devices, this architecture, while less prevalent, is still in use. Devices such as Raspberry Pi 1, Raspberry Pi Zero/Zero W, rely on this architecture.
+
+- **armv5 / arm / arm32**: An older architecture primarily associated with early embedded systems, it is less common today but may still be found in legacy devices like early Raspberry Pi versions and some older smartphones.
+</details>
+
 ## Languages
 
 - English
@@ -188,6 +211,7 @@ Supports a variety of different architectures and devices. Here are some of the 
 - Russian
 - Vietnamese
 - Spanish
+- Indonesian 
 
 
 ## Features
