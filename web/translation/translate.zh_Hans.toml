@@ -449,6 +449,15 @@
 "psk" = "共享密钥"
 "domainStrategy" = "域策略"
 
+[pages.xray.dns]
+"enable" = "启用 DNS"
+"enableDesc" = "启用内置 DNS 服务器"
+"strategy" = "查询策略"
+"strategyDesc" = "解析域名的总体策略"
+"add" = "添加服务器"
+"edit" = "编辑服务器"
+"domains" = "域"
+
 [pages.settings.security]
 "admin" = "管理员"
 "secret" = "密钥"
