@@ -117,10 +117,11 @@ jobs:
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
         
       - name: Upload files to GH release
-        uses: MHSanaei/upload-release-action@2.8.0
+        uses: MHSanaei/upload-release-action@2.9.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
+          draft: true
