@@ -54,6 +54,7 @@
 "security" = "Bảo vệ"
 "secAlertTitle" = "Cảnh báo an ninh-Tiếng Việt by Ohoang7"
 "secAlertSsl" = "Kết nối này không an toàn; Vui lòng không nhập thông tin nhạy cảm cho đến khi TLS được kích hoạt để bảo vệ dữ liệu của Bạn"
+"secAlertConf" = "Một số cấu hình nhất định đã được xác định là dễ bị tấn công, thúc đẩy hành động ngay lập tức để củng cố các giao thức bảo mật và bảo vệ chống lại các vi phạm bảo mật tiềm ẩn."
 
 [menu]
 "dashboard" = "Trạng thái hệ thống"
@@ -304,6 +305,8 @@
 "subShowInfoDesc" = "Hiển thị lưu lượng truy cập còn lại và ngày sau tên cấu hình"
 "subURI" = "URI proxy trung gian"
 "subURIDesc" = "Thay đổi URI cơ sở của URL gói đăng ký để sử dụng cho proxy trung gian"
+"fragment" = "Sự phân mảnh"
+"fragmentDesc" = "Kích hoạt phân mảnh cho gói TLS hello"
 
 [pages.xray]
 "title" = "Cài đặt Xray"

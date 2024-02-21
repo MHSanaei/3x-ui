@@ -65,11 +65,6 @@
                     </a-alert>
                 </transition>
                 <transition name="list" appear>
-                    <a-tag v-if="false" color="red" style="margin-bottom: 10px">
-                        Please go to the panel settings as soon as possible to modify the username and password, otherwise there may be a risk of leaking account information
-                    </a-tag>
-                </transition>
-                <transition name="list" appear>
                     <a-card hoverable>
                         <a-row>
                             <a-col :xs="24" :sm="24" :lg="12">
@@ -576,7 +571,8 @@
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
-                subURI : ''
+                subURI : '',
+                subJsonURI : '',
             },
             remarkModel: '-ieo',
             datepicker: 'gregorian',
@@ -623,7 +619,8 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
-                        subURI: subURI
+                        subURI: subURI,
+                        subJsonURI: subJsonURI
                     };
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
@@ -997,7 +994,7 @@
             },
             delInbound(dbInboundId) {
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.deleteInbound"}}',
+                    title: '{{ i18n "pages.inbounds.deleteInbound"}}' + ' #' + dbInboundId,
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
                     class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "delete"}}',
@@ -1010,7 +1007,7 @@
                 clientId = this.getClientId(dbInbound.protocol, client);
                 if (confirmation){
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.deleteClient"}}',
+                        title: '{{ i18n "pages.inbounds.deleteClient"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.deleteClientContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "delete"}}',
@@ -1301,7 +1298,7 @@
             pagination(obj){
                 if (this.pageSize > 0 && obj.length>this.pageSize) {
                     // Set page options based on object size
-                    sizeOptions = []
+                    sizeOptions = [];
                     for (i=this.pageSize;i<=obj.length;i=i+this.pageSize) {
                         sizeOptions.push(i.toString());
                     }
@@ -1314,8 +1311,8 @@
                         position: 'bottom',
                         pageSize: this.pageSize,
                         pageSizeOptions: sizeOptions
-                    }
-                    return p
+                    };
+                    return p;
                 }
                 return false
             },
@@ -1369,7 +1366,6 @@
             }
         },
     });
-
 </script>
 
 {{template "inboundModal"}}
@@ -1379,6 +1375,5 @@
 {{template "inboundInfoModal"}}
 {{template "clientsModal"}}
 {{template "clientsBulkModal"}}
-
 </body>
 </html>

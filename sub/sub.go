@@ -47,11 +47,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 
-	subPath, err := s.settingService.GetSubPath()
-	if err != nil {
-		return nil, err
-	}
-
 	subDomain, err := s.settingService.GetSubDomain()
 	if err != nil {
 		return nil, err
@@ -61,9 +56,44 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
 	}
 
-	g := engine.Group(subPath)
+	LinksPath, err := s.settingService.GetSubPath()
+	if err != nil {
+		return nil, err
+	}
 
-	s.sub = NewSUBController(g)
+	JsonPath, err := s.settingService.GetSubJsonPath()
+	if err != nil {
+		return nil, err
+	}
+
+	Encrypt, err := s.settingService.GetSubEncrypt()
+	if err != nil {
+		return nil, err
+	}
+
+	ShowInfo, err := s.settingService.GetSubShowInfo()
+	if err != nil {
+		return nil, err
+	}
+
+	RemarkModel, err := s.settingService.GetRemarkModel()
+	if err != nil {
+		RemarkModel = "-ieo"
+	}
+
+	SubUpdates, err := s.settingService.GetSubUpdates()
+	if err != nil {
+		SubUpdates = "10"
+	}
+
+	SubJsonFragment, err := s.settingService.GetSubJsonFragment()
+	if err != nil {
+		SubJsonFragment = ""
+	}
+
+	g := engine.Group("/")
+
+	s.sub = NewSUBController(g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates, SubJsonFragment)
 
 	return engine, nil
 }
