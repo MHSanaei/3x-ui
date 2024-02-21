@@ -63,6 +63,15 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+                <transition name="list" appear>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
+                </transition>
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem;">
                         <a-row>
@@ -664,6 +673,7 @@
             saveBtnDisable: true,
             refreshing: false,
             restartResult: '',
+            showAlert: false,
             isMobile: window.innerWidth <= 768,
             advSettings: 'xraySetting',
             cm: null,
@@ -1293,6 +1303,9 @@
             }
         },
         async mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             await this.getXraySetting();
             await this.getXrayResult();
             await this.getOutboundsTraffic();
