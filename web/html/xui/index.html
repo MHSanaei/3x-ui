@@ -285,45 +285,45 @@
         </template>
     </a-modal>
 
-    <a-modal id="log-modal" v-model="logModal.visible" title="Logs"
-             :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
+    <a-modal id="log-modal" v-model="logModal.visible"
+             :closable="true" @cancel="() => logModal.visible = false"
              :class="themeSwitcher.currentTheme"
-             width="800px"
-             footer="">
+             width="800px" footer="">
+        <template slot="title">
+            {{ i18n "pages.index.logs" }}
+            <a-icon :spin="logModal.loading"
+                    type="sync"
+                    style="vertical-align: middle; margin-left: 10px;"
+                    :disabled="logModal.loading"
+                    @click="openLogs()">
+            </a-icon>
+        </template>
         <a-form layout="inline">
-            <a-form-item label="Count">
-                <a-select v-model="logModal.rows"
-                style="width: 80px"
-                @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value="10">10</a-select-option>
-                    <a-select-option value="20">20</a-select-option>
-                    <a-select-option value="50">50</a-select-option>
-                    <a-select-option value="100">100</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="Log Level">
-                <a-select v-model="logModal.level"
-                style="width: 120px"
-                @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value="debug">Debug</a-select-option>
-                    <a-select-option value="info">Info</a-select-option>
-                    <a-select-option value="notice">Notice</a-select-option>
-                    <a-select-option value="warning">Warning</a-select-option>
-                    <a-select-option value="err">Error</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="SysLog">
-                <a-checkbox v-model="logModal.syslog" @change="openLogs()"></a-checkbox>
+            <a-form-item>
+                <a-input-group compact>
+                    <a-select v-model="logModal.rows" style="width:70px;"
+                    @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="10">10</a-select-option>
+                        <a-select-option value="20">20</a-select-option>
+                        <a-select-option value="50">50</a-select-option>
+                        <a-select-option value="100">100</a-select-option>
+                    </a-select>
+                    <a-select v-model="logModal.level" style="width:100px;"
+                    @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="debug">Debug</a-select-option>
+                        <a-select-option value="info">Info</a-select-option>
+                        <a-select-option value="notice">Notice</a-select-option>
+                        <a-select-option value="warning">Warning</a-select-option>
+                        <a-select-option value="err">Error</a-select-option>
+                    </a-select>
+                </a-input-group>
             </a-form-item>
             <a-form-item>
-                <a-button class="ant-btn ant-btn-primary" :loading="logModal.loading" @click="openLogs()"><a-icon :spin="logModal.loading" type="sync"></a-icon> Reload</a-button>
+                <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
             </a-form-item>
-            <a-form-item>
-                <a-button type="primary" style="margin-bottom: 10px;"
+            <a-form-item style="float: right;">
+                <a-button type="primary" icon="download"
                 :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs)" download="x-ui.log">
-                    {{ i18n "download" }} x-ui.log
                 </a-button>
             </a-form-item>
         </a-form>
@@ -331,8 +331,8 @@
     </a-modal>
 
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
-            :closable="true" :class="themeSwitcher.currentTheme"
-            @ok="() => backupModal.hide()" @cancel="() => backupModal.hide()">
+            :closable="true" footer=""
+            :class="themeSwitcher.currentTheme">
             <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
             :message="backupModal.description"
             show-icon
