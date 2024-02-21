@@ -278,6 +278,9 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.MetaWARP"}}' desc='{{ i18n "pages.xray.MetaWARPDesc"}}' v-model="MetaWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.AppleWARP"}}' desc='{{ i18n "pages.xray.AppleWARPDesc"}}' v-model="AppleWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RedditWARP"}}' desc='{{ i18n "pages.xray.RedditWARPDesc"}}' v-model="RedditWARPSettings"></setting-list-item>
                                 </template>
                                 <a-button v-else style="margin: 10px 0;" @click="showWarp">WARP {{ i18n "pages.xray.rules.outbound" }}</a-button>
                                 </a-collapse-panel>
@@ -772,6 +775,9 @@
                     google: ["geosite:google"],
                     spotify: ["geosite:spotify"],
                     netflix: ["geosite:netflix"],
+                    meta: ["geosite:meta"],
+                    apple: ["geosite:apple"],
+                    reddit: ["geosite:reddit"],
                     cn: [
                         "geosite:cn",
                         "regexp:.*\\.cn$"
@@ -1930,6 +1936,42 @@
                         this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.netflix];
                     } else {
                         this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.netflix.includes(data));
+                    }
+                },
+            },
+            MetaWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.meta, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.meta];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.meta.includes(data));
+                    }
+                },
+            },
+            AppleWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.apple, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.apple];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.apple.includes(data));
+                    }
+                },
+            },
+            RedditWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.reddit, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.reddit];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.reddit.includes(data));
                     }
                 },
             },
