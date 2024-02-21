@@ -463,6 +463,12 @@
 "edit" = "Edit Server"
 "domains" = "Domains"
 
+[pages.xray.fakedns]
+"add" = "Add Fake DNS"
+"edit" = "Edit Fake DNS"
+"ipPool" = "IP Pool Subnet"
+"poolSize" = "Pool Size"
+
 [pages.settings.security]
 "admin" = "Admin"
 "secret" = "Secret Token"

@@ -463,6 +463,12 @@
 "edit" = "ویرایش سرور"
 "domains" = "دامنه‌ها"
 
+[pages.xray.fakedns]
+"add" = "افزودن دی‌ان‌اس جعلی"
+"edit" = "ویرایش دی‌ان‌اس جعلی"
+"ipPool" = "زیرشبکه استخر آی‌پی"
+"poolSize" = "اندازه استخر"
+
 [pages.settings.security]
 "admin" = "مدیر"
 "secret" = "توکن مخفی"

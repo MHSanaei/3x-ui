@@ -523,7 +523,7 @@
                                 </template>
                             </a-table>                            
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-5" tab='DNS' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
                             <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                             <template v-if="enableDNS">
                                 <a-list-item>
@@ -543,6 +543,7 @@
                                         </a-col>
                                     </a-row>
                                 </a-list-item>
+                                <a-divider>DNS</a-divider>
                                 <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
                                 <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0"
                                 :row-key="r => r.key"
@@ -576,6 +577,30 @@
                                         <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
                                     </template>
                                 </a-table>
+                                <a-divider>Fake DNS</a-divider>
+                                <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-bottom: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
+                                <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
+                                    :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                    <template slot="action" slot-scope="text,fakedns,index">
+                                        [[ index+1 ]]
+                                        <a-dropdown :trigger="['click']">
+                                            <a-icon @click="e => e.preventDefault()" type="more"
+                                                style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                <a-menu-item @click="editFakedns(index)">
+                                                    <a-icon type="edit"></a-icon>
+                                                    {{ i18n "edit" }}
+                                                </a-menu-item>
+                                                <a-menu-item @click="deleteFakedns(index)">
+                                                    <span style="color: #FF4D4F">
+                                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                    </span>
+                                                </a-menu-item>
+                                            </a-menu>
+                                        </a-dropdown>
+                                    </template>
+                                </a-table>
                             </template>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
@@ -601,6 +626,8 @@
 {{template "outModal"}}
 {{template "reverseModal"}}
 {{template "balancerModal"}}
+{{template "dnsModal"}}
+{{template "fakednsModal"}}
 {{template "warpModal"}}
 <script>
         const rulesColumns = [
@@ -649,6 +676,12 @@
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
         { title: '{{ i18n "pages.xray.dns.domains"}}', align: 'center', width: 50, scopedSlots: { customRender: 'domain' } },
+    ];
+
+    const fakednsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.fakedns.ipPool"}}', dataIndex: 'ipPool', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.fakedns.poolSize"}}', dataIndex: 'poolSize', align: 'center', width: 50 },
     ];
 
     const balancerColumns = [
@@ -1256,6 +1289,36 @@
                 newDnsServers = this.dnsServers;
                 newDnsServers.splice(index,1);
                 this.dnsServers = newDnsServers;
+            },
+            addFakedns() {
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.add" }}',
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns?? [];
+                        fakeDns.push(item);
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editFakedns(index){
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.edit" }} #' + (index+1),
+                    fakeDns: this.fakeDns[index],
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns;
+                        fakeDns[index] = item;
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteFakedns(index){
+                fakeDns = this.fakeDns;
+                fakeDns.splice(index,1);
+                this.fakeDns = fakeDns;
             },
             addRule(){
                 ruleModal.show({
@@ -1907,6 +1970,14 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.dns.servers =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            fakeDns: {
+                get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.fakedns = newValue.length >0 ? newValue : null;
                     this.templateSettings = newTemplateSettings;
                 }
             }

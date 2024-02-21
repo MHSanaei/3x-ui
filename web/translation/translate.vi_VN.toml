@@ -463,6 +463,12 @@
 "edit" = "Chỉnh sửa máy chủ"
 "domains" = "Tên miền"
 
+[pages.xray.fakedns]
+"add" = "Thêm DNS giả"
+"edit" = "Chỉnh sửa DNS giả"
+"ipPool" = "Mạng con nhóm IP"
+"poolSize" = "Kích thước bể bơi"
+
 [pages.settings.security]
 "admin" = "Quản trị viên"
 "secret" = "Mã thông báo bí mật"
