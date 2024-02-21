@@ -1,6 +1,6 @@
 module x-ui
 
-go 1.21.4
+go 1.22.0
 
 require (
 	github.com/Calidity/gin-sessions v1.3.1

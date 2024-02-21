@@ -25,7 +25,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5.0.0
         with:
-          go-version: '1.21'
+          go-version: '1.22'
 
       - name: Install dependencies
         run: |
@@ -116,12 +116,11 @@ jobs:
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
         
-      - name: Upload
-        uses: svenstaro/upload-release-action@2.7.0
+      - name: Upload files to GH release
+        uses: MHSanaei/upload-release-action@2.8.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
-          overwrite: true

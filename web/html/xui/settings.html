@@ -75,28 +75,43 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+                <transition name="list" appear>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
+                    <a-alert type="error" v-if="confAlerts.length>0" style="margin-bottom: 10px"
+                        message='{{ i18n "secAlertTitle" }}'
+                        color="red"
+                        show-icon closable
+                        >
+                        <template slot="description">
+                            {{ i18n "secAlertConf" }}
+                            <li v-for="a in confAlerts">- [[ a ]]</li>
+                        </template>
+                        </a-alert>
+                    </transition>
                 <a-space direction="vertical">
-                    <a-card hoverable style="margin-bottom: .5rem; overflow-x: hidden;">
-                        <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
-                            <a-col :xs="24" :sm="10" style="padding: 4px;">
+                    <a-card hoverable style="margin-bottom: .5rem;">
+                        <a-row>
+                            <a-col :xs="24" :sm="8" style="padding: 4px;">
                                 <a-space direction="horizontal">
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
                                 </a-space>
                             </a-col>
-                            <a-col :xs="24" :sm="14">
+                            <a-col :xs="24" :sm="16">
                                 <template>
                                     <div>
-                                        <template>
-                                            <div>
-                                                <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
-                                                </a-back-top>
-                                                <a-alert type="warning" style="float: right; width: fit-content"
-                                                message='{{ i18n "pages.settings.infoDesc" }}'
-                                                show-icon
-                                                >
-                                            </div>
-                                        </template>
+                                        <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
+                                        </a-back-top>
+                                        <a-alert type="warning" style="float: right; width: fit-content"
+                                        message='{{ i18n "pages.settings.infoDesc" }}'
+                                        show-icon
+                                        >
                                     </div>
                                 </template>
                             </a-col>
@@ -164,7 +179,6 @@
                                         <a-col :lg="24" :xl="12">
                                             <a-list-item-meta title="Language" />
                                         </a-col>
-
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select
@@ -234,7 +248,6 @@
                                 <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
                             </a-form>
                         </a-tab-pane>
-
                         <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
                             <a-list item-layout="horizontal">
                                 <setting-list-item type="switch" title='{{ i18n "pages.settings.telegramBotEnable" }}' desc='{{ i18n "pages.settings.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
@@ -257,8 +270,7 @@
                                                     ref="selectBotLang"
                                                     v-model="allSetting.tgLang"
                                                     :dropdown-class-name="themeSwitcher.currentTheme"
-                                                    style="width: 100%"
-                                                >
+                                                    style="width: 100%">
                                                     <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
                                                         <span role="img" :aria-label="l.name" v-text="l.icon"></span>
                                                         &nbsp;&nbsp;<span v-text="l.name"></span>
@@ -283,6 +295,17 @@
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subKeyPath"}}' desc='{{ i18n "pages.settings.subKeyPathDesc"}}' v-model="allSetting.subKeyFile"></setting-list-item>
                                 <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
                                 <setting-list-item type="number" title='{{ i18n "pages.settings.subUpdates"}}' desc='{{ i18n "pages.settings.subUpdatesDesc"}}' v-model="allSetting.subUpdates"></setting-list-item>
+                            </a-list>
+                        </a-tab-pane>
+                        <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }} Json' v-if="allSetting.subEnable">
+                            <a-list item-layout="horizontal">
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subJsonPath"></setting-list-item>
+                                <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subJsonURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
+                                <setting-list-item type="switch" title='{{ i18n "pages.settings.fragment"}}' desc='{{ i18n "pages.settings.fragmentDesc"}}' v-model="fragment"></setting-list-item>
+                                <template v-if="fragment">
+                                    <setting-list-item type="text" title='length' v-model="fragmentLength" placeholder="100-200"></setting-list-item>
+                                    <setting-list-item type="text" title='Interval' v-model="fragmentInterval" placeholder="10-20"></setting-list-item>
+                                </template>
                             </a-list>
                         </a-tab-pane>
                     </a-tabs>
@@ -315,6 +338,24 @@
             remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
             datepickerList: [{name:'Gregorian (Standard)', value: 'gregorian'}, {name:'Jalalian (شمسی)', value: 'jalalian'}],
             remarkSample: '',
+            defaultFragment: {
+                tag: "fragment",
+                protocol: "freedom",
+                settings: {
+                    domainStrategy: "AsIs",
+                    fragment: {
+                        packets: "tlshello",
+                        length: "100-200",
+                        interval: "10-20"
+                    }
+                },
+                streamSettings: {
+                    sockopt: {
+                        tcpKeepAliveIdle: 100,
+                        TcpNoDelay: true
+                    }
+                }
+            },
             get remarkModel() {
                 rm = this.allSetting.remarkModel;
                 return rm.length>1 ? rm.substring(1).split('') : [];
@@ -443,13 +484,60 @@
                 }
             },
         },
+        computed: {
+            fragment: {
+                get: function() { return this.allSetting?.subJsonFragment != ""; },
+                set: function (v) {
+                    this.allSetting.subJsonFragment = v ? JSON.stringify(this.defaultFragment) : "";
+                }
+            },
+            fragmentLength: {
+                get: function() { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.length : ""; },
+                set: function(v) {
+                    if (v != ""){
+                        newFragment = JSON.parse(this.allSetting.subJsonFragment);
+                        newFragment.settings.fragment.length = v;
+                        this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+                    }
+                }
+            },
+            fragmentInterval: {
+                get: function() { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.interval : ""; },
+                set: function(v) {
+                    if (v != ""){
+                        newFragment = JSON.parse(this.allSetting.subJsonFragment);
+                        newFragment.settings.fragment.interval = v;
+                        this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+                    }
+                }
+            },
+            confAlerts: {
+                get: function() {
+                    if (!this.allSetting) return [];
+                    var alerts = []
+                    if (this.allSetting.port == 54321) alerts.push('{{ i18n "pages.settings.panelPort"}}');
+                    panelPath = window.location.pathname.split('/').length<4
+                    if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "pages.settings.panelSettings"}} {{ i18n "pages.settings.panelUrlPath"}}');
+                    if (this.allSetting.subEnable) {
+                        subPath = this.allSetting.subURI.length >0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
+                        if (subPath == '/sub/') alerts.push('{{ i18n "pages.settings.subSettings"}} {{ i18n "pages.settings.subPath"}}');
+                        subJsonPath = this.allSetting.subJsonURI.length >0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
+                        if (subJsonPath == '/json/') alerts.push('JSON {{ i18n "pages.settings.subPath"}}');
+                    }
+                    return alerts
+                }
+            }
+        }, 
         async mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             await this.getAllSetting();
             while (true) {
-                await PromiseUtil.sleep(600);
+                await PromiseUtil.sleep(1000);
                 this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
             }
-        },
+        }
     });
 </script>
 </body>

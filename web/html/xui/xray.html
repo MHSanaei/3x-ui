@@ -63,6 +63,15 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+                <transition name="list" appear>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
+                </transition>
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem;">
                         <a-row>
@@ -133,12 +142,10 @@
                                                 description='{{ i18n "pages.xray.RoutingStrategyDesc" }}' />
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
-                                            <template>
                                                 <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
                                                     style="width: 100%">
                                                     <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
-                                            </template>
                                         </a-col>
                                     </a-row>
                                     </a-list-item>
@@ -516,6 +523,86 @@
                                 </template>
                             </a-table>                            
                         </a-tab-pane>
+                        <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
+                            <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
+                            <template v-if="enableDNS">
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}' description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-select
+                                                v-model="dnsStrategy"
+                                                style="width: 100%"
+                                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                                <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
+                                                    [[ l ]]
+                                                </a-select-option>
+                                            </a-select>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-divider>DNS</a-divider>
+                                <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
+                                <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0"
+                                :row-key="r => r.key"
+                                :data-source="dnsServers"
+                                :scroll="isMobile ? {} : { x: 200 }"
+                                :pagination="false"
+                                :indent-size="0"
+                                :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                    <template slot="action" slot-scope="text,dns,index">
+                                        [[ index+1 ]]
+                                        <a-dropdown :trigger="['click']">
+                                            <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                <a-menu-item @click="editDNSServer(index)">
+                                                    <a-icon type="edit"></a-icon>
+                                                    {{ i18n "edit" }}
+                                                </a-menu-item>
+                                                <a-menu-item @click="deleteDNSServer(index)">
+                                                    <span style="color: #FF4D4F">
+                                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                    </span>
+                                                </a-menu-item>
+                                            </a-menu>
+                                        </a-dropdown>
+                                    </template>
+                                    <template slot="address" slot-scope="dns,index">
+                                        <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
+                                        <span v-else>[[ dns ]]</span>
+                                    </template>
+                                    <template slot="domain" slot-scope="dns,index">
+                                        <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
+                                    </template>
+                                </a-table>
+                                <a-divider>Fake DNS</a-divider>
+                                <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-bottom: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
+                                <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
+                                    :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                    <template slot="action" slot-scope="text,fakedns,index">
+                                        [[ index+1 ]]
+                                        <a-dropdown :trigger="['click']">
+                                            <a-icon @click="e => e.preventDefault()" type="more"
+                                                style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                <a-menu-item @click="editFakedns(index)">
+                                                    <a-icon type="edit"></a-icon>
+                                                    {{ i18n "edit" }}
+                                                </a-menu-item>
+                                                <a-menu-item @click="deleteFakedns(index)">
+                                                    <span style="color: #FF4D4F">
+                                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                    </span>
+                                                </a-menu-item>
+                                            </a-menu>
+                                        </a-dropdown>
+                                    </template>
+                                </a-table>
+                            </template>
+                        </a-tab-pane>
                         <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
                             <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
                             <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
@@ -539,6 +626,8 @@
 {{template "outModal"}}
 {{template "reverseModal"}}
 {{template "balancerModal"}}
+{{template "dnsModal"}}
+{{template "fakednsModal"}}
 {{template "warpModal"}}
 <script>
         const rulesColumns = [
@@ -583,6 +672,18 @@
         { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
     ];
 
+    const dnsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+        { title: '{{ i18n "pages.xray.dns.domains"}}', align: 'center', width: 50, scopedSlots: { customRender: 'domain' } },
+    ];
+
+    const fakednsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.fakedns.ipPool"}}', dataIndex: 'ipPool', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.fakedns.poolSize"}}', dataIndex: 'poolSize', align: 'center', width: 50 },
+    ];
+
     const balancerColumns = [
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
@@ -605,6 +706,7 @@
             saveBtnDisable: true,
             refreshing: false,
             restartResult: '',
+            showAlert: false,
             isMobile: window.innerWidth <= 768,
             advSettings: 'xraySetting',
             cm: null,
@@ -1158,6 +1260,66 @@
                 
                 this.templateSettings = newTemplateSettings;
             },
+            addDNSServer(){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.add" }}',
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers.push(dnsServer);
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editDNSServer(index){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.edit" }} #' + (index+1),
+                    dnsServer: this.dnsServers[index],
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers[index] = dnsServer;
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteDNSServer(index){
+                newDnsServers = this.dnsServers;
+                newDnsServers.splice(index,1);
+                this.dnsServers = newDnsServers;
+            },
+            addFakedns() {
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.add" }}',
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns?? [];
+                        fakeDns.push(item);
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editFakedns(index){
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.edit" }} #' + (index+1),
+                    fakeDns: this.fakeDns[index],
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns;
+                        fakeDns[index] = item;
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteFakedns(index){
+                fakeDns = this.fakeDns;
+                fakeDns.splice(index,1);
+                this.fakeDns = fakeDns;
+            },
             addRule(){
                 ruleModal.show({
                     title: '{{ i18n "pages.xray.rules.add"}}',
@@ -1204,6 +1366,9 @@
             }
         },
         async mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             await this.getXraySetting();
             await this.getXrayResult();
             await this.getOutboundsTraffic();
@@ -1499,14 +1664,14 @@
             familyProtectSettings: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
-                    return doAllItemsExist(this.templateSettings.dns.servers, this.settingsData.familyProtectDNS.servers);
+                    return doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     if (newValue) {
                         newTemplateSettings.dns = this.settingsData.familyProtectDNS;
                     } else {
-                        delete newTemplateSettings.dns;
+                        newTemplateSettings.dns.servers = newTemplateSettings.dns?.servers?.filter(data => !this.settingsData.familyProtectDNS.servers.includes(data))
                     }
                     this.templateSettings = newTemplateSettings;
                 },
@@ -1780,6 +1945,42 @@
                     }
                 },
             },
+            enableDNS: {
+                get: function () {
+                    return this.templateSettings ? this.templateSettings.dns != null : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP" } : null;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsStrategy: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.queryStrategy : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.queryStrategy =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsServers: {
+                get: function () { return this.enableDNS ? this.templateSettings.dns.servers : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.servers =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            fakeDns: {
+                get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.fakedns = newValue.length >0 ? newValue : null;
+                    this.templateSettings = newTemplateSettings;
+                }
+            }
         },
     });
 </script>

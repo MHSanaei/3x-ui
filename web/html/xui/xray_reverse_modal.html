@@ -120,7 +120,7 @@
             reverseModal.visible = false;
             reverseModal.loading(false);
         },
-        loading(loading) {
+        loading(loading=true) {
             reverseModal.confirmLoading = loading;
         },
     };
@@ -132,8 +132,6 @@
             reverseModal: reverseModal,
             reverseTypes: { bridge: '{{ i18n "pages.xray.outbound.bridge" }}', portal:'{{ i18n "pages.xray.outbound.portal" }}'},
         },
-        methods: {
-        }
     });
 
 </script>

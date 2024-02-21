@@ -48,6 +48,9 @@ type AllSetting struct {
 	SubEncrypt       bool   `json:"subEncrypt" form:"subEncrypt"`
 	SubShowInfo      bool   `json:"subShowInfo" form:"subShowInfo"`
 	SubURI           string `json:"subURI" form:"subURI"`
+	SubJsonPath      string `json:"subJsonPath" form:"subJsonPath"`
+	SubJsonURI       string `json:"subJsonURI" form:"subJsonURI"`
+	SubJsonFragment  string `json:"subJsonFragment" form:"subJsonFragment"`
 	Datepicker       string `json:"datepicker" form:"datepicker"`
 }
 
@@ -103,6 +106,13 @@ func (s *AllSetting) CheckValid() error {
 	}
 	if !strings.HasSuffix(s.SubPath, "/") {
 		s.SubPath += "/"
+	}
+
+	if !strings.HasPrefix(s.SubJsonPath, "/") {
+		s.SubJsonPath = "/" + s.SubJsonPath
+	}
+	if !strings.HasSuffix(s.SubJsonPath, "/") {
+		s.SubJsonPath += "/"
 	}
 
 	_, err := time.LoadLocation(s.TimeLocation)

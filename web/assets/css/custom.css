@@ -1050,6 +1050,12 @@ li.ant-select-dropdown-menu-item:empty:after {
     color: rgba(255, 255, 255, 0.25);
 }
 
+.dark .ant-message-notice-content {
+    background-color: #222d42;
+    border: 1px solid #2c3950; 
+    color: rgba(255, 255, 255, 0.65);
+}
+
 .ant-input-group.ant-input-group-compact-addon:not(:first-child):not(
     :last-child
   ),

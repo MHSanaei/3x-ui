@@ -40,7 +40,7 @@
     <a-switch v-model="client.enable" @change="switchEnableClient(record.id,client)"></a-switch>
 </template>   
 <template slot="online" slot-scope="text, client, index">
-    <template v-if="isClientOnline(client.email)">
+    <template v-if="client.enable && isClientOnline(client.email)">
         <a-tag color="green">{{ i18n "online" }}</a-tag>
     </template>
     <template v-else>
@@ -52,7 +52,7 @@
         <template slot="title">
             <template v-if="!isClientEnabled(record, client.email)">{{ i18n "depleted" }}</template>
             <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
-            <template v-else-if="isClientOnline(client.email)">{{ i18n "online" }}</template>
+            <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
         </template>
     <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'">
     </a-badge>

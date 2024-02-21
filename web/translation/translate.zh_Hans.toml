@@ -52,6 +52,9 @@
 "secretToken" = "安全密钥"
 "remained" = "剩余"
 "security" = "安全"
+"secAlertTitle" = "安全警报"
+"secAlertSsl" = "此连接不安全；在激活 TLS 进行数据保护之前，请勿输入敏感信息"
+"secAlertConf" = "某些配置已被确定为容易受到攻击，促使立即采取行动以加强安全协议并防范潜在的安全漏洞。"
 
 [menu]
 "dashboard" = "系统状态"
@@ -302,6 +305,8 @@
 "subShowInfoDesc" = "在配置名称后显示剩余流量和日期"
 "subURI" = "反向代理 URI"
 "subURIDesc" = "更改订阅 URL 的基本 URI 以在代理后面使用"
+"fragment" = "碎片"
+"fragmentDesc" = "启用 TLS hello 数据包分段"
 
 [pages.xray]
 "title" = "Xray 设置"
@@ -448,6 +453,21 @@
 "endpoint" = "终点"
 "psk" = "共享密钥"
 "domainStrategy" = "域策略"
+
+[pages.xray.dns]
+"enable" = "启用 DNS"
+"enableDesc" = "启用内置 DNS 服务器"
+"strategy" = "查询策略"
+"strategyDesc" = "解析域名的总体策略"
+"add" = "添加服务器"
+"edit" = "编辑服务器"
+"domains" = "域"
+
+[pages.xray.fakedns]
+"add" = "添加假 DNS"
+"edit" = "编辑假 DNS"
+"ipPool" = "IP 池子网"
+"poolSize" = "池大小"
 
 [pages.settings.security]
 "admin" = "管理员"

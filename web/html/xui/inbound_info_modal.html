@@ -166,10 +166,20 @@
         <template v-if="app.subSettings.enable && infoModal.clientSettings.subId">
             <a-divider>Subscription URL</a-divider>
             <a-row>
-                <a-col :sx="24" :md="22"><a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a></a-col>
+                <a-col :sx="24" :md="22">SUB: <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a></a-col>
                 <a-col :sx="24" :md="2" style="text-align: right;">
                     <a-tooltip title='{{ i18n "copy" }}'>
                         <button class="ant-btn ant-btn-primary" id="copy-sub-link" @click="copyToClipboard('copy-sub-link', infoModal.subLink)">
+                            <a-icon type="snippets"></a-icon>
+                        </button>
+                    </a-tooltip>
+                </a-col>
+            </a-row>
+            <a-row>
+                <a-col :sx="24" :md="22">JSON: <a :href="[[ infoModal.subJsonLink ]]" target="_blank">[[ infoModal.subJsonLink ]]</a></a-col>
+                <a-col :sx="24" :md="2" style="text-align: right; margin-top: 5px;">
+                    <a-tooltip title='{{ i18n "copy" }}'>
+                        <button class="ant-btn ant-btn-primary" id="copy-subJson-link" @click="copyToClipboard('copy-subJson-link', infoModal.subJsonLink)">
                             <a-icon type="snippets"></a-icon>
                         </button>
                     </a-tooltip>
@@ -345,6 +355,7 @@
         index: null,
         isExpired: false,
         subLink: '',
+        subJsonLink: '',
         show(dbInbound, index) {
             this.index = index;
             this.inbound = dbInbound.toInbound();
@@ -360,6 +371,7 @@
             if (this.clientSettings) {
                 if (this.clientSettings.subId) {
                     this.subLink = this.genSubLink(this.clientSettings.subId);
+                    this.subJsonLink = this.genSubJsonLink(this.clientSettings.subId);
                 }
             }
             this.visible = true;
@@ -369,6 +381,9 @@
         },
         genSubLink(subID) {
             return app.subSettings.subURI+subID;
+        },
+        genSubJsonLink(subID) {
+            return app.subSettings.subJsonURI+subID;
         }
     };
 
