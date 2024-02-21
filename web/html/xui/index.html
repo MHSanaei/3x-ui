@@ -35,6 +35,15 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
             <transition name="list" appear>
+                <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                message='{{ i18n "secAlertTitle" }}'
+                color="red"
+                description='{{ i18n "secAlertSsl" }}'
+                show-icon closable
+                >
+                </a-alert>
+            </transition>
+            <transition name="list" appear>
                 <a-row>
                     <a-card hoverable>
                         <a-row>
@@ -532,6 +541,7 @@
             backupModal,
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
+            showAlert: false,
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
@@ -655,14 +665,14 @@
             },
         },
         async mounted() {
-            let retries = 0;
-            while (retries < 5) {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
+            while (true) {
                 try {
                     await this.getStatus();
-                    retries = 0;
                 } catch (e) {
-                    console.error("Error occurred while fetching status:", e);
-                    retries++;
+                    console.error(e);
                 }
                 await PromiseUtil.sleep(2000);
             }
