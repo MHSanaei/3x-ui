@@ -56,6 +56,15 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <transition name="list" appear>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
+                </transition>
+                <transition name="list" appear>
                     <a-tag v-if="false" color="red" style="margin-bottom: 10px">
                         Please go to the panel settings as soon as possible to modify the username and password, otherwise there may be a risk of leaking account information
                     </a-tag>
@@ -572,6 +581,7 @@
             remarkModel: '-ieo',
             datepicker: 'gregorian',
             tgBotEnable: false,
+            showAlert: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
@@ -1319,6 +1329,9 @@
             }, 500)
         },
         mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             window.addEventListener('resize', this.onResize);
             this.onResize();
             this.loading();
