@@ -14,6 +14,7 @@ import (
 
 	"x-ui/database"
 	"x-ui/database/model"
+	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/xray"
 )
@@ -38,8 +39,10 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 
 func (j *CheckClientIpJob) Run() {
 
-	// create files required for iplimit if not exists
+	// create files and dirs required for iplimit if not exists
 	for i := 0; i < len(ipFiles); i++ {
+		err := os.MkdirAll(config.GetLogFolder(), 0770)
+		j.checkError(err)
 		file, err := os.OpenFile(ipFiles[i], os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 		j.checkError(err)
 		defer file.Close()
