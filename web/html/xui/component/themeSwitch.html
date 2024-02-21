@@ -21,6 +21,7 @@
         this.isDarkTheme = !this.isDarkTheme;
         localStorage.setItem('dark-mode', this.isDarkTheme);
         document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light')
+        document.getElementById('message').className = themeSwitcher.currentTheme;
       },
     };
   }
@@ -31,6 +32,10 @@
     props: [],
     template: `{{template "component/themeSwitchTemplate"}}`,
     data: () => ({ themeSwitcher }),
+    mounted() {
+      this.$message.config({getContainer: () => document.getElementById('message')});
+      document.getElementById('message').className = themeSwitcher.currentTheme;
+    }
   });
 </script>
 {{end}}
