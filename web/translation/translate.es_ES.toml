@@ -54,6 +54,7 @@
 "security" = "Seguridad"
 "secAlertTitle" = "Alerta de seguridad"
 "secAlertSsl" = "Esta conexión no es segura. Evite ingresar información confidencial hasta que TLS esté activado para la protección de datos."
+"secAlertConf" = "Se han identificado ciertas configuraciones como susceptibles a ataques, lo que genera acciones inmediatas para reforzar los protocolos de seguridad y proteger contra posibles violaciones de seguridad."
 
 [menu]
 "dashboard" = "Estado del Sistema"
@@ -304,6 +305,8 @@
 "subShowInfoDesc" = "Mostrar tráfico restante y fecha después del nombre de configuración."
 "subURI" = "URI de proxy inverso"
 "subURIDesc" = "Cambiar el URI base de la URL de suscripción para usar detrás de los servidores proxy"
+"fragment" = "Fragmentación"
+"fragmentDesc" = "Habilitar la fragmentación para el paquete de saludo TLS"
 
 [pages.xray]
 "title" = "Xray Configuración"

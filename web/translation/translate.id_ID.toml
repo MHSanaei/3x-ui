@@ -54,6 +54,7 @@
 "security" = "Keamanan"
 "secAlertTitle" = "Peringatan keamanan"
 "secAlertSsl" = "Koneksi ini tidak aman. Harap hindari memasukkan informasi sensitif sampai TLS diaktifkan untuk perlindungan data."
+"secAlertConf" = "Konfigurasi tertentu telah diidentifikasi rentan terhadap serangan, sehingga mendorong tindakan segera untuk memperkuat protokol keamanan dan melindungi dari potensi pelanggaran keamanan."
 
 [menu]
 "dashboard" = "Ikhtisar"
@@ -304,6 +305,8 @@
 "subShowInfoDesc" = "Sisa traffic dan tanggal akan ditampilkan di aplikasi klien."
 "subURI" = "URI Proxy Terbalik"
 "subURIDesc" = "URI path URL langganan untuk penggunaan di belakang proxy."
+"fragment" = "Fragmentasi"
+"fragmentDesc" = "Aktifkan fragmentasi untuk paket hello TLS"
 
 [pages.xray]
 "title" = "Konfigurasi Xray"
