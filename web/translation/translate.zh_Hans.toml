@@ -463,6 +463,12 @@
 "edit" = "编辑服务器"
 "domains" = "域"
 
+[pages.xray.fakedns]
+"add" = "添加假 DNS"
+"edit" = "编辑假 DNS"
+"ipPool" = "IP 池子网"
+"poolSize" = "池大小"
+
 [pages.settings.security]
 "admin" = "管理员"
 "secret" = "密钥"

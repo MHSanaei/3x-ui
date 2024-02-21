@@ -463,6 +463,12 @@
 "edit" = "Редактировать сервер"
 "domains" = "Домены"
 
+[pages.xray.fakedns]
+"add" = "Добавить поддельный DNS"
+"edit" = "Редактировать поддельный DNS"
+"ipPool" = "Подсеть пула IP"
+"poolSize" = "Размер пула"
+
 [pages.settings.security]
 "admin" = "Админ"
 "secret" = "Секретный токен"

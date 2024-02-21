@@ -463,6 +463,12 @@
 "edit" = "Editar servidor"
 "domains" = "Dominios"
 
+[pages.xray.fakedns]
+"add" = "Agregar DNS falso"
+"edit" = "Editar DNS falso"
+"ipPool" = "Subred del grupo de IP"
+"poolSize" = "Tamaño del grupo"
+
 [pages.settings.security]
 "admin" = "Administrador"
 "secret" = "Token Secreto"

@@ -463,6 +463,12 @@
 "edit" = "Sunting Server"
 "domains" = "Domains"
 
+[pages.xray.fakedns]
+"add" = "Tambahkan DNS Palsu"
+"edit" = "Edit DNS Palsu"
+"ipPool" = "Subnet Kumpulan IP"
+"poolSize" = "Ukuran Kolam"
+
 [pages.settings.security]
 "admin" = "Admin"
 "secret" = "Token Rahasia"
