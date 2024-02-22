@@ -393,6 +393,10 @@
                                                     <td>Port</td>
                                                     <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
                                                 </tr>
+                                                <tr v-if="rule.balancerTag">
+                                                    <td>Balancer Tag</td>
+                                                    <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
+                                                </tr>
                                             </table>
                                         </template>
                                         <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
