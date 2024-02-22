@@ -11,7 +11,7 @@
         <a-divider>{{ i18n "pages.settings.subSettings"}}</a-divider>
         <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))"
             id="qrCode-sub"
-            style="width: 100%; height: 100%; display: flex; border-radius: 1rem;">
+            class="qr-bg">
         </canvas>
         <a-divider>{{ i18n "pages.settings.subSettings"}} Json</a-divider>
         <canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))"
@@ -24,7 +24,7 @@
         <a-tag color="blue" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
         <canvas @click="copyToClipboard('qrCode-'+index, row.link)"
             :id="'qrCode-'+index"
-            style="width: 100%; height: 100%; display: flex; border-radius: 1rem;"></canvas>
+            class="qr-bg"></canvas>
     </template>
 </a-modal>
 
