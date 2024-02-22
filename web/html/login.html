@@ -2,9 +2,14 @@
 <html lang="en">
 {{template "head" .}}
 <style>
+  html * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   h1 {
     text-align: center;
-    margin: 20px 0 50px 0;
+/*    margin: 20px 0 50px 0;*/
+    height: 110px;
   }
   .ant-btn,
   .ant-input {
@@ -31,7 +36,9 @@
   }
   .title {
     font-size: 32px;
-    font-weight: 600;
+  }
+  .title b {
+    font-weight: bold !important;
   }
   #app {
     overflow: hidden;
@@ -64,10 +71,10 @@
     background-color: #0f2d32;
   }
   .dark #login {
-    background-color: #151f31;
+    background-color: #101113;
   }
   .dark h1 {
-    color: rgba(255, 255, 255, 0.85);
+    color: rgba(255, 255, 255);
   }
   .ant-form-item {
     margin-bottom: 16px;
@@ -192,7 +199,7 @@
     z-index: -1;
   }
   .dark .waves-header {
-    background-color: #101828;
+    background-color: #0a2227;
   }
   .waves-inner-header {
     height: 50vh;
@@ -247,6 +254,123 @@
       min-height: 40px;
     }
   }
+  .words-wrapper {
+    width: 100%;
+    display: inline-block;
+    position: relative;
+    text-align: center;
+  }
+  .words-wrapper b {
+    width: 100%;
+    display: inline-block;
+    position: absolute;
+    left: 0;
+    top: 0;
+  }
+  .words-wrapper b.is-visible {
+    position: relative;
+  }
+  .headline.zoom .words-wrapper {
+    -webkit-perspective: 300px;
+    -moz-perspective: 300px;
+    perspective: 300px;
+  }
+  .headline {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .headline.zoom b {
+    opacity: 0;
+  }
+  .headline.zoom b.is-visible {
+    opacity: 1;
+    -webkit-animation: zoom-in 0.8s;
+    -moz-animation: zoom-in 0.8s;
+    animation: cubic-bezier(0.215, 0.610, 0.355, 1.000) zoom-in 0.8s;
+  }
+  .headline.zoom b.is-hidden {
+    -webkit-animation: zoom-out 0.8s;
+    -moz-animation: zoom-out 0.8s;
+    animation: cubic-bezier(0.215, 0.610, 0.355, 1.000) zoom-out 0.4s;
+  }
+  @-webkit-keyframes zoom-in {
+    0% {
+      opacity: 0;
+      -webkit-transform: translateZ(100px);
+    }
+
+    100% {
+      opacity: 1;
+      -webkit-transform: translateZ(0);
+    }
+  }
+  @-moz-keyframes zoom-in {
+    0% {
+      opacity: 0;
+      -moz-transform: translateZ(100px);
+    }
+    100% {
+      opacity: 1;
+      -moz-transform: translateZ(0);
+    }
+  }
+  @keyframes zoom-in {
+    0% {
+      opacity: 0;
+      -webkit-transform: translateZ(100px);
+      -moz-transform: translateZ(100px);
+      -ms-transform: translateZ(100px);
+      -o-transform: translateZ(100px);
+      transform: translateZ(100px);
+    }
+    100% {
+      opacity: 1;
+      -webkit-transform: translateZ(0);
+      -moz-transform: translateZ(0);
+      -ms-transform: translateZ(0);
+      -o-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+  }
+  @-webkit-keyframes zoom-out {
+    0% {
+      opacity: 1;
+      -webkit-transform: translateZ(0);
+    }
+    100% {
+      opacity: 0;
+      -webkit-transform: translateZ(-100px);
+    }
+  }
+  @-moz-keyframes zoom-out {
+    0% {
+      opacity: 1;
+      -moz-transform: translateZ(0);
+    }
+    100% {
+      opacity: 0;
+      -moz-transform: translateZ(-100px);
+    }
+  }
+  @keyframes zoom-out {
+    0% {
+      opacity: 1;
+      -webkit-transform: translateZ(0);
+      -moz-transform: translateZ(0);
+      -ms-transform: translateZ(0);
+      -o-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+    100% {
+      opacity: 0;
+      -webkit-transform: translateZ(-100px);
+      -moz-transform: translateZ(-100px);
+      -ms-transform: translateZ(-100px);
+      -o-transform: translateZ(-100px);
+      transform: translateZ(-100px);
+    }
+  }
 </style>
 <body>
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
@@ -269,8 +393,13 @@
             <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto;">
             <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
-                <a-col>
-                    <h1 class="title">{{ i18n "pages.login.title" }}</h1>
+                <a-col style="width: 100%;">
+                    <h1 class="title headline zoom">
+                      <span class="words-wrapper">
+                        <b class="is-visible">{{ i18n "pages.login.title" }}</b>
+                        <b>3X-UI</b>
+                      </span>
+                    </h1>
                 </a-col>
             </a-row>
             <a-row type="flex" justify="center">
@@ -376,6 +505,42 @@
                 }
             },
         },
+    });
+    document.addEventListener("DOMContentLoaded", function() {
+        var animationDelay = 2000;
+        initHeadline();
+
+        function initHeadline() {
+            animateHeadline(document.querySelectorAll('.headline'));
+        }
+
+        function animateHeadline(headlines) {
+            var duration = animationDelay;
+            headlines.forEach(function(headline) {
+                setTimeout(function() {
+                    hideWord(headline.querySelector('.is-visible'));
+                }, duration);
+            });
+        }
+
+        function hideWord(word) {
+            var nextWord = takeNext(word);
+            switchWord(word, nextWord);
+            setTimeout(function() {
+                hideWord(nextWord);
+            }, animationDelay);
+        }
+
+        function takeNext(word) {
+            return (word.nextElementSibling) ? word.nextElementSibling : word.parentElement.firstElementChild;
+        }
+
+        function switchWord(oldWord, newWord) {
+            oldWord.classList.remove('is-visible');
+            oldWord.classList.add('is-hidden');
+            newWord.classList.remove('is-hidden');
+            newWord.classList.add('is-visible');
+        }
     });
 </script>
 </body>
