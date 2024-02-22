@@ -1171,3 +1171,7 @@ b, strong {
     background-color: var(--dark-color-btn-danger-hover);
     border-color: var(--dark-color-btn-danger-hover);
 }
+
+.dark .ant-alert-close-icon .anticon-close:hover {
+    color: rgb(255 255 255);
+}
