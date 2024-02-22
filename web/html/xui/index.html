@@ -19,12 +19,14 @@
         color: hsla(0, 0%, 100%, .65);
     }
 
-    .ant-tag-df {
-        color: rgb(0 0 0 / 80%);
+    .dark .ant-card-hoverable:hover,
+    .dark .ant-space-item > .ant-tabs:hover {
+        transform: scale(0.987);
+        outline-color: #40434d;
     }
 
-    .dark .ant-tag-df {
-        color: rgb(255 255 255 / 80%);
+    .dark .ant-card-bordered {
+        outline: 2px solid var(--dark-color-background);
     }
 </style>
 
@@ -102,8 +104,8 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.operationHours" }}:</b>
-                            <a-tag class="ant-tag-df">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            <a-tag class="ant-tag-df">OS [[ formatSecond(status.uptime) ]]</a-tag>
+                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
@@ -137,7 +139,7 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.systemLoad" }}:</b>
-                            <a-tag class="ant-tag-df">
+                            <a-tag color="green">
                             <a-tooltip>
                                 [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
                                 <template slot="title">
@@ -150,10 +152,10 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "usage"}}:</b>
-                            <a-tag class="ant-tag-df">
+                            <a-tag color="green">
                             RAM [[ sizeFormat(status.appStats.mem) ]]
                             </a-tag>
-                            <a-tag class="ant-tag-df">
+                            <a-tag color="green">
                                 Threads [[ status.appStats.threads ]]
                             </a-tag>
                         </a-card>
@@ -162,7 +164,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv4
                                         <template slot="title">
@@ -172,7 +174,7 @@
                                 </a-tag>
                             </a-col>
                             <a-col :span="12">
-                                <a-tag class="ant-tag-df">
+                                <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv6
                                         <template slot="title">
@@ -188,7 +190,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="swap"></a-icon> TCP:  [[ status.tcpCount ]]
                                         <template slot="title">
@@ -198,7 +200,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="swap"></a-icon> UDP:  [[ status.udpCount ]]
                                         <template slot="title">
@@ -214,7 +216,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-up"></a-icon>
                                     Up: [[ sizeFormat(status.netIO.up) ]]/s
@@ -225,7 +227,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-down"></a-icon>
                                     Down: [[ sizeFormat(status.netIO.down) ]]/s
@@ -242,7 +244,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                         <a-icon type="cloud-upload"></a-icon>
                                         <template slot="title">
@@ -252,7 +254,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                         <a-icon type="cloud-download"></a-icon>
                                         <template slot="title">
