@@ -108,7 +108,7 @@
                     :class="themeSwitcher.currentTheme">
                         <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
                             <a-space direction="horizontal" style="padding: 20px 20px">
-                                <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
+                                <a-button type="danger" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
                             </a-space>
                             <a-collapse>
                                 <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
@@ -282,7 +282,7 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.AppleWARP"}}' desc='{{ i18n "pages.xray.AppleWARPDesc"}}' v-model="AppleWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.RedditWARP"}}' desc='{{ i18n "pages.xray.RedditWARPDesc"}}' v-model="RedditWARPSettings"></setting-list-item>
                                 </template>
-                                <a-button v-else style="margin: 10px 0;" @click="showWarp">WARP {{ i18n "pages.xray.rules.outbound" }}</a-button>
+                                <a-button v-else type="primary" icon="cloud" style="margin: 15px 20px;" @click="showWarp()">WARP</a-button>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -407,7 +407,7 @@
                                 <a-col :xs="12" :sm="12" :lg="12">
                                     <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n
                                         "pages.xray.outbound.addOutbound" }}</a-button>
-                                    <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
+                                    <a-button type="primary" icon="cloud" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
                                 </a-col>
                                 <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
                                     <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
@@ -492,6 +492,8 @@
                             </a-table>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-balancers" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
+			    <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
+                            message='{{ i18n "pages.xray.balancer.balancerDesc" }}' show-icon></a-alert>
                             <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.balancer.addBalancer"}}</a-button>
                             <a-table :columns="balancerColumns" bordered
                             :row-key="r => r.key"
