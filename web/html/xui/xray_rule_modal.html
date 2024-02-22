@@ -195,7 +195,7 @@
             this.isEdit = isEdit;
             this.inboundTags = app.templateSettings.inbounds.filter((i) => !ObjectUtil.isEmpty(i.tag)).map(obj => obj.tag);
             this.inboundTags.push(...app.inboundTags);
-            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
+            this.outboundTags = ["", ...app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)];
             if(app.templateSettings.reverse){
                 if(app.templateSettings.reverse.bridges) {
                     this.inboundTags.push(...app.templateSettings.reverse.bridges.map(b => b.tag));
@@ -204,7 +204,7 @@
             }
 
             if (app.templateSettings.routing && app.templateSettings.routing.balancers) {
-                this.balancerTags = app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)
+                this.balancerTags = [ "", ...app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)];
             }
         },
         close() {
@@ -230,8 +230,8 @@
             rule.inboundTag = value.inboundTag;
             rule.protocol = value.protocol;
             rule.attrs = Object.fromEntries(value.attrs);
-            rule.outboundTag = value.outboundTag;
-            rule.balancerTag = value.balancerTag;
+            rule.outboundTag = value.outboundTag == "" ? undefined : value.outboundTag;
+            rule.balancerTag = value.balancerTag == "" ? undefined : value.balancerTag;
 
             for (const [key, value] of Object.entries(rule)) {
                 if (
