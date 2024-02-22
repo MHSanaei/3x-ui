@@ -1900,6 +1900,13 @@ func (s *InboundService) MigrationRequirements() {
 		newStream, _ := json.MarshalIndent(stream, " ", "  ")
 		tx.Model(model.Inbound{}).Where("id = ?", ep.Id).Update("stream_settings", newStream)
 	}
+
+	err = tx.Raw(`UPDATE inbounds
+	SET tag = REPLACE(tag, '0.0.0.0:', '')
+	WHERE INSTR(tag, '0.0.0.0:') > 0;`).Error
+	if err != nil {
+		return
+	}
 }
 
 func (s *InboundService) MigrateDB() {

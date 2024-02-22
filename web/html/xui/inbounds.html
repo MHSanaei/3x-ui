@@ -186,7 +186,7 @@
                             </a-radio-group>
                         </div>
                         <a-back-top></a-back-top>
-                        <a-table :columns="isMobile ? mobileColums : columns" :row-key="dbInbound => dbInbound.id"
+                        <a-table :columns="isMobile ? mobileColumns : columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :scroll="isMobile ? {} : { x: 1000 }"
                                  :pagination=pagination(searchedInbounds)
@@ -508,7 +508,7 @@
         scopedSlots: { customRender: 'expiryTime' },
     }];
 
-    const mobileColums = [{
+    const mobileColumns = [{
         title: "ID",
         align: 'right',
         dataIndex: "id",
