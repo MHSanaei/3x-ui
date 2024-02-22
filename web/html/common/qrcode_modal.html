@@ -21,7 +21,7 @@
     </template>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <template v-for="(row, index) in qrModal.qrcodes">
-        <a-tag color="blue" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
+        <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
         <canvas @click="copyToClipboard('qrCode-'+index, row.link)"
             :id="'qrCode-'+index"
             class="qr-bg"></canvas>
