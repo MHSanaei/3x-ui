@@ -8,6 +8,9 @@
     --dark-color-surface-600: #505663;
     --dark-color-text-primary: rgb(255 255 255 / 85%);
     --dark-color-stroke: #202025;
+    --dark-color-btn-danger: #cd3838;
+    --dark-color-btn-danger-border: transparent;
+    --dark-color-btn-danger-hover: #e94b4b;
 }
 
 html,
@@ -1157,4 +1160,14 @@ b, strong {
     background-color: #000000;
     border: 1px solid #303134;
     color: rgba(255, 255, 255, 0.85);
+}
+
+.ant-btn-danger {
+    background-color: var(--dark-color-btn-danger);
+    border-color: var(--dark-color-btn-danger-border);
+}
+
+.ant-btn-danger:focus, .ant-btn-danger:hover {
+    background-color: var(--dark-color-btn-danger-hover);
+    border-color: var(--dark-color-btn-danger-hover);
 }
