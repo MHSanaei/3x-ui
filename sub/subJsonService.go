@@ -189,7 +189,7 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 	delete(streamSettings, "sockopt")
 
 	if s.fragmanet != "" {
-		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "TcpNoDelay": true}`)
+		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "tcpNoDelay": true}`)
 	}
 
 	// remove proxy protocol
@@ -218,7 +218,7 @@ func (s *SubJsonService) tlsData(tData map[string]interface{}) map[string]interf
 
 	tlsData["serverName"] = tData["serverName"]
 	tlsData["alpn"] = tData["alpn"]
-	if allowInsecure, ok := tlsClientSettings["allowInsecure"].(string); ok {
+	if allowInsecure, ok := tlsClientSettings["allowInsecure"].(bool); ok {
 		tlsData["allowInsecure"] = allowInsecure
 	}
 	if fingerprint, ok := tlsClientSettings["fingerprint"].(string); ok {
