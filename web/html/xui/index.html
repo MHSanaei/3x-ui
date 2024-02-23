@@ -16,13 +16,14 @@
     }
 
     .ant-card-dark h2 {
-        color: hsla(0, 0%, 100%, .65);
+        color: var(--dark-color-text-primary);
     }
 
     .dark .ant-card-hoverable:hover,
     .dark .ant-space-item > .ant-tabs:hover {
         transform: scale(0.987);
-        outline-color: #40434d;
+        outline-color: var(--dark-color-stroke);
+        outline-offset: -1px;
     }
 
     .dark .ant-card-bordered {
