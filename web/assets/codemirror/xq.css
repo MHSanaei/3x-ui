@@ -45,8 +45,8 @@ THE SOFTWARE.
 .cm-s-xq .CodeMirror-activeline-background { background: #e8f2ff; }
 .cm-s-xq .CodeMirror-matchingbracket { outline:1px solid grey;color:black !important;background:yellow; }
 
-.dark .cm-s-xq.CodeMirror { background-color: #000000; border-color: #25272a; color: rgb(255 255 255 / 85%); }
-.dark .cm-s-xq.CodeMirror:hover { background-color: rgb(0 50 42 / 20%); border-color: #008771; transition: all .3s; }
+.dark .cm-s-xq.CodeMirror { background-color: #222D42; border-color: #2c3950; color: rgb(255 255 255 / 65%); }
+.dark .cm-s-xq.CodeMirror:hover { background-color: rgb(0 50 42 / 30%); border-color: #008771; transition: all .3s; }
 .dark .cm-s-xq div.CodeMirror-selected { background: rgba(0, 0, 0, 0.5);  }
 .dark .cm-s-xq .CodeMirror-line::selection, .dark .cm-s-xq .CodeMirror-line > span::selection, .dark .cm-s-xq .CodeMirror-line > span > span::selection { background: rgba(39, 0, 122, 0.99); }
 .dark .cm-s-xq .CodeMirror-line::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span > span::-moz-selection { background: rgba(39, 0, 122, 0.99); }
