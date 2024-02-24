@@ -18,6 +18,17 @@
     .ant-card-dark h2 {
         color: var(--dark-color-text-primary);
     }
+
+    .dark .ant-card-hoverable:hover,
+    .dark .ant-space-item > .ant-tabs:hover {
+        transform: scale(0.987);
+        outline-color: var(--dark-color-stroke);
+        outline-offset: -1px;
+    }
+
+    .dark .ant-card-bordered {
+        outline: 2px solid var(--dark-color-background);
+    }
 </style>
 
 <body>
@@ -343,6 +354,7 @@
 {{template "js" .}}
 <script src="{{ .base_path }}assets/clipboard/clipboard.min.js"></script>
 {{template "component/themeSwitcher" .}}
+{{template "component/ultraDarkTheme" .}}
 {{template "textModal"}}
 <script>
 
