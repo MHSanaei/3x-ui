@@ -34,6 +34,18 @@
     --dark-color-tag-blue-color: #529fff;
 }
 
+html[data-theme='ultra-dark'] {
+    --dark-color-background: #21242a;
+    --dark-color-surface-100: #0c0e12;
+    --dark-color-surface-200: #222327;
+    --dark-color-surface-300: #32353b;
+    --dark-color-surface-400: rgba(255, 255, 255, 0.1);
+    --dark-color-surface-500: #3b404b;
+    --dark-color-surface-600: #505663;
+    --dark-color-text-primary: rgb(255 255 255 / 85%);
+    --dark-color-stroke: #202025;
+}
+
 html,
 body {
     height: 100vh;
