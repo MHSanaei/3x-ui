@@ -39,3 +39,22 @@
   });
 </script>
 {{end}}
+
+{{define "component/ultraDarkTheme"}}
+<script>
+  const uthemeToggle = document.getElementById('ultra-dark-theme');
+  const isUltraDarkThemeEnabled = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
+  uthemeToggle.checked = isUltraDarkThemeEnabled;
+  function ultraToggleTheme() {
+      if (uthemeToggle.checked) {
+          document.documentElement.setAttribute('data-theme', 'ultra-dark');
+          localStorage.setItem('isUltraDarkThemeEnabled', 'true');
+      } else {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('isUltraDarkThemeEnabled', 'false');
+      }
+  }
+  uthemeToggle.addEventListener('change', ultraToggleTheme);
+  ultraToggleTheme();
+  </script>
+{{end}}
