@@ -122,7 +122,9 @@
                 }
             },
             dropHandler(e) {
-                this.$emit('onsort', this.sortingElementIndex, this.newElementIndex);
+                if (this.isDragging()) {
+                    this.$emit('onsort', this.sortingElementIndex, this.newElementIndex);
+                }
             },
             customRowRender(record, index) {
                 const parentMethodResult = this.customRow?.(record, index) || {};
