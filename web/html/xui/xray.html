@@ -290,15 +290,19 @@
                             <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
                             message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
                             <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
-                            <a-table :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
+                            <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
                                 :row-key="r => r.key"
                                 :data-source="routingRuleData"
                                 :scroll="isMobile ? {} : { x: 1000 }"
                                 :pagination="false"
                                 :indent-size="0"
-                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'">
+                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'"
+                                v-on:onSort="replaceRule">
                                 <template slot="action" slot-scope="text, rule, index">
-                                    [[ index+1 ]]
+                                    <table-sort-trigger :item-index="index"></table-sort-trigger>
+                                    <span class="ant-table-row-index">
+                                        [[ index+1 ]]
+                                    </span>
                                     <a-dropdown :trigger="['click']">
                                         <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
                                         <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
@@ -404,7 +408,7 @@
                                         </a-button>
                                     </a-popover>
                                 </template>
-                            </a-table>
+                            </a-table-sortable>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
                             <a-row>
@@ -530,7 +534,7 @@
                                 <template slot="selector" slot-scope="text, balancer, index">
                                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
                                 </template>
-                            </a-table>                            
+                            </a-table>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
                             <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
@@ -630,6 +634,7 @@
 </a-layout>
 {{template "js" .}}
 {{template "component/themeSwitcher" .}}
+{{template "component/sortableTable" .}}
 {{template "component/setting"}}
 {{template "ruleModal"}}
 {{template "outModal"}}
@@ -1269,7 +1274,7 @@
                     newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
                 }
                 newTemplateSettings.routing.rules = newRules;
-                
+
                 this.templateSettings = newTemplateSettings;
             },
             addDNSServer(){
@@ -1363,6 +1368,7 @@
                 });
             },
             replaceRule(old_index,new_index){
+                console.log(old_index, new_index);
                 rules = this.templateSettings.routing.rules;
                 if (new_index >= rules.length) rules.push(undefined);
                 rules.splice(new_index, 0, rules.splice(old_index, 1)[0]);
@@ -1372,6 +1378,9 @@
                 rules = this.templateSettings.routing.rules;
                 rules.splice(index,1);
                 this.routingRuleSettings = JSON.stringify(rules);
+            },
+            onRuleDraggingStart(...args) {
+                console.log(args);
             },
             showWarp(){
                 warpModal.show();
