@@ -33,7 +33,7 @@
             <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
             <theme-switch>
             </theme-switch>
-                <a-checkbox style="padding-left: 1rem;" id="ultraDarkTheme">Ultra</a-checkbox>
+                <a-checkbox v-if="themeSwitcher.isDarkTheme" style="padding-left: 1rem;" id="ultradarktheme">Ultra</a-checkbox>
         </a-menu-item>
     </a-menu>
     <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']"
