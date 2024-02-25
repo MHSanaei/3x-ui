@@ -1368,7 +1368,6 @@
                 });
             },
             replaceRule(old_index,new_index){
-                console.log(old_index, new_index);
                 rules = this.templateSettings.routing.rules;
                 if (new_index >= rules.length) rules.push(undefined);
                 rules.splice(new_index, 0, rules.splice(old_index, 1)[0]);
@@ -1378,9 +1377,6 @@
                 rules = this.templateSettings.routing.rules;
                 rules.splice(index,1);
                 this.routingRuleSettings = JSON.stringify(rules);
-            },
-            onRuleDraggingStart(...args) {
-                console.log(args);
             },
             showWarp(){
                 warpModal.show();
