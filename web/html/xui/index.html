@@ -104,15 +104,14 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.operationHours" }}:</b>
-                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
+                            <a-tag :color="status.xray.color">Xray: [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS: [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.xrayStatus" }}:</b>
-                            <a-tag style="text-transform: capitalize;" :color="status.xray.color">[[ status.xray.state ]]
-                            </a-tag>
+                            <a-tag :color="status.xray.color">[[ status.xray.state ]]</a-tag>
                             <a-popover v-if="status.xray.state === State.Error"
                                 :overlay-class-name="themeSwitcher.currentTheme">
                                 <span slot="title" style="font-size: 12pt">An error occurred while running Xray
@@ -153,10 +152,10 @@
                         <a-card hoverable>
                             <b>{{ i18n "usage"}}:</b>
                             <a-tag color="green">
-                            RAM [[ sizeFormat(status.appStats.mem) ]]
+                            RAM: [[ sizeFormat(status.appStats.mem) ]]
                             </a-tag>
                             <a-tag color="green">
-                                Threads [[ status.appStats.threads ]]
+                                Threads: [[ status.appStats.threads ]]
                             </a-tag>
                         </a-card>
                     </a-col>
@@ -357,9 +356,9 @@
 <script>
 
     const State = {
-        Running: "running",
-        Stop: "stop",
-        Error: "error",
+        Running: "Running",
+        Stop: "Stop",
+        Error: "Error",
     }
     Object.freeze(State);
 
