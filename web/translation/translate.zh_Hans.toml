@@ -54,7 +54,12 @@
 "security" = "安全"
 "secAlertTitle" = "安全警报"
 "secAlertSsl" = "此连接不安全；在激活 TLS 进行数据保护之前，请勿输入敏感信息"
-"secAlertConf" = "某些配置已被确定为容易受到攻击，促使立即采取行动以加强安全协议并防范潜在的安全漏洞。"
+"secAlertConf" = "某些设置容易受到攻击。建议加强安全协议以防止潜在的违规行为。"
+"secAlertSSL" = "面板缺乏安全连接。请安装 TLS 证书以保护数据。"
+"secAlertPanelPort" = "面板默认端口存在漏洞。请配置随机或特定端口。"
+"secAlertPanelURI" = "面板默认 URI 路径不安全。请配置复杂的 URI 路径。"
+"secAlertSubURI" = "订阅默认 URI 路径不安全。请配置复杂的 URI 路径。"
+"secAlertSubJsonURI" = "订阅 JSON 默认 URI 路径不安全。请配置复杂的 URI 路径。"
 
 [menu]
 "dashboard" = "系统状态"
