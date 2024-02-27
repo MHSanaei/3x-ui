@@ -27,7 +27,7 @@
         <a-divider style="margin: 0;">{{ i18n "pages.settings.toasts.modifySettings" }}</a-divider>
         <a-collapse style="margin: 10px 0;">
             <a-collapse-panel header='WARP/WARP+ License Key'>
-                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+                <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
                     <a-form-item label="License Key">
                         <a-input v-model="warpPlus"></a-input>
                         <a-button @click="updateLicense(warpPlus)" :disabled="warpPlus.length<26" :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.update" }}</a-button>

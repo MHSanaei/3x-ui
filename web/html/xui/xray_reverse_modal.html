@@ -2,7 +2,7 @@
 <a-modal id="reverse-modal" v-model="reverseModal.visible" :title="reverseModal.title" @ok="reverseModal.ok"
          :confirm-loading="reverseModal.confirmLoading" :closable="true" :mask-closable="false"
          :ok-text="reverseModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
-    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
             <a-select v-model="reverseModal.reverse.type" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="x,y in reverseTypes" :value="y">[[ x ]]</a-select-option>
