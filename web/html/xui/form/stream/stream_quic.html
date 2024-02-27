@@ -1,5 +1,5 @@
 {{define "form/streamQUIC"}}
-<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
         <a-select v-model="inbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="none">None</a-select-option>
@@ -20,7 +20,7 @@
         <a-input v-model.trim="inbound.stream.quic.key"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "camouflage" }}'>
-        <a-select v-model="inbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select v-model="inbound.stream.quic.type" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="none">None</a-select-option>
             <a-select-option value="srtp">SRTP</a-select-option>
             <a-select-option value="utp">uTP</a-select-option>

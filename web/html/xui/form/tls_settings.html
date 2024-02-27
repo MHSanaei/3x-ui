@@ -34,16 +34,16 @@
         </a-form-item>
         <a-form-item label="Min/Max Version">
             <a-input-group compact>
-                <a-select v-model="inbound.stream.tls.minVersion" :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option style="width: 100px;" v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+                <a-select v-model="inbound.stream.tls.minVersion" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
                 </a-select>
-                <a-select v-model="inbound.stream.tls.maxVersion" :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option style="width: 100px;" v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+                <a-select v-model="inbound.stream.tls.maxVersion" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
                 </a-select>
             </a-input-group>
         </a-form-item>
         <a-form-item label="uTLS">
-            <a-select v-model="inbound.stream.tls.settings.fingerprint"
+            <a-select v-model="inbound.stream.tls.settings.fingerprint" style="width: 50%"
                 :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value=''>None</a-select-option>
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
@@ -154,7 +154,7 @@
             <a-input-number v-model.number="inbound.stream.reality.xver" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='uTLS'>
-            <a-select v-model="inbound.stream.reality.settings.fingerprint"
+            <a-select v-model="inbound.stream.reality.settings.fingerprint" style="width: 50%"
                 :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
             </a-select>

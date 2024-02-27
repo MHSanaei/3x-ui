@@ -11,7 +11,7 @@
     :ok-text="balancerModal.okText"
     cancel-text='{{ i18n "close" }}'
     :class="themeSwitcher.currentTheme">
-    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='{{ i18n "pages.xray.balancer.tag" }}' has-feedback
             :validate-status="balancerModal.duplicateTag? 'warning' : 'success'">
             <a-input v-model.trim="balancerModal.balancer.tag" @change="balancerModal.check()"
