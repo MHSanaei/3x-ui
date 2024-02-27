@@ -42,6 +42,7 @@ html[data-theme='ultra-dark'] {
     --dark-color-surface-400: rgba(255, 255, 255, 0.1);
     --dark-color-surface-500: #3b404b;
     --dark-color-surface-600: #505663;
+    --dark-color-surface-700: #101113; 
     --dark-color-text-primary: rgb(255 255 255 / 85%);
     --dark-color-stroke: #202025;
 }
