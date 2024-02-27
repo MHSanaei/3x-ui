@@ -315,7 +315,7 @@
             </a-form-item>
             <a-form-item style="float: right;">
                 <a-button type="primary" icon="download"
-                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs)" download="x-ui.log">
+                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs.join('\n'))" download="x-ui.log">
                 </a-button>
             </a-form-item>
         </a-form>
@@ -447,7 +447,7 @@
 
     const logModal = {
         visible: false,
-        logs: '',
+        logs: [],
         rows: 20,
         level: 'info',
         syslog: false,

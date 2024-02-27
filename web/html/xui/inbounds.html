@@ -848,9 +848,7 @@
                     okText: '{{ i18n "pages.inbounds.create"}}',
                     cancelText: '{{ i18n "close" }}',
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
-                        await this.addInbound(inbound, dbInbound);
-                        inModal.close();
+                        await this.addInbound(inbound, dbInbound, inModal);
                     },
                     isEdit: false
                 });
@@ -865,9 +863,7 @@
                     inbound: inbound,
                     dbInbound: dbInbound,
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
                         await this.updateInbound(inbound, dbInbound);
-                        inModal.close();
                     },
                     isEdit: true
                 });
@@ -917,9 +913,7 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientModal.close();
+                        await this.addClient(clients, dbInboundId, clientModal);
                     },
                     isEdit: false
                 });
@@ -931,9 +925,7 @@
                     okText: '{{ i18n "pages.client.bulk"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientsBulkModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientsBulkModal.close();
+                        await this.addClient(clients, dbInboundId, clientsBulkModal);
                     },
                 });
             },
@@ -962,19 +954,19 @@
                     default: return clients.findIndex(item => item.id === client.id && item.email === client.email);
                 }
             },
-            async addClient(clients, dbInboundId) {
+            async addClient(clients, dbInboundId, modal) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/addClient`, data);
+                await this.submit(`/panel/inbound/addClient`, data, modal);
             },
             async updateClient(client, dbInboundId, clientId) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + client.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
+                await this.submit(`/panel/inbound/updateClient/${clientId}`, data, clientModal);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1077,8 +1069,8 @@
                 await this.updateClient(clients[index], dbInboundId, clientId);
                 this.loading(false);
             },
-            async submit(url, data) {
-                const msg = await HttpUtil.postWithModal(url, data);
+            async submit(url, data, modal) {
+                const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
@@ -1237,7 +1229,6 @@
                     okText: '{{ i18n "pages.inbounds.import" }}',
                     confirm: async (dbInboundText) => {
                         await this.submit('/panel/inbound/import', {data: dbInboundText}, promptModal);
-                        promptModal.close();
                     },
                 });
             },
