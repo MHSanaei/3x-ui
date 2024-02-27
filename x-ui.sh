@@ -947,8 +947,8 @@ run_speedtest() {
 }
 
 create_iplimit_jails() {
-    # Use default bantime if not passed => 30 minutes
-    local bantime="${1:-30}"
+    # Use default bantime if not passed => 15 minutes
+    local bantime="${1:-15}"
 
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
@@ -959,8 +959,8 @@ enabled=true
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}
-maxretry=4
-findtime=60
+maxretry=2
+findtime=32
 bantime=${bantime}m
 EOF
 
@@ -973,7 +973,7 @@ EOF
 
     cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
-before = iptables-common.conf
+before = iptables-allports.conf
 
 [Definition]
 actionstart = <iptables> -N f2b-<name>
