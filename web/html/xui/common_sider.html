@@ -15,10 +15,6 @@
     <a-icon type="tool"></a-icon>
     <span><b>{{ i18n "menu.xray"}}</b></span>
 </a-menu-item>
-<!--<a-menu-item key="{{ .base_path }}panel/clients">-->
-<!--    <a-icon type="laptop"></a-icon>-->
-<!--    <span>Client</span>-->
-<!--</a-menu-item>-->
 <a-menu-item key="{{ .base_path }}logout">
     <a-icon type="logout"></a-icon>
     <span><b>{{ i18n "menu.logout"}}</b></span>
@@ -28,14 +24,7 @@
 
 {{define "commonSider"}}
 <a-layout-sider :theme="themeSwitcher.currentTheme" id="sider" collapsible breakpoint="md" collapsed-width="0">
-    <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
-        <a-menu-item mode="inline">
-            <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-            <theme-switch>
-            </theme-switch>
-                <a-checkbox v-if="themeSwitcher.isDarkTheme" style="padding-left: 1rem;" id="ultradarktheme">Ultra</a-checkbox>
-        </a-menu-item>
-    </a-menu>
+    <theme-switch></theme-switch>
     <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']"
             @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
         {{template "menuItems" .}}
