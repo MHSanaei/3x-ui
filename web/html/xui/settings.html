@@ -76,23 +76,17 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <transition name="list" appear>
-                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    <a-alert type="error" v-if="confAlerts.length>0" style="margin: 10px 5px;"
                     message='{{ i18n "secAlertTitle" }}'
                     color="red"
-                    description='{{ i18n "secAlertSsl" }}'
-                    show-icon closable
+                    show-icon
+                    closable
                     >
-                    </a-alert>
-                    <a-alert type="error" v-if="confAlerts.length>0" style="margin-bottom: 10px"
-                        message='{{ i18n "secAlertTitle" }}'
-                        color="red"
-                        show-icon closable
-                        >
-                        <template slot="description">
-                            {{ i18n "secAlertConf" }}
-                            <li v-for="a in confAlerts">- [[ a ]]</li>
-                        </template>
-                        </a-alert>
+                    <template slot="description">
+                    <b>{{ i18n "secAlertConf" }}</b>
+                    <ul><li v-for="a in confAlerts">[[ a ]]</li></ul>
+                    </template>
+                  </a-alert>
                     </transition>
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem; overflow-x: hidden;">
@@ -332,7 +326,6 @@
             saveBtnDisable: true,
             user: {},
             lang: getLang(),
-            showAlert: false,
             remarkModels: {i:'Inbound',e:'Email',o:'Other'},
             remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
             datepickerList: [{name:'Gregorian (Standard)', value: 'gregorian'}, {name:'Jalalian (شمسی)', value: 'jalalian'}],
@@ -514,23 +507,21 @@
                 get: function() {
                     if (!this.allSetting) return [];
                     var alerts = []
-                    if (this.allSetting.port == 54321) alerts.push('{{ i18n "pages.settings.panelPort"}}');
+                    if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
+                    if (this.allSetting.webPort == 54321) alerts.push('{{ i18n "secAlertPanelPort" }}');
                     panelPath = window.location.pathname.split('/').length<4
-                    if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "pages.settings.panelSettings"}} {{ i18n "pages.settings.panelUrlPath"}}');
+                    if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
                     if (this.allSetting.subEnable) {
                         subPath = this.allSetting.subURI.length >0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
-                        if (subPath == '/sub/') alerts.push('{{ i18n "pages.settings.subSettings"}} {{ i18n "pages.settings.subPath"}}');
+                        if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
                         subJsonPath = this.allSetting.subJsonURI.length >0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
-                        if (subJsonPath == '/json/') alerts.push('JSON {{ i18n "pages.settings.subPath"}}');
+                        if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
                     }
                     return alerts
                 }
             }
         }, 
         async mounted() {
-            if (window.location.protocol !== "https:") {
-                this.showAlert = true;
-            }
             await this.getAllSetting();
             while (true) {
                 await PromiseUtil.sleep(1000);
