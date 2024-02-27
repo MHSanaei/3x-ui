@@ -21,27 +21,23 @@
     </a-collapse-panel>
 </a-collapse>
 <template v-if="inbound.isTcp && !inbound.stream.isReality">
-    <a-form layout="inline">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label="Fallbacks">
-            <a-row>
-                <a-button type="primary" size="small"
-                        @click="inbound.settings.addFallback()">
-                    +
-                </a-button>
-            </a-row>
+            <a-button type="primary" size="small" @click="inbound.settings.addFallback()">+</a-button>
         </a-form-item>
     </a-form>
 
     <!-- vless fallbacks -->
-    <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }"
+        :wrapper-col="{ md: {span:14} }">
         <a-divider style="margin:0;">
             Fallback [[ index + 1 ]]
             <a-icon type="delete" @click="() => inbound.settings.delFallback(index)"
-                    style="color: rgb(255, 77, 79);cursor: pointer;"/>
+                style="color: rgb(255, 77, 79);cursor: pointer;" />
         </a-divider>
         <a-form-item label='SNI'>
             <a-input v-model="fallback.name"></a-input>
-        </a-form-item>            
+        </a-form-item>
         <a-form-item label='ALPN'>
             <a-input v-model="fallback.alpn"></a-input>
         </a-form-item>

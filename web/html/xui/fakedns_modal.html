@@ -2,7 +2,7 @@
 <a-modal id="fakedns-modal" v-model="fakednsModal.visible" :title="fakednsModal.title" @ok="fakednsModal.ok"
          :closable="true" :mask-closable="false"
          :ok-text="fakednsModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
-    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='{{ i18n "pages.xray.fakedns.ipPool" }}'>
             <a-input v-model.trim="fakednsModal.fakeDns.ipPool"></a-input>
         </a-form-item>
