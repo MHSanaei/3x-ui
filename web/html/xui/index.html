@@ -10,23 +10,11 @@
             margin-inline: 0.3rem;
         }
     }
-
     .ant-col-sm-24 {
         margin-top: 10px;
     }
-
     .ant-card-dark h2 {
-        color: hsla(0, 0%, 100%, .65);
-    }
-
-    .dark .ant-card-hoverable:hover,
-    .dark .ant-space-item > .ant-tabs:hover {
-        transform: scale(0.987);
-        outline-color: #40434d;
-    }
-
-    .dark .ant-card-bordered {
-        outline: 2px solid var(--dark-color-background);
+        color: var(--dark-color-text-primary);
     }
 </style>
 
@@ -104,8 +92,8 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.operationHours" }}:</b>
-                            <a-tag color="green">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            <a-tag color="green">OS [[ formatSecond(status.uptime) ]]</a-tag>
+                            <a-tag :color="status.xray.color">Xray: [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS: [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
@@ -153,10 +141,10 @@
                         <a-card hoverable>
                             <b>{{ i18n "usage"}}:</b>
                             <a-tag color="green">
-                            RAM [[ sizeFormat(status.appStats.mem) ]]
+                                RAM: [[ sizeFormat(status.appStats.mem) ]]
                             </a-tag>
                             <a-tag color="green">
-                                Threads [[ status.appStats.threads ]]
+                                Threads: [[ status.appStats.threads ]]
                             </a-tag>
                         </a-card>
                     </a-col>
