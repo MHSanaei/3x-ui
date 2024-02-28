@@ -1,5 +1,7 @@
 # 3X-UI
 
+<p align="center"><img src="./media/3X-UI.png"></p>
+
 **An Advanced Web Panel • Built on Xray Core**
 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
