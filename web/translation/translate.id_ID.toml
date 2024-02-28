@@ -70,6 +70,7 @@
 "link" = "Kelola"
 
 [pages.login]
+"hello" = "Halo"
 "title" = "Selamat Datang"
 "loginAgain" = "Sesi Anda telah berakhir, harap masuk kembali"
 
@@ -81,7 +82,6 @@
 "successLogin" = "Login berhasil"
 
 [pages.index]
-"hello" = "Halo"
 "title" = "Ikhtisar"
 "memory" = "RAM"
 "hard" = "Disk"
