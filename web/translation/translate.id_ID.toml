@@ -81,6 +81,7 @@
 "successLogin" = "Login berhasil"
 
 [pages.index]
+"hello" = "Halo"
 "title" = "Ikhtisar"
 "memory" = "RAM"
 "hard" = "Disk"
