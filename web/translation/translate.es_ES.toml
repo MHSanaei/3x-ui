@@ -81,6 +81,7 @@
 "successLogin" = "Inicio de Sesión Exitoso"
 
 [pages.index]
+"hello" = "Hola"
 "title" = "Estado del Sistema"
 "memory" = "Memoria"
 "hard" = "Disco Duro"
