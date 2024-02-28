@@ -1,63 +1,56 @@
 {{define "component/themeSwitchTemplate"}}
 <template>
-  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
-    <a-menu-item mode="inline">
-      <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()">
-      </a-switch>
-      <a-checkbox v-if="themeSwitcher.isDarkTheme" style="padding-left: 1rem; vertical-align: middle;"
-        :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()">
-        Ultra
-      </a-checkbox>
-    </a-menu-item>
-  </a-menu>
+  <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme"
+            @change="themeSwitcher.toggleTheme()">
+  </a-switch>
 </template>
 {{end}}
 
 {{define "component/themeSwitcher"}}
 <script>
-function createThemeSwitcher() {
+  function createThemeSwitcher() {
     const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
     const isUltra = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
-    if (isUltra) {
-        document.documentElement.setAttribute('data-theme', 'ultra-dark');
-    }
-
     const theme = isDarkTheme ? 'dark' : 'light';
+    if (isUltra) {
+      document.documentElement.setAttribute('data-theme', 'ultra-dark');
+    }
     document.querySelector('body').setAttribute('class', theme);
-    
     return {
-        isDarkTheme,
-        isUltra,
-        get currentTheme() {
-            return this.isDarkTheme ? 'dark' : 'light';
-        },
-        toggleTheme() {
-            this.isDarkTheme = !this.isDarkTheme;
-            localStorage.setItem('dark-mode', this.isDarkTheme);
-            document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light');
-            document.getElementById('message').className = themeSwitcher.currentTheme;
-        },
-        toggleUltra() {
-            this.isUltra = !this.isUltra;
-            if (this.isUltra) {
-                document.documentElement.setAttribute('data-theme', 'ultra-dark');
-            } else {
-                document.documentElement.removeAttribute('data-theme');
-            }
-            localStorage.setItem('isUltraDarkThemeEnabled', this.isUltra.toString());
+      isDarkTheme,
+      isUltra,
+      get currentTheme() {
+        return this.isDarkTheme ? 'dark' : 'light';
+      },
+      toggleTheme() {
+        this.isDarkTheme = !this.isDarkTheme;
+        localStorage.setItem('dark-mode', this.isDarkTheme);
+        document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light');
+        document.getElementById('message').className = themeSwitcher.currentTheme;
+      },
+      toggleUltra() {
+        this.isUltra = !this.isUltra;
+        if (this.isUltra) {
+          document.documentElement.setAttribute('data-theme', 'ultra-dark');
+          localStorage.setItem('isUltraDarkThemeEnabled', 'true');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+          localStorage.setItem('isUltraDarkThemeEnabled', 'false');
         }
+      }
     };
-}
-
-const themeSwitcher = createThemeSwitcher();
-
+  }
+  const themeSwitcher = createThemeSwitcher();
   Vue.component('theme-switch', {
     props: [],
     template: `{{template "component/themeSwitchTemplate"}}`,
-    data: () => ({ themeSwitcher }),
+    data: () => ({
+      themeSwitcher
+    }),
     mounted() {
-      this.$message.config({ getContainer: () => document.getElementById('message') });
+      this.$message.config({
+        getContainer: () => document.getElementById('message')
+      });
       document.getElementById('message').className = themeSwitcher.currentTheme;
     }
   });
