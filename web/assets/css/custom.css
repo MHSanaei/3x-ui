@@ -32,6 +32,8 @@
     --dark-color-tag-blue-bg: #111a2c;
     --dark-color-tag-blue-border: #1348ab;
     --dark-color-tag-blue-color: #529fff;
+    --dark-color-codemirror-line-hover: rgba(0, 0, 0, 0.2);
+    --dark-color-codemirror-line-selection: rgba(0, 0, 0, 0.5);
 }
 
 html[data-theme='ultra-dark'] {
@@ -61,6 +63,8 @@ html[data-theme='ultra-dark'] {
     --dark-color-tag-blue-bg: #111a2c;
     --dark-color-tag-blue-border: #0f367e;
     --dark-color-tag-blue-color: #3c89e8;
+    --dark-color-codemirror-line-hover: rgba(85, 85, 85, 0.3);
+    --dark-color-codemirror-line-selection: rgba(85, 85, 85, 0.4);
     .ant-dropdown-menu-dark {
         background-color: var(--dark-color-surface-500);
     }
