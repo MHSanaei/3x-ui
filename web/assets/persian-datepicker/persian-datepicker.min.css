@@ -369,7 +369,7 @@ jdp-container .jdp-time-container.jdp-only-time .jdp-time:after {
 }
 
 .dark jdp-container .jdp-days {
-    border-color: var(--dark-color-surface-600);
+    border-color: var(--dark-color-surface-400);
 }
 
 .dark jdp-overlay {
@@ -425,7 +425,7 @@ jdp-container .jdp-time-container.jdp-only-time .jdp-time:after {
     color: #fff;
 }
 .dark jdp-container .jdp-footer {
-    border-color: var(--dark-color-surface-600);
+    border-color: var(--dark-color-surface-400);
 }
 .dark jdp-container .jdp-btn-close,
 .dark jdp-container .jdp-btn-empty,
