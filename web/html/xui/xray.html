@@ -419,7 +419,7 @@
                                 </a-col>
                                 <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
                                     <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
-                                    <a-tooltip>
+                                    <a-tooltip placement="bottom">
                                         <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
                                         <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
                                             title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
