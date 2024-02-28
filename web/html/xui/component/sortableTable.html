@@ -1,5 +1,6 @@
 {{define "component/sortableTableTrigger"}}
     <a-icon type="drag"
+        class="sortable-icon"
         style="cursor: move;"
         @mouseup="mouseUpHandler"
         @mousedown="mouseDownHandler"
@@ -202,6 +203,11 @@
 </script>
 
 <style>
+    @media only screen and (max-width: 767px) {
+        .sortable-icon {
+            display: none;
+        }
+    }
     .ant-table-is-sorting .draggable-row td {
         background-color: white !important;
     }
