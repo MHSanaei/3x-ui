@@ -70,6 +70,7 @@
 "link" = "Gestionar"
 
 [pages.login]
+"hello" = "Hola"
 "title" = "Bienvenido"
 "loginAgain" = "El límite de tiempo de inicio de sesión ha expirado. Por favor, inicia sesión nuevamente."
 
@@ -81,7 +82,6 @@
 "successLogin" = "Inicio de Sesión Exitoso"
 
 [pages.index]
-"hello" = "Hola"
 "title" = "Estado del Sistema"
 "memory" = "Memoria"
 "hard" = "Disco Duro"
