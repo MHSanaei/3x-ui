@@ -42,7 +42,7 @@
 "online" = "在线"
 "domainName" = "域名"
 "monitor" = "监听"
-"certificate" = "Digitales Zertifikat"
+"certificate" = "数字证书"
 "fail" = "失败"
 "success" = "成功"
 "getVersion" = "获取版本"
@@ -70,6 +70,7 @@
 "link" = "管理"
 
 [pages.login]
+"hello" = "你好"
 "title" = "欢迎"
 "loginAgain" = "登录时效已过，请重新登录"
 
