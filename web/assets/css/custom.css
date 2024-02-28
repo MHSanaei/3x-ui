@@ -813,7 +813,7 @@ style attribute {
 }
 
 .dark .ant-tag-blue {
-    background-color: var(--dark-color-blue-red-bg);
+    background-color: var(--dark-color-tag-blue-bg);
     border-color: var(--dark-color-tag-blue-border);
     color: var(--dark-color-tag-blue-color);
 }
