@@ -11,10 +11,10 @@
   function createThemeSwitcher() {
     const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
     const isUltra = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
-    const theme = isDarkTheme ? 'dark' : 'light';
     if (isUltra) {
       document.documentElement.setAttribute('data-theme', 'ultra-dark');
     }
+    const theme = isDarkTheme ? 'dark' : 'light';
     document.querySelector('body').setAttribute('class', theme);
     return {
       isDarkTheme,
@@ -32,11 +32,10 @@
         this.isUltra = !this.isUltra;
         if (this.isUltra) {
           document.documentElement.setAttribute('data-theme', 'ultra-dark');
-          localStorage.setItem('isUltraDarkThemeEnabled', 'true');
         } else {
           document.documentElement.removeAttribute('data-theme');
-          localStorage.setItem('isUltraDarkThemeEnabled', 'false');
         }
+        localStorage.setItem('isUltraDarkThemeEnabled', this.isUltra.toString());
       }
     };
   }
