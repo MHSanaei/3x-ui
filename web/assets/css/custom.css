@@ -42,9 +42,36 @@ html[data-theme='ultra-dark'] {
     --dark-color-surface-400: rgba(255, 255, 255, 0.1);
     --dark-color-surface-500: #3b404b;
     --dark-color-surface-600: #505663;
-    --dark-color-surface-700: #101113; 
+    --dark-color-surface-700: #101113;
+    --dark-color-table-hover: rgba(89, 89, 89, 0.15);
     --dark-color-text-primary: rgb(255 255 255 / 85%);
     --dark-color-stroke: #202025;
+    --dark-color-tag-green-bg: #112421;
+    --dark-color-tag-green-border: #1d5f4d;
+    --dark-color-tag-green-color: #59cbac;
+    --dark-color-tag-purple-bg: #241121;
+    --dark-color-tag-purple-border: #5a2969;
+    --dark-color-tag-purple-color: #d686ca;
+    --dark-color-tag-red-bg: #2a1215;
+    --dark-color-tag-red-border: #58181c;
+    --dark-color-tag-red-color: #e84749;
+    --dark-color-tag-orange-bg: #2b1d11;
+    --dark-color-tag-orange-border: #593815;
+    --dark-color-tag-orange-color: #e89a3c;
+    --dark-color-tag-blue-bg: #111a2c;
+    --dark-color-tag-blue-border: #0f367e;
+    --dark-color-tag-blue-color: #3c89e8;
+    .ant-dropdown-menu-dark {
+        background-color: var(--dark-color-surface-500);
+    }
+    .dark .ant-dropdown-menu-submenu-title:hover,
+    .dark .ant-select-dropdown-menu-item-active:not(.ant-select-dropdown-menu-item-disabled),
+    .dark .ant-select-dropdown-menu-item:hover:not(.ant-select-dropdown-menu-item-disabled) {
+        background-color: var(--dark-color-surface-300);
+    }
+    .dark .waves-header {
+        background-color: #0a2227;
+    }
 }
 
 html,
@@ -183,7 +210,7 @@ style attribute {
         padding: 0.5rem;
     }
     .ant-modal-body {
-        padding: 10px;
+        padding: 20px;
     }
     .ant-form-item-label {
         line-height: 1.5;
@@ -578,7 +605,7 @@ style attribute {
 
 .dark .ant-calendar,
 .dark .ant-card-bordered {
-    border-color: var(--dark-color-surface-100);
+    border-color: var(--dark-color-background);
 }
 
 .dark .ant-table-bordered,
@@ -1179,7 +1206,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     border-radius: 1rem;
 }
 
-.ant-input-group-addon:not(:first-child):not(:last-child), .ant-input-group-wrap:not(:first-child):not(:last-child), .ant-input-group>.ant-input:not(:first-child):not(:last-child) {
+.ant-input-group-addon:not(:first-child):not(:last-child) {
     border-radius: 0rem 1rem 1rem 0rem;
 }
 
