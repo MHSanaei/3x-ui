@@ -1015,7 +1015,10 @@ EOF
 }
 
 iplimit_remove_conflicts() {
-    local jail_files=(/etc/fail2ban/jail.conf /etc/fail2ban/jail.local)
+    local jail_files[0]=/etc/fail2ban/jail.conf
+    local jail_files[1]=/etc/fail2ban/jail.local
+        
+    
 
     for file in "${jail_files[@]}"; do
         # Check for [3x-ipl] config in jail file then remove it
