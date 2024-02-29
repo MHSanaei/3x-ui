@@ -74,7 +74,8 @@ elif [[ "${release}" == "manjaro" ]]; then
     echo "Your OS is Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
     echo "Your OS is Armbian"
-
+elif [[ "${release}" == "alpine" ]]; then
+    echo "Your OS is Alpine"
 else
     echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
 fi
@@ -89,6 +90,9 @@ install_base() {
         ;;
     arch | manjaro)
         pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
+        ;;
+    alpine)
+        apk update && apk add wget curl tar tzdata
         ;;
     *)
         apt-get update && apt install -y -q wget curl tar tzdata
@@ -158,7 +162,11 @@ install_x-ui() {
     fi
 
     if [[ -e /usr/local/x-ui/ ]]; then
-        systemctl stop x-ui
+        if release="alpine"; then
+            service x-ui stop
+        else
+            systemctl stop x-ui
+        fi
         rm /usr/local/x-ui/ -rf
     fi
 
@@ -180,9 +188,14 @@ install_x-ui() {
     chmod +x /usr/bin/x-ui
     config_after_install
 
-    systemctl daemon-reload
-    systemctl enable x-ui
-    systemctl start x-ui
+    if release="alpine"; then
+        rc-update add x-ui boot
+        rc-service x-ui start
+    else
+        systemctl daemon-reload
+        systemctl enable x-ui
+        systemctl start x-ui
+    fi
     echo -e "${green}x-ui ${last_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "x-ui control menu usages: "
