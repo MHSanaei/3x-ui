@@ -136,7 +136,7 @@ config_after_install() {
     # Add support for alpine
     if release="alpine"; then
         if [[ ! -e /lib64/ ]]; then
-            makedir /lib64
+            mkdir /lib64
         fi
         ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
         wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
