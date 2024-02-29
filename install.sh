@@ -92,7 +92,7 @@ install_base() {
         pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
     alpine)
-        apk update && apk add wget curl tar tzdata
+        apk update && apk add wget curl tar tzdata ip6tables ufw
         ;;
     *)
         apt-get update && apt install -y -q wget curl tar tzdata
