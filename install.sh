@@ -134,7 +134,7 @@ config_after_install() {
     fi
 
     # Add support for alpine
-    if release="alpine"; then
+    if [[ "${release}" == "alpine" ]]; then
         if [[ ! -e /lib64/ ]]; then
             mkdir /lib64
         fi
@@ -175,7 +175,7 @@ install_x_ui() {
     fi
 
     if [[ -e /usr/local/x-ui/ ]]; then
-        if release="alpine"; then
+        if [[ "${release}" == "alpine" ]]; then
             service x-ui stop
         else
             systemctl stop x-ui
@@ -195,7 +195,7 @@ install_x_ui() {
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch3xui)
-    if [[ release != "alpine" ]]; then
+    if [[ "${release}" == "alpine" ]]; then
         cp -f x-ui.service /etc/systemd/system/
     fi
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/maple367/3x-ui/main/x-ui.sh
@@ -203,7 +203,7 @@ install_x_ui() {
     chmod +x /usr/bin/x-ui
     config_after_install
 
-    if [[ release == "alpine" ]]; then
+    if [[ "${release}" == "alpine" ]]; then
         rc-update add x-ui boot
         rc-service x-ui start
     else
