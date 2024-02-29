@@ -132,6 +132,15 @@ config_after_install() {
             echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 8 to check${plain}"
         fi
     fi
+    
+    # Add support for alpine
+    if release="alpine"; then
+        if [[! -e /lib64]]; then
+            makedir /lib64
+        fi
+        ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+        ln /lib/libc.musl-x86_64.so.1 /lib64/libresolv.so.2
+    fi
     /usr/local/x-ui/x-ui migrate
 }
 
@@ -179,15 +188,6 @@ install_x_ui() {
     if [[ $(arch3xui) == "armv5" || $(arch3xui) == "armv6" || $(arch3xui) == "armv7" ]]; then
         mv bin/xray-linux-$(arch3xui) bin/xray-linux-arm
         chmod +x bin/xray-linux-arm
-    fi
-
-    # Add support for alpine
-    if release="alpine"; then
-        if [[! -e /lib64]]; then
-            makedir /lib64
-        fi
-        ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
-        ln /lib/libc.musl-x86_64.so.1 /lib64/libresolv.so.2
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch3xui)
