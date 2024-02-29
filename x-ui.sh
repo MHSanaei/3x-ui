@@ -166,11 +166,9 @@ uninstall() {
         fi
         return 0
     fi
-    systemctl stop x-ui
-    systemctl disable x-ui
+    service x-ui stop
+    rc-update del x-ui
     rm /etc/systemd/system/x-ui.service -f
-    systemctl daemon-reload
-    systemctl reset-failed
     rm /etc/x-ui/ -rf
     rm /usr/local/x-ui/ -rf
 
@@ -245,7 +243,7 @@ start() {
         echo ""
         LOGI "Panel is running, No need to start again, If you need to restart, please select restart"
     else
-        systemctl start x-ui
+        service x-ui start
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
@@ -266,7 +264,7 @@ stop() {
         echo ""
         LOGI "Panel stopped, No need to stop again!"
     else
-        systemctl stop x-ui
+        service x-ui stop
         sleep 2
         check_status
         if [[ $? == 1 ]]; then
@@ -282,7 +280,7 @@ stop() {
 }
 
 restart() {
-    systemctl restart x-ui
+    service x-ui restart
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
@@ -296,14 +294,14 @@ restart() {
 }
 
 status() {
-    systemctl status x-ui -l
+    rc-status -l
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 enable() {
-    systemctl enable x-ui
+    rc-update add x-ui boot
     if [[ $? == 0 ]]; then
         LOGI "x-ui Set to boot automatically on startup successfully"
     else
@@ -316,7 +314,7 @@ enable() {
 }
 
 disable() {
-    systemctl disable x-ui
+    rc-update del x-ui boot
     if [[ $? == 0 ]]; then
         LOGI "x-ui Autostart Cancelled successfully"
     else
@@ -447,7 +445,7 @@ check_status() {
     if [[ "${temp}" != "x-ui" ]]; then
         return 2
     fi
-    temp=$(rc-status | grep x-ui | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+    temp=$(rc-status -a | grep x-ui | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
     if [[ "${temp}" == "started" ]]; then
         return 0
     else
@@ -456,8 +454,8 @@ check_status() {
 }
 
 check_enabled() {
-    temp=$(systemctl is-enabled x-ui)
-    if [[ "${temp}" == "enabled" ]]; then
+    temp=$(rc-status boot| grep x-ui)
+    if [[ ! -z temp ]]; then
         return 0
     else
         return 1
@@ -665,7 +663,7 @@ update_geo() {
         mkdir -p ${binFolder}
     fi
 
-    systemctl stop x-ui
+    service x-ui stop
     cd ${binFolder}
     rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip_VN.dat geosite_VN.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
@@ -674,7 +672,7 @@ update_geo() {
     wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
     wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
     wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
-    systemctl start x-ui
+    service x-ui start
     echo -e "${green}Geosite.dat + Geoip.dat + geoip_IR.dat + geosite_IR.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
@@ -1055,7 +1053,7 @@ iplimit_main() {
         read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
         if [[ $NUM =~ ^[0-9]+$ ]]; then
             create_iplimit_jails ${NUM}
-            systemctl restart fail2ban
+            rc-service fail2ban restart
         else
             echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
         fi
@@ -1142,13 +1140,14 @@ install_iplimit() {
     create_iplimit_jails
 
     # Launching fail2ban
-    if ! systemctl is-active --quiet fail2ban; then
-        systemctl start fail2ban
-        systemctl enable fail2ban
+    temp=$(rc-status -a | grep fail2ban | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+    if [[ "${temp}" == "started" ]]; then
+        rc-service fail2ban start 
+        rc-service add fail2ban boot
     else
-        systemctl restart fail2ban
+        rc-service fail2ban restart
     fi
-    systemctl enable fail2ban
+    rc-service add fail2ban boot
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu
@@ -1164,13 +1163,13 @@ remove_iplimit() {
         rm -f /etc/fail2ban/filter.d/3x-ipl.conf
         rm -f /etc/fail2ban/action.d/3x-ipl.conf
         rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-        systemctl restart fail2ban
+        rc-service fail2ban restart
         echo -e "${green}IP Limit removed successfully!${plain}\n"
         before_show_menu
         ;;
     2)
         rm -rf /etc/fail2ban
-        systemctl stop fail2ban
+        rc-service fail2ban stop 
         case "${release}" in
         ubuntu | debian)
             apt-get remove -y fail2ban
