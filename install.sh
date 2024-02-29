@@ -135,7 +135,7 @@ config_after_install() {
     /usr/local/x-ui/x-ui migrate
 }
 
-install_x-ui() {
+install_x_ui() {
     cd /usr/local/
 
     if [ $# == 0 ]; then
@@ -217,4 +217,4 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-install_x-ui $1
+install_x_ui $1
