@@ -195,10 +195,10 @@ install_x_ui() {
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch3xui)
-    if [[ "${release}" == "alpine" ]]; then
+    if [[ "${release}" != "alpine" ]]; then
         cp -f x-ui.service /etc/systemd/system/
     fi
-    if [[ $(release) == "alpine" ]]; then
+    if [[ "${release}" == "alpine" ]]; then
         wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/maple367/3x-ui/main/x-ui.sh
     else
         wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
