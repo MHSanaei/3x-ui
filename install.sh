@@ -141,7 +141,7 @@ config_after_install() {
         ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
         wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub
         wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-2.35-r1.apk
-        apk add glibc-2.35-r1.apk
+        apk add glibc-2.35-r1.apk --force-overwrite
         rm -f glibc-2.35-r1.apk
         # ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
     fi
