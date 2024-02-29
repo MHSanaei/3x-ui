@@ -630,7 +630,9 @@ delete_ports() {
     fi
 
     # Delete the specified ports using ufw
-    IFS=',' read -ra PORT_LIST <<<"$ports"
+    IFS="," read -r PORT_LIST <<-EOF
+    $ports
+EOF
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
             # Split the range into start and end ports
