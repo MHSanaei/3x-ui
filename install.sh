@@ -181,6 +181,15 @@ install_x_ui() {
         chmod +x bin/xray-linux-arm
     fi
 
+    # Add support for alpine
+    if release="alpine"; then
+        if [[! -e /lib64]]; then
+            makedir /lib64
+        fi
+        ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
+        ln /lib/libc.musl-x86_64.so.1 /lib64/libresolv.so.2
+    fi
+
     chmod +x x-ui bin/xray-linux-$(arch3xui)
     cp -f x-ui.service /etc/systemd/system/
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
