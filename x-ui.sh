@@ -624,7 +624,7 @@ delete_ports() {
     read -p "Enter the ports you want to delete (e.g. 80,443,2053 or range 400-500): " ports
 
     # Check if the input is valid
-    if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+    if ! echo "$ports" | grep -Eq "^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$"; then
         echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
         exit 1
     fi
