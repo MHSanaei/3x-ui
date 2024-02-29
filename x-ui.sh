@@ -68,6 +68,8 @@ elif [[ "${release}" == "manjaro" ]]; then
     echo "Your OS is Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
     echo "Your OS is Armbian"
+elif [[ "${release}" == "alpine" ]]; then
+    echo "Your OS is Alpine"
 fi
 
 # Declare Variables
@@ -403,6 +405,9 @@ enable_bbr() {
     fedora)
         dnf -y update && dnf -y install ca-certificates
         ;;
+    alpine)
+        apk update && apk add ca-certificates
+        ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
         exit 1
@@ -546,13 +551,13 @@ firewall_menu() {
         open_ports
         ;;
     2)
-        sudo ufw status
+        ufw status
         ;;
     3)
         delete_ports
         ;;
     4)
-        sudo ufw disable
+        ufw disable
         ;;
     *) echo "Invalid choice" ;;
     esac
@@ -589,7 +594,7 @@ open_ports() {
         echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
         exit 1
     fi
-    
+
     # Open the specified ports using ufw
     IFS=',' read -ra PORT_LIST <<<"$ports"
     for port in "${PORT_LIST[@]}"; do
@@ -726,6 +731,9 @@ ssl_cert_issue() {
         ;;
     fedora)
         dnf -y update && dnf -y install socat
+        ;;
+    alpine)
+        apk update && apk add socat
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
@@ -1086,6 +1094,9 @@ install_iplimit() {
         fedora)
             dnf -y update && dnf -y install fail2ban
             ;;
+        alpine)
+            apk update && apk add fail2ban
+            ;;
         *)
             echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
             exit 1
@@ -1164,6 +1175,9 @@ remove_iplimit() {
         fedora)
             dnf remove fail2ban -y
             dnf autoremove -y
+            ;;
+        alpine)
+            apk del fail2ban
             ;;
         *)
             echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
