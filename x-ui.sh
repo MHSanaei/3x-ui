@@ -443,11 +443,12 @@ update_shell() {
 
 # 0: running, 1: not running, 2: not installed
 check_status() {
-    if [[ ! -f /etc/systemd/system/x-ui.service ]]; then
+    temp=$(rc-service -l | grep x-ui)
+    if [[ "${temp}" != "x-ui" ]]; then
         return 2
     fi
-    temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ "${temp}" == "running" ]]; then
+    temp=$(rc-status | grep x-ui | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+    if [[ "${temp}" == "started" ]]; then
         return 0
     else
         return 1
