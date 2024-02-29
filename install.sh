@@ -195,13 +195,15 @@ install_x_ui() {
     fi
 
     chmod +x x-ui bin/xray-linux-$(arch3xui)
-    cp -f x-ui.service /etc/systemd/system/
+    if [[ release != "alpine" ]]; then
+        cp -f x-ui.service /etc/systemd/system/
+    fi
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install
 
-    if release="alpine"; then
+    if [[ release == "alpine" ]]; then
         rc-update add x-ui boot
         rc-service x-ui start
     else
