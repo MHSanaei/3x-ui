@@ -225,5 +225,8 @@ install_x_ui() {
 }
 
 echo -e "${green}Running...${plain}"
+if release="alpine"; then
+    echo -e "${red}Alpine is not fully supported for now. The x-ui may not work properly on your system.${plain}"
+fi
 install_base
 install_x_ui $1
