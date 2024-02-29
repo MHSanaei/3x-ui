@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/ash
 
 red='\033[0;31m'
 green='\033[0;32m'
@@ -106,7 +106,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+    ash <(curl -Ls https://raw.githubusercontent.com/maple367/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -125,7 +125,7 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+    ash <(curl -Ls https://raw.githubusercontent.com/maple367/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         exit 0
@@ -144,7 +144,7 @@ custom_version() {
     download_link="https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh"
 
     # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls $download_link) v$panel_version"
+    install_command="ash <(curl -Ls $download_link) v$panel_version"
 
     echo "Downloading and installing panel version $panel_version..."
     eval $install_command
@@ -175,7 +175,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
+    echo -e "${green}ash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
@@ -585,11 +585,11 @@ open_ports() {
     read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
 
     # Check if the input is valid
-    if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
+    if ! echo "$ports" | grep -Eq "^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$"; then
         echo "Error: Invalid input. Please enter a comma-separated list of ports or a range of ports (e.g. 80,443,2053 or 400-500)." >&2
         exit 1
     fi
-
+    
     # Open the specified ports using ufw
     IFS=',' read -ra PORT_LIST <<<"$ports"
     for port in "${PORT_LIST[@]}"; do
@@ -897,7 +897,7 @@ warp_cloudflare() {
         show_menu
         ;;
     1)
-        bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
+        ash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
         ;;
     2)
         warp a
@@ -937,7 +937,7 @@ run_speedtest() {
             echo "Error: Package manager not found. You may need to install Speedtest manually."
             return 1
         else
-            curl -s $speedtest_install_script | bash
+            curl -s $speedtest_install_script | ash
             $pkg_manager install -y speedtest
         fi
     fi
