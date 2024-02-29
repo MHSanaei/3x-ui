@@ -957,7 +957,7 @@ Outbound.WireguardSettings = class extends CommonClass {
             address: this.address ? this.address.split(",") : [],
             workers: this.workers?? undefined,
             domainStrategy: WireguardDomainStrategy.includes(this.domainStrategy) ? this.domainStrategy : undefined,
-            reserved: this.reserved ? this.reserved.split(",") : undefined,
+            reserved: this.reserved ? this.reserved.split(",").map(Number) : undefined,
             peers: Outbound.WireguardSettings.Peer.toJsonArray(this.peers),
             kernelMode: this.kernelMode,
         };

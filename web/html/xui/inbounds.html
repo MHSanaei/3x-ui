@@ -56,9 +56,13 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <transition name="list" appear>
-                    <a-tag v-if="false" color="red" style="margin-bottom: 10px">
-                        Please go to the panel settings as soon as possible to modify the username and password, otherwise there may be a risk of leaking account information
-                    </a-tag>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
                 </transition>
                 <transition name="list" appear>
                     <a-card hoverable>
@@ -182,7 +186,7 @@
                             </a-radio-group>
                         </div>
                         <a-back-top></a-back-top>
-                        <a-table :columns="isMobile ? mobileColums : columns" :row-key="dbInbound => dbInbound.id"
+                        <a-table :columns="isMobile ? mobileColumns : columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :scroll="isMobile ? {} : { x: 1000 }"
                                  :pagination=pagination(searchedInbounds)
@@ -504,7 +508,7 @@
         scopedSlots: { customRender: 'expiryTime' },
     }];
 
-    const mobileColums = [{
+    const mobileColumns = [{
         title: "ID",
         align: 'right',
         dataIndex: "id",
@@ -567,11 +571,13 @@
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
-                subURI : ''
+                subURI : '',
+                subJsonURI : '',
             },
             remarkModel: '-ieo',
             datepicker: 'gregorian',
             tgBotEnable: false,
+            showAlert: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
@@ -613,7 +619,8 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
-                        subURI: subURI
+                        subURI: subURI,
+                        subJsonURI: subJsonURI
                     };
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
@@ -841,9 +848,7 @@
                     okText: '{{ i18n "pages.inbounds.create"}}',
                     cancelText: '{{ i18n "close" }}',
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
-                        await this.addInbound(inbound, dbInbound);
-                        inModal.close();
+                        await this.addInbound(inbound, dbInbound, inModal);
                     },
                     isEdit: false
                 });
@@ -858,9 +863,7 @@
                     inbound: inbound,
                     dbInbound: dbInbound,
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
                         await this.updateInbound(inbound, dbInbound);
-                        inModal.close();
                     },
                     isEdit: true
                 });
@@ -910,9 +913,7 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientModal.close();
+                        await this.addClient(clients, dbInboundId, clientModal);
                     },
                     isEdit: false
                 });
@@ -924,9 +925,7 @@
                     okText: '{{ i18n "pages.client.bulk"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientsBulkModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientsBulkModal.close();
+                        await this.addClient(clients, dbInboundId, clientsBulkModal);
                     },
                 });
             },
@@ -955,19 +954,19 @@
                     default: return clients.findIndex(item => item.id === client.id && item.email === client.email);
                 }
             },
-            async addClient(clients, dbInboundId) {
+            async addClient(clients, dbInboundId, modal) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/addClient`, data);
+                await this.submit(`/panel/inbound/addClient`, data, modal);
             },
             async updateClient(client, dbInboundId, clientId) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + client.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
+                await this.submit(`/panel/inbound/updateClient/${clientId}`, data, clientModal);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -987,7 +986,7 @@
             },
             delInbound(dbInboundId) {
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.deleteInbound"}}',
+                    title: '{{ i18n "pages.inbounds.deleteInbound"}}' + ' #' + dbInboundId,
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
                     class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "delete"}}',
@@ -1000,7 +999,7 @@
                 clientId = this.getClientId(dbInbound.protocol, client);
                 if (confirmation){
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.deleteClient"}}',
+                        title: '{{ i18n "pages.inbounds.deleteClient"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.deleteClientContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "delete"}}',
@@ -1070,8 +1069,8 @@
                 await this.updateClient(clients[index], dbInboundId, clientId);
                 this.loading(false);
             },
-            async submit(url, data) {
-                const msg = await HttpUtil.postWithModal(url, data);
+            async submit(url, data, modal) {
+                const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
@@ -1230,7 +1229,6 @@
                     okText: '{{ i18n "pages.inbounds.import" }}',
                     confirm: async (dbInboundText) => {
                         await this.submit('/panel/inbound/import', {data: dbInboundText}, promptModal);
-                        promptModal.close();
                     },
                 });
             },
@@ -1291,7 +1289,7 @@
             pagination(obj){
                 if (this.pageSize > 0 && obj.length>this.pageSize) {
                     // Set page options based on object size
-                    sizeOptions = []
+                    sizeOptions = [];
                     for (i=this.pageSize;i<=obj.length;i=i+this.pageSize) {
                         sizeOptions.push(i.toString());
                     }
@@ -1304,8 +1302,8 @@
                         position: 'bottom',
                         pageSize: this.pageSize,
                         pageSizeOptions: sizeOptions
-                    }
-                    return p
+                    };
+                    return p;
                 }
                 return false
             },
@@ -1319,6 +1317,9 @@
             }, 500)
         },
         mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             window.addEventListener('resize', this.onResize);
             this.onResize();
             this.loading();
@@ -1356,7 +1357,6 @@
             }
         },
     });
-
 </script>
 
 {{template "inboundModal"}}
@@ -1366,6 +1366,5 @@
 {{template "inboundInfoModal"}}
 {{template "clientsModal"}}
 {{template "clientsBulkModal"}}
-
 </body>
 </html>

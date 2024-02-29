@@ -33,7 +33,8 @@ jdp-container :before {
 }
 jdp-container .jdp-icon-minus,
 jdp-container .jdp-icon-plus {
-    border: 1px solid rgb(232 244 242);
+    outline: 1px solid rgb(232 244 242);
+    outline-offset: -1px;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -205,15 +206,15 @@ jdp-container .jdp-day-name {
 }
 jdp-container .jdp-day-name.today,
 jdp-container .jdp-day.today {
-    border-color: #008771;
-    color: #008771;
+    border-color: var(--color-primary-100);
+    color: var(--color-primary-100);
     font-weight: 700;
 }
 .dark jdp-container .jdp-day-name.selected,
 .dark jdp-container .jdp-day.selected,
 jdp-container .jdp-day-name.selected,
 jdp-container .jdp-day.selected {
-    background-color: #008771 !important;
+    background-color: var(--color-primary-100) !important;
     color: #fff !important;
     opacity: 1 !important;
 }
@@ -266,7 +267,7 @@ jdp-container .jdp-btn-empty,
 jdp-container .jdp-btn-today {
     background: #00877000;
     border-radius: 5px;
-    color: #008771;
+    color: var(--color-primary-100);
     cursor: pointer;
     display: inline-block;
     font-size: 90%;
@@ -368,26 +369,26 @@ jdp-container .jdp-time-container.jdp-only-time .jdp-time:after {
 }
 
 .dark jdp-container .jdp-days {
-    border-color: #313f5a;
+    border-color: var(--dark-color-surface-400);
 }
 
 .dark jdp-overlay {
     background-color: #181f2c;
 }
 .dark jdp-container {
-    background: #101828;
+    background: var(--dark-color-background);
     border-color: #2c3950;
     box-shadow: 0 2px 8px rgba(0,0,0,.15);
     color: #fff;
 }
 .dark jdp-container .jdp-icon-minus,
 .dark jdp-container .jdp-icon-plus {
-    border-color: #313f5a;
+    outline-color: var(--dark-color-surface-600);
 }
 
 .dark jdp-container .jdp-icon-minus:hover,
 .dark jdp-container .jdp-icon-plus:hover {
-    background-color: #313f5a;
+    background-color: var(--dark-color-surface-600);
 }
 
 .dark jdp-container .jdp-months,
@@ -404,27 +405,27 @@ jdp-container .jdp-time-container.jdp-only-time .jdp-time:after {
 .dark jdp-container .jdp-year,
 .dark jdp-container .jdp-year input,
 .dark jdp-container .jdp-year select {
-    background: #101828;
-    color: rgb(255 255 255 / 65%);
+    background: var(--dark-color-background);
+    color: var(--dark-color-text-primary);
 }
 .dark jdp-container .jdp-day,
 .dark jdp-container .jdp-day-name {
     border: 1px solid transparent;
-    color: rgba(255, 255, 255, 0.65);
+    color: var(--dark-color-text-primary);
 }
 .dark jdp-container .jdp-day-name.today,
 .dark jdp-container .jdp-day.today {
-    border-color: #008771;
+    border-color: var(--color-primary-100);
 }
 .dark jdp-container .jdp-day.disabled-day {
     opacity: 0.15;
 }
 .dark jdp-container .jdp-day:not(.disabled-day):hover {
-    background-color: #313f5a;
+    background-color: var(--dark-color-surface-600);
     color: #fff;
 }
 .dark jdp-container .jdp-footer {
-    border-color: #313f5a;
+    border-color: var(--dark-color-surface-400);
 }
 .dark jdp-container .jdp-btn-close,
 .dark jdp-container .jdp-btn-empty,
@@ -445,10 +446,10 @@ jdp-container .jdp-time-container.jdp-only-time .jdp-time:after {
 }
 
 .dark jdp-container .jdp-time-container .jdp-time select:hover {
-    background-color: #313f5a;
+    background-color: var(--dark-color-surface-600);
     color: #fff;
 }
 
 .dark jdp-container .jdp-time-container .jdp-time select {
-    border: 1px solid rgb(49 63 90);
+    border: 1px solid var(--dark-color-surface-600);
 }

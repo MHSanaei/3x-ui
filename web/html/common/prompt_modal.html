@@ -1,6 +1,7 @@
 {{define "promptModal"}}
 <a-modal id="prompt-modal" v-model="promptModal.visible" :title="promptModal.title"
          :closable="true" @ok="promptModal.ok" :mask-closable="false"
+         :confirm-loading="promptModal.confirmLoading"
          :ok-text="promptModal.okText" cancel-text='{{ i18n "cancel" }}' :class="themeSwitcher.currentTheme">
     <a-input id="prompt-modal-input" :type="promptModal.type"
              v-model="promptModal.value"
@@ -17,6 +18,7 @@
         value: '',
         okText: '{{ i18n "sure"}}',
         visible: false,
+        confirmLoading: false,
         keyEnter(e) {
             if (this.type !== 'textarea') {
                 e.preventDefault();
@@ -30,7 +32,6 @@
             }
         },
         ok() {
-            promptModal.close();
             promptModal.confirm(promptModal.value);
         },
         confirm() {},
@@ -53,7 +54,10 @@
         },
         close() {
             this.visible = false;
-        }
+        },
+        loading(loading=true) {
+            this.confirmLoading = loading;
+        },
     };
 
     const promptModalApp = new Vue({

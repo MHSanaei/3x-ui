@@ -42,7 +42,7 @@
 "online" = "Онлайн"
 "domainName" = "Домен"
 "monitor" = "Порт IP"
-"certificate" = "Сертификат"
+"certificate" = "Цифровой сертификат"
 "fail" = "Неудачно"
 "success" = "Успешно"
 "getVersion" = "Узнать версию"
@@ -52,6 +52,14 @@
 "secretToken" = "Секретный токен"
 "remained" = "остались"
 "security" = "Безопасность"
+"secAlertTitle" = "Предупреждение системы безопасности"
+"secAlertSsl" = "Это соединение не защищено. Пожалуйста, воздержитесь от ввода конфиденциальной информации до тех пор, пока не будет активирован TLS для защиты данных"
+"secAlertConf" = "Некоторые настройки уязвимы для атак. Рекомендуется усилить протоколы безопасности, чтобы предотвратить потенциальные нарушения."
+"secAlertSSL" = "В панели отсутствует безопасное соединение. Пожалуйста, установите сертификат TLS для защиты данных."
+"secAlertPanelPort" = "Порт по умолчанию панели небезопасен. Пожалуйста, настройте случайный или определенный порт."
+"secAlertPanelURI" = "URI-путь по умолчанию панели небезопасен. Пожалуйста, настройте сложный URI-путь."
+"secAlertSubURI" = "URI-путь по умолчанию подписки небезопасен. Пожалуйста, настройте сложный URI-путь."
+"secAlertSubJsonURI" = "URI-путь по умолчанию для JSON подписки небезопасен. Пожалуйста, настройте сложный URI-путь."
 
 [menu]
 "dashboard" = "Статус системы"
@@ -62,6 +70,7 @@
 "link" = "менеджмент"
 
 [pages.login]
+"hello" = "Привет"
 "title" = "Добро пожаловать"
 "loginAgain" = "Время пребывания в сети вышло. Пожалуйста, войдите в систему снова"
 
@@ -140,10 +149,8 @@
 "noRecommendKeepDefault" = "Нет требований для сохранения настроек по умолчанию"
 "certificatePath" = "Путь файла"
 "certificateContent" = "Содержимое файла"
-"publicKeyPath" = "Путь к публичному ключу"
-"publicKeyContent" = "Содержимое публичного ключа"
-"keyPath" = "Путь к приватному ключу"
-"keyContent" = "Содержимое приватного ключа"
+"publicKey" = "Публичный ключ"
+"privatekey" = "Приватный ключ"
 "clickOnQRcode" = "Нажмите на QR-код, чтобы скопировать"
 "client" = "Клиент"
 "export" = "Экспорт ключей"
@@ -194,7 +201,7 @@
 "last" = "Последний"
 "prefix" = "Префикс"
 "postfix" = "Постфикс"
-"delayedStart" = "Начать с момента первого подключения"
+"delayedStart" = "Начало использования"
 "expireDays" = "Длительность"
 "days" = "дней"
 "renew" = "Автопродление"
@@ -302,6 +309,8 @@
 "subShowInfoDesc" = "Показывать восстановленный трафик и дату после имени конфигурации"
 "subURI" = "URI обратного прокси"
 "subURIDesc" = "Изменить базовый URI URL-адреса подписки для использования за прокси-серверами"
+"fragment" = "Фрагментация"
+"fragmentDesc" = "Включить фрагментацию для пакета приветствия TLS"
 
 [pages.xray]
 "title" = "Настройки Xray"
@@ -377,14 +386,20 @@
 "GoogleIPv4Desc" = "Добавить маршрутизацию для Google для подключения к IPv4"
 "NetflixIPv4" = "Использовать IPv4 для Netflix"
 "NetflixIPv4Desc" = "Добавить маршрутизацию для Netflix для подключения к IPv4"
-"GoogleWARP" = "Маршрутизация Google через WARP"
-"GoogleWARPDesc" = "Добавить маршрутизацию для Google через WARP"
-"OpenAIWARP" = "Маршрутизация OpenAI (ChatGPT) через WARP"
-"OpenAIWARPDesc" = "Добавить маршрутизацию для OpenAI (ChatGPT) через WARP"
-"NetflixWARP" = "Маршрутизация Netflix через WARP"
-"NetflixWARPDesc" = "Добавить маршрутизацию для Netflix через WARP"
-"SpotifyWARP" = "Маршрутизация Spotify через WARP"
-"SpotifyWARPDesc" = "Добавить маршрутизацию для Spotify через WARP"
+"GoogleWARP" = "Google"
+"GoogleWARPDesc" = "Направляет трафик в Google через WARP."
+"OpenAIWARP" = "OpenAI (ChatGPT)"
+"OpenAIWARPDesc" = "Направляет трафик в OpenAI (ChatGPT) через WARP."
+"NetflixWARP" = "Netflix"
+"NetflixWARPDesc" = "Направляет трафик в Apple через WARP."
+"MetaWARP" = "Мета"
+"MetaWARPDesc" = "Направляет трафик в Meta (Instagram, Facebook, WhatsApp, Threads...) через WARP."
+"AppleWARP" = "Apple"
+"AppleWARPDesc" = "Направляет трафик в Apple через WARP."
+"RedditWARP" = "Reddit"
+"RedditWARPDesc" = "Направляет трафик в Reddit через WARP."
+"SpotifyWARP" = "Spotify"
+"SpotifyWARPDesc" = "Направляет трафик в Spotify через WARP."
 "IRWARP" = "Маршрутизация доменов Ирана через WARP"
 "IRWARPDesc" = "Добавить маршрутизацию для доменов Ирана через WARP"
 "Inbounds" = "Входящие"
@@ -443,7 +458,7 @@
 
 [pages.xray.wireguard]
 "secretKey" = "Секретный ключ"
-"publicKey" = "Открытый ключ"
+"publicKey" = "Публичный ключ"
 "allowedIPs" = "Разрешенные IP-адреса"
 "endpoint" = "Конечная точка"
 "psk" = "Общий ключ"
@@ -457,6 +472,12 @@
 "add" = "Добавить сервер"
 "edit" = "Редактировать сервер"
 "domains" = "Домены"
+
+[pages.xray.fakedns]
+"add" = "Добавить поддельный DNS"
+"edit" = "Редактировать поддельный DNS"
+"ipPool" = "Подсеть пула IP"
+"poolSize" = "Размер пула"
 
 [pages.settings.security]
 "admin" = "Админ"

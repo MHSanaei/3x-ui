@@ -10,21 +10,11 @@
             margin-inline: 0.3rem;
         }
     }
-
     .ant-col-sm-24 {
         margin-top: 10px;
     }
-
     .ant-card-dark h2 {
-        color: hsla(0, 0%, 100%, .65);
-    }
-
-    .ant-tag-df {
-        color: rgb(0 0 0 / 80%);
-    }
-
-    .dark .ant-tag-df {
-        color: rgb(255 255 255 / 80%);
+        color: var(--dark-color-text-primary);
     }
 </style>
 
@@ -34,6 +24,15 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="200" :tip="loadingTip"/>
+            <transition name="list" appear>
+                <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                message='{{ i18n "secAlertTitle" }}'
+                color="red"
+                description='{{ i18n "secAlertSsl" }}'
+                show-icon closable
+                >
+                </a-alert>
+            </transition>
             <transition name="list" appear>
                 <a-row>
                     <a-card hoverable>
@@ -93,8 +92,8 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.operationHours" }}:</b>
-                            <a-tag class="ant-tag-df">Xray [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                            <a-tag class="ant-tag-df">OS [[ formatSecond(status.uptime) ]]</a-tag>
+                            <a-tag :color="status.xray.color">Xray: [[ formatSecond(status.appStats.uptime) ]]</a-tag>
+                            <a-tag color="green">OS: [[ formatSecond(status.uptime) ]]</a-tag>
                         </a-card>
                     </a-col>
                     <a-col :sm="24" :lg="12">
@@ -128,7 +127,7 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "pages.index.systemLoad" }}:</b>
-                            <a-tag class="ant-tag-df">
+                            <a-tag color="green">
                             <a-tooltip>
                                 [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
                                 <template slot="title">
@@ -141,11 +140,11 @@
                     <a-col :sm="24" :lg="12">
                         <a-card hoverable>
                             <b>{{ i18n "usage"}}:</b>
-                            <a-tag class="ant-tag-df">
-                            RAM [[ sizeFormat(status.appStats.mem) ]]
+                            <a-tag color="green">
+                                RAM: [[ sizeFormat(status.appStats.mem) ]]
                             </a-tag>
-                            <a-tag class="ant-tag-df">
-                                Threads [[ status.appStats.threads ]]
+                            <a-tag color="green">
+                                Threads: [[ status.appStats.threads ]]
                             </a-tag>
                         </a-card>
                     </a-col>
@@ -153,7 +152,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv4
                                         <template slot="title">
@@ -163,7 +162,7 @@
                                 </a-tag>
                             </a-col>
                             <a-col :span="12">
-                                <a-tag class="ant-tag-df">
+                                <a-tag>
                                     <a-tooltip>
                                     <a-icon type="global"></a-icon> IPv6
                                         <template slot="title">
@@ -179,7 +178,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="swap"></a-icon> TCP:  [[ status.tcpCount ]]
                                         <template slot="title">
@@ -189,7 +188,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="swap"></a-icon> UDP:  [[ status.udpCount ]]
                                         <template slot="title">
@@ -205,7 +204,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-up"></a-icon>
                                     Up: [[ sizeFormat(status.netIO.up) ]]/s
@@ -216,7 +215,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                     <a-icon type="arrow-down"></a-icon>
                                     Down: [[ sizeFormat(status.netIO.down) ]]/s
@@ -233,7 +232,7 @@
                         <a-card hoverable>
                             <a-row>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                         <a-icon type="cloud-upload"></a-icon>
                                         <template slot="title">
@@ -243,7 +242,7 @@
                                     </a-tag>
                                 </a-col>
                                 <a-col :span="12">
-                                    <a-tag class="ant-tag-df">
+                                    <a-tag>
                                     <a-tooltip>
                                         <a-icon type="cloud-download"></a-icon>
                                         <template slot="title">
@@ -276,45 +275,45 @@
         </template>
     </a-modal>
 
-    <a-modal id="log-modal" v-model="logModal.visible" title="Logs"
-             :closable="true" @ok="() => logModal.visible = false" @cancel="() => logModal.visible = false"
+    <a-modal id="log-modal" v-model="logModal.visible"
+             :closable="true" @cancel="() => logModal.visible = false"
              :class="themeSwitcher.currentTheme"
-             width="800px"
-             footer="">
+             width="800px" footer="">
+        <template slot="title">
+            {{ i18n "pages.index.logs" }}
+            <a-icon :spin="logModal.loading"
+                    type="sync"
+                    style="vertical-align: middle; margin-left: 10px;"
+                    :disabled="logModal.loading"
+                    @click="openLogs()">
+            </a-icon>
+        </template>
         <a-form layout="inline">
-            <a-form-item label="Count">
-                <a-select v-model="logModal.rows"
-                style="width: 80px"
-                @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value="10">10</a-select-option>
-                    <a-select-option value="20">20</a-select-option>
-                    <a-select-option value="50">50</a-select-option>
-                    <a-select-option value="100">100</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="Log Level">
-                <a-select v-model="logModal.level"
-                style="width: 120px"
-                @change="openLogs()"
-                :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option value="debug">Debug</a-select-option>
-                    <a-select-option value="info">Info</a-select-option>
-                    <a-select-option value="notice">Notice</a-select-option>
-                    <a-select-option value="warning">Warning</a-select-option>
-                    <a-select-option value="err">Error</a-select-option>
-                </a-select>
-            </a-form-item>
-            <a-form-item label="SysLog">
-                <a-checkbox v-model="logModal.syslog" @change="openLogs()"></a-checkbox>
+            <a-form-item>
+                <a-input-group compact>
+                    <a-select v-model="logModal.rows" style="width:70px;"
+                    @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="10">10</a-select-option>
+                        <a-select-option value="20">20</a-select-option>
+                        <a-select-option value="50">50</a-select-option>
+                        <a-select-option value="100">100</a-select-option>
+                    </a-select>
+                    <a-select v-model="logModal.level" style="width:100px;"
+                    @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option value="debug">Debug</a-select-option>
+                        <a-select-option value="info">Info</a-select-option>
+                        <a-select-option value="notice">Notice</a-select-option>
+                        <a-select-option value="warning">Warning</a-select-option>
+                        <a-select-option value="err">Error</a-select-option>
+                    </a-select>
+                </a-input-group>
             </a-form-item>
             <a-form-item>
-                <a-button class="ant-btn ant-btn-primary" :loading="logModal.loading" @click="openLogs()"><a-icon :spin="logModal.loading" type="sync"></a-icon> Reload</a-button>
+                <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
             </a-form-item>
-            <a-form-item>
-                <a-button type="primary" style="margin-bottom: 10px;"
-                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs)" download="x-ui.log">
-                    {{ i18n "download" }} x-ui.log
+            <a-form-item style="float: right;">
+                <a-button type="primary" icon="download"
+                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs.join('\n'))" download="x-ui.log">
                 </a-button>
             </a-form-item>
         </a-form>
@@ -322,8 +321,8 @@
     </a-modal>
 
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
-            :closable="true" :class="themeSwitcher.currentTheme"
-            @ok="() => backupModal.hide()" @cancel="() => backupModal.hide()">
+            :closable="true" footer=""
+            :class="themeSwitcher.currentTheme">
             <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
             :message="backupModal.description"
             show-icon
@@ -446,7 +445,7 @@
 
     const logModal = {
         visible: false,
-        logs: '',
+        logs: [],
         rows: 20,
         level: 'info',
         syslog: false,
@@ -532,6 +531,7 @@
             backupModal,
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
+            showAlert: false,
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
@@ -655,14 +655,14 @@
             },
         },
         async mounted() {
-            let retries = 0;
-            while (retries < 5) {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
+            while (true) {
                 try {
                     await this.getStatus();
-                    retries = 0;
                 } catch (e) {
-                    console.error("Error occurred while fetching status:", e);
-                    retries++;
+                    console.error(e);
                 }
                 await PromiseUtil.sleep(2000);
             }

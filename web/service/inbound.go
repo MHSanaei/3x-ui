@@ -312,7 +312,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		oldInbound.Tag = fmt.Sprintf("inbound-0.0.0.0:%v", inbound.Port)
+		oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
 		oldInbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
 	}
@@ -1814,7 +1814,7 @@ func (s *InboundService) MigrationRequirements() {
 		json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
 		clients, ok := settings["clients"].([]interface{})
 		if ok {
-			// Fix Clinet configuration problems
+			// Fix Client configuration problems
 			var newClients []interface{}
 			for client_index := range clients {
 				c := clients[client_index].(map[string]interface{})
@@ -1899,6 +1899,13 @@ func (s *InboundService) MigrationRequirements() {
 		stream["externalProxy"] = reverses
 		newStream, _ := json.MarshalIndent(stream, " ", "  ")
 		tx.Model(model.Inbound{}).Where("id = ?", ep.Id).Update("stream_settings", newStream)
+	}
+
+	err = tx.Raw(`UPDATE inbounds
+	SET tag = REPLACE(tag, '0.0.0.0:', '')
+	WHERE INSTR(tag, '0.0.0.0:') > 0;`).Error
+	if err != nil {
+		return
 	}
 }
 
