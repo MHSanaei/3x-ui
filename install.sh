@@ -139,7 +139,8 @@ config_after_install() {
             makedir /lib64
         fi
         ln /lib/ld-musl-x86_64.so.1 /lib64/ld-linux-x86-64.so.2
-        ln /lib/libc.musl-x86_64.so.1 /usr/lib/libresolv.so.2
+        apk add --no-cache gcompat libc6-compat
+        ln -s /lib/libc.so.6 /usr/lib/libresolv.so.2
     fi
     /usr/local/x-ui/x-ui migrate
 }
