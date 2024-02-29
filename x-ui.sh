@@ -639,8 +639,10 @@ EOF
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
             # Loop through the range and delete each port
-            for ((i = start_port; i <= end_port; i++)); do
+            i=$start_port
+            while [ $i -le $end_port ]; do
                 ufw delete allow $i
+                i=$((i + 1))
             done
         else
             ufw delete allow "$port"
