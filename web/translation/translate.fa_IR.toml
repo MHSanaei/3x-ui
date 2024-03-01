@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "مسدودسازی کشور"
 "blockCountryConfigsDesc" = "این گزینه‌ها ترافیک را بر اساس کشور درخواستی خاص مسدود می‌کند"
 "directCountryConfigs" = "اتصال مستقیم کشور"
-"directCountryConfigsDesc" = "این گزینه‌ها ترافیک را بر اساس کشور درخواستی خاص بصورت مستقیم ارسال می‌کند"
+"directCountryConfigsDesc" = "اتصال مستقیم اطمینان حاصل می‌کند که ترافیک خاص از طریق یک سرور دیگر هدایت نمی‌شود."
 "ipv4Configs" = "IPv4 مسیریابی"
 "ipv4ConfigsDesc" = "این گزینه‌ها ترافیک‌ را از طریق آی‌پی‌نسخه4 به مقصد هدایت می‌کند"
 "warpConfigs" = "WARP مسیریابی"

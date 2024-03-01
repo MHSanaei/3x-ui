@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Block Country"
 "blockCountryConfigsDesc" = "These options will block traffic based on the specific requested country."
 "directCountryConfigs" = "Direct Country"
-"directCountryConfigsDesc" = "These options will directly forward traffic based on the specific requested country."
+"directCountryConfigsDesc" = "A direct connection ensures that specific traffic is not routed through another server."
 "ipv4Configs" = "IPv4 Routing"
 "ipv4ConfigsDesc" = "These options will route traffic based on a specific destination via IPv4."
 "warpConfigs" = "WARP Routing"
