@@ -793,7 +793,6 @@ style attribute {
 
 .ant-dropdown-menu-dark .ant-dropdown-menu-item:hover,
 .dark .ant-select-dropdown-menu-item-selected,
-.dark .ant-select-dropdown-menu-item:hover,
 .dark .ant-calendar-time-picker-select-option-selected {
     background-color: var(--dark-color-surface-600);
 }
@@ -1248,4 +1247,13 @@ b, strong {
 
 .dark .ant-alert-close-icon .anticon-close:hover {
     color: rgb(255 255 255);
+}
+
+.ant-empty-small {
+    margin: 4px 0;
+    background-color: transparent !important;
+}
+
+.ant-empty-small .ant-empty-image {
+    height: 20px;
 }
