@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Blokir Negara"
 "blockCountryConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan negara yang diminta."
 "directCountryConfigs" = "Langsung ke Negara"
-"directCountryConfigsDesc" = "Opsi ini akan langsung meneruskan lalu lintas berdasarkan negara yang diminta."
+"directCountryConfigsDesc" = "Koneksi langsung memastikan bahwa lalu lintas tertentu tidak diarahkan melalui server lain."
 "ipv4Configs" = "Pengalihan IPv4"
 "ipv4ConfigsDesc" = "Opsi ini akan mengalihkan lalu lintas berdasarkan tujuan tertentu melalui IPv4."
 "warpConfigs" = "Pengalihan WARP"

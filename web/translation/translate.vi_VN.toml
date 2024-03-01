@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Cấu hình Chặn Quốc gia"
 "blockCountryConfigsDesc" = "Những tùy chọn này sẽ ngăn người dùng kết nối đến các tên miền quốc gia cụ thể."
 "directCountryConfigs" = "Cấu hình Kết nối Trực tiếp Quốc gia"
-"directCountryConfigsDesc" = "Những tùy chọn này sẽ kết nối người dùng trực tiếp đến các tên miền quốc gia cụ thể."
+"directCountryConfigsDesc" = "Một kết nối trực tiếp đảm bảo rằng lưu lượng cụ thể không được định tuyến qua một máy chủ khác."
 "ipv4Configs" = "Cấu hình IPv4"
 "ipv4ConfigsDesc" = "Những tùy chọn này sẽ chỉ định kết nối đến các tên miền mục tiêu qua IPv4."
 "warpConfigs" = "Cấu hình WARP"

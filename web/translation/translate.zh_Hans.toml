@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "阻止国家配置"
 "blockCountryConfigsDesc" = "这些选项将阻止用户连接到特定国家/地区的域。"
 "directCountryConfigs" = "直接国家配置"
-"directCountryConfigsDesc" = "这些选项会将用户直接连接到特定国家/地区的域。"
+"directCountryConfigsDesc" = "直接连接确保特定流量不通过另一台服务器路由。"
 "ipv4Configs" = "IPv4 配置"
 "ipv4ConfigsDesc" = "此选项将仅通过 IPv4 路由到目标域"
 "warpConfigs" = "WARP 配置"

@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Configuraciones de Bloqueo por País"
 "blockCountryConfigsDesc" = "Estas opciones evitarán que los usuarios se conecten a dominios de países específicos."
 "directCountryConfigs" = "Configuraciones de Conexión Directa por País"
-"directCountryConfigsDesc" = "Estas opciones conectarán a los usuarios directamente a dominios de países específicos."
+"directCountryConfigsDesc" = "Una conexión directa asegura que el tráfico específico no se enrutará a través de otro servidor."
 "ipv4Configs" = "Configuraciones IPv4"
 "ipv4ConfigsDesc" = "Estas opciones solo enrutarán a los dominios objetivo a través de IPv4."
 "warpConfigs" = "Configuraciones de WARP"
