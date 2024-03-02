@@ -10,11 +10,12 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
+	"x-ui/config"
 	"x-ui/database"
 	"x-ui/database/model"
-	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/xray"
 )
@@ -38,30 +39,43 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
+	var wg sync.WaitGroup
 
-	// create files and dirs required for iplimit if not exists
-	for i := 0; i < len(ipFiles); i++ {
-		err := os.MkdirAll(config.GetLogFolder(), 0770)
-		j.checkError(err)
-		file, err := os.OpenFile(ipFiles[i], os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
-		j.checkError(err)
-		defer file.Close()
+	if j.checkFail2BanInstalled() {
+		j.openLogFiles(ipFiles)
 	}
 
-	// check for limit ip
 	if j.hasLimitIp() {
-		j.checkFail2BanInstalled()
-		j.processLogFile()
+		if j.checkFail2BanInstalled() && xray.GetAccessLogPath() == "./access.log" {
+			j.processLogFile()
+		} else {
+			if !j.checkFail2BanInstalled() {
+				logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+			}
+			switch xray.GetAccessLogPath() {
+			case "none":
+				logger.Warning("Access log is set to 'none', check your Xray Configs")
+			case "":
+				logger.Warning("Access log doesn't exist in your Xray Configs")
+			}
+		}
 	}
 
-	if !j.hasLimitIp() && xray.GetAccessLogPath() == "./access.log" {
-		go j.clearLogTime()
+	if !j.checkFail2BanInstalled() && xray.GetAccessLogPath() == "./access.log" {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			j.clearLogTime()
+		}()
+		wg.Wait()
 	}
 }
 
 func (j *CheckClientIpJob) clearLogTime() {
-	for {
-		time.Sleep(time.Hour)
+	ticker := time.NewTicker(time.Hour)
+	defer ticker.Stop()
+
+	for range ticker.C {
 		j.clearAccessLog()
 	}
 }
@@ -75,15 +89,18 @@ func (j *CheckClientIpJob) clearAccessLog() {
 	// reopen the access log file for reading
 	file, err := os.Open(accessLogPath)
 	j.checkError(err)
-	defer file.Close()
 
 	// copy access log content to persistent file
 	_, err = io.Copy(logAccessP, file)
 	j.checkError(err)
 
+	// close the file after copying content
+	file.Close()
+
 	// clean access log
 	err = os.Truncate(accessLogPath, 0)
 	j.checkError(err)
+
 }
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
@@ -115,28 +132,25 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	return false
 }
 
-func (j *CheckClientIpJob) checkFail2BanInstalled() {
+func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
 	cmd := "fail2ban-client"
 	args := []string{"-h"}
-
 	err := exec.Command(cmd, args...).Run()
-	if err != nil {
-		logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+	return err == nil
+}
+
+func (j *CheckClientIpJob) openLogFiles(ipFiles []string) {
+	for i := 0; i < len(ipFiles); i++ {
+		err := os.MkdirAll(config.GetLogFolder(), 0770)
+		j.checkError(err)
+		file, err := os.OpenFile(ipFiles[i], os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		j.checkError(err)
+		defer file.Close()
 	}
 }
 
 func (j *CheckClientIpJob) processLogFile() {
 	accessLogPath := xray.GetAccessLogPath()
-
-	if accessLogPath == "none" {
-		logger.Warning("Access log is set to 'none' check your Xray Configs")
-		return
-	}
-
-	if accessLogPath == "" {
-		logger.Warning("Access log doesn't exist in your Xray Configs")
-		return
-	}
 
 	file, err := os.Open(accessLogPath)
 	j.checkError(err)

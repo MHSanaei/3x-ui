@@ -1560,8 +1560,6 @@ func (t *Tgbot) sendBackup(chatId int64) {
 	} else {
 		logger.Error("Error in opening config.json file for backup: ", err)
 	}
-
-	t.sendBanLogs(chatId, false)
 }
 
 func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
