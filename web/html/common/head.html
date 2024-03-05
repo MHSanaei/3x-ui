@@ -7,18 +7,6 @@
     <link rel="stylesheet" href="{{ .base_path }}assets/ant-design-vue@1.7.8/antd.min.css">
     <link rel="stylesheet" href="{{ .base_path }}assets/element-ui@2.15.0/theme-chalk/display.css">
     <link rel="stylesheet" href="{{ .base_path }}assets/css/custom.css?{{ .cur_ver }}">
-    <link rel=”icon” type=”image/x-icon” href="{{ .base_path }}assets/favicon.ico">
-    <link rel="shortcut icon" type="image/x-icon" href="{{ .base_path }}assets/favicon.ico">
-    <link rel="manifest" href="{{ .base_path }}assets/manifest.json">
-
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('{{ .base_path }}assets/js/sw.js')
-                .then(function () {
-                    console.log('Service Worker Registered');
-                });
-        }
-    </script>
     <style>
         [v-cloak] {
             display: none;
@@ -40,4 +28,5 @@
     </style>
     <title>{{ .host }}-{{ i18n .title}}</title>
 </head>
+<div id="message"></div>
 {{end}}

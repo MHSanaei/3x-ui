@@ -1,5 +1,5 @@
 {{define "form/socks"}}
-<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "pages.inbounds.enable" }} UDP'>
         <a-switch v-model="inbound.settings.udp"></a-switch>
     </a-form-item>
@@ -11,7 +11,7 @@
         @change="checked => inbound.settings.auth = checked ? 'password' : 'noauth'"></a-switch>
     </a-form-item>
     <template v-if="inbound.settings.auth === 'password'">
-        <table style="width: 100%; text-align: center; margin-bottom: 10px;">
+        <table style="width: 100%; text-align: center; margin: 1rem 0;">
             <tr>
                 <td width="45%">{{ i18n "username" }}</td>
                 <td width="45%">{{ i18n "password" }}</td>

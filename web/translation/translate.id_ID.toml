@@ -42,7 +42,7 @@
 "online" = "Online"
 "domainName" = "Nama Domain"
 "monitor" = "IP Pemantauan"
-"certificate" = "Sertifikat"
+"certificate" = "Sertifikat Digital"
 "fail" = "Gagal"
 "success" = "Berhasil"
 "getVersion" = "Dapatkan Versi"
@@ -52,6 +52,14 @@
 "secretToken" = "Token Rahasia"
 "remained" = "Tersisa"
 "security" = "Keamanan"
+"secAlertTitle" = "Peringatan keamanan"
+"secAlertSsl" = "Koneksi ini tidak aman. Harap hindari memasukkan informasi sensitif sampai TLS diaktifkan untuk perlindungan data."
+"secAlertConf" = "Beberapa pengaturan rentan terhadap serangan. Disarankan untuk memperkuat protokol keamanan guna mencegah pelanggaran potensial."
+"secAlertSSL" = "Panel kekurangan koneksi yang aman. Harap instal sertifikat TLS untuk perlindungan data."
+"secAlertPanelPort" = "Port default panel rentan. Harap konfigurasi port acak atau tertentu."
+"secAlertPanelURI" = "Jalur URI default panel tidak aman. Harap konfigurasi jalur URI kompleks."
+"secAlertSubURI" = "Jalur URI default langganan tidak aman. Harap konfigurasi jalur URI kompleks."
+"secAlertSubJsonURI" = "Jalur URI default JSON langganan tidak aman. Harap konfigurasikan jalur URI kompleks."
 
 [menu]
 "dashboard" = "Ikhtisar"
@@ -62,6 +70,7 @@
 "link" = "Kelola"
 
 [pages.login]
+"hello" = "Halo"
 "title" = "Selamat Datang"
 "loginAgain" = "Sesi Anda telah berakhir, harap masuk kembali"
 
@@ -140,10 +149,8 @@
 "noRecommendKeepDefault" = "Disarankan untuk tetap menggunakan pengaturan default"
 "certificatePath" = "Path Berkas"
 "certificateContent" = "Konten Berkas"
-"publicKeyPath" = "Path Kunci Publik"
-"publicKeyContent" = "Konten Kunci Publik"
-"keyPath" = "Path Kunci Privat"
-"keyContent" = "Konten Kunci Privat"
+"publicKey" = "Kunci Publik"
+"privatekey" = "Kunci Pribadi"
 "clickOnQRcode" = "Klik pada Kode QR untuk Menyalin"
 "client" = "Klien"
 "export" = "Ekspor Semua URL"
@@ -194,7 +201,7 @@
 "last" = "Terakhir"
 "prefix" = "Awalan"
 "postfix" = "Akhiran"
-"delayedStart" = "Mulai saat Penggunaan Awal"
+"delayedStart" = "Mulai Awal"
 "expireDays" = "Durasi"
 "days" = "Hari"
 "renew" = "Perpanjang Otomatis"
@@ -302,6 +309,8 @@
 "subShowInfoDesc" = "Sisa traffic dan tanggal akan ditampilkan di aplikasi klien."
 "subURI" = "URI Proxy Terbalik"
 "subURIDesc" = "URI path URL langganan untuk penggunaan di belakang proxy."
+"fragment" = "Fragmentasi"
+"fragmentDesc" = "Aktifkan fragmentasi untuk paket hello TLS"
 
 [pages.xray]
 "title" = "Konfigurasi Xray"
@@ -311,12 +320,14 @@
 "advancedTemplate" = "Lanjutan"
 "generalConfigs" = "Strategi Umum"
 "generalConfigsDesc" = "Opsi ini akan menentukan penyesuaian strategi umum."
+"logConfigs" = "Catatan"
+"logConfigsDesc" = "Log dapat mempengaruhi efisiensi server Anda. Disarankan untuk mengaktifkannya dengan bijak hanya jika diperlukan"
 "blockConfigs" = "Pelindung"
 "blockConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan protokol dan situs web yang diminta."
 "blockCountryConfigs" = "Blokir Negara"
 "blockCountryConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan negara yang diminta."
 "directCountryConfigs" = "Langsung ke Negara"
-"directCountryConfigsDesc" = "Opsi ini akan langsung meneruskan lalu lintas berdasarkan negara yang diminta."
+"directCountryConfigsDesc" = "Koneksi langsung memastikan bahwa lalu lintas tertentu tidak diarahkan melalui server lain."
 "ipv4Configs" = "Pengalihan IPv4"
 "ipv4ConfigsDesc" = "Opsi ini akan mengalihkan lalu lintas berdasarkan tujuan tertentu melalui IPv4."
 "warpConfigs" = "Pengalihan WARP"
@@ -381,6 +392,12 @@
 "OpenAIWARPDesc" = "Rute lalu lintas ke ChatGPT melalui WARP."
 "NetflixWARP" = "Netflix"
 "NetflixWARPDesc" = "Rute lalu lintas ke Netflix melalui WARP."
+"MetaWARP" = "Meta"
+"MetaWARPDesc" = "Merutekan lalu lintas ke Meta (Instagram, Facebook, WhatsApp, Threads,...) melalui WARP."
+"AppleWARP" = "Apple"
+"AppleWARPDesc" = "Merutekan lalu lintas ke Apple melalui WARP."
+"RedditWARP" = "Reddit"
+"RedditWARPDesc" = "Merutekan lalu lintas ke Reddit melalui WARP."
 "SpotifyWARP" = "Spotify"
 "SpotifyWARPDesc" = "Rute lalu lintas ke Spotify melalui WARP."
 "IRWARP" = "Domain Iran"
@@ -397,6 +414,8 @@
 "logLevelDesc" = "Tingkat log untuk log kesalahan, menunjukkan informasi yang perlu dicatat."
 "accessLog" = "Log Akses"
 "accessLogDesc" = "Jalur file untuk log akses. Nilai khusus 'tidak ada' menonaktifkan log akses"
+"errorLog" = "Catatan eror"
+"errorLogDesc" = "Jalur file untuk log kesalahan. Nilai khusus 'tidak ada' menonaktifkan log kesalahan"
 
 [pages.xray.rules]
 "first" = "Pertama"
@@ -444,6 +463,21 @@
 "endpoint" = "Titik Akhir"
 "psk" = "Kunci Pra-Bagi"
 "domainStrategy" = "Strategi Domain"
+
+[pages.xray.dns]
+"enable" = "Aktifkan DNS"
+"enableDesc" = "Aktifkan server DNS bawaan"
+"strategy" = "Strategi Kueri"
+"strategyDesc" = "Strategi keseluruhan untuk menyelesaikan nama domain"
+"add" = "Tambahkan Server"
+"edit" = "Sunting Server"
+"domains" = "Domains"
+
+[pages.xray.fakedns]
+"add" = "Tambahkan DNS Palsu"
+"edit" = "Edit DNS Palsu"
+"ipPool" = "Subnet Kumpulan IP"
+"poolSize" = "Ukuran Kolam"
 
 [pages.settings.security]
 "admin" = "Admin"

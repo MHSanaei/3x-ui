@@ -1,6 +1,6 @@
 {{define "form/http"}}
-<a-form>
-        <table style="width: 100%; text-align: center; margin-bottom: 10px;">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <table style="width: 100%; text-align: center; margin: 1rem 0;">
             <tr>
                 <td width="45%">{{ i18n "username" }}</td>
                 <td width="45%">{{ i18n "password" }}</td>

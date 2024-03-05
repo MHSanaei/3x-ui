@@ -1,7 +1,7 @@
 {{define "form/streamKCP"}}
-<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "camouflage" }}'>
-        <a-select v-model="inbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select v-model="inbound.stream.kcp.type" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="none">None</a-select-option>
             <a-select-option value="srtp">SRTP</a-select-option>
             <a-select-option value="utp">uTP</a-select-option>

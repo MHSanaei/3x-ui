@@ -45,12 +45,12 @@ THE SOFTWARE.
 .cm-s-xq .CodeMirror-activeline-background { background: #e8f2ff; }
 .cm-s-xq .CodeMirror-matchingbracket { outline:1px solid grey;color:black !important;background:yellow; }
 
-.dark .cm-s-xq.CodeMirror { background-color: #222D42; border-color: #2c3950; color: rgb(255 255 255 / 65%); }
+.dark .cm-s-xq.CodeMirror { background-color: var(--dark-color-surface-200); border-color: var(--dark-color-surface-300); color: rgb(255 255 255 / 65%); }
 .dark .cm-s-xq.CodeMirror:hover { background-color: rgb(0 50 42 / 30%); border-color: #008771; transition: all .3s; }
-.dark .cm-s-xq div.CodeMirror-selected { background: rgba(0, 0, 0, 0.5);  }
-.dark .cm-s-xq .CodeMirror-line::selection, .dark .cm-s-xq .CodeMirror-line > span::selection, .dark .cm-s-xq .CodeMirror-line > span > span::selection { background: rgba(39, 0, 122, 0.99); }
-.dark .cm-s-xq .CodeMirror-line::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span > span::-moz-selection { background: rgba(39, 0, 122, 0.99); }
-.dark .cm-s-xq .CodeMirror-gutters { background: rgb(0 0 0 / 30%); border-right: 1px solid #2c3950; }
+.dark .cm-s-xq div.CodeMirror-selected { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-line::selection, .dark .cm-s-xq .CodeMirror-line > span::selection, .dark .cm-s-xq .CodeMirror-line > span > span::selection { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-line::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span > span::-moz-selection { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-gutters { background: rgb(0 0 0 / 30%); border-right: 1px solid var(--dark-color-surface-300); }
 .dark .cm-s-xq .CodeMirror-guttermarker { color: #FFBD40; }
 .dark .cm-s-xq .CodeMirror-guttermarker-subtle { color: rgb(255 255 255 / 70%); }
 .dark .cm-s-xq .CodeMirror-linenumber { color: rgb(255 255 255 / 50%); }
@@ -80,7 +80,7 @@ THE SOFTWARE.
 
 .Line-Hover{transition: all .2s;}
 .Line-Hover:hover{ background-color: rgba(0, 102, 85, 0.05) !important; }  
-.dark .Line-Hover:hover{ background-color: rgb(0 0 0 / 20%) !important; }
+.dark .Line-Hover:hover{ background-color: var(--dark-color-codemirror-line-hover) !important; }
 
 .CodeMirror-foldmarker { color: #fc8800; text-shadow: #ffd8aa 1px 1px 2px, #ffd8aa -1px -1px 2px, #ffd8aa 1px -1px 2px, #ffd8aa -1px 1px 2px; font-family: arial; line-height: .3; cursor: pointer; }
 .dark .CodeMirror-foldmarker { color: #ffffff; text-shadow: #bbb 1px 1px 2px, #bbb -1px -1px 2px, #bbb 1px -1px 2px, #bbb -1px 1px 2px; font-family: arial; line-height: .3; cursor: pointer; }

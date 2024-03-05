@@ -34,6 +34,11 @@ const supportLangs = [
         value: 'id-ID',
         icon: '🇮🇩',
     },
+    {
+        name: 'Український',
+        value: 'uk-UA',
+        icon: '🇺🇦',
+    },
 ];
 
 function getLang() {

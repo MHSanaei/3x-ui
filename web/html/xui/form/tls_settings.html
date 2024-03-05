@@ -34,16 +34,16 @@
         </a-form-item>
         <a-form-item label="Min/Max Version">
             <a-input-group compact>
-                <a-select v-model="inbound.stream.tls.minVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select v-model="inbound.stream.tls.minVersion" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
                     <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
                 </a-select>
-                <a-select v-model="inbound.stream.tls.maxVersion" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select v-model="inbound.stream.tls.maxVersion" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
                     <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
                 </a-select>
             </a-input-group>
         </a-form-item>
         <a-form-item label="uTLS">
-            <a-select v-model="inbound.stream.tls.settings.fingerprint"
+            <a-select v-model="inbound.stream.tls.settings.fingerprint" style="width: 50%"
                 :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value=''>None</a-select-option>
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
@@ -73,10 +73,10 @@
                     @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px">-</a-button>
             </a-form-item>
             <template v-if="cert.useFile">
-                <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
                     <a-input v-model.trim="cert.certFile"></a-input>
                 </a-form-item>
-                <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
                     <a-input v-model.trim="cert.keyFile"></a-input>
                 </a-form-item>
                 <a-form-item label=" ">
@@ -85,10 +85,10 @@
                 </a-form-item>
             </template>
             <template v-else>
-                <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
                     <a-input type="textarea" :rows="3" v-model="cert.cert"></a-input>
                 </a-form-item>
-                <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
                     <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
                 </a-form-item>
             </template>
@@ -124,10 +124,10 @@
                     @click="inbound.stream.xtls.removeCert(index)" style="margin-left: 10px">-</a-button>
             </a-form-item>
             <template v-if="cert.useFile">
-                <a-form-item label='{{ i18n "pages.inbounds.publicKeyPath" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
                     <a-input v-model.trim="cert.certFile"></a-input>
                 </a-form-item>
-                <a-form-item label='{{ i18n "pages.inbounds.keyPath" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
                     <a-input v-model.trim="cert.keyFile"></a-input>
                 </a-form-item>
                 <a-form-item label=" ">
@@ -136,10 +136,10 @@
                 </a-form-item>
             </template>
             <template v-else>
-                <a-form-item label='{{ i18n "pages.inbounds.publicKeyContent" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
                     <a-input type="textarea" :rows="3" v-model="cert.cert"></a-input>
                 </a-form-item>
-                <a-form-item label='{{ i18n "pages.inbounds.keyContent" }}'>
+                <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'> 
                     <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
                 </a-form-item>
             </template>
@@ -154,7 +154,7 @@
             <a-input-number v-model.number="inbound.stream.reality.xver" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='uTLS'>
-            <a-select v-model="inbound.stream.reality.settings.fingerprint"
+            <a-select v-model="inbound.stream.reality.settings.fingerprint" style="width: 50%"
                 :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
             </a-select>
@@ -180,10 +180,10 @@
         <a-form-item label='SpiderX'>
             <a-input v-model.trim="inbound.stream.reality.settings.spiderX"></a-input>
         </a-form-item>
-        <a-form-item label='Private Key'>
+        <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
             <a-input v-model.trim="inbound.stream.reality.privateKey"></a-input>
         </a-form-item>
-        <a-form-item label='Public Key'>
+        <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
             <a-input v-model.trim="inbound.stream.reality.settings.publicKey"></a-input>
         </a-form-item>
         <a-form-item label=" ">

@@ -8,13 +8,23 @@
         {{ i18n "pages.inbounds.clickOnQRcode" }}
     </a-tag>
     <template v-if="app.subSettings.enable && qrModal.subId">
-        <a-divider>Subscription</a-divider>
-        <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" style="width: 100%; height: 100%;"></canvas></div>
+        <a-divider>{{ i18n "pages.settings.subSettings"}}</a-divider>
+        <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))"
+            id="qrCode-sub"
+            class="qr-bg">
+        </canvas>
+        <a-divider>{{ i18n "pages.settings.subSettings"}} Json</a-divider>
+        <canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))"
+            id="qrCode-subJson"
+            style="width: 100%; height: 100%; display: flex; border-radius: 1rem;">
+        </canvas>
     </template>
     <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
     <template v-for="(row, index) in qrModal.qrcodes">
         <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
-        <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" style="width: 100%; height: 100%;"></canvas></div>
+        <canvas @click="copyToClipboard('qrCode-'+index, row.link)"
+            :id="'qrCode-'+index"
+            class="qr-bg"></canvas>
     </template>
 </a-modal>
 
@@ -35,12 +45,21 @@
             this.client = client;
             this.subId = '';
             this.qrcodes = [];
-            this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
-                this.qrcodes.push({
-                    remark: l.remark,
-                    link: l.link
+            if (this.inbound.protocol == Protocols.WIREGUARD){
+                this.inbound.genInboundLinks(dbInbound.remark).split('\r\n').forEach((l,index) =>{
+                    this.qrcodes.push({
+                        remark: "Peer " + (index+1),
+                        link: l
+                    });
                 });
-            });
+            } else {
+                this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
+                    this.qrcodes.push({
+                        remark: l.remark,
+                        link: l.link
+                    });
+                });
+            }
             this.visible = true;
         },
         close: function () {
@@ -73,12 +92,16 @@
             },
             genSubLink(subID) {
                 return app.subSettings.subURI+subID;
+            },
+            genSubJsonLink(subID) {
+                return app.subSettings.subJsonURI+subID;
             }
         },
         updated() {
             if (qrModal.client && qrModal.client.subId) {
                 qrModal.subId = qrModal.client.subId;
                 this.setQrCode("qrCode-sub", this.genSubLink(qrModal.subId));
+                this.setQrCode("qrCode-subJson", this.genSubJsonLink(qrModal.subId));
             }
             qrModal.qrcodes.forEach((element, index) => {
                 this.setQrCode("qrCode-" + index, element.link);

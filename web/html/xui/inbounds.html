@@ -56,9 +56,13 @@
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
                 <transition name="list" appear>
-                    <a-tag v-if="false" color="red" style="margin-bottom: 10px">
-                        Please go to the panel settings as soon as possible to modify the username and password, otherwise there may be a risk of leaking account information
-                    </a-tag>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
                 </transition>
                 <transition name="list" appear>
                     <a-card hoverable>
@@ -133,6 +137,10 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export" }}
                                             </a-menu-item>
+                                            <a-menu-item key="subs" v-if="subSettings.enable">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export" }} - {{ i18n "pages.settings.subSettings" }}
+                                            </a-menu-item>
                                             <a-menu-item key="resetInbounds">
                                                 <a-icon type="reload"></a-icon>
                                                 {{ i18n "pages.inbounds.resetAllTraffic" }}
@@ -141,7 +149,7 @@
                                                 <a-icon type="file-done"></a-icon>
                                                 {{ i18n "pages.inbounds.resetAllClientTraffics" }}
                                             </a-menu-item>
-                                            <a-menu-item key="delDepletedClients">
+                                            <a-menu-item key="delDepletedClients" style="color: #FF4D4F;">
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
@@ -178,7 +186,7 @@
                             </a-radio-group>
                         </div>
                         <a-back-top></a-back-top>
-                        <a-table :columns="isMobile ? mobileColums : columns" :row-key="dbInbound => dbInbound.id"
+                        <a-table :columns="isMobile ? mobileColumns : columns" :row-key="dbInbound => dbInbound.id"
                                  :data-source="searchedInbounds"
                                  :scroll="isMobile ? {} : { x: 1000 }"
                                  :pagination=pagination(searchedInbounds)
@@ -196,7 +204,7 @@
                                             <a-icon type="edit"></a-icon>
                                             {{ i18n "edit" }}
                                         </a-menu-item>
-                                        <a-menu-item key="qrcode" v-if="dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser">
+                                        <a-menu-item key="qrcode" v-if="(dbInbound.isSS && !dbInbound.toInbound().isSSMultiUser) || dbInbound.isWireguard">
                                             <a-icon type="qrcode"></a-icon>
                                             {{ i18n "qrCode" }}
                                         </a-menu-item>
@@ -217,7 +225,11 @@
                                                 <a-icon type="export"></a-icon>
                                                 {{ i18n "pages.inbounds.export"}}
                                             </a-menu-item>
-                                            <a-menu-item key="delDepletedClients">
+                                            <a-menu-item key="subs" v-if="subSettings.enable">
+                                                <a-icon type="export"></a-icon>
+                                                {{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}
+                                            </a-menu-item>
+                                            <a-menu-item key="delDepletedClients" style="color: #FF4D4F;">
                                                 <a-icon type="rest"></a-icon>
                                                 {{ i18n "pages.inbounds.delDepletedClients" }}
                                             </a-menu-item>
@@ -496,7 +508,7 @@
         scopedSlots: { customRender: 'expiryTime' },
     }];
 
-    const mobileColums = [{
+    const mobileColumns = [{
         title: "ID",
         align: 'right',
         dataIndex: "id",
@@ -559,11 +571,13 @@
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
-                subURI : ''
+                subURI : '',
+                subJsonURI : '',
             },
             remarkModel: '-ieo',
             datepicker: 'gregorian',
             tgBotEnable: false,
+            showAlert: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
@@ -578,6 +592,7 @@
                     this.refreshing = false;
                     return;
                 }
+
                 await this.getOnlineUsers();
                 this.setInbounds(msg.obj);
                 setTimeout(() => {
@@ -604,7 +619,8 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
-                        subURI: subURI
+                        subURI: subURI,
+                        subJsonURI: subJsonURI
                     };
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
@@ -642,8 +658,12 @@
                     clientCount = clients.length;
                     if (dbInbound.enable) {
                         clients.forEach(client => {
-                            client.enable ? active.push(client.email) : deactive.push(client.email);
-                            if(this.isClientOnline(client.email)) online.push(client.email);
+                            if (client.enable) {
+                                active.push(client.email);
+                                if (this.isClientOnline(client.email)) online.push(client.email);
+                            } else {
+                                deactive.push(client.email);
+                            }
                         });
                         clientStats.forEach(client => {
                             if (!client.enable) {
@@ -668,6 +688,7 @@
                     online: online,
                 };
             },
+
             searchInbounds(key) {
                 if (ObjectUtil.isEmpty(key)) {
                     this.searchedInbounds = this.dbInbounds.slice();
@@ -731,6 +752,9 @@
                     case "export":
                         this.exportAllLinks();
                         break;
+                    case "subs":
+                        this.exportAllSubs();
+                        break;
                     case "resetInbounds":
                         this.resetAllTraffic();
                         break;
@@ -761,6 +785,9 @@
                         break;
                     case "export":
                         this.inboundLinks(dbInbound.id);
+                        break;
+                    case "subs":
+                        this.exportSubs(dbInbound.id);
                         break;
                     case "clipboard":
                         this.copyToClipboard(dbInbound.id);
@@ -811,7 +838,7 @@
                     protocol: baseInbound.protocol,
                     settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
                     streamSettings: baseInbound.stream.toString(),
-                    sniffing: baseInbound.canSniffing() ? baseInbound.sniffing.toString() : '{}',
+                    sniffing: baseInbound.sniffing.toString(),
                 };
                 await this.submit('/panel/inbound/add', data, inModal);
             },
@@ -821,9 +848,7 @@
                     okText: '{{ i18n "pages.inbounds.create"}}',
                     cancelText: '{{ i18n "close" }}',
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
-                        await this.addInbound(inbound, dbInbound);
-                        inModal.close();
+                        await this.addInbound(inbound, dbInbound, inModal);
                     },
                     isEdit: false
                 });
@@ -838,9 +863,7 @@
                     inbound: inbound,
                     dbInbound: dbInbound,
                     confirm: async (inbound, dbInbound) => {
-                        inModal.loading();
                         await this.updateInbound(inbound, dbInbound);
-                        inModal.close();
                     },
                     isEdit: true
                 });
@@ -860,7 +883,7 @@
                     settings: inbound.settings.toString(),
                 };
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
-                if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
+                data.sniffing = inbound.sniffing.toString();
 
                 await this.submit('/panel/inbound/add', data, inModal);
             },
@@ -879,7 +902,7 @@
                     settings: inbound.settings.toString(),
                 };
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
-                if (inbound.canSniffing()) data.sniffing = inbound.sniffing.toString();
+                data.sniffing = inbound.sniffing.toString();
 
                 await this.submit(`/panel/inbound/update/${dbInbound.id}`, data, inModal);
             },
@@ -890,9 +913,7 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientModal.close();
+                        await this.addClient(clients, dbInboundId, clientModal);
                     },
                     isEdit: false
                 });
@@ -904,9 +925,7 @@
                     okText: '{{ i18n "pages.client.bulk"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        clientsBulkModal.loading();
-                        await this.addClient(clients, dbInboundId);
-                        clientsBulkModal.close();
+                        await this.addClient(clients, dbInboundId, clientsBulkModal);
                     },
                 });
             },
@@ -935,19 +954,19 @@
                     default: return clients.findIndex(item => item.id === client.id && item.email === client.email);
                 }
             },
-            async addClient(clients, dbInboundId) {
+            async addClient(clients, dbInboundId, modal) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + clients.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/addClient`, data);
+                await this.submit(`/panel/inbound/addClient`, data, modal);
             },
             async updateClient(client, dbInboundId, clientId) {
                 const data = {
                     id: dbInboundId,
                     settings: '{"clients": [' + client.toString() + ']}',
                 };
-                await this.submit(`/panel/inbound/updateClient/${clientId}`, data);
+                await this.submit(`/panel/inbound/updateClient/${clientId}`, data, clientModal);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -967,7 +986,7 @@
             },
             delInbound(dbInboundId) {
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.deleteInbound"}}',
+                    title: '{{ i18n "pages.inbounds.deleteInbound"}}' + ' #' + dbInboundId,
                     content: '{{ i18n "pages.inbounds.deleteInboundContent"}}',
                     class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "delete"}}',
@@ -980,7 +999,7 @@
                 clientId = this.getClientId(dbInbound.protocol, client);
                 if (confirmation){
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.deleteClient"}}',
+                        title: '{{ i18n "pages.inbounds.deleteClient"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.deleteClientContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "delete"}}',
@@ -1050,8 +1069,8 @@
                 await this.updateClient(clients[index], dbInboundId, clientId);
                 this.loading(false);
             },
-            async submit(url, data) {
-                const msg = await HttpUtil.postWithModal(url, data);
+            async submit(url, data, modal) {
+                const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
@@ -1186,6 +1205,22 @@
                 newDbInbound = this.checkFallback(dbInbound);
                 txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(), newDbInbound.remark);
             },
+            exportSubs(dbInboundId) {
+                const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                const clients = this.getInboundClients(dbInbound);
+                let subLinks = []
+                if (clients != null){
+                    clients.forEach(c => {
+                        if (c.subId && c.subId.length>0){
+                            subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                        }
+                    })
+                }
+                txtModal.show(
+                    '{{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}',
+                    [...new Set(subLinks)].join('\n'),
+                    dbInbound.remark + "-Subs");
+            },
             importInbound() {
                 promptModal.open({
                     title: '{{ i18n "pages.inbounds.importInbound" }}',
@@ -1194,9 +1229,25 @@
                     okText: '{{ i18n "pages.inbounds.import" }}',
                     confirm: async (dbInboundText) => {
                         await this.submit('/panel/inbound/import', {data: dbInboundText}, promptModal);
-                        promptModal.close();
                     },
                 });
+            },
+            exportAllSubs() {
+                let subLinks = []
+                for (const dbInbound of this.dbInbounds) {
+                    const clients = this.getInboundClients(dbInbound);
+                    if (clients != null){
+                        clients.forEach(c => {
+                            if (c.subId && c.subId.length>0){
+                                subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                            }
+                        })
+                    }
+                }
+                txtModal.show(
+                    '{{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}',
+                    [...new Set(subLinks)].join('\r\n'),
+                    'All-Inbounds-Subs');
             },
             exportAllLinks() {
                 let copyText = [];
@@ -1238,7 +1289,7 @@
             pagination(obj){
                 if (this.pageSize > 0 && obj.length>this.pageSize) {
                     // Set page options based on object size
-                    sizeOptions = []
+                    sizeOptions = [];
                     for (i=this.pageSize;i<=obj.length;i=i+this.pageSize) {
                         sizeOptions.push(i.toString());
                     }
@@ -1251,8 +1302,8 @@
                         position: 'bottom',
                         pageSize: this.pageSize,
                         pageSizeOptions: sizeOptions
-                    }
-                    return p
+                    };
+                    return p;
                 }
                 return false
             },
@@ -1266,6 +1317,9 @@
             }, 500)
         },
         mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             window.addEventListener('resize', this.onResize);
             this.onResize();
             this.loading();
@@ -1303,7 +1357,6 @@
             }
         },
     });
-
 </script>
 
 {{template "inboundModal"}}
@@ -1313,6 +1366,5 @@
 {{template "inboundInfoModal"}}
 {{template "clientsModal"}}
 {{template "clientsBulkModal"}}
-
 </body>
 </html>

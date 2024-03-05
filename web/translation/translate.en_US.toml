@@ -42,7 +42,7 @@
 "online" = "Online"
 "domainName" = "Domain Name"
 "monitor" = "Listen IP"
-"certificate" = "Certificate"
+"certificate" = "Digital Certificate"
 "fail" = " Failed"
 "success" = " Successful"
 "getVersion" = "Get Version"
@@ -52,6 +52,14 @@
 "secretToken" = "Secret Token"
 "remained" = "Remained"
 "security" = "Security"
+"secAlertTitle" = "Security Alert"
+"secAlertSsl" = "This connection is not secure. Please avoid entering sensitive information until TLS is activated for data protection."
+"secAlertConf" = "Certain settings are vulnerable to attacks. It is recommended to reinforce security protocols to prevent potential breaches."
+"secAlertSSL" = "Panel lacks secure connection. Please install TLS certificate for data protection."
+"secAlertPanelPort" = "Panel default port is vulnerable. Please configure a random or specific port."
+"secAlertPanelURI" = "Panel default URI path is insecure. Please configure a complex URI path."
+"secAlertSubURI" = "Subscription default URI path is insecure. Please configure a complex URI path."
+"secAlertSubJsonURI" = "Subscription JSON default URI path is insecure. Please configure a complex URI path."
 
 [menu]
 "dashboard" = "Overview"
@@ -62,6 +70,7 @@
 "link" = "Manage"
 
 [pages.login]
+"hello" = "Hello"
 "title" = "Welcome"
 "loginAgain" = "Your session has expired, please log in again"
 
@@ -140,10 +149,8 @@
 "noRecommendKeepDefault" = "It is recommended to keep the default"
 "certificatePath" = "File Path"
 "certificateContent" = "File Content"
-"publicKeyPath" = "Public Key Path"
-"publicKeyContent" = "Public Key Content"
-"keyPath" = "Private Key Path"
-"keyContent" = "Private Key Content"
+"publicKey" = "Public Key"
+"privatekey" = "Private Key"
 "clickOnQRcode" = "Click on QR Code to Copy"
 "client" = "Client"
 "export" = "Export All URLs"
@@ -302,6 +309,8 @@
 "subShowInfoDesc" = "The remaining traffic and date will be displayed in the client apps."
 "subURI" = "Reverse Proxy URI"
 "subURIDesc" = "The URI path of the subscription URL for use behind proxies."
+"fragment" = "Fragmentation"
+"fragmentDesc" = "Enable fragmentation for TLS hello packet"
 
 [pages.xray]
 "title" = "Xray Configs"
@@ -311,12 +320,14 @@
 "advancedTemplate" = "Advanced"
 "generalConfigs" = "General"
 "generalConfigsDesc" = "These options will determine general adjustments."
+"logConfigs" = "Log"
+"logConfigsDesc" = "Logs may affect your server's efficiency. It is recommended to enable it wisely only in case of your needs"
 "blockConfigs" = "Protection Shield"
 "blockConfigsDesc" = "These options will block traffic based on specific requested protocols and websites."
 "blockCountryConfigs" = "Block Country"
 "blockCountryConfigsDesc" = "These options will block traffic based on the specific requested country."
 "directCountryConfigs" = "Direct Country"
-"directCountryConfigsDesc" = "These options will directly forward traffic based on the specific requested country."
+"directCountryConfigsDesc" = "A direct connection ensures that specific traffic is not routed through another server."
 "ipv4Configs" = "IPv4 Routing"
 "ipv4ConfigsDesc" = "These options will route traffic based on a specific destination via IPv4."
 "warpConfigs" = "WARP Routing"
@@ -381,6 +392,12 @@
 "OpenAIWARPDesc" = "Routes traffic to ChatGPT via WARP."
 "NetflixWARP" = "Netflix"
 "NetflixWARPDesc" = "Routes traffic to Netflix via WARP."
+"MetaWARP" = "Meta"
+"MetaWARPDesc" = "Routes traffic to Meta (Instagram, Facebook, WhatsApp, Threads,...) via WARP."
+"AppleWARP" = "Apple"
+"AppleWARPDesc" = "Routes traffic to Apple via WARP."
+"RedditWARP" = "Reddit"
+"RedditWARPDesc" = "Routes traffic to Reddit via WARP."
 "SpotifyWARP" = "Spotify"
 "SpotifyWARPDesc" = "Routes traffic to Spotify via WARP."
 "IRWARP" = "Iran domains"
@@ -397,6 +414,8 @@
 "logLevelDesc" = "The log level for error logs, indicating the information that needs to be recorded."
 "accessLog" = "Access Log"
 "accessLogDesc" = "The file path for the access log. The special value 'none' disabled access logs"
+"errorLog" = "Error Log"
+"errorLogDesc" = "The file path for the error log. The special value 'none' disabled error logs"
 
 [pages.xray.rules]
 "first" = "First"
@@ -444,6 +463,21 @@
 "endpoint" = "Endpoint"
 "psk" = "PreShared Key"
 "domainStrategy" = "Domain Strategy"
+
+[pages.xray.dns]
+"enable" = "Enable DNS"
+"enableDesc" = "Enable built-in DNS server"
+"strategy" = "Query Strategy"
+"strategyDesc" = "Overall strategy to resolve domain names"
+"add" = "Add Server"
+"edit" = "Edit Server"
+"domains" = "Domains"
+
+[pages.xray.fakedns]
+"add" = "Add Fake DNS"
+"edit" = "Edit Fake DNS"
+"ipPool" = "IP Pool Subnet"
+"poolSize" = "Pool Size"
 
 [pages.settings.security]
 "admin" = "Admin"

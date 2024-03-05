@@ -2,7 +2,7 @@
 <a-modal id="rule-modal" v-model="ruleModal.visible" :title="ruleModal.title" @ok="ruleModal.ok"
          :confirm-loading="ruleModal.confirmLoading" :closable="true" :mask-closable="false"
          :ok-text="ruleModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
-    <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='Domain Matcher'>
                     <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
                         <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
@@ -20,7 +20,7 @@
             <a-input v-model.trim="ruleModal.rule.source"></a-input>
         </a-form-item>
         <a-form-item>
-            <template slot="label">Source Port
+            <template slot="label">
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.xray.rules.useComma" }}</span>
@@ -174,7 +174,7 @@
                 this.rule.protocol = rule.protocol;
                 this.rule.attrs = rule.attrs ? Object.entries(rule.attrs) : [];
                 this.rule.outboundTag = rule.outboundTag;
-                this.rule.balancerTag = rule.balancerTag ? rule.balancerTag : ""
+                this.rule.balancerTag = rule.balancerTag ? rule.balancerTag : "";
             } else {
                 this.rule = {
                     domainMatcher: "",
@@ -195,7 +195,7 @@
             this.isEdit = isEdit;
             this.inboundTags = app.templateSettings.inbounds.filter((i) => !ObjectUtil.isEmpty(i.tag)).map(obj => obj.tag);
             this.inboundTags.push(...app.inboundTags);
-            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
+            this.outboundTags = ["", ...app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)];
             if(app.templateSettings.reverse){
                 if(app.templateSettings.reverse.bridges) {
                     this.inboundTags.push(...app.templateSettings.reverse.bridges.map(b => b.tag));
@@ -204,14 +204,14 @@
             }
 
             if (app.templateSettings.routing && app.templateSettings.routing.balancers) {
-                this.balancerTags = app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)
+                this.balancerTags = [ "", ...app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)];
             }
         },
         close() {
             ruleModal.visible = false;
             ruleModal.loading(false);
         },
-        loading(loading) {
+        loading(loading=true) {
             ruleModal.confirmLoading = loading;
         },
         getResult() {
@@ -230,8 +230,8 @@
             rule.inboundTag = value.inboundTag;
             rule.protocol = value.protocol;
             rule.attrs = Object.fromEntries(value.attrs);
-            rule.outboundTag = value.outboundTag;
-            rule.balancerTag = value.balancerTag;
+            rule.outboundTag = value.outboundTag == "" ? undefined : value.outboundTag;
+            rule.balancerTag = value.balancerTag == "" ? undefined : value.balancerTag;
 
             for (const [key, value] of Object.entries(rule)) {
                 if (

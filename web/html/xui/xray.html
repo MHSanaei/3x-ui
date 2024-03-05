@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 {{template "head" .}}
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.css">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 
 <script src="{{ .base_path }}assets/base64/base64.min.js"></script>
 <script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/codemirror/codemirror.js"></script>
+<script src="{{ .base_path }}assets/codemirror/codemirror.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>
@@ -63,10 +63,19 @@
     <a-layout id="content-layout">
         <a-layout-content>
             <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+                <transition name="list" appear>
+                    <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+                    message='{{ i18n "secAlertTitle" }}'
+                    color="red"
+                    description='{{ i18n "secAlertSsl" }}'
+                    show-icon closable
+                    >
+                    </a-alert>
+                </transition>
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem;">
-                        <a-row>
-                            <a-col :xs="24" :sm="8" style="padding: 4px;">
+                        <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
+                            <a-col :xs="24" :sm="10" style="padding: 4px;">
                                 <a-space direction="horizontal">
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
@@ -80,7 +89,7 @@
                                     </a-popover>
                                 </a-space>
                             </a-col>
-                            <a-col :xs="24" :sm="16">
+                            <a-col :xs="24" :sm="14">
                                 <template>
                                     <div>
                                         <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
@@ -99,7 +108,7 @@
                     :class="themeSwitcher.currentTheme">
                         <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
                             <a-space direction="horizontal" style="padding: 20px 20px">
-                                <a-button type="primary" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
+                                <a-button type="danger" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
                             </a-space>
                             <a-collapse>
                                 <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
@@ -114,15 +123,12 @@
                                     <a-list-item>
                                         <a-row style="padding: 20px">
                                             <a-col :lg="24" :xl="12">
-                                                <a-list-item-meta 
-                                                    title='{{ i18n "pages.xray.FreedomStrategy" }}'
-                                                    description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'/>
+                                                <a-list-item-meta title='{{ i18n "pages.xray.FreedomStrategy" }}'
+                                                    description='{{ i18n "pages.xray.FreedomStrategyDesc" }}' />
                                             </a-col>
                                             <a-col :lg="24" :xl="12">
                                                 <template>
-                                                    <a-select
-                                                        v-model="freedomStrategy"
-                                                        :dropdown-class-name="themeSwitcher.currentTheme"
+                                                    <a-select v-model="freedomStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
                                                         style="width: 100%">
                                                         <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                     </a-select>
@@ -132,33 +138,35 @@
                                     </a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta 
-                                                title='{{ i18n "pages.xray.RoutingStrategy" }}'
-                                                description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'/>
+                                            <a-list-item-meta title='{{ i18n "pages.xray.RoutingStrategy" }}'
+                                                description='{{ i18n "pages.xray.RoutingStrategyDesc" }}' />
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
-                                            <template>
-                                                <a-select
-                                                    v-model="routingStrategy"
-                                                    :dropdown-class-name="themeSwitcher.currentTheme"
+                                                <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
                                                     style="width: 100%">
                                                     <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
-                                            </template>
                                         </a-col>
+                                    </a-row>
+                                    </a-list-item>
+                                </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
+                                    <a-row :xs="24" :sm="24" :lg="12">
+                                        <a-alert type="warning" style="text-align: center;">
+                                            <template slot="message">
+                                                <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
+                                                {{ i18n "pages.xray.logConfigsDesc" }}
+                                            </template>
+                                        </a-alert>
                                     </a-row>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta 
-                                                title='{{ i18n "pages.xray.logLevel" }}'
-                                                description='{{ i18n "pages.xray.logLevelDesc" }}'/>
+                                            <a-list-item-meta title='{{ i18n "pages.xray.logLevel" }}'
+                                                description='{{ i18n "pages.xray.logLevelDesc" }}' />
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
                                             <template>
-                                                <a-select
-                                                    v-model="setLogLevel"
-                                                    :dropdown-class-name="themeSwitcher.currentTheme"
-                                                    style="width: 100%">
+                                                <a-select v-model="setLogLevel" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                                     <a-select-option v-for="s in logLevel" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
@@ -166,22 +174,31 @@
                                     </a-row>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
-                                            <a-list-item-meta 
-                                                title='{{ i18n "pages.xray.accessLog" }}'
-                                                description='{{ i18n "pages.xray.accessLogDesc" }}'/>
+                                            <a-list-item-meta title='{{ i18n "pages.xray.accessLog" }}'
+                                                description='{{ i18n "pages.xray.accessLogDesc" }}' />
                                         </a-col>
                                         <a-col :lg="24" :xl="12">
                                             <template>
-                                                <a-select
-                                                    v-model="setAccessLog"
-                                                    :dropdown-class-name="themeSwitcher.currentTheme"
-                                                    style="width: 100%">
+                                                <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                                     <a-select-option v-for="s in access" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
                                     </a-row>
-                                </a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.xray.errorLog" }}'
+                                                description='{{ i18n "pages.xray.errorLogDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <template>
+                                                <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
+                                                    <a-select-option v-for="s in error" :value="s">[[ s ]]</a-select-option>
+                                                </a-select>
+                                            </template>
+                                        </a-col>
+                                    </a-row>
+                                    </a-list-item>
                                 </a-collapse-panel>
                                 <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -261,8 +278,11 @@
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
                                     <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.MetaWARP"}}' desc='{{ i18n "pages.xray.MetaWARPDesc"}}' v-model="MetaWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.AppleWARP"}}' desc='{{ i18n "pages.xray.AppleWARPDesc"}}' v-model="AppleWARPSettings"></setting-list-item>
+                                    <setting-list-item type="switch" title='{{ i18n "pages.xray.RedditWARP"}}' desc='{{ i18n "pages.xray.RedditWARPDesc"}}' v-model="RedditWARPSettings"></setting-list-item>
                                 </template>
-                                <a-button v-else style="margin: 10px 0;" @click="showWarp">WARP {{ i18n "pages.xray.rules.outbound" }}</a-button>
+                                <a-button v-else type="primary" icon="cloud" style="margin: 15px 20px;" @click="showWarp()">WARP</a-button>
                                 </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
@@ -270,15 +290,19 @@
                             <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
                             message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
                             <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
-                            <a-table :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
+                            <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
                                 :row-key="r => r.key"
                                 :data-source="routingRuleData"
                                 :scroll="isMobile ? {} : { x: 1000 }"
                                 :pagination="false"
                                 :indent-size="0"
-                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'">
+                                :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'"
+                                v-on:onSort="replaceRule">
                                 <template slot="action" slot-scope="text, rule, index">
-                                    [[ index+1 ]]
+                                    <table-sort-trigger :item-index="index"></table-sort-trigger>
+                                    <span class="ant-table-row-index">
+                                        [[ index+1 ]]
+                                    </span>
                                     <a-dropdown :trigger="['click']">
                                         <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
                                         <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
@@ -373,6 +397,10 @@
                                                     <td>Port</td>
                                                     <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
                                                 </tr>
+                                                <tr v-if="rule.balancerTag">
+                                                    <td>Balancer Tag</td>
+                                                    <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
+                                                </tr>
                                             </table>
                                         </template>
                                         <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
@@ -380,18 +408,25 @@
                                         </a-button>
                                     </a-popover>
                                 </template>
-                            </a-table>
+                            </a-table-sortable>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
                             <a-row>
                                 <a-col :xs="12" :sm="12" :lg="12">
                                     <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n
                                         "pages.xray.outbound.addOutbound" }}</a-button>
-                                    <a-button type="primary" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
+                                    <a-button type="primary" icon="cloud" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
                                 </a-col>
                                 <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
                                     <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
-                                    <a-icon type="retweet" @click="resetOutboundTraffic(-1)"></a-icon>
+                                    <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
+                                        title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
+                                        :overlay-class-name="themeSwitcher.currentTheme"
+                                        ok-text='{{ i18n "reset"}}'
+                                        cancel-text='{{ i18n "cancel"}}'>
+                                        <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #008771' : 'color: #008771'"></a-icon>
+                                        <a-icon type="retweet" style="cursor: pointer;"></a-icon>
+                                    </a-popconfirm>
                                 </a-col>
                             </a-row>
                             <a-table :columns="outboundColumns" bordered
@@ -406,6 +441,10 @@
                                     <a-dropdown :trigger="['click']">
                                         <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
                                         <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                            <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
+                                                <a-icon type="vertical-align-top"></a-icon>
+                                                {{ i18n "pages.xray.rules.first"}}
+                                            </a-menu-item>
                                             <a-menu-item @click="editOutbound(index)">
                                                 <a-icon type="edit"></a-icon>
                                                 {{ i18n "edit" }}
@@ -441,7 +480,7 @@
                         </a-tab-pane>
                         <a-tab-pane key="tpl-4" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
                             <a-button type="primary" icon="plus" @click="addReverse()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addReverse" }}</a-button>
-                            <a-table :columns="reverseColumns" bordered
+                            <a-table :columns="reverseColumns" bordered v-if="reverseData.length>0"
                             :row-key="r => r.key"
                             :data-source="reverseData"
                             :scroll="isMobile ? {} : { x: 200 }"
@@ -467,9 +506,11 @@
                                 </template>
                             </a-table>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-balancers" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-5" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
+                            <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
+                            message='{{ i18n "pages.xray.balancer.balancerDesc" }}' show-icon></a-alert>
                             <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.balancer.addBalancer"}}</a-button>
-                            <a-table :columns="balancerColumns" bordered
+                            <a-table :columns="balancerColumns" bordered v-if="balancersData.length>0"
                             :row-key="r => r.key"
                             :data-source="balancersData"
                             :scroll="isMobile ? {} : { x: 200 }"
@@ -500,7 +541,87 @@
                                 <template slot="selector" slot-scope="text, balancer, index">
                                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
                                 </template>
-                            </a-table>                            
+                            </a-table>
+                        </a-tab-pane>
+                        <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
+                            <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
+                            <template v-if="enableDNS">
+                                <a-list-item>
+                                    <a-row style="padding: 20px">
+                                        <a-col :lg="24" :xl="12">
+                                            <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}' description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
+                                        </a-col>
+                                        <a-col :lg="24" :xl="12">
+                                            <a-select
+                                                v-model="dnsStrategy"
+                                                style="width: 100%"
+                                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                                <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
+                                                    [[ l ]]
+                                                </a-select-option>
+                                            </a-select>
+                                        </a-col>
+                                    </a-row>
+                                </a-list-item>
+                                <a-divider>DNS</a-divider>
+                                <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
+                                <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0"
+                                :row-key="r => r.key"
+                                :data-source="dnsServers"
+                                :scroll="isMobile ? {} : { x: 200 }"
+                                :pagination="false"
+                                :indent-size="0"
+                                :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                    <template slot="action" slot-scope="text,dns,index">
+                                        [[ index+1 ]]
+                                        <a-dropdown :trigger="['click']">
+                                            <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                <a-menu-item @click="editDNSServer(index)">
+                                                    <a-icon type="edit"></a-icon>
+                                                    {{ i18n "edit" }}
+                                                </a-menu-item>
+                                                <a-menu-item @click="deleteDNSServer(index)">
+                                                    <span style="color: #FF4D4F">
+                                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                    </span>
+                                                </a-menu-item>
+                                            </a-menu>
+                                        </a-dropdown>
+                                    </template>
+                                    <template slot="address" slot-scope="dns,index">
+                                        <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
+                                        <span v-else>[[ dns ]]</span>
+                                    </template>
+                                    <template slot="domain" slot-scope="dns,index">
+                                        <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
+                                    </template>
+                                </a-table>
+                                <a-divider>Fake DNS</a-divider>
+                                <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-bottom: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
+                                <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
+                                    :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+                                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                                    <template slot="action" slot-scope="text,fakedns,index">
+                                        [[ index+1 ]]
+                                        <a-dropdown :trigger="['click']">
+                                            <a-icon @click="e => e.preventDefault()" type="more"
+                                                style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                <a-menu-item @click="editFakedns(index)">
+                                                    <a-icon type="edit"></a-icon>
+                                                    {{ i18n "edit" }}
+                                                </a-menu-item>
+                                                <a-menu-item @click="deleteFakedns(index)">
+                                                    <span style="color: #FF4D4F">
+                                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                    </span>
+                                                </a-menu-item>
+                                            </a-menu>
+                                        </a-dropdown>
+                                    </template>
+                                </a-table>
+                            </template>
                         </a-tab-pane>
                         <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
                             <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
@@ -520,11 +641,14 @@
 </a-layout>
 {{template "js" .}}
 {{template "component/themeSwitcher" .}}
+{{template "component/sortableTable" .}}
 {{template "component/setting"}}
 {{template "ruleModal"}}
 {{template "outModal"}}
 {{template "reverseModal"}}
 {{template "balancerModal"}}
+{{template "dnsModal"}}
+{{template "fakednsModal"}}
 {{template "warpModal"}}
 <script>
         const rulesColumns = [
@@ -569,6 +693,18 @@
         { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
     ];
 
+    const dnsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+        { title: '{{ i18n "pages.xray.dns.domains"}}', align: 'center', width: 50, scopedSlots: { customRender: 'domain' } },
+    ];
+
+    const fakednsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.fakedns.ipPool"}}', dataIndex: 'ipPool', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.fakedns.poolSize"}}', dataIndex: 'poolSize', align: 'center', width: 50 },
+    ];
+
     const balancerColumns = [
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
@@ -591,6 +727,7 @@
             saveBtnDisable: true,
             refreshing: false,
             restartResult: '',
+            showAlert: false,
             isMobile: window.innerWidth <= 768,
             advSettings: 'xraySetting',
             cm: null,
@@ -629,6 +766,7 @@
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
             logLevel: ["none" , "debug" , "info" , "warning", "error"],
             access: ["none" , "./access.log" ],
+            error: ["none" , "./error.log" ],
             settingsData: {
                 protocols: {
                     bittorrent: ["bittorrent"],
@@ -655,6 +793,9 @@
                     google: ["geosite:google"],
                     spotify: ["geosite:spotify"],
                     netflix: ["geosite:netflix"],
+                    meta: ["geosite:meta"],
+                    apple: ["geosite:apple"],
+                    reddit: ["geosite:reddit"],
                     cn: [
                         "geosite:cn",
                         "regexp:.*\\.cn$"
@@ -938,6 +1079,11 @@
                 outbounds.splice(index,1);
                 this.outboundSettings = JSON.stringify(outbounds);
             },
+            setFirstOutbound(index){
+                outbounds = this.templateSettings.outbounds;
+                outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
+                this.outboundSettings = JSON.stringify(outbounds);
+            },
             async refreshOutboundTraffic() {
                 if (!this.refreshing) {
                     this.refreshing = true;
@@ -1135,8 +1281,68 @@
                     newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
                 }
                 newTemplateSettings.routing.rules = newRules;
-                
+
                 this.templateSettings = newTemplateSettings;
+            },
+            addDNSServer(){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.add" }}',
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers.push(dnsServer);
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editDNSServer(index){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.edit" }} #' + (index+1),
+                    dnsServer: this.dnsServers[index],
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers[index] = dnsServer;
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteDNSServer(index){
+                newDnsServers = this.dnsServers;
+                newDnsServers.splice(index,1);
+                this.dnsServers = newDnsServers;
+            },
+            addFakedns() {
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.add" }}',
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns?? [];
+                        fakeDns.push(item);
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editFakedns(index){
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.edit" }} #' + (index+1),
+                    fakeDns: this.fakeDns[index],
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns;
+                        fakeDns[index] = item;
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteFakedns(index){
+                fakeDns = this.fakeDns;
+                fakeDns.splice(index,1);
+                this.fakeDns = fakeDns;
             },
             addRule(){
                 ruleModal.show({
@@ -1184,6 +1390,9 @@
             }
         },
         async mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
             await this.getXraySetting();
             await this.getXrayResult();
             await this.getOutboundsTraffic();
@@ -1335,14 +1544,25 @@
                     this.templateSettings = newTemplateSettings;
                 }
             },
-            setAccessLog: {
+            accessLog: {
                 get: function () {
-                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.access) return "none";
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.access) return "";
                     return this.templateSettings.log.access;
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.log.access = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            errorLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.error) return "";
+                    return this.templateSettings.log.error;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.error = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },
@@ -1468,14 +1688,14 @@
             familyProtectSettings: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
-                    return doAllItemsExist(this.templateSettings.dns.servers, this.settingsData.familyProtectDNS.servers);
+                    return doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     if (newValue) {
                         newTemplateSettings.dns = this.settingsData.familyProtectDNS;
                     } else {
-                        delete newTemplateSettings.dns;
+                        newTemplateSettings.dns.servers = newTemplateSettings.dns?.servers?.filter(data => !this.settingsData.familyProtectDNS.servers.includes(data))
                     }
                     this.templateSettings = newTemplateSettings;
                 },
@@ -1737,6 +1957,42 @@
                     }
                 },
             },
+            MetaWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.meta, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.meta];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.meta.includes(data));
+                    }
+                },
+            },
+            AppleWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.apple, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.apple];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.apple.includes(data));
+                    }
+                },
+            },
+            RedditWARPSettings: {
+                get: function () {
+                    return doAllItemsExist(this.settingsData.domains.reddit, this.warpDomains);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.reddit];
+                    } else {
+                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.reddit.includes(data));
+                    }
+                },
+            },
             SpotifyWARPSettings: {
                 get: function () {
                     return doAllItemsExist(this.settingsData.domains.spotify, this.warpDomains);
@@ -1749,6 +2005,42 @@
                     }
                 },
             },
+            enableDNS: {
+                get: function () {
+                    return this.templateSettings ? this.templateSettings.dns != null : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP" } : null;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsStrategy: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.queryStrategy : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.queryStrategy =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsServers: {
+                get: function () { return this.enableDNS ? this.templateSettings.dns.servers : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.servers =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            fakeDns: {
+                get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.fakedns = newValue.length >0 ? newValue : null;
+                    this.templateSettings = newTemplateSettings;
+                }
+            }
         },
     });
 </script>

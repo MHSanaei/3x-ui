@@ -86,7 +86,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-0.0.0.0:%v", inbound.Port)
+		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
 		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
 	}
@@ -283,7 +283,7 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	inbound.Id = 0
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		inbound.Tag = fmt.Sprintf("inbound-0.0.0.0:%v", inbound.Port)
+		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
 		inbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
 	}

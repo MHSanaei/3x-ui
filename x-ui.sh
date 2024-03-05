@@ -345,6 +345,47 @@ show_banlog() {
     fi
 }
 
+bbr_menu() {
+    echo -e "${green}\t1.${plain} Enable BBR"
+    echo -e "${green}\t2.${plain} Disable BBR"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        enable_bbr
+        ;;
+    2)
+        disable_bbr
+        ;;
+    *) echo "Invalid choice" ;;
+    esac
+}
+
+disable_bbr() {
+
+    if ! grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf || ! grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
+        echo -e "${yellow}BBR is not currently enabled.${plain}"
+        exit 0
+    fi
+
+    # Replace BBR with CUBIC configurations
+    sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
+    sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
+
+    # Apply changes
+    sysctl -p
+
+    # Verify that BBR is replaced with CUBIC
+    if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "cubic" ]]; then
+        echo -e "${green}BBR has been replaced with CUBIC successfully.${plain}"
+    else
+        echo -e "${red}Failed to replace BBR with CUBIC. Please check your system configuration.${plain}"
+    fi
+}
+
 enable_bbr() {
     if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
         echo -e "${green}BBR is already enabled!${plain}"
@@ -906,8 +947,8 @@ run_speedtest() {
 }
 
 create_iplimit_jails() {
-    # Use default bantime if not passed => 30 minutes
-    local bantime="${1:-30}"
+    # Use default bantime if not passed => 15 minutes
+    local bantime="${1:-15}"
 
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
@@ -918,8 +959,8 @@ enabled=true
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}
-maxretry=4
-findtime=60
+maxretry=2
+findtime=32
 bantime=${bantime}m
 EOF
 
@@ -932,7 +973,7 @@ EOF
 
     cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
-before = iptables-common.conf
+before = iptables-allports.conf
 
 [Definition]
 actionstart = <iptables> -N f2b-<name>
@@ -1263,7 +1304,7 @@ show_menu() {
         firewall_menu
         ;;
     21)
-        enable_bbr
+        bbr_menu
         ;;
     22)
         update_geo

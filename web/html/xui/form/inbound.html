@@ -1,6 +1,6 @@
 {{define "form/inbound"}}
 <!-- base -->
-<a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "enable" }}'>
         <a-switch v-model="dbInbound.enable"></a-switch>
     </a-form-item>
@@ -114,7 +114,7 @@
 </template>
 
 <!-- sniffing -->
-<template v-if="inbound.canSniffing()">
+<template>
     {{template "form/sniffing"}}
 </template>
 {{end}}
