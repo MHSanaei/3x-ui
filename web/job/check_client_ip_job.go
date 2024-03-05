@@ -57,7 +57,7 @@ func (j *CheckClientIpJob) Run() {
 		}
 	}
 
-	if clearAccessLog || time.Now().Unix() - j.lastClear > 3600 {
+	if clearAccessLog || accessLogPath == "./access.log" && time.Now().Unix() - j.lastClear > 3600 {
 		j.clearAccessLog()
 	}
 }
