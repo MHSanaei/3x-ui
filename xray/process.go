@@ -202,6 +202,12 @@ func (p *process) Start() (err error) {
 	if err != nil {
 		return common.NewErrorf("Failed to generate xray configuration file: %v", err)
 	}
+	
+	err = os.MkdirAll(config.GetLogFolder(), 0770)
+	if err != nil {
+		logger.Warningf("Something went wrong: %s", err)
+	}
+
 	configPath := GetConfigPath()
 	err = os.WriteFile(configPath, data, fs.ModePerm)
 	if err != nil {
