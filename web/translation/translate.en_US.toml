@@ -201,7 +201,7 @@
 "last" = "Last"
 "prefix" = "Prefix"
 "postfix" = "Postfix"
-"delayedStart" = "Start on Initial Use"
+"delayedStart" = "Start After First Use"
 "expireDays" = "Duration"
 "days" = "Day(s)"
 "renew" = "Auto Renew"
