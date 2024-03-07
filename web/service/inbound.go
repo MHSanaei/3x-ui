@@ -969,7 +969,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		s.xrayApi.Init(p.GetAPIPort())
 		for _, tag := range tags {
 			err1 := s.xrayApi.DelInbound(tag)
-			if err == nil {
+			if err1 == nil {
 				logger.Debug("Inbound disabled by api:", tag)
 			} else {
 				logger.Debug("Error in disabling inbound by api:", err1)
@@ -1060,10 +1060,7 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 	clientTraffic.Reset = client.Reset
 	result := tx.Create(&clientTraffic)
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
@@ -1076,10 +1073,7 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset})
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail string) error {
@@ -1204,10 +1198,7 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) checkIsEnabledByEmail(clientEmail string) (bool, error) {
@@ -1354,10 +1345,7 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry_time int64) error {
@@ -1414,10 +1402,7 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, totalGB int) error {
@@ -1477,24 +1462,27 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	db := database.GetDB()
+	tx := db.Begin()
+	var err error
 
-	result := db.Model(xray.ClientTraffic{}).
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	err = tx.Model(xray.ClientTraffic{}).
 		Where("email = ?", clientEmail).
-		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
+		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0}).Error
 
-	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, error) {
@@ -1550,7 +1538,17 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 	traffic.Enable = true
 
 	db := database.GetDB()
-	err = db.Save(traffic).Error
+	tx := db.Begin()
+
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	err = tx.Save(traffic).Error
 	if err != nil {
 		return false, err
 	}
@@ -1560,6 +1558,16 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 
 func (s *InboundService) ResetAllClientTraffics(id int) error {
 	db := database.GetDB()
+	tx := db.Begin()
+	var err error
+
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
 
 	whereText := "inbound_id "
 	if id == -1 {
@@ -1568,31 +1576,31 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 		whereText += " = ?"
 	}
 
-	result := db.Model(xray.ClientTraffic{}).
+	err = tx.Model(xray.ClientTraffic{}).
 		Where(whereText, id).
-		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
+		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0}).Error
 
-	err := result.Error
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetAllTraffics() error {
 	db := database.GetDB()
+	tx := db.Begin()
+	var err error
 
-	result := db.Model(model.Inbound{}).
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	err = tx.Model(model.Inbound{}).
 		Where("user_id > ?", 0).
-		Updates(map[string]interface{}{"up": 0, "down": 0})
+		Updates(map[string]interface{}{"up": 0, "down": 0}).Error
 
-	err := result.Error
-
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
@@ -1666,11 +1674,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	}
 
 	err = tx.Where(whereText+" and enable = ?", id, false).Delete(xray.ClientTraffic{}).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s *InboundService) GetClientTrafficTgBot(tgId string) ([]*xray.ClientTraffic, error) {
@@ -1770,15 +1774,22 @@ func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error)
 
 func (s *InboundService) ClearClientIps(clientEmail string) error {
 	db := database.GetDB()
+	tx := db.Begin()
+	var err error
 
-	result := db.Model(model.InboundClientIps{}).
+	defer func() {
+		if err == nil {
+			tx.Commit()
+		} else {
+			tx.Rollback()
+		}
+	}()
+
+	err = tx.Model(model.InboundClientIps{}).
 		Where("client_email = ?", clientEmail).
-		Update("ips", "")
-	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+		Update("ips", "").Error
+
+	return err
 }
 
 func (s *InboundService) SearchInbounds(query string) ([]*model.Inbound, error) {
