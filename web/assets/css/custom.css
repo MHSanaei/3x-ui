@@ -1261,7 +1261,7 @@ b, strong {
     height: 20px;
 }
 
-.ant-menu-theme-swich:hover {
+.ant-menu-theme-switch:hover {
     background-color: transparent !important;
     cursor: default !important;
 }
