@@ -374,6 +374,12 @@
       transform: translateZ(-100px);
     }
   }
+  .ant-menu-item .anticon {
+    margin-right: 4px;
+  }
+  .ant-menu-inline .ant-menu-item {
+    padding: 0 16px !important;
+  }
 </style>
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
@@ -455,17 +461,7 @@
                   </a-form-item>
                   <a-form-item>
                     <a-row justify="center" class="centered">
-                      <a-col>
-                        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>&nbsp;
-                      </a-col>
-                      <a-col>
-                        <theme-switch></theme-switch>
-                        <a-checkbox v-if="themeSwitcher.isDarkTheme" style="padding-left: 1rem; vertical-align: middle;"
-                                    :checked="themeSwitcher.isUltra"
-                                    @click="themeSwitcher.toggleUltra()">
-                                    Ultra
-                        </a-checkbox>
-                      </a-col>
+                      <theme-switch></theme-switch>
                     </a-row>
                   </a-form-item>
                 </a-form>
