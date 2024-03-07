@@ -1,8 +1,15 @@
 {{define "component/themeSwitchTemplate"}}
 <template>
-  <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme"
-            @change="themeSwitcher.toggleTheme()">
-  </a-switch>
+  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+    <a-menu-item mode="inline" class="ant-menu-theme-swich">
+        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
+        <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+        <template v-if="themeSwitcher.isDarkTheme">
+            <a-icon style="margin-left: 0.6rem; vertical-align: middle;" type="eye" :theme="themeSwitcher.isUltra ? 'filled' : 'outlined'"></a-icon>
+            <a-switch size="small" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-switch>
+        </template>
+    </a-menu-item>
+  </a-menu>
 </template>
 {{end}}
 
