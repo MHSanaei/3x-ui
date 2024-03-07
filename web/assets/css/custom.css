@@ -80,7 +80,9 @@ html[data-theme='ultra-dark'] {
     .dark .waves-header {
         background-color: #0a2227;
     }
-    .dark .ant-calendar-year-panel-year:hover, .dark .ant-calendar-month-panel-month:hover, .dark .ant-calendar-decade-panel-decade:hover {
+    .dark .ant-calendar-year-panel-year:hover,
+    .dark .ant-calendar-month-panel-month:hover,
+    .dark .ant-calendar-decade-panel-decade:hover {
         background-color: var(--dark-color-surface-600);
     }
 }
