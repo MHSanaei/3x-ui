@@ -2,6 +2,7 @@ package controller
 
 import (
 	"net/http"
+
 	"x-ui/logger"
 	"x-ui/web/locale"
 	"x-ui/web/session"
@@ -9,8 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type BaseController struct {
-}
+type BaseController struct{}
 
 func (a *BaseController) checkLogin(c *gin.Context) {
 	if !session.IsLogin(c) {

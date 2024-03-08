@@ -4,16 +4,19 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+
 	"x-ui/logger"
 	"x-ui/xray"
 
 	"go.uber.org/atomic"
 )
 
-var p *xray.Process
-var lock sync.Mutex
-var isNeedXrayRestart atomic.Bool
-var result string
+var (
+	p                 *xray.Process
+	lock              sync.Mutex
+	isNeedXrayRestart atomic.Bool
+	result            string
+)
 
 type XrayService struct {
 	inboundService InboundService
@@ -87,7 +90,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			// check users active or not
 			clientStats := inbound.ClientStats
 			for _, clientTraffic := range clientStats {
-
 				indexDecrease := 0
 				for index, client := range clients {
 					c := client.(map[string]interface{})
@@ -96,20 +98,15 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 							clients = RemoveIndex(clients, index-indexDecrease)
 							indexDecrease++
 							logger.Info("Remove Inbound User ", c["email"], " due the expire or traffic limit")
-
 						}
-
 					}
 				}
-
 			}
 
 			// clear client config for additional parameters
 			var final_clients []interface{}
 			for _, client := range clients {
-
 				c := client.(map[string]interface{})
-
 				if c["enable"] != nil {
 					if enable, ok := c["enable"].(bool); ok && !enable {
 						continue

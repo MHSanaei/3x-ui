@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -9,8 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserService struct {
-}
+type UserService struct{}
 
 func (s *UserService) GetFirstUser() (*model.User, error) {
 	db := database.GetDB()
