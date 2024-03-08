@@ -6,7 +6,7 @@
         <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
         <template v-if="themeSwitcher.isDarkTheme">
             <a-icon style="margin-left: 0.6rem; vertical-align: middle;" type="eye" :theme="themeSwitcher.isUltra ? 'filled' : 'outlined'"></a-icon>
-            <a-switch size="small" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-switch>
+            <a-switch size="small" :checked="themeSwitcher.isUltra" @change="themeSwitcher.toggleUltra()"></a-switch>
         </template>
     </a-menu-item>
   </a-menu>
