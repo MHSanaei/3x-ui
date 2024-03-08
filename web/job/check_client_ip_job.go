@@ -36,28 +36,20 @@ func (j *CheckClientIpJob) Run() {
 	}
 
 	f2bInstalled := j.checkFail2BanInstalled()
-	accessLogPath := xray.GetAccessLogPath()
+	isAccessLogAvailable := j.checkAccessLogAvailable()
 	clearAccessLog := false
 
 	if j.hasLimitIp() {
-		if f2bInstalled && accessLogPath == "./access.log" {
+		if f2bInstalled && isAccessLogAvailable {
 			clearAccessLog = j.processLogFile()
 		} else {
 			if !f2bInstalled {
 				logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
 			}
-			switch accessLogPath {
-			case "none":
-				logger.Warning("Access log is set to 'none', check your Xray Configs")
-			case "":
-				logger.Warning("Access log doesn't exist in your Xray Configs")
-			default:
-				logger.Warning("Current access.log path is not compatible with IP Limit")
-			}
 		}
 	}
 
-	if clearAccessLog || accessLogPath == "./access.log" && time.Now().Unix() - j.lastClear > 3600 {
+	if clearAccessLog || isAccessLogAvailable && time.Now().Unix()-j.lastClear > 3600 {
 		j.clearAccessLog()
 	}
 }
@@ -176,6 +168,21 @@ func (j *CheckClientIpJob) processLogFile() bool {
 	}
 
 	return shouldCleanLog
+}
+
+func (j *CheckClientIpJob) checkAccessLogAvailable() bool {
+	accessLogPath := xray.GetAccessLogPath()
+	isAvailable := true
+	// access log is not available if it is set to 'none' or an empty string
+	switch accessLogPath {
+	case "none":
+		logger.Warning("Access log is set to 'none', check your Xray Configs")
+		isAvailable = false
+	case "":
+		logger.Warning("Access log doesn't exist in your Xray Configs")
+		isAvailable = false
+	}
+	return isAvailable
 }
 
 func (j *CheckClientIpJob) checkError(e error) {
