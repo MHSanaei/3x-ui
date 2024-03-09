@@ -422,7 +422,7 @@
                     </a-input>
                   </a-form-item>
                   <a-form-item>
-                    <password-input autocomplete="password" icon="lock" v-model.trim="user.password"
+                    <password-input autocomplete="current-password" icon="lock" v-model.trim="user.password"
                                     placeholder='{{ i18n "password" }}'
                                     @keydown.enter.native="login">
                     </password-input>
