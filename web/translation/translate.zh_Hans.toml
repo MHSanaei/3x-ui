@@ -219,8 +219,8 @@
 [pages.inbounds.stream.tcp]
 "version" = "版本"
 "method" = "方法"
-"path" = "小路"
-"status" = "地位"
+"path" = "路径"
+"status" = "状态"
 "statusDescription" = "状态说明"
 "requestHeader" = "请求头"
 "responseHeader" = "响应头"
