@@ -180,7 +180,7 @@ style attribute {
     position: relative;
     clear: both;
 }
-.ant-table-body {
+.ant-table-wrapper > div > div > div > div > div > div {
     overflow-x: auto !important;
 }
 .ant-card-hoverable {
@@ -794,6 +794,15 @@ style attribute {
 
 .dark > .ant-popover-content > .ant-popover-arrow {
     border-color: var(--dark-color-surface-500);
+}
+
+@media (max-width: 768px) {
+    .dark .ant-popover-inner {
+        background-color: var(--dark-color-surface-200);
+    }
+    .dark > .ant-popover-content > .ant-popover-arrow {
+        border-color: var(--dark-color-surface-200);
+    }
 }
 
 .ant-dropdown-menu-dark .ant-dropdown-menu-item:hover,
