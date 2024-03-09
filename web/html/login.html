@@ -374,6 +374,12 @@
       transform: translateZ(-100px);
     }
   }
+  .ant-menu-item .anticon {
+    margin-right: 4px;
+  }
+  .ant-menu-inline .ant-menu-item {
+    padding: 0 16px !important;
+  }
 </style>
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
@@ -410,19 +416,19 @@
               <a-col span="24">
                 <a-form>
                   <a-form-item>
-                    <a-input v-model.trim="user.username" placeholder='{{ i18n "username" }}'
+                    <a-input autocomplete="username" v-model.trim="user.username" placeholder='{{ i18n "username" }}'
                              @keydown.enter.native="login" autofocus>
                       <a-icon slot="prefix" type="user" style="font-size: 16px;"></a-icon>
                     </a-input>
                   </a-form-item>
                   <a-form-item>
-                    <password-input icon="lock" v-model.trim="user.password"
+                    <password-input autocomplete="current-password" icon="lock" v-model.trim="user.password"
                                     placeholder='{{ i18n "password" }}'
                                     @keydown.enter.native="login">
                     </password-input>
                   </a-form-item>
                   <a-form-item v-if="secretEnable">
-                    <password-input icon="key" v-model.trim="user.loginSecret"
+                    <password-input autocomplete="secret" icon="key" v-model.trim="user.loginSecret"
                                     placeholder='{{ i18n "secretToken" }}'
                                     @keydown.enter.native="login">
                     </password-input>
@@ -455,17 +461,7 @@
                   </a-form-item>
                   <a-form-item>
                     <a-row justify="center" class="centered">
-                      <a-col>
-                        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>&nbsp;
-                      </a-col>
-                      <a-col>
-                        <theme-switch></theme-switch>
-                        <a-checkbox v-if="themeSwitcher.isDarkTheme" style="padding-left: 1rem; vertical-align: middle;"
-                                    :checked="themeSwitcher.isUltra"
-                                    @click="themeSwitcher.toggleUltra()">
-                                    Ultra
-                        </a-checkbox>
-                      </a-col>
+                      <theme-switch></theme-switch>
                     </a-row>
                   </a-form-item>
                 </a-form>
