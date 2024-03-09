@@ -55,7 +55,7 @@
 "secAlertTitle" = "安全警报"
 "secAlertSsl" = "此连接不安全；在激活 TLS 进行数据保护之前，请勿输入敏感信息"
 "secAlertConf" = "某些设置容易受到攻击。建议加强安全协议以防止潜在的违规行为。"
-"secAlertSSL" = "面板缺乏安全连接。请安装 TLS 证书以保护数据。"
+"secAlertSSL" = "面板缺少安全连接。请安装 TLS 证书以保护数据。"
 "secAlertPanelPort" = "面板默认端口存在漏洞。请配置随机或特定端口。"
 "secAlertPanelURI" = "面板默认 URI 路径不安全。请配置复杂的 URI 路径。"
 "secAlertSubURI" = "订阅默认 URI 路径不安全。请配置复杂的 URI 路径。"
@@ -157,7 +157,7 @@
 "clone" = "克隆"
 "cloneInbound" = "克隆"
 "cloneInboundContent" = "此入站的所有项目除 Port、Listening IP、Clients 将应用于克隆"
-"cloneInboundOk" = "从创建克隆"
+"cloneInboundOk" = "创建克隆"
 "resetAllTraffic" = "重置所有入站流量"
 "resetAllTrafficTitle" = "重置所有入站流量"
 "resetAllTrafficContent" = "您确定要重置所有入站流量吗？"
@@ -185,7 +185,7 @@
 "info" = "信息"
 "same" = "相同"
 "inboundData" = "入站数据"
-"exportInbound" = "出口 入境"
+"exportInbound" = "导出入站"
 "import"="导入"
 "importInbound" = "导入入站"
 
@@ -211,7 +211,7 @@
 "obtain" = "获取"
 
 [pages.inbounds.stream.general]
-"request" = "要求"
+"request" = "请求"
 "response" = "回复"
 "name" = "姓名"
 "value" = "值"
@@ -418,8 +418,8 @@
 "errorLogDesc" = "错误日志的文件路径。 特殊值“none”禁用错误日志"
 
 [pages.xray.rules]
-"first" = "第一个"
-"last" = "最后"
+"first" = "置顶"
+"last" = "置底"
 "up" = "向上"
 "down" = "向下"
 "source" = "来源"
