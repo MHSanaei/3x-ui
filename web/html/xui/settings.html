@@ -200,13 +200,13 @@
                                     <a-input autocomplete="username" v-model="user.oldUsername"></a-input>
                                 </a-form-item>
                                 <a-form-item label='{{ i18n "pages.settings.currentPassword"}}'>
-                                    <a-input type="password" autocomplete="current-password" v-model="user.oldPassword"></a-input>
+                                    <password-input autocomplete="current-password" v-model="user.oldPassword"></password-input>
                                 </a-form-item>
                                 <a-form-item label='{{ i18n "pages.settings.newUsername"}}'>
                                     <a-input v-model="user.newUsername"></a-input>
                                 </a-form-item>
                                 <a-form-item label='{{ i18n "pages.settings.newPassword"}}'>
-                                    <a-input type="password" autocomplete="new-password" v-model="user.newPassword"></a-input>
+                                    <password-input autocomplete="new-password" v-model="user.newPassword"></password-input>
                                 </a-form-item>
                                 <a-form-item label=" ">
                                     <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
