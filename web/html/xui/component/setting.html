@@ -16,7 +16,7 @@
                 <a-input :value="value" @input="$emit('input', $event.target.value)" :placeholder="placeholder"></a-input>
             </template>
             <template v-else-if="type === 'number'">
-                <a-input-number :value="value" :step="step" @change="value => $emit('input', value)" :min="min" style="width: 100%;"></a-input-number>
+                <a-input-number :value="value" :step="step" @change="value => $emit('input', value)" :min="min" :max="max" style="width: 100%;"></a-input-number>
             </template>
             <template v-else-if="type === 'switch'">
                 <a-switch :checked="value" @change="value => $emit('input', value)"></a-switch>
@@ -29,7 +29,7 @@
 {{define "component/setting"}}
 <script>
     Vue.component('setting-list-item', {
-        props: ["type", "title", "desc", "value", "min", "step", "placeholder"],
+        props: ["type", "title", "desc", "value", "min", "max" , "step", "placeholder"],
         template: `{{template "component/settingListItem"}}`,
     });
 </script>
