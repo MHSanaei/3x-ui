@@ -405,7 +405,7 @@
 "Inbounds" = "入站"
 "InboundsDesc" = "更改配置模板接受特殊客户端"
 "Outbounds" = "出站"
-"Balancers" = "平衡器"
+"Balancers" = "负载均衡"
 "OutboundsDesc" = "更改配置模板定义此服务器的传出方式"
 "Routings" = "路由规则"
 "RoutingsDesc" = "每条规则的优先级都很重要"
