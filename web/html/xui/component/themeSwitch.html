@@ -2,12 +2,11 @@
 <template>
   <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
     <a-menu-item mode="inline" class="ant-menu-theme-switch">
-        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-        <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
-        <template v-if="themeSwitcher.isDarkTheme">
-            <a-icon style="margin-left: 0.6rem; vertical-align: middle;" type="eye" :theme="themeSwitcher.isUltra ? 'filled' : 'outlined'"></a-icon>
-            <a-switch size="small" :checked="themeSwitcher.isUltra" @change="themeSwitcher.toggleUltra()"></a-switch>
-        </template>
+      <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
+      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <template v-if="themeSwitcher.isDarkTheme">
+        <a-checkbox style="margin-left: 1rem; vertical-align: middle;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()">Ultra</a-checkbox>
+      </template>
     </a-menu-item>
   </a-menu>
 </template>
