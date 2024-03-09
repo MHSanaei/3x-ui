@@ -214,7 +214,7 @@
 "request" = "要求"
 "response" = "回复"
 "name" = "姓名"
-"value" = "价值"
+"value" = "值"
 
 [pages.inbounds.stream.tcp]
 "version" = "版本"
