@@ -1405,13 +1405,15 @@
             templateSettings: {
                 get: function () {
                     const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
+                    let accessLogPath = "./access.log";
+                    let errorLogPath = "./error.log";
                     if (parsedSettings) {
-                        this.access = ["none", parsedSettings.log.access];
-                        this.error = ["none", parsedSettings.log.error];
-                    } else {
-                        this.access = ["none", "./access.log"];
-                        this.error = ["none", "./error.log"];
+                        // if its set to "none" add default value
+                        if (parsedSettings.log.access !== "none") accessLogPath = parsedSettings.log.access;
+                        if (parsedSettings.log.error !== "none") errorLogPath = parsedSettings.log.error;
                     }
+                    this.access = ["none", accessLogPath];
+                    this.error = ["none", errorLogPath];
                     return parsedSettings;
                 },
                 set: function (newValue) {
