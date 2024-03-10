@@ -3,6 +3,7 @@
 .cache
 .sync*
 *.tar.gz
+*.log
 access.log
 error.log
 tmp

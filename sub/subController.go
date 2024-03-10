@@ -25,8 +25,8 @@ func NewSUBController(
 	showInfo bool,
 	rModel string,
 	update string,
-	jsonFragment string) *SUBController {
-
+	jsonFragment string,
+) *SUBController {
 	a := &SUBController{
 		subPath:        subPath,
 		subJsonPath:    jsonPath,

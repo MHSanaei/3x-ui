@@ -180,7 +180,7 @@
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                                    <a-select-option v-for="s in access" :value="s">[[ s ]]</a-select-option>
+                                                    <a-select-option v-for="s in access" :key="s" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
@@ -193,7 +193,7 @@
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                                    <a-select-option v-for="s in error" :value="s">[[ s ]]</a-select-option>
+                                                    <a-select-option v-for="s in error" :key="s" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
@@ -765,8 +765,8 @@
             },
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
             logLevel: ["none" , "debug" , "info" , "warning", "error"],
-            access: ["none" , "./access.log" ],
-            error: ["none" , "./error.log" ],
+            access: [],
+            error: [],
             settingsData: {
                 protocols: {
                     bittorrent: ["bittorrent"],
@@ -869,10 +869,10 @@
             },
             async getXrayResult() {
                 const msg = await HttpUtil.get("/panel/xray/getXrayResult");
-                    if(msg.success){
-                        this.restartResult=msg.obj;
-                        if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
-                    }
+                if (msg.success) {
+                    this.restartResult=msg.obj;
+                    if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
+                }
             },
             async fetchUserSecret() {
                 this.loading(true);
@@ -910,9 +910,9 @@
             },
             async toggleToken(value) {
                 if (value) {
-                await this.getNewSecret();
+                    await this.getNewSecret();
                 } else {
-                this.user.loginSecret = "";
+                    this.user.loginSecret = "";
                 }
             },
             async resetXrayConfigToDefault() {
@@ -1001,7 +1001,7 @@
                 this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
                 this.cm.on('change',editor => {
                     value = editor.getValue();
-                    if(this.isJsonString(value)){
+                    if (this.isJsonString(value)) {
                         this[this.advSettings] = value;
                     }
                 });
@@ -1403,8 +1403,24 @@
         },
         computed: {
             templateSettings: {
-                get: function () { return this.xraySetting ? JSON.parse(this.xraySetting) : null; },
-                set: function (newValue) { this.xraySetting = JSON.stringify(newValue, null, 2); },
+                get: function () {
+                    const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
+                    let accessLogPath = "./access.log";
+                    let errorLogPath = "./error.log";
+                    if (parsedSettings) {
+                        // if its set to "none" add default value
+                        if (parsedSettings.log.access !== "none") accessLogPath = parsedSettings.log.access;
+                        if (parsedSettings.log.error !== "none") errorLogPath = parsedSettings.log.error;
+                    }
+                    this.access = ["none", accessLogPath];
+                    this.error = ["none", errorLogPath];
+                    return parsedSettings;
+                },
+                set: function (newValue) {
+                    this.xraySetting = JSON.stringify(newValue, null, 2);
+                    this.access = ["none", newValue.log.access];
+                    this.error = ["none", newValue.log.error];
+                },
             },
             inboundSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },

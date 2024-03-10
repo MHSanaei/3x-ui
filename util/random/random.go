@@ -4,12 +4,14 @@ import (
 	"math/rand"
 )
 
-var numSeq [10]rune
-var lowerSeq [26]rune
-var upperSeq [26]rune
-var numLowerSeq [36]rune
-var numUpperSeq [36]rune
-var allSeq [62]rune
+var (
+	numSeq      [10]rune
+	lowerSeq    [26]rune
+	upperSeq    [26]rune
+	numLowerSeq [36]rune
+	numUpperSeq [36]rune
+	allSeq      [62]rune
+)
 
 func init() {
 	for i := 0; i < 10; i++ {
