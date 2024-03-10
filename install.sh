@@ -8,7 +8,7 @@ plain='\033[0m'
 cur_dir=$(pwd)
 
 # check root
-[[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
+[[ $EUID -ne 0 ]] && echo -e "${red}致命错误：${plain} 请以 root 权限运行此脚本 \n " && exit 1
 
 # Check OS and set release variable
 if [[ -f /etc/os-release ]]; then
@@ -18,10 +18,10 @@ elif [[ -f /usr/lib/os-release ]]; then
     source /usr/lib/os-release
     release=$ID
 else
-    echo "Failed to check the system OS, please contact the author!" >&2
+    echo "检查系统操作系统失败，请联系作者！" >&2
     exit 1
 fi
-echo "The OS release is: $release"
+echo "操作系统版本为：$release"
 
 arch3xui() {
     case "$(uname -m)" in
@@ -31,52 +31,52 @@ arch3xui() {
     armv7* | armv7 | arm) echo 'armv7' ;;
     armv6* | armv6) echo 'armv6' ;;
     armv5* | armv5) echo 'armv5' ;;
-    *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+    *) echo -e "${green}不支持的CPU架构！ ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
 
-echo "arch: $(arch3xui)"
+echo "信息: $(arch3xui)"
 
 os_version=""
 os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
 if [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
+        echo -e "${red} 请使用 CentOS 8 或更高版本 ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
-        echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
+        echo -e "${red} 请使用 Ubuntu 20 或更高版本！${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "fedora" ]]; then
     if [[ ${os_version} -lt 36 ]]; then
-        echo -e "${red} Please use Fedora 36 or higher version!${plain}\n" && exit 1
+        echo -e "${red} 请使用 Fedora 36 或更高版本！${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 11 ]]; then
-        echo -e "${red} Please use Debian 11 or higher ${plain}\n" && exit 1
+        echo -e "${red} 请使用 Debian 11 或更高版本${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "almalinux" ]]; then
     if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use AlmaLinux 9 or higher ${plain}\n" && exit 1
+        echo -e "${red} 请使用 AlmaLinux 9 或更高版本 ${plain}\n" && exit 1
     fi
 
 elif [[ "${release}" == "rocky" ]]; then
     if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use RockyLinux 9 or higher ${plain}\n" && exit 1
+        echo -e "${red} 请使用 RockyLinux 9 或更高版本 ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
-    echo "Your OS is ArchLinux"
+    echo "你的操作系统是 ArchLinux"
 elif [[ "${release}" == "manjaro" ]]; then
-    echo "Your OS is Manjaro"
+    echo "您的操作系统是 Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
-    echo "Your OS is Armbian"
+    echo "您的操作系统是 Armbian"
 
 else
-    echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
+    echo -e "${red}检查操作系统版本失败，请联系作者！${plain}" && exit 1
 fi
 
 install_base() {
@@ -98,34 +98,34 @@ install_base() {
 
 # This function will be called when user installed x-ui out of security
 config_after_install() {
-    echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
-    read -p "Do you want to continue with the modification [y/n]?": config_confirm
+    echo -e "${yellow}安装/更新完成！为了安全起见，建议修改面板设置${plain}"
+    read -p "是否要继续修改 [y/n]?": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-        read -p "Please set up your username:" config_account
-        echo -e "${yellow}Your username will be:${config_account}${plain}"
-        read -p "Please set up your password:" config_password
-        echo -e "${yellow}Your password will be:${config_password}${plain}"
-        read -p "Please set up the panel port:" config_port
-        echo -e "${yellow}Your panel port is:${config_port}${plain}"
-        echo -e "${yellow}Initializing, please wait...${plain}"
+        read -p "请设置您的用户名：" config_account
+        echo -e "${yellow}您的用户名将是：${config_account}${plain}"
+        read -p "请设置您的密码：" config_password
+        echo -e "${yellow}您的密码将是：${config_password}${plain}"
+        read -p "请设置面板端口：" config_port
+        echo -e "${yellow}您的面板端口是：${config_port}${plain}"
+        echo -e "${yellow}正在初始化，请稍候...${plain}"
         /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
-        echo -e "${yellow}Account name and password set successfully!${plain}"
+        echo -e "${yellow}帐户名和密码设置成功！${plain}"
         /usr/local/x-ui/x-ui setting -port ${config_port}
-        echo -e "${yellow}Panel port set successfully!${plain}"
+        echo -e "${yellow}面板端口设置成功！${plain}"
     else
-        echo -e "${red}cancel...${plain}"
+        echo -e "${red}取消...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
             /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
-            echo -e "this is a fresh installation,will generate random login info for security concerns:"
+            echo -e "这是一个全新的安装，出于安全考虑，会生成随机登录信息："
             echo -e "###############################################"
-            echo -e "${green}username:${usernameTemp}${plain}"
-            echo -e "${green}password:${passwordTemp}${plain}"
+            echo -e "${green}用户名:${usernameTemp}${plain}"
+            echo -e "${green}密码:${passwordTemp}${plain}"
             echo -e "###############################################"
-            echo -e "${red}if you forgot your login info,you can type x-ui and then type 8 to check after installation${plain}"
+            echo -e "${red}如果您忘记了登录信息，您可以输入 X-UI，然后输入 8 以在安装后进行检查${plain}"
         else
-            echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 8 to check${plain}"
+            echo -e "${red} 这是您的升级，将保留旧设置，如果您忘记了登录信息，您可以输入 x-ui，然后输入 8 进行检查${plain}"
         fi
     fi
     /usr/local/x-ui/x-ui migrate
@@ -135,24 +135,24 @@ install_x-ui() {
     cd /usr/local/
 
     if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        last_version=$(curl -Ls "https://api.github.com/repos/jiulingyun/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}Failed to fetch x-ui version, it maybe due to Github API restrictions, please try it later${plain}"
+            echo -e "${red}无法获取 x-ui 版本，可能是由于 Github API 限制，请稍后再试${plain}"
             exit 1
         fi
-        echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
+        echo -e "获取到 x-ui 最新版本：${last_version}，开始安装..."
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz https://github.com/jiulingyun/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
+            echo -e "${red}下载 x-ui 失败，请确保您的服务器可以访问 Github${plain}"
             exit 1
         fi
     else
         last_version=$1
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz"
-        echo -e "Beginning to install x-ui $1"
+        url="https://github.com/jiulingyun/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch3xui).tar.gz"
+        echo -e "开始安装 x-ui$1"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch3xui).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui $1 failed,please check the version exists ${plain}"
+            echo -e "${red}下载 x-ui $1 失败，请检查版本是否存在${plain}"
             exit 1
         fi
     fi
@@ -175,7 +175,7 @@ install_x-ui() {
 
     chmod +x x-ui bin/xray-linux-$(arch3xui)
     cp -f x-ui.service /etc/systemd/system/
-    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/jiulingyun/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
     config_after_install
@@ -183,25 +183,25 @@ install_x-ui() {
     systemctl daemon-reload
     systemctl enable x-ui
     systemctl start x-ui
-    echo -e "${green}x-ui ${last_version}${plain} installation finished, it is running now..."
+    echo -e "${green}x-ui ${last_version}${plain} 安装完成，正在运行..."
     echo -e ""
-    echo -e "x-ui control menu usages: "
+    echo -e "X-UI 控件菜单用法: "
     echo -e "----------------------------------------------"
-    echo -e "x-ui              - Enter     Admin menu"
-    echo -e "x-ui start        - Start     x-ui"
-    echo -e "x-ui stop         - Stop      x-ui"
-    echo -e "x-ui restart      - Restart   x-ui"
-    echo -e "x-ui status       - Show      x-ui status"
-    echo -e "x-ui enable       - Enable    x-ui on system startup"
-    echo -e "x-ui disable      - Disable   x-ui on system startup"
-    echo -e "x-ui log          - Check     x-ui logs"
-    echo -e "x-ui banlog       - Check Fail2ban ban logs"
-    echo -e "x-ui update       - Update    x-ui"
-    echo -e "x-ui install      - Install   x-ui"
-    echo -e "x-ui uninstall    - Uninstall x-ui"
+    echo -e "x-ui              - 进入管理菜单"
+    echo -e "x-ui start        - 启动       x-ui"
+    echo -e "x-ui stop         - 停止       x-ui"
+    echo -e "x-ui restart      - 重启       x-ui"
+    echo -e "x-ui status       - 显示       x-ui 状态"
+    echo -e "x-ui enable       - 启用       x-ui 开机自启"
+    echo -e "x-ui disable      - 禁用       x-ui 开机自启"
+    echo -e "x-ui log          - 查看       x-ui 日志"
+    echo -e "x-ui banlog       - 查看       Fail2ban 封禁日志"
+    echo -e "x-ui update       - 更新       x-ui"
+    echo -e "x-ui install      - 安装       x-ui"
+    echo -e "x-ui uninstall    - 卸载       x-ui"
     echo -e "----------------------------------------------"
 }
 
-echo -e "${green}Running...${plain}"
+echo -e "${green}运行...${plain}"
 install_base
 install_x-ui $1

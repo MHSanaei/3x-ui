@@ -34,7 +34,7 @@ func runWebServer() {
 	case config.Error:
 		logger.InitLogger(logging.ERROR)
 	default:
-		log.Fatal("unknown log level:", config.GetLogLevel())
+		log.Fatal("未知日志级别：", config.GetLogLevel())
 	}
 
 	err := database.InitDB(config.GetDBPath())
@@ -113,9 +113,9 @@ func resetSetting() {
 	settingService := service.SettingService{}
 	err = settingService.ResetSettings()
 	if err != nil {
-		fmt.Println("reset setting failed:", err)
+		fmt.Println("重置设置失败：", err)
 	} else {
-		fmt.Println("reset setting success")
+		fmt.Println("重置设置成功")
 	}
 }
 
@@ -124,19 +124,19 @@ func showSetting(show bool) {
 		settingService := service.SettingService{}
 		port, err := settingService.GetPort()
 		if err != nil {
-			fmt.Println("get current port failed,error info:", err)
+			fmt.Println("获取当前端口失败，错误信息:", err)
 		}
 		userService := service.UserService{}
 		userModel, err := userService.GetFirstUser()
 		if err != nil {
-			fmt.Println("get current user info failed,error info:", err)
+			fmt.Println("获取当前用户信息失败，错误信息:", err)
 		}
 		username := userModel.Username
 		userpasswd := userModel.Password
 		if (username == "") || (userpasswd == "") {
-			fmt.Println("current username or password is empty")
+			fmt.Println("当前用户名或密码为空")
 		}
-		fmt.Println("current panel settings as follows:")
+		fmt.Println("当前面板设置如下:")
 		fmt.Println("username:", username)
 		fmt.Println("userpasswd:", userpasswd)
 		fmt.Println("port:", port)
@@ -296,10 +296,10 @@ func main() {
 	flag.Usage = func() {
 		oldUsage()
 		fmt.Println()
-		fmt.Println("Commands:")
-		fmt.Println("    run            run web panel")
-		fmt.Println("    migrate        migrate form other/old x-ui")
-		fmt.Println("    setting        set settings")
+		fmt.Println("命令:")
+		fmt.Println("    run            运行 web 面板")
+		fmt.Println("    migrate        从其他/旧迁移 x-ui")
+		fmt.Println("    setting        设置")
 	}
 
 	flag.Parse()
