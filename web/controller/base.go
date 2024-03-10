@@ -15,7 +15,7 @@ type BaseController struct{}
 func (a *BaseController) checkLogin(c *gin.Context) {
 	if !session.IsLogin(c) {
 		if isAjax(c) {
-			pureJsonMsg(c, false, I18nWeb(c, "pages.login.loginAgain"))
+			pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
 		} else {
 			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 		}
