@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -64,8 +65,7 @@ var defaultValueMap = map[string]string{
 	"warp":               "",
 }
 
-type SettingService struct {
-}
+type SettingService struct{}
 
 func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
 	var jsonData interface{}
@@ -444,6 +444,7 @@ func (s *SettingService) GetDatepicker() (string, error) {
 func (s *SettingService) GetWarp() (string, error) {
 	return s.getString("warp")
 }
+
 func (s *SettingService) SetWarp(data string) error {
 	return s.setString("warp", data)
 }

@@ -382,7 +382,6 @@ func (s *ServerService) UpdateXray(version string) error {
 	}
 
 	return nil
-
 }
 
 func (s *ServerService) GetLogs(count string, level string, syslog string) []string {

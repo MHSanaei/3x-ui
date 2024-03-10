@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"x-ui/config"
 	"x-ui/database"
 	"x-ui/database/model"
@@ -26,12 +27,14 @@ import (
 	"github.com/valyala/fasthttp/fasthttpproxy"
 )
 
-var bot *telego.Bot
-var botHandler *th.BotHandler
-var adminIds []int64
-var isRunning bool
-var hostname string
-var hashStorage *global.HashStorage
+var (
+	bot         *telego.Bot
+	botHandler  *th.BotHandler
+	adminIds    []int64
+	isRunning   bool
+	hostname    string
+	hashStorage *global.HashStorage
+)
 
 type LoginStatus byte
 
@@ -280,7 +283,6 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 }
 
 func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
-
 	chatId := callbackQuery.Message.GetChat().ID
 
 	if isAdmin {
@@ -866,7 +868,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 			Text:      message,
 			ParseMode: "HTML",
 		}
-		//only add replyMarkup to last message
+		// only add replyMarkup to last message
 		if len(replyMarkup) > 0 && n == (len(allMessages)-1) {
 			params.ReplyMarkup = replyMarkup[0]
 		}
@@ -1030,9 +1032,15 @@ func (t *Tgbot) getInboundUsages() string {
 	return info
 }
 
-func (t *Tgbot) clientInfoMsg(traffic *xray.ClientTraffic, printEnabled bool, printOnline bool, printActive bool,
-	printDate bool, printTraffic bool, printRefreshed bool) string {
-
+func (t *Tgbot) clientInfoMsg(
+	traffic *xray.ClientTraffic,
+	printEnabled bool,
+	printOnline bool,
+	printActive bool,
+	printDate bool,
+	printTraffic bool,
+	printRefreshed bool,
+) string {
 	now := time.Now().Unix()
 	expiryTime := ""
 	flag := false
@@ -1544,7 +1552,6 @@ func (t *Tgbot) sendBackup(chatId int64) {
 		}
 	} else {
 		logger.Error("Error in opening db file for backup: ", err)
-
 	}
 
 	file, err = os.Open(xray.GetConfigPath())

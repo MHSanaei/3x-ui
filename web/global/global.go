@@ -7,8 +7,10 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var webServer WebServer
-var subServer SubServer
+var (
+	webServer WebServer
+	subServer SubServer
+)
 
 type WebServer interface {
 	GetCron() *cron.Cron
