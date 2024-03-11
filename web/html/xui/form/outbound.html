@@ -401,7 +401,6 @@
 </template>
 
 <!-- sockopt settings -->
-<template v-if="outbound.canEnableStream()">
     <a-form-item label="Sockopts">
         <a-switch v-model="outbound.stream.sockoptSwitch"></a-switch>
     </a-form-item>
@@ -420,7 +419,6 @@
         <a-form-item label="TCP No-Delay">
             <a-switch v-model="outbound.stream.sockopt.tcpNoDelay"></a-switch>
         </a-form-item>
-    </template>
 </template>
 
 </a-form>
