@@ -421,6 +421,24 @@
         </a-form-item>
 </template>
 
+<!-- mux settings -->
+<a-form-item label="Mux">
+    <a-switch v-model="outbound.mux.enabled"></a-switch>
+</a-form-item>
+<template v-if="outbound.mux.enabled">
+    <a-form-item label="Concurrency">
+        <a-input-number v-model="outbound.mux.concurrency" :min="-1" :max="1024"></a-input-number>
+    </a-form-item>
+    <a-form-item label="xudp Concurrency">
+        <a-input-number v-model="outbound.mux.xudpConcurrency" :min="-1" :max="1024"></a-input-number>
+    </a-form-item>
+    <a-form-item label="xudp UDP 443">
+        <a-select v-model="outbound.mux.xudpProxyUDP443" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="c in ['reject', 'allow', 'skip']" :value="c">[[ c ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+</template>
+
 </a-form>
 </a-tab-pane>
 <a-tab-pane key="2" tab="JSON" force-render="true">

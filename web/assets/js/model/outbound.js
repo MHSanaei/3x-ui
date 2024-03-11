@@ -466,18 +466,49 @@ class StreamSettings extends CommonClass {
     }
 }
 
+class Mux extends CommonClass {
+    constructor(enabled = false, concurrency = 8, xudpConcurrency = 16, xudpProxyUDP443 = "reject") {
+        super();
+        this.enabled = enabled;
+        this.concurrency = concurrency;
+        this.xudpConcurrency = xudpConcurrency;
+        this.xudpProxyUDP443 = xudpProxyUDP443;
+    }
+
+    static fromJson(json = {}) {
+        if (Object.keys(json).length === 0) return undefined;
+        return new SockoptStreamSettings(
+            json.enabled,
+            json.concurrency,
+            json.xudpConcurrency,
+            json.xudpProxyUDP443,
+        );
+    }
+
+    toJson() {
+        return {
+            enabled: this.enabled,
+            concurrency: this.concurrency,
+            xudpConcurrency: this.xudpConcurrency,
+            xudpProxyUDP443: this.xudpProxyUDP443,
+        };
+    }
+}
+
 class Outbound extends CommonClass {
     constructor(
         tag='',
         protocol=Protocols.VMess,
         settings=null,
         streamSettings = new StreamSettings(),
+        mux = new Mux(),
     ) {
         super();
         this.tag = tag;
         this._protocol = protocol;
         this.settings = settings == null ? Outbound.Settings.getSettings(protocol) : settings;
         this.stream = streamSettings;
+        this.mux = mux;
     }
 
     get protocol() {
@@ -542,6 +573,7 @@ class Outbound extends CommonClass {
             json.protocol,
             Outbound.Settings.fromJson(json.protocol, json.settings),
             StreamSettings.fromJson(json.streamSettings),
+            Mux.fromJson(json.mux),
         )
     }
 
@@ -551,6 +583,7 @@ class Outbound extends CommonClass {
             protocol: this.protocol,
             settings: this.settings instanceof CommonClass ? this.settings.toJson() : this.settings,
             streamSettings: this.canEnableStream() ? this.stream.toJson() : undefined,
+            mux: this.mux?.enabled ? this.mux : undefined,
         };
     }
 
@@ -608,7 +641,6 @@ class Outbound extends CommonClass {
                 json.allowInsecure);
         }
 
-
         return new Outbound(json.ps, Protocols.VMess, new Outbound.VmessSettings(json.add, json.port, json.id), stream);
     }
 
@@ -657,7 +689,7 @@ class Outbound extends CommonClass {
             let sni=url.searchParams.get('sni') ?? '';
             let sid=url.searchParams.get('sid') ?? '';
             let spx=url.searchParams.get('spx') ?? '';
-            stream.reality  = new RealityStreamSettings(pbk, fp, sni, sid, spx);
+            stream.reality = new RealityStreamSettings(pbk, fp, sni, sid, spx);
         }
 
         let data = link.split('?');
