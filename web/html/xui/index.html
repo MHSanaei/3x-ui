@@ -259,17 +259,13 @@
         </a-layout-content>
     </a-layout>
 
-    <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}'
-             :closable="true" @ok="() => versionModal.visible = false"
-             :class="themeSwitcher.currentTheme"
-             footer="">
+    <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}' :closable="true"
+        @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
         <a-alert type="warning" style="margin-bottom: 12px; width: fit-content"
-        message='{{ i18n "pages.index.xraySwitchClickDesk" }}'
-        show-icon
-        ></a-alert>
+            message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
         <template v-for="version, index in versionModal.versions">
-            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'"
-                   style="margin-right: 10px" @click="switchV2rayVersion(version)">
+            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'" style="margin-right: 12px; margin-bottom: 12px"
+                @click="switchV2rayVersion(version)">
                 [[ version ]]
             </a-tag>
         </template>

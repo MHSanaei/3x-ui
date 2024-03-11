@@ -1,4 +1,5 @@
 {
+  "remarks": "",
   "dns": {
     "tag": "dns_out",
     "queryStrategy": "UseIP",
@@ -78,28 +79,9 @@
       {
         "type": "field",
         "network": "tcp,udp",
-        "balancerTag": "all"
-      }
-    ],
-    "balancers": [
-      {
-        "tag": "all",
-        "selector": [
-          "proxy"
-        ],
-        "strategy": {
-          "type": "leastPing"
-        }
+        "outboundTag": "proxy"
       }
     ]
-  },
-  "observatory": {
-    "probeInterval": "5m",
-    "probeURL": "https://api.github.com/_private/browser/stats",
-    "subjectSelector": [
-      "proxy"
-    ],
-    "EnableConcurrency": true
   },
   "stats": {}
 }
