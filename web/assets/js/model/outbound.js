@@ -477,7 +477,7 @@ class Mux extends CommonClass {
 
     static fromJson(json = {}) {
         if (Object.keys(json).length === 0) return undefined;
-        return new SockoptStreamSettings(
+        return new Mux(
             json.enabled,
             json.concurrency,
             json.xudpConcurrency,
