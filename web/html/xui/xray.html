@@ -537,6 +537,8 @@
                                 <template slot="strategy" slot-scope="text, balancer, index">
                                     <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
                                     <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastload'" color="green">Least Load</a-tag>
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastping'" color="green">Least Ping</a-tag>
                                 </template>
                                 <template slot="selector" slot-scope="text, balancer, index">
                                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
@@ -1131,7 +1133,7 @@
                             'tag': balancer.tag,
                             'selector': balancer.selector
                         };
-                        if (balancer.strategy == 'roundRobin') {
+                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
                             tmpBalancer.strategy = {
                                 'type': balancer.strategy
                             };
@@ -1158,7 +1160,7 @@
                             'tag': balancer.tag,
                             'selector': balancer.selector
                         };
-                        if (balancer.strategy == 'roundRobin') {
+                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
                             tmpBalancer.strategy = {
                                 'type': balancer.strategy
                             };
@@ -1474,11 +1476,11 @@
                     if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
                         this.templateSettings.routing.balancers.forEach((o, index) => {
                             let strategy = "random"
-                            if (o.strategy && o.strategy.type == "roundRobin") {
-                                strategy = o.strategy.type
+                            if (o.strategy && (o.strategy.type == "roundRobin" || o.strategy.type == "leastload" || o.strategy.type == "leastping")) {
+                                strategy = o.strategy.type;
                             }
 
-                            data.push({ 
+                            data.push({
                                 'key': index,
                                 'tag': o.tag ? o.tag : "",
                                 'strategy': strategy,
