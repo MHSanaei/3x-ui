@@ -1408,21 +1408,16 @@
             templateSettings: {
                 get: function () {
                     const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
-                    let accessLogPath = "./access.log";
-                    let errorLogPath = "./error.log";
-                    if (parsedSettings) {
-                        // if its set to "none" add default value
-                        if (parsedSettings.log.access !== "none") accessLogPath = parsedSettings.log.access;
-                        if (parsedSettings.log.error !== "none") errorLogPath = parsedSettings.log.error;
-                    }
-                    this.access = ["none", accessLogPath];
-                    this.error = ["none", errorLogPath];
+                    const setLogPath = (type, defaultValue) => parsedSettings?.log?.[type] !== "none" ? parsedSettings.log[type] : defaultValue;
+                    this.access = ["none", setLogPath("access", "./access.log")];
+                    this.error = ["none", setLogPath("error", "./error.log")];
                     return parsedSettings;
                 },
                 set: function (newValue) {
                     this.xraySetting = JSON.stringify(newValue, null, 2);
-                    this.access = ["none", newValue.log.access];
-                    this.error = ["none", newValue.log.error];
+                    const setLogPath = (type, defaultValue) => newValue.log?.[type] ? newValue.log[type] : defaultValue;
+                    this.access = ["none", setLogPath("access", "./access.log")];
+                    this.error = ["none", setLogPath("error", "./error.log")];
                 },
             },
             inboundSettings: {
