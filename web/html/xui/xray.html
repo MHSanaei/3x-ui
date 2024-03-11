@@ -546,6 +546,7 @@
                         <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
                             <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                             <template v-if="enableDNS">
+                                <setting-list-item type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
                                 <a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
@@ -2027,7 +2028,17 @@
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP" } : null;
+                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP", tag: "dns_inbound" } : null;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsTag: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.tag : "";
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.tag =  newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },
