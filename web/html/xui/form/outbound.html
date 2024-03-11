@@ -351,7 +351,7 @@
         <a-radio-group v-model="outbound.stream.security" button-style="solid">
             <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
             <a-radio-button value="tls">TLS</a-radio-button>
-            <a-radio-button v-if="outbound.canEnableReality()" value="reality">REALITY</a-radio-button>
+            <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
         </a-radio-group>
     </a-form-item>
     <template v-if="outbound.stream.isTls">
@@ -399,6 +399,30 @@
         </a-form-item>
     </template>
 </template>
+
+<!-- sockopt settings -->
+<template v-if="outbound.canEnableStream()">
+    <a-form-item label="Sockopts">
+        <a-switch v-model="outbound.stream.sockoptSwitch"></a-switch>
+    </a-form-item>
+    <template v-if="outbound.stream.sockoptSwitch">
+        <a-form-item label="Dialer Proxy">
+            <a-select v-model="outbound.stream.sockopt.dialerProxy" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in ['', ...outModal.tags]" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="TCP Fast Open">
+            <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
+        </a-form-item>
+        <a-form-item label="Keep Alive Interval">
+            <a-input-number v-model="outbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label="TCP No-Delay">
+            <a-switch v-model="outbound.stream.sockopt.tcpNoDelay"></a-switch>
+        </a-form-item>
+    </template>
+</template>
+
 </a-form>
 </a-tab-pane>
 <a-tab-pane key="2" tab="JSON" force-render="true">
