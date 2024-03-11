@@ -11,6 +11,7 @@ import (
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/util/common"
+	"x-ui/util/random"
 	"x-ui/web/service"
 	"x-ui/xray"
 
@@ -402,25 +403,21 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		if realitySetting != nil {
 			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
 				sNames, _ := sniValue.([]interface{})
-				params["sni"], _ = sNames[0].(string)
+				params["sni"] = sNames[random.Num(len(sNames))].(string)
 			}
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
 			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
 				shortIds, _ := sidValue.([]interface{})
-				params["sid"], _ = shortIds[0].(string)
+				params["sid"] = shortIds[random.Num(len(shortIds))].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
 				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
 					params["fp"] = fp
 				}
 			}
-			if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
-				if spx, ok := spxValue.(string); ok && len(spx) > 0 {
-					params["spx"] = spx
-				}
-			}
+			params["spx"] = "/" + random.Seq(15)
 		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
@@ -619,25 +616,21 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		if realitySetting != nil {
 			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
 				sNames, _ := sniValue.([]interface{})
-				params["sni"], _ = sNames[0].(string)
+				params["sni"] = sNames[random.Num(len(sNames))].(string)
 			}
 			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
 				params["pbk"], _ = pbkValue.(string)
 			}
 			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
 				shortIds, _ := sidValue.([]interface{})
-				params["sid"], _ = shortIds[0].(string)
+				params["sid"] = shortIds[random.Num(len(shortIds))].(string)
 			}
 			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
 				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
 					params["fp"] = fp
 				}
 			}
-			if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
-				if spx, ok := spxValue.(string); ok && len(spx) > 0 {
-					params["spx"] = spx
-				}
-			}
+			params["spx"] = "/" + random.Seq(15)
 		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
