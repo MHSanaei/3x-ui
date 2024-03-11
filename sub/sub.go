@@ -145,21 +145,19 @@ func (s *Server) Start() (err error) {
 
 	if certFile != "" || keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err != nil {
-			listener.Close()
-			return err
+		if err == nil {
+			c := &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+			listener = network.NewAutoHttpsListener(listener)
+			listener = tls.NewListener(listener, c)
+			logger.Info("sub server run https on", listener.Addr())
+		} else {
+			logger.Error("error in loading certificates: ", err)
+			logger.Info("sub server run http on", listener.Addr())
 		}
-		c := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-		}
-		listener = network.NewAutoHttpsListener(listener)
-		listener = tls.NewListener(listener, c)
-	}
-
-	if certFile != "" || keyFile != "" {
-		logger.Info("Sub server run https on", listener.Addr())
 	} else {
-		logger.Info("Sub server run http on", listener.Addr())
+		logger.Info("sub server run http on", listener.Addr())
 	}
 	s.listener = listener
 
