@@ -1184,22 +1184,21 @@
             deleteBalancer(index) {
                 newTemplateSettings = this.templateSettings;
 
-                //remove from balancers
-                const oldTag = this.balancersData[index].tag;
-                this.balancersData.splice(index, 1);
+                // Remove from balancers
+                const removedBalancer = this.balancersData.splice(index, 1)[0];
 
-                // remove from settings
-                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag == oldTag);
+                // Remove from settings
+                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag === removedBalancer.tag);
                 newTemplateSettings.routing.balancers.splice(realIndex, 1);
 
-                // remove related routing rules
-                let rules = [];
-                newTemplateSettings.routing.rules.forEach((r) => {
-                    if (!r.balancerTag || r.balancerTag != oldTag) {
-                        rules.push(r);
-                    }
-                });
+                // Remove related routing rules
+                let rules = newTemplateSettings.routing.rules.filter((r) => !r.balancerTag || r.balancerTag !== removedBalancer.tag);
                 newTemplateSettings.routing.rules = rules;
+
+                // Update balancers property to an empty array if there are no more balancers
+                if (newTemplateSettings.routing.balancers.length === 0) {
+                    delete newTemplateSettings.routing.balancers;
+                }
                 this.templateSettings = newTemplateSettings;
             },
             addReverse(){
@@ -2025,7 +2024,13 @@
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP", tag: "dns_inbound" } : null;
+                    if (newValue) {
+                        newTemplateSettings.dns = { servers: [], queryStrategy: "UseIP", tag: "dns_inbound" };
+                        newTemplateSettings.fakedns = null; 
+                    } else {
+                        delete newTemplateSettings.dns;
+                        delete newTemplateSettings.fakedns;
+                    }
                     this.templateSettings = newTemplateSettings;
                 }
             },
@@ -2061,7 +2066,11 @@
                 get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.fakedns = newValue.length >0 ? newValue : null;
+                    if (this.enableDNS) {
+                        newTemplateSettings.fakedns = newValue.length > 0 ? newValue : null;
+                    } else {
+                        delete newTemplateSettings.fakedns;
+                    }
                     this.templateSettings = newTemplateSettings;
                 }
             }
