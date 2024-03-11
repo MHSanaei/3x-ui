@@ -969,7 +969,7 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 		s.xrayApi.Init(p.GetAPIPort())
 		for _, tag := range tags {
 			err1 := s.xrayApi.DelInbound(tag)
-			if err == nil {
+			if err1 == nil {
 				logger.Debug("Inbound disabled by api:", tag)
 			} else {
 				logger.Debug("Error in disabling inbound by api:", err1)
