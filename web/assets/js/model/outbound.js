@@ -397,6 +397,7 @@ class StreamSettings extends CommonClass {
                 quicSettings=new QuicStreamSettings(),
                 grpcSettings=new GrpcStreamSettings(),
                 httpupgradeSettings=new HttpUpgradeStreamSettings(),
+                sockopt = undefined,
                 ) {
         super();
         this.network = network;
@@ -410,6 +411,7 @@ class StreamSettings extends CommonClass {
         this.quic = quicSettings;
         this.grpc = grpcSettings;
         this.httpupgrade = httpupgradeSettings;
+        this.sockopt = sockopt;
     }
     
     get isTls() {
@@ -441,6 +443,7 @@ class StreamSettings extends CommonClass {
             QuicStreamSettings.fromJson(json.quicSettings),
             GrpcStreamSettings.fromJson(json.grpcSettings),
             HttpUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
+            SockoptStreamSettings.fromJson(json.sockopt),
         );
     }
 
