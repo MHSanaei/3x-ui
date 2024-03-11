@@ -467,6 +467,8 @@
 [pages.xray.dns]
 "enable" = "Enable DNS"
 "enableDesc" = "Enable built-in DNS server"
+"tag" = "DNS Inbound Tag"
+"tagDesc" = "This tag will be available as an Inbound tag in routing rules."
 "strategy" = "Query Strategy"
 "strategyDesc" = "Overall strategy to resolve domain names"
 "add" = "Add Server"

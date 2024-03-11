@@ -467,6 +467,8 @@
 [pages.xray.dns]
 "enable" = "Kích hoạt DNS"
 "enableDesc" = "Kích hoạt máy chủ DNS tích hợp"
+"tag" = "Thẻ gửi đến DNS"
+"tagDesc" = "Thẻ này sẽ có sẵn dưới dạng thẻ Gửi đến trong quy tắc định tuyến."
 "strategy" = "Chiến lược truy vấn"
 "strategyDesc" = "Chiến lược tổng thể để phân giải tên miền"
 "add" = "Thêm máy chủ"
