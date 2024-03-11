@@ -51,7 +51,14 @@ const OutboundDomainStrategies = [
     "AsIs",
     "UseIP",
     "UseIPv4",
-    "UseIPv6"
+    "UseIPv6",
+    "UseIPv6v4",
+    "UseIPv4v6",
+    "ForceIP",
+    "ForceIPv6v4",
+    "ForceIPv6",
+    "ForceIPv4v6",
+    "ForceIPv4"
 ];
 
 const WireguardDomainStrategy = [
