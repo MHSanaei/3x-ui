@@ -578,11 +578,18 @@ class Outbound extends CommonClass {
     }
 
     toJson() {
+        var stream;
+        if (this.canEnableStream()) {
+            stream = this.stream.toJson();
+        } else {
+            if (this.stream?.sockopt)
+                stream = { sockopt: this.stream.sockopt.toJson() };
+        }
         return {
             tag: this.tag == '' ? undefined : this.tag,
             protocol: this.protocol,
             settings: this.settings instanceof CommonClass ? this.settings.toJson() : this.settings,
-            streamSettings: this.canEnableStream() ? this.stream.toJson() : undefined,
+            streamSettings: stream,
             mux: this.mux?.enabled ? this.mux : undefined,
         };
     }
