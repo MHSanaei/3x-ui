@@ -369,13 +369,13 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
     ![Botfather](./media/botfather.png)
   
 - 使用 /newbot 创建新机器人：你需要提供机器人名称以及用户名，注意名称中末尾要包含“bot”
-    ![c](./media/ne创建机器人bot.png)
+    ![创建机器人](./media/newbot.png)
 
 - 启动您刚刚创建的机器人。可以在此处找到机器人的链接。
     ![令牌](.media/token.png)
 
 - 输入您的面板并配置 Telegram 机器人设置，如下所示：
-![面板设置](./media/anel-bot-config.png)
+    ![面板设置](./media/panel-bot-config.png)
 
 在输入字段编号 3 中输入机器人令牌。
 在输入字段编号 4 中输入用户 ID。具有此 id 的 Telegram 帐户将是机器人管理员。 （您可以输入多个，只需将它们用“ ，”分开即可）
