@@ -14,3 +14,17 @@ axios.interceptors.request.use(
     },
     (error) => Promise.reject(error),
 );
+
+axios.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response) {
+            const statusCode = error.response.status;
+            // Check the status code
+            if (statusCode === 401) { // Unauthorized
+                return window.location.reload();
+            }
+        }
+        return Promise.reject(error);
+    }
+);

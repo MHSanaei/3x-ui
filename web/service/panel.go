@@ -4,11 +4,11 @@ import (
 	"os"
 	"syscall"
 	"time"
+
 	"x-ui/logger"
 )
 
-type PanelService struct {
-}
+type PanelService struct{}
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {
 	p, err := os.FindProcess(syscall.Getpid())

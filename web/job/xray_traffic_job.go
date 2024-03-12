@@ -36,5 +36,4 @@ func (j *XrayTrafficJob) Run() {
 	if needRestart0 || needRestart1 {
 		j.xrayService.SetToNeedRestart()
 	}
-
 }

@@ -180,7 +180,7 @@
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                                    <a-select-option v-for="s in access" :value="s">[[ s ]]</a-select-option>
+                                                    <a-select-option v-for="s in access" :key="s" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
@@ -193,7 +193,7 @@
                                         <a-col :lg="24" :xl="12">
                                             <template>
                                                 <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                                    <a-select-option v-for="s in error" :value="s">[[ s ]]</a-select-option>
+                                                    <a-select-option v-for="s in error" :key="s" :value="s">[[ s ]]</a-select-option>
                                                 </a-select>
                                             </template>
                                         </a-col>
@@ -537,6 +537,8 @@
                                 <template slot="strategy" slot-scope="text, balancer, index">
                                     <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
                                     <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastload'" color="green">Least Load</a-tag>
+                                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastping'" color="green">Least Ping</a-tag>
                                 </template>
                                 <template slot="selector" slot-scope="text, balancer, index">
                                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
@@ -546,6 +548,7 @@
                         <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
                             <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                             <template v-if="enableDNS">
+                                <setting-list-item type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
                                 <a-list-item>
                                     <a-row style="padding: 20px">
                                         <a-col :lg="24" :xl="12">
@@ -765,8 +768,8 @@
             },
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
             logLevel: ["none" , "debug" , "info" , "warning", "error"],
-            access: ["none" , "./access.log" ],
-            error: ["none" , "./error.log" ],
+            access: [],
+            error: [],
             settingsData: {
                 protocols: {
                     bittorrent: ["bittorrent"],
@@ -869,10 +872,10 @@
             },
             async getXrayResult() {
                 const msg = await HttpUtil.get("/panel/xray/getXrayResult");
-                    if(msg.success){
-                        this.restartResult=msg.obj;
-                        if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
-                    }
+                if (msg.success) {
+                    this.restartResult=msg.obj;
+                    if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
+                }
             },
             async fetchUserSecret() {
                 this.loading(true);
@@ -910,9 +913,9 @@
             },
             async toggleToken(value) {
                 if (value) {
-                await this.getNewSecret();
+                    await this.getNewSecret();
                 } else {
-                this.user.loginSecret = "";
+                    this.user.loginSecret = "";
                 }
             },
             async resetXrayConfigToDefault() {
@@ -1001,7 +1004,7 @@
                 this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
                 this.cm.on('change',editor => {
                     value = editor.getValue();
-                    if(this.isJsonString(value)){
+                    if (this.isJsonString(value)) {
                         this[this.advSettings] = value;
                     }
                 });
@@ -1130,7 +1133,7 @@
                             'tag': balancer.tag,
                             'selector': balancer.selector
                         };
-                        if (balancer.strategy == 'roundRobin') {
+                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
                             tmpBalancer.strategy = {
                                 'type': balancer.strategy
                             };
@@ -1157,7 +1160,7 @@
                             'tag': balancer.tag,
                             'selector': balancer.selector
                         };
-                        if (balancer.strategy == 'roundRobin') {
+                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
                             tmpBalancer.strategy = {
                                 'type': balancer.strategy
                             };
@@ -1181,22 +1184,21 @@
             deleteBalancer(index) {
                 newTemplateSettings = this.templateSettings;
 
-                //remove from balancers
-                const oldTag = this.balancersData[index].tag;
-                this.balancersData.splice(index, 1);
+                // Remove from balancers
+                const removedBalancer = this.balancersData.splice(index, 1)[0];
 
-                // remove from settings
-                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag == oldTag);
+                // Remove from settings
+                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag === removedBalancer.tag);
                 newTemplateSettings.routing.balancers.splice(realIndex, 1);
 
-                // remove related routing rules
-                let rules = [];
-                newTemplateSettings.routing.rules.forEach((r) => {
-                    if (!r.balancerTag || r.balancerTag != oldTag) {
-                        rules.push(r);
-                    }
-                });
+                // Remove related routing rules
+                let rules = newTemplateSettings.routing.rules.filter((r) => !r.balancerTag || r.balancerTag !== removedBalancer.tag);
                 newTemplateSettings.routing.rules = rules;
+
+                // Update balancers property to an empty array if there are no more balancers
+                if (newTemplateSettings.routing.balancers.length === 0) {
+                    delete newTemplateSettings.routing.balancers;
+                }
                 this.templateSettings = newTemplateSettings;
             },
             addReverse(){
@@ -1403,8 +1405,19 @@
         },
         computed: {
             templateSettings: {
-                get: function () { return this.xraySetting ? JSON.parse(this.xraySetting) : null; },
-                set: function (newValue) { this.xraySetting = JSON.stringify(newValue, null, 2); },
+                get: function () {
+                    const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
+                    const setLogPath = (type, defaultValue) => parsedSettings?.log?.[type] !== "none" ? parsedSettings.log[type] : defaultValue;
+                    this.access = ["none", setLogPath("access", "./access.log")];
+                    this.error = ["none", setLogPath("error", "./error.log")];
+                    return parsedSettings;
+                },
+                set: function (newValue) {
+                    this.xraySetting = JSON.stringify(newValue, null, 2);
+                    const setLogPath = (type, defaultValue) => newValue.log?.[type] ? newValue.log[type] : defaultValue;
+                    this.access = ["none", setLogPath("access", "./access.log")];
+                    this.error = ["none", setLogPath("error", "./error.log")];
+                },
             },
             inboundSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
@@ -1457,11 +1470,11 @@
                     if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
                         this.templateSettings.routing.balancers.forEach((o, index) => {
                             let strategy = "random"
-                            if (o.strategy && o.strategy.type == "roundRobin") {
-                                strategy = o.strategy.type
+                            if (o.strategy && (o.strategy.type == "roundRobin" || o.strategy.type == "leastload" || o.strategy.type == "leastping")) {
+                                strategy = o.strategy.type;
                             }
 
-                            data.push({ 
+                            data.push({
                                 'key': index,
                                 'tag': o.tag ? o.tag : "",
                                 'strategy': strategy,
@@ -2011,7 +2024,23 @@
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.dns =  newValue ? { servers: [], queryStrategy: "UseIP" } : null;
+                    if (newValue) {
+                        newTemplateSettings.dns = { servers: [], queryStrategy: "UseIP", tag: "dns_inbound" };
+                        newTemplateSettings.fakedns = null; 
+                    } else {
+                        delete newTemplateSettings.dns;
+                        delete newTemplateSettings.fakedns;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsTag: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.tag : "";
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.tag =  newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },
@@ -2037,7 +2066,11 @@
                 get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.fakedns = newValue.length >0 ? newValue : null;
+                    if (this.enableDNS) {
+                        newTemplateSettings.fakedns = newValue.length > 0 ? newValue : null;
+                    } else {
+                        delete newTemplateSettings.fakedns;
+                    }
                     this.templateSettings = newTemplateSettings;
                 }
             }

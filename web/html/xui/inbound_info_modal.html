@@ -25,7 +25,7 @@
                 <tr>
                     <td>{{ i18n "transmission" }}</td><td><a-tag color="green">[[ inbound.network ]]</a-tag></td>
                 </tr>
-            <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2">
+            <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2 || inbound.isHttpupgrade ">
                 <tr>
                     <td>{{ i18n "host" }}</td>
                     <td v-if="inbound.host">

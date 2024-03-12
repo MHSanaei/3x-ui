@@ -38,7 +38,6 @@
                     :options="reverseModal.inboundTags"></a-checkbox-group>
             </a-form-item>
         </template>
-    </table>
     </a-form>
 </a-modal>
 <script>
@@ -114,6 +113,7 @@
             this.isEdit = isEdit;
             this.inboundTags = app.templateSettings.inbounds.filter((i) => !ObjectUtil.isEmpty(i.tag)).map(obj => obj.tag);
             this.inboundTags.push(...app.inboundTags);
+            if (app.enableDNS && !ObjectUtil.isEmpty(app.dnsTag)) this.inboundTags.push(app.dnsTag)
             this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
         },
         close() {

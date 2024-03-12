@@ -3,6 +3,7 @@ package job
 import (
 	"io"
 	"os"
+
 	"x-ui/logger"
 	"x-ui/xray"
 )
@@ -17,7 +18,7 @@ func NewClearLogsJob() *ClearLogsJob {
 func (j *ClearLogsJob) Run() {
 	logFiles := []string{xray.GetIPLimitLogPath(), xray.GetIPLimitBannedLogPath(), xray.GetAccessPersistentLogPath()}
 	logFilesPrev := []string{xray.GetIPLimitBannedPrevLogPath(), xray.GetAccessPersistentPrevLogPath()}
-	
+
 	// clear old previous logs
 	for i := 0; i < len(logFilesPrev); i++ {
 		if err := os.Truncate(logFilesPrev[i], 0); err != nil {
@@ -43,7 +44,7 @@ func (j *ClearLogsJob) Run() {
 			if err != nil {
 				logger.Warning("clear logs job err:", err)
 			}
-			
+
 			logFile.Close()
 			logFilePrev.Close()
 		}

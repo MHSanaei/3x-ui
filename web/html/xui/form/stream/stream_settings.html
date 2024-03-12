@@ -2,14 +2,15 @@
 <!-- select stream network -->
 <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "transmission" }}'>
-        <a-select v-model="inbound.stream.network" style="width: 50%" @change="streamNetworkChange"
+        <a-select v-model="inbound.stream.network" style="width: 75%" @change="streamNetworkChange"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
-            <a-select-option value="ws">WS</a-select-option>
+            <a-select-option value="ws">WebSocket</a-select-option>
             <a-select-option value="http">H2</a-select-option>
             <a-select-option value="quic">QUIC</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
+            <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
         </a-select>
     </a-form-item>
 </a-form>
@@ -43,6 +44,12 @@
 <template v-if="inbound.stream.network === 'grpc'">
     {{template "form/streamGRPC"}}
 </template>
+
+<!-- httpupgrade -->
+<template v-if="inbound.stream.network === 'httpupgrade'">
+    {{template "form/streamHTTPUpgrade"}}
+</template>
+
 <!-- sockopt -->
 <template>
     {{template "form/streamSockopt"}}

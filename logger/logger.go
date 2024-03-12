@@ -8,12 +8,14 @@ import (
 	"github.com/op/go-logging"
 )
 
-var logger *logging.Logger
-var logBuffer []struct {
-	time  string
-	level logging.Level
-	log   string
-}
+var (
+	logger    *logging.Logger
+	logBuffer []struct {
+		time  string
+		level logging.Level
+		log   string
+	}
+)
 
 func init() {
 	InitLogger(logging.INFO)

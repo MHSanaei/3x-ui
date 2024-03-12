@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -90,7 +91,6 @@ func (s *InboundService) getAllEmails() ([]string, error) {
 		FROM inbounds,
 			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
 		`).Scan(&emails).Error
-
 	if err != nil {
 		return nil, err
 	}
@@ -573,21 +573,30 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	}
 
 	oldEmail := ""
+	newClientId := ""
 	clientIndex := 0
 	for index, oldClient := range oldClients {
 		oldClientId := ""
 		if oldInbound.Protocol == "trojan" {
 			oldClientId = oldClient.Password
+			newClientId = clients[0].Password
 		} else if oldInbound.Protocol == "shadowsocks" {
 			oldClientId = oldClient.Email
+			newClientId = clients[0].Email
 		} else {
 			oldClientId = oldClient.ID
+			newClientId = clients[0].ID
 		}
 		if clientId == oldClientId {
 			oldEmail = oldClient.Email
 			clientIndex = index
 			break
 		}
+	}
+
+	// Validate new client ID
+	if newClientId == "" {
+		return false, common.NewError("empty client ID")
 	}
 
 	if len(clients[0].Email) > 0 && clients[0].Email != oldEmail {
@@ -682,7 +691,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	return needRestart, tx.Save(oldInbound).Error
 }
 
-func (s *InboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
+func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
 	var err error
 	db := database.GetDB()
 	tx := db.Begin()
@@ -694,7 +703,7 @@ func (s *InboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*
 			tx.Commit()
 		}
 	}()
-	err = s.addInboundTraffic(tx, traffics)
+	err = s.addInboundTraffic(tx, inboundTraffics)
 	if err != nil {
 		return err, false
 	}
@@ -1071,7 +1080,9 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"email":       client.Email,
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
-			"reset":       client.Reset})
+			"reset":       client.Reset,
+		})
+
 	err := result.Error
 	return err
 }

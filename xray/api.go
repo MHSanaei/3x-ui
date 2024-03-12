@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+
 	"x-ui/logger"
 	"x-ui/util/common"
 
@@ -162,8 +163,8 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
 	}
-	var trafficRegex = regexp.MustCompile("(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
-	var ClientTrafficRegex = regexp.MustCompile("(user)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
+	trafficRegex := regexp.MustCompile("(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
+	ClientTrafficRegex := regexp.MustCompile("(user)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
 
 	client := *x.StatsServiceClient
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)

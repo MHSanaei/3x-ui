@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/web/entity"
@@ -48,18 +49,11 @@ func jsonMsgObj(c *gin.Context, msg string, obj interface{}, err error) {
 	c.JSON(http.StatusOK, m)
 }
 
-func pureJsonMsg(c *gin.Context, success bool, msg string) {
-	if success {
-		c.JSON(http.StatusOK, entity.Msg{
-			Success: true,
-			Msg:     msg,
-		})
-	} else {
-		c.JSON(http.StatusOK, entity.Msg{
-			Success: false,
-			Msg:     msg,
-		})
-	}
+func pureJsonMsg(c *gin.Context, statusCode int, success bool, msg string) {
+	c.JSON(statusCode, entity.Msg{
+		Success: success,
+		Msg:     msg,
+	})
 }
 
 func html(c *gin.Context, name string, title string, data gin.H) {
