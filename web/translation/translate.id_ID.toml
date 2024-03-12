@@ -446,6 +446,10 @@
 "bridge" = "Jembatan"
 "portal" = "Portal"
 "intercon" = "Interkoneksi"
+"settings" = "Pengaturan"
+"accountInfo" = "Informasi Akun"
+"outboundStatus" = "Status Keluar"
+"sendThrough" = "Kirim Melalui"
 
 [pages.xray.balancer]
 "addBalancer" = "Tambahkan Penyeimbang"

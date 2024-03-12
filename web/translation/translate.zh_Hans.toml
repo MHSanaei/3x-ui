@@ -446,6 +446,10 @@
 "bridge" = "Bridge"
 "portal" = "Portal"
 "intercon" = "互连"
+"settings" = "设置"
+"accountInfo" = "帐户信息"
+"outboundStatus" = "出站状态"
+"sendThrough" = "发送通过"
 
 [pages.xray.balancer]
 "addBalancer" = "添加负载均衡"

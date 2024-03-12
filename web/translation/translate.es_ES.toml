@@ -446,6 +446,10 @@
 "bridge" = "puente"
 "portal" = "portal"
 "intercon" = "Interconexión"
+"settings" = "Configuración"
+"accountInfo" = "Información de la cuenta"
+"outboundStatus" = "Estado de salida"
+"sendThrough" = "Enviar a través de"
 
 [pages.xray.balancer]
 "addBalancer" = "Agregar equilibrador"

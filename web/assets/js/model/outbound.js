@@ -501,6 +501,7 @@ class Outbound extends CommonClass {
         protocol=Protocols.VMess,
         settings=null,
         streamSettings = new StreamSettings(),
+        sendThrough,
         mux = new Mux(),
     ) {
         super();
@@ -508,6 +509,7 @@ class Outbound extends CommonClass {
         this._protocol = protocol;
         this.settings = settings == null ? Outbound.Settings.getSettings(protocol) : settings;
         this.stream = streamSettings;
+        this.sendThrough = sendThrough;
         this.mux = mux;
     }
 
@@ -573,6 +575,7 @@ class Outbound extends CommonClass {
             json.protocol,
             Outbound.Settings.fromJson(json.protocol, json.settings),
             StreamSettings.fromJson(json.streamSettings),
+            json.sendThrough,
             Mux.fromJson(json.mux),
         )
     }
@@ -590,6 +593,7 @@ class Outbound extends CommonClass {
             protocol: this.protocol,
             settings: this.settings instanceof CommonClass ? this.settings.toJson() : this.settings,
             streamSettings: stream,
+            sendThrough: this.sendThrough != "" ? this.sendThrough : undefined,
             mux: this.mux?.enabled ? this.mux : undefined,
         };
     }
