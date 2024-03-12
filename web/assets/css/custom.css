@@ -755,8 +755,8 @@ style attribute {
 .dark .ant-btn-danger[disabled],
 .dark .ant-calendar-ok-btn-disabled {
     color: rgb(255 255 255 / 35%);
-    background-color: var(--dark-color-surface-300);
-    border-color: #42516c;
+    background-color: var(--dark-color-surface-200);
+    border-color: var(--dark-color-surface-300);
 }
 
 .dark
