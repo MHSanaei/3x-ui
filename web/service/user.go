@@ -79,6 +79,21 @@ func (s *UserService) GetUserSecret(id int) *model.User {
 	return user
 }
 
+func (s *UserService) CheckSecretExistence() (bool, error) {
+	db := database.GetDB()
+
+	var count int64
+	err := db.Model(model.User{}).
+		Where("login_secret IS NOT NULL").
+		Count(&count).
+		Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
 func (s *UserService) UpdateFirstUser(username string, password string) error {
 	if username == "" {
 		return errors.New("username can not be empty")
