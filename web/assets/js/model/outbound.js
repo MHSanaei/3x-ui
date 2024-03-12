@@ -257,20 +257,22 @@ class QuicStreamSettings extends CommonClass {
 }
 
 class GrpcStreamSettings extends CommonClass {
-    constructor(serviceName="", multiMode=false) {
+    constructor(serviceName="", multiMode=false, authority="") {
         super();
         this.serviceName = serviceName;
         this.multiMode = multiMode;
+        this.authority = authority;
     }
 
     static fromJson(json={}) {
-        return new GrpcStreamSettings(json.serviceName, json.multiMode);
+        return new GrpcStreamSettings(json.serviceName, json.multiMode,json.authority);
     }
 
     toJson() {
         return {
             serviceName: this.serviceName,
             multiMode: this.multiMode,
+            authority: this.authority
         }
     }
 }

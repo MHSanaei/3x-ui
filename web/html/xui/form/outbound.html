@@ -333,6 +333,9 @@
         <a-form-item label='Service Name'>
             <a-input v-model.trim="outbound.stream.grpc.serviceName"></a-input>
         </a-form-item>
+        <a-form-item label="Authority">
+            <a-input v-model.trim="outbound.stream.grpc.authority"></a-input>
+        </a-form-item>
         <a-form-item label='Multi Mode'>
             <a-switch v-model="outbound.stream.grpc.multiMode"></a-switch>
         </a-form-item>
