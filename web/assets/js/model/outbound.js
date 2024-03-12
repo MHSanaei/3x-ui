@@ -708,7 +708,7 @@ class Outbound extends CommonClass {
         let data = link.split('?');
         if(data.length != 2) return null;
 
-        const regex = /([^@]+):\/\/([^@]+)@([^:]+):(\d+)\?(.*)$/;
+        const regex = /([^@]+):\/\/([^@]+)@(.+):(\d+)\?(.*)$/;
         const match = link.match(regex);
 
         if (!match) return null;
