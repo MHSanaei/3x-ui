@@ -1182,7 +1182,7 @@
                 });
             },
             deleteBalancer(index) {
-                newTemplateSettings = this.templateSettings;
+                let newTemplateSettings = { ...this.templateSettings };
 
                 // Remove from balancers
                 const removedBalancer = this.balancersData.splice(index, 1)[0];
@@ -1192,9 +1192,12 @@
                 newTemplateSettings.routing.balancers.splice(realIndex, 1);
 
                 // Remove related routing rules
-                let rules = newTemplateSettings.routing.rules.filter((r) => !r.balancerTag || r.balancerTag !== removedBalancer.tag);
-                newTemplateSettings.routing.rules = rules;
-
+                newTemplateSettings.routing.rules.forEach((rule) => {
+                    if (rule.balancerTag === removedBalancer.tag) {
+                        delete rule.balancerTag;
+                    }
+                });
+                
                 // Update balancers property to an empty array if there are no more balancers
                 if (newTemplateSettings.routing.balancers.length === 0) {
                     delete newTemplateSettings.routing.balancers;
