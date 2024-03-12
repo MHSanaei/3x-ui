@@ -1069,10 +1069,7 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 	clientTraffic.Reset = client.Reset
 	result := tx.Create(&clientTraffic)
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
@@ -1085,12 +1082,8 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset,
 		})
-
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) UpdateClientIPs(tx *gorm.DB, oldEmail string, newEmail string) error {
@@ -1215,10 +1208,7 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId string) err
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) checkIsEnabledByEmail(clientEmail string) (bool, error) {
@@ -1365,10 +1355,7 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry_time int64) error {
@@ -1425,10 +1412,7 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, totalGB int) error {
@@ -1488,10 +1472,7 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 	}
 	inbound.Settings = string(modifiedSettings)
 	_, err = s.UpdateInboundClient(inbound, clientId)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
@@ -1584,10 +1565,7 @@ func (s *InboundService) ResetAllClientTraffics(id int) error {
 		Updates(map[string]interface{}{"enable": true, "up": 0, "down": 0})
 
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) ResetAllTraffics() error {
@@ -1598,10 +1576,7 @@ func (s *InboundService) ResetAllTraffics() error {
 		Updates(map[string]interface{}{"up": 0, "down": 0})
 
 	err := result.Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
@@ -1675,11 +1650,7 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	}
 
 	err = tx.Where(whereText+" and enable = ?", id, false).Delete(xray.ClientTraffic{}).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func (s *InboundService) GetClientTrafficTgBot(tgId string) ([]*xray.ClientTraffic, error) {
