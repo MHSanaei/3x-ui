@@ -285,6 +285,7 @@ func main() {
 	var remove_secret bool
 	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "show current settings")
+	settingCmd.BoolVar(&remove_secret, "remove_secret", false, "remove secret")
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
 	settingCmd.StringVar(&username, "username", "", "set login username")
 	settingCmd.StringVar(&password, "password", "", "set login password")
