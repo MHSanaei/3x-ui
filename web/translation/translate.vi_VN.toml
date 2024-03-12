@@ -446,6 +446,10 @@
 "bridge" = "Cầu"
 "portal" = "Cổng thông tin"
 "intercon" = "Kết nối"
+"settings" = "cài đặt"
+"accountInfo" = "Thông tin tài khoản"
+"outboundStatus" = "Trạng thái đầu ra"
+"sendThrough" = "Gửi qua"
 
 [pages.xray.balancer]
 "addBalancer" = "Thêm cân bằng"

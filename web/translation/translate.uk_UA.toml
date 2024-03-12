@@ -446,6 +446,10 @@
 "bridge" = "Міст"
 "portal" = "Портал"
 "intercon" = "Взаємозв'язок"
+"settings" = "Налаштування"
+"accountInfo" = "Інформація про обліковий запис"
+"outboundStatus" = "Статус виходу"
+"sendThrough" = "Надіслати через"
 
 [pages.xray.balancer]
 "addBalancer" = "Додати балансир"
