@@ -298,8 +298,8 @@
                                 <setting-list-item type="switch" title='Mux' v-model="enableMux"></setting-list-item>
                                 <setting-list-item type="switch" title='{{ i18n "pages.xray.directCountryConfigs"}}' desc='{{ i18n "pages.xray.directCountryConfigsDesc"}}' v-model="enableDirect"></setting-list-item>
                             </a-list>
-                            <a-collapse v-if="fragment">
-                                <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}'>
+                            <a-collapse v-if="fragment || enableMux || enableDirect">
+                                <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}' v-if="fragment">
                                     <a-list-item style="padding: 20px">
                                         <a-row>
                                             <a-col :lg="24" :xl="12">
