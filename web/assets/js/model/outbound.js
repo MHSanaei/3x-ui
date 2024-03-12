@@ -547,6 +547,10 @@ class Outbound extends CommonClass {
         return [Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol);
     }
 
+    canEnableMux() {
+        return [Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks, Protocols.HTTP, Protocols.Socks].includes(this.protocol);
+    }
+
     hasVnext() {
         return [Protocols.VMess, Protocols.VLESS].includes(this.protocol);
     }
