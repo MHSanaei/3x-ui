@@ -90,7 +90,6 @@
                 const hideDragImage = this.$el.cloneNode(true);
                 hideDragImage.id = "hideDragImage-hide";
                 hideDragImage.style.opacity = 0;
-                document.body.appendChild(hideDragImage);
                 e.dataTransfer.setDragImage(hideDragImage, 0, 0);
             },
             dragStopHandler(e, index) {
