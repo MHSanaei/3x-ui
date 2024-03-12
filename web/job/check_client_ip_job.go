@@ -58,8 +58,11 @@ func (j *CheckClientIpJob) clearAccessLog() {
 	logAccessP, err := os.OpenFile(xray.GetAccessPersistentLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 	j.checkError(err)
 
+	// get access log path to open it
+	accessLogPath, err := xray.GetAccessLogPath()
+	j.checkError(err)
+
 	// reopen the access log file for reading
-	accessLogPath := xray.GetAccessLogPath()
 	file, err := os.Open(accessLogPath)
 	j.checkError(err)
 
@@ -114,7 +117,8 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
 }
 
 func (j *CheckClientIpJob) processLogFile() bool {
-	accessLogPath := xray.GetAccessLogPath()
+	accessLogPath, err := xray.GetAccessLogPath()
+	j.checkError(err)
 
 	file, err := os.Open(accessLogPath)
 	j.checkError(err)
@@ -171,9 +175,14 @@ func (j *CheckClientIpJob) processLogFile() bool {
 }
 
 func (j *CheckClientIpJob) checkAccessLogAvailable(doWarning bool) bool {
-	accessLogPath := xray.GetAccessLogPath()
+	accessLogPath, err := xray.GetAccessLogPath()
+	if err != nil {
+		return false
+	}
+
 	isAvailable := true
 	warningMsg := ""
+
 	// access log is not available if it is set to 'none' or an empty string
 	switch accessLogPath {
 	case "none":
@@ -183,6 +192,7 @@ func (j *CheckClientIpJob) checkAccessLogAvailable(doWarning bool) bool {
 		warningMsg = "Access log doesn't exist in your Xray Configs"
 		isAvailable = false
 	}
+
 	if doWarning && warningMsg != "" {
 		logger.Warning(warningMsg)
 	}
