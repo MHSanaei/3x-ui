@@ -1407,16 +1407,28 @@
             templateSettings: {
                 get: function () {
                     const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
-                    const setLogPath = (type, defaultValue) => parsedSettings?.log?.[type] !== "none" ? parsedSettings.log[type] : defaultValue;
-                    this.access = ["none", setLogPath("access", "./access.log")];
-                    this.error = ["none", setLogPath("error", "./error.log")];
+                    let accessLogPath = "./access.log";
+                    let errorLogPath = "./error.log";
+
+                    if (parsedSettings && parsedSettings.log) {
+                        if (parsedSettings.log.access && parsedSettings.log.access !== "none") {
+                            accessLogPath = parsedSettings.log.access;
+                        }
+                        if (parsedSettings.log.error && parsedSettings.log.error !== "none") {
+                            errorLogPath = parsedSettings.log.error;
+                        }
+                    }
+
+                    this.access = ["none", accessLogPath];
+                    this.error = ["none", errorLogPath];
                     return parsedSettings;
                 },
                 set: function (newValue) {
-                    this.xraySetting = JSON.stringify(newValue, null, 2);
-                    const setLogPath = (type, defaultValue) => newValue.log?.[type] ? newValue.log[type] : defaultValue;
-                    this.access = ["none", setLogPath("access", "./access.log")];
-                    this.error = ["none", setLogPath("error", "./error.log")];
+                    if (newValue && newValue.log) {
+                        this.xraySetting = JSON.stringify(newValue, null, 2);
+                        this.access = ["none", newValue.log.access || "./access.log"];
+                        this.error = ["none", newValue.log.error || "./error.log"];
+                    }
                 },
             },
             inboundSettings: {
