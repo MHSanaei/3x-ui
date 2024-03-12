@@ -1,5 +1,7 @@
 # 3X-UI
 
+[English](https://github.com/MHSanaei/3x-ui/blob/main/README.md) | [中文](https://github.com/MHSanaei/3x-ui/blob/main/README.md)
+
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
 **An Advanced Web Panel • Built on Xray Core**
