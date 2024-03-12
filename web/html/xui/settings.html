@@ -425,7 +425,7 @@
                 this.loading(false);
                 if (msg.success) {
                     this.user = {};
-                    window.location.replace(basePath + "logout");
+                    window.location.replace;
                 }
             },
             async restartPanel() {
@@ -462,9 +462,9 @@
             async updateSecret() {
                 this.loading(true);
                 const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-                if (msg.success) {
+                if (msg && msg.obj) {
                     this.user = msg.obj;
-                    window.location.replace(basePath + "logout");
+                    window.location.replace;
                 }
                 this.loading(false);
                 await this.updateAllSetting();
