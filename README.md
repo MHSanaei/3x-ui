@@ -1,7 +1,5 @@
 # 3X-UI
 
-[English](/README.md) | [中文](/README.zh.md)
-
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
 **An Advanced Web Panel • Built on Xray Core**
