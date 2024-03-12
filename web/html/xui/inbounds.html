@@ -571,6 +571,7 @@
             datepicker: 'gregorian',
             tgBotEnable: false,
             showAlert: false,
+            ipLimitEnable: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
@@ -618,6 +619,7 @@
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
                     this.datepicker = datepicker;
+                    this.ipLimitEnable = ipLimitEnable;
                 }
             },
             setInbounds(dbInbounds) {

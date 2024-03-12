@@ -459,6 +459,25 @@ func (s *SettingService) SetWarp(data string) error {
 	return s.setString("warp", data)
 }
 
+func (s *SettingService) GetIpLimitEnable() (bool, error) {
+	templateConfig, err := s.GetXrayConfigTemplate()
+	if err != nil {
+		return false, err
+	}
+
+	var xrayConfig map[string]interface{}
+	err = json.Unmarshal([]byte(templateConfig), &xrayConfig)
+	if err != nil {
+		return false, err
+	}
+	if logConfig, ok := xrayConfig["log"].(map[string]interface{}); ok {
+		if accessLogPath, ok := logConfig["access"].(string); ok {
+			return accessLogPath == "./access.log", nil
+		}
+	}
+	return false, nil
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := allSetting.CheckValid(); err != nil {
 		return err
@@ -492,17 +511,18 @@ func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
 func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
 	type settingFunc func() (interface{}, error)
 	settings := map[string]settingFunc{
-		"expireDiff":  func() (interface{}, error) { return s.GetExpireDiff() },
-		"trafficDiff": func() (interface{}, error) { return s.GetTrafficDiff() },
-		"pageSize":    func() (interface{}, error) { return s.GetPageSize() },
-		"defaultCert": func() (interface{}, error) { return s.GetCertFile() },
-		"defaultKey":  func() (interface{}, error) { return s.GetKeyFile() },
-		"tgBotEnable": func() (interface{}, error) { return s.GetTgbotenabled() },
-		"subEnable":   func() (interface{}, error) { return s.GetSubEnable() },
-		"subURI":      func() (interface{}, error) { return s.GetSubURI() },
-		"subJsonURI":  func() (interface{}, error) { return s.GetSubJsonURI() },
-		"remarkModel": func() (interface{}, error) { return s.GetRemarkModel() },
-		"datepicker":  func() (interface{}, error) { return s.GetDatepicker() },
+		"expireDiff":    func() (interface{}, error) { return s.GetExpireDiff() },
+		"trafficDiff":   func() (interface{}, error) { return s.GetTrafficDiff() },
+		"pageSize":      func() (interface{}, error) { return s.GetPageSize() },
+		"defaultCert":   func() (interface{}, error) { return s.GetCertFile() },
+		"defaultKey":    func() (interface{}, error) { return s.GetKeyFile() },
+		"tgBotEnable":   func() (interface{}, error) { return s.GetTgbotenabled() },
+		"subEnable":     func() (interface{}, error) { return s.GetSubEnable() },
+		"subURI":        func() (interface{}, error) { return s.GetSubURI() },
+		"subJsonURI":    func() (interface{}, error) { return s.GetSubJsonURI() },
+		"remarkModel":   func() (interface{}, error) { return s.GetRemarkModel() },
+		"datepicker":    func() (interface{}, error) { return s.GetDatepicker() },
+		"ipLimitEnable": func() (interface{}, error) { return s.GetIpLimitEnable() },
 	}
 
 	result := make(map[string]interface{})
