@@ -1,7 +1,5 @@
 # 3X-UI
 
-[English](/README.md) | [中文](/README.zh.md)
-
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
 **一个更好的面板 • 基于Xray Core构建**
@@ -338,7 +336,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 - CPU 负载通知
 
 
-**参：:**
+**参考：**
 
 - `30 \* \* \* \* \*` - 在每个点的 30 秒处通知
 - `0 \*/10 \* \* \* \*` - 每 10 分钟的第一秒通知
@@ -395,25 +393,25 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 - `/login` with `POST` user data: `{username: '', password: ''}` for login
 - `/panel/api/inbounds` 以下操作的基础：
 
-| Method | Path                               | Action                                      |
+| 方法   |  路径                               | 操作                                        |
 | :----: | ---------------------------------- | ------------------------------------------- |
-| `GET`  | `"/list"`                          | Get all inbounds                            |
-| `GET`  | `"/get/:id"`                       | Get inbound with inbound.id                 |
-| `GET`  | `"/getClientTraffics/:email"`      | Get Client Traffics with email              |
-| `GET`  | `"/createbackup"`                  | Telegram bot sends backup to admins         |
-| `POST` | `"/add"`                           | Add inbound                                 |
-| `POST` | `"/del/:id"`                       | Delete Inbound                              |
-| `POST` | `"/update/:id"`                    | Update Inbound                              |
-| `POST` | `"/clientIps/:email"`              | Client Ip address                           |
-| `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
-| `POST` | `"/addClient"`                     | Add Client to inbound                       |
-| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId\*                 |
-| `POST` | `"/updateClient/:clientId"`        | Update Client by clientId\*                 |
-| `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
-| `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
-| `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
-| `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
-| `POST` | `"/onlines"`                       | Get Online users ( list of emails )       |
+| `GET`  | `"/list"`                          | 获取所有入站                                 |
+| `GET`  | `"/get/:id"`                       | 获取所有入站以及inbound.id                   |
+| `GET`  | `"/getClientTraffics/:email"`      | 通过电子邮件获取客户端流量                    |
+| `GET`  | `"/createbackup"`                  | Telegram 机器人向管理员发送备份               |
+| `POST` | `"/add"`                           | 添加入站                                    |
+| `POST` | `"/del/:id"`                       | 删除入站                                    |
+| `POST` | `"/update/:id"`                    | 更新入站                                    |
+| `POST` | `"/clientIps/:email"`              | 客户端 IP 地址                              | 
+| `POST` | `"/clearClientIps/:email"`         | 清除客户端 IP 地址                           |
+| `POST` | `"/addClient"`                     | 将客户端添加到入站                           |
+| `POST` | `"/:id/delClient/:clientId"`       | 通过 clientId\* 删除客户端                   |
+| `POST` | `"/updateClient/:clientId"`        | 通过 clientId\* 更新客户端                   |
+| `POST` | `"/:id/resetClientTraffic/:email"` | 重置客户端的流量                             |
+| `POST` | `"/resetAllTraffics"`              | 重置所有入站的流量                           |
+| `POST` | `"/resetAllClientTraffics/:id"`    | 重置入站中所有客户端的流量                    |
+| `POST` | `"/delDepletedClients/:id"`        | 删除入站耗尽的客户端 （-1： all）             |
+| `POST` | `"/onlines"`                       | 获取在线用户 （ 电子邮件列表 ）               |
 
 \*- `clientId` 项应该使用下列数据
 
@@ -433,7 +431,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 
 #### Usage
 
-| Variable       |                      Type                      | Default       |
+| 变量            |                      Type                      | 默认          |
 | -------------- | :--------------------------------------------: | :------------ |
 | XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`      |
 | XUI_DEBUG      |                   `boolean`                    | `false`       |
