@@ -1,6 +1,6 @@
 # 3X-UI
 
-[English](/README.md) | [中文](/README.zh.md)
+[English](/README.md) | [Chinese](/README.zh.md)
 
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
