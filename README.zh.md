@@ -372,7 +372,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
     ![创建机器人](./media/newbot.png)
 
 - 启动您刚刚创建的机器人。可以在此处找到机器人的链接。
-    ![令牌](.media/token.png)
+    ![令牌](./media/token.png)
 
 - 输入您的面板并配置 Telegram 机器人设置，如下所示：
     ![面板设置](./media/panel-bot-config.png)
