@@ -21,12 +21,13 @@ type SubJsonService struct {
 	configJson       map[string]interface{}
 	defaultOutbounds []json_util.RawMessage
 	fragment         string
+	mux              string
 
 	inboundService service.InboundService
 	SubService     *SubService
 }
 
-func NewSubJsonService(fragment string, subService *SubService) *SubJsonService {
+func NewSubJsonService(fragment string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]interface{}
 	var defaultOutbounds []json_util.RawMessage
 	json.Unmarshal([]byte(defaultJson), &configJson)
@@ -37,6 +38,17 @@ func NewSubJsonService(fragment string, subService *SubService) *SubJsonService 
 		}
 	}
 
+	if rules != "" {
+		var newRules []interface{}
+		routing, _ := configJson["routing"].(map[string]interface{})
+		defaultRules, _ := routing["rules"].([]interface{})
+		json.Unmarshal([]byte(rules), &newRules)
+		defaultRules = append(newRules, defaultRules...)
+		fmt.Printf("routing: %#v\n\nRules: %#v\n\n", routing, defaultRules)
+		routing["rules"] = defaultRules
+		configJson["routing"] = routing
+	}
+
 	if fragment != "" {
 		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(fragment))
 	}
@@ -45,6 +57,7 @@ func NewSubJsonService(fragment string, subService *SubService) *SubJsonService 
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragment:         fragment,
+		mux:              mux,
 		SubService:       subService,
 	}
 }
@@ -277,6 +290,9 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
+	if s.mux != "" {
+		outbound.Mux = json_util.RawMessage(s.mux)
+	}
 	outbound.StreamSettings = streamSettings
 	outbound.Settings = OutboundSettings{
 		Vnext: vnextData,
@@ -313,6 +329,9 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
+	if s.mux != "" {
+		outbound.Mux = json_util.RawMessage(s.mux)
+	}
 	outbound.StreamSettings = streamSettings
 	outbound.Settings = OutboundSettings{
 		Servers: serverData,
@@ -326,7 +345,7 @@ type Outbound struct {
 	Protocol       string                 `json:"protocol"`
 	Tag            string                 `json:"tag"`
 	StreamSettings json_util.RawMessage   `json:"streamSettings"`
-	Mux            map[string]interface{} `json:"mux,omitempty"`
+	Mux            json_util.RawMessage   `json:"mux,omitempty"`
 	ProxySettings  map[string]interface{} `json:"proxySettings,omitempty"`
 	Settings       OutboundSettings       `json:"settings,omitempty"`
 }

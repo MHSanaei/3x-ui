@@ -92,9 +92,21 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFragment = ""
 	}
 
+	SubJsonMux, err := s.settingService.GetSubJsonMux()
+	if err != nil {
+		SubJsonMux = ""
+	}
+
+	SubJsonRules, err := s.settingService.GetSubJsonRules()
+	if err != nil {
+		SubJsonRules = ""
+	}
+
 	g := engine.Group("/")
 
-	s.sub = NewSUBController(g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates, SubJsonFragment)
+	s.sub = NewSUBController(
+		g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		SubJsonFragment, SubJsonMux, SubJsonRules)
 
 	return engine, nil
 }
