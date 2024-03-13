@@ -57,7 +57,7 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-***Tip:*** *管理脚本具有Certbot。使用 `x-ui` 命令， 选择 `SSL Certificate Management`.*
+***Tip:*** *管理脚本具有 Certbot 。使用 `x-ui` 命令， 选择 `SSL Certificate Management`.*
 
 </details>
 
@@ -243,7 +243,7 @@ systemctl restart x-ui
   ### 信息
 
 - **端口：** 2053
-- **用户名 & 密码：** It will be generated randomly if you skip modifying.
+- **用户名 & 密码：** 当您跳过设置时，此项会随机生成。
 - **数据库路径：**
   - /etc/x-ui/x-ui.db
 - **Xray 配置路径：**
@@ -392,7 +392,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 
 #### 使用
 
-- `/login` with `POST` user data: `{username: '', password: ''}` for login
+- `/login` 使用 `POST` 用户名称 & 密码： `{username: '', password: ''}` 登录
 - `/panel/api/inbounds` 以下操作的基础：
 
 | 方法   |  路径                               | 操作                                        |
