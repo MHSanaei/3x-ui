@@ -44,7 +44,7 @@ func (j *CheckClientIpJob) Run() {
 			shouldClearAccessLog = j.processLogFile()
 		} else {
 			if !f2bInstalled {
-				logger.Warning("fail2ban is not installed. IP limiting may not work properly.")
+				logger.Warning("[iplimit] fail2ban is not installed. IP limiting may not work properly.")
 			}
 		}
 	}
@@ -109,13 +109,6 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 	return false
 }
 
-func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
-	cmd := "fail2ban-client"
-	args := []string{"-h"}
-	err := exec.Command(cmd, args...).Run()
-	return err == nil
-}
-
 func (j *CheckClientIpJob) processLogFile() bool {
 	accessLogPath, err := xray.GetAccessLogPath()
 	j.checkError(err)
@@ -174,14 +167,20 @@ func (j *CheckClientIpJob) processLogFile() bool {
 	return shouldCleanLog
 }
 
-func (j *CheckClientIpJob) checkAccessLogAvailable(doWarning bool) bool {
+func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
+	cmd := "fail2ban-client"
+	args := []string{"-h"}
+	err := exec.Command(cmd, args...).Run()
+	return err == nil
+}
+
+func (j *CheckClientIpJob) checkAccessLogAvailable(handleWarning bool) bool {
+	isAvailable := true
+	warningMsg := ""
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false
 	}
-
-	isAvailable := true
-	warningMsg := ""
 
 	// access log is not available if it is set to 'none' or an empty string
 	switch accessLogPath {
@@ -193,7 +192,7 @@ func (j *CheckClientIpJob) checkAccessLogAvailable(doWarning bool) bool {
 		isAvailable = false
 	}
 
-	if doWarning && warningMsg != "" {
+	if handleWarning && warningMsg != "" {
 		logger.Warning(warningMsg)
 	}
 	return isAvailable

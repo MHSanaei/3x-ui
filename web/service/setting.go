@@ -463,7 +463,7 @@ func (s *SettingService) SetWarp(data string) error {
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 	return (accessLogPath != "none" && accessLogPath != ""), nil
 }
