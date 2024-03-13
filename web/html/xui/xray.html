@@ -75,7 +75,7 @@
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem;">
                         <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
-                            <a-col :xs="24" :sm="8" style="padding: 4px;">
+                            <a-col :xs="24" :sm="10" style="padding: 4px;">
                                 <a-space direction="horizontal">
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
@@ -89,7 +89,7 @@
                                     </a-popover>
                                 </a-space>
                             </a-col>
-                            <a-col :xs="24" :sm="16">
+                            <a-col :xs="24" :sm="14">
                                 <template>
                                     <div>
                                         <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
