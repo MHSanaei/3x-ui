@@ -75,7 +75,7 @@
                 <a-space direction="vertical">
                     <a-card hoverable style="margin-bottom: .5rem;">
                         <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
-                            <a-col :xs="24" :sm="10" style="padding: 4px;">
+                            <a-col :xs="24" :sm="8" style="padding: 4px;">
                                 <a-space direction="horizontal">
                                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
                                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
@@ -89,7 +89,7 @@
                                     </a-popover>
                                 </a-space>
                             </a-col>
-                            <a-col :xs="24" :sm="14">
+                            <a-col :xs="24" :sm="16">
                                 <template>
                                     <div>
                                         <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200">
@@ -103,13 +103,10 @@
                             </a-col>
                         </a-row>
                     </a-card>
-                    <a-tabs class="ant-card-dark-box-nohover" default-active-key="tpl-1"
-                    @change="(activeKey) => { if(activeKey == 'tpl-advanced') this.changeCode(); }"
+                    <a-tabs class="ant-card-dark-box-nohover" default-active-key="1"
+                    @change="(activeKey) => { this.changePage(activeKey); }"
                     :class="themeSwitcher.currentTheme">
-                        <a-tab-pane key="tpl-1" tab='{{ i18n "pages.xray.basicTemplate"}}'>
-                            <a-space direction="horizontal" style="padding: 20px 20px">
-                                <a-button type="danger" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
-                            </a-space>
+                        <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.xray.basicTemplate"}}' style="padding-top: 20px;">
                             <a-collapse>
                                 <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
                                     <a-row :xs="24" :sm="24" :lg="12">
@@ -284,11 +281,14 @@
                                 </template>
                                 <a-button v-else type="primary" icon="cloud" style="margin: 15px 20px;" @click="showWarp()">WARP</a-button>
                                 </a-collapse-panel>
+                                <a-collapse-panel header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
+                                    <a-space direction="horizontal" style="padding: 0 20px">
+                                        <a-button type="danger" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
+                                    </a-space>
+                                </a-collapse-panel>
                             </a-collapse>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-2" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
-                            <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
-                            message='{{ i18n "pages.xray.RoutingsDesc"}}' show-icon></a-alert>
+                        <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
                             <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
                             <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
                                 :row-key="r => r.key"
@@ -410,7 +410,7 @@
                                 </template>
                             </a-table-sortable>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-3" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
                             <a-row>
                                 <a-col :xs="12" :sm="12" :lg="12">
                                     <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">{{ i18n
@@ -478,7 +478,7 @@
                                 </template>
                             </a-table>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-4" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
                             <a-button type="primary" icon="plus" @click="addReverse()" style="margin-bottom: 10px;">{{ i18n "pages.xray.outbound.addReverse" }}</a-button>
                             <a-table :columns="reverseColumns" bordered v-if="reverseData.length>0"
                             :row-key="r => r.key"
@@ -506,9 +506,7 @@
                                 </template>
                             </a-table>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-5" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
-                            <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
-                            message='{{ i18n "pages.xray.balancer.balancerDesc" }}' show-icon></a-alert>
+                        <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
                             <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.balancer.addBalancer"}}</a-button>
                             <a-table :columns="balancerColumns" bordered v-if="balancersData.length>0"
                             :row-key="r => r.key"
@@ -544,8 +542,19 @@
                                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
                                 </template>
                             </a-table>
+                            <a-radio-group
+                                v-model="obsSettings"
+                                v-if="observatoryEnable || burstObservatoryEnable"
+                                @change="changeObsCode"
+                                button-style="solid"
+                                style="margin: 10px 0;"
+                                :size="isMobile ? 'small' : ''">
+                                <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
+                                <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
+                            </a-radio-group>
+                            <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
                         </a-tab-pane>
-                        <a-tab-pane key="tpl-6" tab='DNS' style="padding-top: 20px;" force-render="true">
+                        <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
                             <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                             <template v-if="enableDNS">
                                 <setting-list-item type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
@@ -696,6 +705,13 @@
         { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
     ];
 
+    const balancerColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.balancer.balancerStrategy"}}', align: 'center', width: 50, scopedSlots: { customRender: 'strategy' }},
+        { title: '{{ i18n "pages.xray.balancer.balancerSelectors"}}', align: 'center', width: 100, scopedSlots: { customRender: 'selector' }},
+    ];
+
     const dnsColumns = [
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
@@ -706,13 +722,6 @@
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.fakedns.ipPool"}}', dataIndex: 'ipPool', align: 'center', width: 50 },
         { title: '{{ i18n "pages.xray.fakedns.poolSize"}}', dataIndex: 'poolSize', align: 'center', width: 50 },
-    ];
-
-    const balancerColumns = [
-        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
-        { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
-        { title: '{{ i18n "pages.xray.balancer.balancerStrategy"}}', align: 'center', width: 50, scopedSlots: { customRender: 'strategy' }},
-        { title: '{{ i18n "pages.xray.balancer.balancerSelectors"}}', align: 'center', width: 100, scopedSlots: { customRender: 'selector' }},
     ];
 
     const app = new Vue({
@@ -733,6 +742,7 @@
             showAlert: false,
             isMobile: window.innerWidth <= 768,
             advSettings: 'xraySetting',
+            obsSettings: '',
             cm: null,
             cmOptions: {
                 lineNumbers: true,
@@ -827,6 +837,22 @@
                     ],
                     "queryStrategy": "UseIP"
                 },
+            },
+            defaultObservatory: {
+                subjectSelector: [],
+                probeURL: "http://www.google.com/gen_204",
+                probeInterval: "10m",
+                enableConcurrency: true
+            },
+            defaultBurstObservatory: {
+                subjectSelector: [],
+                pingConfig: {
+                    destination: "http://www.google.com/gen_204",
+                    interval: "30m",
+                    connectivity: "http://connectivitycheck.platform.hicloud.com/generate_204",
+                    timeout: "10s",
+                    sampling: 2
+                }
             }
         },
         methods: {
@@ -927,6 +953,10 @@
                     this.saveBtnDisable = true;
                 }
             },
+            changePage(pageKey) {
+                if(pageKey == 'tpl-advanced') this.changeCode();
+                if(pageKey == 'tpl-balancer') this.changeObsCode();
+            },
             syncRulesWithOutbound(tag, setting) {
                 const newTemplateSettings = this.templateSettings;
                 const haveRules = newTemplateSettings.routing.rules.some((r) => r?.outboundTag === tag);
@@ -1009,6 +1039,23 @@
                     }
                 });
             },
+            changeObsCode() {
+                if (this.obsSettings == ''){
+                    return
+                }
+                if(this.cm != null) {
+                    this.cm.toTextArea();
+                }
+                textAreaObj = document.getElementById('obsSetting');
+                textAreaObj.value = this[this.obsSettings];
+                this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
+                this.cm.on('change',editor => {
+                    value = editor.getValue();
+                    if(this.isJsonString(value)){
+                        this[this.obsSettings] = value;
+                    }
+                });
+            },
             isJsonString(str) {
                 try {
                     JSON.parse(str);
@@ -1086,123 +1133,6 @@
                 outbounds = this.templateSettings.outbounds;
                 outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
                 this.outboundSettings = JSON.stringify(outbounds);
-            },
-            async refreshOutboundTraffic() {
-                if (!this.refreshing) {
-                    this.refreshing = true;
-                    await this.getOutboundsTraffic();
-
-                    data = []
-                    if (this.templateSettings != null) {
-                        this.templateSettings.outbounds.forEach((o, index) => {
-                            data.push({'key': index, ...o});
-                        });
-                    }
-
-                    this.outboundData = data;
-                    this.refreshing = false;
-                }
-            },
-            async resetOutboundTraffic(index) {
-                let tag = "-alltags-";
-                if (index >= 0) {
-                    tag = this.outboundData[index].tag ? this.outboundData[index].tag : ""
-                }
-                const msg = await HttpUtil.post("/panel/xray/resetOutboundsTraffic", { tag: tag });
-                if (msg.success) {
-                    await this.refreshOutboundTraffic();
-                }
-            },
-            addBalancer() {
-                balancerModal.show({
-                    title: '{{ i18n "pages.xray.balancer.addBalancer"}}',
-                    okText: '{{ i18n "pages.xray.balancer.addBalancer"}}',
-                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
-                    balancer: {
-                        tag: '',
-                        strategy: 'random',
-                        selector: []
-                    },
-                    confirm: (balancer) => {
-                        balancerModal.loading();
-                        newTemplateSettings = this.templateSettings;
-                        if (newTemplateSettings.routing.balancers == undefined) {
-                            newTemplateSettings.routing.balancers = [];
-                        }
-                        let tmpBalancer = {
-                            'tag': balancer.tag,
-                            'selector': balancer.selector
-                        };
-                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
-                            tmpBalancer.strategy = {
-                                'type': balancer.strategy
-                            };
-                        }
-                        newTemplateSettings.routing.balancers.push(tmpBalancer);
-                        this.templateSettings = newTemplateSettings;
-                        balancerModal.close();
-                    },
-                    isEdit: false
-                });
-            },
-            editBalancer(index) {
-                const oldTag = this.balancersData[index].tag;
-                balancerModal.show({
-                    title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
-                    okText: '{{ i18n "sure" }}',
-                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
-                    balancer: this.balancersData[index],
-                    confirm: (balancer) => {
-                        balancerModal.loading();
-                        newTemplateSettings = this.templateSettings;
-
-                        let tmpBalancer = {
-                            'tag': balancer.tag,
-                            'selector': balancer.selector
-                        };
-                        if (balancer.strategy === 'roundRobin' || balancer.strategy === 'leastload' || balancer.strategy === 'leastping') {
-                            tmpBalancer.strategy = {
-                                'type': balancer.strategy
-                            };
-                        }
-
-                        newTemplateSettings.routing.balancers[index] = tmpBalancer;
-                        // change edited tag if used in rule section
-                        if (oldTag != balancer.tag) {
-                            newTemplateSettings.routing.rules.forEach((rule) => {
-                                if (rule.balancerTag && rule.balancerTag == oldTag) {
-                                    rule.balancerTag = balancer.tag;
-                                }
-                            });
-                        }
-                        this.templateSettings = newTemplateSettings;
-                        balancerModal.close();
-                    },
-                    isEdit: true
-                });
-            },
-            deleteBalancer(index) {
-                let newTemplateSettings = { ...this.templateSettings };
-
-                // Remove from balancers
-                const removedBalancer = this.balancersData.splice(index, 1)[0];
-
-                // Remove from settings
-                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag === removedBalancer.tag);
-                newTemplateSettings.routing.balancers.splice(realIndex, 1);
-
-                // Remove related routing rules
-                newTemplateSettings.routing.rules.forEach((rule) => {
-                    if (rule.balancerTag === removedBalancer.tag) {
-                        delete rule.balancerTag;
-                    }
-                });
-                
-                // Update balancers property to an empty array if there are no more balancers
-                if (newTemplateSettings.routing.balancers.length === 0) {
-                    delete newTemplateSettings.routing.balancers;
-                }
-                this.templateSettings = newTemplateSettings;
             },
             addReverse(){
                 reverseModal.show({
@@ -1288,6 +1218,167 @@
                 newTemplateSettings.routing.rules = newRules;
 
                 this.templateSettings = newTemplateSettings;
+            },
+            async refreshOutboundTraffic() {
+                if (!this.refreshing) {
+                    this.refreshing = true;
+                    await this.getOutboundsTraffic();
+
+                    data = []
+                    if (this.templateSettings != null) {
+                        this.templateSettings.outbounds.forEach((o, index) => {
+                            data.push({'key': index, ...o});
+                        });
+                    }
+
+                    this.outboundData = data;
+                    this.refreshing = false;
+                }
+            },
+            async resetOutboundTraffic(index) {
+                let tag = "-alltags-";
+                if (index >= 0) {
+                    tag = this.outboundData[index].tag ? this.outboundData[index].tag : ""
+                }
+                const msg = await HttpUtil.post("/panel/xray/resetOutboundsTraffic", { tag: tag });
+                if (msg.success) {
+                    await this.refreshOutboundTraffic();
+                }
+            },
+            addBalancer() {
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    okText: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: {
+                        tag: '',
+                        strategy: 'random',
+                        selector: []
+                    },
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+                        if (newTemplateSettings.routing.balancers == undefined) {
+                            newTemplateSettings.routing.balancers = [];
+                        }
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector
+                        };
+                        if (balancer.strategy && balancer.strategy != 'random') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                            if (balancer.strategy == 'leastPing'){
+                                if (!newTemplateSettings.observatory)
+                                    newTemplateSettings.observatory = this.defaultObservatory;
+                                if (!newTemplateSettings.observatory.subjectSelector.includes(balancer.tag))
+                                    newTemplateSettings.observatory.subjectSelector.push(balancer.tag);
+                            }
+                            if (balancer.strategy == 'leastLoad'){
+                                if (!newTemplateSettings.burstObservatory)
+                                    newTemplateSettings.burstObservatory = this.defaultBurstObservatory;
+                                if (!newTemplateSettings.burstObservatory.subjectSelector.includes(balancer.tag))
+                                    newTemplateSettings.burstObservatory.subjectSelector.push(balancer.tag);
+                            }
+                        }
+                        newTemplateSettings.routing.balancers.push(tmpBalancer);
+                        this.templateSettings = newTemplateSettings;
+                        balancerModal.close();
+                        this.changeObsCode();
+                    },
+                    isEdit: false
+                });
+            },
+            editBalancer(index) {
+                const oldTag = this.balancersData[index].tag;
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
+                    okText: '{{ i18n "sure" }}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: this.balancersData[index],
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector
+                        };
+
+                        // Remove old tag
+                        if (newTemplateSettings.observatory){
+                            newTemplateSettings.observatory.subjectSelector = newTemplateSettings.observatory.subjectSelector.filter(s => s != oldTag);
+                        }
+                        if (newTemplateSettings.burstObservatory){
+                            newTemplateSettings.burstObservatory.subjectSelector = newTemplateSettings.burstObservatory.subjectSelector.filter(s => s != oldTag);
+                        }
+
+                        if (balancer.strategy && balancer.strategy != 'random') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                            if (balancer.strategy == 'leastPing'){
+                                if (!newTemplateSettings.observatory)
+                                    newTemplateSettings.observatory = this.defaultObservatory;
+                                if (!newTemplateSettings.observatory.subjectSelector.includes(balancer.tag))
+                                    newTemplateSettings.observatory.subjectSelector.push(balancer.tag);
+                            }
+                            if (balancer.strategy == 'leastLoad'){
+                                if (!newTemplateSettings.burstObservatory)
+                                    newTemplateSettings.burstObservatory = this.defaultBurstObservatory;
+                                if (!newTemplateSettings.burstObservatory.subjectSelector.includes(balancer.tag))
+                                    newTemplateSettings.burstObservatory.subjectSelector.push(balancer.tag);
+                            }
+                        }
+
+                        newTemplateSettings.routing.balancers[index] = tmpBalancer;
+                        // change edited tag if used in rule section
+                        if (oldTag != balancer.tag) {
+                            newTemplateSettings.routing.rules.forEach((rule) => {
+                                if (rule.balancerTag && rule.balancerTag == oldTag) {
+                                    rule.balancerTag = balancer.tag;
+                                }
+                            });
+                        }
+                        this.templateSettings = newTemplateSettings;
+                        balancerModal.close();
+                        this.changeObsCode();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteBalancer(index) {
+                let newTemplateSettings = { ...this.templateSettings };
+
+                // Remove from balancers
+                const removedBalancer = this.balancersData.splice(index, 1)[0];
+
+                // Remove from settings
+                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag === removedBalancer.tag);
+                newTemplateSettings.routing.balancers.splice(realIndex, 1);
+
+                // Remove tag from observatory
+                if (newTemplateSettings.observatory){
+                    newTemplateSettings.observatory.subjectSelector = newTemplateSettings.observatory.subjectSelector.filter(s => s != removedBalancer.tag);
+                }
+                if (newTemplateSettings.burstObservatory){
+                    newTemplateSettings.burstObservatory.subjectSelector = newTemplateSettings.burstObservatory.subjectSelector.filter(s => s != removedBalancer.tag);
+                }
+
+                // Remove related routing rules
+                newTemplateSettings.routing.rules.forEach((rule) => {
+                    if (rule.balancerTag === removedBalancer.tag) {
+                        delete rule.balancerTag;
+                    }
+                });
+                
+                // Update balancers property to an empty array if there are no more balancers
+                if (newTemplateSettings.routing.balancers.length === 0) {
+                    delete newTemplateSettings.routing.balancers;
+                }
+                this.templateSettings = newTemplateSettings;
+                this.changeObsCode()
             },
             addDNSServer(){
                 dnsModal.show({
@@ -1479,27 +1570,6 @@
                     return data;
                 },
             },
-            balancersData: {
-                get: function () {
-                    data = []
-                    if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
-                        this.templateSettings.routing.balancers.forEach((o, index) => {
-                            let strategy = "random"
-                            if (o.strategy && (o.strategy.type == "roundRobin" || o.strategy.type == "leastload" || o.strategy.type == "leastping")) {
-                                strategy = o.strategy.type;
-                            }
-
-                            data.push({
-                                'key': index,
-                                'tag': o.tag ? o.tag : "",
-                                'strategy': strategy,
-                                'selector': o.selector ? o.selector : []
-                            });
-                        });
-                    }
-                    return data;
-                }
-            },
             routingRuleSettings: {
                 get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
                 set: function (newValue) {
@@ -1527,6 +1597,58 @@
                         });
                     }
                     return data;
+                }
+            },
+            balancersData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
+                        this.templateSettings.routing.balancers.forEach((o, index) => {
+                            data.push({
+                                'key': index,
+                                'tag': o.tag ? o.tag : "",
+                                'strategy': o.strategy?.type ?? "random",
+                                'selector': o.selector ? o.selector : []
+                            });
+                        });
+                    }
+                    return data;
+                }
+            },
+            observatory: {
+                get: function () { 
+                    return this.templateSettings?.observatory ? JSON.stringify(this.templateSettings.observatory, null, 2) : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.observatory = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            burstObservatory: {
+                get: function () { 
+                    return this.templateSettings?.burstObservatory ? JSON.stringify(this.templateSettings.burstObservatory, null, 2) : null; 
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.burstObservatory = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            observatoryEnable: {
+                get: function () { return this.templateSettings != null && this.templateSettings.observatory },
+                set: function (v) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.observatory = v ? this.defaultObservatory : undefined;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            burstObservatoryEnable: {
+                get: function () { return this.templateSettings != null && this.templateSettings.burstObservatory },
+                set: function (v) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.burstObservatory = v ? this.defaultBurstObservatory : undefined;
+                    this.templateSettings = newTemplateSettings;
                 }
             },
             freedomStrategy: {
