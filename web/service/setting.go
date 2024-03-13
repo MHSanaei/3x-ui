@@ -17,6 +17,7 @@ import (
 	"x-ui/util/random"
 	"x-ui/util/reflect_util"
 	"x-ui/web/entity"
+	"x-ui/xray"
 )
 
 //go:embed config.json
@@ -460,22 +461,11 @@ func (s *SettingService) SetWarp(data string) error {
 }
 
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
-	templateConfig, err := s.GetXrayConfigTemplate()
+	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false, err
 	}
-
-	var xrayConfig map[string]interface{}
-	err = json.Unmarshal([]byte(templateConfig), &xrayConfig)
-	if err != nil {
-		return false, err
-	}
-	if logConfig, ok := xrayConfig["log"].(map[string]interface{}); ok {
-		if accessLogPath, ok := logConfig["access"].(string); ok {
-			return accessLogPath == "./access.log", nil
-		}
-	}
-	return false, nil
+	return (accessLogPath != "none" && accessLogPath != ""), nil
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
