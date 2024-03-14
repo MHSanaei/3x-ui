@@ -61,6 +61,11 @@ certbot renew --dry-run
 
 </details>
 
+### Wildcard SSL
+if you have Wildcard SSL certificate you can place your private and public keys in `/root/cert/{domain_name}/` and then address them in `Panel Settings - Publick Key Path & Private Key Path`
+
+***Tip:*** in docker installation method, `3x-ui/cert/` is mounted to `/root/cert/` remember that in you addressing
+
 ## Manual Install & Upgrade
 
 <details>
