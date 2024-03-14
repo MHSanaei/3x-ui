@@ -21,7 +21,7 @@ else
     echo "检查系统操作系统失败，请联系作者！" >&2
     exit 1
 fi
-echo "The OS release is: $release"
+echo "系统版本： $release"
 
 arch3xui() {
     case "$(uname -m)" in
