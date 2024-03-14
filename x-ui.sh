@@ -403,6 +403,9 @@ enable_bbr() {
     fedora)
         dnf -y update && dnf -y install ca-certificates
         ;;
+    alpine)
+        apk update && apk add ca-certificates
+        ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
         exit 1
@@ -726,6 +729,9 @@ ssl_cert_issue() {
         ;;
     fedora)
         dnf -y update && dnf -y install socat
+        ;;
+    alpine)
+        apk update && apk add socat
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
@@ -1092,6 +1098,9 @@ install_iplimit() {
         fedora)
             dnf -y update && dnf -y install fail2ban
             ;;
+        apline)
+            apk update && apk add fail2ban
+            ;;
         *)
             echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
             exit 1
@@ -1170,6 +1179,9 @@ remove_iplimit() {
         fedora)
             dnf remove fail2ban -y
             dnf autoremove -y
+            ;;
+        alpine)
+            apk del fail2ban
             ;;
         *)
             echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
