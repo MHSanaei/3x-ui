@@ -9,6 +9,8 @@ services:
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
+      - $PWD/logs/error.log:/app/error.log
+      - $PWD/logs/access.log:/app/access.log
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
     tty: true
