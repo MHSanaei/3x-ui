@@ -69,14 +69,14 @@ elif [[ "${release}" == "rocky" ]]; then
         echo -e "${red} 请使用 RockyLinux 9 或更高版本${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "arch" ]]; then
-    echo "Your OS is ArchLinux"
+    echo "操作系统为 ArchLinux"
 elif [[ "${release}" == "manjaro" ]]; then
-    echo "Your OS is Manjaro"
+    echo "操作系统为 Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
-    echo "Your OS is Armbian"
+    echo "操作系统为 Armbian"
 
 else
-    echo -e "${red}Failed to check the OS version, please contact the author!${plain}" && exit 1
+    echo -e "${red}检查操作系统版本失败，请联系作者！${plain}" && exit 1
 fi
 
 install_base() {
