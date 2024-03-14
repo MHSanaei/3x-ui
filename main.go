@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	_ "unsafe"
+
 	"x-ui/config"
 	"x-ui/database"
 	"x-ui/logger"
@@ -243,21 +244,33 @@ func migrateDb() {
 }
 
 func removeSecret() {
-	err := database.InitDB(config.GetDBPath())
+	userService := service.UserService{}
+
+	secretExists, err := userService.CheckSecretExistence()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error checking secret existence:", err)
 		return
 	}
-	userService := service.UserService{}
+
+	if !secretExists {
+		fmt.Println("No secret exists to remove.")
+		return
+	}
+
 	err = userService.RemoveUserSecret()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error removing secret:", err)
+		return
 	}
+
 	settingService := service.SettingService{}
 	err = settingService.SetSecretStatus(false)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error updating secret status:", err)
+		return
 	}
+
+	fmt.Println("Secret removed successfully.")
 }
 
 func main() {
@@ -284,6 +297,7 @@ func main() {
 	var remove_secret bool
 	settingCmd.BoolVar(&reset, "reset", false, "reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "show current settings")
+	settingCmd.BoolVar(&remove_secret, "remove_secret", false, "remove secret")
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
 	settingCmd.StringVar(&username, "username", "", "set login username")
 	settingCmd.StringVar(&password, "password", "", "set login password")
@@ -342,7 +356,7 @@ func main() {
 			updateTgbotEnableSts(enabletgbot)
 		}
 	default:
-		fmt.Println("except 'run' or 'setting' subcommands")
+		fmt.Println("Invalid subcommands")
 		fmt.Println()
 		runCmd.Usage()
 		fmt.Println()

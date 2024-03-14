@@ -32,7 +32,7 @@
         },
         props: ['data-source', 'customRow'],
         inheritAttrs: false,
-            provide() {
+        provide() {
             const sortable = {}
 
             Object.defineProperty(sortable, "setSortableIndex", {
@@ -50,25 +50,21 @@
             }
         },
         render: function (createElement) {
-            return createElement(
-                'a-table',
-                {
-                    class: {
-                        'ant-table-is-sorting': this.isDragging(),
-                    },
-                    props: {
-                        ...this.$attrs,
-                        'data-source': this.records,
-                        customRow: (record, index) => this.customRowRender(record, index),
-                    },
-                    on: this.$listeners,
-                    nativeOn: {
-                        drop: (e) => this.dropHandler(e),
-                    },
-                    scopedSlots: this.$scopedSlots,
+            return createElement('a-table', {
+                class: {
+                    'ant-table-is-sorting': this.isDragging(),
                 },
-                this.$slots.default,
-            )
+                props: {
+                    ...this.$attrs,
+                    'data-source': this.records,
+                    customRow: (record, index) => this.customRowRender(record, index),
+                },
+                on: this.$listeners,
+                nativeOn: {
+                    drop: (e) => this.dropHandler(e),
+                },
+                scopedSlots: this.$scopedSlots,
+            }, this.$slots.default, )
         },
         created() {
             this.$memoSort = {};
@@ -91,8 +87,14 @@
                     e.preventDefault();
                     return;
                 }
+                const hideDragImage = this.$el.cloneNode(true);
+                hideDragImage.id = "hideDragImage-hide";
+                hideDragImage.style.opacity = 0;
+                e.dataTransfer.setDragImage(hideDragImage, 0, 0);
             },
             dragStopHandler(e, index) {
+                const hideDragImage = document.getElementById('hideDragImage-hide');
+                if (hideDragImage) hideDragImage.remove();
                 this.resetSortableIndex(e, index);
             },
             dragOverHandler(e, index) {
@@ -209,16 +211,26 @@
         }
     }
     .ant-table-is-sorting .draggable-row td {
-        background-color: white !important;
+        background-color: #ffffff !important;
     }
     .dark .ant-table-is-sorting .draggable-row td {
         background-color: var(--dark-color-surface-100) !important;
     }
+    .ant-table-is-sorting .dragging td {
+        background-color: rgb(232 244 242) !important;
+        color: rgba(0, 0, 0, 0.3);
+    }
+    .dark .ant-table-is-sorting .dragging td {
+        background-color: var(--dark-color-table-hover) !important;
+        color: rgba(255, 255, 255, 0.3);
+    }
     .ant-table-is-sorting .dragging {
-        opacity: 0.5;
+        opacity: 1;
+        box-shadow: 1px -2px 2px #008771;
+        transition: all 0.2s;
     }
     .ant-table-is-sorting .dragging .ant-table-row-index {
-        opacity: 0;
+        opacity: 0.3;
     }
 </style>
 {{end}}

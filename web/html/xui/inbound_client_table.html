@@ -19,7 +19,7 @@
             :overlay-class-name="themeSwitcher.currentTheme"
             ok-text='{{ i18n "reset"}}'
             cancel-text='{{ i18n "cancel"}}'>
-            <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #008771' : 'color: #008771'"></a-icon>
+            <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: var(--color-primary-100)' : 'color: var(--color-primary-100)'"></a-icon>
             <a-icon style="font-size: 24px; cursor: pointer;" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
         </a-popconfirm>
     </a-tooltip>
@@ -54,7 +54,7 @@
             <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
             <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
         </template>
-    <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'">
+    <a-badge :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'">
     </a-badge>
     </a-tooltip>
     [[ client.email ]]
@@ -86,13 +86,12 @@
                 <td width="120px" v-else-if="client.totalGB > 0">
                     <a-progress :stroke-color="clientStatsColor(record, client.email)"
                                 :show-info="false"
-                                :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
+                                :status="isClientEnabled(record, client.email)? 'exception' : ''"
                                 :percent="statsProgress(record, client.email)"/>
                 </td>
                 <td width="120px" v-else class="infinite-bar">
                     <a-progress
                     :show-info="false"
-                    :status="isClientOnline(client.email)? 'active' : ''"
                     :percent="100"></a-progress>
                 </td>
                 <td width="60px">
@@ -117,7 +116,7 @@
                     </td>
                     <td width="120px" class="infinite-bar">
                         <a-progress :show-info="false"
-                        :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
+                        :status="isClientEnabled(record, client.email)? 'exception' : ''"
                         :percent="expireProgress(client.expiryTime, client.reset)"/>
                     </td>
                     <td width="60px">[[ client.reset + "d" ]]</td>
@@ -202,14 +201,13 @@
                             </template>
                             <a-progress :stroke-color="clientStatsColor(record, client.email)"
                                         :show-info="false"
-                                        :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
+                                        :status="isClientEnabled(record, client.email)? 'exception' : ''"
                                         :percent="statsProgress(record, client.email)"/>
                         </a-popover>
                     </td>
                     <td width="120px" v-else class="infinite-bar">
                         <a-progress :stroke-color="themeSwitcher.isDarkTheme ? '#2c1e32':'#F2EAF1'"
                         :show-info="false"
-                        :status="isClientOnline(client.email)? 'active' : ''"
                         :percent="100"></a-progress>
                     </td>
                     <td width="80px">
@@ -235,7 +233,7 @@
                                 <span v-else>[[ DateUtil.formatMillis(client._expiryTime) ]]</span>
                             </template>
                             <a-progress :show-info="false"
-                            :status="isClientOnline(client.email)? 'active' : isClientEnabled(record, client.email)? 'exception' : ''"
+                            :status="isClientEnabled(record, client.email)? 'exception' : ''"
                             :percent="expireProgress(client.expiryTime, client.reset)"/>
                         </a-popover>
                     </td>

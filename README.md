@@ -1,5 +1,7 @@
 # 3X-UI
 
+[English](/README.md) | [Chinese](/README.zh.md)
+
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
 **An Advanced Web Panel • Built on Xray Core**
@@ -26,10 +28,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/maple367/3x-ui/main/install.sh
 
 ## Install Custom Version
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.2.1`:
+To install your desired version, add the version to the end of the installation command. e.g., ver `v2.2.6`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.2.1
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.2.6
 ```
 
 ## SSL Certificate
@@ -311,9 +313,9 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
   
   ```sh
     "log": {
-    "access": "./access.log",
-    "dnsLog": false,
-    "loglevel": "warning"
+      "access": "./access.log",
+      "dnsLog": false,
+      "loglevel": "warning"
     },
   ```
 

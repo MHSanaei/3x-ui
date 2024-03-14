@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -9,8 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type UserService struct {
-}
+type UserService struct{}
 
 func (s *UserService) GetFirstUser() (*model.User, error) {
 	db := database.GetDB()
@@ -77,6 +77,21 @@ func (s *UserService) GetUserSecret(id int) *model.User {
 		return nil
 	}
 	return user
+}
+
+func (s *UserService) CheckSecretExistence() (bool, error) {
+	db := database.GetDB()
+
+	var count int64
+	err := db.Model(model.User{}).
+		Where("login_secret IS NOT NULL").
+		Count(&count).
+		Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
 }
 
 func (s *UserService) UpdateFirstUser(username string, password string) error {

@@ -11,6 +11,9 @@
         <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}' has-feedback :validate-status="outModal.duplicateTag? 'warning' : 'success'">
             <a-input v-model.trim="outbound.tag" @change="outModal.check()" placeholder='{{ i18n "pages.xray.outbound.tagDesc" }}'></a-input>
         </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.outbound.sendThrough" }}'>
+            <a-input v-model="outbound.sendThrough"></a-input>
+        </a-form-item>
 
 <!-- freedom settings-->
 <template v-if="outbound.protocol === Protocols.Freedom">
@@ -214,34 +217,34 @@
 
 <!-- stream settings -->
 <template v-if="outbound.canEnableStream()">
-        <a-form-item label='{{ i18n "transmission" }}'>
-            <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
-                    :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="tcp">TCP</a-select-option>
-                <a-select-option value="kcp">mKCP</a-select-option>
-                <a-select-option value="ws">WS</a-select-option>
-                <a-select-option value="http">H2</a-select-option>
-                <a-select-option value="quic">QUIC</a-select-option>
-                <a-select-option value="grpc">gRPC</a-select-option>
-            </a-select>
-        </a-form-item>
+    <a-form-item label='{{ i18n "transmission" }}'>
+        <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="tcp">TCP</a-select-option>
+            <a-select-option value="kcp">mKCP</a-select-option>
+            <a-select-option value="ws">WebSocket</a-select-option>
+            <a-select-option value="http">H2</a-select-option>
+            <a-select-option value="quic">QUIC</a-select-option>
+            <a-select-option value="grpc">gRPC</a-select-option>
+            <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
+        </a-select>
+    </a-form-item>
     <template v-if="outbound.stream.network === 'tcp'">
         <a-form-item label='HTTP {{ i18n "camouflage" }}'>
-            <a-switch
-                :checked="outbound.stream.tcp.type === 'http'"
+            <a-switch :checked="outbound.stream.tcp.type === 'http'"
                 @change="checked => outbound.stream.tcp.type = checked ? 'http' : 'none'">
             </a-switch>
         </a-form-item>
         <template v-if="outbound.stream.tcp.type == 'http'">
-        <a-form-item label='{{ i18n "host" }}'>
-            <a-input v-model.trim="outbound.stream.tcp.host"></a-input>
-        </a-form-item> 
-        <a-form-item label='{{ i18n "path" }}'>
-            <a-input v-model.trim="outbound.stream.tcp.path"></a-input>
-        </a-form-item> 
+            <a-form-item label='{{ i18n "host" }}'>
+                <a-input v-model.trim="outbound.stream.tcp.host"></a-input>
+            </a-form-item>
+            <a-form-item label='{{ i18n "path" }}'>
+                <a-input v-model.trim="outbound.stream.tcp.path"></a-input>
+            </a-form-item>
         </template>
     </template>
-    
+
     <!-- kcp -->
     <template v-if="outbound.stream.network === 'kcp'">
         <a-form-item label='{{ i18n "camouflage" }}'>
@@ -252,6 +255,7 @@
                 <a-select-option value="wechat-video">WeChat</a-select-option>
                 <a-select-option value="dtls">DTLS 1.2</a-select-option>
                 <a-select-option value="wireguard">WireGuard</a-select-option>
+                <a-select-option value="dns">DNS</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "password" }}'>
@@ -265,7 +269,7 @@
         </a-form-item>
         <a-form-item label='Uplink (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.upCap"></a-input-number>
-        </a-form-item> 
+        </a-form-item>
         <a-form-item label='Downlink (MB/s)'>
             <a-input-number v-model.number="outbound.stream.kcp.downCap"></a-input-number>
         </a-form-item>
@@ -279,7 +283,7 @@
             <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"></a-input-number>
         </a-form-item>
     </template>
-    
+
     <!-- ws -->
     <template v-if="outbound.stream.network === 'ws'">
         <a-form-item label='{{ i18n "host" }}'>
@@ -287,9 +291,9 @@
         </a-form-item>
         <a-form-item label='{{ i18n "path" }}'>
             <a-form-item><a-input v-model.trim="outbound.stream.ws.path"></a-input>
-        </a-form-item>
+            </a-form-item>
     </template>
-    
+
     <!-- http -->
     <template v-if="outbound.stream.network === 'http'">
         <a-form-item label='{{ i18n "host" }}'>
@@ -299,7 +303,7 @@
             <a-input v-model.trim="outbound.stream.http.path"></a-input>
         </a-form-item>
     </template>
-    
+
     <!-- quic -->
     <template v-if="outbound.stream.network === 'quic'">
         <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
@@ -311,7 +315,7 @@
         </a-form-item>
         <a-form-item label='{{ i18n "password" }}'>
             <a-input v-model.trim="outbound.stream.quic.key"></a-input>
-        </a-form-item> 
+        </a-form-item>
         <a-form-item label='{{ i18n "camouflage" }}'>
             <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="none">None</a-select-option>
@@ -323,15 +327,28 @@
             </a-select>
         </a-form-item>
     </template>
-    
+
     <!-- grpc -->
     <template v-if="outbound.stream.network === 'grpc'">
         <a-form-item label='Service Name'>
             <a-input v-model.trim="outbound.stream.grpc.serviceName"></a-input>
         </a-form-item>
+        <a-form-item label="Authority">
+            <a-input v-model.trim="outbound.stream.grpc.authority"></a-input>
+        </a-form-item>
         <a-form-item label='Multi Mode'>
             <a-switch v-model="outbound.stream.grpc.multiMode"></a-switch>
         </a-form-item>
+    </template>
+
+    <!-- httpupgrade -->
+    <template v-if="outbound.stream.network === 'httpupgrade'">
+        <a-form-item label='{{ i18n "host" }}'>
+            <a-input v-model="outbound.stream.httpupgrade.host"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "path" }}'>
+            <a-form-item><a-input v-model.trim="outbound.stream.httpupgrade.path"></a-input>
+            </a-form-item>
     </template>
 </template>
 
@@ -341,7 +358,7 @@
         <a-radio-group v-model="outbound.stream.security" button-style="solid">
             <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
             <a-radio-button value="tls">TLS</a-radio-button>
-            <a-radio-button v-if="outbound.canEnableReality()" value="reality">REALITY</a-radio-button>
+            <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
         </a-radio-group>
     </a-form-item>
     <template v-if="outbound.stream.isTls">
@@ -389,6 +406,48 @@
         </a-form-item>
     </template>
 </template>
+
+<!-- sockopt settings -->
+    <a-form-item label="Sockopts">
+        <a-switch v-model="outbound.stream.sockoptSwitch"></a-switch>
+    </a-form-item>
+    <template v-if="outbound.stream.sockoptSwitch">
+        <a-form-item label="Dialer Proxy">
+            <a-select v-model="outbound.stream.sockopt.dialerProxy" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in ['', ...outModal.tags]" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="TCP Fast Open">
+            <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
+        </a-form-item>
+        <a-form-item label="Keep Alive Interval">
+            <a-input-number v-model="outbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label="TCP No-Delay">
+            <a-switch v-model="outbound.stream.sockopt.tcpNoDelay"></a-switch>
+        </a-form-item>
+</template>
+
+<!-- mux settings -->
+<template v-if="outbound.canEnableMux()">
+    <a-form-item label="Mux">
+        <a-switch v-model="outbound.mux.enabled"></a-switch>
+    </a-form-item>
+    <template v-if="outbound.mux.enabled">
+        <a-form-item label="Concurrency">
+            <a-input-number v-model="outbound.mux.concurrency" :min="-1" :max="1024"></a-input-number>
+        </a-form-item>
+        <a-form-item label="xudp Concurrency">
+            <a-input-number v-model="outbound.mux.xudpConcurrency" :min="-1" :max="1024"></a-input-number>
+        </a-form-item>
+        <a-form-item label="xudp UDP 443">
+            <a-select v-model="outbound.mux.xudpProxyUDP443" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="c in ['reject', 'allow', 'skip']" :value="c">[[ c ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+    </template>
+</template>
+
 </a-form>
 </a-tab-pane>
 <a-tab-pane key="2" tab="JSON" force-render="true">

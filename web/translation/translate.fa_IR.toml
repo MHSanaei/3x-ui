@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "مسدودسازی کشور"
 "blockCountryConfigsDesc" = "این گزینه‌ها ترافیک را بر اساس کشور درخواستی خاص مسدود می‌کند"
 "directCountryConfigs" = "اتصال مستقیم کشور"
-"directCountryConfigsDesc" = "این گزینه‌ها ترافیک را بر اساس کشور درخواستی خاص بصورت مستقیم ارسال می‌کند"
+"directCountryConfigsDesc" = "اتصال مستقیم اطمینان حاصل می‌کند که ترافیک خاص از طریق یک سرور دیگر هدایت نمی‌شود."
 "ipv4Configs" = "IPv4 مسیریابی"
 "ipv4ConfigsDesc" = "این گزینه‌ها ترافیک‌ را از طریق آی‌پی‌نسخه4 به مقصد هدایت می‌کند"
 "warpConfigs" = "WARP مسیریابی"
@@ -446,6 +446,10 @@
 "bridge" = "پل"
 "portal" = "پورتال"
 "intercon" = "اتصال میانی"
+"settings" = "تنظیمات"
+"accountInfo" = "اطلاعات حساب"
+"outboundStatus" = "وضعیت خروجی"
+"sendThrough" = "ارسال با"
 
 [pages.xray.balancer]
 "addBalancer" = "افزودن بالانسر"
@@ -467,6 +471,8 @@
 [pages.xray.dns]
 "enable" = "فعال کردن حل دامنه"
 "enableDesc" = "سرور حل دامنه داخلی را فعال کنید"
+"tag" = "برچسب"
+"tagDesc" = "این برچسب در قوانین مسیریابی به عنوان یک برچسب ورودی قابل استفاده خواهد بود"
 "strategy" = "استراتژی پرس‌وجو"
 "strategyDesc" = "استراتژی کلی برای حل نام دامنه"
 "add" = "افزودن سرور"

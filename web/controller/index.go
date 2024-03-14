@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"time"
+
 	"x-ui/logger"
 	"x-ui/web/service"
 	"x-ui/web/session"
@@ -49,15 +50,15 @@ func (a *IndexController) login(c *gin.Context) {
 	var form LoginForm
 	err := c.ShouldBind(&form)
 	if err != nil {
-		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.invalidFormData"))
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.invalidFormData"))
 		return
 	}
 	if form.Username == "" {
-		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.emptyUsername"))
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.emptyUsername"))
 		return
 	}
 	if form.Password == "" {
-		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.emptyPassword"))
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.emptyPassword"))
 		return
 	}
 
@@ -66,7 +67,7 @@ func (a *IndexController) login(c *gin.Context) {
 	if user == nil {
 		logger.Warningf("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
 		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
-		pureJsonMsg(c, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
+		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
 	} else {
 		logger.Infof("%s login success, Ip Address: %s\n", form.Username, getRemoteIp(c))

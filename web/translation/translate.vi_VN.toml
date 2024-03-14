@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Cấu hình Chặn Quốc gia"
 "blockCountryConfigsDesc" = "Những tùy chọn này sẽ ngăn người dùng kết nối đến các tên miền quốc gia cụ thể."
 "directCountryConfigs" = "Cấu hình Kết nối Trực tiếp Quốc gia"
-"directCountryConfigsDesc" = "Những tùy chọn này sẽ kết nối người dùng trực tiếp đến các tên miền quốc gia cụ thể."
+"directCountryConfigsDesc" = "Một kết nối trực tiếp đảm bảo rằng lưu lượng cụ thể không được định tuyến qua một máy chủ khác."
 "ipv4Configs" = "Cấu hình IPv4"
 "ipv4ConfigsDesc" = "Những tùy chọn này sẽ chỉ định kết nối đến các tên miền mục tiêu qua IPv4."
 "warpConfigs" = "Cấu hình WARP"
@@ -446,6 +446,10 @@
 "bridge" = "Cầu"
 "portal" = "Cổng thông tin"
 "intercon" = "Kết nối"
+"settings" = "cài đặt"
+"accountInfo" = "Thông tin tài khoản"
+"outboundStatus" = "Trạng thái đầu ra"
+"sendThrough" = "Gửi qua"
 
 [pages.xray.balancer]
 "addBalancer" = "Thêm cân bằng"
@@ -467,6 +471,8 @@
 [pages.xray.dns]
 "enable" = "Kích hoạt DNS"
 "enableDesc" = "Kích hoạt máy chủ DNS tích hợp"
+"tag" = "Thẻ gửi đến DNS"
+"tagDesc" = "Thẻ này sẽ có sẵn dưới dạng thẻ Gửi đến trong quy tắc định tuyến."
 "strategy" = "Chiến lược truy vấn"
 "strategyDesc" = "Chiến lược tổng thể để phân giải tên miền"
 "add" = "Thêm máy chủ"

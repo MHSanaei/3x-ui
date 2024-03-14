@@ -36,13 +36,6 @@
     .ant-collapse {
         margin: 5px 0;
     }
-    .online-animation .ant-badge-status-dot {
-        animation: 1.2s ease infinite normal none running onlineAnimation;
-    }
-    @keyframes onlineAnimation {
-        0%, 50%, 100%   { transform: scale(1);  opacity:  1; }
-        10%             { transform: scale(1.5); opacity: .2; }
-    }
     .info-large-tag {
         max-width: 200px;
         overflow: hidden;
@@ -537,7 +530,7 @@
         { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 100, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
     ];
 
     const innerMobileColumns = [
@@ -578,6 +571,7 @@
             datepicker: 'gregorian',
             tgBotEnable: false,
             showAlert: false,
+            ipLimitEnable: false,
             pageSize: 0,
             isMobile: window.innerWidth <= 768,
         },
@@ -625,6 +619,7 @@
                     this.pageSize = pageSize;
                     this.remarkModel = remarkModel;
                     this.datepicker = datepicker;
+                    this.ipLimitEnable = ipLimitEnable;
                 }
             },
             setInbounds(dbInbounds) {

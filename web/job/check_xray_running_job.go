@@ -20,7 +20,7 @@ func (j *CheckXrayRunningJob) Run() {
 		j.checkTime = 0
 	} else {
 		j.checkTime++
-		//only restart if it's down 2 times in a row
+		// only restart if it's down 2 times in a row
 		if j.checkTime > 1 {
 			err := j.xrayService.RestartXray(false)
 			j.checkTime = 0

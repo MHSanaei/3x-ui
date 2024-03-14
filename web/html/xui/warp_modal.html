@@ -12,7 +12,7 @@
                 <td>[[ warpModal.warpData.access_token ]]</td>
             </tr>
             <tr>
-                <td>Devide ID</td>
+                <td>Device ID</td>
                 <td>[[ warpModal.warpData.device_id ]]</td>
             </tr>
             <tr class="client-table-odd-row">
@@ -24,19 +24,19 @@
                 <td>[[ warpModal.warpData.private_key ]]</td>
             </tr>
         </table>
-        <a-divider style="margin: 0;">{{ i18n "pages.settings.toasts.modifySettings" }}</a-divider>
+        <a-divider style="margin: 0;">{{ i18n "pages.xray.outbound.settings" }}</a-divider>
         <a-collapse style="margin: 10px 0;">
             <a-collapse-panel header='WARP/WARP+ License Key'>
-                <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-                    <a-form-item label="License Key">
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+                    <a-form-item label="Key">
                         <a-input v-model="warpPlus"></a-input>
                         <a-button @click="updateLicense(warpPlus)" :disabled="warpPlus.length<26" :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.update" }}</a-button>
                     </a-form-item>
                 </a-form>
             </a-collapse-panel>
         </a-collapse>
-        <a-divider style="margin: 0;">{{ i18n "pages.settings.toasts.getSettings" }}</a-divider>
-        <a-button icon="sync" @click="getConfig" style="margin-bottom: 10px;" :loading="warpModal.confirmLoading">{{ i18n "info" }}</a-button>
+        <a-divider style="margin: 0;">{{ i18n "pages.xray.outbound.accountInfo" }}</a-divider>
+        <a-button icon="sync" @click="getConfig" style="margin-top: 5px; margin-bottom: 10px;" :loading="warpModal.confirmLoading" type="primary">{{ i18n "info" }}</a-button>
         <template v-if="!ObjectUtil.isEmpty(warpModal.warpConfig)">
             <table style="width: 100%">
                 <tr class="client-table-odd-row">
@@ -48,7 +48,7 @@
                     <td>[[ warpModal.warpConfig.model ]]</td>
                 </tr>
                 <tr class="client-table-odd-row">
-                    <td>Device Active</td>
+                    <td>Device Enabled</td>
                     <td>[[ warpModal.warpConfig.enabled ]]</td>
                 </tr>
             <template v-if="!ObjectUtil.isEmpty(warpModal.warpConfig.account)">
@@ -61,7 +61,7 @@
                     <td>[[ warpModal.warpConfig.account.role ]]</td>
                 </tr>
                 <tr>
-                    <td>Premium Data</td>
+                    <td>WARP+ Data</td>
                     <td>[[ sizeFormat(warpModal.warpConfig.account.premium_data) ]]</td>
                 </tr>
                 <tr class="client-table-odd-row">
@@ -74,16 +74,15 @@
                 </tr>
             </template>
             </table>
-            <a-divider style="margin: 10px 0;">WARP {{ i18n "pages.xray.rules.outbound" }}</a-divider>
+            <a-divider style="margin: 10px 0;">{{ i18n "pages.xray.outbound.outboundStatus" }}</a-divider>
             <a-form :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-                <a-form-item label='{{ i18n "status" }}'>
                     <template v-if="warpOutboundIndex>=0">
-                        <a-tag color="green">{{ i18n "enabled" }}</a-tag>
-                        <a-button @click="resetOutbound" :loading="warpModal.confirmLoading">{{ i18n "reset" }}</a-button>
+                        <a-tag color="green" style="line-height: 31px;">{{ i18n "enabled" }}</a-tag>
+                        <a-button @click="resetOutbound" :loading="warpModal.confirmLoading" type="danger">{{ i18n "reset" }}</a-button>
                     </template>
                     <template v-else>
-                        <a-tag color="orange">{{ i18n "disabled" }}</a-tag>
-                        <a-button @click="addOutbound" :loading="warpModal.confirmLoading">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                        <a-tag color="orange" style="line-height: 31px;">{{ i18n "disabled" }}</a-tag>
+                        <a-button @click="addOutbound" :loading="warpModal.confirmLoading" type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
                     </template>
                 </a-form-item>
             </a-form>

@@ -327,7 +327,7 @@
 "blockCountryConfigs" = "Blokir Negara"
 "blockCountryConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan negara yang diminta."
 "directCountryConfigs" = "Langsung ke Negara"
-"directCountryConfigsDesc" = "Opsi ini akan langsung meneruskan lalu lintas berdasarkan negara yang diminta."
+"directCountryConfigsDesc" = "Koneksi langsung memastikan bahwa lalu lintas tertentu tidak diarahkan melalui server lain."
 "ipv4Configs" = "Pengalihan IPv4"
 "ipv4ConfigsDesc" = "Opsi ini akan mengalihkan lalu lintas berdasarkan tujuan tertentu melalui IPv4."
 "warpConfigs" = "Pengalihan WARP"
@@ -446,6 +446,10 @@
 "bridge" = "Jembatan"
 "portal" = "Portal"
 "intercon" = "Interkoneksi"
+"settings" = "Pengaturan"
+"accountInfo" = "Informasi Akun"
+"outboundStatus" = "Status Keluar"
+"sendThrough" = "Kirim Melalui"
 
 [pages.xray.balancer]
 "addBalancer" = "Tambahkan Penyeimbang"
@@ -467,6 +471,8 @@
 [pages.xray.dns]
 "enable" = "Aktifkan DNS"
 "enableDesc" = "Aktifkan server DNS bawaan"
+"tag" = "Tanda DNS Masuk"
+"tagDesc" = "Tanda ini akan tersedia sebagai tanda masuk dalam aturan penataan."
 "strategy" = "Strategi Kueri"
 "strategyDesc" = "Strategi keseluruhan untuk menyelesaikan nama domain"
 "add" = "Tambahkan Server"

@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
@@ -295,7 +296,7 @@ func (s *Server) startTask() {
 }
 
 func (s *Server) Start() (err error) {
-	//This is an anonymous function, no function name
+	// This is an anonymous function, no function name
 	defer func() {
 		if err != nil {
 			s.Stop()

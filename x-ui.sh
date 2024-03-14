@@ -968,9 +968,15 @@ create_iplimit_jails() {
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
+    #On Debian 12+ fail2ban's default backend should be changed to systemd
+    if [[  "${release}" == "debian" && ${os_version} -ge 12 ]]; then
+        sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
+    fi
+
     cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
 [3x-ipl]
 enabled=true
+backend=auto
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}

@@ -57,28 +57,28 @@ func GetAccessPersistentPrevLogPath() string {
 	return config.GetLogFolder() + "/3xipl-ap.prev.log"
 }
 
-func GetAccessLogPath() string {
+func GetAccessLogPath() (string, error) {
 	config, err := os.ReadFile(GetConfigPath())
 	if err != nil {
 		logger.Warningf("Something went wrong: %s", err)
+		return "", err
 	}
 
 	jsonConfig := map[string]interface{}{}
 	err = json.Unmarshal([]byte(config), &jsonConfig)
 	if err != nil {
 		logger.Warningf("Something went wrong: %s", err)
+		return "", err
 	}
 
 	if jsonConfig["log"] != nil {
 		jsonLog := jsonConfig["log"].(map[string]interface{})
 		if jsonLog["access"] != nil {
-
 			accessLogPath := jsonLog["access"].(string)
-
-			return accessLogPath
+			return accessLogPath, nil
 		}
 	}
-	return ""
+	return "", err
 }
 
 func stopProcess(p *Process) {
@@ -202,6 +202,12 @@ func (p *process) Start() (err error) {
 	if err != nil {
 		return common.NewErrorf("Failed to generate xray configuration file: %v", err)
 	}
+
+	err = os.MkdirAll(config.GetLogFolder(), 0o770)
+	if err != nil {
+		logger.Warningf("Something went wrong: %s", err)
+	}
+
 	configPath := GetConfigPath()
 	err = os.WriteFile(configPath, data, fs.ModePerm)
 	if err != nil {
