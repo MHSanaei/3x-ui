@@ -36,6 +36,7 @@
     --dark-color-codemirror-line-selection: rgba(0, 135, 113, 0.3);
     --dark-color-login-background: var(--dark-color-background);
     --dark-color-login-wave: var(--dark-color-surface-200);
+    --dark-color-tooltip: rgba(61, 76, 104, 0.9);
 }
 
 html[data-theme='ultra-dark'] {
@@ -69,6 +70,7 @@ html[data-theme='ultra-dark'] {
     --dark-color-codemirror-line-selection: rgba(85, 85, 85, 0.4);
     --dark-color-login-background: #0a2227;
     --dark-color-login-wave: #0f2d32;
+    --dark-color-tooltip: rgba(88, 93, 100, 0.9);
     .ant-dropdown-menu-dark {
         background-color: var(--dark-color-surface-500);
     }
@@ -1275,4 +1277,13 @@ b, strong {
 .ant-menu-theme-switch:hover {
     background-color: transparent !important;
     cursor: default !important;
+}
+
+.dark .ant-tooltip-inner,
+.dark .ant-tooltip-arrow:before {
+    background-color: var(--dark-color-tooltip);
+}
+
+.ant-select-sm .ant-select-selection__rendered {
+    margin-left: 10px;
 }
