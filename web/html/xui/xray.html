@@ -550,8 +550,8 @@
                   <template slot="strategy" slot-scope="text, balancer, index">
                     <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
                     <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastload'" color="green">Least Load</a-tag>
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastping'" color="green">Least Ping</a-tag>
+                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
+                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
                   </template>
                   <template slot="selector" slot-scope="text, balancer, index">
                     <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
