@@ -295,7 +295,7 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="fragment" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}' v-if="fragment">
+                      <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
                         <a-list-item style="padding: 10px 20px">
                           <a-row>
                             <a-col :lg="24" :xl="12">
@@ -316,14 +316,16 @@
                   <a-list-item style="padding: 20px">
                     <a-row>
                       <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='Mux'></a-list-item-meta>
+                        <a-list-item-meta title='{{ i18n "pages.settings.mux"}}'>
+                          <template slot="description">{{ i18n "pages.settings.muxDesc"}}</template>
+                        </a-list-item-meta>
                       </a-col>
                       <a-col :lg="24" :xl="12">
                         <a-switch v-model="enableMux"></a-switch>
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableMux" style="margin-top: 14px;">
-                      <a-collapse-panel header='Mux'>
+                      <a-collapse-panel header='{{ i18n "pages.settings.muxSett"}}'>
                         <setting-list-item style="padding: 10px 20px" type="number" title='Concurrency' v-model="muxConcurrency" :min="-1" :max="1024"></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="number" title='xudp Concurrency' v-model="muxXudpConcurrency" :min="-1" :max="1024"></setting-list-item>
                         <a-list-item style="padding: 10px 20px">
@@ -344,8 +346,8 @@
                   <a-list-item style="padding: 20px">
                     <a-row>
                       <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.xray.directCountryConfigs"}}'>
-                          <template slot="description">{{ i18n "pages.xray.directCountryConfigsDesc"}}</template>
+                        <a-list-item-meta title='{{ i18n "pages.settings.direct"}}'>
+                          <template slot="description">{{ i18n "pages.settings.directDesc"}}</template>
                         </a-list-item-meta>
                       </a-col>
                       <a-col :lg="24" :xl="12">
@@ -353,7 +355,7 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
+                      <a-collapse-panel header='{{ i18n "pages.settings.directSett"}}'>
                         <a-list-item style="padding: 10px 20px">
                           <a-checkbox-group v-model="directCountries" name="Countries" :options="countryOptions"></a-checkbox-group>
                         </a-list-item>
