@@ -1076,7 +1076,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     color: rgba(255, 255, 255, 0.35);
 }
 
-.dark .ant-divider.ant-divider-horizontal:not(.ant-divider-with-text-center, .ant-divider-with-text-left, .ant-divider-with-text-right),
+.dark .ant-divider:not(.ant-divider-with-text-center, .ant-divider-with-text-left, .ant-divider-with-text-right),
 .ant-dropdown-menu-dark,
 .dark .ant-calendar-year-panel-year:hover,
 .dark .ant-calendar-month-panel-month:hover,
