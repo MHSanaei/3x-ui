@@ -1243,7 +1243,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     display: flex;
     justify-content: center;
     align-content: center;
-    padding: 1rem;
+    padding: 0.8rem;
     border-radius: 1rem;
     border: solid 1px #e8e8e8;
 }
