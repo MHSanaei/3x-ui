@@ -311,6 +311,13 @@
 "subURIDesc" = "Cambiar el URI base de la URL de suscripción para usar detrás de los servidores proxy"
 "fragment" = "Fragmentación"
 "fragmentDesc" = "Habilitar la fragmentación para el paquete de saludo de TLS"
+"fragmentSett" = "Configuración de fragmentación"
+"mux" = "Mux"
+"muxDesc" = "Transmita múltiples flujos de datos independientes dentro de un flujo de datos establecido."
+"muxSett" = "Mux Configuración"
+"direct" = "Conexión directa"
+"directDesc" = "Establece conexiones directamente con dominios o rangos de IP de un país específico."
+"directSett" = "Opciones de conexión directa"
 
 [pages.xray]
 "title" = "Xray Configuración"
