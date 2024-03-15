@@ -1228,15 +1228,29 @@ li.ant-select-dropdown-menu-item:empty:after {
     overflow-y: auto;
 }
 
-.qr-bg {
+.qr-cv {
     width: 100%;
     height: 100%;
+    opacity: 0.85;
+}
+
+.dark .qr-cv {
+    filter: invert(1);
+}
+
+.qr-bg {
     background-color: #fff;
     display: flex;
     justify-content: center;
     align-content: center;
-    padding: 0.5rem;
+    padding: 1rem;
     border-radius: 1rem;
+    border: solid 1px #e8e8e8;
+}
+
+.dark .qr-bg {
+    background-color: var(--dark-color-surface-700);
+    border-color: var(--dark-color-surface-300);
 }
 
 .ant-input-group-addon:not(:first-child):not(:last-child) {
