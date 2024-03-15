@@ -8,6 +8,9 @@ ARG TARGETARCH
 RUN apk --no-cache --update add \
   build-base \
   gcc \
+  openssl \
+  curl \
+  socat \
   wget \
   unzip
 
