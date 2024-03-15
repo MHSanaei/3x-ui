@@ -9,14 +9,14 @@
   </a-tag>
   <template v-if="app.subSettings.enable && qrModal.subId">
     <a-divider>{{ i18n "pages.settings.subSettings"}}</a-divider>
-    <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-bg"></canvas>
+    <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas></div>
     <a-divider>{{ i18n "pages.settings.subSettings"}} Json</a-divider>
-    <canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-bg"></canvas>
+    <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas></div>
   </template>
   <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
   <template v-for="(row, index) in qrModal.qrcodes">
     <a-tag color="green" style="margin: 10px 0; display: block; text-align: center;">[[ row.remark ]]</a-tag>
-    <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" class="qr-bg"></canvas>
+    <div class="qr-bg"><canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas></div>
   </template>
 </a-modal>
 
@@ -78,8 +78,10 @@
             setQrCode(elmentId, content) {
                 new QRious({
                     element: document.querySelector('#' + elmentId),
-                    size: 260,
+                    size: 300,
                     value: content,
+                    background: 'transparent',
+                    foreground: 'black'
                 });
             },
             genSubLink(subID) {
