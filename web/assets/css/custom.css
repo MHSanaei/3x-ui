@@ -1297,3 +1297,37 @@ b, strong {
 .ant-select-sm .ant-select-selection__rendered {
     margin-left: 10px;
 }
+
+.ant-collapse {
+    -moz-animation: collfade 0.3s ease;
+    -webkit-animation: 0.3s collfade 0.3s ease;
+    animation:  collfade 0.3s ease;
+}
+
+@-webkit-keyframes collfade {
+    0% {
+        transform: scaleY(.8);
+        transform-origin: 0% 0%;
+        opacity: 0;
+    }
+
+    100% {
+        transform: scaleY(1);
+        transform-origin: 0% 0%;
+        opacity: 1;
+    }
+}
+
+@keyframes collfade {
+    0% {
+        transform: scaleY(.8);
+        transform-origin: 0% 0%;
+        opacity: 0;
+    }
+
+    100% {
+        transform: scaleY(1);
+        transform-origin: 0% 0%;
+        opacity: 1;
+    }
+}
