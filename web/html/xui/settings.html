@@ -184,8 +184,8 @@
                 </a-list>
               </a-tab-pane>
               <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding: 20px;">
-                <a-divider>{{ i18n "pages.settings.security.admin"}}</a-divider>
-                <a-form layout="horizontal" :colon="false" style="float: left; margin: 10px 0;" :label-col="{ md: {span:10} }" :wrapper-col="{ md: {span:14} }">
+                <a-divider orientation="left">{{ i18n "pages.settings.security.admin"}}</a-divider>
+                <a-form layout="horizontal" :colon="false" style="float: left; margin-bottom: 2rem;" :label-col="{ md: {span:10} }" :wrapper-col="{ md: {span:14} }">
                   <a-form-item label='{{ i18n "pages.settings.oldUsername"}}'>
                     <a-input autocomplete="username" v-model="user.oldUsername"></a-input>
                   </a-form-item>
@@ -202,8 +202,8 @@
                     <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
                   </a-form-item>
                 </a-form>
-                <a-divider>{{ i18n "pages.settings.security.secret"}}</a-divider>
-                <a-form style="padding: 20px;">
+                <a-divider orientation="left">{{ i18n "pages.settings.security.secret"}}</a-divider>
+                <a-form style="padding: 0 20px;">
                   <a-list-item>
                     <a-row>
                       <a-col :lg="24" :xl="12">
