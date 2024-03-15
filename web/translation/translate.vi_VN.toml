@@ -311,6 +311,13 @@
 "subURIDesc" = "Thay đổi URI cơ sở của URL gói đăng ký để sử dụng cho proxy trung gian"
 "fragment" = "Sự phân mảnh"
 "fragmentDesc" = "Kích hoạt phân mảnh cho gói TLS hello"
+"fragmentSett" = "Cài đặt phân mảnh"
+"mux" = "Mux"
+"muxDesc" = "Truyền nhiều luồng dữ liệu độc lập trong luồng dữ liệu đã thiết lập."
+"muxSett" = "Mux Cài đặt"
+"direct" = "Kết nối trực tiếp"
+"directDesc" = "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể."
+"directSett" = "Tùy chọn kết nối trực tiếp"
 
 [pages.xray]
 "title" = "Cài đặt Xray"
