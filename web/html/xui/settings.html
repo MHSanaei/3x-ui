@@ -278,14 +278,19 @@
                 <a-list item-layout="horizontal">
                   <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subJsonPath"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subJsonURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.fragment"}}' desc='{{ i18n "pages.settings.fragmentDesc"}}' v-model="fragment"></setting-list-item>
-                  <setting-list-item type="switch" title='Mux' v-model="enableMux"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.xray.directCountryConfigs"}}' desc='{{ i18n "pages.xray.directCountryConfigsDesc"}}' v-model="enableDirect"></setting-list-item>
-                </a-list>
-                <a-collapse v-if="fragment || enableMux || enableDirect">
-                  <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}' v-if="fragment">
-                    <a-list-item style="padding: 10px 20px">
-                      <a-row>
+                  <a-list-item style="padding: 20px">
+                    <a-row>
+                      <a-col :lg="24" :xl="12">
+                        <a-list-item-meta title='{{ i18n "pages.settings.fragment"}}'>
+                          <template slot="description">{{ i18n "pages.settings.fragmentDesc"}}</template>
+                        </a-list-item-meta>
+                      </a-col>
+                      <a-col :lg="24" :xl="12">
+                        <a-switch v-model="fragment"></a-switch>
+                      </a-col>
+                    </a-row>
+                    <a-row v-if="fragment" style="margin-top: 10px;">
+                      <a-row style="padding: 10px 0">
                         <a-col :lg="24" :xl="12">
                           <a-list-item-meta title='Packets'></a-list-item-meta>
                         </a-col>
@@ -295,15 +300,51 @@
                           </a-select>
                         </a-col>
                       </a-row>
-                    </a-list-item>
-                    <setting-list-item style="padding: 10px 20px" type="text" title='Length' v-model="fragmentLength" placeholder="100-200"></setting-list-item>
-                    <setting-list-item style="padding: 10px 20px" type="text" title='Interval' v-model="fragmentInterval" placeholder="10-20"></setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='Mux' v-if="enableMux">
-                    <setting-list-item style="padding: 10px 20px" type="number" title='Concurrency' v-model="muxConcurrency" :min="-1" :max="1024"></setting-list-item>
-                    <setting-list-item style="padding: 10px 20px" type="number" title='xudp Concurrency' v-model="muxXudpConcurrency" :min="-1" :max="1024"></setting-list-item>
-                    <a-list-item style="padding: 10px 20px">
-                      <a-row>
+                      <a-row style="padding: 10px 0">
+                        <a-col :lg="24" :xl="12">
+                          <a-list-item-meta title='Length'></a-list-item-meta>
+                        </a-col>
+                        <a-col :lg="24" :xl="12">
+                          <a-input v-model="fragmentLength" placeholder="100-200"></a-input>
+                        </a-col>
+                      </a-row>
+                      <a-row style="padding: 10px 0">
+                        <a-col :lg="24" :xl="12">
+                          <a-list-item-meta title='Interval'></a-list-item-meta>
+                        </a-col>
+                        <a-col :lg="24" :xl="12">
+                          <a-input v-model="fragmentInterval" placeholder="10-20"></a-input>
+                        </a-col>
+                      </a-row>
+                    </a-row>
+                  </a-list-item>
+                  <a-list-item style="padding: 20px">
+                    <a-row>
+                      <a-col :lg="24" :xl="12">
+                        <a-list-item-meta title='Mux'></a-list-item-meta>
+                      </a-col>
+                      <a-col :lg="24" :xl="12">
+                        <a-switch v-model="enableMux"></a-switch>
+                      </a-col>
+                    </a-row>
+                    <a-row v-if="enableMux" style="margin-top: 10px;">
+                      <a-row style="padding: 10px 0">
+                        <a-col :lg="24" :xl="12">
+                          <a-list-item-meta title='Concurrency'></a-list-item-meta>
+                        </a-col>
+                        <a-col :lg="24" :xl="12">
+                          <a-input-number style="width: 100%;" v-model="muxConcurrency" :min="-1" :max="1024"></a-input-number>
+                        </a-col>
+                      </a-row>
+                      <a-row style="padding: 10px 0">
+                        <a-col :lg="24" :xl="12">
+                          <a-list-item-meta title='xudp Concurrency'></a-list-item-meta>
+                        </a-col>
+                        <a-col :lg="24" :xl="12">
+                          <a-input-number style="width: 100%;" v-model="muxXudpConcurrency" :min="-1" :max="1024"></a-input-number>
+                        </a-col>
+                      </a-row>
+                      <a-row style="padding: 10px 0">
                         <a-col :lg="24" :xl="12">
                           <a-list-item-meta title='xudp UDP 443'></a-list-item-meta>
                         </a-col>
@@ -313,14 +354,26 @@
                           </a-select>
                         </a-col>
                       </a-row>
-                    </a-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}' v-if="enableDirect">
-                    <a-list-item style="padding: 10px 20px">
-                      <a-checkbox-group v-model="directCountries" name="Countries" :options="countryOptions"></a-checkbox-group>
-                    </a-list-item>
-                  </a-collapse-panel>
-                </a-collapse>
+                    </a-row>
+                  </a-list-item>
+                  <a-list-item style="padding: 20px">
+                    <a-row>
+                      <a-col :lg="24" :xl="12">
+                        <a-list-item-meta title='{{ i18n "pages.xray.directCountryConfigs"}}'>
+                          <template slot="description">{{ i18n "pages.xray.directCountryConfigsDesc"}}</template>
+                        </a-list-item-meta>
+                      </a-col>
+                      <a-col :lg="24" :xl="12">
+                        <a-switch v-model="enableDirect"></a-switch>
+                      </a-col>
+                    </a-row>
+                    <a-row v-if="enableDirect" style="margin-top: 10px;">
+                      <a-row style="padding: 10px 0">
+                        <a-checkbox-group v-model="directCountries" name="Countries" :options="countryOptions"></a-checkbox-group>
+                      </a-row>
+                    </a-row>
+                  </a-list-item>
+                </a-list>
               </a-tab-pane>
             </a-tabs>
           </a-space>
