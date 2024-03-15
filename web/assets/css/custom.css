@@ -651,9 +651,15 @@ style attribute {
 .dark .ant-modal-footer,
 .dark .ant-collapse-content,
 .dark .ant-calendar-footer,
+.dark .ant-divider-horizontal.ant-divider-with-text-left:before,
+.dark .ant-divider-horizontal.ant-divider-with-text-left:after,
 .dark .ant-divider-horizontal.ant-divider-with-text-center:before,
 .dark .ant-divider-horizontal.ant-divider-with-text-center:after {
     border-top-color: var(--dark-color-surface-300);
+}
+
+.ant-divider-horizontal.ant-divider-with-text-left:before {
+    width: 10%;
 }
 
 .dark .ant-progress-text,
@@ -714,7 +720,6 @@ style attribute {
 .dark .ant-select-dropdown,
 .dark .ant-select-dropdown li,
 .dark .ant-select-dropdown-menu-item,
-.dark .ant-divider:not(.ant-divider-with-text-center),
 .dark .client-table-header,
 .dark .ant-select-selection--multiple .ant-select-selection__choice,
 .dark .ant-calendar-time-picker-inner {
@@ -950,10 +955,14 @@ style attribute {
     background-color: #fff;
 }
 
+.ant-input-group-addon,
+.ant-tabs-tab,
+.ant-input::placeholder,
+.ant-collapse-header,
 .ant-menu,
 .ant-radio-button-wrapper {
-    user-select: none;
     -webkit-user-select: none;
+    user-select: none;
 }
 
 .ant-calendar-date,
@@ -1067,6 +1076,7 @@ li.ant-select-dropdown-menu-item:empty:after {
     color: rgba(255, 255, 255, 0.35);
 }
 
+.dark .ant-divider.ant-divider-horizontal:not(.ant-divider-with-text-center, .ant-divider-with-text-left, .ant-divider-with-text-right),
 .ant-dropdown-menu-dark,
 .dark .ant-calendar-year-panel-year:hover,
 .dark .ant-calendar-month-panel-month:hover,
