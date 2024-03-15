@@ -211,7 +211,10 @@ func (t *Tgbot) OnReceive() {
 				for _, userID := range message.UsersShared.UserIDs {
 					userIDsStr += strconv.FormatInt(userID, 10) + " "
 				}
-				err := t.inboundService.SetClientTelegramUserID(message.UsersShared.RequestID, userIDsStr)
+				needRestart, err := t.inboundService.SetClientTelegramUserID(message.UsersShared.RequestID, userIDsStr)
+				if needRestart {
+					t.xrayService.SetToNeedRestart()
+				}
 				output := ""
 				if err != nil {
 					output += t.I18nBot("tgbot.messages.selectUserFailed")
@@ -331,7 +334,6 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "reset_traffic_c":
 				err := t.inboundService.ResetClientTrafficByEmail(email)
 				if err == nil {
-					t.xrayService.SetToNeedRestart()
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.resetTrafficSuccess", "Email=="+email))
 					t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 				} else {
@@ -372,9 +374,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					limitTraffic, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						err := t.inboundService.ResetClientTrafficLimitByEmail(email, limitTraffic)
-						if err == nil {
+						needRestart, err := t.inboundService.ResetClientTrafficLimitByEmail(email, limitTraffic)
+						if needRestart {
 							t.xrayService.SetToNeedRestart()
+						}
+						if err == nil {
 							t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.setTrafficLimitSuccess", "Email=="+email))
 							t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 							return
@@ -501,9 +505,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 							}
 
 						}
-						err := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
-						if err == nil {
+						needRestart, err := t.inboundService.ResetClientExpiryTimeByEmail(email, date)
+						if needRestart {
 							t.xrayService.SetToNeedRestart()
+						}
+						if err == nil {
 							t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.expireResetSuccess", "Email=="+email))
 							t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 							return
@@ -606,9 +612,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					count, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						err := t.inboundService.ResetClientIpLimitByEmail(email, count)
-						if err == nil {
+						needRestart, err := t.inboundService.ResetClientIpLimitByEmail(email, count)
+						if needRestart {
 							t.xrayService.SetToNeedRestart()
+						}
+						if err == nil {
 							t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.resetIpSuccess", "Email=="+email, "Count=="+strconv.Itoa(count)))
 							t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 							return
@@ -718,7 +726,10 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 					return
 				}
-				err = t.inboundService.SetClientTelegramUserID(traffic.Id, "")
+				needRestart, err := t.inboundService.SetClientTelegramUserID(traffic.Id, "")
+				if needRestart {
+					t.xrayService.SetToNeedRestart()
+				}
 				if err == nil {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.removedTGUserSuccess", "Email=="+email))
 					t.clientTelegramUserInfo(chatId, email, callbackQuery.Message.GetMessageID())
@@ -736,9 +747,11 @@ func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				)
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
 			case "toggle_enable_c":
-				enabled, err := t.inboundService.ToggleClientEnableByEmail(email)
-				if err == nil {
+				enabled, needRestart, err := t.inboundService.ToggleClientEnableByEmail(email)
+				if needRestart {
 					t.xrayService.SetToNeedRestart()
+				}
+				if err == nil {
 					if enabled {
 						t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.enableSuccess", "Email=="+email))
 					} else {
