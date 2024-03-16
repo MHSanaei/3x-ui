@@ -955,6 +955,7 @@ style attribute {
     background-color: #fff;
 }
 
+.ant-checkbox-wrapper,
 .ant-input-group-addon,
 .ant-tabs-tab,
 .ant-input::placeholder,
