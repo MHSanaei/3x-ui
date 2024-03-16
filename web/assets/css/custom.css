@@ -145,8 +145,7 @@ html {
 style attribute {
     text-align: center;
 }
-.ant-table-tbody > tr > td,
-.ant-table-thead > tr > th {
+.ant-table-tbody > tr > td {
     padding: 12px 8px;
     overflow-wrap: break-word;
 }
@@ -1355,4 +1354,62 @@ b, strong {
         transform-origin: 0% 0%;
         opacity: 1;
     }
+}
+
+.ant-table-tbody>tr>td {
+	border-color: #f0f0f0;
+}
+
+.ant-table-row-expand-icon {
+    vertical-align: middle;
+    margin-inline-end: 8px;
+    position: relative;
+    transform: scale(0.9411764705882353);
+}
+
+.ant-table-row-collapsed::before {
+    transform: rotate(-180deg);
+    top: 7px;
+    inset-inline-end: 3px;
+    inset-inline-start: 3px;
+    height: 1px;
+    position: absolute;
+    background: currentcolor;
+    transition: transform 0.3s ease-out;
+    content: "";
+}
+
+.ant-table-row-collapsed::after {
+    transform: rotate(0deg);
+    top: 3px;
+    bottom: 3px;
+    inset-inline-start: 7px;
+    width: 1px;
+    position: absolute;
+    background: currentcolor;
+    transition: transform 0.3s ease-out;
+    content: "";
+}
+
+.ant-table-row-expanded::before {
+    top: 7px;
+    inset-inline-end: 3px;
+    inset-inline-start: 3px;
+    height: 1px;
+    position: absolute;
+    background: currentcolor;
+    transition: transform 0.3s ease-out;
+    content: "";
+}
+
+.ant-table-row-expanded::after {
+    top: 3px;
+    bottom: 3px;
+    inset-inline-start: 7px;
+    width: 1px;
+    transform: rotate(90deg);
+    position: absolute;
+    background: currentcolor;
+    transition: transform 0.3s ease-out;
+    content: "";
 }
