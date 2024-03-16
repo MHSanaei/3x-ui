@@ -1231,7 +1231,17 @@ li.ant-select-dropdown-menu-item:empty:after {
 .qr-cv {
     width: 100%;
     height: 100%;
-    opacity: 0.85;
+    opacity: 0.8;
+    transition: all 0.3s;
+}
+
+.qr-cv:hover {
+    opacity: 1;
+}
+
+.qr-cv:active {
+    transform: scale(0.98);
+    transition: all 0.1s;
 }
 
 .dark .qr-cv {
@@ -1239,7 +1249,7 @@ li.ant-select-dropdown-menu-item:empty:after {
 }
 
 .qr-bg {
-    background-color: #fff;
+    background-color: #ffffff;
     display: flex;
     justify-content: center;
     align-content: center;
