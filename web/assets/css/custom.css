@@ -145,9 +145,13 @@ html {
 style attribute {
     text-align: center;
 }
+
+.ant-table-thead > tr > th {
+    padding: 16px 8px;
+}
+
 .ant-table-tbody > tr > td {
     padding: 12px 8px;
-    overflow-wrap: break-word;
 }
 .ant-table-thead > tr > th {
     color: rgba(0, 0, 0, 0.85);
@@ -155,10 +159,6 @@ style attribute {
     text-align: left;
     border-bottom: 1px solid #e8e8e8;
     transition: background 0.3s ease;
-}
-.ant-table-row-cell-break-word {
-    word-wrap: break-word;
-    word-break: break-word;
 }
 
 .ant-table table {
