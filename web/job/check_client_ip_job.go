@@ -82,6 +82,7 @@ func (j *CheckClientIpJob) clearAccessLog() {
 
 func (j *CheckClientIpJob) hasLimitIp() bool {
 	db := database.GetDB()
+	db.Statement.RaiseErrorOnNotFound = true
 	var inbounds []*model.Inbound
 
 	err := db.Model(model.Inbound{}).Find(&inbounds).Error
@@ -259,10 +260,9 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 
 	// check inbound limitation
 	inbound, err := j.getInboundByEmail(clientEmail)
-	j.checkError(err)
 
-	if inbound.Settings == "" {
-		logger.Debug("wrong data ", inbound)
+	if err != nil {
+		logger.Debug(inbound, ":", err)
 		return false
 	}
 
@@ -313,6 +313,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 
 func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound, error) {
 	db := database.GetDB()
+	db.Statement.RaiseErrorOnNotFound = true
 	var inbounds *model.Inbound
 
 	err := db.Model(model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").Find(&inbounds).Error

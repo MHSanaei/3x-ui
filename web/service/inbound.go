@@ -824,6 +824,7 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 
 	if len(inboundIds) > 0 {
 		var inbounds []*model.Inbound
+		tx.Statement.RaiseErrorOnNotFound = true
 		err := tx.Model(model.Inbound{}).Where("id IN (?)", inboundIds).Find(&inbounds).Error
 		if err != nil {
 			return nil, err
@@ -893,6 +894,7 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	for _, traffic := range traffics {
 		inbound_ids = append(inbound_ids, traffic.InboundId)
 	}
+	tx.Statement.RaiseErrorOnNotFound = true
 	err = tx.Model(model.Inbound{}).Where("id IN ?", inbound_ids).Find(&inbounds).Error
 	if err != nil {
 		return false, 0, err
@@ -1675,12 +1677,10 @@ func (s *InboundService) GetClientTrafficTgBot(tgId string) ([]*xray.ClientTraff
 	var traffics []*xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			logger.Warning(err)
-			return nil, err
-		}
+		logger.Warning(err)
+		return nil, err
 	}
-	return traffics, err
+	return traffics, nil
 }
 
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
