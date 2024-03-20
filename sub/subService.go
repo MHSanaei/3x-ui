@@ -45,6 +45,10 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 		return nil, "", err
 	}
 
+	if len(inbounds) == 0 {
+		return nil, "", common.NewError("No inbounds found with ", subId)
+	}
+
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
 		s.datepicker = "gregorian"
