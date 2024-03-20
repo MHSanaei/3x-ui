@@ -44,7 +44,6 @@ func NewSubJsonService(fragment string, mux string, rules string, subService *Su
 		defaultRules, _ := routing["rules"].([]interface{})
 		json.Unmarshal([]byte(rules), &newRules)
 		defaultRules = append(newRules, defaultRules...)
-		fmt.Printf("routing: %#v\n\nRules: %#v\n\n", routing, defaultRules)
 		routing["rules"] = defaultRules
 		configJson["routing"] = routing
 	}
