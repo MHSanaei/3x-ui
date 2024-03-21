@@ -1469,7 +1469,7 @@ func (t *Tgbot) notifyExhausted() {
 								var disabledClients []xray.ClientTraffic
 								var exhaustedClients []xray.ClientTraffic
 								traffics, err := t.inboundService.GetClientTrafficTgBot(client.TgID)
-								if err == nil {
+								if err == nil  && len(traffics) > 0 {
 									output := t.I18nBot("tgbot.messages.exhaustedCount", "Type=="+t.I18nBot("tgbot.clients"))
 									for _, traffic := range traffics {
 										if traffic.Enable {
