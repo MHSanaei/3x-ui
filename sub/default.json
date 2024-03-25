@@ -25,7 +25,7 @@
           "tls",
           "fakedns"
         ],
-        "enabled": true
+        "enabled": false
       },
       "tag": "socks"
     },
@@ -74,7 +74,7 @@
     }
   },
   "routing": {
-    "domainStrategy": "AsIs",
+    "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "type": "field",
