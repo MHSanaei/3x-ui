@@ -78,10 +78,13 @@
             setQrCode(elmentId, content) {
                 new QRious({
                     element: document.querySelector('#' + elmentId),
-                    size: 300,
+                    size: 400,
                     value: content,
-                    background: 'transparent',
-                    foreground: 'black'
+                    background: 'white',
+                    backgroundAlpha: 0,
+                    foreground: 'black',
+                    padding: 2,
+                    level: 'L'
                 });
             },
             genSubLink(subID) {

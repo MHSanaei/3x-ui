@@ -1,6 +1,6 @@
 {{define "component/themeSwitchTemplate"}}
 <template>
-  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+  <a-menu class="change-theme" :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
     <a-menu-item mode="inline" class="ant-menu-theme-switch">
       <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
       <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
@@ -57,6 +57,13 @@
         getContainer: () => document.getElementById('message')
       });
       document.getElementById('message').className = themeSwitcher.currentTheme;
+      const themeAnimations = document.querySelector('.change-theme');
+      themeAnimations.addEventListener('mousedown', () => {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+      });
+      themeAnimations.addEventListener('mouseleave', () => {
+        document.documentElement.removeAttribute('data-theme-animations');
+      });
     }
   });
 </script>
