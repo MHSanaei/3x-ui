@@ -31,6 +31,7 @@ arch3xui() {
     armv7* | armv7 | arm) echo 'armv7' ;;
     armv6* | armv6) echo 'armv6' ;;
     armv5* | armv5) echo 'armv5' ;;
+    s390x) echo 's390x' ;;
     *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
