@@ -184,7 +184,8 @@ remove 3x-ui from docker
 - Manjaro
 - Armbian
 - AlmaLinux 9+
-- Rockylinux 9+
+- Rocky Linux 9+
+- Oracle Linux 8+
 
 ## Supported Architectures and Devices
 
