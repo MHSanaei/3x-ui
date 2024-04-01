@@ -127,7 +127,12 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	}
 
 	// Combile outbounds
-	finalJson, _ := json.MarshalIndent(configArray, "", "  ")
+	var finalJson []byte
+	if len(configArray) == 1 {
+		finalJson, _ = json.MarshalIndent(configArray[0], "", "  ")
+	} else {
+		finalJson, _ = json.MarshalIndent(configArray, "", "  ")
+	}
 
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 	return string(finalJson), header, nil
@@ -186,6 +191,7 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		}
 		newConfigJson["outbounds"] = newOutbounds
 		newConfigJson["remarks"] = s.SubService.genRemark(inbound, client.Email, extPrxy["remark"].(string))
+
 		newConfig, _ := json.MarshalIndent(newConfigJson, "", "  ")
 		newJsonArray = append(newJsonArray, newConfig)
 	}
@@ -215,6 +221,8 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 		streamSettings["tcpSettings"] = s.removeAcceptProxy(streamSettings["tcpSettings"])
 	case "ws":
 		streamSettings["wsSettings"] = s.removeAcceptProxy(streamSettings["wsSettings"])
+	case "httpupgrade":
+		streamSettings["httpupgradeSettings"] = s.removeAcceptProxy(streamSettings["httpupgradeSettings"])
 	}
 
 	return streamSettings
