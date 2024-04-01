@@ -338,10 +338,11 @@ class KcpStreamSettings extends XrayCommonClass {
 }
 
 class WsStreamSettings extends XrayCommonClass {
-    constructor(acceptProxyProtocol=false, path='/', headers=[]) {
+    constructor(acceptProxyProtocol=false, path='/', host='', headers=[]) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
         this.path = path;
+        this.host = host;
         this.headers = headers;
     }
 
@@ -366,6 +367,7 @@ class WsStreamSettings extends XrayCommonClass {
         return new WsStreamSettings(
             json.acceptProxyProtocol,
             json.path,
+            json.host,
             XrayCommonClass.toHeaders(json.headers),
         );
     }
@@ -374,6 +376,7 @@ class WsStreamSettings extends XrayCommonClass {
         return {
             acceptProxyProtocol: this.acceptProxyProtocol,
             path: this.path,
+            host: this.host,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
         };
     }
@@ -1108,7 +1111,12 @@ class Inbound extends XrayCommonClass {
         if (this.isTcp) {
             return this.stream.tcp.request.getHeader("Host");
         } else if (this.isWs) {
-            return this.stream.ws.getHeader("Host");
+            const hostHeader = this.stream.ws.getHeader("Host");
+            if (hostHeader !== null) {
+                return hostHeader;
+            } else {
+                return this.stream.ws.host;
+            }        
         } else if (this.isH2) {
             return this.stream.http.host[0];
         } else if (this.isHttpupgrade) {
@@ -1230,6 +1238,7 @@ class Inbound extends XrayCommonClass {
         } else if (network === 'ws') {
             let ws = this.stream.ws;
             obj.path = ws.path;
+            obj.host = ws.host;
             let index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
             if (index >= 0) {
                 obj.host = ws.headers[index].value;
@@ -1300,6 +1309,7 @@ class Inbound extends XrayCommonClass {
             case "ws":
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
+                params.set("host", ws.host);
                 const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
                 if (index >= 0) {
                     const host = ws.headers[index].value;
@@ -1420,6 +1430,7 @@ class Inbound extends XrayCommonClass {
             case "ws":
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
+                params.set("host", ws.host);
                 const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
                 if (index >= 0) {
                     const host = ws.headers[index].value;
@@ -1507,6 +1518,7 @@ class Inbound extends XrayCommonClass {
             case "ws":
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
+                params.set("host", ws.host);
                 const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
                 if (index >= 0) {
                     const host = ws.headers[index].value;

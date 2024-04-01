@@ -3,11 +3,11 @@
     <a-form-item label="PROXY Protocol">
         <a-switch v-model="inbound.stream.httpupgrade.acceptProxyProtocol"></a-switch>
     </a-form-item>
-    <a-form-item label='{{ i18n "path" }}'>
-        <a-input v-model.trim="inbound.stream.httpupgrade.path"></a-input>
-    </a-form-item>
     <a-form-item label='{{ i18n "host" }}'>
         <a-input v-model.trim="inbound.stream.httpupgrade.host"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "path" }}'>
+        <a-input v-model.trim="inbound.stream.httpupgrade.path"></a-input>
     </a-form-item>
 </a-form>
 {{end}}
