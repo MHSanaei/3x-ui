@@ -357,7 +357,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
-		params["authority"] = grpc["authority"].(string)
+		params["authority"], _ = grpc["authority"].(string)
 		if grpc["multiMode"].(bool) {
 			params["mode"] = "multi"
 		}
@@ -574,7 +574,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
-		params["authority"] = grpc["authority"].(string)
+		params["authority"], _ = grpc["authority"].(string)
 		if grpc["multiMode"].(bool) {
 			params["mode"] = "multi"
 		}
@@ -792,7 +792,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
-		params["authority"] = grpc["authority"].(string)
+		params["authority"], _ = grpc["authority"].(string)
 		if grpc["multiMode"].(bool) {
 			params["mode"] = "multi"
 		}
