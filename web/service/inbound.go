@@ -172,6 +172,23 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	// Secure client ID
+	for _, client := range clients {
+		if inbound.Protocol == "trojan" {
+			if client.Password == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+		} else if inbound.Protocol == "shadowsocks" {
+			if client.Email == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+		} else {
+			if client.ID == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
+		}
+	}
+
 	db := database.GetDB()
 	tx := db.Begin()
 	defer func() {
@@ -413,6 +430,23 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 		return false, err
 	}
 
+	// Secure client ID
+	for _, client := range clients {
+		if oldInbound.Protocol == "trojan" {
+			if client.Password == "" {
+				return false, common.NewError("empty client ID")
+			}
+		} else if oldInbound.Protocol == "shadowsocks" {
+			if client.Email == "" {
+				return false, common.NewError("empty client ID")
+			}
+		} else {
+			if client.ID == "" {
+				return false, common.NewError("empty client ID")
+			}
+		}
+	}
+
 	var oldSettings map[string]interface{}
 	err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 	if err != nil {
@@ -496,9 +530,9 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		client_key = "email"
 	}
 
-	inerfaceClients := settings["clients"].([]interface{})
+	interfaceClients := settings["clients"].([]interface{})
 	var newClients []interface{}
-	for _, client := range inerfaceClients {
+	for _, client := range interfaceClients {
 		c := client.(map[string]interface{})
 		c_id := c[client_key].(string)
 		if c_id == clientId {
