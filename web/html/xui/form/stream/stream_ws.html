@@ -3,6 +3,9 @@
     <a-form-item label="PROXY Protocol">
         <a-switch v-model="inbound.stream.ws.acceptProxyProtocol"></a-switch>
     </a-form-item>
+    <a-form-item label='{{ i18n "host" }}'>
+        <a-input v-model.trim="inbound.stream.ws.host"></a-input>
+    </a-form-item>
     <a-form-item label='{{ i18n "path" }}'>
         <a-input v-model.trim="inbound.stream.ws.path"></a-input>
     </a-form-item>
