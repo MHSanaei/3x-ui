@@ -79,6 +79,7 @@ case "${ARCH}" in
   armv7* | armv7) XUI_ARCH="armv7" ;;
   armv6* | armv6) XUI_ARCH="armv6" ;;
   armv5* | armv5) XUI_ARCH="armv5" ;;
+  s390x) echo 's390x' ;;
   *) XUI_ARCH="amd64" ;;
 esac
 
@@ -97,6 +98,7 @@ case "${ARCH}" in
   armv7* | armv7) XUI_ARCH="armv7" ;;
   armv6* | armv6) XUI_ARCH="armv6" ;;
   armv5* | armv5) XUI_ARCH="armv5" ;;
+  s390x) echo 's390x' ;;
   *) XUI_ARCH="amd64" ;;
 esac
 
@@ -204,6 +206,8 @@ Our platform offers compatibility with a diverse range of architectures and devi
 - **armv6 / arm / arm32**: Geared towards very old embedded devices, this architecture, while less prevalent, is still in use. Devices such as Raspberry Pi 1, Raspberry Pi Zero/Zero W, rely on this architecture.
 
 - **armv5 / arm / arm32**: An older architecture primarily associated with early embedded systems, it is less common today but may still be found in legacy devices like early Raspberry Pi versions and some older smartphones.
+
+- **s390x**: This architecture is commonly used in IBM mainframe computers and offers high performance and reliability for enterprise workloads.
 </details>
 
 ## Languages
