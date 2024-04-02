@@ -207,8 +207,8 @@ func (t *Tgbot) OnReceive() {
 	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
 		if message.UsersShared != nil {
 			if checkAdmin(message.From.ID) {
-				userIDs := message.UsersShared.UserIDs
-				for _, userID := range userIDs {
+				for _, sharedUser := range message.UsersShared.Users {
+					userID := sharedUser.UserID
 					needRestart, err := t.inboundService.SetClientTelegramUserID(message.UsersShared.RequestID, userID)
 					if needRestart {
 						t.xrayService.SetToNeedRestart()
