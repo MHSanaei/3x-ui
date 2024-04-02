@@ -572,9 +572,9 @@
               <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
                 <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                 <template v-if="enableDNS">
-                  <setting-list-item type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
-                  <a-list-item>
-                    <a-row style="padding: 20px">
+                  <setting-list-item style="padding: 10px 20px" type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
+                  <a-list-item style="padding: 10px 20px">
+                    <a-row>
                       <a-col :lg="24" :xl="12">
                         <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}' description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
                       </a-col>
@@ -632,8 +632,7 @@
                     <template slot="action" slot-scope="text,fakedns,index">
                         [[ index+1 ]]
                       <a-dropdown :trigger="['click']">
-                        <a-icon @click="e => e.preventDefault()" type="more"
-                          style="font-size: 16px; text-decoration: bold;"></a-icon>
+                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
                         <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                           <a-menu-item @click="editFakedns(index)">
                             <a-icon type="edit"></a-icon>
