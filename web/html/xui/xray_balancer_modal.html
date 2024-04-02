@@ -21,8 +21,8 @@
             <a-select v-model="balancerModal.balancer.strategy" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="random">Random</a-select-option>
                 <a-select-option value="roundRobin">Round Robin</a-select-option>
-                <a-select-option value="leastload">Least Load</a-select-option>
-                <a-select-option value="leastping">Least Ping</a-select-option>
+                <a-select-option value="leastLoad">Least Load</a-select-option>
+                <a-select-option value="leastPing">Least Ping</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.balancer.balancerSelectors" }}' has-feedback 
