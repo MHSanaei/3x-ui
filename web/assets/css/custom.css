@@ -252,7 +252,7 @@ style attribute {
     .ant-layout-sider {
         display: none;
     }
-    .ant-card {
+    .ant-card, .ant-alert-error {
         margin: 0.5rem;
     }
     .ant-tabs {
@@ -383,6 +383,9 @@ style attribute {
     }
     .ant-tabs {
         padding: 2rem;
+    }
+    .ant-alert-error {
+        margin-inline: 0.3rem;
     }
 }
 
@@ -1344,7 +1347,7 @@ b, strong {
     height: 20px;
 }
 
-.ant-menu-theme-switch:hover {
+.ant-menu-theme-switch, .ant-menu-theme-switch:hover {
     background-color: transparent !important;
     cursor: default !important;
 }
