@@ -75,7 +75,7 @@
       <a-layout-content>
         <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
           <transition name="list" appear>
-            <a-alert type="error" v-if="confAlerts.length>0" style="margin: 10px 5px;"
+            <a-alert type="error" v-if="confAlerts.length>0" style="margin-bottom: 10px;"
                 message='{{ i18n "secAlertTitle" }}'
                 color="red"
                 show-icon closable>
