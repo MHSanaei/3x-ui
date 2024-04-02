@@ -1457,3 +1457,9 @@ b, strong {
 .ant-menu-theme-switch.ant-menu-item .ant-switch:not(.ant-switch-disabled):active:after, .ant-switch:not(.ant-switch-disabled):active:before {
     width: 16px;
 }
+
+.dark .ant-select-disabled .ant-select-selection {
+    background: var(--dark-color-surface-100);
+    border-color: var(--dark-color-surface-200);
+    color: rgba(255, 255, 255, 0.25);
+}
