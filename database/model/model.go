@@ -91,7 +91,7 @@ type Client struct {
 	TotalGB    int64  `json:"totalGB" form:"totalGB"`
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"`
 	Enable     bool   `json:"enable" form:"enable"`
-	TgID       string `json:"tgId" form:"tgId"`
+	TgID       int64  `json:"tgId" form:"tgId"`
 	SubID      string `json:"subId" form:"subId"`
 	Reset      int    `json:"reset" form:"reset"`
 }
