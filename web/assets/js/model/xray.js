@@ -475,19 +475,38 @@ class GrpcStreamSettings extends XrayCommonClass {
     }
 }
 
-class HttpUpgradeStreamSettings extends XrayCommonClass {
-    constructor(acceptProxyProtocol=false, path='/', host='') {
+class HTTPUpgradeStreamSettings extends XrayCommonClass {
+    constructor(acceptProxyProtocol=false, path='/', host='', headers=[]) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
         this.path = path;
         this.host = host;
+        this.headers = headers;
+    }
+
+    addHeader(name, value) {
+        this.headers.push({ name: name, value: value });
+    }
+
+    getHeader(name) {
+        for (const header of this.headers) {
+            if (header.name.toLowerCase() === name.toLowerCase()) {
+                return header.value;
+            }
+        }
+        return null;
+    }
+
+    removeHeader(index) {
+        this.headers.splice(index, 1);
     }
 
     static fromJson(json={}) {
-        return new HttpUpgradeStreamSettings(
+        return new HTTPUpgradeStreamSettings(
             json.acceptProxyProtocol,
             json.path,
             json.host,
+            XrayCommonClass.toHeaders(json.headers),
         );
     }
 
@@ -496,6 +515,7 @@ class HttpUpgradeStreamSettings extends XrayCommonClass {
             acceptProxyProtocol: this.acceptProxyProtocol,
             path: this.path,
             host: this.host,
+            headers: XrayCommonClass.toV2Headers(this.headers, false),
         };
     }
 }
@@ -864,7 +884,7 @@ class StreamSettings extends XrayCommonClass {
         httpSettings=new HttpStreamSettings(),
         quicSettings=new QuicStreamSettings(),
         grpcSettings=new GrpcStreamSettings(),
-        httpupgradeSettings=new HttpUpgradeStreamSettings(),
+        httpupgradeSettings=new HTTPUpgradeStreamSettings(),
         sockopt = undefined,
         ) {
         super();
@@ -943,7 +963,7 @@ class StreamSettings extends XrayCommonClass {
             HttpStreamSettings.fromJson(json.httpSettings),
             QuicStreamSettings.fromJson(json.quicSettings),
             GrpcStreamSettings.fromJson(json.grpcSettings),
-            HttpUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
+            HTTPUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
             SockoptStreamSettings.fromJson(json.sockopt),
         );
     }
@@ -1120,7 +1140,12 @@ class Inbound extends XrayCommonClass {
         } else if (this.isH2) {
             return this.stream.http.host[0];
         } else if (this.isHttpupgrade) {
-            return this.stream.httpupgrade.host;
+            const hostHeader = this.stream.httpupgrade.getHeader("Host");
+            if (hostHeader !== null) {
+                return hostHeader;
+            } else {
+                return this.stream.httpupgrade.host;
+            }        
         }
         return null;
     }
@@ -1261,6 +1286,10 @@ class Inbound extends XrayCommonClass {
             let httpupgrade = this.stream.httpupgrade;
             obj.path = httpupgrade.path;
             obj.host = httpupgrade.host;
+            let index = httpupgrade.headers.findIndex(header => header.name.toLowerCase() === 'host');
+            if (index >= 0) {
+                obj.host = httpupgrade.headers[index].value;
+            }
         }
 
         if (security === 'tls') {
@@ -1293,9 +1322,9 @@ class Inbound extends XrayCommonClass {
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                    if (index >= 0) {
-                        const host = request.headers[index].value;
+                    const tcpIndex = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    if (tcpIndex >= 0) {
+                        const host = request.headers[tcpIndex].value;
                         params.set("host", host);
                     }
                     params.set("headerType", 'http');
@@ -1310,9 +1339,9 @@ class Inbound extends XrayCommonClass {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host);
-                const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                if (index >= 0) {
-                    const host = ws.headers[index].value;
+                const wsIndex = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (wsIndex >= 0) {
+                    const host = ws.headers[wsIndex].value;
                     params.set("host", host);
                 }
                 break;
@@ -1336,9 +1365,14 @@ class Inbound extends XrayCommonClass {
                 }
                 break;
             case "httpupgrade":
-                    const httpupgrade = this.stream.httpupgrade;
-                    params.set("path", httpupgrade.path);
-                    params.set("host", httpupgrade.host);
+                const httpupgrade = this.stream.httpupgrade;
+                params.set("path", httpupgrade.path);
+                params.set("host", httpupgrade.host);
+                const httpupgradeIndex = httpupgrade.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (httpupgradeIndex >= 0) {
+                    const host = httpupgrade.headers[httpupgradeIndex].value;
+                    params.set("host", host);
+                }
                 break;
         }
 
@@ -1402,7 +1436,7 @@ class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    genSSLink(address='', port=this.port, forceTls, remark='', clientPassword) {
+    genSSLink(address = '', port = this.port, forceTls, remark = '', clientPassword) {
         let settings = this.settings;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
@@ -1414,9 +1448,9 @@ class Inbound extends XrayCommonClass {
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                    if (index >= 0) {
-                        const host = request.headers[index].value;
+                    const tcpIndex = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    if (tcpIndex >= 0) {
+                        const host = request.headers[tcpIndex].value;
                         params.set("host", host);
                     }
                     params.set("headerType", 'http');
@@ -1431,9 +1465,9 @@ class Inbound extends XrayCommonClass {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host);
-                const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                if (index >= 0) {
-                    const host = ws.headers[index].value;
+                const wsIndex = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (wsIndex >= 0) {
+                    const host = ws.headers[wsIndex].value;
                     params.set("host", host);
                 }
                 break;
@@ -1452,26 +1486,31 @@ class Inbound extends XrayCommonClass {
                 const grpc = this.stream.grpc;
                 params.set("serviceName", grpc.serviceName);
                 params.set("authority", grpc.authority);
-                if(grpc.multiMode){
+                if (grpc.multiMode) {
                     params.set("mode", "multi");
                 }
                 break;
             case "httpupgrade":
-                    const httpupgrade = this.stream.httpupgrade;
-                    params.set("path", httpupgrade.path);
-                    params.set("host", httpupgrade.host);
+                const httpupgrade = this.stream.httpupgrade;
+                params.set("path", httpupgrade.path);
+                params.set("host", httpupgrade.host);
+                const httpupgradeIndex = httpupgrade.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (httpupgradeIndex >= 0) {
+                    const host = httpupgrade.headers[httpupgradeIndex].value;
+                    params.set("host", host);
+                }
                 break;
         }
 
         if (security === 'tls') {
             params.set("security", "tls");
-            if (this.stream.isTls){
-                params.set("fp" , this.stream.tls.settings.fingerprint);
+            if (this.stream.isTls) {
+                params.set("fp", this.stream.tls.settings.fingerprint);
                 params.set("alpn", this.stream.tls.alpn);
-                if(this.stream.tls.settings.allowInsecure){
+                if (this.stream.tls.settings.allowInsecure) {
                     params.set("allowInsecure", "1");
                 }
-                if (!ObjectUtil.isEmpty(this.stream.tls.sni)){
+                if (!ObjectUtil.isEmpty(this.stream.tls.sni)) {
                     params.set("sni", this.stream.tls.sni);
                 }
             }
@@ -1502,9 +1541,9 @@ class Inbound extends XrayCommonClass {
                 if (tcp.type === 'http') {
                     const request = tcp.request;
                     params.set("path", request.path.join(','));
-                    const index = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                    if (index >= 0) {
-                        const host = request.headers[index].value;
+                    const tcpIndex = request.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                    if (tcpIndex >= 0) {
+                        const host = request.headers[tcpIndex].value;
                         params.set("host", host);
                     }
                     params.set("headerType", 'http');
@@ -1519,9 +1558,9 @@ class Inbound extends XrayCommonClass {
                 const ws = this.stream.ws;
                 params.set("path", ws.path);
                 params.set("host", ws.host);
-                const index = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
-                if (index >= 0) {
-                    const host = ws.headers[index].value;
+                const wsIndex = ws.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (wsIndex >= 0) {
+                    const host = ws.headers[wsIndex].value;
                     params.set("host", host);
                 }
                 break;
@@ -1545,9 +1584,14 @@ class Inbound extends XrayCommonClass {
                 }
                 break;
             case "httpupgrade":
-                    const httpupgrade = this.stream.httpupgrade;
-                    params.set("path", httpupgrade.path);
-                    params.set("host", httpupgrade.host);
+                const httpupgrade = this.stream.httpupgrade;
+                params.set("path", httpupgrade.path);
+                params.set("host", httpupgrade.host);
+                const httpUpgradeIndex = httpupgrade.headers.findIndex(header => header.name.toLowerCase() === 'host');
+                if (httpUpgradeIndex >= 0) {
+                    const host = httpupgrade.headers[httpUpgradeIndex].value;
+                    params.set("host", host);
+                }
                 break;
         }
 

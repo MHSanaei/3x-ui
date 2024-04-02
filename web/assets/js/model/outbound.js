@@ -290,6 +290,7 @@ class HttpUpgradeStreamSettings extends CommonClass {
         return new HttpUpgradeStreamSettings(
             json.path,
             json.Host,
+            json.headers && !ObjectUtil.isEmpty(json.headers.Host) ? json.headers.Host : '',
         );
     }
 
@@ -297,6 +298,7 @@ class HttpUpgradeStreamSettings extends CommonClass {
         return {
             path: this.path,
             host: this.host,
+            headers: ObjectUtil.isEmpty(this.host) ? undefined : {Host: this.host},
         };
     }
 }
