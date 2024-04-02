@@ -376,319 +376,325 @@
 {{template "component/password" .}}
 {{template "component/setting"}}
 <script>
-    const app = new Vue({
-        delimiters: ['[[', ']]'],
-        el: '#app',
-        data: {
-            siderDrawer,
-            themeSwitcher,
-            spinning: false,
-            changeSecret: false,
-            oldAllSetting: new AllSetting(),
-            allSetting: new AllSetting(),
-            saveBtnDisable: true,
-            user: {},
-            lang: getLang(),
-            remarkModels: {i:'Inbound',e:'Email',o:'Other'},
-            remarkSeparators: [' ','-','_','@',':','~','|',',','.','/'],
-            datepickerList: [{name:'Gregorian (Standard)', value: 'gregorian'}, {name:'Jalalian (شمسی)', value: 'jalalian'}],
-            remarkSample: '',
-            defaultFragment: {
-                tag: "fragment",
-                protocol: "freedom",
-                settings: {
-                    domainStrategy: "AsIs",
-                    fragment: {
-                        packets: "tlshello",
-                        length: "100-200",
-                        interval: "10-20"
-                    }
-                },
-                streamSettings: {
-                    sockopt: {
-                        tcpKeepAliveIdle: 100,
-                        tcpNoDelay: true
-                    }
-                }
-            },
-            defaultMux: {
-                enabled: true,
-                concurrency: 8,
-                xudpConcurrency: 16,
-                xudpProxyUDP443: "reject"
-            },
-            defaultRules: [
-                {
-                    type: "field",
-                    outboundTag: "direct",
-                    domain: [
-                        "geosite:category-ir",
-                        "geosite:cn"
-                    ],
-                    "enabled": true
-                },
-                {
-                    type: "field",
-                    outboundTag: "direct",
-                    ip: [
-                        "geoip:private",
-                        "geoip:ir",
-                        "geoip:cn"
-                    ],
-                    enabled: true
-                },
-            ],
-            countryOptions: [
-                { label: 'Private IP/Domain', value: 'private' },
-                { label: '🇮🇷 Iran', value: 'ir' },
-                { label: '🇨🇳 China', value: 'cn' },
-                { label: '🇷🇺 Russia', value: 'ru' },
-                { label: '🇻🇳 Vietnam', value: 'vn' },
-            ],
-            get remarkModel() {
-                rm = this.allSetting.remarkModel;
-                return rm.length>1 ? rm.substring(1).split('') : [];
-            },
-            set remarkModel(value) {
-                rs = this.allSetting.remarkModel[0];
-                this.allSetting.remarkModel = rs + value.join('');
-                this.changeRemarkSample();
-            },
-            get remarkSeparator() {
-                return this.allSetting.remarkModel.length > 1 ? this.allSetting.remarkModel.charAt(0) : '-';
-            },
-            set remarkSeparator(value) {
-                this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
-                this.changeRemarkSample();
-            },
-            get datepicker() {
-                return this.allSetting.datepicker ? this.allSetting.datepicker : 'gregorian';
-            },
-            set datepicker(value) {
-                this.allSetting.datepicker = value;
-            },
-            changeRemarkSample(){
-                sample = []
-                this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
-                this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
-            }   
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    data: {
+      siderDrawer,
+      themeSwitcher,
+      spinning: false,
+      changeSecret: false,
+      oldAllSetting: new AllSetting(),
+      allSetting: new AllSetting(),
+      saveBtnDisable: true,
+      user: {},
+      lang: getLang(),
+      remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
+      remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
+      datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
+      remarkSample: '',
+      defaultFragment: {
+        tag: "fragment",
+        protocol: "freedom",
+        settings: {
+          domainStrategy: "AsIs",
+          fragment: {
+            packets: "tlshello",
+            length: "100-200",
+            interval: "10-20"
+          }
         },
-        methods: {
-            loading(spinning = true) {
-                this.spinning = spinning;
-            },
-            async getAllSetting() {
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/all");
-                this.loading(false);
-                if (msg.success) {
-                    this.oldAllSetting = new AllSetting(msg.obj);
-                    this.allSetting = new AllSetting(msg.obj);
-                    app.changeRemarkSample();
-                    this.saveBtnDisable = true;
-                }
-                await this.fetchUserSecret();
-            },
-            async updateAllSetting() {
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
-                this.loading(false);
-                if (msg.success) {
-                    await this.getAllSetting();
-                }
-            },
-            async updateUser() {
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
-                this.loading(false);
-                if (msg.success) {
-                    this.user = {};
-                }
-            },
-            async restartPanel() {
-                await new Promise(resolve => {
-                    this.$confirm({
-                        title: '{{ i18n "pages.settings.restartPanel" }}',
-                        content: '{{ i18n "pages.settings.restartPanelDesc" }}',
-                        class: themeSwitcher.currentTheme,
-                        okText: '{{ i18n "sure" }}',
-                        cancelText: '{{ i18n "cancel" }}',
-                        onOk: () => resolve(),
-                    });
-                });
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/restartPanel");
-                this.loading(false);
-                if (msg.success) {
-                    this.loading(true);
-                    await PromiseUtil.sleep(5000);
-                    let { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
-                    const isTLS = webCertFile !== "" || webKeyFile !== "";
-                    const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
-                    window.location.replace(url);
-                }
-            },
-            async fetchUserSecret() {
-                this.loading(true);
-                const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
-                if (userMessage.success) {
-                    this.user = userMessage.obj;
-                }
-                this.loading(false);
-            },
-            async updateSecret() {
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-                if (msg && msg.obj) {
-                    this.user = msg.obj;
-                }
-                this.loading(false);
-                await this.updateAllSetting();
-            },
-            generateRandomString(length) {
-                var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-                let randomString = "";
-                for (let i = 0; i < length; i++) {
-                    randomString += chars[Math.floor(Math.random() * chars.length)];
-                }
-                return randomString;
-            },
-            async getNewSecret() {
-                if (!this.changeSecret) {
-                    this.changeSecret = true;
-                    this.user.loginSecret = '';
-                    const newSecret = this.generateRandomString(64);
-                    await PromiseUtil.sleep(1000);
-                    this.user.loginSecret = newSecret;
-                    this.changeSecret = false;
-                }
-            },
-            async toggleToken(value) {
-                if (value) {
-                await this.getNewSecret();
-                } else {
-                this.user.loginSecret = "";
-                }
-            },
-        },
-        computed: {
-            fragment: {
-                get: function() { return this.allSetting?.subJsonFragment != ""; },
-                set: function (v) {
-                    this.allSetting.subJsonFragment = v ? JSON.stringify(this.defaultFragment) : "";
-                }
-            },
-            fragmentPackets: {
-                get: function() { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.packets : ""; },
-                set: function(v) {
-                    if (v != ""){
-                        newFragment = JSON.parse(this.allSetting.subJsonFragment);
-                        newFragment.settings.fragment.packets = v;
-                        this.allSetting.subJsonFragment = JSON.stringify(newFragment);
-                    }
-                }
-            },
-            fragmentLength: {
-                get: function() { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.length : ""; },
-                set: function(v) {
-                    if (v != ""){
-                        newFragment = JSON.parse(this.allSetting.subJsonFragment);
-                        newFragment.settings.fragment.length = v;
-                        this.allSetting.subJsonFragment = JSON.stringify(newFragment);
-                    }
-                }
-            },
-            fragmentInterval: {
-                get: function() { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.interval : ""; },
-                set: function(v) {
-                    if (v != ""){
-                        newFragment = JSON.parse(this.allSetting.subJsonFragment);
-                        newFragment.settings.fragment.interval = v;
-                        this.allSetting.subJsonFragment = JSON.stringify(newFragment);
-                    }
-                }
-            },
-            enableMux: {
-                get: function() { return this.allSetting?.subJsonMux != ""; },
-                set: function (v) {
-                    this.allSetting.subJsonMux = v ? JSON.stringify(this.defaultMux) : "";
-                }
-            },
-            muxConcurrency: {
-                get: function() { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).concurrency : -1; },
-                set: function(v) {
-                    newMux = JSON.parse(this.allSetting.subJsonMux);
-                    newMux.concurrency = v;
-                    this.allSetting.subJsonMux = JSON.stringify(newMux);
-                }
-            },
-            muxXudpConcurrency: {
-                get: function() { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpConcurrency : -1; },
-                set: function(v) {
-                    newMux = JSON.parse(this.allSetting.subJsonMux);
-                    newMux.xudpConcurrency = v;
-                    this.allSetting.subJsonMux = JSON.stringify(newMux);
-                }
-            },
-            muxXudpProxyUDP443: {
-                get: function() { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpProxyUDP443 : "reject"; },
-                set: function(v) {
-                    newMux = JSON.parse(this.allSetting.subJsonMux);
-                    newMux.xudpProxyUDP443 = v;
-                    this.allSetting.subJsonMux = JSON.stringify(newMux);
-                }
-            },
-            enableDirect: {
-                get: function() { return this.allSetting?.subJsonRules != ""; },
-                set: function (v) {
-                    this.allSetting.subJsonRules = v ? JSON.stringify(this.defaultRules) : "";
-                }
-            },
-            directCountries: {
-                get: function() {
-                    if (!this.enableDirect) return [];
-                    rules = JSON.parse(this.allSetting.subJsonRules);
-                    return Array.isArray(rules) ? rules[1].ip.map(d => d.replace("geoip:","")) : [];
-                },
-                set: function (v) {
-                    rules = JSON.parse(this.allSetting.subJsonRules);
-                    if (!Array.isArray(rules)) return;
-                    rules[0].domain = [];
-                    rules[1].ip = [];
-                    v.forEach(d => {
-                        category = ["cn","private"].includes(d) ? "" : "category-";
-                        rules[0].domain.push("geosite:"+category+d);
-                        rules[1].ip.push("geoip:"+d);
-                    });
-                    this.allSetting.subJsonRules = JSON.stringify(rules);
-                }
-            },
-            confAlerts: {
-                get: function() {
-                    if (!this.allSetting) return [];
-                    var alerts = []
-                    if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
-                    if (this.allSetting.webPort == 54321) alerts.push('{{ i18n "secAlertPanelPort" }}');
-                    panelPath = window.location.pathname.split('/').length<4
-                    if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
-                    if (this.allSetting.subEnable) {
-                        subPath = this.allSetting.subURI.length >0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
-                        if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
-                        subJsonPath = this.allSetting.subJsonURI.length >0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
-                        if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
-                    }
-                    return alerts
-                }
-            }
-        }, 
-        async mounted() {
-            await this.getAllSetting();
-            while (true) {
-                await PromiseUtil.sleep(1000);
-                this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
-            }
+        streamSettings: {
+          sockopt: {
+            tcpKeepAliveIdle: 100,
+            tcpNoDelay: true
+          }
         }
-    });
+      },
+      defaultMux: {
+        enabled: true,
+        concurrency: 8,
+        xudpConcurrency: 16,
+        xudpProxyUDP443: "reject"
+      },
+      defaultRules: [
+        {
+          type: "field",
+          outboundTag: "direct",
+          domain: [
+            "geosite:category-ir",
+            "geosite:cn"
+          ],
+          "enabled": true
+        },
+        {
+          type: "field",
+          outboundTag: "direct",
+          ip: [
+            "geoip:private",
+            "geoip:ir",
+            "geoip:cn"
+          ],
+          enabled: true
+        },
+      ],
+      countryOptions: [
+        { label: 'Private IP/Domain', value: 'private' },
+        { label: '🇮🇷 Iran', value: 'ir' },
+        { label: '🇨🇳 China', value: 'cn' },
+        { label: '🇷🇺 Russia', value: 'ru' },
+      ],
+      get remarkModel() {
+        rm = this.allSetting.remarkModel;
+        return rm.length > 1 ? rm.substring(1).split('') : [];
+      },
+      set remarkModel(value) {
+        rs = this.allSetting.remarkModel[0];
+        this.allSetting.remarkModel = rs + value.join('');
+        this.changeRemarkSample();
+      },
+      get remarkSeparator() {
+        return this.allSetting.remarkModel.length > 1 ? this.allSetting.remarkModel.charAt(0) : '-';
+      },
+      set remarkSeparator(value) {
+        this.allSetting.remarkModel = value + this.allSetting.remarkModel.substring(1);
+        this.changeRemarkSample();
+      },
+      get datepicker() {
+        return this.allSetting.datepicker ? this.allSetting.datepicker : 'gregorian';
+      },
+      set datepicker(value) {
+        this.allSetting.datepicker = value;
+      },
+      changeRemarkSample() {
+        sample = []
+        this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
+        this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
+      }
+    },
+    methods: {
+      loading(spinning = true) {
+        this.spinning = spinning;
+      },
+      async getAllSetting() {
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/all");
+        this.loading(false);
+        if (msg.success) {
+          this.oldAllSetting = new AllSetting(msg.obj);
+          this.allSetting = new AllSetting(msg.obj);
+          app.changeRemarkSample();
+          this.saveBtnDisable = true;
+        }
+        await this.fetchUserSecret();
+      },
+      async updateAllSetting() {
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
+        this.loading(false);
+        if (msg.success) {
+          await this.getAllSetting();
+        }
+      },
+      async updateUser() {
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
+        this.loading(false);
+        if (msg.success) {
+          this.user = {};
+        }
+      },
+      async restartPanel() {
+        await new Promise(resolve => {
+          this.$confirm({
+            title: '{{ i18n "pages.settings.restartPanel" }}',
+            content: '{{ i18n "pages.settings.restartPanelDesc" }}',
+            class: themeSwitcher.currentTheme,
+            okText: '{{ i18n "sure" }}',
+            cancelText: '{{ i18n "cancel" }}',
+            onOk: () => resolve(),
+          });
+        });
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/restartPanel");
+        this.loading(false);
+        if (msg.success) {
+          this.loading(true);
+          await PromiseUtil.sleep(5000);
+          let { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+          const isTLS = webCertFile !== "" || webKeyFile !== "";
+          const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
+          window.location.replace(url);
+        }
+      },
+      async fetchUserSecret() {
+        this.loading(true);
+        const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
+        if (userMessage.success) {
+          this.user = userMessage.obj;
+        }
+        this.loading(false);
+      },
+      async updateSecret() {
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
+        if (msg && msg.obj) {
+          this.user = msg.obj;
+        }
+        this.loading(false);
+        await this.updateAllSetting();
+      },
+      generateRandomString(length) {
+        var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+        let randomString = "";
+        for (let i = 0; i < length; i++) {
+          randomString += chars[Math.floor(Math.random() * chars.length)];
+        }
+        return randomString;
+      },
+      async getNewSecret() {
+        if (!this.changeSecret) {
+          this.changeSecret = true;
+          this.user.loginSecret = '';
+          const newSecret = this.generateRandomString(64);
+          await PromiseUtil.sleep(1000);
+          this.user.loginSecret = newSecret;
+          this.changeSecret = false;
+        }
+      },
+      async toggleToken(value) {
+        if (value) {
+          await this.getNewSecret();
+        } else {
+          this.user.loginSecret = "";
+        }
+      },
+    },
+    computed: {
+      fragment: {
+        get: function () { return this.allSetting?.subJsonFragment != ""; },
+        set: function (v) {
+          this.allSetting.subJsonFragment = v ? JSON.stringify(this.defaultFragment) : "";
+        }
+      },
+      fragmentPackets: {
+        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.packets : ""; },
+        set: function (v) {
+          if (v != "") {
+            newFragment = JSON.parse(this.allSetting.subJsonFragment);
+            newFragment.settings.fragment.packets = v;
+            this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+          }
+        }
+      },
+      fragmentLength: {
+        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.length : ""; },
+        set: function (v) {
+          if (v != "") {
+            newFragment = JSON.parse(this.allSetting.subJsonFragment);
+            newFragment.settings.fragment.length = v;
+            this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+          }
+        }
+      },
+      fragmentInterval: {
+        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.interval : ""; },
+        set: function (v) {
+          if (v != "") {
+            newFragment = JSON.parse(this.allSetting.subJsonFragment);
+            newFragment.settings.fragment.interval = v;
+            this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+          }
+        }
+      },
+      enableMux: {
+        get: function () { return this.allSetting?.subJsonMux != ""; },
+        set: function (v) {
+          this.allSetting.subJsonMux = v ? JSON.stringify(this.defaultMux) : "";
+        }
+      },
+      muxConcurrency: {
+        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).concurrency : -1; },
+        set: function (v) {
+          newMux = JSON.parse(this.allSetting.subJsonMux);
+          newMux.concurrency = v;
+          this.allSetting.subJsonMux = JSON.stringify(newMux);
+        }
+      },
+      muxXudpConcurrency: {
+        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpConcurrency : -1; },
+        set: function (v) {
+          newMux = JSON.parse(this.allSetting.subJsonMux);
+          newMux.xudpConcurrency = v;
+          this.allSetting.subJsonMux = JSON.stringify(newMux);
+        }
+      },
+      muxXudpProxyUDP443: {
+        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpProxyUDP443 : "reject"; },
+        set: function (v) {
+          newMux = JSON.parse(this.allSetting.subJsonMux);
+          newMux.xudpProxyUDP443 = v;
+          this.allSetting.subJsonMux = JSON.stringify(newMux);
+        }
+      },
+      enableDirect: {
+        get: function () { return this.allSetting?.subJsonRules != ""; },
+        set: function (v) {
+          this.allSetting.subJsonRules = v ? JSON.stringify(this.defaultRules) : "";
+        }
+      },
+      directCountries: {
+        get: function () {
+          if (!this.enableDirect) return [];
+          rules = JSON.parse(this.allSetting.subJsonRules);
+          return Array.isArray(rules) ? rules[1].ip.map(d => d.replace("geoip:", "")) : [];
+        },
+        set: function (v) {
+          rules = JSON.parse(this.allSetting.subJsonRules);
+          if (!Array.isArray(rules)) return;
+          rules[0].domain = [];
+          rules[1].ip = [];
+          v.forEach(d => {
+            let category = '';
+            if (["cn", "private"].includes(d)) {
+              category = "";
+            } else if (d === 'ru') {
+              category = "category-gov-";
+            } else {
+              category = "category-";
+            }
+            rules[0].domain.push("geosite:" + category + d);
+            rules[1].ip.push("geoip:" + d);
+          });
+          this.allSetting.subJsonRules = JSON.stringify(rules);
+        }
+      },
+      confAlerts: {
+        get: function () {
+          if (!this.allSetting) return [];
+          var alerts = []
+          if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
+          if (this.allSetting.webPort == 54321) alerts.push('{{ i18n "secAlertPanelPort" }}');
+          panelPath = window.location.pathname.split('/').length < 4
+          if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
+          if (this.allSetting.subEnable) {
+            subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
+            if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
+            subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
+            if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
+          }
+          return alerts
+        }
+      }
+    },
+    async mounted() {
+      await this.getAllSetting();
+      while (true) {
+        await PromiseUtil.sleep(1000);
+        this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
+      }
+    }
+  });
 </script>
 </body>
 </html>
