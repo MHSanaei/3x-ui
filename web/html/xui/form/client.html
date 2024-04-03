@@ -61,7 +61,7 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input v-model.trim="client.tgId"></a-input>
+        <a-input-number style="width: 50%" v-model="client.tgId" min="0"></a-input-number>
     </a-form-item>
     <a-form-item v-if="app.ipLimitEnable">
         <template slot="label">
