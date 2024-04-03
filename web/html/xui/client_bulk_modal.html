@@ -143,7 +143,7 @@
         emailPrefix: "",
         emailPostfix: "",
         subId: "",
-        tgId: "",
+        tgId: 0,
         flow: "",
         delayedStart: false,
         reset: 0,
@@ -200,7 +200,7 @@
             this.emailPrefix = "";
             this.emailPostfix = "";
             this.subId = "";
-            this.tgId = "";
+            this.tgId  = 0;
             this.flow = "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
