@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -1836,6 +1837,17 @@ func (s *InboundService) MigrationRequirements() {
 				// Add email='' if it is not exists
 				if _, ok := c["email"]; !ok {
 					c["email"] = ""
+				}
+
+				// Convert string tgId to int64
+				if _, ok := c["tgId"]; ok {
+					var tgId interface{} = c["tgId"]
+					if tgIdStr, ok2 := tgId.(string); ok2 {
+						tgIdInt64, err := strconv.ParseInt(strings.ReplaceAll(tgIdStr, " ", ""), 10, 64)
+						if err == nil {
+							c["tgId"] = tgIdInt64
+						}
+					}
 				}
 
 				// Remove "flow": "xtls-rprx-direct"
