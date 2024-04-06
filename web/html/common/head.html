@@ -4,9 +4,16 @@
     <meta name="renderer" content="webkit">
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ .base_path }}assets/image/icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ .base_path }}assets/image/icon.png">
     <link rel="stylesheet" href="{{ .base_path }}assets/ant-design-vue@1.7.8/antd.min.css">
     <link rel="stylesheet" href="{{ .base_path }}assets/element-ui@2.15.0/theme-chalk/display.css">
     <link rel="stylesheet" href="{{ .base_path }}assets/css/custom.css?{{ .cur_ver }}">
+    <meta name="description" content="Xray panel supporting multi-protocol multi-user expire day & traffic & ip limit (Vmess & Vless & Trojan & ShadowSocks & Wireguard)">
+    <meta name="title" content="{{ .host }} - {{ i18n .title}}">
+    <meta property="og:title" content="3X-UI">
+    <meta property="og:image" content="{{ .base_path }}assets/image/icon.png">
+    <meta property="og:url" content="https://github.com/MHSanaei/3x-ui">
     <style>
         [v-cloak] {
             display: none;
@@ -26,7 +33,7 @@
                          'Segoe UI Emoji', 'Segoe UI Symbol';
         }
     </style>
-    <title>{{ .host }}-{{ i18n .title}}</title>
+    <title>{{ .host }} - {{ i18n .title}}</title>
 </head>
 <div id="message"></div>
 {{end}}
