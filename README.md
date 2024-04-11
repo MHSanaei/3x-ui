@@ -19,6 +19,16 @@
 <p align="left"><a href="#"><img width="125" src="https://github.com/MHSanaei/3x-ui/assets/115543613/7aa895dd-048a-42e7-989b-afd41a74e2e1" alt="Image"></a></p>
 
 - USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+## Get your server up to date
+
+```
+apt update && apt upgrade -y
+```
+
+## Also install `curl` and `socat` :
+```
+apt install curl socat -y
+```
 
 ## Install & Upgrade
 
@@ -47,8 +57,20 @@ The Management script has a built-in SSL certificate application for Cloudflare.
 - Cloudflare Global API Key
 - The domain name has been resolved to the current server through cloudflare
 
-**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+How to get the Cloudflare Global API Key:
 
+1. Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+2. Visit the link https://dash.cloudflare.com/profile/api-tokens
+
+3. Click on View Global API Key (See the screenshot below)
+        ![](media/APIKey1.PNG)
+
+4. You may have to re-authenticate your account. After that, the API Key will be shown (See the screenshot below)\
+        ![](media/APIKey2.png)
+
+When using, just enter `domain name`, `email`, `API KEY`, the diagram is as follows:
+        ![](media/DetailEnter.png)
 
 ### Certbot
 ```
