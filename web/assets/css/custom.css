@@ -1263,7 +1263,6 @@ li.ant-select-dropdown-menu-item:empty:after {
     overflow-x: hidden;
 }
 .ant-popover-inner-content {
-    max-height: 400px;
     overflow-y: auto;
 }
 
