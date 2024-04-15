@@ -183,6 +183,7 @@ remove 3x-ui from docker
 - CentOS 8+
 - Fedora 36+
 - Arch Linux
+- Parch Linux
 - Manjaro
 - Armbian
 - AlmaLinux 9+
