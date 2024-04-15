@@ -43,6 +43,8 @@ os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
 
 if [[ "${release}" == "arch" ]]; then
     echo "Your OS is Arch Linux"
+elif [[ "${release}" == "parch" ]]; then
+    echo "Your OS is Parch linux"
 elif [[ "${release}" == "manjaro" ]]; then
     echo "Your OS is Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
@@ -83,6 +85,7 @@ else
     echo "- CentOS 8+"
     echo "- Fedora 36+"
     echo "- Arch Linux"
+    echo "- Parch Linux"
     echo "- Manjaro"
     echo "- Armbian"
     echo "- AlmaLinux 9+"
@@ -100,7 +103,7 @@ install_base() {
     fedora)
         dnf -y update && dnf install -y -q wget curl tar tzdata
         ;;
-    arch | manjaro)
+    arch | manjaro | parch)
         pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
     *)
