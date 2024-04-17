@@ -832,7 +832,7 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
 Outbound.BlackholeSettings = class extends CommonClass {
     constructor(type) {
         super();
-        this.type;
+        this.type = type;
     }
 
     static fromJson(json={}) {
