@@ -36,7 +36,7 @@
 "status" = "Status"
 "enabled" = "Enabled"
 "disabled" = "Disabled"
-"depleted" = "Depleted"
+"depleted" = "Ended"
 "depletingSoon" = "Depleting"
 "offline" = "Offline"
 "online" = "Online"
