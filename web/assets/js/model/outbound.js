@@ -194,8 +194,7 @@ class WsStreamSettings extends CommonClass {
     static fromJson(json={}) {
         return new WsStreamSettings(
             json.path,
-            json.host,
-            json.headers && !ObjectUtil.isEmpty(json.headers.Host) ? json.headers.Host : '',
+            json.host
         );
     }
 
@@ -289,8 +288,7 @@ class HttpUpgradeStreamSettings extends CommonClass {
     static fromJson(json={}) {
         return new HttpUpgradeStreamSettings(
             json.path,
-            json.host,
-            json.headers && !ObjectUtil.isEmpty(json.headers.Host) ? json.headers.Host : '',
+            json.host
         );
     }
 
