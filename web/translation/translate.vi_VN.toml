@@ -180,7 +180,7 @@
 "setDefaultCert" = "Đặt chứng chỉ từ bảng điều khiển"
 "xtlsDesc" = "Xray core cần phiên bản 1.7.5"
 "realityDesc" = "Xray core cần phiên bản 1.8.0 hoặc cao hơn."
-"telegramDesc" = "Chỉ sử dụng ID trò chuyện (bạn có thể nhận được nó ở đây @userinfobot hoặc sử dụng lệnh '/id' trong bot)"
+"telegramDesc" = "Vui lòng cung cấp ID Trò chuyện Telegram. (sử dụng lệnh '/id' trong bot) hoặc (@userinfobot)"
 "subscriptionDesc" = "Bạn có thể tìm liên kết gói đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
 "info" = "Thông tin"
 "same" = "Giống nhau"
@@ -536,8 +536,8 @@
 "status" = "✅ Bot hoạt động bình thường!"
 "usage" = "❗ Vui lòng cung cấp văn bản để tìm kiếm!"
 "getID" = "🆔 ID của bạn: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n\r\nTìm kiếm inbounds (với thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>"
-"helpClientCommands" = "Để tìm kiếm thống kê, hãy sử dụng lệnh sau:\r\n\r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "Để tìm kiếm email của khách hàng:\r\n<code>/usage [Email]</code>\r\n\r\nĐể tìm kiếm các nhập (với số liệu thống kê của khách hàng):\r\n<code>/inbound [Ghi chú]</code>\r\n\r\nID Trò chuyện Telegram:\r\n<code>/id</code>"
+"helpClientCommands" = "Để tìm kiếm thống kê, sử dụng lệnh sau:\r\n<code>/usage [Email]</code>\r\n\r\nID Trò chuyện Telegram:\r\n<code>/id</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"

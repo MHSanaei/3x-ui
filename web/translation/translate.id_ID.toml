@@ -180,7 +180,7 @@
 "setDefaultCert" = "Atur Sertifikat dari Panel"
 "xtlsDesc" = "Xray harus versi 1.7.5"
 "realityDesc" = "Xray harus versi 1.8.0+"
-"telegramDesc" = "Harap berikan ID Telegram atau obrolan tanpa menggunakan '@'. (dapatkan di sini @userinfobot) atau (gunakan perintah '/id' di bot)"
+"telegramDesc" = "Harap berikan ID Obrolan Telegram. (gunakan perintah '/id' di bot) atau (@userinfobot)"
 "subscriptionDesc" = "Untuk menemukan URL langganan Anda, buka 'Rincian'. Selain itu, Anda dapat menggunakan nama yang sama untuk beberapa klien."
 "info" = "Info"
 "same" = "Sama"
@@ -536,8 +536,8 @@
 "status" = "✅ Bot dalam keadaan baik!"
 "usage" = "❗ Harap berikan teks untuk mencari!"
 "getID" = "🆔 ID Anda:<code>{{.ID }}</code>"
-"helpAdminCommands" = "Untuk mencari email klien:\r\n<code>/usage [Email]</code>\r\n\r\nUntuk mencari masuk (dengan statistik klien):\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "Untuk mencari statistik, gunakan perintah berikut:\r\n\r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "Untuk mencari email klien:\r\n<code>/usage [Email]</code>\r\n\r\nUntuk mencari inbound (dengan statistik klien):\r\n<code>/inbound [Catatan]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
+"helpClientCommands" = "Untuk mencari statistik, gunakan perintah berikut:\r\n<code>/usage [Email]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%"

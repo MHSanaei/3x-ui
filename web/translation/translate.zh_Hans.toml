@@ -180,7 +180,7 @@
 "setDefaultCert" = "从面板设置证书"
 "xtlsDesc" = "Xray 核心需要 1.7.5"
 "realityDesc" = "Xray 核心需要 1.8.0 及以上版本"
-"telegramDesc" = "请输入电报 (Telegram) 或聊天 ID，无需添加 '@' 符号。（可通过 @userinfobot 获取，或在机器人中使用 '/id' 命令）"
+"telegramDesc" = "请提供Telegram聊天ID。（在机器人中使用'/id'命令）或（@userinfobot"
 "subscriptionDesc" = "要找到你的订阅 URL，请导航到“详细信息”。此外，你可以为多个客户端使用相同的名称。"
 "info" = "信息"
 "same" = "相同"
@@ -536,8 +536,8 @@
 "status" = "✅ 机器人正常运行！"
 "usage" = "❗ 请输入要搜索的文本！"
 "getID" = "🆔 您的 ID 为：<code>{{ .ID }}</code>"
-"helpAdminCommands" = "搜索客户端邮箱：\r\n<code>/usage [Email]</code>\r\n\r\n搜索入站连接（包含客户端统计信息）：\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "要搜索统计信息，请使用以下命令：\r\n\r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "要搜索客户电子邮件：\r\n<code>/usage [电子邮件]</code>\r\n\r\n要搜索入站（带有客户统计数据）：\r\n<code>/inbound [备注]</code>\r\n\r\nTelegram聊天ID：\r\n<code>/id</code>"
+"helpClientCommands" = "要搜索统计数据，请使用以下命令：\r\n<code>/usage [电子邮件]</code>\r\n\r\nTelegram聊天ID：\r\n<code>/id</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%"

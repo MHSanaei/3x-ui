@@ -62,7 +62,7 @@
                     <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>
-            <a-input v-model.trim="clientsBulkModal.tgId"></a-input>
+            <a-input-number style="width: 50%" v-model.trim="clientsBulkModal.tgId" min="0"></a-input-number>
         </a-form-item>
         <a-form-item>
             <template slot="label">
@@ -200,7 +200,7 @@
             this.emailPrefix = "";
             this.emailPostfix = "";
             this.subId = "";
-            this.tgId  = 0;
+            this.tgId = 0;
             this.flow = "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
