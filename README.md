@@ -47,8 +47,20 @@ The Management script has a built-in SSL certificate application for Cloudflare.
 - Cloudflare Global API Key
 - The domain name has been resolved to the current server through cloudflare
 
-**1:** Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+How to get the Cloudflare Global API Key:
 
+1. Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
+
+2. Visit the link https://dash.cloudflare.com/profile/api-tokens
+
+3. Click on View Global API Key (See the screenshot below)
+        ![](media/APIKey1.PNG)
+
+4. You may have to re-authenticate your account. After that, the API Key will be shown (See the screenshot below)\
+        ![](media/APIKey2.png)
+
+When using, just enter `domain name`, `email`, `API KEY`, the diagram is as follows:
+        ![](media/DetailEnter.png)
 
 ### Certbot
 ```
