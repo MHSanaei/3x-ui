@@ -180,7 +180,7 @@
 "setDefaultCert" = "Set Cert from Panel"
 "xtlsDesc" = "Xray must be v1.7.5"
 "realityDesc" = "Xray must be v1.8.0+"
-"telegramDesc" = "Please provide Telegram or chat ID(s) without using the '@'. (get it here @userinfobot) or (use '/id' command in the bot)"
+"telegramDesc" = "Please provide Telegram Chat ID. (use '/id' command in the bot) or (@userinfobot)"
 "subscriptionDesc" = "To find your subscription URL, navigate to the 'Details'. Additionally, you can use the same name for several clients."
 "info" = "Info"
 "same" = "Same"
@@ -536,8 +536,8 @@
 "status" = "✅ Bot is OK!"
 "usage" = "❗ Please provide a text to search!"
 "getID" = "🆔 Your ID: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "To search for a client email:\r\n<code>/usage [Email]</code>\r\n\r\nTo search for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>"
-"helpClientCommands" = "To search for statistics, use the following command:\r\n\r\n<code>/usage [Email]</code>"
+"helpAdminCommands" = "To search for a client email:\r\n<code>/usage [Email]</code>\r\n\r\nTo search for inbounds (with client stats):\r\n<code>/inbound [Remark]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
+"helpClientCommands" = "To search for statistics, use the following command:\r\n\r\n<code>/usage [Email]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%"
