@@ -323,7 +323,7 @@
     </a-modal>
   </a-layout>
 {{template "js" .}}
-<script src="{{ .base_path }}assets/clipboard/clipboard.min.js"></script>
+<script src="{{ .base_path }}assets/clipboard/clipboard.min.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
 {{template "textModal"}}
 <script>
