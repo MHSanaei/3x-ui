@@ -1100,7 +1100,7 @@
                         serverObj = o.settings.servers;
                         break;
                     case Protocols.DNS:
-                        return [o.settings.address + ':' + o.settings.port];
+                        return [o.settings?.address + ':' + o.settings?.port];
                         case Protocols.Wireguard:
                         return o.settings.peers.map(peer => peer.endpoint);
                     default:
