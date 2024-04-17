@@ -289,7 +289,7 @@ class HttpUpgradeStreamSettings extends CommonClass {
     static fromJson(json={}) {
         return new HttpUpgradeStreamSettings(
             json.path,
-            json.Host,
+            json.host,
             json.headers && !ObjectUtil.isEmpty(json.headers.Host) ? json.headers.Host : '',
         );
     }
