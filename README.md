@@ -19,16 +19,6 @@
 <p align="left"><a href="#"><img width="125" src="https://github.com/MHSanaei/3x-ui/assets/115543613/7aa895dd-048a-42e7-989b-afd41a74e2e1" alt="Image"></a></p>
 
 - USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
-## Get your server up to date
-
-```
-apt update && apt upgrade -y
-```
-
-## Also install `curl` and `socat` :
-```
-apt install curl socat -y
-```
 
 ## Install & Upgrade
 
