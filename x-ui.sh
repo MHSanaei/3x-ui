@@ -591,8 +591,9 @@ open_ports() {
 
     # Check if the firewall is inactive
     if ufw status | grep -q "Status: active"; then
-        echo "firewall is already active"
+        echo "Firewall is already active"
     else
+        echo "Activating firewall..."
         # Open the necessary ports
         ufw allow ssh
         ufw allow http
@@ -619,10 +620,6 @@ open_ports() {
             # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            # Loop through the range and open each port
-            # for ((i = start_port; i <= end_port; i++)); do
-            #     ufw allow $i
-            # done
             ufw allow $start_port:$end_port
         else
             ufw allow "$port"
@@ -630,7 +627,11 @@ open_ports() {
     done
 
     # Confirm that the ports are open
-    ufw status | grep $ports
+    echo "The following ports are now open:"
+    ufw status | grep "ALLOW" | grep -Eo "[0-9]+(/[a-z]+)?"
+
+    echo "Firewall status:"
+    ufw status verbose
 }
 
 delete_ports() {
@@ -650,10 +651,7 @@ delete_ports() {
             # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            # Loop through the range and delete each port
-            # for ((i = start_port; i <= end_port; i++)); do
-            #     ufw delete allow $i
-            # done
+            # Delete the port range
             ufw delete allow $start_port:$end_port
         else
             ufw delete allow "$port"
@@ -662,7 +660,7 @@ delete_ports() {
 
     # Confirm that the ports are deleted
     echo "Deleted the specified ports:"
-    ufw status | grep $ports
+    ufw status | grep "ALLOW" | grep -Eo "[0-9]+(/[a-z]+)?"
 }
 
 update_geo() {
