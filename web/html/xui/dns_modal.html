@@ -59,6 +59,53 @@
           address: "localhost",
           domains: [],
           queryStrategy: 'UseIP',
+
+        },
+        ok() {
+          domains = dnsModal.dnsServer.domains.filter(d => d.length>0);
+          dnsModal.dnsServer.domains = domains;
+          newDnsServer = domains.length > 0 ? dnsModal.dnsServer : dnsModal.dnsServer.address;
+          ObjectUtil.execute(dnsModal.confirm, newDnsServer);
+        },
+        show({ title='', okText='{{ i18n "confirm" }}', dnsServer, confirm=(dnsServer)=>{}, isEdit=false  }) {
+            this.title = title;
+            this.okText = okText;
+            this.confirm = confirm;
+            this.visible = true;
+            if(isEdit) {
+              if (typeof dnsServer == 'object'){
+                this.dnsServer = dnsServer;
+              } else {
+                this.dnsServer = {
+                  address: dnsServer ?? "",
+                  domains: [],
+                  queryStrategy: 'UseIP',
+                }
+              }
+            } else {
+              this.dnsServer = {
+                address: "localhost",
+                domains: [],
+                queryStrategy: 'UseIP',
+              }
+            }
+            this.isEdit = isEdit;
+        },
+        close() {
+            dnsModal.visible = false;
+        },
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#dns-modal',
+        data: {
+            dnsModal: dnsModal,
+        },
+        computed: {
+          isAdvanced: {
+            get: function () { return dnsModal.dnsServer.domains.length>0 }
+          }
         }
       }
       this.isEdit = isEdit;
