@@ -620,9 +620,10 @@ open_ports() {
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
             # Loop through the range and open each port
-            for ((i = start_port; i <= end_port; i++)); do
-                ufw allow $i
-            done
+            # for ((i = start_port; i <= end_port; i++)); do
+            #     ufw allow $i
+            # done
+            ufw allow $start_port:$end_port
         else
             ufw allow "$port"
         fi
@@ -650,9 +651,10 @@ delete_ports() {
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
             # Loop through the range and delete each port
-            for ((i = start_port; i <= end_port; i++)); do
-                ufw delete allow $i
-            done
+            # for ((i = start_port; i <= end_port; i++)); do
+            #     ufw delete allow $i
+            # done
+            ufw delete allow $start_port:$end_port
         else
             ufw delete allow "$port"
         fi
