@@ -620,7 +620,8 @@ open_ports() {
             # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            ufw allow $start_port:$end_port
+            ufw allow $start_port:$end_port/tcp
+            ufw allow $start_port:$end_port/udp
         else
             ufw allow "$port"
         fi
@@ -652,15 +653,27 @@ delete_ports() {
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
             # Delete the port range
-            ufw delete allow $start_port:$end_port
+            ufw delete allow $start_port:$end_port/tcp
+            ufw delete allow $start_port:$end_port/udp
         else
             ufw delete allow "$port"
         fi
     done
 
     # Confirm that the ports are deleted
+    
     echo "Deleted the specified ports:"
-    ufw status | grep "ALLOW" | grep -Eo "[0-9]+(/[a-z]+)?"
+    for port in "${PORT_LIST[@]}"; do
+        if [[ $port == *-* ]]; then
+            start_port=$(echo $port | cut -d'-' -f1)
+            end_port=$(echo $port | cut -d'-' -f2)
+            # Check if the port range has been successfully deleted
+            (ufw status | grep -q "$start_port:$end_port") || echo "$start_port-$end_port"
+        else
+            # Check if the individual port has been successfully deleted
+            (ufw status | grep -q "$port") || echo "$port"
+        fi
+    done
 }
 
 update_geo() {
