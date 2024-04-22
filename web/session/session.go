@@ -5,7 +5,7 @@ import (
 
 	"x-ui/database/model"
 
-	sessions "github.com/Calidity/gin-sessions"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 

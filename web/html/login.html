@@ -400,7 +400,7 @@
             </g>
           </svg>
         </div>
-        <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto;">
+        <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto; overflow-x: hidden;">
           <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
               <a-col style="width: 100%;">
@@ -461,7 +461,7 @@
                   </a-form-item>
                   <a-form-item>
                     <a-row justify="center" class="centered">
-                      <theme-switch></theme-switch>
+                      <theme-switch-login></theme-switch-login>
                     </a-row>
                   </a-form-item>
                 </a-form>
@@ -476,83 +476,82 @@
 {{template "component/themeSwitcher" .}}
 {{template "component/password" .}}
 <script>
-    class User {
-        constructor() {
-            this.username = "";
-            this.password = "";
+  class User {
+    constructor() {
+      this.username = "";
+      this.password = "";
+    }
+  }
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    data: {
+      themeSwitcher,
+      loading: false,
+      user: new User(),
+      secretEnable: false,
+      lang: ""
+    },
+    async created() {
+      this.lang = getLang();
+      this.secretEnable = await this.getSecretStatus();
+    },
+    methods: {
+      async login() {
+        this.loading = true;
+        const msg = await HttpUtil.post('/login', this.user);
+        this.loading = false;
+        if (msg.success) {
+          location.href = basePath + 'panel/';
         }
+      },
+      async getSecretStatus() {
+        this.loading = true;
+        const msg = await HttpUtil.post('/getSecretStatus');
+        this.loading = false;
+        if (msg.success) {
+          this.secretEnable = msg.obj;
+          return msg.obj;
+        }
+      },
+    },
+  });
+  document.addEventListener("DOMContentLoaded", function() {
+    var animationDelay = 2000;
+    initHeadline();
+
+    function initHeadline() {
+      animateHeadline(document.querySelectorAll('.headline'));
     }
 
-    const app = new Vue({
-        delimiters: ['[[', ']]'],
-        el: '#app',
-        data: {
-            themeSwitcher,
-            loading: false,
-            user: new User(),
-            secretEnable: false,
-            lang: ""
-        },
-        async created() {
-            this.lang = getLang();
-            this.secretEnable = await this.getSecretStatus();
-        },
-        methods: {
-            async login() {
-                this.loading = true;
-                const msg = await HttpUtil.post('/login', this.user);
-                this.loading = false;
-                if (msg.success) {
-                    location.href = basePath + 'panel/';
-                }
-            },
-            async getSecretStatus() {
-                this.loading = true;
-                const msg = await HttpUtil.post('/getSecretStatus');
-                this.loading = false;
-                if (msg.success) {
-                    this.secretEnable = msg.obj;
-                    return msg.obj;
-                }
-            },
-        },
-    });
-    document.addEventListener("DOMContentLoaded", function() {
-        var animationDelay = 2000;
-        initHeadline();
+    function animateHeadline(headlines) {
+      var duration = animationDelay;
+      headlines.forEach(function(headline) {
+        setTimeout(function() {
+          hideWord(headline.querySelector('.is-visible'));
+        }, duration);
+      });
+    }
 
-        function initHeadline() {
-            animateHeadline(document.querySelectorAll('.headline'));
-        }
+    function hideWord(word) {
+      var nextWord = takeNext(word);
+      switchWord(word, nextWord);
+      setTimeout(function() {
+        hideWord(nextWord);
+      }, animationDelay);
+    }
 
-        function animateHeadline(headlines) {
-            var duration = animationDelay;
-            headlines.forEach(function(headline) {
-                setTimeout(function() {
-                    hideWord(headline.querySelector('.is-visible'));
-                }, duration);
-            });
-        }
+    function takeNext(word) {
+      return (word.nextElementSibling) ? word.nextElementSibling : word.parentElement.firstElementChild;
+    }
 
-        function hideWord(word) {
-            var nextWord = takeNext(word);
-            switchWord(word, nextWord);
-            setTimeout(function() {
-                hideWord(nextWord);
-            }, animationDelay);
-        }
-
-        function takeNext(word) {
-            return (word.nextElementSibling) ? word.nextElementSibling : word.parentElement.firstElementChild;
-        }
-
-        function switchWord(oldWord, newWord) {
-            oldWord.classList.remove('is-visible');
-            oldWord.classList.add('is-hidden');
-            newWord.classList.remove('is-hidden');
-            newWord.classList.add('is-visible');
-        }
-    });
+    function switchWord(oldWord, newWord) {
+      oldWord.classList.remove('is-visible');
+      oldWord.classList.add('is-hidden');
+      newWord.classList.remove('is-hidden');
+      newWord.classList.add('is-visible');
+    }
+  });
 </script>
 </body>
 </html>

@@ -2,6 +2,34 @@
 <html lang="en">
 {{template "head" .}}
 <style>
+  .ant-table:not(.ant-table-expanded-row .ant-table) {
+    outline: 1px solid #f0f0f0;
+    outline-offset: -1px;
+    border-radius: 1rem;
+    overflow-x: hidden;
+  }
+  .dark .ant-table:not(.ant-table-expanded-row .ant-table) {
+    outline-color: var(--dark-color-table-ring);
+  }
+  .ant-table .ant-table-content .ant-table-scroll .ant-table-body {
+    overflow-y: hidden;
+  }
+  .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper {
+	  margin:-10px 22px -10px !important;
+  }
+  .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper .ant-table {
+    border-bottom-left-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+  }
+  .ant-table .ant-table-content .ant-table-tbody tr:last-child tr:last-child td {
+	  border-bottom-color: transparent;
+  }
+  .ant-table .ant-table-tbody tr:last-child.ant-table-expanded-row .ant-table-wrapper .ant-table-tbody>tr:last-child>td:first-child {
+    border-bottom-left-radius: 6px;
+  }
+  .ant-table .ant-table-tbody tr:last-child.ant-table-expanded-row .ant-table-wrapper .ant-table-tbody>tr:last-child>td:last-child {
+    border-bottom-right-radius: 6px;
+  }
   @media (min-width: 769px) {
     .ant-layout-content {
       margin: 24px 16px;
@@ -10,6 +38,9 @@
   @media (max-width: 768px) {
     .ant-card-body {
       padding: .5rem;
+    }
+    .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper {
+	    margin:-10px 2px -10px !important;
     }
   }
   .ant-col-sm-24 {
@@ -22,13 +53,14 @@
     padding: 0 5px;
     border-radius: 2rem;
     min-width: 50px;
+    min-height: 22px;
   }
   .infinite-bar .ant-progress-inner .ant-progress-bg {
     background-color: #F2EAF1;
     border: #D5BED2 solid 1px;
   }
   .dark .infinite-bar .ant-progress-inner .ant-progress-bg {
-    background-color: #7a316f;
+    background-color: #7a316f !important;
     border: #7a316f solid 1px;
   }
   .ant-collapse {
@@ -52,6 +84,41 @@
       transform: scale(1.5);
       opacity: .2;
     }
+  }
+  .tr-table-box {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    align-items: center;
+  }
+  .tr-table-rt {
+    flex-basis: 70px;
+    min-width: 70px;
+    text-align: end;
+  }
+  .tr-table-lt {
+    flex-basis: 70px;
+    min-width: 70px;
+    text-align: start;
+  }
+  .tr-table-bar {
+    flex-basis: 160px;
+    min-width: 60px;
+  }
+  .tr-infinity-ch {
+    font-size: 14pt;
+    max-height: 24px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .ant-table-expanded-row .ant-table .ant-table-body {
+    overflow-x: hidden;
+  }
+  .ant-table-expanded-row .ant-table-tbody>tr>td {
+    padding: 10px 2px;
+  }
+  .ant-table-expanded-row .ant-table-thead>tr>th {
+    padding: 12px 2px;
   }
 </style>
 
@@ -324,8 +391,8 @@
                         [[ sizeFormat(dbInbound.total) ]]
                     </template>
                     <template v-else>
-                      <svg style="fill: currentColor; height: 10px;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512">
-                        <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" />
+                      <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                        <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
                       </svg>
                     </template>
                   </a-tag>
@@ -343,7 +410,11 @@
                     [[ remainedDays(dbInbound._expiryTime) ]]
                   </a-tag>
                 </a-popover>
-                <a-tag v-else color="purple" class="infinite-tag">&infin;</a-tag>
+                <a-tag v-else color="purple" class="infinite-tag">
+                  <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                    <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
+                  </svg>
+                </a-tag>
               </template>
               <template slot="info" slot-scope="text, dbInbound">
                 <a-popover placement="bottomRight" :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
@@ -415,7 +486,11 @@
                                 <template v-if="dbInbound.total > 0">
                                     [[ sizeFormat(dbInbound.total) ]]
                                 </template>
-                              <template v-else>&infin;</template>
+                              <template v-else>
+                                <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                                  <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
+                                </svg>
+                              </template>
                             </a-tag>
                           </a-popover>
                         </td>
@@ -426,7 +501,11 @@
                           <a-tag style="min-width: 50px; text-align: center;" v-if="dbInbound.expiryTime > 0" :color="dbInbound.isExpiry? 'red': 'blue'">
                             [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
                           </a-tag>
-                          <a-tag v-else style="text-align: center;" color="purple" class="infinite-tag">&infin;</a-tag>
+                          <a-tag v-else style="text-align: center;" color="purple" class="infinite-tag">
+                            <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                              <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
+                            </svg>
+                          </a-tag>
                         </td>
                       </tr>
                     </table>
@@ -445,7 +524,7 @@
                   :columns="isMobile ? innerMobileColumns : innerColumns"
                   :data-source="getInboundClients(record)"
                   :pagination=pagination(getInboundClients(record))
-                  :style="isMobile ? 'margin: -12px 2px -13px;' : 'margin: -12px 22px -13px;'">
+                  :style="isMobile ? 'margin: -10px 2px -11px;' : 'margin: -10px 22px -11px;'">
                   {{template "client_table"}}
                 </a-table>
               </template>
@@ -543,7 +622,7 @@
         { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 100, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
     ];
 
     const innerMobileColumns = [

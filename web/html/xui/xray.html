@@ -1,14 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 {{template "head" .}}
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 
 <script src="{{ .base_path }}assets/base64/base64.min.js"></script>
 <script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/codemirror/codemirror.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>
@@ -19,44 +19,44 @@
 <script src="{{ .base_path }}assets/codemirror/fold/foldgutter.js"></script>
 <script src="{{ .base_path }}assets/codemirror/fold/brace-fold.js"></script>
 <style>
-    @media (min-width: 769px) {
-        .ant-layout-content {
-            margin: 24px 16px;
-        }
+  @media (min-width: 769px) {
+    .ant-layout-content {
+      margin: 24px 16px;
     }
-    @media (max-width: 768px) {
-        .ant-tabs-nav .ant-tabs-tab {
-            margin: 0;
-            padding: 12px .5rem;
-        }
-        .ant-table-thead > tr > th,
-        .ant-table-tbody > tr > td {
-            padding: 10px 0px;
-        }
+  }
+  @media (max-width: 768px) {
+    .ant-tabs-nav .ant-tabs-tab {
+      margin: 0;
+      padding: 12px .5rem;
     }
-    .ant-tabs-bar {
-        margin: 0;
+    .ant-table-thead>tr>th,
+    .ant-table-tbody>tr>td {
+      padding: 10px 0px;
     }
-    .ant-list-item {
-        display: block;
-    }
-    .collapse-title {
-        color: inherit;
-        font-weight: bold;
-        font-size: 18px;
-        padding: 10px 20px;
-        border-bottom: 2px solid;
-    }
-    .collapse-title > i {
-        color: inherit;
-        font-size: 24px;
-    }
-    .ant-collapse-content-box > li {
-        padding: 12px 0 0 0 !important;
-    }
-    .ant-list-item > li {
-        padding: 10px 20px !important;
-    }
+  }
+  .ant-tabs-bar {
+    margin: 0;
+  }
+  .ant-list-item {
+    display: block;
+  }
+  .collapse-title {
+    color: inherit;
+    font-weight: bold;
+    font-size: 18px;
+    padding: 10px 20px;
+    border-bottom: 2px solid;
+  }
+  .collapse-title>i {
+    color: inherit;
+    font-size: 24px;
+  }
+  .ant-collapse-content-box>li {
+    padding: 12px 0 0 0 !important;
+  }
+  .ant-list-item>li {
+    padding: 10px 20px !important;
+  }
 </style>
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
@@ -443,7 +443,7 @@
                 <a-table :columns="outboundColumns" bordered
                     :row-key="r => r.key"
                     :data-source="outboundData"
-                    :scroll="isMobile ? {} : { x: 200 }"
+                    :scroll="isMobile ? {} : { x: 800 }"
                     :pagination="false"
                     :indent-size="0"
                     :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">

@@ -1,6 +1,23 @@
 {{define "component/themeSwitchTemplate"}}
 <template>
-  <a-menu class="change-theme" :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+    <a-sub-menu>
+      <span slot="title">
+        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
+        <span>Theme</span>
+      </span>
+      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> Dark <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      </a-menu-item>
+      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOffUltra()"> Ultra <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      </a-menu-item>
+    </a-sub-menu>
+  </a-menu>
+</template>
+{{end}}
+
+{{define "component/themeSwitchTemplateLogin"}}
+<template>
+  <a-menu @mousedown="themeSwitcher.animationsOff()" id="change-theme" :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
     <a-menu-item mode="inline" class="ant-menu-theme-switch">
       <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
       <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
@@ -23,6 +40,26 @@
     const theme = isDarkTheme ? 'dark' : 'light';
     document.querySelector('body').setAttribute('class', theme);
     return {
+      animationsOff() {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+        const themeAnimations = document.querySelector('#change-theme');
+        themeAnimations.addEventListener('mouseleave', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+        themeAnimations.addEventListener('touchend', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+      },
+      animationsOffUltra() {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+        const themeAnimationsUltra = document.querySelector('#change-theme-ultra');
+        themeAnimationsUltra.addEventListener('mouseleave', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+        themeAnimationsUltra.addEventListener('touchend', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+      },
       isDarkTheme,
       isUltra,
       get currentTheme() {
@@ -57,13 +94,19 @@
         getContainer: () => document.getElementById('message')
       });
       document.getElementById('message').className = themeSwitcher.currentTheme;
-      const themeAnimations = document.querySelector('.change-theme');
-      themeAnimations.addEventListener('mousedown', () => {
-        document.documentElement.setAttribute('data-theme-animations', 'off');
+    }
+  });
+  Vue.component('theme-switch-login', {
+    props: [],
+    template: `{{template "component/themeSwitchTemplateLogin"}}`,
+    data: () => ({
+      themeSwitcher
+    }),
+    mounted() {
+      this.$message.config({
+        getContainer: () => document.getElementById('message')
       });
-      themeAnimations.addEventListener('mouseleave', () => {
-        document.documentElement.removeAttribute('data-theme-animations');
-      });
+      document.getElementById('message').className = themeSwitcher.currentTheme;
     }
   });
 </script>
