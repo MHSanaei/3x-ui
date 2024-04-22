@@ -620,7 +620,8 @@ open_ports() {
             # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
-            ufw allow $start_port:$end_port
+            ufw allow $start_port:$end_port/tcp
+            ufw allow $start_port:$end_port/udp
         else
             ufw allow "$port"
         fi
@@ -652,7 +653,8 @@ delete_ports() {
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
             # Delete the port range
-            ufw delete allow $start_port:$end_port
+            ufw delete allow $start_port:$end_port/tcp
+            ufw delete allow $start_port:$end_port/udp
         else
             ufw delete allow "$port"
         fi
