@@ -6,6 +6,10 @@ services:
     image: ghcr.io/mhsanaei/3x-ui:latest
     container_name: 3x-ui
     hostname: yourhostname
+    ports:
+    - "80:80/tcp"
+    - "443:443/tcp"
+    - "2053:2053/tcp"
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
