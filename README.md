@@ -144,8 +144,7 @@ systemctl restart x-ui
 2. Clone the Project Repository:
 
    ```sh
-   git clone https://github.com/MHSanaei/3x-ui.git
-   cd 3x-ui
+   wget https://github.com/MHSanaei/3x-ui/raw/main/docker-compose.yml
    ```
 
 3. Start the Service
