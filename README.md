@@ -158,6 +158,7 @@ systemctl restart x-ui
    ```sh
    docker run -itd \
       -e XRAY_VMESS_AEAD_FORCED=false \
+      -p 2053:2053 -p 443:443 -p 80:80 \
       -v $PWD/db/:/etc/x-ui/ \
       -v $PWD/cert/:/root/cert/ \
       --network=host \
