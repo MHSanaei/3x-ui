@@ -14,7 +14,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v3 v3.24.3
 	github.com/valyala/fasthttp v1.52.0
-	github.com/xtls/xray-core v1.8.10
+	github.com/xtls/xray-core v1.8.11
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.14.0
 	google.golang.org/grpc v1.63.2
@@ -27,7 +27,7 @@ require (
 	github.com/bytedance/sonic v1.11.3 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
-	github.com/cloudflare/circl v1.3.7 // indirect
+	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
 	github.com/fasthttp/router v1.5.0 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
@@ -60,7 +60,7 @@ require (
 	github.com/pires/go-proxyproto v0.7.0 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/quic-go/quic-go v0.42.0 // indirect
-	github.com/refraction-networking/utls v1.6.3 // indirect
+	github.com/refraction-networking/utls v1.6.4 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect
 	github.com/sagernet/sing v0.3.8 // indirect
@@ -94,6 +94,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240415180920-8c6c420018be // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gvisor.dev/gvisor v0.0.0-20231104011432-48a6d7d5bd0b // indirect
-	lukechampine.com/blake3 v1.2.1 // indirect
+	gvisor.dev/gvisor v0.0.0-20231202080848-1f7806d17489 // indirect
+	lukechampine.com/blake3 v1.2.2 // indirect
 )
