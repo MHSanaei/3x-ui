@@ -549,6 +549,7 @@
 "datetime" = "⏰ Ngày-Giờ: {{ .DateTime }}\r\n"
 "hostname" = "💻 Tên máy chủ: {{ .Hostname }}\r\n"
 "version" = "🚀 Phiên bản X-UI: {{ .Version }}\r\n"
+"xrayVersion" = "📡 Phiên bản Xray: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"
 "ip" = "🌐 IP: {{ .IP }}\r\n"

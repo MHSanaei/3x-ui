@@ -948,8 +948,14 @@ func (t *Tgbot) sendExhaustedToAdmins() {
 
 func (t *Tgbot) getServerUsage() string {
 	info, ipv4, ipv6 := "", "", ""
+
+	// get latest status of server
+	t.lastStatus = t.serverService.GetStatus(t.lastStatus)
+	onlines := p.GetOnlineClients()
+
 	info += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 	info += t.I18nBot("tgbot.messages.version", "Version=="+config.GetVersion())
+	info += t.I18nBot("tgbot.messages.xrayVersion", "XrayVersion=="+fmt.Sprint(t.lastStatus.Xray.Version))
 
 	// get ip address
 	netInterfaces, err := net.Interfaces()
@@ -978,9 +984,6 @@ func (t *Tgbot) getServerUsage() string {
 		info += t.I18nBot("tgbot.messages.ipv6", "IPv6=="+ipv6)
 	}
 
-	// get latest status of server
-	t.lastStatus = t.serverService.GetStatus(t.lastStatus)
-	onlines := p.GetOnlineClients()
 	info += t.I18nBot("tgbot.messages.serverUpTime", "UpTime=="+strconv.FormatUint(t.lastStatus.Uptime/86400, 10), "Unit=="+t.I18nBot("tgbot.days"))
 	info += t.I18nBot("tgbot.messages.serverLoad", "Load1=="+strconv.FormatFloat(t.lastStatus.Loads[0], 'f', 2, 64), "Load2=="+strconv.FormatFloat(t.lastStatus.Loads[1], 'f', 2, 64), "Load3=="+strconv.FormatFloat(t.lastStatus.Loads[2], 'f', 2, 64))
 	info += t.I18nBot("tgbot.messages.serverMemory", "Current=="+common.FormatTraffic(int64(t.lastStatus.Mem.Current)), "Total=="+common.FormatTraffic(int64(t.lastStatus.Mem.Total)))
