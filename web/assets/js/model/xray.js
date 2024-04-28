@@ -759,8 +759,8 @@ class RealityStreamSettings extends XrayCommonClass {
     
     constructor(
         show = false,xver = 0,
-        dest = 'yahoo.com:443',
-        serverNames = 'yahoo.com,www.yahoo.com',
+        dest = 'sega.com:443',
+        serverNames = 'sega.com,www.sega.com',
         privateKey = '',
         minClient = '',
         maxClient = '',
@@ -2472,7 +2472,7 @@ Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
             if (a.length>0 && !a.includes('/')) this.allowedIPs[index] += '/32';
         });
         return {
-            privateKey: this.privateKey,
+            privateKey: this.privateKey,            
             publicKey: this.publicKey,
             preSharedKey: this.psk.length>0 ? this.psk : undefined,
             allowedIPs: this.allowedIPs,

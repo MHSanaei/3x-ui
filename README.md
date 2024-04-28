@@ -1,66 +1,48 @@
 # 3X-UI
 
-[English](/README.md) | [Chinese](/README.zh.md) | [Español](/README.es_ES.md)
-
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
-**An Advanced Web Panel • Built on Xray Core**
+**一个更好的面板 • 基于Xray Core构建**
 
-[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
-[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
+[![](https://img.shields.io/github/v/release/xeefei/3x-ui.svg)](https://github.com/xeefei/3x-ui/releases)
+[![](https://img.shields.io/github/actions/workflow/status/xeefei/3x-ui/release.yml.svg)](#)
+[![GO Version](https://img.shields.io/github/go-mod/go-version/xeefei/3x-ui.svg)](#)
+[![Downloads](https://img.shields.io/github/downloads/xeefei/3x-ui/total.svg)](#)
 [![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-> **Disclaimer:** This project is only for personal learning and communication, please do not use it for illegal purposes, please do not use it in a production environment
+> **Disclaimer:** 此项目仅供个人学习交流，请不要用于非法目的，请不要在生产环境中使用。
 
-**If this project is helpful to you, you may wish to give it a**:star2:
+**如果此项目对你有用，请给一个**:star2:
 
-<p align="left"><a href="#"><img width="125" src="https://github.com/MHSanaei/3x-ui/assets/115543613/7aa895dd-048a-42e7-989b-afd41a74e2e1" alt="Image"></a></p>
-
-- USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
-
-## Install & Upgrade
+## 安装 & 升级
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/xeefei/3x-ui/master/install.sh)
 ```
 
-## Install Custom Version
+## 安装指定版本
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.3.0`:
+要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.3.0.1`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.0
+bash <(curl -Ls https://raw.githubusercontent.com/xeefei/3x-ui/master/install.sh) v2.3.0.1
 ```
 
-## SSL Certificate
+## SSL 认证
 
 <details>
-  <summary>Click for SSL Certificate</summary>
+  <summary>点击查看 SSL 认证</summary>
 
 ### Cloudflare
 
-The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+管理脚本具有用于 Cloudflare 的内置 SSL 证书应用程序。若要使用此脚本申请证书，需要满足以下条件：
 
-- Cloudflare registered email
+- Cloudflare 邮箱地址
 - Cloudflare Global API Key
-- The domain name has been resolved to the current server through cloudflare
+- 域名已通过 cloudflare 解析到当前服务器
 
-How to get the Cloudflare Global API Key:
+**1:** 在终端中运行`x-ui`， 选择 `Cloudflare SSL Certificate`.
 
-1. Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
-
-2. Visit the link https://dash.cloudflare.com/profile/api-tokens
-
-3. Click on View Global API Key (See the screenshot below)
-        ![](media/APIKey1.PNG)
-
-4. You may have to re-authenticate your account. After that, the API Key will be shown (See the screenshot below)\
-        ![](media/APIKey2.png)
-
-When using, just enter `domain name`, `email`, `API KEY`, the diagram is as follows:
-        ![](media/DetailEnter.png)
 
 ### Certbot
 ```
@@ -69,18 +51,18 @@ certbot certonly --standalone --agree-tos --register-unsafely-without-email -d y
 certbot renew --dry-run
 ```
 
-***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+***Tip:*** *管理脚本具有 Certbot 。使用 `x-ui` 命令， 选择 `SSL Certificate Management`.*
 
 </details>
 
-## Manual Install & Upgrade
+## 手动安装 & 升级
 
 <details>
-  <summary>Click for manual install details</summary>
+  <summary>点击查看 手动安装 & 升级</summary>
 
-#### Usage
+#### 使用
 
-1. To download the latest version of the compressed package directly to your server, run the following command:
+1. 若要将最新版本的压缩包直接下载到服务器，请运行以下命令：
 
 ```sh
 ARCH=$(uname -m)
@@ -96,10 +78,10 @@ case "${ARCH}" in
 esac
 
 
-wget https://github.com/MHSanaei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
+wget https://github.com/xeefei/3x-ui/releases/latest/download/x-ui-linux-${XUI_ARCH}.tar.gz
 ```
 
-2. Once the compressed package is downloaded, execute the following commands to install or upgrade x-ui:
+2. 下载压缩包后，执行以下命令安装或升级 x-ui：
 
 ```sh
 ARCH=$(uname -m)
@@ -128,33 +110,33 @@ systemctl restart x-ui
 
 </details>
 
-## Install with Docker
+## 通过Docker安装
 
 <details>
-  <summary>Click for Docker details</summary>
+  <summary>点击查看 通过Docker安装</summary>
 
-#### Usage
+#### 使用
 
-1. Install Docker:
+1. 安装Docker：
 
    ```sh
    bash <(curl -sSL https://get.docker.com)
    ```
 
-2. Clone the Project Repository:
+2. 克隆仓库：
 
    ```sh
-   git clone https://github.com/MHSanaei/3x-ui.git
+   git clone https://github.com/xeefei/3x-ui.git
    cd 3x-ui
    ```
 
-3. Start the Service
+3. 运行服务：
 
    ```sh
    docker compose up -d
    ```
 
-   OR
+   或
 
    ```sh
    docker run -itd \
@@ -164,10 +146,10 @@ systemctl restart x-ui
       --network=host \
       --restart=unless-stopped \
       --name 3x-ui \
-      ghcr.io/mhsanaei/3x-ui:latest
+      ghcr.io/xeefei/3x-ui:latest
    ```
 
-update to latest version
+更新至最新版本
 
    ```sh
     cd 3x-ui
@@ -176,7 +158,7 @@ update to latest version
     docker compose up -d
    ```
 
-remove 3x-ui from docker 
+从Docker中删除3x-ui 
 
    ```sh
     docker stop 3x-ui
@@ -188,117 +170,113 @@ remove 3x-ui from docker
 </details>
 
 
-## Recommended OS
+## 建议使用的操作系统
 
 - Ubuntu 20.04+
 - Debian 11+
 - CentOS 8+
 - Fedora 36+
 - Arch Linux
-- Parch Linux
 - Manjaro
 - Armbian
 - AlmaLinux 9+
 - Rocky Linux 9+
 - Oracle Linux 8+
 
-## Supported Architectures and Devices
-
+## 支持的架构和设备
 <details>
-  <summary>Click for Supported Architectures and devices details</summary>
+  <summary>点击查看 支持的架构和设备</summary>
 
-Our platform offers compatibility with a diverse range of architectures and devices, ensuring flexibility across various computing environments. The following are key architectures that we support:
+我们的平台提供与各种架构和设备的兼容性，确保在各种计算环境中的灵活性。以下是我们支持的关键架构：
 
-- **amd64**: This prevalent architecture is the standard for personal computers and servers, accommodating most modern operating systems seamlessly.
+- **amd64**: 这种流行的架构是个人计算机和服务器的标准，可以无缝地适应大多数现代操作系统。
 
-- **x86 / i386**: Widely adopted in desktop and laptop computers, this architecture enjoys broad support from numerous operating systems and applications, including but not limited to Windows, macOS, and Linux systems.
+- **x86 / i386**: 这种架构在台式机和笔记本电脑中被广泛采用，得到了众多操作系统和应用程序的广泛支持，包括但不限于 Windows、macOS 和 Linux 系统。
 
-- **armv8 / arm64 / aarch64**: Tailored for contemporary mobile and embedded devices, such as smartphones and tablets, this architecture is exemplified by devices like Raspberry Pi 4, Raspberry Pi 3, Raspberry Pi Zero 2/Zero 2 W, Orange Pi 3 LTS, and more.
+- **armv8 / arm64 / aarch64**: 这种架构专为智能手机和平板电脑等当代移动和嵌入式设备量身定制，以 Raspberry Pi 4、Raspberry Pi 3、Raspberry Pi Zero 2/Zero 2 W、Orange Pi 3 LTS 等设备为例。
 
-- **armv7 / arm / arm32**: Serving as the architecture for older mobile and embedded devices, it remains widely utilized in devices like Orange Pi Zero LTS, Orange Pi PC Plus, Raspberry Pi 2, among others.
+- **armv7 / arm / arm32**: 作为较旧的移动和嵌入式设备的架构，它仍然广泛用于Orange Pi Zero LTS、Orange Pi PC Plus、Raspberry Pi 2等设备。
 
-- **armv6 / arm / arm32**: Geared towards very old embedded devices, this architecture, while less prevalent, is still in use. Devices such as Raspberry Pi 1, Raspberry Pi Zero/Zero W, rely on this architecture.
+- **armv6 / arm / arm32**: 这种架构面向非常老旧的嵌入式设备，虽然不太普遍，但仍在使用中。Raspberry Pi 1、Raspberry Pi Zero/Zero W 等设备都依赖于这种架构。
 
-- **armv5 / arm / arm32**: An older architecture primarily associated with early embedded systems, it is less common today but may still be found in legacy devices like early Raspberry Pi versions and some older smartphones.
-
-- **s390x**: This architecture is commonly used in IBM mainframe computers and offers high performance and reliability for enterprise workloads.
+- **armv5 / arm / arm32**: 它是一种主要与早期嵌入式系统相关的旧架构，目前不太常见，但仍可能出现在早期 Raspberry Pi 版本和一些旧智能手机等传统设备中。
 </details>
 
 ## Languages
 
-- English
-- Farsi
-- Chinese
-- Russian
-- Vietnamese
-- Spanish
-- Indonesian 
-- Ukrainian
+- English（英语）
+- Farsi（伊朗语）
+- Chinese（中文）
+- Russian（俄语）
+- Vietnamese（越南语）
+- Spanish（西班牙语）
+- Indonesian （印度尼西亚语）
+- Ukrainian（乌克兰语）
 
 
 ## Features
 
-- System Status Monitoring
-- Search within all inbounds and clients
-- Dark/Light theme
-- Supports multi-user and multi-protocol
-- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP, wireguard
-- Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
-- Traffic statistics, traffic limit, expiration time limit
-- Customizable Xray configuration templates
-- Supports HTTPS access panel (self-provided domain name + SSL certificate)
-- Supports One-Click SSL certificate application and automatic renewal
-- For more advanced configuration items, please refer to the panel
-- Fixes API routes (user setting will be created with API)
-- Supports changing configs by different items provided in the panel.
-- Supports export/import database from the panel
+- 系统状态监控
+- 在所有入站和客户端中搜索
+- 深色/浅色主题
+- 支持多用户和多协议
+- 支持多种协议，包括 VMess、VLESS、Trojan、Shadowsocks、Dokodemo-door、Socks、HTTP、wireguard
+- 支持 XTLS 原生协议，包括 RPRX-Direct、Vision、REALITY
+- 流量统计、流量限制、过期时间限制
+- 可自定义的 Xray配置模板
+- 支持HTTPS访问面板（自建域名+SSL证书）
+- 支持一键式SSL证书申请和自动续费
+- 更多高级配置项目请参考面板
+- 修复了 API 路由（用户设置将使用 API 创建）
+- 支持通过面板中提供的不同项目更改配置。
+- 支持从面板导出/导入数据库
 
 
-## Default Settings
+## 默认设置
 
 <details>
-  <summary>Click for default settings details</summary>
+  <summary>点击查看 默认设置</summary>
 
-  ### Information
+  ### 信息
 
-- **Port:** 2053
-- **Username & Password:** It will be generated randomly if you skip modifying.
-- **Database Path:**
+- **端口：** 2053
+- **用户名 & 密码：** 当您跳过设置时，此项会随机生成。
+- **数据库路径：**
   - /etc/x-ui/x-ui.db
-- **Xray Config Path:**
+- **Xray 配置路径：**
   - /usr/local/x-ui/bin/config.json
-- **Web Panel Path w/o Deploying SSL:**
+- **面板链接（无SSL）：**
   - http://ip:2053/panel
   - http://domain:2053/panel
-- **Web Panel Path w/ Deploying SSL:**
+- **面板链接（有SSL）：**
   - https://domain:2053/panel
  
 </details>
 
-## [WARP Configuration](https://gitlab.com/fscarmen/warp)
+## [WARP 配置](https://gitlab.com/fscarmen/warp)
 
 <details>
-  <summary>Click for WARP configuration details</summary>
+  <summary>点击查看 WARP 配置</summary>
 
-#### Usage
+#### 使用
 
-If you want to use routing to WARP before v2.1.0 follow steps as below:
+如果要在 v2.1.0 之前使用 WARP 路由，请按照以下步骤操作：
 
-**1.** Install WARP on **SOCKS Proxy Mode**:
+**1.** 在 **SOCKS Proxy Mode** 模式中安装Wrap
 
    ```sh
    bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
    ```
 
-**2.** If you already installed warp, you can uninstall using below command:
+**2.** 如果您已经安装了 warp，您可以使用以下命令卸载：
 
    ```sh
    warp u
    ```
 
-**3.** Turn on the config you need in panel
+**3.** 在面板中打开您需要的配置
 
-   Config Features:
+   配置:
 
    - Block Ads
    - Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP
@@ -306,28 +284,28 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
 
 </details>
 
-## IP Limit
+## IP 限制
 
 <details>
-  <summary>Click for IP limit details</summary>
+  <summary>点击查看 IP 限制</summary>
 
-#### Usage
+#### 使用
 
-**Note:** IP Limit won't work correctly when using IP Tunnel
+**注意：** 使用 IP 隧道时，IP 限制无法正常工作。
 
-- For versions up to `v1.6.1`:
+- 适用于最高 `v1.6.1` ：
 
-  - IP limit is built-in into the panel.
+  - IP 限制 已被集成在面板中。
 
-- For versions `v1.7.0` and newer:
+- 适用于 `v1.7.0` 以及更新的版本：
 
-  - To make IP Limit work properly, you need to install fail2ban and its required files by following these steps:
+  - 要使 IP 限制正常工作，您需要按照以下步骤安装 fail2ban 及其所需的文件：
 
-    1. Use the `x-ui` command inside the shell.
-    2. Select `IP Limit Management`.
-    3. Choose the appropriate options based on your needs.
+    1. 使用面板内置的 `x-ui` 指令
+    2. 选择 `IP Limit Management`.
+    3. 根据您的需要选择合适的选项。
    
-  - make sure you have ./access.log on your Xray Configuration after v2.1.3 we have an option for it
+  - 确保您的 Xray 配置上有 ./access.log 。在 v2.1.3 之后，我们有一个选项。
   
   ```sh
     "log": {
@@ -339,120 +317,120 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
 
 </details>
 
-## Telegram Bot
+## Telegram 机器人
 
 <details>
-  <summary>Click for Telegram bot details</summary>
+  <summary>点击查看 Telegram 机器人</summary>
 
-#### Usage
+#### 使用
 
-The web panel supports daily traffic, panel login, database backup, system status, client info, and other notification and functions through the Telegram Bot. To use the bot, you need to set the bot-related parameters in the panel, including:
+Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备份、系统状态、客户端信息等通知和功能。要使用机器人，您需要在面板中设置机器人相关参数，包括：
 
-- Telegram Token
-- Admin Chat ID(s)
-- Notification Time (in cron syntax)
-- Expiration Date Notification
-- Traffic Cap Notification
-- Database Backup
-- CPU Load Notification
+- 电报令牌
+- 管理员聊天 ID
+- 通知时间（cron 语法）
+- 到期日期通知
+- 流量上限通知
+- 数据库备份
+- CPU 负载通知
 
 
-**Reference syntax:**
+**参考：**
 
-- `30 \* \* \* \* \*` - Notify at the 30s of each point
-- `0 \*/10 \* \* \* \*` - Notify at the first second of each 10 minutes
-- `@hourly` - Hourly notification
-- `@daily` - Daily notification (00:00 in the morning)
-- `@weekly` - weekly notification
-- `@every 8h` - Notify every 8 hours
+- `30 \* \* \* \* \*` - 在每个点的 30 秒处通知
+- `0 \*/10 \* \* \* \*` - 每 10 分钟的第一秒通知
+- `@hourly` - 每小时通知
+- `@daily` - 每天通知 (00:00)
+- `@weekly` - 每周通知
+- `@every 8h` - 每8小时通知
 
-### Telegram Bot Features
+### Telegram Bot 功能
 
-- Report periodic
-- Login notification
-- CPU threshold notification
-- Threshold for Expiration time and Traffic to report in advance
-- Support client report menu if client's telegram username added to the user's configurations
-- Support telegram traffic report searched with UUID (VMESS/VLESS) or Password (TROJAN) - anonymously
-- Menu based bot
-- Search client by email ( only admin )
-- Check all inbounds
-- Check server status
-- Check depleted users
-- Receive backup by request and in periodic reports
-- Multi language bot
+- 定期报告
+- 登录通知
+- CPU 阈值通知
+- 提前报告的过期时间和流量阈值
+- 如果将客户的电报用户名添加到用户的配置中，则支持客户端报告菜单
+- 支持使用UUID（VMESS/VLESS）或密码（TROJAN）搜索报文流量报告 - 匿名
+- 基于菜单的机器人
+- 通过电子邮件搜索客户端（仅限管理员）
+- 检查所有入库
+- 检查服务器状态
+- 检查耗尽的用户
+- 根据请求和定期报告接收备份
+- 多语言机器人
 
-### Setting up Telegram bot
+### 注册 Telegram bot
 
-- Start [Botfather](https://t.me/BotFather) in your Telegram account:
+- 与 [Botfather](https://t.me/BotFather) 对话：
     ![Botfather](./media/botfather.png)
   
-- Create a new Bot using /newbot command: It will ask you 2 questions, A name and a username for your bot. Note that the username has to end with the word "bot".
-    ![Create new bot](./media/newbot.png)
+- 使用 /newbot 创建新机器人：你需要提供机器人名称以及用户名，注意名称中末尾要包含“bot”
+    ![创建机器人](./media/newbot.png)
 
-- Start the bot you've just created. You can find the link to your bot here.
-    ![token](./media/token.png)
+- 启动您刚刚创建的机器人。可以在此处找到机器人的链接。
+    ![令牌](./media/token.png)
 
-- Enter your panel and config Telegram bot settings like below:
-![Panel Config](./media/panel-bot-config.png)
+- 输入您的面板并配置 Telegram 机器人设置，如下所示：
+    ![面板设置](./media/panel-bot-config.png)
 
-Enter your bot token in input field number 3.
-Enter the user ID in input field number 4. The Telegram accounts with this id will be the bot admin. (You can enter more than one, Just separate them with ,)
+在输入字段编号 3 中输入机器人令牌。
+在输入字段编号 4 中输入用户 ID。具有此 id 的 Telegram 帐户将是机器人管理员。 （您可以输入多个，只需将它们用“ ，”分开即可）
 
-- How to get Telegram user ID? Use this [bot](https://t.me/useridinfobot), Start the bot and it will give you the Telegram user ID.
-![User ID](./media/user-id.png)
+- 如何获取TG ID? 使用 [bot](https://t.me/useridinfobot)， 启动机器人，它会给你 Telegram 用户 ID。
+![用户 ID](./media/user-id.png)
 
 </details>
 
-## API Routes
+## API 路由
 
 <details>
-  <summary>Click for API routes details</summary>
+  <summary>点击查看 API 路由</summary>
 
-#### Usage
+#### 使用
 
-- `/login` with `POST` user data: `{username: '', password: ''}` for login
-- `/panel/api/inbounds` base for following actions:
+- `/login` 使用 `POST` 用户名称 & 密码： `{username: '', password: ''}` 登录
+- `/panel/api/inbounds` 以下操作的基础：
 
-| Method | Path                               | Action                                      |
+| 方法   |  路径                               | 操作                                        |
 | :----: | ---------------------------------- | ------------------------------------------- |
-| `GET`  | `"/list"`                          | Get all inbounds                            |
-| `GET`  | `"/get/:id"`                       | Get inbound with inbound.id                 |
-| `GET`  | `"/getClientTraffics/:email"`      | Get Client Traffics with email              |
-| `GET`  | `"/createbackup"`                  | Telegram bot sends backup to admins         |
-| `POST` | `"/add"`                           | Add inbound                                 |
-| `POST` | `"/del/:id"`                       | Delete Inbound                              |
-| `POST` | `"/update/:id"`                    | Update Inbound                              |
-| `POST` | `"/clientIps/:email"`              | Client Ip address                           |
-| `POST` | `"/clearClientIps/:email"`         | Clear Client Ip address                     |
-| `POST` | `"/addClient"`                     | Add Client to inbound                       |
-| `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId\*                 |
-| `POST` | `"/updateClient/:clientId"`        | Update Client by clientId\*                 |
-| `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
-| `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
-| `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
-| `POST` | `"/delDepletedClients/:id"`        | Delete inbound depleted clients (-1: all)   |
-| `POST` | `"/onlines"`                       | Get Online users ( list of emails )       |
+| `GET`  | `"/list"`                          | 获取所有入站                                 |
+| `GET`  | `"/get/:id"`                       | 获取所有入站以及inbound.id                   |
+| `GET`  | `"/getClientTraffics/:email"`      | 通过电子邮件获取客户端流量                    |
+| `GET`  | `"/createbackup"`                  | Telegram 机器人向管理员发送备份               |
+| `POST` | `"/add"`                           | 添加入站                                    |
+| `POST` | `"/del/:id"`                       | 删除入站                                    |
+| `POST` | `"/update/:id"`                    | 更新入站                                    |
+| `POST` | `"/clientIps/:email"`              | 客户端 IP 地址                              | 
+| `POST` | `"/clearClientIps/:email"`         | 清除客户端 IP 地址                           |
+| `POST` | `"/addClient"`                     | 将客户端添加到入站                           |
+| `POST` | `"/:id/delClient/:clientId"`       | 通过 clientId\* 删除客户端                   |
+| `POST` | `"/updateClient/:clientId"`        | 通过 clientId\* 更新客户端                   |
+| `POST` | `"/:id/resetClientTraffic/:email"` | 重置客户端的流量                             |
+| `POST` | `"/resetAllTraffics"`              | 重置所有入站的流量                           |
+| `POST` | `"/resetAllClientTraffics/:id"`    | 重置入站中所有客户端的流量                    |
+| `POST` | `"/delDepletedClients/:id"`        | 删除入站耗尽的客户端 （-1： all）             |
+| `POST` | `"/onlines"`                       | 获取在线用户 （ 电子邮件列表 ）               |
 
-\*- The field `clientId` should be filled by:
+\*- `clientId` 项应该使用下列数据
 
-- `client.id` for VMESS and VLESS
-- `client.password` for TROJAN
-- `client.email` for Shadowsocks
+- `client.id`  VMESS and VLESS
+- `client.password`  TROJAN
+- `client.email`  Shadowsocks
 
 
-- [API Documentation](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
+- [API 文档](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
 - [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
 </details>
 
-## Environment Variables
+## 环境变量
 
 <details>
-  <summary>Click for environment variables details</summary>
+  <summary>点击查看 环境变量</summary>
 
 #### Usage
 
-| Variable       |                      Type                      | Default       |
+| 变量            |                      Type                      | 默认          |
 | -------------- | :--------------------------------------------: | :------------ |
 | XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`      |
 | XUI_DEBUG      |                   `boolean`                    | `false`       |
@@ -460,7 +438,7 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 | XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"` |
 | XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`  |
 
-Example:
+例子：
 
 ```sh
 XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
@@ -468,7 +446,7 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 </details>
 
-## Preview
+## 预览
 
 ![1](./media/1.png)
 ![2](./media/2.png)
@@ -478,15 +456,15 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ![6](./media/6.png)
 ![7](./media/7.png)
 
-## A Special Thanks to
+## 特别感谢
 
 - [alireza0](https://github.com/alireza0/)
 
-## Acknowledgment
+## 致谢
 
 - [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
 - [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _A hosted domain hosted in Vietnam and blocklist with the most efficiency for Vietnamese._
 
-## Stargazers over Time
+## Star 趋势
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/xeefei/3x-ui.svg)](https://starchart.cc/xeefei/3x-ui)

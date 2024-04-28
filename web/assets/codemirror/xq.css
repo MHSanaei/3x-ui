@@ -1,0 +1,86 @@
+/*
+Copyright (C) 2011 by MarkLogic Corporation
+Author: Mike Brevoort <mike@brevoort.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+.cm-s-xq.CodeMirror { border-radius: 1.5rem; border: 1px solid #d9d9d9; height: auto; }
+.cm-s-xq.CodeMirror:hover { background-color: rgb(232 244 242); border-color: #18947b; transition: all .3s; }
+.cm-s-xq .CodeMirror-gutters { border-right: 1px solid #ddd; background-color: rgb(221 221 221 / 20%); white-space: nowrap; }
+.cm-s-xq span.cm-keyword { line-height: 1em; font-weight: bold; color: #5A5CAD; }
+.cm-s-xq span.cm-atom { color: #7A316F; font-weight:bold; }
+.cm-s-xq span.cm-number { color: #e36209; }
+.cm-s-xq span.cm-def { text-decoration:underline; }
+.cm-s-xq span.cm-variable { color: black; }
+.cm-s-xq span.cm-variable-2 { color:black; }
+.cm-s-xq span.cm-variable-3, .cm-s-xq span.cm-type { color: black; }
+.cm-s-xq span.cm-property { color: #008771; }
+.cm-s-xq span.cm-operator {}
+.cm-s-xq span.cm-comment { color: #bbbbbb; font-style: italic; }
+.cm-s-xq span.cm-string {}
+.cm-s-xq span.cm-meta { color: yellow; }
+.cm-s-xq span.cm-qualifier { color: grey; }
+.cm-s-xq span.cm-builtin { color: #7EA656; }
+.cm-s-xq span.cm-bracket { color: #cc7; }
+.cm-s-xq span.cm-tag { color: #3F7F7F; }
+.cm-s-xq span.cm-attribute { color: #7F007F; }
+.cm-s-xq span.cm-error { color: #e04141; }
+
+.cm-s-xq .CodeMirror-activeline-background { background: #e8f2ff; }
+.cm-s-xq .CodeMirror-matchingbracket { outline:1px solid grey;color:black !important;background:yellow; }
+
+.dark .cm-s-xq.CodeMirror { background-color: var(--dark-color-surface-200); border-color: var(--dark-color-surface-300); color: rgb(255 255 255 / 65%); }
+.dark .cm-s-xq.CodeMirror:hover { background-color: rgb(0 50 42 / 30%); border-color: #008771; transition: all .3s; }
+.dark .cm-s-xq div.CodeMirror-selected { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-line::selection, .dark .cm-s-xq .CodeMirror-line > span::selection, .dark .cm-s-xq .CodeMirror-line > span > span::selection { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-line::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span::-moz-selection, .dark .cm-s-xq .CodeMirror-line > span > span::-moz-selection { background: var(--dark-color-codemirror-line-selection); }
+.dark .cm-s-xq .CodeMirror-gutters { background: rgb(0 0 0 / 30%); border-right: 1px solid var(--dark-color-surface-300); }
+.dark .cm-s-xq .CodeMirror-guttermarker { color: #FFBD40; }
+.dark .cm-s-xq .CodeMirror-guttermarker-subtle { color: rgb(255 255 255 / 70%); }
+.dark .cm-s-xq .CodeMirror-linenumber { color: rgb(255 255 255 / 50%); }
+.dark .cm-s-xq .CodeMirror-cursor { border-left: 1px solid white; }
+
+.dark .cm-s-xq span.cm-keyword { color: #FFBD40; }
+.dark .cm-s-xq span.cm-atom { color: #c099ff; }
+.dark .cm-s-xq span.cm-number { color: #9ccfd8; }
+.dark .cm-s-xq span.cm-def { color: #FFF; text-decoration:underline; }
+.dark .cm-s-xq span.cm-variable { color: #FFF; }
+.dark .cm-s-xq span.cm-variable-2 { color: #EEE; }
+.dark .cm-s-xq span.cm-variable-3, .dark .cm-s-xq span.cm-type { color: #DDD; }
+.dark .cm-s-xq span.cm-property { color: #f6c177; }
+.dark .cm-s-xq span.cm-operator {}
+.dark .cm-s-xq span.cm-comment { color: gray; }
+.dark .cm-s-xq span.cm-string {}
+.dark .cm-s-xq span.cm-meta { color: yellow; }
+.dark .cm-s-xq span.cm-qualifier { color: #FFF700; }
+.dark .cm-s-xq span.cm-builtin { color: #30a; }
+.dark .cm-s-xq span.cm-bracket { color: #cc7; }
+.dark .cm-s-xq span.cm-tag { color: #FFBD40; }
+.dark .cm-s-xq span.cm-attribute { color: #FFF700; }
+.dark .cm-s-xq span.cm-error { color: #e04141; }
+
+.dark .cm-s-xq .CodeMirror-activeline-background { background: #27282E; }
+.dark .cm-s-xq .CodeMirror-matchingbracket { outline:1px solid grey; color:white !important; }
+
+.Line-Hover{transition: all .2s;}
+.Line-Hover:hover{ background-color: rgba(0, 102, 85, 0.05) !important; }  
+.dark .Line-Hover:hover{ background-color: var(--dark-color-codemirror-line-hover) !important; }
+
+.CodeMirror-foldmarker { color: #fc8800; text-shadow: #ffd8aa 1px 1px 2px, #ffd8aa -1px -1px 2px, #ffd8aa 1px -1px 2px, #ffd8aa -1px 1px 2px; font-family: arial; line-height: .3; cursor: pointer; }
+.dark .CodeMirror-foldmarker { color: #ffffff; text-shadow: #bbb 1px 1px 2px, #bbb -1px -1px 2px, #bbb 1px -1px 2px, #bbb -1px 1px 2px; font-family: arial; line-height: .3; cursor: pointer; }

@@ -22,7 +22,7 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # Stage: Final Image of 3x-ui
 # ========================================================
 FROM alpine
-ENV TZ=Asia/Tehran
+ENV TZ=Asia/Shanghai
 WORKDIR /app
 
 RUN apk add --no-cache --update \
