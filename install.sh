@@ -111,7 +111,7 @@ install_base() {
 # This function will be called when user installed x-ui out of security
 config_after_install() {
     echo -e "${yellow}安装/更新完成！ 为了您的面板安全，建议修改面板设置 ${plain}"
-    read -p "想继续修改吗 [y/n]?选择N以保留旧设置": config_confirm
+    read -p "想继续修改吗？选择N以保留旧设置 [y/n]?": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
         read -p "请设置您的用户名: " config_account
         echo -e "${yellow}您的用户名将是: ${config_account}${plain}"
