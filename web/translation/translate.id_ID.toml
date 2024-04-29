@@ -549,6 +549,7 @@
 "datetime" = "⏰ Tanggal & Waktu: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"
 "version" = "🚀 Versi 3X-UI: {{ .Version }}\r\n"
+"xrayVersion" = "📡 Versi Xray: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"
 "ip" = "🌐 IP: {{ .IP }}\r\n"
