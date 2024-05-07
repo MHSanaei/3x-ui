@@ -185,6 +185,7 @@ eliminar 3x-ui de docker
 - Armbian
 - AlmaLinux 9+
 - Rockylinux 9+
+- OpenSUSE Tubleweed
 
 ## Arquitecturas y Dispositivos Compatibles
 
@@ -396,25 +397,25 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 - `/login` con `POST` datos de usuario: `{username: '', password: ''}` para iniciar sesión
 - `/panel/api/inbounds` base para las siguientes acciones:
 
-| Método | Ruta                               | Acción                                                   |
-| :----: | ---------------------------------- | -------------------------------------------------------- |
-| `GET`  | `"/list"`                          | Obtener todas los Entradas                               |
-| `GET`  | `"/get/:id"`                       | Obtener Entrada con inbound.id                           |
-| `GET`  | `"/getClientTraffics/:email"`      | Obtener Tráficos del Cliente con email                   |
-| `GET`  | `"/createbackup"`                  | El bot de Telegram envía copia de seguridad a los admins |
-| `POST` | `"/add"`                           | Agregar Entrada                                          |
-| `POST` | `"/del/:id"`                       | Eliminar Entrada                                         |
-| `POST` | `"/update/:id"`                    | Actualizar Entrada                                       |
-| `POST` | `"/clientIps/:email"`              | Dirección IP del Cliente                                 |
-| `POST` | `"/clearClientIps/:email"`         | Borrar Dirección IP del Cliente                          |
-| `POST` | `"/addClient"`                     | Agregar Cliente a la Entrada                             |
-| `POST` | `"/:id/delClient/:clientId"`       | Eliminar Cliente por clientId\*                          |
-| `POST` | `"/updateClient/:clientId"`        | Actualizar Cliente por clientId\*                        |
-| `POST` | `"/:id/resetClientTraffic/:email"` | Restablecer Tráfico del Cliente                          |
-| `POST` | `"/resetAllTraffics"`              | Restablecer tráfico de todos las Entradas                |
-| `POST` | `"/resetAllClientTraffics/:id"`    | Restablecer tráfico de todos los clientes en una Entrada |
-| `POST` | `"/delDepletedClients/:id"`        | Eliminar clientes agotados de la entrada (-1: todos)     |
-| `POST` | `"/onlines"`                       | Obtener usuarios en línea (lista de correos electrónicos)|
+| Método | Ruta                               | Acción                                                    |
+| :----: | ---------------------------------- | --------------------------------------------------------- |
+| `GET`  | `"/list"`                          | Obtener todas los Entradas                                |
+| `GET`  | `"/get/:id"`                       | Obtener Entrada con inbound.id                            |
+| `GET`  | `"/getClientTraffics/:email"`      | Obtener Tráficos del Cliente con email                    |
+| `GET`  | `"/createbackup"`                  | El bot de Telegram envía copia de seguridad a los admins  |
+| `POST` | `"/add"`                           | Agregar Entrada                                           |
+| `POST` | `"/del/:id"`                       | Eliminar Entrada                                          |
+| `POST` | `"/update/:id"`                    | Actualizar Entrada                                        |
+| `POST` | `"/clientIps/:email"`              | Dirección IP del Cliente                                  |
+| `POST` | `"/clearClientIps/:email"`         | Borrar Dirección IP del Cliente                           |
+| `POST` | `"/addClient"`                     | Agregar Cliente a la Entrada                              |
+| `POST` | `"/:id/delClient/:clientId"`       | Eliminar Cliente por clientId\*                           |
+| `POST` | `"/updateClient/:clientId"`        | Actualizar Cliente por clientId\*                         |
+| `POST` | `"/:id/resetClientTraffic/:email"` | Restablecer Tráfico del Cliente                           |
+| `POST` | `"/resetAllTraffics"`              | Restablecer tráfico de todos las Entradas                 |
+| `POST` | `"/resetAllClientTraffics/:id"`    | Restablecer tráfico de todos los clientes en una Entrada  |
+| `POST` | `"/delDepletedClients/:id"`        | Eliminar clientes agotados de la entrada (-1: todos)      |
+| `POST` | `"/onlines"`                       | Obtener usuarios en línea (lista de correos electrónicos) |
 
 \*- El campo `clientId` debe llenarse por:
 
@@ -434,13 +435,13 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 
 #### Uso
 
-| Variable       |                      Tipo                      | Predeterminado|
-| -------------- | :--------------------------------------------: | :------------ |
-| XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`      |
-| XUI_DEBUG      |                   `boolean`                    | `false`       |
-| XUI_BIN_FOLDER |                    `string`                    | `"bin"`       |
-| XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"` |
-| XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`  |
+| Variable       |                      Tipo                      | Predeterminado |
+| -------------- | :--------------------------------------------: | :------------- |
+| XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`       |
+| XUI_DEBUG      |                   `boolean`                    | `false`        |
+| XUI_BIN_FOLDER |                    `string`                    | `"bin"`        |
+| XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"`  |
+| XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`   |
 
 Ejemplo:
 
