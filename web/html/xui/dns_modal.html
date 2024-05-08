@@ -17,6 +17,9 @@
         <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]] </a-select-option>
       </a-select>
     </a-form-item>
+    <a-form-item label='Skip Fallback' v-if="isAdvanced">
+      <a-switch v-model="dnsModal.dnsServer.skipFallback"></a-switch>
+    </a-form-item>
   </a-form>
 </a-modal>
 <script>
@@ -30,6 +33,7 @@
       address: "localhost",
       domains: [],
       queryStrategy: 'UseIP',
+      skipFallback: true,
     },
     ok() {
       domains = dnsModal.dnsServer.domains.filter(d => d.length > 0);
@@ -56,6 +60,7 @@
             address: dnsServer ?? "",
             domains: [],
             queryStrategy: 'UseIP',
+            skipFallback: true,
           }
         }
       } else {
@@ -63,6 +68,7 @@
           address: "localhost",
           domains: [],
           queryStrategy: 'UseIP',
+          skipFallback: true,
         }
       }
       this.isEdit = isEdit;
