@@ -549,7 +549,7 @@
 "datetime" = "⏰ تاریخ‌وزمان: {{ .DateTime }}\r\n"
 "hostname" = "💻 نام‌میزبان: {{ .Hostname }}\r\n"
 "version" = "🚀 نسخه‌پنل: {{ .Version }}\r\n"
-"xrayVersion" = "📡 نسخو ڪور: {{ .XrayVersion }}\r\n"
+"xrayVersion" = "📡 نسخه‌هسته: {{ .XrayVersion }}\r\n"
 "ipv6" = "🌐 IPv6: {{ .IPv6 }}\r\n"
 "ipv4" = "🌐 IPv4: {{ .IPv4 }}\r\n"
 "ip" = "🌐 آدرس‌آی‌پی: {{ .IP }}\r\n"
