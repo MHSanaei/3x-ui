@@ -990,10 +990,16 @@ class StreamSettings extends XrayCommonClass {
 }
 
 class Sniffing extends XrayCommonClass {
-    constructor(enabled=true, destOverride=['http', 'tls', 'quic', 'fakedns']) {
+    constructor(
+        enabled=true,
+        destOverride=['http', 'tls', 'quic', 'fakedns'],
+        metadataOnly=false,
+        routeOnly=false) {
         super();
         this.enabled = enabled;
         this.destOverride = destOverride;
+        this.metadataOnly = metadataOnly;
+        this.routeOnly = routeOnly;
     }
 
     static fromJson(json={}) {
@@ -1006,6 +1012,8 @@ class Sniffing extends XrayCommonClass {
         return new Sniffing(
             !!json.enabled,
             destOverride,
+            json.metadataOnly,
+            json.routeOnly,
         );
     }
 }
