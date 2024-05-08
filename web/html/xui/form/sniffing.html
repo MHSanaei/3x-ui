@@ -13,10 +13,18 @@
     </span>
     <a-switch v-model="inbound.sniffing.enabled"></a-switch>
   </a-form-item>
-  <a-form-item :wrapper-col="{span:24}">
-    <a-checkbox-group v-model="inbound.sniffing.destOverride" v-if="inbound.sniffing.enabled">
-      <a-checkbox v-for="key,value in SNIFFING_OPTION" :value="key">[[ value ]]</a-checkbox>
-    </a-checkbox-group>
-  </a-form-item>
+  <template v-if="inbound.sniffing.enabled">
+    <a-form-item :wrapper-col="{span:24}">
+      <a-checkbox-group v-model="inbound.sniffing.destOverride">
+        <a-checkbox v-for="key,value in SNIFFING_OPTION" :value="key">[[ value ]]</a-checkbox>
+      </a-checkbox-group>
+    </a-form-item>
+    <a-form-item label='Metadata Only'>
+      <a-switch v-model="inbound.sniffing.metadataOnly"></a-switch>
+    </a-form-item>
+    <a-form-item label='Route Only'>
+      <a-switch v-model="inbound.sniffing.routeOnly"></a-switch>
+    </a-form-item>
+  </template>
 </a-form>
 {{end}}
