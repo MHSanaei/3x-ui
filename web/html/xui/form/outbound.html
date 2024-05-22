@@ -403,6 +403,9 @@
         <a-form-item label="Keep Alive Interval">
           <a-input-number v-model="outbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
         </a-form-item>
+        <a-form-item label="Multipath TCP">
+          <a-switch v-model.trim="outbound.stream.sockopt.tcpMptcp"></a-switch>
+      </a-form-item>
         <a-form-item label="TCP No-Delay">
           <a-switch v-model="outbound.stream.sockopt.tcpNoDelay"></a-switch>
         </a-form-item>
