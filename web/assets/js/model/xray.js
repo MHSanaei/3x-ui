@@ -534,6 +534,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 maxVersion = TLS_VERSION_OPTION.TLS13,
                 cipherSuites = '',
                 rejectUnknownSni = false,
+                disableSystemRoot = false,
                 certificates=[new TlsStreamSettings.Cert()],
                 alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new TlsStreamSettings.Settings()) {
@@ -543,6 +544,7 @@ class TlsStreamSettings extends XrayCommonClass {
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
+        this.disableSystemRoot = disableSystemRoot;
         this.certs = certificates;
         this.alpn = alpn;
         this.settings = settings;
@@ -572,6 +574,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
+            json.disableSystemRoot,
             certs,
             json.alpn,
             settings,
@@ -585,6 +588,7 @@ class TlsStreamSettings extends XrayCommonClass {
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
+            disableSystemRoot: this.disableSystemRoot,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
             alpn: this.alpn,
             settings: this.settings,
@@ -667,6 +671,7 @@ TlsStreamSettings.Settings = class extends XrayCommonClass {
         };
     }
 };
+
 class XtlsStreamSettings extends XrayCommonClass {
     constructor(serverName='',
                 certificates=[new XtlsStreamSettings.Cert()],

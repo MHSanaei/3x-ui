@@ -56,6 +56,9 @@
     <a-form-item label="Allow Insecure">
       <a-switch v-model="inbound.stream.tls.settings.allowInsecure"></a-switch>
     </a-form-item>
+    <a-form-item label="Disable System Root">
+      <a-switch v-model="inbound.stream.tls.settings.disableSystemRoot"></a-switch>
+    </a-form-item>
     <a-form-item label="Reject Unknown SNI">
       <a-switch v-model="inbound.stream.tls.rejectUnknownSni"></a-switch>
     </a-form-item>
