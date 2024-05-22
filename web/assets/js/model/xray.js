@@ -881,12 +881,14 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
 };
 
 class SockoptStreamSettings extends XrayCommonClass {
-    constructor(acceptProxyProtocol = false, tcpFastOpen = false, mark = 0, tproxy="off") {
+    constructor(acceptProxyProtocol = false, tcpFastOpen = false, mark = 0, tproxy="off", tcpMptcp = false, tcpNoDelay = false) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
         this.tcpFastOpen = tcpFastOpen;
         this.mark = mark;
         this.tproxy = tproxy;
+        this.tcpMptcp = tcpMptcp;
+        this.tcpNoDelay = tcpNoDelay;
     }
     
     static fromJson(json = {}) {
@@ -896,6 +898,8 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.tcpFastOpen,
             json.mark,
             json.tproxy,
+            json.tcpMptcp,
+            json.tcpNoDelay,
         );
     }
 
@@ -905,6 +909,8 @@ class SockoptStreamSettings extends XrayCommonClass {
             tcpFastOpen: this.tcpFastOpen,
             mark: this.mark,
             tproxy: this.tproxy,
+            tcpMptcp: this.tcpMptcp,
+            tcpNoDelay: this.tcpNoDelay,
         };
     }
 }
