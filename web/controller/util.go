@@ -13,15 +13,18 @@ import (
 )
 
 func getRemoteIp(c *gin.Context) string {
-	value := c.GetHeader("X-Forwarded-For")
+	value := c.GetHeader("X-Real-IP")
+	if value != "" {
+		return value
+	}
+	value = c.GetHeader("X-Forwarded-For")
 	if value != "" {
 		ips := strings.Split(value, ",")
 		return ips[0]
-	} else {
-		addr := c.Request.RemoteAddr
-		ip, _, _ := net.SplitHostPort(addr)
-		return ip
 	}
+	addr := c.Request.RemoteAddr
+	ip, _, _ := net.SplitHostPort(addr)
+	return ip
 }
 
 func jsonMsg(c *gin.Context, msg string, err error) {
