@@ -126,31 +126,37 @@ config_after_install() {
     echo -e "${yellow}Install/update finished! For security it's recommended to modify panel settings ${plain}"
     read -p "Do you want to continue with the modification [y/n]?": config_confirm
     if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-        read -p "Please set up your username:" config_account
-        echo -e "${yellow}Your username will be:${config_account}${plain}"
-        read -p "Please set up your password:" config_password
-        echo -e "${yellow}Your password will be:${config_password}${plain}"
-        read -p "Please set up the panel port:" config_port
-        echo -e "${yellow}Your panel port is:${config_port}${plain}"
+        read -p "Please set up your username: " config_account
+        echo -e "${yellow}Your username will be: ${config_account}${plain}"
+        read -p "Please set up your password: " config_password
+        echo -e "${yellow}Your password will be: ${config_password}${plain}"
+        read -p "Please set up the panel port: " config_port
+        echo -e "${yellow}Your panel port is: ${config_port}${plain}"
+        read -p "Please set up the web base path: " config_webBasePath
+        echo -e "${yellow}Your web base path is: ${config_webBasePath}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
         /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
         echo -e "${yellow}Account name and password set successfully!${plain}"
         /usr/local/x-ui/x-ui setting -port ${config_port}
         echo -e "${yellow}Panel port set successfully!${plain}"
+        /usr/local/x-ui/x-ui setting -webBasePath ${config_webBasePath}
+        echo -e "${yellow}Web base path set successfully!${plain}"
     else
-        echo -e "${red}cancel...${plain}"
+        echo -e "${red}Cancel...${plain}"
         if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
             local usernameTemp=$(head -c 6 /dev/urandom | base64)
             local passwordTemp=$(head -c 6 /dev/urandom | base64)
-            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp}
-            echo -e "this is a fresh installation,will generate random login info for security concerns:"
+            local webBasePathTemp=$(head -c 6 /dev/urandom | base64)
+            /usr/local/x-ui/x-ui setting -username ${usernameTemp} -password ${passwordTemp} -webBasePath ${webBasePathTemp}
+            echo -e "This is a fresh installation, will generate random login info for security concerns:"
             echo -e "###############################################"
-            echo -e "${green}username:${usernameTemp}${plain}"
-            echo -e "${green}password:${passwordTemp}${plain}"
+            echo -e "${green}Username: ${usernameTemp}${plain}"
+            echo -e "${green}Password: ${passwordTemp}${plain}"
+            echo -e "${green}WebBasePath: ${webBasePathTemp}${plain}"
             echo -e "###############################################"
-            echo -e "${red}if you forgot your login info,you can type x-ui and then type 8 to check after installation${plain}"
+            echo -e "${red}If you forgot your login info, you can type x-ui and then type 8 to check after installation${plain}"
         else
-            echo -e "${red} this is your upgrade,will keep old settings,if you forgot your login info,you can type x-ui and then type 8 to check${plain}"
+            echo -e "${red}This is your upgrade, will keep old settings. If you forgot your login info, you can type x-ui and then type 8 to check${plain}"
         fi
     fi
     /usr/local/x-ui/x-ui migrate
