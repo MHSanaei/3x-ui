@@ -90,6 +90,25 @@ const USAGE_OPTION = {
     ISSUE: "issue",
 };
 
+const DOMAIN_STRATEGY_OPTION = {
+    AS_IS: "AsIs",
+    USE_IP: "UseIP",
+    USE_IPV6V4: "UseIPv6v4",
+    USE_IPV6: "UseIPv6",
+    USE_IPV4V6: "UseIPv4v6",
+    USE_IPV4: "UseIPv4",
+    FORCE_IP: "ForceIP",
+    FORCE_IPV6V4: "ForceIPv6v4",
+    FORCE_IPV6: "ForceIPv6",
+    FORCE_IPV4V6: "ForceIPv4v6",
+    FORCE_IPV4: "ForceIPv4",
+};
+const TCP_CONGESTION_OPTION = {
+    BBR: "bbr",
+    CUBIC: "cubic",
+    RENO: "reno",
+};
+
 Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(XTLS_FLOW_CONTROL);
@@ -100,6 +119,8 @@ Object.freeze(UTLS_FINGERPRINT);
 Object.freeze(ALPN_OPTION);
 Object.freeze(SNIFFING_OPTION);
 Object.freeze(USAGE_OPTION);
+Object.freeze(DOMAIN_STRATEGY_OPTION);
+Object.freeze(TCP_CONGESTION_OPTION);
 
 class XrayCommonClass {
 
@@ -881,7 +902,24 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
 };
 
 class SockoptStreamSettings extends XrayCommonClass {
-    constructor(acceptProxyProtocol = false, tcpFastOpen = false, mark = 0, tproxy="off", tcpMptcp = false, tcpNoDelay = false) {
+    constructor(
+        acceptProxyProtocol = false,
+        tcpFastOpen = false,
+        mark = 0,
+        tproxy="off",
+        tcpMptcp = false,
+        tcpNoDelay = false,
+        domainStrategy = DOMAIN_STRATEGY_OPTION.USE_IP,
+        tcpMaxSeg = 1440,
+        dialerProxy = "",
+        tcpKeepAliveInterval = 0,   
+        tcpKeepAliveIdle = 300,
+        tcpUserTimeout = 10000,
+        tcpcongestion = TCP_CONGESTION_OPTION.BBR,
+        V6Only = false,
+        tcpWindowClamp = 600,
+        interfaceName = "",
+    ) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
         this.tcpFastOpen = tcpFastOpen;
@@ -889,6 +927,16 @@ class SockoptStreamSettings extends XrayCommonClass {
         this.tproxy = tproxy;
         this.tcpMptcp = tcpMptcp;
         this.tcpNoDelay = tcpNoDelay;
+        this.domainStrategy = domainStrategy;
+        this.tcpMaxSeg = tcpMaxSeg;
+        this.dialerProxy = dialerProxy;
+        this.tcpKeepAliveInterval = tcpKeepAliveInterval;
+        this.tcpKeepAliveIdle = tcpKeepAliveIdle;
+        this.tcpUserTimeout = tcpUserTimeout;
+        this.tcpcongestion = tcpcongestion;
+        this.V6Only = V6Only;
+        this.tcpWindowClamp = tcpWindowClamp;
+        this.interfaceName = interfaceName;
     }
     
     static fromJson(json = {}) {
@@ -900,6 +948,16 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.tproxy,
             json.tcpMptcp,
             json.tcpNoDelay,
+            json.domainStrategy,
+            json.tcpMaxSeg,
+            json.dialerProxy,
+            json.tcpKeepAliveInterval,
+            json.tcpKeepAliveIdle,
+            json.tcpUserTimeout,
+            json.tcpcongestion,
+            json.V6Only,
+            json.tcpWindowClamp,
+            json.interface,
         );
     }
 
@@ -911,6 +969,16 @@ class SockoptStreamSettings extends XrayCommonClass {
             tproxy: this.tproxy,
             tcpMptcp: this.tcpMptcp,
             tcpNoDelay: this.tcpNoDelay,
+            domainStrategy: this.domainStrategy,
+            tcpMaxSeg: this.tcpMaxSeg,
+            dialerProxy: this.dialerProxy,
+            tcpKeepAliveInterval: this.tcpKeepAliveInterval,
+            tcpKeepAliveIdle: this.tcpKeepAliveIdle,
+            tcpUserTimeout: this.tcpUserTimeout,
+            tcpcongestion: this.tcpcongestion,
+            V6Only: this.V6Only,
+            tcpWindowClamp: this.tcpWindowClamp,
+            interface: this.interfaceName,
         };
     }
 }
