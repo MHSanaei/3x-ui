@@ -125,22 +125,35 @@ func showSetting(show bool) {
 		settingService := service.SettingService{}
 		port, err := settingService.GetPort()
 		if err != nil {
-			fmt.Println("get current port failed,error info:", err)
+			fmt.Println("get current port failed, error info:", err)
 		}
+
+		webBasePath, err := settingService.GetBasePath()
+		if err != nil {
+			fmt.Println("get webBasePath failed, error info:", err)
+		}
+
 		userService := service.UserService{}
 		userModel, err := userService.GetFirstUser()
 		if err != nil {
-			fmt.Println("get current user info failed,error info:", err)
+			fmt.Println("get current user info failed, error info:", err)
 		}
+
 		username := userModel.Username
 		userpasswd := userModel.Password
-		if (username == "") || (userpasswd == "") {
+		if username == "" || userpasswd == "" {
 			fmt.Println("current username or password is empty")
 		}
+
 		fmt.Println("current panel settings as follows:")
 		fmt.Println("username:", username)
 		fmt.Println("userpasswd:", userpasswd)
 		fmt.Println("port:", port)
+		if webBasePath != "" {
+			fmt.Println("webBasePath:", webBasePath)
+		} else {
+			fmt.Println("webBasePath is not set")
+		}
 	}
 }
 
@@ -220,6 +233,7 @@ func updateSetting(port int, username string, password string) {
 			fmt.Printf("set port %v success", port)
 		}
 	}
+
 	if username != "" || password != "" {
 		userService := service.UserService{}
 		err := userService.UpdateFirstUser(username, password)
@@ -288,6 +302,7 @@ func main() {
 	var port int
 	var username string
 	var password string
+	var webBasePath string
 	var tgbottoken string
 	var tgbotchatid string
 	var enabletgbot bool
@@ -301,6 +316,7 @@ func main() {
 	settingCmd.IntVar(&port, "port", 0, "set panel port")
 	settingCmd.StringVar(&username, "username", "", "set login username")
 	settingCmd.StringVar(&password, "password", "", "set login password")
+	settingCmd.StringVar(&webBasePath, "webBasePath", "", "set web base path")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegram bot token")
 	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegram bot cron time")
 	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegram bot chat id")
