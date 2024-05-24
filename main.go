@@ -254,6 +254,33 @@ func updateSetting(port int, username string, password string, webBasePath strin
 	}
 }
 
+func updateCert(publicKey string, privateKey string) {
+	err := database.InitDB(config.GetDBPath())
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if (privateKey != "" && publicKey != "") || (privateKey == "" && publicKey == "") {
+		settingService := service.SettingService{}
+		err = settingService.SetCertFile(publicKey)
+		if err != nil {
+			fmt.Println("set certificate public key failed:", err)
+		} else {
+			fmt.Println("set certificate public key success")
+		}
+
+		err = settingService.SetKeyFile(privateKey)
+		if err != nil {
+			fmt.Println("set certificate private key failed:", err)
+		} else {
+			fmt.Println("set certificate private key success")
+		}
+	} else {
+		fmt.Println("both public and private key should be entered.")
+	}
+}
+
 func migrateDb() {
 	inboundService := service.InboundService{}
 
@@ -312,6 +339,8 @@ func main() {
 	var username string
 	var password string
 	var webBasePath string
+	var webCertFile string
+	var webKeyFile string
 	var tgbottoken string
 	var tgbotchatid string
 	var enabletgbot bool
@@ -326,6 +355,8 @@ func main() {
 	settingCmd.StringVar(&username, "username", "", "set login username")
 	settingCmd.StringVar(&password, "password", "", "set login password")
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "set web base path")
+	settingCmd.StringVar(&webCertFile, "webCert", "", "set web public key path")
+	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "set web private key path")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "set telegram bot token")
 	settingCmd.StringVar(&tgbotRuntime, "tgbotRuntime", "", "set telegram bot cron time")
 	settingCmd.StringVar(&tgbotchatid, "tgbotchatid", "", "set telegram bot chat id")
@@ -380,6 +411,18 @@ func main() {
 		if enabletgbot {
 			updateTgbotEnableSts(enabletgbot)
 		}
+	case "cert":
+		err := settingCmd.Parse(os.Args[2:])
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		if reset {
+			updateCert("", "")
+		} else {
+			updateCert(webCertFile, webKeyFile)
+		}
+
 	default:
 		fmt.Println("Invalid subcommands")
 		fmt.Println()
