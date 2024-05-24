@@ -556,6 +556,7 @@ class TlsStreamSettings extends XrayCommonClass {
                 cipherSuites = '',
                 rejectUnknownSni = false,
                 disableSystemRoot = false,
+                enableSessionResumption = false,
                 certificates=[new TlsStreamSettings.Cert()],
                 alpn=[ALPN_OPTION.H2,ALPN_OPTION.HTTP1],
                 settings=new TlsStreamSettings.Settings()) {
@@ -566,6 +567,7 @@ class TlsStreamSettings extends XrayCommonClass {
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
         this.disableSystemRoot = disableSystemRoot;
+        this.enableSessionResumption = enableSessionResumption;
         this.certs = certificates;
         this.alpn = alpn;
         this.settings = settings;
@@ -596,6 +598,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.cipherSuites,
             json.rejectUnknownSni,
             json.disableSystemRoot,
+            json.enableSessionResumption,
             certs,
             json.alpn,
             settings,
@@ -610,6 +613,7 @@ class TlsStreamSettings extends XrayCommonClass {
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
             disableSystemRoot: this.disableSystemRoot,
+            enableSessionResumption: this.enableSessionResumption,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
             alpn: this.alpn,
             settings: this.settings,
