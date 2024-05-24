@@ -216,7 +216,7 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 	}
 }
 
-func updateSetting(port int, username string, password string) {
+func updateSetting(port int, username string, password string, webBasePath string) {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println(err)
@@ -241,6 +241,15 @@ func updateSetting(port int, username string, password string) {
 			fmt.Println("set username and password failed:", err)
 		} else {
 			fmt.Println("set username and password success")
+		}
+	}
+
+	if webBasePath != "" {
+		err := settingService.SetBasePath(webBasePath)
+		if err != nil {
+			fmt.Println("set base URI path failed:", err)
+		} else {
+			fmt.Println("set base URI path success")
 		}
 	}
 }
@@ -357,7 +366,7 @@ func main() {
 		if reset {
 			resetSetting()
 		} else {
-			updateSetting(port, username, password)
+			updateSetting(port, username, password, webBasePath)
 		}
 		if show {
 			showSetting(show)
