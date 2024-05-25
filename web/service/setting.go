@@ -309,8 +309,16 @@ func (s *SettingService) SetPort(port int) error {
 	return s.setInt("webPort", port)
 }
 
+func (s *SettingService) SetCertFile(webCertFile string) error {
+	return s.setString("webCertFile", webCertFile)
+}
+
 func (s *SettingService) GetCertFile() (string, error) {
 	return s.getString("webCertFile")
+}
+
+func (s *SettingService) SetKeyFile(webKeyFile string) error {
+	return s.setString("webKeyFile", webKeyFile)
 }
 
 func (s *SettingService) GetKeyFile() (string, error) {
