@@ -233,6 +233,22 @@ install_x-ui() {
     echo -e "----------------------------------------------"
 }
 
-echo -e "${green}Running...${plain}"
-install_base
-install_x-ui $1
+show_login_info
+    echo -e ""
+    yellow "(If you cannot access the X-UI panel, first enter the X-UI command in the SSH command line, and then select the 17 option to let go of the firewall port)"
+}
+
+show_login_info(){
+    if [[ -n $v4 && -z $v6 ]]; then
+        echo -e "Panel IPv4 login address is: ${GREEN}http://$v4:$config_port ${PLAIN}"
+    elif [[ -n $v6 && -z $v4 ]]; then
+        echo -e "Panel IPv6 login address is: ${GREEN}http://[$v6]:$config_port ${PLAIN}"
+    elif [[ -n $v4 && -n $v6 ]]; then
+        echo -e "Panel IPv4 login address is: ${GREEN}http://$v4:$config_port ${PLAIN}"
+        echo -e "Panel IPv6 login address is: ${GREEN}http://[$v6]:$config_port ${PLAIN}"
+    fi
+    echo -e "Username: ${GREEN}$config_account ${PLAIN}"
+    echo -e "Password: ${GREEN}$config_password ${PLAIN}"
+}
+
+install_xui $1
