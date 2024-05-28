@@ -65,7 +65,6 @@ func (a *SUBController) subs(c *gin.Context) {
 			host = c.Request.Host
 		}
 	}
-	host = host
 	subs, header, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
@@ -101,7 +100,6 @@ func (a *SUBController) subJsons(c *gin.Context) {
 			host = c.Request.Host
 		}
 	}
-	host = host
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")

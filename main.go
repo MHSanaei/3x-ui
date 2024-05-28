@@ -147,7 +147,7 @@ func showSetting(show bool) {
 
 		fmt.Println("current panel settings as follows:")
 		fmt.Println("username:", username)
-		fmt.Println("userpasswd:", userpasswd)
+		fmt.Println("password:", userpasswd)
 		fmt.Println("port:", port)
 		if webBasePath != "" {
 			fmt.Println("webBasePath:", webBasePath)
