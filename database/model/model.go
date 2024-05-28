@@ -12,10 +12,12 @@ type Protocol string
 const (
 	VMess       Protocol = "vmess"
 	VLESS       Protocol = "vless"
-	Dokodemo    Protocol = "Dokodemo-door"
-	Http        Protocol = "http"
+	DOKODEMO    Protocol = "dokodemo-door"
+	HTTP        Protocol = "http"
 	Trojan      Protocol = "trojan"
 	Shadowsocks Protocol = "shadowsocks"
+	Socks       Protocol = "socks"
+	WireGuard   Protocol = "wireguard"
 )
 
 type User struct {

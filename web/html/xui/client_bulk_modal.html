@@ -20,10 +20,10 @@
             <a-input-number v-model="clientsBulkModal.lastNum" :min="clientsBulkModal.firstNum"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.prefix" }}' v-if="clientsBulkModal.emailMethod>0">
-            <a-input v-model="clientsBulkModal.emailPrefix"></a-input>
+            <a-input v-model.trim="clientsBulkModal.emailPrefix"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.postfix" }}' v-if="clientsBulkModal.emailMethod>2">
-            <a-input v-model="clientsBulkModal.emailPostfix"></a-input>
+            <a-input v-model.trim="clientsBulkModal.emailPostfix"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
