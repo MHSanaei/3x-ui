@@ -43,6 +43,7 @@ type Status struct {
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
 	CpuCores    int       `json:"cpuCores"`
+	LogicalPro  int       `json:"logicalPro"`
 	CpuSpeedMhz float64   `json:"cpuSpeedMhz"`
 	Mem         struct {
 		Current uint64 `json:"current"`
@@ -129,6 +130,13 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	status.CpuCores, err = cpu.Counts(false)
 	if err != nil {
 		logger.Warning("get cpu cores count failed:", err)
+	}
+
+	status.LogicalPro = runtime.NumCPU()
+	if p != nil && p.IsRunning() {
+		status.AppStats.Uptime = p.GetUptime()
+	} else {
+		status.AppStats.Uptime = 0
 	}
 
 	cpuInfos, err := cpu.Info()
