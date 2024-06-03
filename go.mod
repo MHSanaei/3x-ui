@@ -7,7 +7,7 @@ require (
 	github.com/gin-contrib/sessions v1.0.1
 	github.com/gin-gonic/gin v1.10.0
 	github.com/goccy/go-json v0.10.3
-	github.com/mymmrac/telego v0.30.1
+	github.com/mymmrac/telego v0.30.2
 	github.com/nicksnyder/go-i18n/v2 v2.4.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pelletier/go-toml/v2 v2.2.2
@@ -24,7 +24,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/bytedance/sonic v1.11.7 // indirect
+	github.com/bytedance/sonic v1.11.8 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
 	github.com/cloudflare/circl v1.3.8 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
