@@ -266,7 +266,7 @@ class GrpcStreamSettings extends CommonClass {
     }
 
     static fromJson(json={}) {
-        return new GrpcStreamSettings(json.serviceName, json.multiMode,json.authority);
+        return new GrpcStreamSettings(json.serviceName, json.multiMode, json.authority);
     }
 
     toJson() {
@@ -650,7 +650,7 @@ class Outbound extends CommonClass {
                 json.path,
                 json.type ? json.type : 'none');
         } else if (network === 'grpc') {
-            stream.grpc = new GrpcStreamSettings(json.path, json.authority, json.type == 'multi');
+            stream.grpc = new GrpcStreamSettings(json.path, json.type == 'multi', json.authority);
         } else if (network === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(json.path,json.host);
         }
@@ -696,8 +696,8 @@ class Outbound extends CommonClass {
         } else if (type === 'grpc') {
             stream.grpc = new GrpcStreamSettings(
                 url.searchParams.get('serviceName') ?? '',
-                url.searchParams.get('authority') ?? '',
-                url.searchParams.get('mode') == 'multi');
+                url.searchParams.get('mode') == 'multi'),
+                url.searchParams.get('authority') ?? '';
         } else if (type === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(path,host);
         }
