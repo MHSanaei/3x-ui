@@ -132,7 +132,7 @@ config_after_install() {
         echo -e "${yellow}Your password will be: ${config_password}${plain}"
         read -p "Please set up the panel port: " config_port
         echo -e "${yellow}Your panel port is: ${config_port}${plain}"
-        read -p "Please set up the web base path: " config_webBasePath
+        read -p "Please set up the web base path (ip:port/webbasepath/): " config_webBasePath
         echo -e "${yellow}Your web base path is: ${config_webBasePath}${plain}"
         echo -e "${yellow}Initializing, please wait...${plain}"
         /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password}
