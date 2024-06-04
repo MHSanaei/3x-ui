@@ -1068,8 +1068,9 @@ iplimit_main() {
     echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Unban Everyone"
     echo -e "${green}\t4.${plain} Check Logs"
-    echo -e "${green}\t5.${plain} fail2ban status"
-    echo -e "${green}\t6.${plain} Uninstall IP Limit"
+    echo -e "${green}\t5.${plain} Fail2ban Status"
+    echo -e "${green}\t6.${plain} Restart Fail2ban"
+    echo -e "${green}\t7.${plain} Uninstall IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -1112,8 +1113,10 @@ iplimit_main() {
     5)
         service fail2ban status
         ;;
-
     6)
+        systemctl restart fail2ban
+        ;;
+    7)
         remove_iplimit
         ;;
     *) echo "Invalid choice" ;;
