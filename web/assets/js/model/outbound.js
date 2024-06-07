@@ -1053,7 +1053,6 @@ Outbound.WireguardSettings = class extends CommonClass {
         super();
         this.mtu = mtu;
         this.secretKey = secretKey;
-        this.pubKey = secretKey.length>0 ? Wireguard.generateKeypair(secretKey).publicKey : '';
         this.address = address instanceof Array ? address.join(',') : address;
         this.workers = workers;
         this.domainStrategy = domainStrategy;
