@@ -187,6 +187,9 @@
           <a-form-item label='UDP over TCP'>
             <a-switch v-model="outbound.settings.uot"></a-switch>
           </a-form-item>
+          <a-form-item label='UoTVersion'>
+            <a-input-number v-model.number="outbound.settings.UoTVersion" :min="1" :max="2"></a-input-number>
+          </a-form-item>
         </template>
       </template>
 

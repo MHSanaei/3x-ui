@@ -950,13 +950,14 @@ Outbound.TrojanSettings = class extends CommonClass {
     }
 };
 Outbound.ShadowsocksSettings = class extends CommonClass {
-    constructor(address, port, password, method, uot) {
+    constructor(address, port, password, method, uot, UoTVersion) {
         super();
         this.address = address;
         this.port = port;
         this.password = password;
         this.method = method;
         this.uot = uot;
+        this.UoTVersion = UoTVersion;
     }
 
     static fromJson(json={}) {
@@ -968,6 +969,7 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
             servers[0].password,
             servers[0].method,
             servers[0].uot,
+            servers[0].UoTVersion,
         );
     }
 
@@ -979,6 +981,7 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
                 password: this.password,
                 method: this.method,
                 uot: this.uot,
+                UoTVersion: this.UoTVersion,
             }],
         };
     }
