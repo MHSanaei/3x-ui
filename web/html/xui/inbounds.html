@@ -1058,7 +1058,7 @@
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 this.$confirm({
-                    title: '{{ i18n "pages.inbounds.resetTraffic"}}',
+                    title: '{{ i18n "pages.inbounds.resetTraffic"}}' + ' #' + dbInboundId,
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
                     class: themeSwitcher.currentTheme,
                     okText: '{{ i18n "reset"}}',
@@ -1141,9 +1141,9 @@
                 infoModal.show(newDbInbound, index);
             },
             switchEnable(dbInboundId,state) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                dbInbound.enable = state;
-                this.submit(`/panel/inbound/update/${dbInboundId}`, dbInbound);
+              dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+              dbInbound.enable = state;
+              this.submit(`/panel/inbound/update/${dbInboundId}`, dbInbound);
             },
             async switchEnableClient(dbInboundId, client) {
                 this.loading()
@@ -1168,7 +1168,7 @@
             resetClientTraffic(client, dbInboundId, confirmation = true) {
                 if (confirmation){
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.resetTraffic"}}',
+                        title: '{{ i18n "pages.inbounds.resetTraffic"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "reset"}}',
@@ -1285,12 +1285,12 @@
                 return this.onlineClients.includes(email);
             },
             isRemovable(dbInboundId) {
-                return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1
+                return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;
             },
             inboundLinks(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(), newDbInbound.remark);
+                txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(this.remarkModel), newDbInbound.remark);
             },
             exportSubs(dbInboundId) {
                 const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
