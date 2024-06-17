@@ -6,7 +6,7 @@ package sys
 import (
 	"errors"
 
-	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 func GetConnectionCount(proto string) (int, error) {
