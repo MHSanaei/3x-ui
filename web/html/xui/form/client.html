@@ -75,7 +75,7 @@
         </template>
         <a-input-number v-model="client.limitIp" min="0"></a-input-number>
     </a-form-item>
-    <a-form-item v-if="client.limitIp > 0 && client.email && isEdit">
+    <a-form-item v-if="app.ipLimitEnable && client.limitIp > 0 && client.email && isEdit">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
