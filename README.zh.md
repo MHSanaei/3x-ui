@@ -28,10 +28,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## 安装指定版本
 
-要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.3.4`:
+要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.3.6`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.4
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.6
 ```
 
 ## SSL 认证
@@ -257,7 +257,7 @@ systemctl restart x-ui
  
 </details>
 
-## [WARP 配置](https://gitlab.com/fscarmen/warp)
+## WARP 配置
 
 <details>
   <summary>点击查看 WARP 配置</summary>

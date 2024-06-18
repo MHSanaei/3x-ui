@@ -28,10 +28,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Instalar una Versión Personalizada
 
-Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.3.4`:
+Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.3.6`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.4
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.6
 ```
 
 ## Certificado SSL
@@ -258,7 +258,7 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
  
 </details>
 
-## [Configuración WARP](https://gitlab.com/fscarmen/warp)
+## Configuración WARP
 
 <details>
   <summary>Haz clic para detalles de la configuración WARP</summary>
