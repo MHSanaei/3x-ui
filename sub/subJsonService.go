@@ -223,8 +223,9 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 		streamSettings["wsSettings"] = s.removeAcceptProxy(streamSettings["wsSettings"])
 	case "httpupgrade":
 		streamSettings["httpupgradeSettings"] = s.removeAcceptProxy(streamSettings["httpupgradeSettings"])
+	case "splithttp":
+		streamSettings["splithttpSettings"] = s.removeAcceptProxy(streamSettings["splithttpSettings"])
 	}
-
 	return streamSettings
 }
 
