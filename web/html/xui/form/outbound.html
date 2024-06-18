@@ -204,6 +204,7 @@
             <a-select-option value="quic">QUIC</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
+            <a-select-option value="splithttp">SplitHTTP</a-select-option>
           </a-select>
         </a-form-item>
         <template v-if="outbound.stream.network === 'tcp'">
@@ -323,6 +324,16 @@
           </a-form-item>
           <a-form-item label='{{ i18n "path" }}'>
             <a-input v-model.trim="outbound.stream.httpupgrade.path"></a-input>
+          </a-form-item>
+        </template>
+
+        <!-- splithttp -->
+        <template v-if="outbound.stream.network === 'splithttp'">
+          <a-form-item label='{{ i18n "host" }}'>
+            <a-input v-model="outbound.stream.splithttp.host"></a-input>
+          </a-form-item>
+          <a-form-item label='{{ i18n "path" }}'>
+            <a-input v-model.trim="outbound.stream.splithttp.path"></a-input>
           </a-form-item>
         </template>
       </template>
