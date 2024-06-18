@@ -1391,7 +1391,7 @@ class Inbound extends XrayCommonClass {
             type: 'none',
             tls: security,
         };
-        let network = this.stream.network;
+        const network = this.stream.network;
         if (network === 'tcp') {
             const tcp = this.stream.tcp;
             obj.type = tcp.type;
@@ -1402,11 +1402,11 @@ class Inbound extends XrayCommonClass {
                 if (host) obj.host = host;
             }
         } else if (network === 'kcp') {
-            let kcp = this.stream.kcp;
+            const kcp = this.stream.kcp;
             obj.type = kcp.type;
             obj.path = kcp.seed;
         } else if (network === 'ws') {
-            let ws = this.stream.ws;
+            const ws = this.stream.ws;
             obj.path = ws.path;
             obj.host = ws.host?.length>0 ? ws.host : this.getHeader(ws, 'host');
         } else if (network === 'http') {
@@ -1424,11 +1424,11 @@ class Inbound extends XrayCommonClass {
                 obj.type = 'multi'
             }
         } else if (network === 'httpupgrade') {
-            let httpupgrade = this.stream.httpupgrade;
+            const httpupgrade = this.stream.httpupgrade;
             obj.path = httpupgrade.path;
             obj.host = httpupgrade.host?.length>0 ? httpupgrade.host : this.getHeader(httpupgrade, 'host');
         } else if (network === 'splithttp') {
-            let splithttp = this.stream.splithttp;
+            const splithttp = this.stream.splithttp;
             obj.path = splithttp.path;
             obj.host = splithttp.host?.length>0 ? splithttp.host : this.getHeader(splithttp, 'host');
         }

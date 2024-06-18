@@ -19,10 +19,10 @@
             </a-input>
         </a-input-group>
     </a-form-item>
-    <a-form-item label="max Upload Size">
+    <a-form-item label="Max Upload Size (MB)">
         <a-input-number v-model="inbound.stream.splithttp.maxUploadSize" :min="0"></a-input-number>
     </a-form-item>
-    <a-form-item label="max Concurrent Uploads">
+    <a-form-item label="Max Concurrent Upload">
         <a-input-number v-model="inbound.stream.splithttp.maxConcurrentUploads" :min="0"></a-input-number>
     </a-form-item>
 </a-form>

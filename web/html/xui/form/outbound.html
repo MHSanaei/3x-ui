@@ -72,9 +72,23 @@
           </template>
           <a-input v-model.trim="outbound.settings.address"></a-input>
         </a-form-item>
-        <a-form-item label='{{ i18n "pages.xray.wireguard.secretKey" }}'>
+        <a-form-item>
+          <template slot="label">
+              <a-tooltip>
+                  <template slot="title">
+                      <span>{{ i18n "reset" }}</span>
+                  </template>
+                  {{ i18n "pages.xray.wireguard.secretKey" }}
+                  <a-icon type="sync"
+                      @click="[outbound.settings.pubKey, outbound.settings.secretKey] = Object.values(Wireguard.generateKeypair())">
+                  </a-icon>
+              </a-tooltip>
+          </template>
           <a-input v-model.trim="outbound.settings.secretKey"></a-input>
-        </a-form-item>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
+          <a-input disabled v-model="outbound.settings.pubKey"></a-input>
+      </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.wireguard.domainStrategy" }}'>
           <a-select v-model="outbound.settings.domainStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="wds in ['', ...WireguardDomainStrategy]" :value="wds">[[ wds ]]</a-select-option>
