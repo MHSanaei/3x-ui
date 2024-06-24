@@ -157,6 +157,30 @@ update() {
     fi
 }
 
+update_menu() {
+    echo -e "${yellow}Updating Menu${plain}"
+    confirm "This function will update the menu to the latest changes." "y"
+    if [[ $? != 0 ]]; then
+        LOGE "Cancelled"
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        return 0
+    fi
+    
+    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    chmod +x /usr/local/x-ui/x-ui.sh
+    chmod +x /usr/bin/x-ui
+    
+     if [[ $? == 0 ]]; then
+        echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
+        exit 0
+    else
+        echo -e "${red}Failed to update the menu.${plain}"
+        return 1
+    fi
+}
+
 custom_version() {
     echo "Enter the panel version (like 2.0.0):"
     read panel_version
@@ -247,10 +271,11 @@ reset_webbasepath() {
     
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
+    systemctl restart x-ui
     
     # Display confirmation message
-    echo -e "Web base path has been reset to: ${green} ${config_webBasePath} ${plain}"
-    echo -e "${green} Please use the new web base path to access the panel. ${plain}"
+    echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
+    echo -e "${green}Please use the new web base path to access the panel.${plain}"
 }
 
 reset_config() {
@@ -1303,36 +1328,37 @@ show_menu() {
 ————————————————
   ${green}1.${plain} Install
   ${green}2.${plain} Update
-  ${green}3.${plain} Custom Version
-  ${green}4.${plain} Uninstall
+  ${green}3.${plain} Update Menu
+  ${green}4.${plain} Custom Version
+  ${green}5.${plain} Uninstall
 ————————————————
-  ${green}5.${plain} Reset Username & Password & Secret Token
-  ${green}6.${plain} Reset Web Base Path
-  ${green}7.${plain} Reset Settings
-  ${green}8.${plain} Change Port
-  ${green}9.${plain} View Current Settings
+  ${green}6.${plain} Reset Username & Password & Secret Token
+  ${green}7.${plain} Reset Web Base Path
+  ${green}8.${plain} Reset Settings
+  ${green}9.${plain} Change Port
+  ${green}10.${plain} View Current Settings
 ————————————————
-  ${green}10.${plain} Start
-  ${green}11.${plain} Stop
-  ${green}12.${plain} Restart
-  ${green}13.${plain} Check Status
-  ${green}14.${plain} Check Logs
+  ${green}11.${plain} Start
+  ${green}12.${plain} Stop
+  ${green}13.${plain} Restart
+  ${green}14.${plain} Check Status
+  ${green}15.${plain} Check Logs
 ————————————————
-  ${green}15.${plain} Enable Autostart
-  ${green}16.${plain} Disable Autostart
+  ${green}16.${plain} Enable Autostart
+  ${green}17.${plain} Disable Autostart
 ————————————————
-  ${green}17.${plain} SSL Certificate Management
-  ${green}18.${plain} Cloudflare SSL Certificate
-  ${green}19.${plain} IP Limit Management
-  ${green}20.${plain} WARP Management
-  ${green}21.${plain} Firewall Management
+  ${green}18.${plain} SSL Certificate Management
+  ${green}19.${plain} Cloudflare SSL Certificate
+  ${green}20.${plain} IP Limit Management
+  ${green}21.${plain} WARP Management
+  ${green}22.${plain} Firewall Management
 ————————————————
-  ${green}22.${plain} Enable BBR 
-  ${green}23.${plain} Update Geo Files
-  ${green}24.${plain} Speedtest by Ookla
+  ${green}23.${plain} Enable BBR 
+  ${green}24.${plain} Update Geo Files
+  ${green}25.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-24]: " num
+    echo && read -p "Please enter your selection [0-25]: " num
 
     case "${num}" in
     0)
@@ -1345,73 +1371,76 @@ show_menu() {
         check_install && update
         ;;
     3)
-        check_install && custom_version
+        check_install && update_menu
         ;;
     4)
-        check_install && uninstall
+        check_install && custom_version
         ;;
     5)
-        check_install && reset_user
+        check_install && uninstall
         ;;
     6)
-        check_install && reset_webbasepath
+        check_install && reset_user
         ;;
     7)
-        check_install && reset_config
+        check_install && reset_webbasepath
         ;;
     8)
-        check_install && set_port
+        check_install && reset_config
         ;;
     9)
-        check_install && check_config
+        check_install && set_port
         ;;
     10)
-        check_install && start
+        check_install && check_config
         ;;
     11)
-        check_install && stop
+        check_install && start
         ;;
     12)
-        check_install && restart
+        check_install && stop
         ;;
     13)
-        check_install && status
+        check_install && restart
         ;;
     14)
-        check_install && show_log
+        check_install && status
         ;;
     15)
-        check_install && enable
+        check_install && show_log
         ;;
     16)
-        check_install && disable
+        check_install && enable
         ;;
     17)
-        ssl_cert_issue_main
+        check_install && disable
         ;;
     18)
-        ssl_cert_issue_CF
+        ssl_cert_issue_main
         ;;
     19)
-        iplimit_main
+        ssl_cert_issue_CF
         ;;
     20)
-        warp_cloudflare
+        iplimit_main
         ;;
     21)
-        firewall_menu
+        warp_cloudflare
         ;;
     22)
-        bbr_menu
+        firewall_menu
         ;;
     23)
-        update_geo
+        bbr_menu
         ;;
     24)
+        update_geo
+        ;;
+    25)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-24]"
+        LOGE "Please enter the correct number [0-25]"
         ;;
     esac
 }
