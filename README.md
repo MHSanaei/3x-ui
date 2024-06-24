@@ -264,27 +264,35 @@ Our platform offers compatibility with a diverse range of architectures and devi
 - Supports export/import database from the panel
 
 
-## Default Settings
+## Default Panel Settings
 
 <details>
   <summary>Click for default settings details</summary>
 
   ### Information
 
-- **Port:** 2053
+- **Port:** 
+  - 2053
 - **Username & Password & webbasepath:** 
+
   These will be generated randomly if you skip modifying them.
-- **Database Path:** 
-  You can backup or restore your database from the panel.
-  - /etc/x-ui/x-ui.db
-- **Web Panel Base Path without Deploying SSL:**
-    The `webbasepath` will be generated randomly if you skip modifying it, or you can use your custom path.
-    You can view your current settings using the "View Current Settings" option in the bash menu x-ui.
-    We recommend using a long random word for added security!
-  - http://ip:port/(webbasepath)/panel
-  - http://domain:port/(webbasepath)/panel
-- **Web Panel Base Path with Deploying SSL:**
-  - https://domain:port/(webbasepath)/panel
+
+- **Database Management:**
+
+  You can conveniently perform database backups and restores directly from the panel.
+
+- **Database Path:**
+  - `/etc/x-ui/x-ui.db`
+
+- **Web Base Path:**
+
+  The `webbasepath` will be generated randomly if you skip modifying it, or you can use your custom path.
+  
+  You can view your current settings using the `View Current Settings` or `x-ui settings`.
+  
+  We recommend using a long random word for more security in the URL structure: 
+  - http://ip:port/*webbasepath*/panel
+  - http://domain:port/*webbasepath*/panel
 
 </details>
 
