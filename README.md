@@ -1,5 +1,3 @@
-# 3X-UI
-
 [English](/README.md) | [Chinese](/README.zh.md) | [Español](/README.es_ES.md)
 
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
@@ -37,39 +35,50 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 ## SSL Certificate
 
 <details>
-  <summary>Click for SSL Certificate</summary>
+  <summary>Click for SSL Certificate details</summary>
 
-### Cloudflare
+### ACME
 
-The Management script has a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+To manage SSL certificates using ACME:
 
-- Cloudflare registered email
-- Cloudflare Global API Key
-- The domain name has been resolved to the current server through cloudflare
+1. Ensure your domain is correctly resolved to the server.
+2. Access the `x-ui` command and navigate to `SSL Certificate Management`.
+3. You will be presented with the following options:
 
-How to get the Cloudflare Global API Key:
-
-1. Run the`x-ui`command on the terminal, then choose `Cloudflare SSL Certificate`.
-
-2. Visit the link https://dash.cloudflare.com/profile/api-tokens
-
-3. Click on View Global API Key (See the screenshot below)
-        ![](media/APIKey1.PNG)
-
-4. You may have to re-authenticate your account. After that, the API Key will be shown (See the screenshot below)\
-        ![](media/APIKey2.png)
-
-When using, just enter `domain name`, `email`, `API KEY`, the diagram is as follows:
-        ![](media/DetailEnter.png)
+   - **Get SSL:** Obtain SSL certificates.
+   - **Revoke:** Revoke existing SSL certificates.
+   - **Force Renew:** Force renewal of SSL certificates.
 
 ### Certbot
-```
+
+To install and use Certbot:
+
+```sh
 apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
 
-***Tip:*** *Certbot is also built into the Management script. You can run the `x-ui` command, then choose `SSL Certificate Management`.*
+### Cloudflare
+
+The management script includes a built-in SSL certificate application for Cloudflare. To use this script to apply for a certificate, you need the following:
+
+- Cloudflare registered email
+- Cloudflare Global API Key
+- The domain name must be resolved to the current server through Cloudflare
+
+**How to get the Cloudflare Global API Key:**
+
+1. Run the `x-ui` command in the terminal, then choose `Cloudflare SSL Certificate`.
+2. Visit the link: [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens).
+3. Click on "View Global API Key" (see the screenshot below):
+   ![](media/APIKey1.PNG)
+4. You may need to re-authenticate your account. After that, the API Key will be shown (see the screenshot below):
+   ![](media/APIKey2.png)
+
+When using, just enter your `domain name`, `email`, and `API KEY`. The diagram is as follows:
+   ![](media/DetailEnter.png)
+
 
 </details>
 
@@ -135,26 +144,26 @@ systemctl restart x-ui
 
 #### Usage
 
-1. Install Docker:
+1. **Install Docker:**
 
    ```sh
    bash <(curl -sSL https://get.docker.com)
    ```
 
-2. Clone the Project Repository:
+2. **Clone the Project Repository:**
 
    ```sh
    git clone https://github.com/MHSanaei/3x-ui.git
    cd 3x-ui
    ```
 
-3. Start the Service
+3. **Start the Service:**
 
    ```sh
    docker compose up -d
    ```
 
-   OR
+   **OR**
 
    ```sh
    docker run -itd \
@@ -167,22 +176,22 @@ systemctl restart x-ui
       ghcr.io/mhsanaei/3x-ui:latest
    ```
 
-update to latest version
+4. **Update to the Latest Version:**
 
    ```sh
-    cd 3x-ui
-    docker compose down
-    docker compose pull 3x-ui
-    docker compose up -d
+   cd 3x-ui
+   docker compose down
+   docker compose pull 3x-ui
+   docker compose up -d
    ```
 
-remove 3x-ui from docker 
+5. **Remove 3x-ui from Docker:**
 
    ```sh
-    docker stop 3x-ui
-    docker rm 3x-ui
-    cd --
-    rm -r 3x-ui
+   docker stop 3x-ui
+   docker rm 3x-ui
+   cd --
+   rm -r 3x-ui
    ```
 
 </details>
@@ -263,17 +272,20 @@ Our platform offers compatibility with a diverse range of architectures and devi
   ### Information
 
 - **Port:** 2053
-- **Username & Password:** It will be generated randomly if you skip modifying.
-- **Database Path:**
+- **Username & Password & webbasepath:** 
+  These will be generated randomly if you skip modifying them.
+- **Database Path:** 
+  You can backup or restore your database from the panel.
   - /etc/x-ui/x-ui.db
-- **Xray Config Path:**
-  - /usr/local/x-ui/bin/config.json
-- **Web Panel Path w/o Deploying SSL:**
-  - http://ip:2053/panel
-  - http://domain:2053/panel
-- **Web Panel Path w/ Deploying SSL:**
-  - https://domain:2053/panel
- 
+- **Web Panel Base Path without Deploying SSL:**
+    The `webbasepath` will be generated randomly if you skip modifying it, or you can use your custom path.
+    You can view your current settings using the "View Current Settings" option in the bash menu x-ui.
+    We recommend using a long random word for added security!
+  - http://ip:port/(webbasepath)/panel
+  - http://domain:port/(webbasepath)/panel
+- **Web Panel Base Path with Deploying SSL:**
+  - https://domain:port/(webbasepath)/panel
+
 </details>
 
 ## WARP Configuration
@@ -283,26 +295,30 @@ Our platform offers compatibility with a diverse range of architectures and devi
 
 #### Usage
 
-If you want to use routing to WARP before v2.1.0 follow steps as below:
+**For versions `v2.1.0` and later:**
 
-**1.** Install WARP on **SOCKS Proxy Mode**:
+WARP is built-in, and no additional installation is required. Simply turn on the necessary configuration in the panel.
+
+**For versions before `v2.1.0`:**
+
+**1.** Install WARP in **SOCKS Proxy Mode**:
 
    ```sh
    bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
    ```
 
-**2.** If you already installed warp, you can uninstall using below command:
+**2.** If you already have WARP installed, you can uninstall it using the command below:
 
    ```sh
    warp u
    ```
 
-**3.** Turn on the config you need in panel
+**3.** Enable the configuration you need in the panel.
 
    Config Features:
 
    - Block Ads
-   - Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP
+   - Route Google, Netflix, Spotify, and OpenAI (ChatGPT) traffic to WARP
    - Fix Google 403 error
 
 </details>
@@ -314,29 +330,30 @@ If you want to use routing to WARP before v2.1.0 follow steps as below:
 
 #### Usage
 
-**Note:** IP Limit won't work correctly when using IP Tunnel
+**Note:** IP Limit won't work correctly when using IP Tunnel.
 
-- For versions up to `v1.6.1`:
+- **For versions up to `v1.6.1`:**
+  - The IP limit is built-in to the panel
 
-  - IP limit is built-in into the panel.
-
-- For versions `v1.7.0` and newer:
-
-  - To make IP Limit work properly, you need to install fail2ban and its required files by following these steps:
-
+- **For versions `v1.7.0` and newer:**
+  - To enable IP Limit functionality, you need to install `fail2ban` and its required files by following these steps:
     1. Use the `x-ui` command inside the shell.
     2. Select `IP Limit Management`.
     3. Choose the appropriate options based on your needs.
    
-  - make sure you have ./access.log on your Xray Configuration after v2.1.3 we have an option for it
-  
-  ```sh
+- **For versions before `v2.1.3`:**
+  - You need to set the access log path manually in your Xray configuration:
+
+    ```sh
     "log": {
       "access": "./access.log",
       "dnsLog": false,
       "loglevel": "warning"
     },
-  ```
+    ```
+
+- **For versions `v2.1.3` and newer:**
+  - There is an option for configuring `access.log` directly from the panel.
 
 </details>
 
