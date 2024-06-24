@@ -1253,24 +1253,27 @@ remove_iplimit() {
 show_usage() {
     echo "x-ui control menu usages: "
     echo "------------------------------------------"
-    echo -e "x-ui              - Enter control menu"
-    echo -e "x-ui start        - Start x-ui "
-    echo -e "x-ui stop         - Stop  x-ui "
-    echo -e "x-ui restart      - Restart x-ui "
-    echo -e "x-ui status       - Show x-ui status"
-    echo -e "x-ui enable       - Enable x-ui on system startup"
-    echo -e "x-ui disable      - Disable x-ui on system startup"
-    echo -e "x-ui log          - Check x-ui logs"
+    echo -e "SUBCOMMANDS:"
+    echo -e "x-ui              - Admin Management Script"
+    echo -e "x-ui start        - Start"
+    echo -e "x-ui stop         - Stop"
+    echo -e "x-ui restart      - Restart"
+    echo -e "x-ui status       - Current Status"
+    echo -e "x-ui settings     - Current Settings"
+    echo -e "x-ui enable       - Enable Autostart on OS Startup"
+    echo -e "x-ui disable      - Disable Autostart on OS Startup"
+    echo -e "x-ui log          - Check logs"
     echo -e "x-ui banlog       - Check Fail2ban ban logs"
-    echo -e "x-ui update       - Update x-ui "
-    echo -e "x-ui install      - Install x-ui "
-    echo -e "x-ui uninstall    - Uninstall x-ui "
+    echo -e "x-ui update       - Update"
+    echo -e "x-ui custom       - custom version"
+    echo -e "x-ui install      - Install"
+    echo -e "x-ui uninstall    - Uninstall"
     echo "------------------------------------------"
 }
 
 show_menu() {
     echo -e "
-  ${green}3X-ui Panel Management Script${plain}
+  ${green}3X-UI Panel Management Script${plain}
   ${green}0.${plain} Exit Script
 ————————————————
   ${green}1.${plain} Install
@@ -1398,6 +1401,9 @@ if [[ $# > 0 ]]; then
     "status")
         check_install 0 && status 0
         ;;
+    "settings")
+        check_install 0 && check_config 0
+        ;;
     "enable")
         check_install 0 && enable 0
         ;;
@@ -1412,6 +1418,9 @@ if [[ $# > 0 ]]; then
         ;;
     "update")
         check_install 0 && update 0
+        ;;
+    "custom")
+        check_install 0 && custom_version 0
         ;;
     "install")
         check_uninstall 0 && install 0
