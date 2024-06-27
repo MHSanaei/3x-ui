@@ -42,7 +42,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 To manage SSL certificates using ACME:
 
 1. Ensure your domain is correctly resolved to the server.
-2. Access the `x-ui` command and navigate to `SSL Certificate Management`.
+2. Run the `x-ui` command in the terminal, then choose `SSL Certificate Management`.
 3. You will be presented with the following options:
 
    - **Get SSL:** Obtain SSL certificates.
@@ -269,30 +269,39 @@ Our platform offers compatibility with a diverse range of architectures and devi
 <details>
   <summary>Click for default settings details</summary>
 
-  ### Information
-
-- **Port:** 
-  - 2053
-- **Username & Password & webbasepath:** 
+### Username & Password & webbasepath:
 
   These will be generated randomly if you skip modifying them.
 
-- **Database Management:**
+  - **Port:** the default port for panel is `2053`
 
-  You can conveniently perform database backups and restores directly from the panel.
+### Database Management:
+
+  You can conveniently perform database Backups and Restores directly from the panel.
 
 - **Database Path:**
   - `/etc/x-ui/x-ui.db`
 
-- **Web Base Path:**
 
-  The `webbasepath` will be generated randomly if you skip modifying it, or you can use your custom path.
-  
-  You can view your current settings using the `View Current Settings` or `x-ui settings`.
-  
-  We recommend using a long random word for more security in the URL structure: 
-  - http://ip:port/*webbasepath*/panel
-  - http://domain:port/*webbasepath*/panel
+### Web Base Path
+
+1. **Reset Web Base Path:**
+   - Open your terminal.
+   - Run the `x-ui` command.
+   - Select the option to `Reset Web Base Path`.
+
+2. **Generate or Customize Path:**
+   - The path will be randomly generated, or you can enter a custom path.
+
+3. **View Current Settings:**
+   - To view your current settings, use the `x-ui settings` command in the terminal or `View Current Settings` in `x-ui`
+
+### Security Recommendation:
+- For enhanced security, use a long, random word in your URL structure.
+
+**Examples:**
+- `http://ip:port/*webbasepath*/panel`
+- `http://domain:port/*webbasepath*/panel`
 
 </details>
 
@@ -309,25 +318,14 @@ WARP is built-in, and no additional installation is required. Simply turn on the
 
 **For versions before `v2.1.0`:**
 
-**1.** Install WARP in **SOCKS Proxy Mode**:
+1. Run the `x-ui` command in the terminal, then choose `WARP Management`.
+2. You will see the following options:
 
-   ```sh
-   bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
-   ```
+   - **Account Type (free, plus, team):** Choose the appropriate account type.
+   - **Enable/Disable WireProxy:** Toggle WireProxy on or off.
+   - **Uninstall WARP:** Remove the WARP application.
 
-**2.** If you already have WARP installed, you can uninstall it using the command below:
-
-   ```sh
-   warp u
-   ```
-
-**3.** Enable the configuration you need in the panel.
-
-   Config Features:
-
-   - Block Ads
-   - Route Google, Netflix, Spotify, and OpenAI (ChatGPT) traffic to WARP
-   - Fix Google 403 error
+3. Configure the settings as needed in the panel.
 
 </details>
 
@@ -343,11 +341,21 @@ WARP is built-in, and no additional installation is required. Simply turn on the
 - **For versions up to `v1.6.1`:**
   - The IP limit is built-in to the panel
 
-- **For versions `v1.7.0` and newer:**
-  - To enable IP Limit functionality, you need to install `fail2ban` and its required files by following these steps:
-    1. Use the `x-ui` command inside the shell.
-    2. Select `IP Limit Management`.
-    3. Choose the appropriate options based on your needs.
+**For versions `v1.7.0` and newer:**
+
+To enable the IP Limit functionality, you need to install `fail2ban` and its required files by following these steps:
+
+1. Run the `x-ui` command in the terminal, then choose `IP Limit Management`.
+2. You will see the following options:
+
+   - **Change Ban Duration:** Adjust the duration of bans.
+   - **Unban Everyone:** Lift all current bans.
+   - **Check Logs:** Review the logs.
+   - **Fail2ban Status:** Check the status of `fail2ban`.
+   - **Restart Fail2ban:** Restart the `fail2ban` service.
+   - **Uninstall Fail2ban:** Uninstall Fail2ban with configuration.
+
+3. Add a path for the access log on the panel by setting `Xray Configs/log/Access log` to `./access.log` then save and restart xray.
    
 - **For versions before `v2.1.3`:**
   - You need to set the access log path manually in your Xray configuration:
