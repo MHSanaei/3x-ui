@@ -8,7 +8,7 @@ class AllSetting {
         this.webKeyFile = "";
         this.webBasePath = "/";
         this.sessionMaxAge = "";
-        this.pageSize = 0;
+        this.pageSize = 50;
         this.expireDiff = "";
         this.trafficDiff = "";
         this.remarkModel = "-ieo";
