@@ -262,10 +262,9 @@ reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
     
     # Prompt user to set a new web base path
-    read -rp "Please set the new web base path [default is a random path]: " config_webBasePath
+    read -rp "Please set the new web base path [press 'y' for a random path]: " config_webBasePath
     
-    # If user input is empty, generate a random path
-    if [[ -z $config_webBasePath ]]; then
+    if [[ $config_webBasePath == "y" ]]; then
         config_webBasePath=$(gen_random_string 10)
     fi
     
