@@ -33,7 +33,7 @@ var defaultValueMap = map[string]string{
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
 	"sessionMaxAge":      "0",
-	"pageSize":           "0",
+	"pageSize":           "50",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"remarkModel":        "-ieo",
