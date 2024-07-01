@@ -35,10 +35,11 @@ func (x *XrayAPI) Init(apiPort int) (err error) {
 	if apiPort == 0 {
 		return common.NewError("xray api port wrong:", apiPort)
 	}
-	x.grpcClient, err = grpc.Dial(fmt.Sprintf("127.0.0.1:%v", apiPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(fmt.Sprintf("127.0.0.1:%v", apiPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
+	x.grpcClient = conn
 	x.isConnected = true
 
 	hsClient := command.NewHandlerServiceClient(x.grpcClient)
