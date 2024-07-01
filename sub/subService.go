@@ -1007,9 +1007,37 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 			now := time.Now().Unix()
 			switch exp := stats.ExpiryTime / 1000; {
 			case exp > 0:
-				remark = append(remark, fmt.Sprintf("%d%s⏳", (exp-now)/86400, "Days"))
+				remainingSeconds := exp - now
+				days := remainingSeconds / 86400
+				hours := (remainingSeconds % 86400) / 3600
+				minutes := (remainingSeconds % 3600) / 60
+				if days > 0 {
+					if hours > 0 {
+						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
+					} else {
+						remark = append(remark, fmt.Sprintf("%dD⏳", days))
+					}
+				} else if hours > 0 {
+					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
+				} else {
+					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
+				}
 			case exp < 0:
-				remark = append(remark, fmt.Sprintf("%d%s⏳", exp/-86400, "Days"))
+				passedSeconds := now - exp
+				days := passedSeconds / 86400
+				hours := (passedSeconds % 86400) / 3600
+				minutes := (passedSeconds % 3600) / 60
+				if days > 0 {
+					if hours > 0 {
+						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
+					} else {
+						remark = append(remark, fmt.Sprintf("%dD⏳", days))
+					}
+				} else if hours > 0 {
+					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
+				} else {
+					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
+				}
 			}
 		}
 	}
