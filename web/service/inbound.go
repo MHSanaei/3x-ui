@@ -1134,7 +1134,6 @@ func (s *InboundService) DelClientStat(tx *gorm.DB, email string) error {
 }
 
 func (s *InboundService) DelClientIPs(tx *gorm.DB, email string) error {
-	logger.Warning(email)
 	return tx.Where("client_email = ?", email).Delete(model.InboundClientIps{}).Error
 }
 
