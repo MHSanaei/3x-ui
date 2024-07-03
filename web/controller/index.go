@@ -65,13 +65,13 @@ func (a *IndexController) login(c *gin.Context) {
 	user := a.userService.CheckUser(form.Username, form.Password, form.LoginSecret)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	if user == nil {
-		logger.Warningf("wrong username or password: \"%s\" \"%s\"", form.Username, form.Password)
-		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 0)
+		logger.Warningf("wrong username or password or secret: \"%s\" \"%s\" \"%s\"", form.Username, form.Password, form.LoginSecret)
+		a.tgbot.UserLoginNotify(form.Username, form.Password, getRemoteIp(c), timeStr, 0)
 		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
 	} else {
-		logger.Infof("%s login success, Ip Address: %s\n", form.Username, getRemoteIp(c))
-		a.tgbot.UserLoginNotify(form.Username, getRemoteIp(c), timeStr, 1)
+		logger.Infof("%s Successful Login, Ip Address: %s\n", form.Username, getRemoteIp(c))
+		a.tgbot.UserLoginNotify(form.Username, ``, getRemoteIp(c), timeStr, 1)
 	}
 
 	sessionMaxAge, err := a.settingService.GetSessionMaxAge()
@@ -87,14 +87,14 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	err = session.SetLoginUser(c, user)
-	logger.Info("user", user.Id, "login success")
+	logger.Info("user ", user.Id, " login success")
 	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), err)
 }
 
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
-		logger.Info("user", user.Id, "logout")
+		logger.Info("user ", user.Id, " logout")
 	}
 	session.ClearSession(c)
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
