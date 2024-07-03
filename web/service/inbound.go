@@ -595,7 +595,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		return false, err
 	}
 
-	inerfaceClients := settings["clients"].([]interface{})
+	interfaceClients := settings["clients"].([]interface{})
 
 	oldInbound, err := s.GetInbound(data.Id)
 	if err != nil {
@@ -650,7 +650,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		return false, err
 	}
 	settingsClients := oldSettings["clients"].([]interface{})
-	settingsClients[clientIndex] = inerfaceClients[0]
+	settingsClients[clientIndex] = interfaceClients[0]
 	oldSettings["clients"] = settingsClients
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
