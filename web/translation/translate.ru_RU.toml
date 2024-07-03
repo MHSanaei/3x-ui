@@ -562,6 +562,7 @@
 "traffic" = "🚦 Трафик: {{ .Total }} (↑{{ .Upload }},↓{{ .Download }})\r\n"
 "xrayStatus" = "ℹ️ Состояние Xray: {{ .State }}\r\n"
 "username" = "👤 Имя пользователя: {{ .Username }}\r\n"
+"password" = "👤 Пароль: {{ .Password }}\r\n"
 "time" = "⏰ Время: {{ .Time }}\r\n"
 "inbound" = "📍 Входящий поток: {{ .Remark }}\r\n"
 "port" = "🔌 Порт: {{ .Port }}\r\n"

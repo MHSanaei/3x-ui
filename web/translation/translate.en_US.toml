@@ -78,7 +78,7 @@
 "invalidFormData" = "The Input data format is invalid."
 "emptyUsername" = "Username is required"
 "emptyPassword" = "Password is required"
-"wrongUsernameOrPassword" = "Invalid username or password."
+"wrongUsernameOrPassword" = "Invalid username or password or secret."
 "successLogin" = "Login"
 
 [pages.index]
@@ -544,7 +544,7 @@
 "selectUserFailed" = "❌ Error in user selection!"
 "userSaved" = "✅ Telegram User saved."
 "loginSuccess" = "✅ Logged in to the panel successfully.\r\n"
-"loginFailed" = "❗️ Log in to the panel failed.\r\n"
+"loginFailed" = "❗️Login attempt to the panel failed.\r\n"
 "report" = "🕰 Scheduled Reports: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Date&Time: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"
@@ -562,6 +562,7 @@
 "traffic" = "🚦 Traffic: {{ .Total }} (↑{{ .Upload }},↓{{ .Download }})\r\n"
 "xrayStatus" = "ℹ️ Status: {{ .State }}\r\n"
 "username" = "👤 Username: {{ .Username }}\r\n"
+"password" = "👤 Password: {{ .Password }}\r\n"
 "time" = "⏰ Time: {{ .Time }}\r\n"
 "inbound" = "📍 Inbound: {{ .Remark }}\r\n"
 "port" = "🔌 Port: {{ .Port }}\r\n"
