@@ -70,7 +70,7 @@ func (a *IndexController) login(c *gin.Context) {
 		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
 	} else {
-		logger.Infof("%s Successful Login, Ip Address: %s\n", form.Username, getRemoteIp(c))
+		logger.Infof("%s logged in successfully, Ip Address: %s\n", form.Username, getRemoteIp(c))
 		a.tgbot.UserLoginNotify(form.Username, ``, getRemoteIp(c), timeStr, 1)
 	}
 
@@ -87,14 +87,14 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	err = session.SetLoginUser(c, user)
-	logger.Info("user ", user.Id, " login success")
+	logger.Info(user.Username, " logged in successfully")
 	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), err)
 }
 
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
-		logger.Info("user ", user.Id, " logout")
+		logger.Info(user.Username, "logged out successfully")
 	}
 	session.ClearSession(c)
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
