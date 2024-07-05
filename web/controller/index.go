@@ -94,7 +94,7 @@ func (a *IndexController) login(c *gin.Context) {
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
-		logger.Info(user.Username, "logged out successfully")
+		logger.Info(user.Username, " logged out successfully")
 	}
 	session.ClearSession(c)
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))

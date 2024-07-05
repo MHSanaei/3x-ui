@@ -9,9 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	loginUser = "LOGIN_USER"
-)
+const loginUser = "LOGIN_USER"
 
 func init() {
 	gob.Register(model.User{})
@@ -34,24 +32,28 @@ func SetMaxAge(c *gin.Context, maxAge int) error {
 
 func GetLoginUser(c *gin.Context) *model.User {
 	s := sessions.Default(c)
-	obj := s.Get(loginUser)
-	if obj == nil {
-		return nil
+	if obj := s.Get(loginUser); obj != nil {
+		if user, ok := obj.(model.User); ok {
+			return &user
+		}
 	}
-	user := obj.(model.User)
-	return &user
+	return nil
 }
 
 func IsLogin(c *gin.Context) bool {
 	return GetLoginUser(c) != nil
 }
 
-func ClearSession(c *gin.Context) {
+func ClearSession(c *gin.Context) error {
 	s := sessions.Default(c)
 	s.Clear()
 	s.Options(sessions.Options{
 		Path:   "/",
 		MaxAge: -1,
 	})
-	s.Save()
+	if err := s.Save(); err != nil {
+		return err
+	}
+	c.SetCookie("3x-ui", "", -1, "/", "", false, true)
+	return nil
 }
