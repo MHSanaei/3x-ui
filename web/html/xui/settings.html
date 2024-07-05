@@ -503,6 +503,7 @@
         this.loading(false);
         if (msg.success) {
           this.user = {};
+          window.location.replace(basePath + "logout");
         }
       },
       async restartPanel() {
