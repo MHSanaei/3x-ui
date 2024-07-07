@@ -79,8 +79,8 @@
       qrModal: qrModal,
     },
     methods: {
-      copyToClipboard(elmentId, content) {
-        this.qrModal.clipboard = new ClipboardJS('#' + elmentId, {
+      copyToClipboard(elementId, content) {
+        this.qrModal.clipboard = new ClipboardJS('#' + elementId, {
           text: () => content,
         });
         this.qrModal.clipboard.on('success', () => {
@@ -88,9 +88,9 @@
           this.qrModal.clipboard.destroy();
         });
       },
-      setQrCode(elmentId, content) {
+      setQrCode(elementId, content) {
         new QRious({
-          element: document.querySelector('#' + elmentId),
+          element: document.querySelector('#' + elementId),
           size: 400,
           value: content,
           background: 'white',

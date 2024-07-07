@@ -159,19 +159,19 @@ func showSetting(show bool) {
 
 func updateTgbotEnableSts(status bool) {
 	settingService := service.SettingService{}
-	currentTgSts, err := settingService.GetTgbotenabled()
+	currentTgSts, err := settingService.GetTgbotEnabled()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	logger.Infof("current enabletgbot status[%v],need update to status[%v]", currentTgSts, status)
 	if currentTgSts != status {
-		err := settingService.SetTgbotenabled(status)
+		err := settingService.SetTgbotEnabled(status)
 		if err != nil {
 			fmt.Println(err)
 			return
 		} else {
-			logger.Infof("SetTgbotenabled[%v] success", status)
+			logger.Infof("SetTgbotEnabled[%v] success", status)
 		}
 	}
 }

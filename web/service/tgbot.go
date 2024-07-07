@@ -201,7 +201,7 @@ func (t *Tgbot) OnReceive() {
 	}, th.AnyCommand())
 
 	botHandler.HandleCallbackQuery(func(_ *telego.Bot, query telego.CallbackQuery) {
-		t.asnwerCallback(&query, checkAdmin(query.From.ID))
+		t.answerCallback(&query, checkAdmin(query.From.ID))
 	}, th.AnyCallbackQueryWithMessage())
 
 	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
@@ -286,7 +286,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 	}
 }
 
-func (t *Tgbot) asnwerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
+func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
 	chatId := callbackQuery.Message.GetChat().ID
 
 	if isAdmin {
@@ -964,7 +964,7 @@ func (t *Tgbot) getServerUsage(chatId int64, messageID ...int) string {
 	return info
 }
 
-// Send server usage without an inline keyborad
+// Send server usage without an inline keyboard
 func (t *Tgbot) sendServerUsage() string {
 	info := t.prepareServerUsageInfo()
 	return info
@@ -1052,14 +1052,14 @@ func (t *Tgbot) UserLoginNotify(username string, password string, ip string, tim
 func (t *Tgbot) getInboundUsages() string {
 	info := ""
 	// get traffic
-	inbouds, err := t.inboundService.GetAllInbounds()
+	inbounds, err := t.inboundService.GetAllInbounds()
 	if err != nil {
 		logger.Warning("GetAllInbounds run failed:", err)
 		info += t.I18nBot("tgbot.answers.getInboundsFailed")
 	} else {
 		// NOTE:If there no any sessions here,need to notify here
 		// TODO:Sub-node push, automatic conversion format
-		for _, inbound := range inbouds {
+		for _, inbound := range inbounds {
 			info += t.I18nBot("tgbot.messages.inbound", "Remark=="+inbound.Remark)
 			info += t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port))
 			info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
@@ -1332,20 +1332,20 @@ func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {
 }
 
 func (t *Tgbot) searchInbound(chatId int64, remark string) {
-	inbouds, err := t.inboundService.SearchInbounds(remark)
+	inbounds, err := t.inboundService.SearchInbounds(remark)
 	if err != nil {
 		logger.Warning(err)
 		msg := t.I18nBot("tgbot.wentWrong")
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
-	if len(inbouds) == 0 {
+	if len(inbounds) == 0 {
 		msg := t.I18nBot("tgbot.noInbounds")
 		t.SendMsgToTgbot(chatId, msg)
 		return
 	}
 
-	for _, inbound := range inbouds {
+	for _, inbound := range inbounds {
 		info := ""
 		info += t.I18nBot("tgbot.messages.inbound", "Remark=="+inbound.Remark)
 		info += t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port))

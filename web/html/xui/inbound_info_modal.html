@@ -494,8 +494,8 @@
       },
     },
     methods: {
-      copyToClipboard(elmentId, content) {
-        this.infoModal.clipboard = new ClipboardJS('#' + elmentId, {
+      copyToClipboard(elementId, content) {
+        this.infoModal.clipboard = new ClipboardJS('#' + elementId, {
           text: () => content,
         });
         this.infoModal.clipboard.on('success', () => {
