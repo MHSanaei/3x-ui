@@ -128,7 +128,7 @@ func (s *XraySettingService) RegWarp(secretKey string, publicKey string) (string
 	return result, nil
 }
 
-func (s *XraySettingService) SetWarpLicence(license string) (string, error) {
+func (s *XraySettingService) SetWarpLicense(license string) (string, error) {
 	var warpData map[string]string
 	warp, err := s.SettingService.GetWarp()
 	if err != nil {

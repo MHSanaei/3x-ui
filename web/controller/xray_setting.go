@@ -81,7 +81,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 		resp, err = a.XraySettingService.RegWarp(skey, pkey)
 	case "license":
 		license := c.PostForm("license")
-		resp, err = a.XraySettingService.SetWarpLicence(license)
+		resp, err = a.XraySettingService.SetWarpLicense(license)
 	}
 
 	jsonObj(c, resp, err)

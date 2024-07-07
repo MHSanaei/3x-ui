@@ -1947,6 +1947,6 @@ func (s *InboundService) MigrateDB() {
 	s.MigrationRemoveOrphanedTraffics()
 }
 
-func (s *InboundService) GetOnlineClinets() []string {
+func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
