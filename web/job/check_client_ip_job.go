@@ -252,46 +252,55 @@ func (j *CheckClientIpJob) addInboundClientIps(clientEmail string, ips []string)
 
 func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.InboundClientIps, clientEmail string, ips []string) bool {
 	jsonIps, err := json.Marshal(ips)
-	j.checkError(err)
+	if err != nil {
+		logger.Error("failed to marshal IPs to JSON:", err)
+		return false
+	}
 
 	inboundClientIps.ClientEmail = clientEmail
 	inboundClientIps.Ips = string(jsonIps)
 
-	// check inbound limitation
+	// Fetch inbound settings by client email
 	inbound, err := j.getInboundByEmail(clientEmail)
-	j.checkError(err)
-
-	if inbound.Settings == "" {
-		logger.Debug("wrong data ", inbound)
+	if err != nil {
+		logger.Errorf("failed to fetch inbound settings for email %s: %s", clientEmail, err)
 		return false
 	}
 
+	if inbound.Settings == "" {
+		logger.Debug("wrong data:", inbound)
+		return false
+	}
+
+	// Unmarshal settings to get client limits
 	settings := map[string][]model.Client{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	clients := settings["clients"]
 	shouldCleanLog := false
 	j.disAllowedIps = []string{}
 
-	// create iplimit log file channel
-	logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
+	// Open log file for IP limits
+	logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
-		logger.Errorf("failed to create or open ip limit log file: %s", err)
+		logger.Errorf("failed to open IP limit log file: %s", err)
+		return false
 	}
 	defer logIpFile.Close()
 	log.SetOutput(logIpFile)
 	log.SetFlags(log.LstdFlags)
 
+	// Check client IP limits
 	for _, client := range clients {
 		if client.Email == clientEmail {
 			limitIp := client.LimitIP
 
-			if limitIp != 0 {
+			if limitIp > 0 && inbound.Enable {
 				shouldCleanLog = true
 
-				if limitIp < len(ips) && inbound.Enable {
+				if limitIp < len(ips) {
 					j.disAllowedIps = append(j.disAllowedIps, ips[limitIp:]...)
 					for i := limitIp; i < len(ips); i++ {
-						log.Printf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
+						logger.Debugf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
 					}
 				}
 			}
@@ -301,12 +310,15 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	sort.Strings(j.disAllowedIps)
 
 	if len(j.disAllowedIps) > 0 {
-		logger.Debug("disAllowedIps ", j.disAllowedIps)
+		logger.Debug("disAllowedIps:", j.disAllowedIps)
 	}
 
 	db := database.GetDB()
 	err = db.Save(inboundClientIps).Error
-	j.checkError(err)
+	if err != nil {
+		logger.Error("failed to save inboundClientIps:", err)
+		return false
+	}
 
 	return shouldCleanLog
 }

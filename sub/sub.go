@@ -163,13 +163,13 @@ func (s *Server) Start() (err error) {
 			}
 			listener = network.NewAutoHttpsListener(listener)
 			listener = tls.NewListener(listener, c)
-			logger.Info("sub server run https on", listener.Addr())
+			logger.Info("Sub server running HTTPS on", listener.Addr())
 		} else {
-			logger.Error("error in loading certificates: ", err)
-			logger.Info("sub server run http on", listener.Addr())
+			logger.Error("Error loading certificates:", err)
+			logger.Info("Sub server running HTTP on", listener.Addr())
 		}
 	} else {
-		logger.Info("sub server run http on", listener.Addr())
+		logger.Info("Sub server running HTTP on", listener.Addr())
 	}
 	s.listener = listener
 

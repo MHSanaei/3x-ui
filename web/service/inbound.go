@@ -1142,7 +1142,7 @@ func (s *InboundService) GetClientInboundByTrafficID(trafficId int) (traffic *xr
 	var traffics []*xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).Where("id = ?", trafficId).Find(&traffics).Error
 	if err != nil {
-		logger.Warning(err)
+		logger.Warningf("Error retrieving ClientTraffic with trafficId %d: %v", trafficId, err)
 		return nil, nil, err
 	}
 	if len(traffics) > 0 {
@@ -1157,7 +1157,7 @@ func (s *InboundService) GetClientInboundByEmail(email string) (traffic *xray.Cl
 	var traffics []*xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
 	if err != nil {
-		logger.Warning(err)
+		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, nil, err
 	}
 	if len(traffics) > 0 {
@@ -1698,15 +1698,20 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("settings like ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
+
+	// Retrieve inbounds where settings contain the given tgId
+	err := db.Model(model.Inbound{}).Where("settings LIKE ?", fmt.Sprintf(`%%"tgId": %d%%`, tgId)).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
+		logger.Errorf("Error retrieving inbounds with tgId %d: %v", tgId, err)
 		return nil, err
 	}
+
 	var emails []string
 	for _, inbound := range inbounds {
 		clients, err := s.GetClients(inbound)
 		if err != nil {
-			logger.Error("Unable to get clients from inbound")
+			logger.Errorf("Error retrieving clients for inbound %d: %v", inbound.Id, err)
+			continue
 		}
 		for _, client := range clients {
 			if client.TgID == tgId {
@@ -1714,15 +1719,19 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 			}
 		}
 	}
+
 	var traffics []*xray.ClientTraffic
 	err = db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			logger.Warning(err)
-			return nil, err
+			logger.Warning("No ClientTraffic records found for emails:", emails)
+			return nil, nil
 		}
+		logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", emails, err)
+		return nil, err
 	}
-	return traffics, err
+
+	return traffics, nil
 }
 
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
@@ -1731,7 +1740,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 
 	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
 	if err != nil {
-		logger.Warning(err)
+		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, err
 	}
 	if len(traffics) > 0 {
@@ -1746,38 +1755,51 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	inbound := &model.Inbound{}
 	traffic = &xray.ClientTraffic{}
 
-	err = db.Model(model.Inbound{}).Where("settings like ?", "%\""+query+"\"%").First(inbound).Error
+	// Search for inbound settings that contain the query
+	err = db.Model(model.Inbound{}).Where("settings LIKE ?", "%\""+query+"\"%").First(inbound).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
-			logger.Warning(err)
+			logger.Warningf("Inbound settings containing query %s not found: %v", query, err)
 			return nil, err
 		}
+		logger.Errorf("Error searching for inbound settings with query %s: %v", query, err)
+		return nil, err
 	}
+
 	traffic.InboundId = inbound.Id
 
-	// get settings clients
+	// Unmarshal settings to get clients
 	settings := map[string][]model.Client{}
-	json.Unmarshal([]byte(inbound.Settings), &settings)
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		logger.Errorf("Error unmarshalling inbound settings for inbound ID %d: %v", inbound.Id, err)
+		return nil, err
+	}
+
 	clients := settings["clients"]
 	for _, client := range clients {
-		if client.ID == query && client.Email != "" {
-			traffic.Email = client.Email
-			break
-		}
-		if client.Password == query && client.Email != "" {
+		if (client.ID == query || client.Password == query) && client.Email != "" {
 			traffic.Email = client.Email
 			break
 		}
 	}
+
 	if traffic.Email == "" {
-		return nil, err
+		logger.Warningf("No client found with query %s in inbound ID %d", query, inbound.Id)
+		return nil, gorm.ErrRecordNotFound
 	}
+
+	// Retrieve ClientTraffic based on the found email
 	err = db.Model(xray.ClientTraffic{}).Where("email = ?", traffic.Email).First(traffic).Error
 	if err != nil {
-		logger.Warning(err)
+		if err == gorm.ErrRecordNotFound {
+			logger.Warningf("ClientTraffic for email %s not found: %v", traffic.Email, err)
+			return nil, err
+		}
+		logger.Errorf("Error retrieving ClientTraffic for email %s: %v", traffic.Email, err)
 		return nil, err
 	}
-	return traffic, err
+
+	return traffic, nil
 }
 
 func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error) {
