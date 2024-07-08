@@ -183,6 +183,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 
 	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: reset})
 	if err != nil {
+		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
 	}
 
@@ -196,7 +197,6 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 			processClientTraffic(matches, stat.Value, emailTrafficMap)
 		}
 	}
-
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
 }
 

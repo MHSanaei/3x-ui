@@ -76,25 +76,25 @@ func (a *IndexController) login(c *gin.Context) {
 
 	sessionMaxAge, err := a.settingService.GetSessionMaxAge()
 	if err != nil {
-		logger.Warningf("Unable to get session's max age from DB")
+		logger.Warning("Unable to get session's max age from DB")
 	}
 
 	if sessionMaxAge > 0 {
 		err = session.SetMaxAge(c, sessionMaxAge*60)
 		if err != nil {
-			logger.Warningf("Unable to set session's max age")
+			logger.Warning("Unable to set session's max age")
 		}
 	}
 
 	err = session.SetLoginUser(c, user)
-	logger.Info(user.Username, " logged in successfully")
+	logger.Infof("%s logged in successfully", user.Username)
 	jsonMsg(c, I18nWeb(c, "pages.login.toasts.successLogin"), err)
 }
 
 func (a *IndexController) logout(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user != nil {
-		logger.Info(user.Username, " logged out successfully")
+		logger.Infof("%s logged out successfully", user.Username)
 	}
 	session.ClearSession(c)
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))

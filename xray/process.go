@@ -60,14 +60,14 @@ func GetAccessPersistentPrevLogPath() string {
 func GetAccessLogPath() (string, error) {
 	config, err := os.ReadFile(GetConfigPath())
 	if err != nil {
-		logger.Warningf("Something went wrong: %s", err)
+		logger.Warningf("Failed to read configuration file: %s", err)
 		return "", err
 	}
 
 	jsonConfig := map[string]interface{}{}
 	err = json.Unmarshal([]byte(config), &jsonConfig)
 	if err != nil {
-		logger.Warningf("Something went wrong: %s", err)
+		logger.Warningf("Failed to parse JSON configuration: %s", err)
 		return "", err
 	}
 
@@ -206,7 +206,7 @@ func (p *process) Start() (err error) {
 
 	err = os.MkdirAll(config.GetLogFolder(), 0o770)
 	if err != nil {
-		logger.Warningf("Something went wrong: %s", err)
+		logger.Warningf("Failed to create log folder: %s", err)
 	}
 
 	configPath := GetConfigPath()
@@ -224,7 +224,7 @@ func (p *process) Start() (err error) {
 	go func() {
 		err := cmd.Run()
 		if err != nil {
-			logger.Error("Failure in running xray-core: ", err)
+			logger.Error("Failure in running xray-core:", err)
 			p.exitErr = err
 		}
 	}()

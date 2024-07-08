@@ -64,52 +64,59 @@ func (t *Tgbot) GetHashStorage() *global.HashStorage {
 }
 
 func (t *Tgbot) Start(i18nFS embed.FS) error {
+	// Initialize localizer
 	err := locale.InitLocalizer(i18nFS, &t.settingService)
 	if err != nil {
 		return err
 	}
 
-	// init hash storage => store callback queries
+	// Initialize hash storage to store callback queries
 	hashStorage = global.NewHashStorage(20 * time.Minute)
 
 	t.SetHostname()
-	tgBottoken, err := t.settingService.GetTgBotToken()
-	if err != nil || tgBottoken == "" {
-		logger.Warning("Get TgBotToken failed:", err)
+
+	// Get Telegram bot token
+	tgBotToken, err := t.settingService.GetTgBotToken()
+	if err != nil || tgBotToken == "" {
+		logger.Warning("Failed to get Telegram bot token:", err)
 		return err
 	}
 
-	tgBotid, err := t.settingService.GetTgBotChatId()
+	// Get Telegram bot chat ID(s)
+	tgBotID, err := t.settingService.GetTgBotChatId()
 	if err != nil {
-		logger.Warning("Get GetTgBotChatId failed:", err)
+		logger.Warning("Failed to get Telegram bot chat ID:", err)
 		return err
 	}
 
-	if tgBotid != "" {
-		for _, adminId := range strings.Split(tgBotid, ",") {
-			id, err := strconv.Atoi(adminId)
+	// Parse admin IDs from comma-separated string
+	if tgBotID != "" {
+		for _, adminID := range strings.Split(tgBotID, ",") {
+			id, err := strconv.Atoi(adminID)
 			if err != nil {
-				logger.Warning("Failed to get IDs from GetTgBotChatId:", err)
+				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
 				return err
 			}
 			adminIds = append(adminIds, int64(id))
 		}
 	}
 
+	// Get Telegram bot proxy URL
 	tgBotProxy, err := t.settingService.GetTgBotProxy()
 	if err != nil {
-		logger.Warning("Failed to get ProxyUrl:", err)
+		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
-	bot, err = t.NewBot(tgBottoken, tgBotProxy)
+	// Create new Telegram bot instance
+	bot, err = t.NewBot(tgBotToken, tgBotProxy)
 	if err != nil {
-		fmt.Println("Get tgbot's api error:", err)
+		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
 	}
 
-	// listen for TG bot income messages
+	// Start receiving Telegram bot messages
 	if !isRunning {
-		logger.Info("Starting Telegram receiver ...")
+		logger.Info("Telegram bot receiver started")
 		go t.OnReceive()
 		isRunning = true
 	}

@@ -70,7 +70,7 @@ func (s *OutboundService) GetOutboundsTraffic() ([]*model.OutboundTraffics, erro
 
 	err := db.Model(model.OutboundTraffics{}).Find(&traffics).Error
 	if err != nil {
-		logger.Warning(err)
+		logger.Warning("Error retrieving OutboundTraffics: ", err)
 		return nil, err
 	}
 
