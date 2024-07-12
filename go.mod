@@ -19,7 +19,7 @@ require (
 	golang.org/x/text v0.16.0
 	google.golang.org/grpc v1.65.0
 	gorm.io/driver/sqlite v1.5.6
-	gorm.io/gorm v1.25.10
+	gorm.io/gorm v1.25.11
 )
 
 require (
