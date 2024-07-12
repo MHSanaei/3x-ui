@@ -1,6 +1,6 @@
 module x-ui
 
-go 1.22.4
+go 1.22.5
 
 require (
 	github.com/gin-contrib/gzip v1.0.1
@@ -14,12 +14,12 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.24.6
 	github.com/valyala/fasthttp v1.55.0
-	github.com/xtls/xray-core v1.8.16
+	github.com/xtls/xray-core v1.8.17
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.16.0
 	google.golang.org/grpc v1.65.0
 	gorm.io/driver/sqlite v1.5.6
-	gorm.io/gorm v1.25.10
+	gorm.io/gorm v1.25.11
 )
 
 require (
@@ -32,12 +32,12 @@ require (
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
 	github.com/fasthttp/router v1.5.2 // indirect
 	github.com/francoispqt/gojay v1.2.13 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.4 // indirect
+	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
-	github.com/go-ole/go-ole v1.3.0 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.22.0 // indirect
+	github.com/go-playground/validator/v10 v10.20.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/pprof v0.0.0-20240528025155-186aa0362fba // indirect
@@ -50,22 +50,22 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
+	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.22 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.19.0 // indirect
 	github.com/pires/go-proxyproto v0.7.0 // indirect
-	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
-	github.com/quic-go/quic-go v0.45.0 // indirect
-	github.com/refraction-networking/utls v1.6.6 // indirect
+	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
+	github.com/quic-go/quic-go v0.45.1 // indirect
+	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
-	github.com/rogpeppe/go-internal v1.11.0 // indirect
+	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/sagernet/sing v0.4.1 // indirect
-	github.com/sagernet/sing-shadowsocks v0.2.6 // indirect
+	github.com/sagernet/sing-shadowsocks v0.2.7 // indirect
 	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38 // indirect
 	github.com/seiflotfy/cuckoofilter v0.0.0-20220411075957-e3b120b3f5fb // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
@@ -78,7 +78,7 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20230316163032-ced5aaba43e3 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
-	github.com/xtls/reality v0.0.0-20240429224917-ecc4401070cc // indirect
+	github.com/xtls/reality v0.0.0-20240712055506-48f0b2d5ed6d // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/mock v0.4.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
@@ -92,7 +92,7 @@ require (
 	golang.org/x/tools v0.22.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240528184218-531527333157 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20231202080848-1f7806d17489 // indirect
