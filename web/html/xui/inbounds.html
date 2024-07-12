@@ -403,8 +403,11 @@
               </template>
               <template slot="expiryTime" slot-scope="text, dbInbound">
                 <a-popover v-if="dbInbound.expiryTime > 0" :overlay-class-name="themeSwitcher.currentTheme">
-                  <template slot="content">
+                  <template slot="content" v-if="app.datepicker === 'gregorian'">
                     [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
+                  </template>
+                  <template v-else slot="content">
+                    [[ DateUtil.convertToJalalian(moment(dbInbound.expiryTime)) ]]
                   </template>
                   <a-tag style="min-width: 50px;" :color="usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
                     [[ remainedDays(dbInbound._expiryTime) ]]
@@ -498,8 +501,14 @@
                       <tr>
                         <td>{{ i18n "pages.inbounds.expireDate" }}</td>
                         <td>
-                          <a-tag style="min-width: 50px; text-align: center;" v-if="dbInbound.expiryTime > 0" :color="dbInbound.isExpiry? 'red': 'blue'">
-                            [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
+                          <a-tag style="min-width: 50px; text-align: center;" v-if="dbInbound.expiryTime > 0"
+                            :color="dbInbound.isExpiry? 'red': 'blue'">
+                            <template v-if="app.datepicker === 'gregorian'">
+                              [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
+                            </template>
+                            <template v-else>
+                              [[ DateUtil.convertToJalalian(moment(dbInbound.expiryTime)) ]]
+                            </template>
                           </a-tag>
                           <a-tag v-else style="text-align: center;" color="purple" class="infinite-tag">
                             <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
