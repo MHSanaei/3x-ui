@@ -108,15 +108,16 @@
                 format="YYYY-MM-DD HH:mm:ss" :dropdown-class-name="themeSwitcher.currentTheme"
                 v-model="clientsBulkModal.expiryTime"></a-date-picker>
             <persian-datepicker v-else placeholder='{{ i18n "pages.settings.datepickerPlaceholder" }}'
-                value="clientsBulkModal.expiryTime" v-model="clientsBulkModal.expiryTime"></persian-datepicker>
+                value="clientsBulkModal.expiryTime" v-model="clientsBulkModal.expiryTime">
+            </persian-datepicker>
         </a-form-item>
         <a-form-item v-if="clientsBulkModal.expiryTime != 0">
             <template slot="label">
-                <span>{{ i18n "pages.client.renew" }}</span>
                 <a-tooltip>
                     <template slot="title">
                         <span>{{ i18n "pages.client.renewDesc" }}</span>
                     </template>
+                    {{ i18n "pages.client.renew" }}
                     <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>

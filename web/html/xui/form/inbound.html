@@ -54,12 +54,13 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-            <a-date-picker style="width: 100%;" v-if="datepicker == 'gregorian'" :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
-                :dropdown-class-name="themeSwitcher.currentTheme"
-                v-model="dbInbound._expiryTime"></a-date-picker>
-            <persian-datepicker v-else placeholder='{{ i18n "pages.settings.datepickerPlaceholder" }}'
-                            value="dbInbound._expiryTime" v-model="dbInbound._expiryTime"></persian-datepicker>
-        </a-form-item>
+        <a-date-picker style="width: 100%;" v-if="datepicker == 'gregorian'" :show-time="{ format: 'HH:mm:ss' }"
+            format="YYYY-MM-DD HH:mm:ss" :dropdown-class-name="themeSwitcher.currentTheme"
+            v-model="dbInbound._expiryTime"></a-date-picker>
+        <persian-datepicker v-else placeholder='{{ i18n "pages.settings.datepickerPlaceholder" }}'
+            value="dbInbound._expiryTime" v-model="dbInbound._expiryTime">
+        </persian-datepicker>
+    </a-form-item>
 </a-form>
 
 <!-- vmess settings -->

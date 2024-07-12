@@ -128,7 +128,7 @@ Date.prototype.formatDateTime = function (split = ' ') {
 };
 
 class DateUtil {
-    // String string to date object
+    // String to date object
     static parseDate(str) {
         return new Date(str.replace(/-/g, '/'));
     }
@@ -143,4 +143,9 @@ class DateUtil {
         date.setMinTime();
         return date;
     }
+
+    static convertToJalalian(date) {
+        return date && moment.isMoment(date) ? date.format('jYYYY/jMM/jDD HH:mm:ss') : null;
+    }
+
 }

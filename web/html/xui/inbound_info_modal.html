@@ -221,7 +221,14 @@
           </td>
           <td>
             <template v-if="infoModal.clientSettings.expiryTime > 0">
-              <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)"> [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]] </a-tag>
+              <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)"> 
+                <template v-if="app.datepicker === 'gregorian'">
+                  [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
+                </template>
+                <template v-else>
+                  [[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.expiryTime)) ]]
+                </template>
+              </a-tag>
             </template>
             <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="green">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}
             </a-tag>
