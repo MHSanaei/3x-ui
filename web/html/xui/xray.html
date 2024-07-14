@@ -1268,7 +1268,8 @@
                     balancer: {
                         tag: '',
                         strategy: 'random',
-                        selector: []
+                        selector: [],
+                        fallbackTag: ''
                     },
                     confirm: (balancer) => {
                         balancerModal.loading();
@@ -1278,7 +1279,8 @@
                         }
                         let tmpBalancer = {
                             'tag': balancer.tag,
-                            'selector': balancer.selector
+                            'selector': balancer.selector,
+                            'fallbackTag': balancer.fallbackTag
                         };
                         if (balancer.strategy && balancer.strategy != 'random') {
                             tmpBalancer.strategy = {
@@ -1308,7 +1310,8 @@
 
                         let tmpBalancer = {
                             'tag': balancer.tag,
-                            'selector': balancer.selector
+                            'selector': balancer.selector,
+                            'fallbackTag': balancer.fallbackTag
                         };
 
                         // Remove old tag
@@ -1377,7 +1380,7 @@
                 this.changeObsCode();
             },
             deleteBalancer(index) {
-                let newTemplateSettings = { ...this.templateSettings };
+                newTemplateSettings = this.templateSettings;
 
                 // Remove from balancers
                 const removedBalancer = this.balancersData.splice(index, 1)[0];
@@ -1623,7 +1626,8 @@
                                 'key': index,
                                 'tag': o.tag ? o.tag : "",
                                 'strategy': o.strategy?.type ?? "random",
-                                'selector': o.selector ? o.selector : []
+                                'selector': o.selector ? o.selector : [],
+                                'fallbackTag': o.fallbackTag?? '',
                             });
                         });
                     }
