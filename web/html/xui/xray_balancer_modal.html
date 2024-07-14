@@ -25,11 +25,17 @@
                 <a-select-option value="leastPing">Least Ping</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item label='{{ i18n "pages.xray.balancer.balancerSelectors" }}' has-feedback 
-        :validate-status="balancerModal.emptySelector? 'warning' : 'success'">
+        <a-form-item label='{{ i18n "pages.xray.balancer.balancerSelectors" }}' has-feedback
+            :validate-status="balancerModal.emptySelector? 'warning' : 'success'">
             <a-select v-model="balancerModal.balancer.selector" mode="tags" @change="balancerModal.checkSelector()"
                 :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="tag in balancerModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Fallback">
+            <a-select v-model="balancerModal.balancer.fallbackTag" clearable
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in [ '', ...balancerModal.outboundTags]" :value="tag">[[ tag ]]</a-select-option>
             </a-select>
         </a-form-item>
         </table>
@@ -48,7 +54,8 @@
         balancer: {
             tag: '',
             strategy: 'random',
-            selector: []
+            selector: [],
+            fallbackTag: ''
         },
         outboundTags: [],
         balancerTags:[],
@@ -71,7 +78,8 @@
                 balancerModal.balancer = {
                     tag: '',
                     strategy: 'random',
-                    selector: []
+                    selector: [],
+                    fallbackTag: ''
                 };
             }
             this.balancerTags = balancerTags.filter((tag) => tag != balancer.tag);
