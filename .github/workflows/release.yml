@@ -125,7 +125,13 @@ jobs:
           
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
-        
+
+      - name: Upload files to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-ui-linux-${{ matrix.platform }}.tar.gz
+          path: ./x-ui-linux-${{ matrix.platform }}.tar.gz
+
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
         with:
