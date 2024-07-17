@@ -1023,10 +1023,9 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
 				}
 			case exp < 0:
-				passedSeconds := now - exp
-				days := passedSeconds / 86400
-				hours := (passedSeconds % 86400) / 3600
-				minutes := (passedSeconds % 3600) / 60
+				days := exp / -86400
+				hours := (exp % -86400) / 3600
+				minutes := (exp % -3600) / 60
 				if days > 0 {
 					if hours > 0 {
 						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
