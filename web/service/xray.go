@@ -97,12 +97,11 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 						if !clientTraffic.Enable {
 							clients = RemoveIndex(clients, index-indexDecrease)
 							indexDecrease++
-							logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c["email"])
+							logger.Info("Remove Inbound User ", c["email"], " due to expire or traffic limit")
 						}
 					}
 				}
 			}
-
 			// clear client config for additional parameters
 			var final_clients []interface{}
 			for _, client := range clients {
@@ -122,6 +121,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 				}
 				final_clients = append(final_clients, interface{}(c))
 			}
+
+			// Add maxClient setting
+			settings["maxClient"] = 1 // Replace with desired maxClient value
 
 			settings["clients"] = final_clients
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
