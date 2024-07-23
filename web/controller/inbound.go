@@ -77,6 +77,16 @@ func (a *InboundController) getClientTraffics(c *gin.Context) {
 	jsonObj(c, clientTraffics, nil)
 }
 
+func (a *InboundController) getClientTrafficsById(c *gin.Context) {
+	id := c.Param("id")
+	clientTraffics, err := a.inboundService.GetClientTrafficByID(id)
+	if err != nil {
+		jsonMsg(c, "Error getting traffics", err)
+		return
+	}
+	jsonObj(c, clientTraffics, nil)
+}
+
 func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)

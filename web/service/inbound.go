@@ -1750,6 +1750,25 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	return nil, nil
 }
 
+func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, error) {
+	db := database.GetDB()
+	var traffics []xray.ClientTraffic
+
+	err := db.Model(xray.ClientTraffic{}).Where(`email IN(
+		SELECT JSON_EXTRACT(client.value, '$.email') as email
+		FROM inbounds,
+	  	JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE
+	  	JSON_EXTRACT(client.value, '$.id') in (?)
+		)`, id).Find(&traffics).Error
+
+	if err != nil {
+		logger.Debug(err)
+		return nil, err
+	}
+	return traffics, err
+}
+
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}
