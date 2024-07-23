@@ -455,6 +455,7 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 | `GET`  | `"/list"`                          | Get all inbounds                            |
 | `GET`  | `"/get/:id"`                       | Get inbound with inbound.id                 |
 | `GET`  | `"/getClientTraffics/:email"`      | Get Client Traffics with email              |
+| `GET`  | `"/getClientTrafficsById/:id"`     | Get client's traffic By ID |
 | `GET`  | `"/createbackup"`                  | Telegram bot sends backup to admins         |
 | `POST` | `"/add"`                           | Add inbound                                 |
 | `POST` | `"/del/:id"`                       | Delete Inbound                              |
