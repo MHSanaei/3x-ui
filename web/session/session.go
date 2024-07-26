@@ -17,10 +17,6 @@ func init() {
 
 func SetLoginUser(c *gin.Context, user *model.User) error {
 	s := sessions.Default(c)
-	s.Options(sessions.Options{
-		Path:     "/",
-		HttpOnly: true,
-	})
 	s.Set(loginUser, user)
 	return s.Save()
 }
