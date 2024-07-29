@@ -523,13 +523,14 @@ class HTTPUpgradeStreamSettings extends XrayCommonClass {
 }
 
 class SplitHTTPStreamSettings extends XrayCommonClass {
-    constructor(path='/', host='', headers=[] , maxUploadSize= 1000000, maxConcurrentUploads= 10) {
+    constructor(path='/', host='', headers=[] , scMaxConcurrentPosts= 100, scMaxEachPostBytes= 1000000, scMinPostsIntervalMs= 30) {
         super();
         this.path = path;
         this.host = host;
         this.headers = headers;
-        this.maxUploadSize = maxUploadSize;
-        this.maxConcurrentUploads = maxConcurrentUploads;
+        this.scMaxConcurrentPosts = scMaxConcurrentPosts;
+        this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.scMinPostsIntervalMs = scMinPostsIntervalMs;
     }
 
     addHeader(name, value) {
@@ -545,8 +546,9 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             json.path,
             json.host,
             XrayCommonClass.toHeaders(json.headers),
-            json.maxUploadSize,
-            json.maxConcurrentUploads,
+            json.scMaxConcurrentPosts,
+            json.scMaxEachPostBytes,
+            json.scMinPostsIntervalMs,
         );
     }
 
@@ -555,8 +557,9 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             path: this.path,
             host: this.host,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
-            maxUploadSize: this.maxUploadSize,
-            maxConcurrentUploads: this.maxConcurrentUploads,
+            scMaxConcurrentPosts: this.scMaxConcurrentPosts,
+            scMaxEachPostBytes: this.scMaxEachPostBytes,
+            scMinPostsIntervalMs: this.scMinPostsIntervalMs,
         };
     }
 }
