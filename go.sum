@@ -277,8 +277,8 @@ github.com/vishvananda/netns v0.0.4 h1:Oeaw1EM2JMxD51g9uhtC0D7erkIjgmj8+JZc26m1Y
 github.com/vishvananda/netns v0.0.4/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
 github.com/xtls/reality v0.0.0-20240712055506-48f0b2d5ed6d h1:+B97uD9uHLgAAulhigmys4BVwZZypzK7gPN3WtpgRJg=
 github.com/xtls/reality v0.0.0-20240712055506-48f0b2d5ed6d/go.mod h1:dm4y/1QwzjGaK17ofi0Vs6NpKAHegZky8qk6J2JJZAE=
-github.com/xtls/xray-core v1.8.21 h1:cNdepud+R9PENKzXlSZsq0je4BWI6liXAuep6CD6xvk=
-github.com/xtls/xray-core v1.8.21/go.mod h1:0CwyMPNA5Cs+ukPXHbYQGgne/ug0PuXOSVqBu7zyXOc=
+github.com/xtls/xray-core v1.8.22 h1:vTVG+QcE+1Q5LnNMQujwZxI8aXIEcDua46AtslnlGH4=
+github.com/xtls/xray-core v1.8.22/go.mod h1:0CwyMPNA5Cs+ukPXHbYQGgne/ug0PuXOSVqBu7zyXOc=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
 github.com/yusufpapurcu/wmi v1.2.4/go.mod h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=
 go.opencensus.io v0.18.0/go.mod h1:vKdFvxhtzZ9onBp9VKHK8z/sRpBMnKAsufL7wlDrCOA=
