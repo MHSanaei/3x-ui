@@ -25,8 +25,11 @@
     <a-form-item label="Max Upload Size (Byte)">
         <a-input-number v-model="inbound.stream.splithttp.scMaxEachPostBytes" :min="0"></a-input-number>
     </a-form-item>
-    <a-form-item label="Min Upload Interval Ms">
+    <a-form-item label="Min Upload Interval (Ms)">
         <a-input-number v-model="inbound.stream.splithttp.scMinPostsIntervalMs" :min="0"></a-input-number>
+    </a-form-item>
+    <a-form-item label="No SSE Header">
+        <a-switch v-model="inbound.stream.splithttp.noSSEHeader"></a-switch>
     </a-form-item>
 </a-form>
 {{end}}
