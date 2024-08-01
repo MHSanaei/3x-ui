@@ -594,6 +594,7 @@
 "confirmResetTraffic" = "✅ Trafiği Sıfırlamayı Onayla?"
 "confirmClearIps" = "✅ IP'leri Temizlemeyi Onayla?"
 "confirmRemoveTGUser" = "✅ Telegram Kullanıcısını Kaldırmayı Onayla?"
+"confirmToggle" = "✅ Kullanıcıyı Etkinleştirme/Devre Dışı Bırakmayı Onayla?"
 "dbBackup" = "Veritabanı Yedeği Al"
 "serverUsage" = "Sunucu Kullanımı"
 "getInbounds" = "Gelenleri Al"
