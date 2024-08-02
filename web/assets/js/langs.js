@@ -39,6 +39,11 @@ const supportLangs = [
         value: 'uk-UA',
         icon: '🇺🇦',
     },
+    {
+        name: 'Türkçe',
+        value: 'tr-TR',
+        icon: '🇹🇷',
+    },
 ];
 
 function getLang() {
