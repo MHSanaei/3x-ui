@@ -648,7 +648,17 @@ class TlsStreamSettings extends XrayCommonClass {
 }
 
 TlsStreamSettings.Cert = class extends XrayCommonClass {
-    constructor(useFile=true, certificateFile='', keyFile='', certificate='', key='', ocspStapling=3600, oneTimeLoading=false, usage=USAGE_OPTION.ENCIPHERMENT) {
+    constructor(
+        useFile = true,
+        certificateFile = '',
+        keyFile = '',
+        certificate = '',
+        key = '',
+        ocspStapling = 3600,
+        oneTimeLoading = false,
+        usage = USAGE_OPTION.ENCIPHERMENT,
+        buildChain = false,
+    ) {
         super();
         this.useFile = useFile;
         this.certFile = certificateFile;
@@ -658,6 +668,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         this.ocspStapling = ocspStapling;
         this.oneTimeLoading = oneTimeLoading;
         this.usage = usage;
+        this.buildChain = buildChain
     }
 
     static fromJson(json={}) {
@@ -669,6 +680,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
+                json.buildChain,
             );
         } else {
             return new TlsStreamSettings.Cert(
@@ -678,6 +690,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
+                json.buildChain,
             );
         }
     }
@@ -690,6 +703,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
+                buildChain: this.buildChain,
             };
         } else {
             return {
@@ -698,6 +712,7 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
+                buildChain: this.buildChain,
             };
         }
     }
