@@ -18,7 +18,6 @@ type InboundController struct {
 }
 
 type AddClientPayload struct {
-	Id         int   `json:"id"`
 	Settings   string `json:"settings"`
 	InboundIds []int `json:"inboundIds"`
 }
@@ -205,7 +204,6 @@ func (a *InboundController) addClientToMultipleInbounds(c *gin.Context) {
 	}
 
 	data := &model.Inbound{
-		Id:       payload.Id,
 		Settings: payload.Settings,
 	}
 
