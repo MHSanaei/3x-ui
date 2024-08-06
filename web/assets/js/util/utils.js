@@ -16,6 +16,9 @@ class HttpUtil {
     }
 
     static _respToMsg(resp) {
+        if (!resp || !resp.data) {
+            return new Msg(false, 'No response data');
+        }
         const { data } = resp;
         if (data == null) {
             return new Msg(true);
@@ -34,7 +37,7 @@ class HttpUtil {
             return msg;
         } catch (error) {
             console.error('GET request failed:', error);
-            const errorMsg = new Msg(false, error.response?.data?.message || error.message);
+            const errorMsg = new Msg(false, error.response?.data?.message || error.message || 'Request failed');
             this._handleMsg(errorMsg);
             return errorMsg;
         }
@@ -48,7 +51,7 @@ class HttpUtil {
             return msg;
         } catch (error) {
             console.error('POST request failed:', error);
-            const errorMsg = new Msg(false, error.response?.data?.message || error.message);
+            const errorMsg = new Msg(false, error.response?.data?.message || error.message || 'Request failed');
             this._handleMsg(errorMsg);
             return errorMsg;
         }

@@ -83,11 +83,13 @@ func (a *IndexController) login(c *gin.Context) {
 		logger.Warning("Unable to get session's max age from DB")
 	}
 
-	if sessionMaxAge > 0 {
-		err = session.SetMaxAge(c, sessionMaxAge*60)
-		if err != nil {
-			logger.Warning("Unable to set session's max age")
-		}
+	if sessionMaxAge <= 0 {
+		sessionMaxAge = 60
+	}
+
+	err = session.SetMaxAge(c, sessionMaxAge*60)
+	if err != nil {
+		logger.Warning("Unable to set session's max age")
 	}
 
 	err = session.SetLoginUser(c, user)
