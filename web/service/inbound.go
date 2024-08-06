@@ -510,6 +510,112 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	return needRestart, tx.Save(oldInbound).Error
 }
 
+
+func (s *InboundService) AddClientToMultipleInbounds(data *model.Inbound, inboundIds []int) (bool, error) {
+    clients, err := s.GetClients(data)
+    if err != nil {
+        return false, err
+    }
+
+    var settings map[string]interface{}
+    err = json.Unmarshal([]byte(data.Settings), &settings)
+    if err != nil {
+        return false, err
+    }
+
+    interfaceClients := settings["clients"].([]interface{})
+
+    needRestart := false
+    db := database.GetDB()
+    tx := db.Begin()
+
+    defer func() {
+        if err != nil {
+            tx.Rollback()
+        } else {
+            tx.Commit()
+        }
+    }()
+
+    for _, inboundId := range inboundIds {
+        oldInbound, err := s.GetInbound(inboundId)
+        if err != nil {
+            return false, err
+        }
+
+        for _, client := range interfaceClients {
+            clientMap, ok := client.(map[string]interface{})
+            if !ok {
+                return false, common.NewError("Invalid client format")
+            }
+            for _, cl := range clients {
+                newEmail := cl.Email + "_" + strconv.Itoa(inboundId)
+				existEmail, err := s.checkEmailsExistForClients([]model.Client{{Email: newEmail}})
+				if err != nil {
+					return false, err
+				}
+				if existEmail != "" {
+					return false, common.NewError("Duplicate email:", existEmail)
+				}
+                clientMap["email"] = newEmail
+            }
+        }
+
+        var oldSettings map[string]interface{}
+        err = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+        if err != nil {
+            return false, err
+        }
+
+        oldClients := oldSettings["clients"].([]interface{})
+        oldClients = append(oldClients, interfaceClients...)
+        oldSettings["clients"] = oldClients
+
+        newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
+        if err != nil {
+            return false, err
+        }
+
+        oldInbound.Settings = string(newSettings)
+
+        s.xrayApi.Init(p.GetAPIPort())
+        for _, client := range clients {
+            client.Email = client.Email + "_" + strconv.Itoa(inboundId)
+            if len(client.Email) > 0 {
+                s.AddClientStat(tx, inboundId, &client)
+                if client.Enable {
+                    cipher := ""
+                    if oldInbound.Protocol == "shadowsocks" {
+                        cipher = oldSettings["method"].(string)
+                    }
+                    err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]interface{}{
+                        "email":    client.Email,
+                        "id":       client.ID,
+                        "flow":     client.Flow,
+                        "password": client.Password,
+                        "cipher":   cipher,
+                    })
+                    if err1 != nil {
+                        logger.Debug("Error in adding client by api:", err1)
+                        needRestart = true
+                    } else {
+                        logger.Debug("Client added by api:", client.Email)
+                    }
+                }
+            } else {
+                needRestart = true
+            }
+        }
+
+        if err := tx.Save(oldInbound).Error; err != nil {
+            return false, err
+        }
+        s.xrayApi.Close()
+    }
+
+    return needRestart, nil
+}
+
 func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool, error) {
 	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
