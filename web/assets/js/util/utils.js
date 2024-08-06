@@ -100,12 +100,22 @@ class RandomUtil {
     }
 
     static randomShortId() {
-        let str = '';
-        for (let i = 0; i < 8; ++i) {
-            str += seq[this.randomInt(16)];
+        const lengths = [2, 4, 6, 8, 10, 12, 14, 16];
+        for (let i = lengths.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [lengths[i], lengths[j]] = [lengths[j], lengths[i]];
         }
-        return str;
-    }
+
+        let shortIds = [];
+        for (let length of lengths) {
+            let shortId = '';
+            for (let i = 0; i < length; i++) {
+                shortId += seq[this.randomInt(16)];
+            }
+            shortIds.push(shortId);
+        }
+        return shortIds;
+    }    
 
     static randomLowerAndNum(len) {
         let str = '';
