@@ -261,9 +261,7 @@ func (a *InboundController) updateClientInMultipleInbounds(c *gin.Context) {
 		}
 	}
 
-    needRestart := true
-
-    needRestart, err = a.inboundService.UpdateClientInMultipleInbounds(data, subId, payload.InboundIds)
+    needRestart, err := a.inboundService.UpdateClientInMultipleInbounds(data, subId, payload.InboundIds)
     if err != nil {
         jsonMsg(c, "Something went wrong!", err)
         return
