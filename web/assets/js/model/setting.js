@@ -9,8 +9,8 @@ class AllSetting {
         this.webBasePath = "/";
         this.sessionMaxAge = 0;
         this.pageSize = 50;
-        this.expireDiff = "";
-        this.trafficDiff = "";
+        this.expireDiff = 0;
+        this.trafficDiff = 0;
         this.remarkModel = "-ieo";
         this.datepicker = "gregorian";
         this.tgBotEnable = false;
@@ -19,8 +19,8 @@ class AllSetting {
         this.tgBotChatId = "";
         this.tgRunTime = "@daily";
         this.tgBotBackup = false;
-        this.tgBotLoginNotify = false;
-        this.tgCpu = "";
+        this.tgBotLoginNotify = true;
+        this.tgCpu = 80;
         this.tgLang = "en-US";
         this.xrayTemplateConfig = "";
         this.secretEnable = false;
@@ -32,9 +32,9 @@ class AllSetting {
         this.subDomain = "";
         this.subCertFile = "";
         this.subKeyFile = "";
-        this.subUpdates = 0;
+        this.subUpdates = 12;
         this.subEncrypt = true;
-        this.subShowInfo = false;
+        this.subShowInfo = true;
         this.subURI = "";
         this.subJsonURI = "";
         this.subJsonFragment = "";
