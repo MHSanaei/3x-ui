@@ -26238,7 +26238,7 @@ var JSHINT = (function() {
   /**
    * The `expression` function is the heart of JSHint's parsing behaior. It is
    * based on the Pratt parser, but it extends that model with a `fud` method.
-   * Short for "first null denotation," it it similar to the `nud` ("null
+   * Short for "first null denotation," it is similar to the `nud` ("null
    * denotation") function, but it is only used on the first token of a
    * statement. This simplifies usage in statement-oriented languages like
    * JavaScript.
