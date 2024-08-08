@@ -470,6 +470,7 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 | `POST` | `"/addClientInbounds"`             | Add Client to inbounds                      |
 | `POST` | `"/:id/delClient/:clientId"`       | Delete Client by clientId\*                 |
 | `POST` | `"/updateClient/:clientId"`        | Update Client by clientId\*                 |
+| `POST` | `"/updateClientInbounds/:subId"`   | Update Client by subId\*                    |
 | `POST` | `"/:id/resetClientTraffic/:email"` | Reset Client's Traffic                      |
 | `POST` | `"/resetAllTraffics"`              | Reset traffics of all inbounds              |
 | `POST` | `"/resetAllClientTraffics/:id"`    | Reset traffics of all clients in an inbound |
