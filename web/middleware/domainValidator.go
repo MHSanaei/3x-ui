@@ -10,15 +10,9 @@ import (
 
 func DomainValidatorMiddleware(domain string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		host := c.GetHeader("X-Forwarded-Host")
-		if host == "" {
-			host = c.GetHeader("X-Real-IP")
-		}
-		if host == "" {
-			host = c.Request.Host
-			if colonIndex := strings.LastIndex(host, ":"); colonIndex != -1 {
-				host, _, _ = net.SplitHostPort(host)
-			}
+		host := c.Request.Host
+		if colonIndex := strings.LastIndex(host, ":"); colonIndex != -1 {
+			host, _, _ = net.SplitHostPort(c.Request.Host)
 		}
 
 		if host != domain {
