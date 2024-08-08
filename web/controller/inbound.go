@@ -41,6 +41,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/addClientInbounds", a.addClientToMultipleInbounds)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
+	g.POST("/updateClientInbounds/:subId", a.updateClientInMultipleInbounds)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
@@ -230,6 +231,43 @@ func (a *InboundController) addClientToMultipleInbounds(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+func (a *InboundController) updateClientInMultipleInbounds(c *gin.Context) {
+	var payload AddClientPayload
+    subId := c.Param("subId")
+
+    if err := c.ShouldBindJSON(&payload); err != nil {
+		jsonMsg(c, "Invalid request payload", err)
+		return
+	}
+
+	data := &model.Inbound{
+		Settings: payload.Settings,
+	}
+
+    // If no specific inbound IDs are provided, add to all inbounds
+	if len(payload.InboundIds) == 0 {
+		allInbounds, err := a.inboundService.GetAllInbounds()
+		if err != nil {
+			jsonMsg(c, "Could not retrieve inbounds", err)
+			return
+		}
+
+		for _, inbound := range allInbounds {
+			payload.InboundIds = append(payload.InboundIds, inbound.Id)
+		}
+	}
+
+    needRestart, err := a.inboundService.UpdateClientInMultipleInbounds(data, subId, payload.InboundIds)
+    if err != nil {
+        jsonMsg(c, "Something went wrong!", err)
+        return
+    }
+    jsonMsg(c, "Client updated in multiple inbounds", nil)
+    if needRestart {
+        a.xrayService.SetToNeedRestart()
+    }
 }
 
 func (a *InboundController) delInboundClient(c *gin.Context) {
