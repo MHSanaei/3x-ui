@@ -282,6 +282,9 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 
 	usersData[0].ID = client.ID
 	usersData[0].Level = 8
+	if inbound.Protocol == model.VMESS {
+		usersData[0].Security = client.Security
+	}
 	if inbound.Protocol == model.VLESS {
 		usersData[0].Flow = client.Flow
 		usersData[0].Encryption = "none"
@@ -371,6 +374,7 @@ type UserVnext struct {
 	Encryption string `json:"encryption,omitempty"`
 	Flow       string `json:"flow,omitempty"`
 	ID         string `json:"id"`
+	Security   string `json:"security,omitempty"`
 	Level      int    `json:"level"`
 }
 

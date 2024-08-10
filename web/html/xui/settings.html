@@ -523,7 +523,9 @@
         if (msg.success) {
           this.loading(true);
           await PromiseUtil.sleep(5000);
-          let { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+          var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+          if (host == this.oldAllSetting.webDomain) host = null;
+          if (port == this.oldAllSetting.webPort) port = null;
           const isTLS = webCertFile !== "" || webKeyFile !== "";
           const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
           window.location.replace(url);

@@ -69,6 +69,14 @@ const WireguardDomainStrategy = [
     "ForceIPv6v4"
 ];
 
+const USERS_SECURITY = {
+    AES_128_GCM: "aes-128-gcm",
+    CHACHA20_POLY1305: "chacha20-poly1305",
+    AUTO: "auto",
+    NONE: "none",
+    ZERO: "zero",
+};
+
 Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
@@ -76,6 +84,7 @@ Object.freeze(UTLS_FINGERPRINT);
 Object.freeze(ALPN_OPTION);
 Object.freeze(OutboundDomainStrategies);
 Object.freeze(WireguardDomainStrategy);
+Object.freeze(USERS_SECURITY);
 
 
 class CommonClass {
@@ -721,7 +730,7 @@ class Outbound extends CommonClass {
 
         const port = json.port * 1;
 
-        return new Outbound(json.ps, Protocols.VMess, new Outbound.VmessSettings(json.add, port, json.id), stream);
+        return new Outbound(json.ps, Protocols.VMess, new Outbound.VmessSettings(json.add, port, json.id, json.scy), stream);
     }
 
     static fromParamLink(link) {
@@ -923,11 +932,12 @@ Outbound.DNSSettings = class extends CommonClass {
     }
 };
 Outbound.VmessSettings = class extends CommonClass {
-    constructor(address, port, id) {
+    constructor(address, port, id, security) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
+        this.security = security;
     }
 
     static fromJson(json = {}) {
@@ -936,6 +946,7 @@ Outbound.VmessSettings = class extends CommonClass {
             json.vnext[0].address,
             json.vnext[0].port,
             json.vnext[0].users[0].id,
+            json.vnext[0].users[0].security,
         );
     }
 
@@ -944,7 +955,7 @@ Outbound.VmessSettings = class extends CommonClass {
             vnext: [{
                 address: this.address,
                 port: this.port,
-                users: [{ id: this.id }],
+                users: [{ id: this.id, security: this.security }],
             }],
         };
     }
