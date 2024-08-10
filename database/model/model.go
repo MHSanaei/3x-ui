@@ -10,7 +10,7 @@ import (
 type Protocol string
 
 const (
-	VMess       Protocol = "vmess"
+	VMESS       Protocol = "vmess"
 	VLESS       Protocol = "vless"
 	DOKODEMO    Protocol = "dokodemo-door"
 	HTTP        Protocol = "http"
@@ -86,6 +86,7 @@ type Setting struct {
 
 type Client struct {
 	ID         string `json:"id"`
+	Security   string `json:"security"`
 	Password   string `json:"password"`
 	Flow       string `json:"flow"`
 	Email      string `json:"email"`

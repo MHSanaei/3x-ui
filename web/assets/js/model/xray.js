@@ -110,6 +110,14 @@ const TCP_CONGESTION_OPTION = {
     RENO: "reno",
 };
 
+const USERS_SECURITY = {
+    AES_128_GCM: "aes-128-gcm",
+    CHACHA20_POLY1305: "chacha20-poly1305",
+    AUTO: "auto",
+    NONE: "none",
+    ZERO: "zero",
+};
+
 Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(XTLS_FLOW_CONTROL);
@@ -122,6 +130,7 @@ Object.freeze(SNIFFING_OPTION);
 Object.freeze(USAGE_OPTION);
 Object.freeze(DOMAIN_STRATEGY_OPTION);
 Object.freeze(TCP_CONGESTION_OPTION);
+Object.freeze(USERS_SECURITY);
 
 class XrayCommonClass {
 
@@ -1446,20 +1455,21 @@ class Inbound extends XrayCommonClass {
         this.sniffing = new Sniffing();
     }
 
-    genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId) {
+    genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId, security) {
         if (this.protocol !== Protocols.VMESS) {
             return '';
         }
-        const security = forceTls == 'same' ? this.stream.security : forceTls;
+        const tls = forceTls == 'same' ? this.stream.security : forceTls;
         let obj = {
             v: '2',
             ps: remark,
             add: address,
             port: port,
             id: clientId,
+            scy: security,
             net: this.stream.network,
             type: 'none',
-            tls: security,
+            tls: tls,
         };
         const network = this.stream.network;
         if (network === 'tcp') {
@@ -1870,7 +1880,7 @@ class Inbound extends XrayCommonClass {
     genLink(address = '', port = this.port, forceTls = 'same', remark = '', client) {
         switch (this.protocol) {
             case Protocols.VMESS:
-                return this.genVmessLink(address, port, forceTls, remark, client.id);
+                return this.genVmessLink(address, port, forceTls, remark, client.id, client.security);
             case Protocols.VLESS:
                 return this.genVLESSLink(address, port, forceTls, remark, client.id, client.flow);
             case Protocols.SHADOWSOCKS:
@@ -2007,24 +2017,24 @@ Inbound.Settings = class extends XrayCommonClass {
 
 Inbound.VmessSettings = class extends Inbound.Settings {
     constructor(protocol,
-        vmesses = [new Inbound.VmessSettings.Vmess()]) {
+        vmesses = [new Inbound.VmessSettings.VMESS()]) {
         super(protocol);
         this.vmesses = vmesses;
     }
 
     indexOfVmessById(id) {
-        return this.vmesses.findIndex(vmess => vmess.id === id);
+        return this.vmesses.findIndex(VMESS => VMESS.id === id);
     }
 
-    addVmess(vmess) {
-        if (this.indexOfVmessById(vmess.id) >= 0) {
+    addVmess(VMESS) {
+        if (this.indexOfVmessById(VMESS.id) >= 0) {
             return false;
         }
-        this.vmesses.push(vmess);
+        this.vmesses.push(VMESS);
     }
 
-    delVmess(vmess) {
-        const i = this.indexOfVmessById(vmess.id);
+    delVmess(VMESS) {
+        const i = this.indexOfVmessById(VMESS.id);
         if (i >= 0) {
             this.vmesses.splice(i, 1);
         }
@@ -2033,7 +2043,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.VmessSettings(
             Protocols.VMESS,
-            json.clients.map(client => Inbound.VmessSettings.Vmess.fromJson(client)),
+            json.clients.map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
     }
 
@@ -2043,10 +2053,23 @@ Inbound.VmessSettings = class extends Inbound.Settings {
         };
     }
 };
-Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
-    constructor(id = RandomUtil.randomUUID(), email = RandomUtil.randomLowerAndNum(8), limitIp = 0, totalGB = 0, expiryTime = 0, enable = true, tgId = '', subId = RandomUtil.randomLowerAndNum(16), reset = 0) {
+
+Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
+    constructor(
+        id = RandomUtil.randomUUID(),
+        security = USERS_SECURITY.AUTO,
+        email = RandomUtil.randomLowerAndNum(8),
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        enable = true,
+        tgId = '',
+        subId = RandomUtil.randomLowerAndNum(16),
+        reset = 0
+    ) {
         super();
         this.id = id;
+        this.security = security;
         this.email = email;
         this.limitIp = limitIp;
         this.totalGB = totalGB;
@@ -2058,8 +2081,9 @@ Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.VmessSettings.Vmess(
+        return new Inbound.VmessSettings.VMESS(
             json.id,
+            json.security,
             json.email,
             json.limitIp,
             json.totalGB,
@@ -2098,10 +2122,12 @@ Inbound.VmessSettings.Vmess = class extends XrayCommonClass {
 };
 
 Inbound.VLESSSettings = class extends Inbound.Settings {
-    constructor(protocol,
+    constructor(
+        protocol,
         vlesses = [new Inbound.VLESSSettings.VLESS()],
         decryption = 'none',
-        fallbacks = []) {
+        fallbacks = []
+    ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
@@ -2135,7 +2161,18 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 };
 
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
-    constructor(id = RandomUtil.randomUUID(), flow = '', email = RandomUtil.randomLowerAndNum(8), limitIp = 0, totalGB = 0, expiryTime = 0, enable = true, tgId = '', subId = RandomUtil.randomLowerAndNum(16), reset = 0) {
+    constructor(
+        id = RandomUtil.randomUUID(),
+        flow = '',
+        email = RandomUtil.randomLowerAndNum(8),
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        enable = true,
+        tgId = '',
+        subId = RandomUtil.randomLowerAndNum(16),
+        reset = 0
+    ) {
         super();
         this.id = id;
         this.flow = flow;

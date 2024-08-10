@@ -250,6 +250,7 @@ Our platform offers compatibility with a diverse range of architectures and devi
 - Spanish
 - Indonesian 
 - Ukrainian
+- Turkish
 
 
 ## Features
@@ -258,7 +259,7 @@ Our platform offers compatibility with a diverse range of architectures and devi
 - Search within all inbounds and clients
 - Dark/Light theme
 - Supports multi-user and multi-protocol
-- Supports protocols, including VMess, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP, wireguard
+- Supports protocols, including VMESS, VLESS, Trojan, Shadowsocks, Dokodemo-door, Socks, HTTP, wireguard
 - Supports XTLS native Protocols, including RPRX-Direct, Vision, REALITY
 - Traffic statistics, traffic limit, expiration time limit
 - Customizable Xray configuration templates

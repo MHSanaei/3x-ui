@@ -28,6 +28,11 @@
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
+        <a-form-item v-if="inbound.protocol === Protocols.VMESS" label='Security'>
+            <a-select v-model="clientsBulkModal.security" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
         <a-form-item label='Flow' v-if="clientsBulkModal.inbound.canEnableTlsFlow()">
             <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
@@ -146,6 +151,7 @@
         emailPostfix: "",
         subId: "",
         tgId: '',
+        security: "auto",
         flow: "",
         delayedStart: false,
         reset: 0,
@@ -168,6 +174,7 @@
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
                 if (clientsBulkModal.subId.length > 0) newClient.subId = clientsBulkModal.subId;
                 newClient.tgId = clientsBulkModal.tgId;
+                newClient.security = clientsBulkModal.security;
                 newClient.limitIp = clientsBulkModal.limitIp;
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
@@ -203,6 +210,7 @@
             this.emailPostfix = "";
             this.subId = "";
             this.tgId = '';
+            this.security = "auto";
             this.flow = "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
@@ -211,7 +219,7 @@
         },
         newClient(protocol) {
             switch (protocol) {
-                case Protocols.VMESS: return new Inbound.VmessSettings.Vmess();
+                case Protocols.VMESS: return new Inbound.VmessSettings.VMESS();
                 case Protocols.VLESS: return new Inbound.VLESSSettings.VLESS();
                 case Protocols.TROJAN: return new Inbound.TrojanSettings.Trojan();
                 case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings.Shadowsocks(clientsBulkModal.inbound.settings.shadowsockses[0].method);

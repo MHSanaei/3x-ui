@@ -61,7 +61,7 @@
         },
         addClient(protocol, clients) {
             switch (protocol) {
-                case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.Vmess());
+                case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.VMESS());
                 case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
                 case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
                 case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks(clients[0].method));

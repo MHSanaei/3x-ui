@@ -168,7 +168,7 @@ func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
-	if inbound.Protocol != model.VMess {
+	if inbound.Protocol != model.VMESS {
 		return ""
 	}
 	obj := map[string]interface{}{
@@ -281,6 +281,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 	obj["id"] = clients[clientIndex].ID
+	obj["scy"] = clients[clientIndex].Security
 
 	externalProxies, _ := stream["externalProxy"].([]interface{})
 
