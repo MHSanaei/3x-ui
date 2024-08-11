@@ -555,9 +555,9 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         path = '/',
         host = '',
         headers = [],
-        scMaxConcurrentPosts = 100,
-        scMaxEachPostBytes = 1000000,
-        scMinPostsIntervalMs = 30,
+        scMaxConcurrentPosts = "100-200",
+        scMaxEachPostBytes = "1000000-2000000",
+        scMinPostsIntervalMs = "10-50",
         noSSEHeader = false,
     ) {
         super();
