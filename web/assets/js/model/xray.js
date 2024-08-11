@@ -2296,8 +2296,20 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
         };
     }
 };
+
 Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
-    constructor(password = RandomUtil.randomSeq(10), flow = '', email = RandomUtil.randomLowerAndNum(8), limitIp = 0, totalGB = 0, expiryTime = 0, enable = true, tgId = '', subId = RandomUtil.randomLowerAndNum(16), reset = 0) {
+    constructor(
+        password = RandomUtil.randomSeq(10),
+        flow = '',
+        email = RandomUtil.randomLowerAndNum(8),
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        enable = true,
+        tgId = '',
+        subId = RandomUtil.randomLowerAndNum(16),
+        reset = 0
+    ) {
         super();
         this.password = password;
         this.flow = flow;
@@ -2442,7 +2454,18 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 };
 
 Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
-    constructor(method = '', password = RandomUtil.randomShadowsocksPassword(), email = RandomUtil.randomLowerAndNum(8), limitIp = 0, totalGB = 0, expiryTime = 0, enable = true, tgId = '', subId = RandomUtil.randomLowerAndNum(16), reset = 0) {
+    constructor(
+        method = '',
+        password = RandomUtil.randomShadowsocksPassword(),
+        email = RandomUtil.randomLowerAndNum(8),
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        enable = true,
+        tgId = '',
+        subId = RandomUtil.randomLowerAndNum(16),
+        reset = 0
+    ) {
         super();
         this.method = method;
         this.password = password;
@@ -2514,7 +2537,14 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
 };
 
 Inbound.DokodemoSettings = class extends Inbound.Settings {
-    constructor(protocol, address, port, network = 'tcp,udp', followRedirect = false, timeout = 0) {
+    constructor(
+        protocol,
+        address,
+        port,
+        network = 'tcp,udp',
+        followRedirect = false,
+        timeout = 30
+    ) {
         super(protocol);
         this.address = address;
         this.port = port;
