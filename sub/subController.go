@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/base64"
 	"net"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -54,7 +55,10 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
-	host := c.GetHeader("X-Forwarded-Host")
+	var host string
+	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err != nil {
+		host = h
+	}
 	if host == "" {
 		host = c.GetHeader("X-Real-IP")
 	}
@@ -89,7 +93,10 @@ func (a *SUBController) subs(c *gin.Context) {
 
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
-	host := c.GetHeader("X-Forwarded-Host")
+	var host string
+	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err != nil {
+		host = h
+	}
 	if host == "" {
 		host = c.GetHeader("X-Real-IP")
 	}
@@ -111,5 +118,19 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		c.Writer.Header().Set("Profile-Title", subId)
 
 		c.String(200, jsonSub)
+	}
+}
+
+func getHostFromXFH(s string) (host string, err error) {
+	// X-Forwarded-Host can actually be a host:port pair, so we need to
+	// split it
+	if strings.Contains(host, ":") {
+		if realHost, _, err := net.SplitHostPort(host); err == nil {
+			return realHost, nil
+		} else {
+			return "", err
+		}
+	} else {
+		return s, nil
 	}
 }
