@@ -56,7 +56,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err != nil {
+	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
 		host = h
 	}
 	if host == "" {
@@ -94,7 +94,7 @@ func (a *SUBController) subs(c *gin.Context) {
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
 	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err != nil {
+	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
 		host = h
 	}
 	if host == "" {
@@ -121,16 +121,13 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	}
 }
 
-func getHostFromXFH(s string) (host string, err error) {
-	// X-Forwarded-Host can actually be a host:port pair, so we need to
-	// split it
-	if strings.Contains(host, ":") {
-		if realHost, _, err := net.SplitHostPort(host); err == nil {
-			return realHost, nil
-		} else {
+func getHostFromXFH(s string) (string, error) {
+	if strings.Contains(s, ":") {
+		realHost, _, err := net.SplitHostPort(s)
+		if err != nil {
 			return "", err
 		}
-	} else {
-		return s, nil
+		return realHost, nil
 	}
+	return s, nil
 }
