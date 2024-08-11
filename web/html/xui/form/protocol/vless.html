@@ -9,12 +9,10 @@
     <table width="100%">
       <tr class="client-table-header">
         <th>{{ i18n "pages.inbounds.email" }}</th>
-        <th>Flow</th>
         <th>ID</th>
       </tr>
       <tr v-for="(client, index) in inbound.settings.vlesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
         <td>[[ client.email ]]</td>
-        <td>[[ client.flow ]]</td>
         <td>[[ client.id ]]</td>
       </tr>
     </table>
