@@ -398,7 +398,7 @@
 "OpenAIWARP" = "OpenAI (ChatGPT)"
 "OpenAIWARPDesc" = "Направляет трафик в OpenAI (ChatGPT) через WARP."
 "NetflixWARP" = "Netflix"
-"NetflixWARPDesc" = "Направляет трафик в Apple через WARP."
+"NetflixWARPDesc" = "Направляет трафик в Netflix через WARP."
 "MetaWARP" = "Мета"
 "MetaWARPDesc" = "Направляет трафик в Meta (Instagram, Facebook, WhatsApp, Threads...) через WARP."
 "AppleWARP" = "Apple"
