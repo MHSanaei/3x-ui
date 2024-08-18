@@ -616,11 +616,13 @@
 "confirmNumberAdd" = "✅ Confirmar agregando: {{ .Num }}"
 "limitTraffic" = "🚧 Límite de tráfico"
 "getBanLogs" = "Registros de prohibición"
+"allClients" = "Todos los Clientes"
 
 [tgbot.answers]
 "successfulOperation" = "✅ ¡Exitosa!"
 "errorOperation" = "❗ Error en la Operación."
 "getInboundsFailed" = "❌ Error al obtener las entradas"
+"getClientsFailed" = "❌ No se pudo obtener los clientes."
 "canceled" = "❌ {{ .Email }} : Operación cancelada."
 "clientRefreshSuccess" = "✅ {{ .Email }} : Cliente actualizado exitosamente."
 "IpRefreshSuccess" = "✅ {{ .Email }} : IPs actualizadas exitosamente."
@@ -635,4 +637,6 @@
 "removedTGUserSuccess" = "✅ {{ .Email }} : Usuario de Telegram eliminado exitosamente."
 "enableSuccess" = "✅ {{ .Email }} : Habilitado exitosamente."
 "disableSuccess" = "✅ {{ .Email }} : Deshabilitado exitosamente."
-"askToAddUserId" = "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su ID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu ID de usuario: <code>{{ .TgUserID }}</code>"
+"askToAddUserId" = "¡No se encuentra su configuración!\r\nPor favor, pídale a su administrador que use su ChatID de usuario de Telegram en su(s) configuración(es).\r\n\r\nSu ChatID de usuario: <code>{{ .TgUserID }}</code>"
+"chooseClient" = "Elige un Cliente para Inbound {{ .Inbound }}"
+"chooseInbound" = "Elige un Inbound"

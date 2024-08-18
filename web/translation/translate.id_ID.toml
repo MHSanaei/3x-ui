@@ -618,11 +618,13 @@
 "confirmNumberAdd" = "✅ Konfirmasi menambahkan: {{ .Num }}"
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
+"allClients" = "Semua Klien"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"
 "errorOperation" = "❗ Kesalahan dalam operasi."
 "getInboundsFailed" = "❌ Gagal mendapatkan inbounds."
+"getClientsFailed" = "❌ Gagal mendapatkan klien."
 "canceled" = "❌ {{ .Email }}: Operasi dibatalkan."
 "clientRefreshSuccess" = "✅ {{ .Email }}: Klien diperbarui dengan berhasil."
 "IpRefreshSuccess" = "✅ {{ .Email }}: IP diperbarui dengan berhasil."
@@ -637,4 +639,6 @@
 "removedTGUserSuccess" = "✅ {{ .Email }}: Pengguna Telegram dihapus dengan berhasil."
 "enableSuccess" = "✅ {{ .Email }}: Diaktifkan dengan berhasil."
 "disableSuccess" = "✅ {{ .Email }}: Dinonaktifkan dengan berhasil."
-"askToAddUserId" = "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ID Telegram Anda dalam konfigurasi Anda.\r\n\r\nID Pengguna Anda: <code>{{ .TgUserID }}</code>"
+"askToAddUserId" = "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ChatID Telegram Anda dalam konfigurasi Anda.\r\n\r\nChatID Pengguna Anda: <code>{{ .TgUserID }}</code>"
+"chooseClient" = "Pilih Klien untuk Inbound {{ .Inbound }}"
+"chooseInbound" = "Pilih Inbound"

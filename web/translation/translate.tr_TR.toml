@@ -618,11 +618,13 @@
 "confirmNumberAdd" = "✅ Ekleme onayı: {{ .Num }}"
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
+"allClients" = "Tüm Müşteriler"
 
 [tgbot.answers]
 "successfulOperation" = "✅ İşlem başarılı!"
 "errorOperation" = "❗ İşlemde hata."
 "getInboundsFailed" = "❌ Gelenler alınamadı."
+"getClientsFailed" = "❌ Müşteriler alınamadı."
 "canceled" = "❌ {{ .Email }}: İşlem iptal edildi."
 "clientRefreshSuccess" = "✅ {{ .Email }}: Müşteri başarıyla yenilendi."
 "IpRefreshSuccess" = "✅ {{ .Email }}: IP'ler başarıyla yenilendi."
@@ -637,4 +639,6 @@
 "removedTGUserSuccess" = "✅ {{ .Email }}: Telegram Kullanıcısı başarıyla kaldırıldı."
 "enableSuccess" = "✅ {{ .Email }}: Başarıyla etkinleştirildi."
 "disableSuccess" = "✅ {{ .Email }}: Başarıyla devre dışı bırakıldı."
-"askToAddUserId" = "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden yapılandırmalarınıza Telegram ID'nizi eklemesini isteyin.\r\n\r\nKullanıcı ID'niz: <code>{{ .TgUserID }}</code>"
+"askToAddUserId" = "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden yapılandırmalarınıza Telegram ChatID'nizi eklemesini isteyin.\r\n\r\nKullanıcı ChatID'niz: <code>{{ .TgUserID }}</code>"
+"chooseClient" = "Gelen {{ .Inbound }} için bir Müşteri Seçin"
+"chooseInbound" = "Bir Gelen Seçin"
