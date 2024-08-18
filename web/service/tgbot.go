@@ -2,6 +2,7 @@ package service
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
@@ -769,8 +770,40 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				} else {
 					t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 				}
+			case "get_clients":
+				inboundId := dataArray[1]
+				inboundIdInt, err := strconv.Atoi(inboundId)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				inbound, err := t.inboundService.GetInbound(inboundIdInt)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				clients, err := t.getInboundClients(inboundIdInt)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clients)
+
 			}
 			return
+		} else {
+			switch callbackQuery.Data {
+			case "get_inbounds":
+				inbounds, err := t.getInbounds()
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+
+				}
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.allClients"))
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
+			}
+
 		}
 	}
 
@@ -837,6 +870,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.commands")).WithCallbackData(t.encodeQuery("commands")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
 		),
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
@@ -1080,6 +1114,72 @@ func (t *Tgbot) getInboundUsages() string {
 		}
 	}
 	return info
+}
+
+func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
+	inbounds, err := t.inboundService.GetAllInbounds()
+	var buttons []telego.InlineKeyboardButton
+
+	if err != nil {
+		logger.Warning("GetAllInbounds run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	} else {
+		if len(inbounds) > 0 {
+			for _, inbound := range inbounds {
+				status := "❌"
+				if inbound.Enable {
+					status = "✅"
+				}
+				buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(t.encodeQuery("get_clients "+strconv.Itoa(inbound.Id))))
+			}
+		} else {
+			logger.Warning("GetAllInbounds run failed:", err)
+			return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+		}
+
+	}
+	cols := 0
+	if len(buttons) < 6 {
+		cols = 3
+	} else {
+		cols = 2
+	}
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+	return keyboard, nil
+}
+
+func (t *Tgbot) getInboundClients(id int) (*telego.InlineKeyboardMarkup, error) {
+	inbound, err := t.inboundService.GetInbound(id)
+	if err != nil {
+		logger.Warning("getIboundClients run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+	clients, err := t.inboundService.GetClients(inbound)
+	var buttons []telego.InlineKeyboardButton
+
+	if err != nil {
+		logger.Warning("GetInboundClients run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	} else {
+		if len(clients) > 0 {
+			for _, client := range clients {
+				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery("client_get_usage "+client.Email)))
+			}
+
+		} else {
+			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
+		}
+
+	}
+	cols := 0
+	if len(buttons) < 6 {
+		cols = 3
+	} else {
+		cols = 2
+	}
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+
+	return keyboard, nil
 }
 
 func (t *Tgbot) clientInfoMsg(
