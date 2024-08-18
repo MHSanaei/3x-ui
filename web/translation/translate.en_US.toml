@@ -618,11 +618,13 @@
 "confirmNumberAdd" = "✅ Confirm adding: {{ .Num }}"
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
+"allClients" = "All Clients"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"
 "errorOperation" = "❗ Error in operation."
 "getInboundsFailed" = "❌ Failed to get inbounds."
+"getClientsFailed" = "❌ Failed to get clients."
 "canceled" = "❌ {{ .Email }}: Operation canceled."
 "clientRefreshSuccess" = "✅ {{ .Email }}: Client refreshed successfully."
 "IpRefreshSuccess" = "✅ {{ .Email }}: IPs refreshed successfully."
@@ -638,3 +640,5 @@
 "enableSuccess" = "✅ {{ .Email }}: Enabled successfully."
 "disableSuccess" = "✅ {{ .Email }}: Disabled successfully."
 "askToAddUserId" = "Your configuration is not found!\r\nPlease ask your admin to use your Telegram ID in your configuration(s).\r\n\r\nYour User ID: <code>{{ .TgUserID }}</code>"
+"chooseClient" = "Choose a Client for Inbound {{ .Inbound }}"
+"chooseInbound" = "Choose an Inbound"
