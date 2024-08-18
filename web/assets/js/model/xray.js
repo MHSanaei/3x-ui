@@ -559,6 +559,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         scMaxEachPostBytes = "1000000-2000000",
         scMinPostsIntervalMs = "10-50",
         noSSEHeader = false,
+        xPaddingBytes = "100-1000",
     ) {
         super();
         this.path = path;
@@ -568,6 +569,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         this.scMaxEachPostBytes = scMaxEachPostBytes;
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.noSSEHeader = noSSEHeader;
+        this.xPaddingBytes = xPaddingBytes;
     }
 
     addHeader(name, value) {
@@ -587,6 +589,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             json.scMaxEachPostBytes,
             json.scMinPostsIntervalMs,
             json.noSSEHeader,
+            json.xPaddingBytes,
         );
     }
 
@@ -599,6 +602,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             scMaxEachPostBytes: this.scMaxEachPostBytes,
             scMinPostsIntervalMs: this.scMinPostsIntervalMs,
             noSSEHeader: this.noSSEHeader,
+            xPaddingBytes: this.xPaddingBytes,
         };
     }
 }

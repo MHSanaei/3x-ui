@@ -28,6 +28,9 @@
     <a-form-item label="Min Upload Interval (Ms)">
         <a-input v-model.trim="inbound.stream.splithttp.scMinPostsIntervalMs"></a-input>
     </a-form-item>
+    <a-form-item label="Padding Bytes">
+        <a-input v-model.trim="inbound.stream.splithttp.xPaddingBytes"></a-input>
+    </a-form-item>
     <a-form-item label="No SSE Header">
         <a-switch v-model="inbound.stream.splithttp.noSSEHeader"></a-switch>
     </a-form-item>
