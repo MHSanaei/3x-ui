@@ -34,7 +34,7 @@ RUN apk add --no-cache --update \
   python3 \
   py3-pip \
   py3-psutil \
-  py3-pycurl \
+  py3-curl \
   py3-pysocks \
   py3-dotenv \
   py3-cloudflare \
