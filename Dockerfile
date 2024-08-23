@@ -33,17 +33,13 @@ RUN apk add --no-cache --update \
   iproute2 \
   python3 \
   py3-pip \
-  && python3 -m ensurepip \
-  && pip3 install --upgrade pip
-
-# Install Python packages
-RUN pip3 install \
-    psutil \
-    pycurl \
-    pysocks \
-    python-dotenv \
-    cloudflare \
-    virtualenv
+  py3-psutil \
+  py3-pycurl \
+  py3-pysocks \
+  py3-dotenv \
+  py3-cloudflare \
+  py3-virtualenv
+    
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
