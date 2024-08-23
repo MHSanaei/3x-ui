@@ -29,7 +29,21 @@ RUN apk add --no-cache --update \
   ca-certificates \
   tzdata \
   fail2ban \
-  bash
+  bash \
+  iproute2 \
+  python3 \
+  py3-pip \
+  && python3 -m ensurepip \
+  && pip3 install --upgrade pip
+
+# Install Python packages
+RUN pip3 install \
+    psutil \
+    pycurl \
+    pysocks \
+    python-dotenv \
+    cloudflare \
+    virtualenv
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
