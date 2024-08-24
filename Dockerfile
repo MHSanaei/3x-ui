@@ -44,7 +44,6 @@ RUN apk add --no-cache --update \
   nano \
   netcat-openbsd \
   nginx \
-  openssh \
   socat \
   sqlite \
   tcptraceroute \
@@ -60,9 +59,20 @@ RUN apk add --no-cache --update \
   py3-dotenv \
   py3-cloudflare \
   py3-virtualenv
+ # openssh \
   # nginx-mod-stream \
   
 SHELL ["/bin/bash", "-c"]
+
+## Set up the SSH keys from an environment variable
+#ENV AUTHORIZED_KEYS=""
+#RUN echo "${AUTHORIZED_KEYS}" > /root/.ssh/authorized_keys && \
+#    chmod 600 /root/.ssh/authorized_keys
+
+## Configure SSH daemon
+#RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+#    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+    
 
 # # Configure SSH server
 # RUN mkdir /var/run/sshd && \
