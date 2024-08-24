@@ -31,11 +31,27 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   bash-completion \
-  cron \
+  bc \
+  supercronic \
   curl \
-  wget \
+  gawk \
+  git \
+  htop \
+  iptables \
+  iperf3 \
   iproute2 \
+  jq \
+  nano \
+  netcat-openbsd \
   nginx \
+  openssh \
+  socat \
+  sqlite \
+  tcptraceroute \
+  tcpdump \
+  tmux \
+  unzip \
+  wget \
   python3 \
   py3-pip \
   py3-psutil \
@@ -44,8 +60,17 @@ RUN apk add --no-cache --update \
   py3-dotenv \
   py3-cloudflare \
   py3-virtualenv
-    
+  # nginx-mod-stream \
+  
 SHELL ["/bin/bash", "-c"]
+
+# # Configure SSH server
+# RUN mkdir /var/run/sshd && \
+#     echo 'root:rootpassword' | chpasswd && \
+#     sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+#     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+#     ssh-keygen -A
+
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
