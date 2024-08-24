@@ -30,7 +30,12 @@ RUN apk add --no-cache --update \
   tzdata \
   fail2ban \
   bash \
+  bash-completion \
+  cron \
+  curl \
+  wget \
   iproute2 \
+  nginx \
   python3 \
   py3-pip \
   py3-psutil \
@@ -40,6 +45,7 @@ RUN apk add --no-cache --update \
   py3-cloudflare \
   py3-virtualenv
     
+SHELL ["/bin/bash", "-c"]
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
