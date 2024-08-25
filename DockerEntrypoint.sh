@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Start nginx in the background
+nginx
+
 # Start fail2ban
 fail2ban-client -x start
 
