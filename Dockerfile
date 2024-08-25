@@ -64,6 +64,9 @@ RUN apk add --no-cache --update \
   
 SHELL ["/bin/bash", "-c"]
 
+# Copy custom nginx configuration file to the http.d directory
+COPY ./nginx_http.conf /etc/nginx/http.d/
+
 ## Set up the SSH keys from an environment variable
 #ENV AUTHORIZED_KEYS=""
 #RUN echo "${AUTHORIZED_KEYS}" > /root/.ssh/authorized_keys && \
