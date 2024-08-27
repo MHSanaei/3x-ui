@@ -64,34 +64,13 @@ RUN apk add --no-cache --update \
   ssh-keygen -A && \
   echo "root:rootpassword" | chpasswd
 # Set up root password (for example purposes, you may want to use a more secure method in production)
- 
+
 # Set the default shell (during container creation) to bash 
-# SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-c"]
 
 # Creates SSH authorized_keys file, and generate SSH host keys  
 #   mkdir -p /root/.ssh && \
 #   touch /root/.ssh/authorized_keys && \
-
-# Copy and configure the sshd_config file
-RUN echo "Port 12297\n\
-Protocol 2\n\
-HostKey /etc/ssh/ssh_host_rsa_key\n\
-HostKey /etc/ssh/ssh_host_ecdsa_key\n\
-HostKey /etc/ssh/ssh_host_ed25519_key\n\
-LogLevel quiet\n\
-AllowAgentForwarding yes\n\
-AllowTcpForwarding yes\n\
-X11Forwarding no\n\
-LoginGraceTime 120\n\
-PermitRootLogin yes\n\
-StrictModes no\n\
-PubkeyAuthentication yes\n\
-IgnoreRhosts yes\n\
-HostbasedAuthentication no\n\
-ChallengeResponseAuthentication no\n" > /etc/ssh/sshd_config
-
-# Expose/announce the SSH port
-EXPOSE 12297
 
 # # Configure SSH server
 # RUN mkdir /var/run/sshd && \
@@ -105,8 +84,10 @@ COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
-# Copy custom nginx configuration file to the http.d directory
+# Copy custom configuration files to the container's directories
 COPY ./nginx_http.conf /etc/nginx/http.d/default.conf
+COPY ./sshd_config /etc/ssh/sshd_config
+
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -120,6 +101,9 @@ RUN chmod +x \
   /app/x-ui \
   /usr/bin/x-ui
 
-VOLUME [ "/etc/x-ui" ]
+# Expose/announce the SSH port
+EXPOSE 12297
+
+VOLUME [ "/etc/x-ui", "/root/" ]
 CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]
