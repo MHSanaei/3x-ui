@@ -90,8 +90,6 @@ IgnoreRhosts yes\n\
 HostbasedAuthentication no\n\
 ChallengeResponseAuthentication no\n" > /etc/ssh/sshd_config
 
-# PermitEmptyPasswords yes\n\
-
 # Expose/announce the SSH port
 EXPOSE 12297
 
