@@ -44,6 +44,7 @@ RUN apk add --no-cache --update \
   nano \
   netcat-openbsd \
   nginx \
+  openssh \
   socat \
   sqlite \
   tcptraceroute \
@@ -58,24 +59,41 @@ RUN apk add --no-cache --update \
   py3-pysocks \
   py3-dotenv \
   py3-cloudflare \
-  py3-virtualenv
- # openssh \
-  # nginx-mod-stream \
-  
-SHELL ["/bin/bash", "-c"]
+  py3-virtualenv && \
+  rm -rf /var/cache/apk/* && \
+  ssh-keygen -A && \
+  echo "root:rootpassword" | chpasswd
+# Set up root password (for example purposes, you may want to use a more secure method in production)
+ 
+# Set the default shell (during container creation) to bash 
+# SHELL ["/bin/bash", "-c"]
 
-# Copy custom nginx configuration file to the http.d directory
-COPY ./nginx_http.conf /etc/nginx/http.d/
+# Creates SSH authorized_keys file, and generate SSH host keys  
+#   mkdir -p /root/.ssh && \
+#   touch /root/.ssh/authorized_keys && \
 
-## Set up the SSH keys from an environment variable
-#ENV AUTHORIZED_KEYS=""
-#RUN echo "${AUTHORIZED_KEYS}" > /root/.ssh/authorized_keys && \
-#    chmod 600 /root/.ssh/authorized_keys
+# Copy and configure the sshd_config file
+RUN echo "Port 12297\n\
+Protocol 2\n\
+HostKey /etc/ssh/ssh_host_rsa_key\n\
+HostKey /etc/ssh/ssh_host_ecdsa_key\n\
+HostKey /etc/ssh/ssh_host_ed25519_key\n\
+LogLevel quiet\n\
+AllowAgentForwarding yes\n\
+AllowTcpForwarding yes\n\
+X11Forwarding no\n\
+LoginGraceTime 120\n\
+PermitRootLogin yes\n\
+StrictModes no\n\
+PubkeyAuthentication yes\n\
+IgnoreRhosts yes\n\
+HostbasedAuthentication no\n\
+ChallengeResponseAuthentication no\n" > /etc/ssh/sshd_config
 
-## Configure SSH daemon
-#RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-#    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
-    
+# PermitEmptyPasswords yes\n\
+
+# Expose/announce the SSH port
+EXPOSE 12297
 
 # # Configure SSH server
 # RUN mkdir /var/run/sshd && \
@@ -89,6 +107,8 @@ COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
+# Copy custom nginx configuration file to the http.d directory
+COPY ./nginx_http.conf /etc/nginx/http.d/default.conf
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
