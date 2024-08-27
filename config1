@@ -1,0 +1,17 @@
+Port 12297
+Protocol 2
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ecdsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+LogLevel quiet
+AllowAgentForwarding yes
+AllowTcpForwarding yes
+X11Forwarding no
+LoginGraceTime 120
+PermitRootLogin yes
+StrictModes no
+PubkeyAuthentication yes
+IgnoreRhosts yes
+HostbasedAuthentication no
+PermitEmptyPasswords yes
+ChallengeResponseAuthentication no
