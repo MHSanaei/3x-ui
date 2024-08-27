@@ -81,7 +81,8 @@ SHELL ["/bin/bash", "-c"]
 
 
 COPY --from=builder /app/build/ /app/
-COPY --from=builder /app/DockerEntrypoint.sh /app/
+##COPY --from=builder /app/DockerEntrypoint.sh /app/
+COPY ./DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
 # Copy custom configuration files to the container's directories
