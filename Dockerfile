@@ -32,7 +32,6 @@ RUN apk add --no-cache --update \
   bash \
   bash-completion \
   bc \
-  supercronic \
   curl \
   gawk \
   git \
@@ -47,6 +46,7 @@ RUN apk add --no-cache --update \
   openssh \
   socat \
   sqlite \
+  supercronic \
   tcptraceroute \
   tcpdump \
   tmux \
@@ -88,6 +88,7 @@ COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 # Copy custom configuration files to the container's directories
 COPY ./nginx_http.conf /etc/nginx/http.d/default.conf
 COPY ./sshd_config /etc/ssh/sshd_config
+COPY ./crontab /app/
 
 
 # Configure fail2ban
