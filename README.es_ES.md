@@ -259,7 +259,7 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
   - http://domain:2053/panel
 - **Ruta del Panel Web con Implementación de SSL:**
   - https://domain:2053/panel
- 
+
 </details>
 
 ## Configuración WARP
@@ -313,9 +313,9 @@ Si deseas usar enrutamiento a WARP antes de la versión v2.1.0, sigue los pasos 
     1. Usa el comando `x-ui` dentro de la terminal.
     2. Selecciona `Gestión de Límite de IP`.
     3. Elige las opciones apropiadas según tus necesidades.
-   
+
   - asegúrate de tener ./access.log en tu Configuración de Xray después de la v2.1.3 tenemos una opción para ello
-  
+
   ```sh
     "log": {
       "access": "./access.log",
@@ -373,7 +373,7 @@ El panel web admite tráfico diario, inicio de sesión en el panel, copia de seg
 
 - Inicia [Botfather](https://t.me/BotFather) en tu cuenta de Telegram:
     ![Botfather](./media/botfather.png)
-  
+
 - Crea un nuevo bot usando el comando /newbot: Te hará 2 preguntas, Un nombre y un nombre de usuario para tu bot. Ten en cuenta que el nombre de usuario debe terminar con la palabra "bot".
     ![Create new bot](./media/newbot.png)
 

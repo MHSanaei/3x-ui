@@ -248,7 +248,7 @@ Our platform offers compatibility with a diverse range of architectures and devi
 - Russian
 - Vietnamese
 - Spanish
-- Indonesian 
+- Indonesian
 - Ukrainian
 - Turkish
 
@@ -363,7 +363,7 @@ To enable the IP Limit functionality, you need to install `fail2ban` and its req
    - **Uninstall Fail2ban:** Uninstall Fail2ban with configuration.
 
 3. Add a path for the access log on the panel by setting `Xray Configs/log/Access log` to `./access.log` then save and restart xray.
-   
+
 - **For versions before `v2.1.3`:**
   - You need to set the access log path manually in your Xray configuration:
 
@@ -415,19 +415,19 @@ The web panel supports daily traffic, panel login, database backup, system statu
 - Threshold for Expiration time and Traffic to report in advance
 - Support client report menu if client's telegram username added to the user's configurations
 - Support telegram traffic report searched with UUID (VMESS/VLESS) or Password (TROJAN) - anonymously
-- Menu based bot
-- Search client by email ( only admin )
+- Menu-based bot
+- Search client by email (only admin)
 - Check all inbounds
 - Check server status
 - Check depleted users
 - Receive backup by request and in periodic reports
-- Multi language bot
+- Multi-language bot
 
 ### Setting up Telegram bot
 
 - Start [Botfather](https://t.me/BotFather) in your Telegram account:
     ![Botfather](./media/botfather.png)
-  
+
 - Create a new Bot using /newbot command: It will ask you 2 questions, A name and a username for your bot. Note that the username has to end with the word "bot".
     ![Create new bot](./media/newbot.png)
 
