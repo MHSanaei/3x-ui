@@ -166,7 +166,7 @@ systemctl restart x-ui
     docker compose up -d
    ```
 
-从Docker中删除3x-ui 
+从Docker中删除3x-ui
 
    ```sh
     docker stop 3x-ui
@@ -258,7 +258,7 @@ systemctl restart x-ui
   - http://domain:2053/panel
 - **面板链接（有SSL）：**
   - https://domain:2053/panel
- 
+
 </details>
 
 ## WARP 配置
@@ -312,9 +312,9 @@ systemctl restart x-ui
     1. 使用面板内置的 `x-ui` 指令
     2. 选择 `IP Limit Management`.
     3. 根据您的需要选择合适的选项。
-   
+
   - 确保您的 Xray 配置上有 ./access.log 。在 v2.1.3 之后，我们有一个选项。
-  
+
   ```sh
     "log": {
       "access": "./access.log",
@@ -372,7 +372,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 
 - 与 [Botfather](https://t.me/BotFather) 对话：
     ![Botfather](./media/botfather.png)
-  
+
 - 使用 /newbot 创建新机器人：你需要提供机器人名称以及用户名，注意名称中末尾要包含“bot”
     ![创建机器人](./media/newbot.png)
 
