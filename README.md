@@ -415,13 +415,13 @@ The web panel supports daily traffic, panel login, database backup, system statu
 - Threshold for Expiration time and Traffic to report in advance
 - Support client report menu if client's telegram username added to the user's configurations
 - Support telegram traffic report searched with UUID (VMESS/VLESS) or Password (TROJAN) - anonymously
-- Menu based bot
-- Search client by email ( only admin )
+- Menu-based bot
+- Search client by email (only admin)
 - Check all inbounds
 - Check server status
 - Check depleted users
 - Receive backup by request and in periodic reports
-- Multi language bot
+- Multi-language bot
 
 ### Setting up Telegram bot
 
