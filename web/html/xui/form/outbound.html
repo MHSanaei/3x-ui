@@ -22,6 +22,9 @@
             <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
+        <a-form-item label='Timeout'>
+          <a-input-number v-model.number="outbound.settings.timeout" min="0" ></a-input-number>
+        </a-form-item>
         <a-form-item label='Fragment'>
           <a-switch :checked="Object.keys(outbound.settings.fragment).length >0" @change="checked => outbound.settings.fragment = checked ? new Outbound.FreedomSettings.Fragment() : {}"></a-switch>
         </a-form-item>
@@ -36,6 +39,17 @@
           </a-form-item>
           <a-form-item label='Interval'>
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
+          </a-form-item>
+        </template>
+        <a-form-item label='Noise'>
+          <a-switch :checked="Object.keys(outbound.settings.noise).length >0" @change="checked => outbound.settings.noise = checked ? new Outbound.FreedomSettings.Noise() : {}"></a-switch>
+        </a-form-item>
+        <template v-if="Object.keys(outbound.settings.noise).length >0">
+          <a-form-item label='Packets'>
+            <a-input v-model.trim="outbound.settings.noise.packets"></a-input>
+          </a-form-item>
+          <a-form-item label='Delay'>
+            <a-input v-model.trim="outbound.settings.noise.delay"></a-input>
           </a-form-item>
         </template>
       </template>
@@ -95,10 +109,10 @@
           </a-select>
         </a-form-item>
         <a-form-item label='MTU'>
-          <a-input-number v-model.number="outbound.settings.mtu"></a-input-number>
+          <a-input-number v-model.number="outbound.settings.mtu" min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='Workers'>
-          <a-input-number min="0" v-model.number="outbound.settings.workers"></a-input-number>
+          <a-input-number v-model.number="outbound.settings.workers" min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='Kernel Mode'>
           <a-switch v-model="outbound.settings.kernelMode"></a-switch>
@@ -257,25 +271,25 @@
             <a-input v-model="outbound.stream.kcp.seed"></a-input>
           </a-form-item>
           <a-form-item label='MTU'>
-            <a-input-number v-model.number="outbound.stream.kcp.mtu"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.mtu" min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='TTI (ms)'>
-            <a-input-number v-model.number="outbound.stream.kcp.tti"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.tti" min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Uplink (MB/s)'>
-            <a-input-number v-model.number="outbound.stream.kcp.upCap"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.upCap" min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Downlink (MB/s)'>
-            <a-input-number v-model.number="outbound.stream.kcp.downCap"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.downCap" min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Congestion'>
             <a-switch v-model="outbound.stream.kcp.congestion"></a-switch>
           </a-form-item>
           <a-form-item label='Read Buffer (MB)'>
-            <a-input-number v-model.number="outbound.stream.kcp.readBuffer"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.readBuffer" min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Write Buffer (MB)'>
-            <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.writeBuffer" min="0"></a-input-number>
           </a-form-item>
         </template>
 

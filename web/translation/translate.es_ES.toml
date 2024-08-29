@@ -312,6 +312,8 @@
 "fragment" = "Fragmentación"
 "fragmentDesc" = "Habilitar la fragmentación para el paquete de saludo de TLS"
 "fragmentSett" = "Configuración de Fragmentación"
+"noiseDesc" = "Activar Noise."
+"noiseSett" = "Configuración de Noise"
 "mux" = "Mux"
 "muxDesc" = "Transmite múltiples flujos de datos independientes dentro de un flujo de datos establecido."
 "muxSett" = "Configuración Mux"

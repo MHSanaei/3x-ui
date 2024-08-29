@@ -312,6 +312,8 @@
 "fragment" = "Parçalama"
 "fragmentDesc" = "TLS merhaba paketinin parçalanmasını etkinleştir."
 "fragmentSett" = "Parçalama Ayarları"
+"noiseDesc" = "Noise'i Etkinleştir."
+"noiseSett" = "Noise Ayarları"
 "mux" = "Mux"
 "muxDesc" = "Kurulmuş bir veri akışında birden çok bağımsız veri akışını iletir."
 "muxSett" = "Mux Ayarları"

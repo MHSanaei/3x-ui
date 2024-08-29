@@ -316,6 +316,24 @@
                   <a-list-item style="padding: 20px">
                     <a-row>
                       <a-col :lg="24" :xl="12">
+                        <a-list-item-meta title='Noise'>
+                          <template slot="description">{{ i18n "pages.settings.noiseDesc"}}</template>
+                        </a-list-item-meta>
+                      </a-col>
+                      <a-col :lg="24" :xl="12">
+                        <a-switch v-model="noise"></a-switch>
+                      </a-col>
+                    </a-row>
+                    <a-collapse v-if="noise" style="margin-top: 14px;">
+                      <a-collapse-panel header='{{ i18n "pages.settings.noiseSett"}}' v-if="noise">
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packets' v-model="noisePackets" placeholder="rand:5-10"></setting-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay' v-model="noiseDelay" placeholder="5-10"></setting-list-item>
+                      </a-collapse-panel>
+                    </a-collapse>
+                  </a-list-item>
+                  <a-list-item style="padding: 20px">
+                    <a-row>
+                      <a-col :lg="24" :xl="12">
                         <a-list-item-meta title='{{ i18n "pages.settings.mux"}}'>
                           <template slot="description">{{ i18n "pages.settings.muxDesc"}}</template>
                         </a-list-item-meta>
@@ -411,6 +429,17 @@
             tcpNoDelay: true
           }
         }
+      },
+      defaultNoise: {
+        tag: "noise",
+        protocol: "freedom",
+        settings: {
+          domainStrategy: "AsIs",
+          noise: {
+            packets: "rand:5-10",
+            delay: "5-10",
+          }
+        },
       },
       defaultMux: {
         enabled: true,
@@ -608,6 +637,32 @@
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.settings.fragment.interval = v;
             this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+          }
+        }
+      },
+      noise: {
+        get: function () { return this.allSetting?.subJsonNoise != ""; },
+        set: function (v) {
+          this.allSetting.subJsonNoise = v ? JSON.stringify(this.defaultNoise) : "";
+        }
+      },
+      noisePackets: {
+        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.packets : ""; },
+        set: function (v) {
+          if (v != "") {
+            newNoise = JSON.parse(this.allSetting.subJsonNoise);
+            newNoise.settings.noise.packets = v;
+            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
+          }
+        }
+      },
+      noiseDelay: {
+        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.delay : ""; },
+        set: function (v) {
+          if (v != "") {
+            newNoise = JSON.parse(this.allSetting.subJsonNoise);
+            newNoise.settings.noise.delay = v;
+            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
           }
         }
       },
