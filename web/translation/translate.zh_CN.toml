@@ -312,6 +312,8 @@
 "fragment" = "分片"
 "fragmentDesc" = "启用 TLS hello 数据包分片"
 "fragmentSett" = "设置"
+"noiseDesc" = "启用 Noise."
+"noiseSett" = "Noise 设置"
 "mux" = "多路复用器"
 "muxDesc" = "在已建立的数据流内传输多个独立的数据流"
 "muxSett" = "复用器设置"

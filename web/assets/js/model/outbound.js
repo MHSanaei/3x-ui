@@ -861,23 +861,34 @@ Outbound.Settings = class extends CommonClass {
     }
 };
 Outbound.FreedomSettings = class extends CommonClass {
-    constructor(domainStrategy = '', fragment = {}) {
+    constructor(
+        domainStrategy = '',
+        timeout = '',
+        fragment = {},
+        noise = {}
+    ) {
         super();
         this.domainStrategy = domainStrategy;
+        this.timeout = timeout;
         this.fragment = fragment;
+        this.noise = noise;
     }
 
     static fromJson(json = {}) {
         return new Outbound.FreedomSettings(
             json.domainStrategy,
+            json.timeout,
             json.fragment ? Outbound.FreedomSettings.Fragment.fromJson(json.fragment) : undefined,
+            json.noise ? Outbound.FreedomSettings.Noise.fromJson(json.noise) : undefined,
         );
     }
 
     toJson() {
         return {
             domainStrategy: ObjectUtil.isEmpty(this.domainStrategy) ? undefined : this.domainStrategy,
+            timeout: this.timeout,
             fragment: Object.keys(this.fragment).length === 0 ? undefined : this.fragment,
+            noise: Object.keys(this.noise).length === 0 ? undefined : this.noise,
         };
     }
 };
@@ -897,6 +908,21 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
         );
     }
 };
+Outbound.FreedomSettings.Noise = class extends CommonClass {
+    constructor(packets = '', delay = '') {
+        super();
+        this.packets = packets;
+        this.delay = delay;
+    }
+
+    static fromJson(json = {}) {
+        return new Outbound.FreedomSettings.Noise(
+            json.packets,
+            json.delay,
+        );
+    }
+};
+
 Outbound.BlackholeSettings = class extends CommonClass {
     constructor(type) {
         super();
