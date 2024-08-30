@@ -326,8 +326,8 @@
                     </a-row>
                     <a-collapse v-if="noise" style="margin-top: 14px;">
                       <a-collapse-panel header='{{ i18n "pages.settings.noiseSett"}}' v-if="noise">
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Packets' v-model="noisePackets" placeholder="rand:5-10"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay' v-model="noiseDelay" placeholder="5-10"></setting-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet (ms)' v-model="noisePacket" placeholder="rand:5-10"></setting-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' v-model="noiseDelay" placeholder="10-20"></setting-list-item>
                       </a-collapse-panel>
                     </a-collapse>
                   </a-list-item>
@@ -436,8 +436,8 @@
         settings: {
           domainStrategy: "AsIs",
           noise: {
-            packets: "rand:5-10",
-            delay: "5-10",
+            packet: "rand:5-10",
+            delay: "10-20",
           }
         },
       },
@@ -646,12 +646,12 @@
           this.allSetting.subJsonNoise = v ? JSON.stringify(this.defaultNoise) : "";
         }
       },
-      noisePackets: {
-        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.packets : ""; },
+      noisePacket: {
+        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.packet : ""; },
         set: function (v) {
           if (v != "") {
             newNoise = JSON.parse(this.allSetting.subJsonNoise);
-            newNoise.settings.noise.packets = v;
+            newNoise.settings.noise.packet = v;
             this.allSetting.subJsonNoise = JSON.stringify(newNoise);
           }
         }
