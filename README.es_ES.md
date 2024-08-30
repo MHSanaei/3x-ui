@@ -196,7 +196,7 @@ location / {
 ```
 
 #### Nginx sub-path
-- EAsegúrese de que la «ruta raíz url del panel» en la configuración del panel `/sub` es la misma.
+- EAsegúrese de que la "Ruta Raíz de la URL del Panel" en la configuración del panel `/sub` es la misma.
 - El `url` en la configuración del panel debe terminar con `/`.   
 
 ```nginx

@@ -221,7 +221,7 @@ location / {
 ```
 
 #### Nginx sub-path
-- Ensure that the “panel url root path” in the `/sub` panel settings is the same.
+- Ensure that the "URI Path" in the `/sub` panel settings is the same.
 - The `url` in the panel settings needs to end with `/`.   
 
 ```nginx
