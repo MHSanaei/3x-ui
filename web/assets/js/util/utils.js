@@ -99,13 +99,15 @@ class RandomUtil {
         return str;
     }
 
-    static randomShortId() {
+    /** @return {string} */
+    static randomShortIds() {
         const lengths = [2, 4, 6, 8, 10, 12, 14, 16];
         for (let i = lengths.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [lengths[i], lengths[j]] = [lengths[j], lengths[i]];
         }
 
+        /** @type {string[]} */
         let shortIds = [];
         for (let length of lengths) {
             let shortId = '';
@@ -114,7 +116,7 @@ class RandomUtil {
             }
             shortIds.push(shortId);
         }
-        return shortIds;
+        return shortIds.join(',');
     }    
 
     static randomLowerAndNum(len) {
