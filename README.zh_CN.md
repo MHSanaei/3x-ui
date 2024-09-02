@@ -1,4 +1,4 @@
-[English](/README.md) | [汉语](/README.zh_Hans.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
@@ -32,10 +32,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## 安装指定版本
 
-要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.3.13`:
+要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.3.14`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.13
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.14
 ```
 
 ## SSL 认证
@@ -166,7 +166,7 @@ systemctl restart x-ui
     docker compose up -d
    ```
 
-从Docker中删除3x-ui 
+从Docker中删除3x-ui
 
    ```sh
     docker stop 3x-ui
@@ -177,6 +177,42 @@ systemctl restart x-ui
 
 </details>
 
+
+## Nginx 设置
+<details>
+  <summary>点击查看 反向代理配置</summary>
+
+#### Nginx反向代理
+```nginx
+location / {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+
+#### Nginx子路径
+- 确保 `/sub` 面板设置中的"面板url根路径"一致
+- 面板设置中的 `url` 需要以 `/` 结尾   
+
+```nginx
+location /sub {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+</details>
 
 ## 建议使用的操作系统
 
@@ -258,7 +294,7 @@ systemctl restart x-ui
   - http://domain:2053/panel
 - **面板链接（有SSL）：**
   - https://domain:2053/panel
- 
+
 </details>
 
 ## WARP 配置
@@ -312,9 +348,9 @@ systemctl restart x-ui
     1. 使用面板内置的 `x-ui` 指令
     2. 选择 `IP Limit Management`.
     3. 根据您的需要选择合适的选项。
-   
+
   - 确保您的 Xray 配置上有 ./access.log 。在 v2.1.3 之后，我们有一个选项。
-  
+
   ```sh
     "log": {
       "access": "./access.log",
@@ -372,7 +408,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 
 - 与 [Botfather](https://t.me/BotFather) 对话：
     ![Botfather](./media/botfather.png)
-  
+
 - 使用 /newbot 创建新机器人：你需要提供机器人名称以及用户名，注意名称中末尾要包含“bot”
     ![创建机器人](./media/newbot.png)
 

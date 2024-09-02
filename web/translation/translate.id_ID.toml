@@ -312,6 +312,8 @@
 "fragment" = "Fragmentasi"
 "fragmentDesc" = "Aktifkan fragmentasi untuk paket hello TLS"
 "fragmentSett" = "Pengaturan Fragmentasi"
+"noiseDesc" = "Aktifkan Noise."
+"noiseSett" = "Pengaturan Noise"
 "mux" = "Mux"
 "muxDesc" = "Mengirimkan beberapa aliran data independen dalam aliran data yang sudah ada."
 "muxSett" = "Pengaturan Mux"

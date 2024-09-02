@@ -1,4 +1,4 @@
-[English](/README.md) | [汉语](/README.zh_Hans.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
 
@@ -32,10 +32,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Instalar una Versión Personalizada
 
-Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.3.13`:
+Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.3.14`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.13
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.14
 ```
 
 ## Certificado SSL
@@ -177,6 +177,41 @@ eliminar 3x-ui de docker
 
 </details>
 
+## Configuración de Nginx
+<details>
+  <summary>Haga clic aquí para configurar el proxy inverso</summary>
+
+#### Proxy inverso Nginx
+```nginx
+location / {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+
+#### Nginx sub-path
+- EAsegúrese de que la "Ruta Raíz de la URL del Panel" en la configuración del panel `/sub` es la misma.
+- El `url` en la configuración del panel debe terminar con `/`.   
+
+```nginx
+location /sub {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+</details>
 
 ## SO Recomendados
 
@@ -259,7 +294,7 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
   - http://domain:2053/panel
 - **Ruta del Panel Web con Implementación de SSL:**
   - https://domain:2053/panel
- 
+
 </details>
 
 ## Configuración WARP
@@ -313,9 +348,9 @@ Si deseas usar enrutamiento a WARP antes de la versión v2.1.0, sigue los pasos 
     1. Usa el comando `x-ui` dentro de la terminal.
     2. Selecciona `Gestión de Límite de IP`.
     3. Elige las opciones apropiadas según tus necesidades.
-   
+
   - asegúrate de tener ./access.log en tu Configuración de Xray después de la v2.1.3 tenemos una opción para ello
-  
+
   ```sh
     "log": {
       "access": "./access.log",
@@ -373,7 +408,7 @@ El panel web admite tráfico diario, inicio de sesión en el panel, copia de seg
 
 - Inicia [Botfather](https://t.me/BotFather) en tu cuenta de Telegram:
     ![Botfather](./media/botfather.png)
-  
+
 - Crea un nuevo bot usando el comando /newbot: Te hará 2 preguntas, Un nombre y un nombre de usuario para tu bot. Ten en cuenta que el nombre de usuario debe terminar con la palabra "bot".
     ![Create new bot](./media/newbot.png)
 

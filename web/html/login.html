@@ -416,19 +416,19 @@
               <a-col span="24">
                 <a-form>
                   <a-form-item>
-                    <a-input autocomplete="username" v-model.trim="user.username" placeholder='{{ i18n "username" }}'
+                    <a-input autocomplete="username" name="username" v-model.trim="user.username" placeholder='{{ i18n "username" }}'
                              @keydown.enter.native="login" autofocus>
                       <a-icon slot="prefix" type="user" style="font-size: 16px;"></a-icon>
                     </a-input>
                   </a-form-item>
                   <a-form-item>
-                    <password-input autocomplete="current-password" icon="lock" v-model.trim="user.password"
+                    <password-input autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
                                     placeholder='{{ i18n "password" }}'
                                     @keydown.enter.native="login">
                     </password-input>
                   </a-form-item>
                   <a-form-item v-if="secretEnable">
-                    <password-input autocomplete="secret" icon="key" v-model.trim="user.loginSecret"
+                    <password-input autocomplete="secret" name="secret" icon="key" v-model.trim="user.loginSecret"
                                     placeholder='{{ i18n "secretToken" }}'
                                     @keydown.enter.native="login">
                     </password-input>

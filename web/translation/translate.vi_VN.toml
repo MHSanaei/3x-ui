@@ -312,6 +312,8 @@
 "fragment" = "Sự phân mảnh"
 "fragmentDesc" = "Kích hoạt phân mảnh cho gói TLS hello"
 "fragmentSett" = "Cài đặt phân mảnh"
+"noiseDesc" = "Bật Noise."
+"noiseSett" = "Cài đặt Noise"
 "mux" = "Mux"
 "muxDesc" = "Truyền nhiều luồng dữ liệu độc lập trong luồng dữ liệu đã thiết lập."
 "muxSett" = "Mux Cài đặt"

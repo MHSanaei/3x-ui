@@ -60,10 +60,10 @@
       <a-switch v-model="inbound.stream.tls.rejectUnknownSni"></a-switch>
     </a-form-item>
     <a-form-item label="Disable System Root">
-      <a-switch v-model="inbound.stream.tls.settings.disableSystemRoot"></a-switch>
+      <a-switch v-model="inbound.stream.tls.disableSystemRoot"></a-switch>
     </a-form-item>
     <a-form-item label="Session Resumption">
-      <a-switch v-model="inbound.stream.tls.settings.enableSessionResumption"></a-switch>
+      <a-switch v-model="inbound.stream.tls.enableSessionResumption"></a-switch>
     </a-form-item>
     <template v-for="cert,index in inbound.stream.tls.certs">
       <a-form-item label='{{ i18n "certificate" }}'>
