@@ -864,12 +864,14 @@ Outbound.FreedomSettings = class extends CommonClass {
     constructor(
         domainStrategy = '',
         timeout = '',
+        redirect = '',
         fragment = {},
         noise = {}
     ) {
         super();
         this.domainStrategy = domainStrategy;
         this.timeout = timeout;
+        this.redirect = redirect;
         this.fragment = fragment;
         this.noise = noise;
     }
@@ -878,6 +880,7 @@ Outbound.FreedomSettings = class extends CommonClass {
         return new Outbound.FreedomSettings(
             json.domainStrategy,
             json.timeout,
+            json.redirect,
             json.fragment ? Outbound.FreedomSettings.Fragment.fromJson(json.fragment) : undefined,
             json.noise ? Outbound.FreedomSettings.Noise.fromJson(json.noise) : undefined,
         );
@@ -887,6 +890,7 @@ Outbound.FreedomSettings = class extends CommonClass {
         return {
             domainStrategy: ObjectUtil.isEmpty(this.domainStrategy) ? undefined : this.domainStrategy,
             timeout: this.timeout,
+            redirect: this.redirect,
             fragment: Object.keys(this.fragment).length === 0 ? undefined : this.fragment,
             noise: Object.keys(this.noise).length === 0 ? undefined : this.noise,
         };
