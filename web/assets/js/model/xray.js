@@ -914,7 +914,7 @@ class RealityStreamSettings extends XrayCommonClass {
         minClient = '',
         maxClient = '',
         maxTimediff = 0,
-        shortIds = RandomUtil.randomShortId(),
+        shortIds = RandomUtil.randomShortIds(),
         settings = new RealityStreamSettings.Settings()
     ) {
         super();

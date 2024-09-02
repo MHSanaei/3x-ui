@@ -189,7 +189,7 @@
         <a-tooltip>
           <template slot="title">
             <span>{{ i18n "reset" }}</span>
-          </template> Short ID <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortId()" type="sync"></a-icon>
+          </template> Short IDs <a-icon @click="inbound.stream.reality.shortIds = RandomUtil.randomShortIds()" type="sync"></a-icon>
         </a-tooltip>
       </template>
       <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
