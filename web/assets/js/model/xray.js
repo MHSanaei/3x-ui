@@ -921,13 +921,11 @@ class RealityStreamSettings extends XrayCommonClass {
         this.show = show;
         this.xver = xver;
         this.dest = dest;
-        /** @type {string} */
         this.serverNames = Array.isArray(serverNames) ? serverNames.join(",") : serverNames;
         this.privateKey = privateKey;
         this.minClient = minClient;
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
-        /** @type {string} */
         this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds; 
         this.settings = settings;
     }
