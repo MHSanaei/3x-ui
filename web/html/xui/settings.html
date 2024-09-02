@@ -296,18 +296,7 @@
                     </a-row>
                     <a-collapse v-if="fragment" style="margin-top: 14px;">
                       <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
-                        <a-list-item style="padding: 10px 20px">
-                          <a-row>
-                            <a-col :lg="24" :xl="12">
-                              <a-list-item-meta title='Packets'></a-list-item-meta>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                              <a-select v-model="fragmentPackets" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p" :label="p" v-for="p in ['1-1', '1-3', 'tlshello']"> [[ p ]] </a-select-option>
-                              </a-select>
-                            </a-col>
-                          </a-row>
-                        </a-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packets' v-model="fragmentPackets" placeholder="1-1 | 1-3 | tlshello | ..."></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="text" title='Length' v-model="fragmentLength" placeholder="100-200"></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="text" title='Interval' v-model="fragmentInterval" placeholder="10-20"></setting-list-item>
                       </a-collapse-panel>
