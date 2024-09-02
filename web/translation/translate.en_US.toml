@@ -620,7 +620,7 @@
 "confirmNumberAdd" = "✅ Confirm adding: {{ .Num }}"
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
-"allClients" = "All Clients"
+"allClients" = "All Inbounds"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"
