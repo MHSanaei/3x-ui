@@ -44,6 +44,11 @@ const supportLangs = [
         value: 'tr-TR',
         icon: '🇹🇷',
     },
+    {
+        name: "Português",
+        value: "pt-BR",
+        icon: "🇧🇷",
+    },
 ];
 
 function getLang() {
