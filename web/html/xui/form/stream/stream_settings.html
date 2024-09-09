@@ -8,7 +8,6 @@
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
             <a-select-option value="http">H2</a-select-option>
-            <a-select-option value="quic">QUIC</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
             <a-select-option value="splithttp">SplitHTTP</a-select-option>
@@ -34,11 +33,6 @@
 <!-- http -->
 <template v-if="inbound.stream.network === 'http'">
     {{template "form/streamHTTP"}}
-</template>
-
-<!-- quic -->
-<template v-if="inbound.stream.network === 'quic'">
-    {{template "form/streamQUIC"}}
 </template>
 
 <!-- grpc -->

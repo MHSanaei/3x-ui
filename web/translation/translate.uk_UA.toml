@@ -225,9 +225,6 @@
 "requestHeader" = "Заголовок запиту"
 "responseHeader" = "Заголовок відповіді"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Шифрування"
-
 [pages.settings]
 "title" = "Параметри панелі"
 "save" = "Зберегти"

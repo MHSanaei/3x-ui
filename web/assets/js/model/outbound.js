@@ -471,7 +471,6 @@ class StreamSettings extends CommonClass {
         this.kcp = kcpSettings;
         this.ws = wsSettings;
         this.http = httpSettings;
-        this.quic = quicSettings;
         this.grpc = grpcSettings;
         this.httpupgrade = httpupgradeSettings;
         this.splithttp = splithttpSettings;
@@ -523,7 +522,6 @@ class StreamSettings extends CommonClass {
             kcpSettings: network === 'kcp' ? this.kcp.toJson() : undefined,
             wsSettings: network === 'ws' ? this.ws.toJson() : undefined,
             httpSettings: network === 'http' ? this.http.toJson() : undefined,
-            quicSettings: network === 'quic' ? this.quic.toJson() : undefined,
             grpcSettings: network === 'grpc' ? this.grpc.toJson() : undefined,
             httpupgradeSettings: network === 'httpupgrade' ? this.httpupgrade.toJson() : undefined,
             splithttpSettings: network === 'splithttp' ? this.splithttp.toJson() : undefined,
@@ -591,7 +589,7 @@ class Outbound extends CommonClass {
 
     canEnableTls() {
         if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol)) return false;
-        return ["tcp", "ws", "http", "quic", "grpc", "httpupgrade", "splithttp"].includes(this.stream.network);
+        return ["tcp", "ws", "http", "grpc", "httpupgrade", "splithttp"].includes(this.stream.network);
     }
 
     //this is used for xtls-rprx-vision
@@ -707,11 +705,6 @@ class Outbound extends CommonClass {
             stream.http = new HttpStreamSettings(
                 json.path,
                 json.host);
-        } else if (network === 'quic') {
-            stream.quic = new QuicStreamSettings(
-                json.host ? json.host : 'none',
-                json.path,
-                json.type ? json.type : 'none');
         } else if (network === 'grpc') {
             stream.grpc = new GrpcStreamSettings(json.path, json.authority, json.type == 'multi');
         } else if (network === 'httpupgrade') {
@@ -753,11 +746,6 @@ class Outbound extends CommonClass {
             stream.ws = new WsStreamSettings(path, host);
         } else if (type === 'http' || type == 'h2') {
             stream.http = new HttpStreamSettings(path, host);
-        } else if (type === 'quic') {
-            stream.quic = new QuicStreamSettings(
-                url.searchParams.get('quicSecurity') ?? 'none',
-                url.searchParams.get('key') ?? '',
-                headerType ?? 'none');
         } else if (type === 'grpc') {
             stream.grpc = new GrpcStreamSettings(
                 url.searchParams.get('serviceName') ?? '',

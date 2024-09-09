@@ -239,7 +239,6 @@
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
             <a-select-option value="http">H2</a-select-option>
-            <a-select-option value="quic">QUIC</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
             <a-select-option value="splithttp">SplitHTTP</a-select-option>
@@ -317,31 +316,7 @@
             <a-input v-model.trim="outbound.stream.http.path"></a-input>
           </a-form-item>
         </template>
-
-        <!-- quic -->
-        <template v-if="outbound.stream.network === 'quic'">
-          <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
-            <a-select v-model="outbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="aes-128-gcm">AES-128-GCM</a-select-option>
-              <a-select-option value="chacha20-poly1305">CHACHA20-POLY1305</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label='{{ i18n "password" }}'>
-            <a-input v-model.trim="outbound.stream.quic.key"></a-input>
-          </a-form-item>
-          <a-form-item label='{{ i18n "camouflage" }}'>
-            <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="srtp">SRTP</a-select-option>
-              <a-select-option value="utp">uTP</a-select-option>
-              <a-select-option value="wechat-video">WeChat</a-select-option>
-              <a-select-option value="dtls">DTLS 1.2</a-select-option>
-              <a-select-option value="wireguard">WireGuard</a-select-option>
-            </a-select>
-          </a-form-item>
-        </template>
-
+        
         <!-- grpc -->
         <template v-if="outbound.stream.network === 'grpc'">
           <a-form-item label='Service Name'>

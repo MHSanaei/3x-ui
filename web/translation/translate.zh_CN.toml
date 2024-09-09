@@ -225,9 +225,6 @@
 "requestHeader" = "请求头"
 "responseHeader" = "响应头"
 
-[pages.inbounds.stream.quic]
-"encryption" = "加密"
-
 [pages.settings]
 "title" = "面板设置"
 "save" = "保存"

@@ -225,9 +225,6 @@
 "requestHeader" = "Заголовок запроса"
 "responseHeader" = "Заголовок ответа"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Шифрование"
-
 [pages.settings]
 "title" = "Настройки"
 "save" = "Сохранить"
