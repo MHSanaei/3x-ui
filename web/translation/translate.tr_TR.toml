@@ -225,9 +225,6 @@
 "requestHeader" = "İstek Başlığı"
 "responseHeader" = "Yanıt Başlığı"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Şifreleme"
-
 [pages.settings]
 "title" = "Panel Ayarları"
 "save" = "Kaydet"

@@ -268,13 +268,13 @@ func (s *SubJsonService) realityData(rData map[string]interface{}) map[string]in
 	rltyData["spiderX"] = "/" + random.Seq(15)
 	shortIds, ok := rData["shortIds"].([]interface{})
 	if ok && len(shortIds) > 0 {
-		rltyData["shortId"] = shortIds
+		rltyData["shortId"] = shortIds[random.Num(len(shortIds))].(string)
 	} else {
 		rltyData["shortId"] = ""
 	}
 	serverNames, ok := rData["serverNames"].([]interface{})
 	if ok && len(serverNames) > 0 {
-		rltyData["serverName"] = serverNames
+		rltyData["serverName"] = serverNames[random.Num(len(serverNames))].(string)
 	} else {
 		rltyData["serverName"] = ""
 	}

@@ -225,9 +225,6 @@
 "requestHeader" = "Cabeçalho da Requisição"
 "responseHeader" = "Cabeçalho da Resposta"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Criptografia"
-
 [pages.settings]
 "title" = "Configurações do Painel"
 "save" = "Salvar"

@@ -225,9 +225,6 @@
 "requestHeader" = "سربرگ درخواست"
 "responseHeader" = "سربرگ پاسخ"
 
-[pages.inbounds.stream.quic]
-"encryption" = "رمزنگاری"
-
 [pages.settings]
 "title" = "تنظیمات پنل"
 "save" = "ذخیره"

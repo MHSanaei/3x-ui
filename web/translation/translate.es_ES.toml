@@ -225,9 +225,6 @@
 "requestHeader" = "Encabezado de solicitud"
 "responseHeader" = "Encabezado de respuesta"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Cifrado"
-
 [pages.settings]
 "title" = "Configuraciones"
 "save" = "Guardar"
