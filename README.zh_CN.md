@@ -38,30 +38,52 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.3.15
 ```
 
-## SSL 认证
+### SSL证书
 
 <details>
-  <summary>点击查看 SSL 认证</summary>
+  <summary>点击查看SSL证书详情</summary>
 
-### Cloudflare
+### ACME
 
-管理脚本具有用于 Cloudflare 的内置 SSL 证书应用程序。若要使用此脚本申请证书，需要满足以下条件：
+使用ACME管理SSL证书：
 
-- Cloudflare 邮箱地址
-- Cloudflare Global API Key
-- 域名已通过 cloudflare 解析到当前服务器
+1. 确保您的域名正确解析到服务器。
+2. 在终端中运行 `x-ui` 命令，然后选择 `SSL证书管理`。
+3. 您将看到以下选项：
 
-**1:** 在终端中运行`x-ui`， 选择 `Cloudflare SSL Certificate`.
-
+   - **获取SSL证书:** 获取SSL证书。
+   - **吊销:** 吊销现有的SSL证书。
+   - **强制更新:** 强制更新SSL证书。
 
 ### Certbot
-```
+
+安装并使用Certbot：
+
+```sh
 apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
 
-***Tip:*** *管理脚本具有 Certbot 。使用 `x-ui` 命令， 选择 `SSL Certificate Management`.*
+### Cloudflare
+
+管理脚本内置了Cloudflare的SSL证书申请。要使用此脚本申请证书，您需要以下信息：
+
+- Cloudflare注册的电子邮件
+- Cloudflare全局API密钥
+- 域名必须通过Cloudflare解析到当前服务器
+
+**如何获取Cloudflare全局API密钥：**
+
+1. 在终端中运行 `x-ui` 命令，然后选择 `Cloudflare SSL证书`。
+2. 访问链接：[Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens)。
+3. 点击“查看全局API密钥”（参见下图）：
+   ![](media/APIKey1.PNG)
+4. 您可能需要重新验证您的账户。之后将显示API密钥（参见下图）：
+   ![](media/APIKey2.png)
+
+使用时，只需输入您的 `域名`、`电子邮件` 和 `API密钥`。如下图所示：
+   ![](media/DetailEnter.png)
 
 </details>
 
@@ -276,88 +298,100 @@ location /sub {
 - 支持从面板导出/导入数据库
 
 
-## 默认设置
+## 默认面板设置
 
 <details>
-  <summary>点击查看 默认设置</summary>
+  <summary>点击查看默认设置详情</summary>
 
-  ### 信息
+### 用户名 & 密码 & Web基础路径：
 
-- **端口：** 2053
-- **用户名 & 密码：** 当您跳过设置时，此项会随机生成。
-- **数据库路径：**
-  - /etc/x-ui/x-ui.db
-- **Xray 配置路径：**
-  - /usr/local/x-ui/bin/config.json
-- **面板链接（无SSL）：**
-  - http://ip:2053/panel
-  - http://domain:2053/panel
-- **面板链接（有SSL）：**
-  - https://domain:2053/panel
+  如果不修改这些，它们将会随机生成。
+
+  - **端口号:** 面板的默认端口号是 `2053`
+
+### 数据库管理：
+
+  您可以直接在面板中方便地进行数据库备份和还原。
+
+- **数据库路径:**
+  - `/etc/x-ui/x-ui.db`
+
+### Web 基础路径
+
+1. **重置 Web 基础路径:**
+   - 打开终端。
+   - 运行 `x-ui` 命令。
+   - 选择 `重置 Web 基础路径` 选项。
+
+2. **生成或自定义路径:**
+   - 路径将会随机生成，或者您可以输入自定义路径。
+
+3. **查看当前设置:**
+   - 要查看当前设置，请在终端中使用 `x-ui settings` 命令，或在 `x-ui` 面板中点击 `查看当前设置`。
+
+### 安全建议：
+- 为了提高安全性，建议在URL结构中使用一个长的随机词。
+
+**示例：**
+- `http://ip:port/*webbasepath*/panel`
+- `http://domain:port/*webbasepath*/panel`
 
 </details>
 
 ## WARP 配置
 
 <details>
-  <summary>点击查看 WARP 配置</summary>
+  <summary>点击查看 WARP 配置详情</summary>
 
-#### 使用
+#### 使用方法
 
-如果要在 v2.1.0 之前使用 WARP 路由，请按照以下步骤操作：
+**对于 `v2.1.0` 及之后的版本：**
 
-**1.** 在 **SOCKS Proxy Mode** 模式中安装Wrap
-
-   ```sh
-   bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
-   ```
-
-**2.** 如果您已经安装了 warp，您可以使用以下命令卸载：
-
-   ```sh
-   warp u
-   ```
-
-**3.** 在面板中打开您需要的配置
-
-   配置:
-
-   - Block Ads
-   - Route Google + Netflix + Spotify + OpenAI (ChatGPT) to WARP
-   - Fix Google 403 error
+WARP 已内置，无需额外安装。只需在面板中开启相关配置即可。
 
 </details>
 
 ## IP 限制
 
 <details>
-  <summary>点击查看 IP 限制</summary>
+  <summary>点击查看 IP 限制详情</summary>
 
-#### 使用
+#### 使用方法
 
-**注意：** 使用 IP 隧道时，IP 限制无法正常工作。
+**注意:** 当使用 IP 隧道时，IP 限制将无法正常工作。
 
-- 适用于最高 `v1.6.1` ：
+- **对于 `v1.6.1` 及之前的版本：**
+  - IP 限制功能已内置于面板中。
 
-  - IP 限制 已被集成在面板中。
+**对于 `v1.7.0` 及更新的版本：**
 
-- 适用于 `v1.7.0` 以及更新的版本：
+要启用 IP 限制功能，您需要安装 `fail2ban` 及其所需的文件，步骤如下：
 
-  - 要使 IP 限制正常工作，您需要按照以下步骤安装 fail2ban 及其所需的文件：
+1. 在终端中运行 `x-ui` 命令，然后选择 `IP 限制管理`。
+2. 您将看到以下选项：
 
-    1. 使用面板内置的 `x-ui` 指令
-    2. 选择 `IP Limit Management`.
-    3. 根据您的需要选择合适的选项。
+   - **更改封禁时长:** 调整封禁时长。
+   - **解除所有封禁:** 解除当前的所有封禁。
+   - **查看日志:** 查看日志。
+   - **Fail2ban 状态:** 检查 `fail2ban` 的状态。
+   - **重启 Fail2ban:** 重启 `fail2ban` 服务。
+   - **卸载 Fail2ban:** 卸载带有配置的 Fail2ban。
 
-  - 确保您的 Xray 配置上有 ./access.log 。在 v2.1.3 之后，我们有一个选项。
+3. 在面板中通过设置 `Xray 配置/log/访问日志` 为 `./access.log` 添加访问日志路径，然后保存并重启 Xray。
 
-  ```sh
+- **对于 `v2.1.3` 之前的版本：**
+  - 您需要在 Xray 配置中手动设置访问日志路径：
+
+    ```sh
     "log": {
       "access": "./access.log",
       "dnsLog": false,
       "loglevel": "warning"
     },
-  ```
+    ```
+
+- **对于 `v2.1.3` 及之后的版本：**
+  - 面板中直接提供了配置 `access.log` 的选项。
 
 </details>
 
