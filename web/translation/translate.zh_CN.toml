@@ -422,6 +422,10 @@
 "accessLogDesc" = "访问日志的文件路径。特殊值 'none' 禁用访问日志"
 "errorLog" = "错误日志"
 "errorLogDesc" = "错误日志的文件路径。特殊值 'none' 禁用错误日志"
+"dnsLog" = "DNS 日志"
+"dnsLogDesc" = "是否启用 DNS 查询日志"
+"maskAddress" = "隐藏地址"
+"maskAddressDesc" = "IP 地址掩码，启用时会自动替换日志中出现的 IP 地址。"
 
 [pages.xray.rules]
 "first" = "置顶"
