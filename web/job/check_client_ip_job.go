@@ -36,10 +36,11 @@ func (j *CheckClientIpJob) Run() {
 	}
 
 	shouldClearAccessLog := false
+	iplimitActive := j.hasLimitIp()
 	f2bInstalled := j.checkFail2BanInstalled()
-	isAccessLogAvailable := j.checkAccessLogAvailable()
+	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
-	if j.hasLimitIp() {
+	if iplimitActive {
 		if f2bInstalled && isAccessLogAvailable {
 			shouldClearAccessLog = j.processLogFile()
 		} else {
@@ -123,7 +124,7 @@ func (j *CheckClientIpJob) processLogFile() bool {
 		line := scanner.Text()
 
 		ipRegx, _ := regexp.Compile(`from \[?([0-9a-fA-F:.]+)\]?:\d+ accepted`)
-		emailRegx, _ := regexp.Compile(`email:.+`)
+		emailRegx, _ := regexp.Compile(`email: (\S+)$`)
 
 		matches := ipRegx.FindStringSubmatch(line)
 		if len(matches) > 1 {
@@ -136,7 +137,7 @@ func (j *CheckClientIpJob) processLogFile() bool {
 			if matchesEmail == "" {
 				continue
 			}
-			matchesEmail = strings.TrimSpace(strings.Split(matchesEmail, "email: ")[1])
+			matchesEmail = strings.Split(matchesEmail, "email: ")[1]
 
 			if InboundClientIps[matchesEmail] != nil {
 				if j.contains(InboundClientIps[matchesEmail], ip) {
@@ -174,19 +175,20 @@ func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
 	return err == nil
 }
 
-func (j *CheckClientIpJob) checkAccessLogAvailable() bool {
-	isAvailable := true
+func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false
 	}
 
-	switch accessLogPath {
-	case "none", "":
-		isAvailable = false
+	if accessLogPath == "none" || accessLogPath == "" {
+		if iplimitActive {
+			logger.Warning("Access log path is not set, and IP limit is active. Please configure the access log path.")
+		}
+		return false
 	}
 
-	return isAvailable
+	return true
 }
 
 func (j *CheckClientIpJob) checkError(e error) {
