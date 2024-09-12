@@ -422,6 +422,10 @@
 "accessLogDesc" = "La ruta del archivo para el registro de acceso. El valor especial 'ninguno' deshabilita los registros de acceso"
 "errorLog" = "Registro de Errores"
 "errorLogDesc" = "La ruta del archivo para el registro de errores. El valor especial 'none' desactiva los registros de errores."
+"dnsLog" = "Registro DNS"
+"dnsLogDesc" = "Si habilitar los registros de consulta DNS"
+"maskAddress" = "Enmascarar Dirección"
+"maskAddressDesc" = "Máscara de dirección IP, cuando se habilita, reemplazará automáticamente la dirección IP que aparece en el registro."
 
 [pages.xray.rules]
 "first" = "Primero"

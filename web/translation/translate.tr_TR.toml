@@ -422,6 +422,10 @@
 "accessLogDesc" = "Erişim günlüğü için dosya yolu. 'none' özel değeri erişim günlüklerini devre dışı bırakır"
 "errorLog" = "Hata Günlüğü"
 "errorLogDesc" = "Hata günlüğü için dosya yolu. 'none' özel değeri hata günlüklerini devre dışı bırakır"
+"dnsLog" = "DNS Günlüğü"
+"dnsLogDesc" = "DNS sorgu günlüklerini etkinleştirin"
+"maskAddress" = "Adres Maskesi"
+"maskAddressDesc" = "IP adresi maskesi, etkinleştirildiğinde, günlükte görünen IP adresini otomatik olarak değiştirecektir."
 
 [pages.xray.rules]
 "first" = "İlk"

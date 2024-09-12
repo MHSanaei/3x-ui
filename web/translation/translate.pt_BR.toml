@@ -422,6 +422,10 @@
 "accessLogDesc" = "O caminho do arquivo para o log de acesso. O valor especial 'none' desativa os logs de acesso."
 "errorLog" = "Log de Erros"
 "errorLogDesc" = "O caminho do arquivo para o log de erros. O valor especial 'none' desativa os logs de erro."
+"dnsLog" = "Log DNS"
+"dnsLogDesc" = "Se ativar logs de consulta DNS"
+"maskAddress" = "Mascarar Endereço"
+"maskAddressDesc" = "Máscara de endereço IP, quando ativado, substitui automaticamente o endereço IP que aparece no log."
 
 [pages.xray.rules]
 "first" = "Primeiro"

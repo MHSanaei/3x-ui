@@ -422,6 +422,10 @@
 "accessLogDesc" = "Jalur file untuk log akses. Nilai khusus 'tidak ada' menonaktifkan log akses"
 "errorLog" = "Catatan eror"
 "errorLogDesc" = "Jalur file untuk log kesalahan. Nilai khusus 'tidak ada' menonaktifkan log kesalahan"
+"dnsLog" = "Log DNS"
+"dnsLogDesc" = "Apakah akan mengaktifkan log kueri DNS"
+"maskAddress" = "Alamat Masker"
+"maskAddressDesc" = "Masker alamat IP, ketika diaktifkan, akan secara otomatis mengganti alamat IP yang muncul di log."
 
 [pages.xray.rules]
 "first" = "Pertama"

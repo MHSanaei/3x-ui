@@ -422,6 +422,10 @@
 "accessLogDesc" = "The file path for the access log. The special value 'none' disabled access logs"
 "errorLog" = "Error Log"
 "errorLogDesc" = "The file path for the error log. The special value 'none' disabled error logs"
+"dnsLog" = "DNS Log"
+"dnsLogDesc" = "Whether to enable DNS query logs"
+"maskAddress" = "Mask Address"
+"maskAddressDesc" = "IP address mask, when enabled, will automatically replace the IP address that appears in the log."
 
 [pages.xray.rules]
 "first" = "First"
