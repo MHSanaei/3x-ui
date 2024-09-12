@@ -138,7 +138,7 @@
                   <setting-list-item type="text" title='{{ i18n "pages.settings.publicKeyPath"}}' desc='{{ i18n "pages.settings.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
+                  <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="60"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
