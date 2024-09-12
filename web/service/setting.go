@@ -32,7 +32,7 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
-	"sessionMaxAge":      "0",
+	"sessionMaxAge":      "60",
 	"pageSize":           "50",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
