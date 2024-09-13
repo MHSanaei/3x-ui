@@ -706,9 +706,7 @@
             let category = '';
             if (["cn", "private"].includes(d)) {
               category = "";
-            } else if (d === 'ru') {
-              category = "category-gov-";
-            } else {
+            } else if (["ru", "ir"].includes(d)) {
               category = "category-";
             }
             rules[0].domain.push("geosite:" + category + d);
