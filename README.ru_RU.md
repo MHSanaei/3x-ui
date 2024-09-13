@@ -168,6 +168,8 @@ systemctl restart x-ui
    docker compose up -d
    ```
 
+  Добавьте параметр ```--pull always``` для автоматического обновления контейнера, когда публикуется новый образ. Подробности: https://docs.docker.com/reference/cli/docker/container/run/#pull
+
    **ИЛИ**
 
    ```sh
