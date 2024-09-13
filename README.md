@@ -169,6 +169,8 @@ systemctl restart x-ui
    docker compose up -d
    ```
 
+  Add ```--pull always``` flag to make docker automatically recreate container if a newer image is pulled. See https://docs.docker.com/reference/cli/docker/container/run/#pull for more info.
+
    **OR**
 
    ```sh
