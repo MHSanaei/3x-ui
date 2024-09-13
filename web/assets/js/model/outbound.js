@@ -851,7 +851,7 @@ Outbound.Settings = class extends CommonClass {
 Outbound.FreedomSettings = class extends CommonClass {
     constructor(
         domainStrategy = '',
-        timeout = '',
+        timeout = 10,
         redirect = '',
         fragment = {},
         noise = {}
@@ -901,7 +901,7 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
     }
 };
 Outbound.FreedomSettings.Noise = class extends CommonClass {
-    constructor(packet = '', delay = '') {
+    constructor(packet = 'rand:100-200', delay = '10-20') {
         super();
         this.packet = packet;
         this.delay = delay;
