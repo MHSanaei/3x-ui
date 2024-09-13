@@ -184,6 +184,9 @@
     <a-form-item label='SNI'>
       <a-input v-model.trim="inbound.stream.reality.serverNames"></a-input>
     </a-form-item>
+    <a-form-item label='Max Time Diff (ms)'>
+      <a-input-number v-model.number="inbound.stream.reality.maxTimediff" :min="0"></a-input-number>
+    </a-form-item>
     <a-form-item>
       <template slot="label">
         <a-tooltip>
