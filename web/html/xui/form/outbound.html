@@ -187,11 +187,15 @@
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>
         </a-form-item>
-        <a-form-item label='Security'>
-          <a-select v-model="outbound.settings.security" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
-          </a-select>
-        </a-form-item>
+
+        <!-- vmess settings -->
+        <template v-if="outbound.protocol === Protocols.VMess">
+          <a-form-item label='Security'>
+            <a-select v-model="outbound.settings.security" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+          </a-form-item>
+        </template>
 
         <!-- vless settings -->
         <template v-if="outbound.canEnableTlsFlow()">
