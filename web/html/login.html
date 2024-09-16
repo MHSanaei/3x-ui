@@ -449,7 +449,7 @@
                     <a-row justify="center" class="centered">
                       <a-col :span="24">
                         <a-select ref="selectLang" v-model="lang"
-                                  @change="setLang(lang)" style="width: 150px;"
+                                  @change="setLang(lang)" style="width: 200px;"
                                   :dropdown-class-name="themeSwitcher.currentTheme">
                           <a-select-option :value="l.value" label="English" v-for="l in supportLangs">
                             <span role="img" aria-label="l.name" v-text="l.icon"></span>
