@@ -139,6 +139,12 @@
             <a-tag>[[ infoModal.clientSettings.id ]]</a-tag>
           </td>
         </tr>
+        <tr v-if="dbInbound.isVMess">
+          <td>{{ i18n "security" }}</td>
+          <td>
+            <a-tag>[[ infoModal.clientSettings.security ]]</a-tag>
+          </td>
+        </tr>
         <tr v-if="infoModal.inbound.canEnableTlsFlow()">
           <td>Flow</td>
           <td v-if="infoModal.clientSettings.flow">
