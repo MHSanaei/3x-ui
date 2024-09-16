@@ -23,6 +23,7 @@
         "destOverride": [
           "http",
           "tls",
+          "quic",
           "fakedns"
         ],
         "enabled": true

@@ -46,6 +46,7 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+	Allocate       string   `json:"allocate" form:"allocate"`
 }
 
 type OutboundTraffics struct {
@@ -75,6 +76,7 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		StreamSettings: json_util.RawMessage(i.StreamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
+		Allocate:       json_util.RawMessage(i.Allocate),
 	}
 }
 
