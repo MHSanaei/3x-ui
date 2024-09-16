@@ -733,7 +733,7 @@
                     this.inbounds.push(to_inbound);
                     this.dbInbounds.push(dbInbound);
                     if ([Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(inbound.protocol)) {
-                        if (inbound.protocol === Protocols.SHADOWSOCKS && (!to_inbound.isSSMultiUser)) {
+                        if (dbInbound.isSS && (!to_inbound.isSSMultiUser)) {
                             continue;
                         }
                         this.clientCount[inbound.id] = this.getClientCounts(inbound, to_inbound);
