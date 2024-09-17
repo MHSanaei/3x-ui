@@ -46,15 +46,20 @@
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
         </template>
-        <a-form-item label='Noise'>
-          <a-switch :checked="Object.keys(outbound.settings.noise).length >0" @change="checked => outbound.settings.noise = checked ? new Outbound.FreedomSettings.Noise() : {}"></a-switch>
+        <a-form-item label='Noises'>
+          <a-switch :checked="Object.keys(outbound.settings.noises).length >0" @change="checked => outbound.settings.noises = checked ? new Outbound.FreedomSettings.Noises() : {}"></a-switch>
         </a-form-item>
-        <template v-if="Object.keys(outbound.settings.noise).length >0">
+        <template v-if="Object.keys(outbound.settings.noises).length >0">
+          <a-form-item label='Type'>
+            <a-select v-model="outbound.settings.noises.type" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="s in ['rand','base64','str']" :value="s">[[ s ]]</a-select-option>
+            </a-select>
+          </a-form-item>
           <a-form-item label='Packet'>
-            <a-input v-model.trim="outbound.settings.noise.packet"></a-input>
+            <a-input v-model.trim="outbound.settings.noises.packet"></a-input>
           </a-form-item>
           <a-form-item label='Delay'>
-            <a-input v-model.trim="outbound.settings.noise.delay"></a-input>
+            <a-input v-model.trim="outbound.settings.noises.delay"></a-input>
           </a-form-item>
         </template>
       </template>

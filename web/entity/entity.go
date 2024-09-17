@@ -52,7 +52,7 @@ type AllSetting struct {
 	SubJsonPath      string `json:"subJsonPath" form:"subJsonPath"`
 	SubJsonURI       string `json:"subJsonURI" form:"subJsonURI"`
 	SubJsonFragment  string `json:"subJsonFragment" form:"subJsonFragment"`
-	SubJsonNoise     string `json:"subJsonNoise" form:"subJsonNoise"`
+	SubJsonNoises    string `json:"subJsonNoises" form:"subJsonNoises"`
 	SubJsonMux       string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules     string `json:"subJsonRules" form:"subJsonRules"`
 	Datepicker       string `json:"datepicker" form:"datepicker"`

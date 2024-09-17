@@ -305,18 +305,30 @@
                   <a-list-item style="padding: 20px">
                     <a-row>
                       <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='Noise'>
-                          <template slot="description">{{ i18n "pages.settings.noiseDesc"}}</template>
+                        <a-list-item-meta title='Noises'>
+                          <template slot="description">{{ i18n "pages.settings.noisesDesc"}}</template>
                         </a-list-item-meta>
                       </a-col>
                       <a-col :lg="24" :xl="12">
-                        <a-switch v-model="noise"></a-switch>
+                        <a-switch v-model="noises"></a-switch>
                       </a-col>
                     </a-row>
-                    <a-collapse v-if="noise" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.noiseSett"}}' v-if="noise">
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet (ms)' v-model="noisePacket" placeholder="rand:5-10"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' v-model="noiseDelay" placeholder="10-20"></setting-list-item>
+                    <a-collapse v-if="noises" style="margin-top: 14px;">
+                      <a-collapse-panel header='{{ i18n "pages.settings.noisesSett"}}' v-if="noises">
+                        <a-list-item style="padding: 10px 20px">
+                          <a-row>
+                            <a-col :lg="24" :xl="12">
+                              <a-list-item-meta title='Type'></a-list-item-meta>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                              <a-select v-model="noisesType" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str']"> [[ p ]] </a-select-option>
+                              </a-select>
+                            </a-col>
+                          </a-row>
+                        </a-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet (ms)' v-model="noisesPacket" placeholder="5-10"></setting-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' v-model="noisesDelay" placeholder="10-20"></setting-list-item>
                       </a-collapse-panel>
                     </a-collapse>
                   </a-list-item>
@@ -419,14 +431,15 @@
           }
         }
       },
-      defaultNoise: {
-        tag: "noise",
+      defaultNoises: {
+        tag: "noises",
         protocol: "freedom",
         settings: {
           domainStrategy: "AsIs",
-          noise: {
-            packet: "rand:5-10",
-            delay: "10-20",
+          noises: {
+            type: "rand",
+            packet: "10-20",
+            delay: "10-16",
           }
         },
       },
@@ -629,29 +642,39 @@
           }
         }
       },
-      noise: {
-        get: function () { return this.allSetting?.subJsonNoise != ""; },
+      noises: {
+        get: function () { return this.allSetting?.subJsonNoises != ""; },
         set: function (v) {
-          this.allSetting.subJsonNoise = v ? JSON.stringify(this.defaultNoise) : "";
+          this.allSetting.subJsonNoises = v ? JSON.stringify(this.defaultNoises) : "";
         }
       },
-      noisePacket: {
-        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.packet : ""; },
+      noisesType: {
+        get: function () { return this.noises ? JSON.parse(this.allSetting.subJsonNoises).settings.noises.type : ""; },
         set: function (v) {
           if (v != "") {
-            newNoise = JSON.parse(this.allSetting.subJsonNoise);
-            newNoise.settings.noise.packet = v;
-            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
+            newNoises = JSON.parse(this.allSetting.subJsonNoises);
+            newNoises.settings.noises.type = v;
+            this.allSetting.subJsonNoises = JSON.stringify(newNoises);
           }
         }
       },
-      noiseDelay: {
-        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.delay : ""; },
+      noisesPacket: {
+        get: function () { return this.noises ? JSON.parse(this.allSetting.subJsonNoises).settings.noises.packet : ""; },
         set: function (v) {
           if (v != "") {
-            newNoise = JSON.parse(this.allSetting.subJsonNoise);
-            newNoise.settings.noise.delay = v;
-            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
+            newNoises = JSON.parse(this.allSetting.subJsonNoises);
+            newNoises.settings.noises.packet = v;
+            this.allSetting.subJsonNoises = JSON.stringify(newNoises);
+          }
+        }
+      },
+      noisesDelay: {
+        get: function () { return this.noises ? JSON.parse(this.allSetting.subJsonNoises).settings.noises.delay : ""; },
+        set: function (v) {
+          if (v != "") {
+            newNoises = JSON.parse(this.allSetting.subJsonNoises);
+            newNoises.settings.noises.delay = v;
+            this.allSetting.subJsonNoises = JSON.stringify(newNoises);
           }
         }
       },
