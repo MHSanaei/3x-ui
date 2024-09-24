@@ -222,7 +222,7 @@ location /sub {
 - Arch Linux
 - Manjaro
 - Armbian
-- AlmaLinux 9+
+- AlmaLinux 8+
 - Rockylinux 9+
 - OpenSUSE Tubleweed
 - Amazon Linux 2023
