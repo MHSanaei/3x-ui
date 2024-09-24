@@ -37,17 +37,11 @@ func (j *CheckClientIpJob) Run() {
 
 	shouldClearAccessLog := false
 	iplimitActive := j.hasLimitIp()
-	f2bInstalled := j.checkFail2BanInstalled()
+	f2bInstalled := j.checkFail2BanInstalled(iplimitActive)
 	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
-	if iplimitActive {
-		if f2bInstalled && isAccessLogAvailable {
-			shouldClearAccessLog = j.processLogFile()
-		} else {
-			if !f2bInstalled {
-				logger.Warning("[iplimit] fail2ban is not installed. IP limiting may not work properly.")
-			}
-		}
+	if iplimitActive && f2bInstalled && isAccessLogAvailable {
+		shouldClearAccessLog = j.processLogFile()
 	}
 
 	if shouldClearAccessLog || (isAccessLogAvailable && time.Now().Unix()-j.lastClear > 3600) {
@@ -168,11 +162,17 @@ func (j *CheckClientIpJob) processLogFile() bool {
 	return shouldCleanLog
 }
 
-func (j *CheckClientIpJob) checkFail2BanInstalled() bool {
+func (j *CheckClientIpJob) checkFail2BanInstalled(iplimitActive bool) bool {
 	cmd := "fail2ban-client"
 	args := []string{"-h"}
 	err := exec.Command(cmd, args...).Run()
-	return err == nil
+
+	if iplimitActive && err != nil {
+		logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+		return false
+	}
+
+	return true
 }
 
 func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
@@ -183,7 +183,7 @@ func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
 
 	if accessLogPath == "none" || accessLogPath == "" {
 		if iplimitActive {
-			logger.Warning("Access log path is not set, and IP limit is active. Please configure the access log path.")
+			logger.Warning("[LimitIP] Access log path is not set, Please configure the access log path in Xray configs.")
 		}
 		return false
 	}
