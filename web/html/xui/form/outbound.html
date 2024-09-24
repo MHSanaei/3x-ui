@@ -22,9 +22,6 @@
             <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label='Timeout'>
-          <a-input-number v-model.number="outbound.settings.timeout" min="0" ></a-input-number>
-        </a-form-item>
         <a-form-item label='Redirect'>
           <a-input v-model="outbound.settings.redirect"></a-input>
         </a-form-item>
