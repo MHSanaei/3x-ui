@@ -316,7 +316,7 @@
 "muxSett" = "Mux Settings"
 "direct" = "Direct Connection"
 "directDesc" = "Directly establishes connections with domains or IP ranges of a specific country."
-"directSett" = "Direct Connection Options"
+
 
 [pages.xray]
 "title" = "Xray Configs"

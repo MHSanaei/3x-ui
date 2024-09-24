@@ -316,7 +316,7 @@
 "muxSett" = "Configurações de Mux"
 "direct" = "Conexão Direta"
 "directDesc" = "Estabelece conexões diretamente com domínios ou intervalos de IP de um país específico."
-"directSett" = "Opções de Conexão Direta"
+
 
 [pages.xray]
 "title" = "Configurações Xray"

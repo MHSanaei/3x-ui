@@ -380,9 +380,14 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.directSett"}}'>
+                      <a-collapse-panel header='Geo IP'>
                         <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="directCountries" name="Countries" :options="countryOptions"></a-checkbox-group>
+                          <a-checkbox-group v-model="geoIP" name="Geo IP" :options="geoIPOptions"></a-checkbox-group>
+                        </a-list-item>
+                      </a-collapse-panel>
+                      <a-collapse-panel header='Geo Site'>
+                        <a-list-item style="padding: 10px 20px">
+                          <a-checkbox-group v-model="geoSite" name="Geo Site" :options="geoSiteOptions"></a-checkbox-group>
                         </a-list-item>
                       </a-collapse-panel>
                     </a-collapse>
@@ -458,8 +463,7 @@
           type: "field",
           outboundTag: "direct",
           domain: [
-            "geosite:category-ir",
-            "geosite:cn"
+            "geosite:category-ir"
           ],
           "enabled": true
         },
@@ -468,17 +472,30 @@
           outboundTag: "direct",
           ip: [
             "geoip:private",
-            "geoip:ir",
-            "geoip:cn"
+            "geoip:ir"
           ],
           enabled: true
         },
       ],
-      countryOptions: [
+      geoIPOptions: [
         { label: 'Private IP/Domain', value: 'private' },
         { label: '🇮🇷 Iran', value: 'ir' },
         { label: '🇨🇳 China', value: 'cn' },
         { label: '🇷🇺 Russia', value: 'ru' },
+        { label: '🇻🇳 Vietnam', value: 'vn' },
+        { label: '🇪🇸 Spain', value: 'es' },
+        { label: '🇮🇩 Indonesia', value: 'id' },
+        { label: '🇺🇦 Ukraine', value: 'ua' },
+        { label: '🇹🇷 Türkiye', value: 'tr' },
+        { label: '🇧🇷 Brazil', value: 'br' },
+      ],
+      geoSiteOptions: [
+        { label: '🇮🇷 Iran', value: 'ir' },
+        { label: '🇨🇳 China', value: 'cn' },
+        { label: '🇷🇺 Russia', value: 'ru' },
+        { label: 'Apple', value: 'apple' },
+        { label: 'Meta', value: 'meta' },
+        { label: 'Google', value: 'google' },
       ],
       get remarkModel() {
         rm = this.allSetting.remarkModel;
@@ -730,26 +747,49 @@
           this.allSetting.subJsonRules = v ? JSON.stringify(this.defaultRules) : "";
         }
       },
-      directCountries: {
+      geoIP: {
         get: function () {
           if (!this.enableDirect) return [];
-          rules = JSON.parse(this.allSetting.subJsonRules);
+          const rules = JSON.parse(this.allSetting.subJsonRules);
           return Array.isArray(rules) ? rules[1].ip.map(d => d.replace("geoip:", "")) : [];
         },
         set: function (v) {
-          rules = JSON.parse(this.allSetting.subJsonRules);
+          const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
-          rules[0].domain = [];
+
           rules[1].ip = [];
           v.forEach(d => {
+            rules[1].ip.push("geoip:" + d);
+          });
+          this.allSetting.subJsonRules = JSON.stringify(rules);
+        }
+      },
+      geoSite: {
+        get: function () {
+          if (!this.enableDirect) return [];
+          const rules = JSON.parse(this.allSetting.subJsonRules);
+          return Array.isArray(rules) ?
+            rules[0].domain.map(d => {
+              if (d.startsWith("geosite:category-")) {
+                return d.replace("geosite:category-", ""); 
+              }
+              return d.replace("geosite:", "");
+            })
+            : [];
+        },
+        set: function (v) {
+          const rules = JSON.parse(this.allSetting.subJsonRules);
+          if (!Array.isArray(rules)) return;
+
+          rules[0].domain = [];
+          v.forEach(d => {
             let category = '';
-            if (["cn", "private"].includes(d)) {
+            if (["cn", "apple", "meta", "google"].includes(d)) {
               category = "";
             } else if (["ru", "ir"].includes(d)) {
               category = "category-";
             }
             rules[0].domain.push("geosite:" + category + d);
-            rules[1].ip.push("geoip:" + d);
           });
           this.allSetting.subJsonRules = JSON.stringify(rules);
         }
