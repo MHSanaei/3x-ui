@@ -2513,15 +2513,13 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
         address,
         port,
         network = 'tcp,udp',
-        followRedirect = false,
-        timeout = 30
+        followRedirect = false
     ) {
         super(protocol);
         this.address = address;
         this.port = port;
         this.network = network;
         this.followRedirect = followRedirect;
-        this.timeout = timeout;
     }
 
     static fromJson(json = {}) {
@@ -2531,7 +2529,6 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
             json.port,
             json.network,
             json.followRedirect,
-            json.timeout,
         );
     }
 
@@ -2541,7 +2538,6 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
             port: this.port,
             network: this.network,
             followRedirect: this.followRedirect,
-            timeout: this.timeout,
         };
     }
 };
