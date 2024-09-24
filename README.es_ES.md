@@ -225,7 +225,6 @@ location /sub {
 - AlmaLinux 9+
 - Rockylinux 9+
 - OpenSUSE Tubleweed
-- Amazon Linux 2023
 
 ## Arquitecturas y Dispositivos Compatibles
 
