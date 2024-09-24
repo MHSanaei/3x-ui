@@ -2,8 +2,9 @@
   "log": {
     "access": "none",
     "dnsLog": false,
-    "error": "./error.log",
-    "loglevel": "warning"
+    "error": "",
+    "loglevel": "warning",
+    "maskAddress": ""
   },
   "api": {
     "tag": "api",
