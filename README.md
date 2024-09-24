@@ -254,6 +254,7 @@ location /sub {
 - Rocky Linux 9+
 - Oracle Linux 8+
 - OpenSUSE Tubleweed
+- Amazon Linux 2023
 
 ## Supported Architectures and Devices
 
