@@ -39,7 +39,7 @@ arch() {
 echo "arch: $(arch)"
 
 os_version=""
-os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
+os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"')
 
 if [[ "${release}" == "arch" ]]; then
     echo "Your OS is Arch Linux"
@@ -59,8 +59,9 @@ elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 20 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
     fi
-elif [[ "${release}" == "fedora" ]]; then
-    if [[ ${os_version} -lt 36 ]]; then
+elif [[ "${release}" == "fedora" || "${release}" == "amzn" ]]; then
+    # Для Amazon Linux используем ту же ветку, что и для Fedora
+    if [[ ${os_version} -lt 36 && "${release}" == "fedora" ]]; then
         echo -e "${red} Please use Fedora 36 or higher version!${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "debian" ]]; then
@@ -94,8 +95,8 @@ else
     echo "- Rocky Linux 9+"
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
+    echo "- Amazon Linux 2023"
     exit 1
-
 fi
 
 install_base() {
