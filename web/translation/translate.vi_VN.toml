@@ -316,7 +316,7 @@
 "muxSett" = "Mux Cài đặt"
 "direct" = "Kết nối trực tiếp"
 "directDesc" = "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể."
-"directSett" = "Tùy chọn kết nối trực tiếp"
+
 
 [pages.xray]
 "title" = "Cài đặt Xray"

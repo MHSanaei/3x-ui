@@ -316,7 +316,7 @@
 "muxSett" = "Mux Ayarları"
 "direct" = "Doğrudan Bağlantı"
 "directDesc" = "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar."
-"directSett" = "Doğrudan Bağlantı Seçenekleri"
+
 
 [pages.xray]
 "title" = "Xray Yapılandırmaları"

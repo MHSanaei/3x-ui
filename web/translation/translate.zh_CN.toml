@@ -316,7 +316,7 @@
 "muxSett" = "复用器设置"
 "direct" = "直接连接"
 "directDesc" = "直接与特定国家的域或IP范围建立连接"
-"directSett" = "直接连接选项"
+
 
 [pages.xray]
 "title" = "Xray 配置"
