@@ -39,7 +39,7 @@ arch() {
 echo "arch: $(arch)"
 
 os_version=""
-os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"')
+os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
 
 if [[ "${release}" == "arch" ]]; then
     echo "Your OS is Arch Linux"
@@ -56,7 +56,7 @@ elif [[ "${release}" == "centos" ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
+    if [[ ${os_version} -lt 2004 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "fedora" ]]; then
@@ -72,8 +72,8 @@ elif [[ "${release}" == "debian" ]]; then
         echo -e "${red} Please use Debian 11 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "almalinux" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use AlmaLinux 9 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red} Please use AlmaLinux 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "rocky" ]]; then
     if [[ ${os_version} -lt 9 ]]; then
@@ -94,7 +94,7 @@ else
     echo "- Parch Linux"
     echo "- Manjaro"
     echo "- Armbian"
-    echo "- AlmaLinux 9+"
+    echo "- AlmaLinux 8+"
     echo "- Rocky Linux 9+"
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
