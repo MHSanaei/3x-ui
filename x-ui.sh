@@ -57,6 +57,7 @@ elif [[ "${release}" == "ubuntu" ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "fedora" || "${release}" == "amzn" ]]; then
+    # For Amazon Linux, use the same branch as for Fedora
     if [[ ${os_version} -lt 36 && "${release}" == "fedora" ]]; then
         echo -e "${red} Please use Fedora 36 or higher version!${plain}\n" && exit 1
     fi
