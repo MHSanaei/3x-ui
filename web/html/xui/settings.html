@@ -333,7 +333,7 @@
                           @input="(value) => updateNoisePacket(index, value)" placeholder="5-10"></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' :value="noise.delay"
                           @input="(value) => updateNoiseDelay(index, value)" placeholder="10-20"></setting-list-item>
-                        <a-button type="danger" @click="removeNoise(index)">Remove</a-button>
+                        <a-button v-if="noisesArray.length > 1" type="danger" @click="removeNoise(index)">Remove</a-button>
                       </a-collapse-panel>
                     </a-collapse>
                     <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
