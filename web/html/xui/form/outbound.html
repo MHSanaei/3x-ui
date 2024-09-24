@@ -46,21 +46,39 @@
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
         </template>
+
+        <!-- Switch for Noises -->
         <a-form-item label='Noises'>
-          <a-switch :checked="Object.keys(outbound.settings.noises).length >0" @change="checked => outbound.settings.noises = checked ? new Outbound.FreedomSettings.Noises() : {}"></a-switch>
+          <a-switch :checked="outbound.settings.noises.length > 0"
+            @change="checked => outbound.settings.noises = checked ? [new Outbound.FreedomSettings.Noise()] : []">
+          </a-switch>
         </a-form-item>
-        <template v-if="Object.keys(outbound.settings.noises).length >0">
-          <a-form-item label='Type'>
-            <a-select v-model="outbound.settings.noises.type" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="s in ['rand','base64','str']" :value="s">[[ s ]]</a-select-option>
-            </a-select>
+
+        <!-- Add Noise Button -->
+        <template v-if="outbound.settings.noises.length > 0">
+          <a-form-item label="Noises">
+            <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addNoise()"></a-button>
           </a-form-item>
-          <a-form-item label='Packet'>
-            <a-input v-model.trim="outbound.settings.noises.packet"></a-input>
-          </a-form-item>
-          <a-form-item label='Delay'>
-            <a-input v-model.trim="outbound.settings.noises.delay"></a-input>
-          </a-form-item>
+        
+        <!-- Noise Configurations -->
+          <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false" :label-col="{ md: {span:8} }"
+            :wrapper-col="{ md: {span:14} }">
+            <a-divider style="margin:0;"> Noise [[ index + 1 ]]
+              <a-icon v-if="outbound.settings.noises.length > 1" type="delete" @click="() => outbound.settings.delNoise(index)"
+                style="color: rgb(255, 77, 79); cursor: pointer;"></a-icon>
+            </a-divider>
+            <a-form-item label='Type'>
+              <a-select v-model="noise.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['rand','base64','str']" :value="s">[[ s ]]</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label='Packet'>
+              <a-input v-model.trim="noise.packet"></a-input>
+            </a-form-item>
+            <a-form-item label='Delay'>
+              <a-input v-model.trim="noise.delay"></a-input>
+            </a-form-item>
+          </a-form>
         </template>
       </template>
 

@@ -530,10 +530,10 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
         xmux = { 
-            maxConnections: 0, 
-            maxConcurrency: 0, 
-            cMaxReuseTimes: 0, 
-            cMaxLifetimeMs: 0 
+            maxConcurrency: 0,
+            maxConnections: 0,
+            cMaxReuseTimes: 0,
+            cMaxLifetimeMs: 0
         }
     ) {
         super();
@@ -581,8 +581,8 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             noSSEHeader: this.noSSEHeader,
             xPaddingBytes: this.xPaddingBytes,
             xmux: {
-                maxConnections: this.xmux.maxConnections,
                 maxConcurrency: this.xmux.maxConcurrency,
+                maxConnections: this.xmux.maxConnections,
                 cMaxReuseTimes: this.xmux.cMaxReuseTimes,
                 cMaxLifetimeMs: this.xmux.cMaxLifetimeMs
             }

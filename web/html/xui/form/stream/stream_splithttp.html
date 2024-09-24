@@ -34,17 +34,17 @@
     <a-form-item label="No SSE Header">
         <a-switch v-model="inbound.stream.splithttp.noSSEHeader"></a-switch>
     </a-form-item>
-    <a-form-item label="Max Connections">
-        <a-input-number v-model.trim="inbound.stream.splithttp.xmux.maxConnections"></a-input-number>
-    </a-form-item>
     <a-form-item label="Max Concurrency">
-        <a-input-number v-model.trim="inbound.stream.splithttp.xmux.maxConcurrency"></a-input-number>
+        <a-input-number v-model="inbound.stream.splithttp.xmux.maxConcurrency"></a-input-number>
+    </a-form-item>
+    <a-form-item label="Max Connections">
+        <a-input-number v-model="inbound.stream.splithttp.xmux.maxConnections"></a-input-number>
     </a-form-item>
     <a-form-item label="Max Reuse Times">
-        <a-input-number v-model.trim="inbound.stream.splithttp.xmux.cMaxReuseTimes"></a-input-number>
+        <a-input-number v-model="inbound.stream.splithttp.xmux.cMaxReuseTimes"></a-input-number>
     </a-form-item>
     <a-form-item label="Max Lifetime (ms)">
-        <a-input-number v-model.trim="inbound.stream.splithttp.xmux.cMaxLifetimeMs"></a-input-number>
+        <a-input-number v-model="inbound.stream.splithttp.xmux.cMaxLifetimeMs"></a-input-number>
     </a-form-item>
 </a-form>
 {{end}}
