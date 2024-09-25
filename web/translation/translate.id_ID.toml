@@ -225,9 +225,6 @@
 "requestHeader" = "Header Permintaan"
 "responseHeader" = "Header Respons"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Enkripsi"
-
 [pages.settings]
 "title" = "Pengaturan Panel"
 "save" = "Simpan"
@@ -312,14 +309,14 @@
 "fragment" = "Fragmentasi"
 "fragmentDesc" = "Aktifkan fragmentasi untuk paket hello TLS"
 "fragmentSett" = "Pengaturan Fragmentasi"
-"noiseDesc" = "Aktifkan Noise."
-"noiseSett" = "Pengaturan Noise"
+"noisesDesc" = "Aktifkan Noises."
+"noisesSett" = "Pengaturan Noises"
 "mux" = "Mux"
 "muxDesc" = "Mengirimkan beberapa aliran data independen dalam aliran data yang sudah ada."
 "muxSett" = "Pengaturan Mux"
 "direct" = "Koneksi langsung"
 "directDesc" = "Secara langsung membuat koneksi dengan domain atau rentang IP negara tertentu."
-"directSett" = "Opsi Koneksi Langsung"
+
 
 [pages.xray]
 "title" = "Konfigurasi Xray"
@@ -425,6 +422,10 @@
 "accessLogDesc" = "Jalur file untuk log akses. Nilai khusus 'tidak ada' menonaktifkan log akses"
 "errorLog" = "Catatan eror"
 "errorLogDesc" = "Jalur file untuk log kesalahan. Nilai khusus 'tidak ada' menonaktifkan log kesalahan"
+"dnsLog" = "Log DNS"
+"dnsLogDesc" = "Apakah akan mengaktifkan log kueri DNS"
+"maskAddress" = "Alamat Masker"
+"maskAddressDesc" = "Masker alamat IP, ketika diaktifkan, akan secara otomatis mengganti alamat IP yang muncul di log."
 
 [pages.xray.rules]
 "first" = "Pertama"

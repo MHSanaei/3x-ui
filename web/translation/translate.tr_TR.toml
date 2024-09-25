@@ -225,9 +225,6 @@
 "requestHeader" = "İstek Başlığı"
 "responseHeader" = "Yanıt Başlığı"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Şifreleme"
-
 [pages.settings]
 "title" = "Panel Ayarları"
 "save" = "Kaydet"
@@ -312,14 +309,14 @@
 "fragment" = "Parçalama"
 "fragmentDesc" = "TLS merhaba paketinin parçalanmasını etkinleştir."
 "fragmentSett" = "Parçalama Ayarları"
-"noiseDesc" = "Noise'i Etkinleştir."
-"noiseSett" = "Noise Ayarları"
+"noisesDesc" = "Noises'i Etkinleştir."
+"noisesSett" = "Noises Ayarları"
 "mux" = "Mux"
 "muxDesc" = "Kurulmuş bir veri akışında birden çok bağımsız veri akışını iletir."
 "muxSett" = "Mux Ayarları"
 "direct" = "Doğrudan Bağlantı"
 "directDesc" = "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar."
-"directSett" = "Doğrudan Bağlantı Seçenekleri"
+
 
 [pages.xray]
 "title" = "Xray Yapılandırmaları"
@@ -425,6 +422,10 @@
 "accessLogDesc" = "Erişim günlüğü için dosya yolu. 'none' özel değeri erişim günlüklerini devre dışı bırakır"
 "errorLog" = "Hata Günlüğü"
 "errorLogDesc" = "Hata günlüğü için dosya yolu. 'none' özel değeri hata günlüklerini devre dışı bırakır"
+"dnsLog" = "DNS Günlüğü"
+"dnsLogDesc" = "DNS sorgu günlüklerini etkinleştirin"
+"maskAddress" = "Adres Maskesi"
+"maskAddressDesc" = "IP adresi maskesi, etkinleştirildiğinde, günlükte görünen IP adresini otomatik olarak değiştirecektir."
 
 [pages.xray.rules]
 "first" = "İlk"

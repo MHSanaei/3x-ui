@@ -58,26 +58,6 @@
               </td>
             </tr>
           </template>
-          <template v-if="inbound.isQuic">
-            <tr>
-              <td>quic {{ i18n "encryption" }}</td>
-              <td>
-                <a-tag>[[ inbound.quicSecurity ]]</a-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>quic {{ i18n "password" }}</td>
-              <td>
-                <a-tag>[[ inbound.quicKey ]]</a-tag>
-              </td>
-            </tr>
-            <tr>
-              <td>quic {{ i18n "camouflage" }}</td>
-              <td>
-                <a-tag>[[ inbound.quicType ]]</a-tag>
-              </td>
-            </tr>
-          </template>
           <template v-if="inbound.isKcp">
             <tr>
               <td>kcp {{ i18n "encryption" }}</td>
@@ -157,6 +137,12 @@
           <td>ID</td>
           <td>
             <a-tag>[[ infoModal.clientSettings.id ]]</a-tag>
+          </td>
+        </tr>
+        <tr v-if="dbInbound.isVMess">
+          <td>{{ i18n "security" }}</td>
+          <td>
+            <a-tag>[[ infoModal.clientSettings.security ]]</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.inbound.canEnableTlsFlow()">

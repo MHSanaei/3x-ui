@@ -22,11 +22,13 @@
             <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label='Timeout'>
-          <a-input-number v-model.number="outbound.settings.timeout" min="0" ></a-input-number>
+        <a-form-item label='Redirect'>
+          <a-input v-model="outbound.settings.redirect"></a-input>
         </a-form-item>
         <a-form-item label='Fragment'>
-          <a-switch :checked="Object.keys(outbound.settings.fragment).length >0" @change="checked => outbound.settings.fragment = checked ? new Outbound.FreedomSettings.Fragment() : {}"></a-switch>
+          <a-switch :checked="Object.keys(outbound.settings.fragment).length >0"
+            @change="checked => outbound.settings.fragment = checked ? new Outbound.FreedomSettings.Fragment() : {}">
+          </a-switch>
         </a-form-item>
         <template v-if="Object.keys(outbound.settings.fragment).length >0">
           <a-form-item label='Packets'>
@@ -41,16 +43,39 @@
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
         </template>
-        <a-form-item label='Noise'>
-          <a-switch :checked="Object.keys(outbound.settings.noise).length >0" @change="checked => outbound.settings.noise = checked ? new Outbound.FreedomSettings.Noise() : {}"></a-switch>
+
+        <!-- Switch for Noises -->
+        <a-form-item label='Noises'>
+          <a-switch :checked="outbound.settings.noises.length > 0"
+            @change="checked => outbound.settings.noises = checked ? [new Outbound.FreedomSettings.Noise()] : []">
+          </a-switch>
         </a-form-item>
-        <template v-if="Object.keys(outbound.settings.noise).length >0">
-          <a-form-item label='Packet'>
-            <a-input v-model.trim="outbound.settings.noise.packet"></a-input>
+
+        <!-- Add Noise Button -->
+        <template v-if="outbound.settings.noises.length > 0">
+          <a-form-item label="Noises">
+            <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addNoise()"></a-button>
           </a-form-item>
-          <a-form-item label='Delay'>
-            <a-input v-model.trim="outbound.settings.noise.delay"></a-input>
-          </a-form-item>
+        
+        <!-- Noise Configurations -->
+          <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false" :label-col="{ md: {span:8} }"
+            :wrapper-col="{ md: {span:14} }">
+            <a-divider style="margin:0;"> Noise [[ index + 1 ]]
+              <a-icon v-if="outbound.settings.noises.length > 1" type="delete" @click="() => outbound.settings.delNoise(index)"
+                style="color: rgb(255, 77, 79); cursor: pointer;"></a-icon>
+            </a-divider>
+            <a-form-item label='Type'>
+              <a-select v-model="noise.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['rand','base64','str']" :value="s">[[ s ]]</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label='Packet'>
+              <a-input v-model.trim="noise.packet"></a-input>
+            </a-form-item>
+            <a-form-item label='Delay'>
+              <a-input v-model.trim="noise.delay"></a-input>
+            </a-form-item>
+          </a-form>
         </template>
       </template>
 
@@ -69,6 +94,14 @@
           <a-select v-model="outbound.settings.network" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s ]]</a-select-option>
           </a-select>
+        </a-form-item>
+        <a-form-item label='non-IP queries'>
+          <a-select v-model="outbound.settings.nonIPQuery" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['drop','skip']" :value="s">[[ s ]]</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types' >
+          <a-input v-model.number="outbound.settings.blockTypes"></a-input>
         </a-form-item>
       </template>
 
@@ -174,11 +207,15 @@
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>
         </a-form-item>
-        <a-form-item label='Security'>
-          <a-select v-model="outbound.settings.security" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
-          </a-select>
-        </a-form-item>
+
+        <!-- vmess settings -->
+        <template v-if="outbound.protocol === Protocols.VMess">
+          <a-form-item label='Security'>
+            <a-select v-model="outbound.settings.security" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+          </a-form-item>
+        </template>
 
         <!-- vless settings -->
         <template v-if="outbound.canEnableTlsFlow()">
@@ -234,7 +271,6 @@
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
             <a-select-option value="http">H2</a-select-option>
-            <a-select-option value="quic">QUIC</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
             <a-select-option value="splithttp">SplitHTTP</a-select-option>
@@ -312,31 +348,7 @@
             <a-input v-model.trim="outbound.stream.http.path"></a-input>
           </a-form-item>
         </template>
-
-        <!-- quic -->
-        <template v-if="outbound.stream.network === 'quic'">
-          <a-form-item label='{{ i18n "pages.inbounds.stream.quic.encryption" }}'>
-            <a-select v-model="outbound.stream.quic.security" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="aes-128-gcm">AES-128-GCM</a-select-option>
-              <a-select-option value="chacha20-poly1305">CHACHA20-POLY1305</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label='{{ i18n "password" }}'>
-            <a-input v-model.trim="outbound.stream.quic.key"></a-input>
-          </a-form-item>
-          <a-form-item label='{{ i18n "camouflage" }}'>
-            <a-select v-model="outbound.stream.quic.type" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="srtp">SRTP</a-select-option>
-              <a-select-option value="utp">uTP</a-select-option>
-              <a-select-option value="wechat-video">WeChat</a-select-option>
-              <a-select-option value="dtls">DTLS 1.2</a-select-option>
-              <a-select-option value="wireguard">WireGuard</a-select-option>
-            </a-select>
-          </a-form-item>
-        </template>
-
+        
         <!-- grpc -->
         <template v-if="outbound.stream.network === 'grpc'">
           <a-form-item label='Service Name'>

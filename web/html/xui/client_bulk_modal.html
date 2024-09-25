@@ -28,7 +28,7 @@
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
             <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
-        <a-form-item v-if="inbound.protocol === Protocols.VMESS" label='Security'>
+        <a-form-item label='{{ i18n "security" }}' v-if="inbound.protocol === Protocols.VMESS">
             <a-select v-model="clientsBulkModal.security" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
             </a-select>

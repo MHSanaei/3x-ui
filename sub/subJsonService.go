@@ -21,14 +21,14 @@ type SubJsonService struct {
 	configJson       map[string]interface{}
 	defaultOutbounds []json_util.RawMessage
 	fragment         string
-	noise            string
+	noises            string
 	mux              string
 
 	inboundService service.InboundService
 	SubService     *SubService
 }
 
-func NewSubJsonService(fragment string, noise string, mux string, rules string, subService *SubService) *SubJsonService {
+func NewSubJsonService(fragment string, noises string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]interface{}
 	var defaultOutbounds []json_util.RawMessage
 	json.Unmarshal([]byte(defaultJson), &configJson)
@@ -53,15 +53,15 @@ func NewSubJsonService(fragment string, noise string, mux string, rules string, 
 		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(fragment))
 	}
 
-	if noise != "" {
-		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(noise))
+	if noises != "" {
+		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(noises))
 	}
 
 	return &SubJsonService{
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragment:         fragment,
-		noise:            noise,
+		noises:            noises,
 		mux:              mux,
 		SubService:       subService,
 	}

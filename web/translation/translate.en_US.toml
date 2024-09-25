@@ -225,9 +225,6 @@
 "requestHeader" = "Request Header"
 "responseHeader" = "Response Header"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Encryption"
-
 [pages.settings]
 "title" = "Panel Settings"
 "save" = "Save"
@@ -312,14 +309,14 @@
 "fragment" = "Fragmentation"
 "fragmentDesc" = "Enable fragmentation for TLS hello packet."
 "fragmentSett" = "Fragmentation Settings"
-"noiseDesc" = "Enable Noise."
-"noiseSett" = "Noise Settings"
+"noisesDesc" = "Enable Noises."
+"noisesSett" = "Noises Settings"
 "mux" = "Mux"
 "muxDesc" = "Transmit multiple independent data streams within an established data stream."
 "muxSett" = "Mux Settings"
 "direct" = "Direct Connection"
 "directDesc" = "Directly establishes connections with domains or IP ranges of a specific country."
-"directSett" = "Direct Connection Options"
+
 
 [pages.xray]
 "title" = "Xray Configs"
@@ -425,6 +422,10 @@
 "accessLogDesc" = "The file path for the access log. The special value 'none' disabled access logs"
 "errorLog" = "Error Log"
 "errorLogDesc" = "The file path for the error log. The special value 'none' disabled error logs"
+"dnsLog" = "DNS Log"
+"dnsLogDesc" = "Whether to enable DNS query logs"
+"maskAddress" = "Mask Address"
+"maskAddressDesc" = "IP address mask, when enabled, will automatically replace the IP address that appears in the log."
 
 [pages.xray.rules]
 "first" = "First"

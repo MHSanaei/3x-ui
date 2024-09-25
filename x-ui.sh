@@ -36,12 +36,12 @@ fi
 echo "The OS release is: $release"
 
 os_version=""
-os_version=$(grep -i version_id /etc/os-release | cut -d \" -f2 | cut -d . -f1)
+os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
 
 if [[ "${release}" == "arch" ]]; then
     echo "Your OS is Arch Linux"
 elif [[ "${release}" == "parch" ]]; then
-    echo "Your OS is Parch linux"
+    echo "Your OS is Parch Linux"
 elif [[ "${release}" == "manjaro" ]]; then
     echo "Your OS is Manjaro"
 elif [[ "${release}" == "armbian" ]]; then
@@ -53,24 +53,28 @@ elif [[ "${release}" == "centos" ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "ubuntu" ]]; then
-    if [[ ${os_version} -lt 20 ]]; then
+    if [[ ${os_version} -lt 2004 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "fedora" ]]; then
     if [[ ${os_version} -lt 36 ]]; then
         echo -e "${red} Please use Fedora 36 or higher version!${plain}\n" && exit 1
     fi
+elif [[ "${release}" == "amzn" ]]; then
+    if [[ ${os_version} != "2023" ]]; then
+        echo -e "${red} Please use Amazon Linux 2023!${plain}\n" && exit 1
+    fi
 elif [[ "${release}" == "debian" ]]; then
     if [[ ${os_version} -lt 11 ]]; then
         echo -e "${red} Please use Debian 11 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "almalinux" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use AlmaLinux 9 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 80 ]]; then
+        echo -e "${red} Please use AlmaLinux 8.0 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "rocky" ]]; then
-    if [[ ${os_version} -lt 9 ]]; then
-        echo -e "${red} Please use Rocky Linux 9 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red} Please use Rocky Linux 8 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "oracle" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
@@ -87,12 +91,12 @@ else
     echo "- Parch Linux"
     echo "- Manjaro"
     echo "- Armbian"
-    echo "- AlmaLinux 9+"
-    echo "- Rocky Linux 9+"
+    echo "- AlmaLinux 8.0+"
+    echo "- Rocky Linux 8+"
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
+    echo "- Amazon Linux 2023"
     exit 1
-
 fi
 
 # Declare Variables
@@ -978,33 +982,6 @@ ssl_cert_issue_CF() {
     fi
 }
 
-warp_cloudflare() {
-    echo -e "${green}\t1.${plain} Install WARP socks5 proxy"
-    echo -e "${green}\t2.${plain} Account Type (free, plus, team)"
-    echo -e "${green}\t3.${plain} Turn on/off WireProxy"
-    echo -e "${green}\t4.${plain} Uninstall WARP"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
-    case "$choice" in
-    0)
-        show_menu
-        ;;
-    1)
-        bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
-        ;;
-    2)
-        warp a
-        ;;
-    3)
-        warp y
-        ;;
-    4)
-        warp u
-        ;;
-    *) echo "Invalid choice" ;;
-    esac
-}
-
 run_speedtest() {
     # Check if Speedtest is already installed
     if ! command -v speedtest &>/dev/null; then
@@ -1349,15 +1326,14 @@ show_menu() {
   ${green}18.${plain} SSL Certificate Management
   ${green}19.${plain} Cloudflare SSL Certificate
   ${green}20.${plain} IP Limit Management
-  ${green}21.${plain} WARP Management
-  ${green}22.${plain} Firewall Management
+  ${green}21.${plain} Firewall Management
 ————————————————
-  ${green}23.${plain} Enable BBR 
-  ${green}24.${plain} Update Geo Files
-  ${green}25.${plain} Speedtest by Ookla
+  ${green}22.${plain} Enable BBR 
+  ${green}23.${plain} Update Geo Files
+  ${green}24.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-25]: " num
+    echo && read -p "Please enter your selection [0-24]: " num
 
     case "${num}" in
     0)
@@ -1424,22 +1400,19 @@ show_menu() {
         iplimit_main
         ;;
     21)
-        warp_cloudflare
-        ;;
-    22)
         firewall_menu
         ;;
-    23)
+    22)
         bbr_menu
         ;;
-    24)
+    23)
         update_geo
         ;;
-    25)
+    24)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-25]"
+        LOGE "Please enter the correct number [0-24]"
         ;;
     esac
 }

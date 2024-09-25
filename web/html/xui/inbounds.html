@@ -733,7 +733,7 @@
                     this.inbounds.push(to_inbound);
                     this.dbInbounds.push(dbInbound);
                     if ([Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(inbound.protocol)) {
-                        if (inbound.protocol === Protocols.SHADOWSOCKS && (!to_inbound.isSSMultiUser)) {
+                        if (dbInbound.isSS && (!to_inbound.isSSMultiUser)) {
                             continue;
                         }
                         this.clientCount[inbound.id] = this.getClientCounts(inbound, to_inbound);
@@ -935,6 +935,7 @@
                     settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
                     streamSettings: baseInbound.stream.toString(),
                     sniffing: baseInbound.sniffing.toString(),
+                    allocate: baseInbound.allocate.toString(),
                 };
                 await this.submit('/panel/inbound/add', data, inModal);
             },
@@ -980,6 +981,7 @@
                 };
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
                 data.sniffing = inbound.sniffing.toString();
+                data.allocate = inbound.allocate.toString();
 
                 await this.submit('/panel/inbound/add', data, inModal);
             },
@@ -999,6 +1001,7 @@
                 };
                 if (inbound.canEnableStream()) data.streamSettings = inbound.stream.toString();
                 data.sniffing = inbound.sniffing.toString();
+                data.allocate = inbound.allocate.toString();
 
                 await this.submit(`/panel/inbound/update/${dbInbound.id}`, data, inModal);
             },

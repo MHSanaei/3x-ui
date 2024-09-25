@@ -138,7 +138,7 @@
                   <setting-list-item type="text" title='{{ i18n "pages.settings.publicKeyPath"}}' desc='{{ i18n "pages.settings.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="0"></setting-list-item>
+                  <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="60"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
@@ -296,18 +296,7 @@
                     </a-row>
                     <a-collapse v-if="fragment" style="margin-top: 14px;">
                       <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
-                        <a-list-item style="padding: 10px 20px">
-                          <a-row>
-                            <a-col :lg="24" :xl="12">
-                              <a-list-item-meta title='Packets'></a-list-item-meta>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                              <a-select v-model="fragmentPackets" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p" :label="p" v-for="p in ['1-1', '1-3', 'tlshello']"> [[ p ]] </a-select-option>
-                              </a-select>
-                            </a-col>
-                          </a-row>
-                        </a-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packets' v-model="fragmentPackets" placeholder="1-1 | 1-3 | tlshello | ..."></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="text" title='Length' v-model="fragmentLength" placeholder="100-200"></setting-list-item>
                         <setting-list-item style="padding: 10px 20px" type="text" title='Interval' v-model="fragmentInterval" placeholder="10-20"></setting-list-item>
                       </a-collapse-panel>
@@ -316,20 +305,38 @@
                   <a-list-item style="padding: 20px">
                     <a-row>
                       <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='Noise'>
-                          <template slot="description">{{ i18n "pages.settings.noiseDesc"}}</template>
+                        <a-list-item-meta title='Noises'>
+                          <template slot="description">{{ i18n "pages.settings.noisesDesc"}}</template>
                         </a-list-item-meta>
                       </a-col>
                       <a-col :lg="24" :xl="12">
-                        <a-switch v-model="noise"></a-switch>
+                        <a-switch v-model="noises"></a-switch>
                       </a-col>
                     </a-row>
-                    <a-collapse v-if="noise" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.noiseSett"}}' v-if="noise">
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet (ms)' v-model="noisePacket" placeholder="rand:5-10"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' v-model="noiseDelay" placeholder="10-20"></setting-list-item>
+                    <a-collapse v-if="noises" style="margin-top: 14px;">
+                      <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise ${index + 1}`">
+                        <a-list-item style="padding: 10px 20px">
+                          <a-row>
+                            <a-col :lg="24" :xl="12">
+                              <a-list-item-meta title='Type'></a-list-item-meta>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                              <a-select :value="noise.type" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme"
+                                @change="(value) => updateNoiseType(index, value)">
+                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str']" :key="p">
+                                  [[ p ]] </a-select-option>
+                              </a-select>
+                            </a-col>
+                          </a-row>
+                        </a-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet' :value="noise.packet"
+                          @input="(value) => updateNoisePacket(index, value)" placeholder="5-10"></setting-list-item>
+                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' :value="noise.delay"
+                          @input="(value) => updateNoiseDelay(index, value)" placeholder="10-20"></setting-list-item>
+                        <a-button v-if="noisesArray.length > 1" type="danger" @click="removeNoise(index)">Remove</a-button>
                       </a-collapse-panel>
                     </a-collapse>
+                    <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
                   </a-list-item>
                   <a-list-item style="padding: 20px">
                     <a-row>
@@ -373,9 +380,14 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.directSett"}}'>
+                      <a-collapse-panel header='Geo IP'>
                         <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="directCountries" name="Countries" :options="countryOptions"></a-checkbox-group>
+                          <a-checkbox-group v-model="geoIP" name="Geo IP" :options="geoIPOptions"></a-checkbox-group>
+                        </a-list-item>
+                      </a-collapse-panel>
+                      <a-collapse-panel header='Geo Site'>
+                        <a-list-item style="padding: 10px 20px">
+                          <a-checkbox-group v-model="geoSite" name="Geo Site" :options="geoSiteOptions"></a-checkbox-group>
                         </a-list-item>
                       </a-collapse-panel>
                     </a-collapse>
@@ -430,15 +442,14 @@
           }
         }
       },
-      defaultNoise: {
-        tag: "noise",
+      defaultNoises: {
+        tag: "noises",
         protocol: "freedom",
         settings: {
           domainStrategy: "AsIs",
-          noise: {
-            packet: "rand:5-10",
-            delay: "10-20",
-          }
+          noises: [
+            { type: "rand", packet: "10-20", delay: "10-16" },
+          ],
         },
       },
       defaultMux: {
@@ -452,8 +463,7 @@
           type: "field",
           outboundTag: "direct",
           domain: [
-            "geosite:category-ir",
-            "geosite:cn"
+            "geosite:category-ir"
           ],
           "enabled": true
         },
@@ -462,17 +472,30 @@
           outboundTag: "direct",
           ip: [
             "geoip:private",
-            "geoip:ir",
-            "geoip:cn"
+            "geoip:ir"
           ],
           enabled: true
         },
       ],
-      countryOptions: [
-        { label: 'Private IP/Domain', value: 'private' },
+      geoIPOptions: [
+        { label: 'Private IP', value: 'private' },
         { label: '🇮🇷 Iran', value: 'ir' },
         { label: '🇨🇳 China', value: 'cn' },
         { label: '🇷🇺 Russia', value: 'ru' },
+        { label: '🇻🇳 Vietnam', value: 'vn' },
+        { label: '🇪🇸 Spain', value: 'es' },
+        { label: '🇮🇩 Indonesia', value: 'id' },
+        { label: '🇺🇦 Ukraine', value: 'ua' },
+        { label: '🇹🇷 Türkiye', value: 'tr' },
+        { label: '🇧🇷 Brazil', value: 'br' },
+      ],
+      geoSiteOptions: [
+        { label: '🇮🇷 Iran', value: 'ir' },
+        { label: '🇨🇳 China', value: 'cn' },
+        { label: '🇷🇺 Russia', value: 'ru' },
+        { label: 'Apple', value: 'apple' },
+        { label: 'Meta', value: 'meta' },
+        { label: 'Google', value: 'google' },
       ],
       get remarkModel() {
         rm = this.allSetting.remarkModel;
@@ -602,6 +625,30 @@
           this.user.loginSecret = "";
         }
       },
+      addNoise() {
+        const newNoise = { type: "rand", packet: "10-20", delay: "10-16" };
+        this.noisesArray = [...this.noisesArray, newNoise];
+      },
+      removeNoise(index) {
+        const newNoises = [...this.noisesArray];
+        newNoises.splice(index, 1);
+        this.noisesArray = newNoises;
+      },
+      updateNoiseType(index, value) {
+        const updatedNoises = [...this.noisesArray];
+        updatedNoises[index] = { ...updatedNoises[index], type: value };
+        this.noisesArray = updatedNoises;
+      },
+      updateNoisePacket(index, value) {
+        const updatedNoises = [...this.noisesArray];
+        updatedNoises[index] = { ...updatedNoises[index], packet: value };
+        this.noisesArray = updatedNoises;
+      },
+      updateNoiseDelay(index, value) {
+        const updatedNoises = [...this.noisesArray];
+        updatedNoises[index] = { ...updatedNoises[index], delay: value };
+        this.noisesArray = updatedNoises;
+      },
     },
     computed: {
       fragment: {
@@ -640,29 +687,27 @@
           }
         }
       },
-      noise: {
-        get: function () { return this.allSetting?.subJsonNoise != ""; },
-        set: function (v) {
-          this.allSetting.subJsonNoise = v ? JSON.stringify(this.defaultNoise) : "";
-        }
-      },
-      noisePacket: {
-        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.packet : ""; },
-        set: function (v) {
-          if (v != "") {
-            newNoise = JSON.parse(this.allSetting.subJsonNoise);
-            newNoise.settings.noise.packet = v;
-            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
+      noises: {
+        get() {
+          return this.allSetting?.subJsonNoises != "";
+        },
+        set(v) {
+          if (v) {
+            this.allSetting.subJsonNoises = JSON.stringify(this.defaultNoises);
+          } else {
+            this.allSetting.subJsonNoises = "";
           }
         }
       },
-      noiseDelay: {
-        get: function () { return this.noise ? JSON.parse(this.allSetting.subJsonNoise).settings.noise.delay : ""; },
-        set: function (v) {
-          if (v != "") {
-            newNoise = JSON.parse(this.allSetting.subJsonNoise);
-            newNoise.settings.noise.delay = v;
-            this.allSetting.subJsonNoise = JSON.stringify(newNoise);
+      noisesArray: {
+        get() {
+          return this.noises ? JSON.parse(this.allSetting.subJsonNoises).settings.noises : [];
+        },
+        set(value) {
+          if (this.noises) {
+            const newNoises = JSON.parse(this.allSetting.subJsonNoises);
+            newNoises.settings.noises = value;
+            this.allSetting.subJsonNoises = JSON.stringify(newNoises);
           }
         }
       },
@@ -702,28 +747,49 @@
           this.allSetting.subJsonRules = v ? JSON.stringify(this.defaultRules) : "";
         }
       },
-      directCountries: {
+      geoIP: {
         get: function () {
           if (!this.enableDirect) return [];
-          rules = JSON.parse(this.allSetting.subJsonRules);
+          const rules = JSON.parse(this.allSetting.subJsonRules);
           return Array.isArray(rules) ? rules[1].ip.map(d => d.replace("geoip:", "")) : [];
         },
         set: function (v) {
-          rules = JSON.parse(this.allSetting.subJsonRules);
+          const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
-          rules[0].domain = [];
+
           rules[1].ip = [];
           v.forEach(d => {
+            rules[1].ip.push("geoip:" + d);
+          });
+          this.allSetting.subJsonRules = JSON.stringify(rules);
+        }
+      },
+      geoSite: {
+        get: function () {
+          if (!this.enableDirect) return [];
+          const rules = JSON.parse(this.allSetting.subJsonRules);
+          return Array.isArray(rules) ?
+            rules[0].domain.map(d => {
+              if (d.startsWith("geosite:category-")) {
+                return d.replace("geosite:category-", ""); 
+              }
+              return d.replace("geosite:", "");
+            })
+            : [];
+        },
+        set: function (v) {
+          const rules = JSON.parse(this.allSetting.subJsonRules);
+          if (!Array.isArray(rules)) return;
+
+          rules[0].domain = [];
+          v.forEach(d => {
             let category = '';
-            if (["cn", "private"].includes(d)) {
+            if (["cn", "apple", "meta", "google"].includes(d)) {
               category = "";
-            } else if (d === 'ru') {
-              category = "category-gov-";
-            } else {
+            } else if (["ru", "ir"].includes(d)) {
               category = "category-";
             }
             rules[0].domain.push("geosite:" + category + d);
-            rules[1].ip.push("geoip:" + d);
           });
           this.allSetting.subJsonRules = JSON.stringify(rules);
         }

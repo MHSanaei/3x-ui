@@ -163,8 +163,8 @@
                         </a-col>
                         <a-col :lg="24" :xl="12">
                           <template>
-                            <a-select v-model="setLogLevel" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                              <a-select-option v-for="s in logLevel" :value="s">[[ s ]]</a-select-option>
+                            <a-select v-model="logLevel" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
+                                <a-select-option v-for="s in log.loglevel" :value="s">[[ s ]]</a-select-option>
                             </a-select>
                           </template>
                         </a-col>
@@ -178,7 +178,8 @@
                         <a-col :lg="24" :xl="12">
                           <template>
                             <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                              <a-select-option v-for="s in access" :key="s" :value="s">[[ s ]]</a-select-option>
+                                <a-select-option value=''>Empty</a-select-option>
+                                <a-select-option v-for="s in log.access" :value="s">[[ s ]]</a-select-option>
                             </a-select>
                           </template>
                         </a-col>
@@ -192,11 +193,28 @@
                         <a-col :lg="24" :xl="12">
                           <template>
                             <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                              <a-select-option v-for="s in error" :key="s" :value="s">[[ s ]]</a-select-option>
+                                <a-select-option value=''>Empty</a-select-option>
+                                <a-select-option v-for="s in log.error" :value="s">[[ s ]]</a-select-option>
                             </a-select>
                           </template>
                         </a-col>
                       </a-row>
+                      <a-row style="padding: 10px 20px">
+                        <a-col :lg="24" :xl="12">
+                          <a-list-item-meta title='{{ i18n "pages.xray.maskAddress" }}'
+                            description='{{ i18n "pages.xray.maskAddressDesc" }}'>
+                          </a-list-item-meta>
+                        </a-col>
+                        <a-col :lg="24" :xl="12">
+                          <template>
+                            <a-select v-model="maskAddressLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
+                                <a-select-option value=''>Empty</a-select-option>
+                                <a-select-option v-for="s in log.maskAddress" :value="s">[[ s ]]</a-select-option>
+                            </a-select>
+                          </template>
+                        </a-col>
+                      </a-row>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.dnsLog"}}' desc='{{ i18n "pages.xray.dnsLogDesc"}}' v-model="dnslog"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
@@ -791,9 +809,13 @@
                 protocol: "freedom"
             },
             routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
-            logLevel: ["none" , "debug" , "info" , "warning", "error"],
-            access: [],
-            error: [],
+            log: {
+                loglevel: ["none", "debug", "info", "warning", "error"],
+                access: ["none", "./access.log"],
+                error: ["none", "./error.log"],
+                dnsLog: false,
+                maskAddress: ["quarter", "half", "full"],
+            },
             settingsData: {
                 protocols: {
                     bittorrent: ["bittorrent"],
@@ -828,10 +850,11 @@
                         "regexp:.*\\.cn$"
                     ],
                     ru: [
-                        "geosite:category-gov-ru",
+                        "geosite:category-ru",  //https://github.com/v2fly/domain-list-community/blob/master/data/category-ru
                         "regexp:.*\\.ru$"
                     ],
                     ir: [
+                        "geosite:category-ir",  // https://github.com/v2fly/domain-list-community/blob/master/data/category-ir
                         "regexp:.*\\.ir$",
                         "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
                         "ext:geosite_IR.dat:ir"
@@ -1519,27 +1542,11 @@
             templateSettings: {
                 get: function () {
                     const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
-                    let accessLogPath = "./access.log";
-                    let errorLogPath = "./error.log";
-
-                    if (parsedSettings && parsedSettings.log) {
-                        if (parsedSettings.log.access && parsedSettings.log.access !== "none") {
-                            accessLogPath = parsedSettings.log.access;
-                        }
-                        if (parsedSettings.log.error && parsedSettings.log.error !== "none") {
-                            errorLogPath = parsedSettings.log.error;
-                        }
-                    }
-
-                    this.access = ["none", accessLogPath];
-                    this.error = ["none", errorLogPath];
                     return parsedSettings;
                 },
                 set: function (newValue) {
-                    if (newValue && newValue.log) {
+                    if (newValue) {
                         this.xraySetting = JSON.stringify(newValue, null, 2);
-                        this.access = ["none", newValue.log.access || "./access.log"];
-                        this.error = ["none", newValue.log.error || "./error.log"];
                     }
                 },
             },
@@ -1688,7 +1695,7 @@
                     this.templateSettings = newTemplateSettings;
                 }
             },
-            setLogLevel: {
+            logLevel: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.loglevel) return "warning";
                     return this.templateSettings.log.loglevel;
@@ -1718,6 +1725,28 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.log.error = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnslog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.dnsLog) return false;
+                    return this.templateSettings.log.dnsLog;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.dnsLog = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            maskAddressLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.maskAddress) return "";
+                    return this.templateSettings.log.maskAddress;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.maskAddress = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },

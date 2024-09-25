@@ -225,9 +225,6 @@
 "requestHeader" = "Header yêu cầu"
 "responseHeader" = "Header phản hồi"
 
-[pages.inbounds.stream.quic]
-"encryption" = "Mã hóa"
-
 [pages.settings]
 "title" = "Cài đặt"
 "save" = "Lưu"
@@ -312,14 +309,14 @@
 "fragment" = "Sự phân mảnh"
 "fragmentDesc" = "Kích hoạt phân mảnh cho gói TLS hello"
 "fragmentSett" = "Cài đặt phân mảnh"
-"noiseDesc" = "Bật Noise."
-"noiseSett" = "Cài đặt Noise"
+"noisesDesc" = "Bật Noises."
+"noisesSett" = "Cài đặt Noises"
 "mux" = "Mux"
 "muxDesc" = "Truyền nhiều luồng dữ liệu độc lập trong luồng dữ liệu đã thiết lập."
 "muxSett" = "Mux Cài đặt"
 "direct" = "Kết nối trực tiếp"
 "directDesc" = "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể."
-"directSett" = "Tùy chọn kết nối trực tiếp"
+
 
 [pages.xray]
 "title" = "Cài đặt Xray"
@@ -425,6 +422,10 @@
 "accessLogDesc" = "Đường dẫn tệp cho nhật ký truy cập. Nhật ký truy cập bị vô hiệu hóa có giá trị đặc biệt 'không'"
 "errorLog" = "Nhật ký lỗi"
 "errorLogDesc" = "Đường dẫn tệp cho nhật ký lỗi. Nhật ký lỗi bị vô hiệu hóa có giá trị đặc biệt 'không'"
+"dnsLog" = "Nhật ký DNS"
+"dnsLogDesc" = "Có bật nhật ký truy vấn DNS không"
+"maskAddress" = "Ẩn Địa Chỉ"
+"maskAddressDesc" = "Mặt nạ địa chỉ IP, khi được bật, sẽ tự động thay thế địa chỉ IP xuất hiện trong nhật ký."
 
 [pages.xray.rules]
 "first" = "Đầu tiên"

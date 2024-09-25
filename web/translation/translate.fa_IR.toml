@@ -225,9 +225,6 @@
 "requestHeader" = "سربرگ درخواست"
 "responseHeader" = "سربرگ پاسخ"
 
-[pages.inbounds.stream.quic]
-"encryption" = "رمزنگاری"
-
 [pages.settings]
 "title" = "تنظیمات پنل"
 "save" = "ذخیره"
@@ -312,14 +309,14 @@
 "fragment" = "فرگمنت"
 "fragmentDesc" = "فعال کردن فرگمنت برای بسته‌ی نخست تی‌ال‌اس"
 "fragmentSett" = "تنظیمات فرگمنت"
-"noiseDesc" = "فعال کردن Noise."
-"noiseSett" = "تنظیمات Noise"
+"noisesDesc" = "فعال کردن Noises."
+"noisesSett" = "تنظیمات Noises"
 "mux" = "ماکس"
 "muxDesc" = "چندین جریان داده مستقل را در یک جریان داده ثابت منتقل می کند"
 "muxSett" = "تنظیمات ماکس"
 "direct" = "اتصال مستقیم"
 "directDesc" = "به طور مستقیم با دامنه ها یا محدوده آی‌پی یک کشور خاص ارتباط برقرار می کند"
-"directSett" = "گزینه های اتصال مستقیم"
+
 
 [pages.xray]
 "title" = "پیکربندی ایکس‌ری"
@@ -425,6 +422,10 @@
 "accessLogDesc" = "مسیر فایل برای گزارش دسترسی. مقدار ویژه «هیچ» گزارش‌های دسترسی را غیرفعال میکند."
 "errorLog" = "گزارش خطا"
 "errorLogDesc" = "مسیر فایل برای ورود به سیستم خطا. مقدار ویژه «هیچ» گزارش های خطا را غیرفعال میکند"
+"dnsLog" = "گزارش DNS"
+"dnsLogDesc" = "آیا ثبت‌های درخواست DNS را فعال کنید"
+"maskAddress" = "پنهان کردن آدرس"
+"maskAddressDesc" = "پوشش آدرس IP، هنگامی که فعال می‌شود، به طور خودکار آدرس IP که در لاگ ظاهر می‌شود را جایگزین می‌کند."
 
 [pages.xray.rules]
 "first" = "اولین"
