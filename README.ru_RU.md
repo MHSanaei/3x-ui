@@ -249,7 +249,7 @@ location /sub {
 - Parch Linux
 - Manjaro
 - Armbian
-- AlmaLinux 8+
+- AlmaLinux 8.0+
 - Rocky Linux 8+
 - Oracle Linux 8+
 - OpenSUSE Tubleweed

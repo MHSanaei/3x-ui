@@ -72,8 +72,8 @@ elif [[ "${release}" == "debian" ]]; then
         echo -e "${red} Please use Debian 11 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "almalinux" ]]; then
-    if [[ ${os_version} -lt 8 ]]; then
-        echo -e "${red} Please use AlmaLinux 8 or higher ${plain}\n" && exit 1
+    if [[ ${os_version} -lt 80 ]]; then
+        echo -e "${red} Please use AlmaLinux 8.0 or higher ${plain}\n" && exit 1
     fi
 elif [[ "${release}" == "rocky" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
@@ -94,7 +94,7 @@ else
     echo "- Parch Linux"
     echo "- Manjaro"
     echo "- Armbian"
-    echo "- AlmaLinux 8+"
+    echo "- AlmaLinux 8.0+"
     echo "- Rocky Linux 8+"
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
