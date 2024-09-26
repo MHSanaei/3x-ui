@@ -587,86 +587,90 @@
                 </a-radio-group>
                 <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
               </a-tab-pane>
-              <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
-                <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}' desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
+            <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
+                <setting-list-item type="switch" title='{{ i18n "pages.xray.dns.enable" }}'
+                    desc='{{ i18n "pages.xray.dns.enableDesc" }}' v-model="enableDNS"></setting-list-item>
                 <template v-if="enableDNS">
-                  <setting-list-item style="padding: 10px 20px" type="text" title='{{ i18n "pages.xray.dns.tag" }}' desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
-                  <a-list-item style="padding: 10px 20px">
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}' description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
-                        <a-select
-                            v-model="dnsStrategy"
-                            style="width: 100%"
-                            :dropdown-class-name="themeSwitcher.currentTheme">
-                          <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
-                            [[ l ]]
-                          </a-select-option>
-                        </a-select>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                  <a-divider>DNS</a-divider>
-                  <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-bottom: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
-                  <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0"
-                      :row-key="r => r.key"
-                      :data-source="dnsServers"
-                      :scroll="isMobile ? {} : { x: 200 }"
-                      :pagination="false"
-                      :indent-size="0"
-                      :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
-                    <template slot="action" slot-scope="text,dns,index">
-                        [[ index+1 ]]
-                      <a-dropdown :trigger="['click']">
-                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                          <a-menu-item @click="editDNSServer(index)">
-                            <a-icon type="edit"></a-icon>
-                            {{ i18n "edit" }}
-                          </a-menu-item>
-                          <a-menu-item @click="deleteDNSServer(index)">
-                            <span style="color: #FF4D4F">
-                              <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                            </span>
-                          </a-menu-item>
-                        </a-menu>
-                      </a-dropdown>
-                    </template>
-                    <template slot="address" slot-scope="dns,index">
-                      <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
-                      <span v-else>[[ dns ]]</span>
-                    </template>
-                    <template slot="domain" slot-scope="dns,index">
-                      <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
-                    </template>
-                  </a-table>
-                  <a-divider>Fake DNS</a-divider>
-                  <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-bottom: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
-                  <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
-                      :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
-                      :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
-                    <template slot="action" slot-scope="text,fakedns,index">
-                        [[ index+1 ]]
-                      <a-dropdown :trigger="['click']">
-                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                          <a-menu-item @click="editFakedns(index)">
-                            <a-icon type="edit"></a-icon>
-                            {{ i18n "edit" }}
-                          </a-menu-item>
-                          <a-menu-item @click="deleteFakedns(index)">
-                            <span style="color: #FF4D4F">
-                              <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                            </span>
-                          </a-menu-item>
-                        </a-menu>
-                      </a-dropdown>
-                    </template>
-                  </a-table>
+                    <setting-list-item style="padding: 10px 20px" type="text" title='{{ i18n "pages.xray.dns.tag" }}'
+                        desc='{{ i18n "pages.xray.dns.tagDesc" }}' v-model="dnsTag"></setting-list-item>
+                    <a-list-item style="padding: 10px 20px">
+                        <a-row>
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}'
+                                    description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <a-select v-model="dnsStrategy" style="width: 100%"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                    <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
+                                        [[ l ]]
+                                    </a-select-option>
+                                </a-select>
+                            </a-col>
+                        </a-row>
+                    </a-list-item>
+                    <a-divider>DNS</a-divider>
+                    <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-bottom: 10px;">{{ i18n
+                        "pages.xray.dns.add" }}</a-button>
+                    <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0" :row-key="r => r.key"
+                        :data-source="dnsServers" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+                        :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                        <template slot="action" slot-scope="text,dns,index">
+                            [[ index+1 ]]
+                            <a-dropdown :trigger="['click']">
+                                <a-icon @click="e => e.preventDefault()" type="more"
+                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                    <a-menu-item @click="editDNSServer(index)">
+                                        <a-icon type="edit"></a-icon>
+                                        {{ i18n "edit" }}
+                                    </a-menu-item>
+                                    <a-menu-item @click="deleteDNSServer(index)">
+                                        <span style="color: #FF4D4F">
+                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                        </span>
+                                    </a-menu-item>
+                                </a-menu>
+                            </a-dropdown>
+                        </template>
+                        <template slot="address" slot-scope="dns,index">
+                            <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
+                            <span v-else>[[ dns ]]</span>
+                        </template>
+                        <template slot="domain" slot-scope="dns,index">
+                            <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
+                        </template>
+                        <template slot="expectIPs" slot-scope="dns,index">
+                            <span v-if="typeof dns == 'object'">[[ dns.expectIPs.join(",") ]]</span>
+                        </template>
+                    </a-table>
+                    <a-divider>Fake DNS</a-divider>
+                    <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-bottom: 10px;">{{ i18n
+                        "pages.xray.fakedns.add" }}</a-button>
+                    <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
+                        :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+                        :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
+                        <template slot="action" slot-scope="text,fakedns,index">
+                            [[ index+1 ]]
+                            <a-dropdown :trigger="['click']">
+                                <a-icon @click="e => e.preventDefault()" type="more"
+                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                    <a-menu-item @click="editFakedns(index)">
+                                        <a-icon type="edit"></a-icon>
+                                        {{ i18n "edit" }}
+                                    </a-menu-item>
+                                    <a-menu-item @click="deleteFakedns(index)">
+                                        <span style="color: #FF4D4F">
+                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                        </span>
+                                    </a-menu-item>
+                                </a-menu>
+                            </a-dropdown>
+                        </template>
+                    </a-table>
                 </template>
-              </a-tab-pane>
+            </a-tab-pane>
               <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
                 <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
                 <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
@@ -748,6 +752,7 @@
         { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
         { title: '{{ i18n "pages.xray.dns.domains"}}', align: 'center', width: 50, scopedSlots: { customRender: 'domain' } },
+        { title: '{{ i18n "pages.xray.dns.expectIPs"}}', align: 'center', width: 50, scopedSlots: { customRender: 'expectIPs' } },
     ];
 
     const fakednsColumns = [

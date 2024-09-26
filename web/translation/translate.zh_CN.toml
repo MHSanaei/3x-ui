@@ -488,6 +488,7 @@
 "add" = "添加服务器"
 "edit" = "编辑服务器"
 "domains" = "域"
+"expectIPs" = "预期 IP"
 
 [pages.xray.fakedns]
 "add" = "添加假 DNS"

@@ -488,6 +488,7 @@
 "add" = "Додати сервер"
 "edit" = "Редагувати сервер"
 "domains" = "Домени"
+"expectIPs" = "Очікувані IP"
 
 [pages.xray.fakedns]
 "add" = "Додати підроблений DNS"

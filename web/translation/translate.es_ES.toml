@@ -486,6 +486,7 @@
 "add" = "Agregar Servidor"
 "edit" = "Editar Servidor"
 "domains" = "Dominios"
+"expectIPs" = "IPs esperadas"
 
 [pages.xray.fakedns]
 "add" = "Agregar DNS Falso"

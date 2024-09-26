@@ -488,6 +488,7 @@
 "add" = "Sunucu Ekle"
 "edit" = "Sunucuyu Düzenle"
 "domains" = "Alan Adları"
+"expectIPs" = "Beklenen IP'ler"
 
 [pages.xray.fakedns]
 "add" = "Sahte DNS Ekle"
