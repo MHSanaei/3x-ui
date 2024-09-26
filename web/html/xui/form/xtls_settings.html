@@ -1,0 +1,58 @@
+{{define "form/xtlsSettings"}}
+<template>
+    <a-form-item label="SNI" placeholder="Server Name Indication">
+        <a-input v-model.trim="inbound.stream.xtls.sni"></a-input>
+    </a-form-item>
+    <a-form-item label="ALPN">
+        <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" v-model="inbound.stream.xtls.alpn">
+            <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label="Allow Insecure">
+        <a-switch v-model="inbound.stream.xtls.settings.allowInsecure"></a-switch>
+    </a-form-item>
+    <template v-for="cert,index in inbound.stream.xtls.certs">
+        <a-form-item label='{{ i18n "certificate" }}'>
+            <a-radio-group v-model="cert.useFile" button-style="solid">
+                <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+                <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+            </a-radio-group>
+            <a-button icon="plus" v-if="index === 0" type="primary" size="small" @click="inbound.stream.xtls.addCert()"
+                style="margin-left: 10px"></a-button>
+            <a-button icon="minus" v-if="inbound.stream.xtls.certs.length>1" type="primary" size="small"
+                @click="inbound.stream.xtls.removeCert(index)" style="margin-left: 10px"></a-button>
+        </a-form-item>
+        <template v-if="cert.useFile">
+            <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
+                <a-input v-model.trim="cert.certFile"></a-input>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
+                <a-input v-model.trim="cert.keyFile"></a-input>
+            </a-form-item>
+            <a-form-item label=" ">
+                <a-button type="primary" icon="import" @click="setDefaultCertXtls(index)">
+                    {{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
+            </a-form-item>
+        </template>
+        <template v-else>
+            <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
+                <a-input type="textarea" :rows="3" v-model="cert.cert"></a-input>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
+                <a-input type="textarea" :rows="3" v-model="cert.key"></a-input>
+            </a-form-item>
+        </template>
+        <a-form-item label='OCSP stapling'>
+            <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label="One Time Loading">
+            <a-switch v-model="cert.oneTimeLoading"></a-switch>
+        </a-form-item>
+        <a-form-item label='Usage Option'>
+            <a-select v-model="cert.usage" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in USAGE_OPTION" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+    </template>
+</template>
+{{end}}
