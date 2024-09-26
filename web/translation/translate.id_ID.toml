@@ -488,6 +488,7 @@
 "add" = "Tambahkan Server"
 "edit" = "Sunting Server"
 "domains" = "Domains"
+"expectIPs" = "IP yang Diharapkan"
 
 [pages.xray.fakedns]
 "add" = "Tambahkan DNS Palsu"

@@ -1,5 +1,7 @@
 {{define "dnsModal"}}
-<a-modal id="dns-modal" v-model="dnsModal.visible" :title="dnsModal.title" @ok="dnsModal.ok" :closable="true" :mask-closable="false" :ok-text="dnsModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
+<a-modal id="dns-modal" v-model="dnsModal.visible" :title="dnsModal.title" @ok="dnsModal.ok" :closable="true"
+  :mask-closable="false" :ok-text="dnsModal.okText" cancel-text='{{ i18n "close" }}'
+  :class="themeSwitcher.currentTheme">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "pages.xray.outbound.address" }}'>
       <a-input v-model.trim="dnsModal.dnsServer.address"></a-input>
@@ -8,17 +10,28 @@
       <a-button icon="plus" size="small" type="primary" @click="dnsModal.dnsServer.domains.push('')"></a-button>
       <template v-for="(domain, index) in dnsModal.dnsServer.domains">
         <a-input v-model.trim="dnsModal.dnsServer.domains[index]">
-          <a-button icon="minus" size="small" slot="addonAfter" @click="dnsModal.dnsServer.domains.splice(index,1)"></a-button>
+          <a-button icon="minus" size="small" slot="addonAfter"
+            @click="dnsModal.dnsServer.domains.splice(index,1)"></a-button>
         </a-input>
       </template>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.xray.dns.strategy" }}' v-if="isAdvanced">
-      <a-select v-model="dnsModal.dnsServer.queryStrategy" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
+      <a-select v-model="dnsModal.dnsServer.queryStrategy" style="width: 100%"
+        :dropdown-class-name="themeSwitcher.currentTheme">
         <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]] </a-select-option>
       </a-select>
     </a-form-item>
     <a-form-item label='Skip Fallback' v-if="isAdvanced">
       <a-switch v-model="dnsModal.dnsServer.skipFallback"></a-switch>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.dns.expectIPs"}}'>
+      <a-button icon="plus" size="small" type="primary" @click="dnsModal.dnsServer.expectIPs.push('')"></a-button>
+      <template v-for="(domain, index) in dnsModal.dnsServer.expectIPs">
+        <a-input v-model.trim="dnsModal.dnsServer.expectIPs[index]">
+          <a-button icon="minus" size="small" slot="addonAfter"
+            @click="dnsModal.dnsServer.expectIPs.splice(index,1)"></a-button>
+        </a-input>
+      </template>
     </a-form-item>
   </a-form>
 </a-modal>
@@ -32,20 +45,24 @@
     dnsServer: {
       address: "localhost",
       domains: [],
+      expectIPs: [],
       queryStrategy: 'UseIP',
       skipFallback: true,
     },
     ok() {
       domains = dnsModal.dnsServer.domains.filter(d => d.length > 0);
+      expectIPs = dnsModal.dnsServer.expectIPs.filter(ip => ip.length > 0);
       dnsModal.dnsServer.domains = domains;
-      newDnsServer = domains.length > 0 ? dnsModal.dnsServer : dnsModal.dnsServer.address;
+      dnsModal.dnsServer.expectIPs = expectIPs;
+      newDnsServer = (domains.length > 0 || expectIPs.length > 0) ? dnsModal.dnsServer : dnsModal.dnsServer.address;
       ObjectUtil.execute(dnsModal.confirm, newDnsServer);
     },
+
     show({
       title = '',
       okText = '{{ i18n "confirm" }}',
       dnsServer,
-      confirm = (dnsServer) => {},
+      confirm = (dnsServer) => { },
       isEdit = false
     }) {
       this.title = title;
@@ -59,6 +76,7 @@
           this.dnsServer = {
             address: dnsServer ?? "",
             domains: [],
+            expectIPs: [],
             queryStrategy: 'UseIP',
             skipFallback: true,
           }
@@ -67,6 +85,7 @@
         this.dnsServer = {
           address: "localhost",
           domains: [],
+          expectIPs: [],
           queryStrategy: 'UseIP',
           skipFallback: true,
         }
@@ -85,8 +104,8 @@
     },
     computed: {
       isAdvanced: {
-        get: function() {
-          return dnsModal.dnsServer.domains.length > 0
+        get: function () {
+          return dnsModal.dnsServer.domains.length > 0;
         }
       }
     }

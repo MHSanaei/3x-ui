@@ -488,6 +488,7 @@
 "add" = "Thêm máy chủ"
 "edit" = "Chỉnh sửa máy chủ"
 "domains" = "Tên miền"
+"expectIPs" = "Các IP Dự Kiến"
 
 [pages.xray.fakedns]
 "add" = "Thêm DNS giả"
