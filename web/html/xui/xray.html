@@ -235,44 +235,78 @@
                       <setting-list-item type="switch" title='{{ i18n "pages.xray.Speedtest"}}' desc='{{ i18n "pages.xray.SpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.blockCountryConfigs"}}'>
+                  <a-collapse-panel header='{{ i18n "pages.xray.blockConnectionsConfigs"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center;">
                         <template slot="message">
                           <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.blockCountryConfigsDesc" }}
+                          {{ i18n "pages.xray.blockConnectionsConfigsDesc" }}
                         </template>
                       </a-alert>
                     </a-row>
                     <a-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.IRIp"}}' desc='{{ i18n "pages.xray.IRIpDesc"}}' v-model="IRIpSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.IRDomain"}}' desc='{{ i18n "pages.xray.IRDomainDesc"}}' v-model="IRDomainSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaIp"}}' desc='{{ i18n "pages.xray.ChinaIpDesc"}}' v-model="ChinaIpSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.ChinaDomain"}}' desc='{{ i18n "pages.xray.ChinaDomainDesc"}}' v-model="ChinaDomainSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaIp"}}' desc='{{ i18n "pages.xray.RussiaIpDesc"}}' v-model="RussiaIpSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.RussiaDomain"}}' desc='{{ i18n "pages.xray.RussiaDomainDesc"}}' v-model="RussiaDomainSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.VNIp"}}' desc='{{ i18n "pages.xray.VNIpDesc"}}' v-model="VNIpSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.VNDomain"}}' desc='{{ i18n "pages.xray.VNDomainDesc"}}' v-model="VNDomainSettings"></setting-list-item>
+                        <a-collapse>
+                            <a-collapse-panel header='{{ i18n "pages.xray.blockips"}}'>
+                                <setting-list-item type="switch" title='🇮🇷 Iran'
+                                    v-model="IRIpSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇨🇳 China'
+                                    v-model="ChinaIpSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇷🇺 Russia'
+                                    v-model="RussiaIpSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
+                                    v-model="VNIpSettings"></setting-list-item>
+                            </a-collapse-panel>
+                        </a-collapse>
+                        <br>
+                        <a-collapse>
+                            <a-collapse-panel header='{{ i18n "pages.xray.blockdomains"}}'>
+                                <setting-list-item type="switch" title='🇮🇷 Iran'
+                                    v-model="IRDomainSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇨🇳 China'
+                                    v-model="ChinaDomainSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇷🇺 Russia'
+                                    v-model="RussiaDomainSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
+                                    v-model="VNDomainSettings"></setting-list-item>
+                            </a-collapse-panel>
+                        </a-collapse>
                     </a-list-item>
                   </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.directCountryConfigs"}}'>
+                  <a-collapse-panel header='{{ i18n "pages.xray.directConnectionsConfigs"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center;">
                         <template slot="message">
                           <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.directCountryConfigsDesc" }}
+                          {{ i18n "pages.xray.directConnectionsConfigsDesc" }}
                         </template>
                       </a-alert>
                     </a-row>
                     <a-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRIp"}}' desc='{{ i18n "pages.xray.DirectIRIpDesc"}}' v-model="IRIpDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectIRDomain"}}' desc='{{ i18n "pages.xray.DirectIRDomainDesc"}}' v-model="IRDomainDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaIp"}}' desc='{{ i18n "pages.xray.DirectChinaIpDesc"}}' v-model="ChinaIpDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectChinaDomain"}}' desc='{{ i18n "pages.xray.DirectChinaDomainDesc"}}' v-model="ChinaDomainDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaIp"}}' desc='{{ i18n "pages.xray.DirectRussiaIpDesc"}}' v-model="RussiaIpDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectRussiaDomain"}}' desc='{{ i18n "pages.xray.DirectRussiaDomainDesc"}}' v-model="RussiaDomainDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNIp"}}' desc='{{ i18n "pages.xray.DirectVNIpDesc"}}' v-model="VNIpDirectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.DirectVNDomain"}}' desc='{{ i18n "pages.xray.DirectVNDomainDesc"}}' v-model="VNDomainDirectSettings"></setting-list-item>
+                        <a-collapse>
+                            <a-collapse-panel header='{{ i18n "pages.xray.directips"}}'>
+                                <setting-list-item type="switch" title='🇮🇷 Iran'
+                                    v-model="IRIpDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇨🇳 China'
+                                    v-model="ChinaIpDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇷🇺 Russia'
+                                    v-model="RussiaIpDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
+                                    v-model="VNIpDirectSettings"></setting-list-item>
+                            </a-collapse-panel>
+                        </a-collapse>
+                        <br>
+                        <a-collapse>
+                            <a-collapse-panel header='{{ i18n "pages.xray.directdomains"}}'>
+                                <setting-list-item type="switch" title='🇮🇷 Iran'
+                                    v-model="IRDomainDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇨🇳 China'
+                                    v-model="ChinaDomainDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇷🇺 Russia'
+                                    v-model="RussiaDomainDirectSettings"></setting-list-item>
+                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
+                                    v-model="VNDomainDirectSettings"></setting-list-item>
+                            </a-collapse-panel>
+                        </a-collapse>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
@@ -851,18 +885,19 @@
                     apple: ["geosite:apple"],
                     reddit: ["geosite:reddit"],
                     cn: [
-                        "geosite:cn",
-                        "regexp:.*\\.cn$"
+                        "regexp:.*\\.cn$",
+                        "geosite:cn"
                     ],
                     ru: [
-                        "geosite:category-ru",  //https://github.com/v2fly/domain-list-community/blob/master/data/category-ru
-                        "regexp:.*\\.ru$"
+                        "regexp:.*\\.ru$",
+                        "geosite:category-ru"  //https://github.com/v2fly/domain-list-community/blob/master/data/category-ru
+                        
                     ],
                     ir: [
-                        "geosite:category-ir",  // https://github.com/v2fly/domain-list-community/blob/master/data/category-ir
                         "regexp:.*\\.ir$",
-                        "regexp:.*\\.xn--mgba3a4f16a$",  // .ایران
-                        "ext:geosite_IR.dat:ir"
+                        "ext:geosite_IR.dat:ir",
+                        "geosite:category-ir",  // https://github.com/v2fly/domain-list-community/blob/master/data/category-ir
+                        "regexp:.*\\.xn--mgba3a4f16a$"  // .ایران
                     ],
                     vn: [
                         "regexp:.*\\.vn$",

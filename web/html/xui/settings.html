@@ -380,14 +380,14 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='Geo IP'>
+                      <a-collapse-panel header='{{ i18n "pages.xray.directips"}}'>
                         <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="geoIP" name="Geo IP" :options="geoIPOptions"></a-checkbox-group>
+                          <a-checkbox-group v-model="geoIP" :options="geoIPOptions"></a-checkbox-group>
                         </a-list-item>
                       </a-collapse-panel>
-                      <a-collapse-panel header='Geo Site'>
+                      <a-collapse-panel header='{{ i18n "pages.xray.directdomains"}}'>
                         <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="geoSite" name="Geo Site" :options="geoSiteOptions"></a-checkbox-group>
+                          <a-checkbox-group v-model="geoSite" :options="geoSiteOptions"></a-checkbox-group>
                         </a-list-item>
                       </a-collapse-panel>
                     </a-collapse>
