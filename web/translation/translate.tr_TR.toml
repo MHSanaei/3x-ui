@@ -143,7 +143,7 @@
 "destinationPort" = "Hedef Port"
 "targetAddress" = "Hedef Adres"
 "monitorDesc" = "Tüm IP'leri dinlemek için boş bırakın"
-"meansNoLimit" = " = Sınırsız. (birim: GB)"
+"meansNoLimit" = "= Sınırsız. (birim: GB)"
 "totalFlow" = "Toplam Akış"
 "leaveBlankToNeverExpire" = "Hiçbir zaman sona ermemesi için boş bırakın"
 "noRecommendKeepDefault" = "Varsayılanı korumanız önerilir"
