@@ -143,7 +143,7 @@
 "destinationPort" = "目标端口"
 "targetAddress" = "目标地址"
 "monitorDesc" = "留空表示监听所有 IP"
-"meansNoLimit" = " = 无限制（单位：GB)"
+"meansNoLimit" = "= 无限制（单位：GB)"
 "totalFlow" = "总流量"
 "leaveBlankToNeverExpire" = "留空表示永不过期"
 "noRecommendKeepDefault" = "建议保留默认值"
@@ -474,7 +474,7 @@
 "loginSecurity" = "登录安全"
 "loginSecurityDesc" = "添加额外的身份验证以提高安全性"
 "secretToken" = "安全令牌"
-"secretTokenDesc" = "请将此令牌存储在安全的地方。此令牌用于登录，丢失无法恢复。" 
+"secretTokenDesc" = "请将此令牌存储在安全的地方。此令牌用于登录，丢失无法恢复。"
 
 [pages.settings.toasts]
 "modifySettings" = "修改设置"

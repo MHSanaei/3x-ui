@@ -143,7 +143,7 @@
 "destinationPort" = "Port Tujuan"
 "targetAddress" = "Alamat Target"
 "monitorDesc" = "Biarkan kosong untuk mendengarkan semua IP"
-"meansNoLimit" = " = Unlimited. (unit: GB)"
+"meansNoLimit" = "= Unlimited. (unit: GB)"
 "totalFlow" = "Total Aliran"
 "leaveBlankToNeverExpire" = "Biarkan kosong untuk tidak pernah kedaluwarsa"
 "noRecommendKeepDefault" = "Disarankan untuk tetap menggunakan pengaturan default"
