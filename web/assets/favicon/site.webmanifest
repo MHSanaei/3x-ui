@@ -1,0 +1,12 @@
+{
+    "name": "3X-UI — An Advanced Web Panel for Xray Core",
+    "short_name": "3X-UI",
+    "description": "Xray panel supporting multi-protocol multi-user expire day & traffic & ip limit (Vmess & Vless & Trojan & ShadowSocks & Wireguard)",
+    "icons": [
+        { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+    ],
+    "theme_color": "#008771",
+    "background_color": "#ff0000",
+    "display": "standalone"
+}
