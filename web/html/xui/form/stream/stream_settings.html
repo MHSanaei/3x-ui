@@ -4,7 +4,7 @@
     <a-form-item label='{{ i18n "transmission" }}'>
         <a-select v-model="inbound.stream.network" style="width: 75%" @change="streamNetworkChange"
             :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="tcp">TCP(RAW)</a-select-option>
+            <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
             <a-select-option value="http">H2</a-select-option>
