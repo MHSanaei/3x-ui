@@ -110,7 +110,7 @@
           <a-select-option v-for="key in USAGE_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label="Build Chain">
+      <a-form-item label="Build Chain" v-if="cert.usage === 'issue'">
         <a-switch v-model="cert.buildChain"></a-switch>
       </a-form-item>
     </template>
