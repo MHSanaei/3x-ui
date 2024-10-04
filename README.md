@@ -315,11 +315,14 @@ Our platform offers compatibility with a diverse range of architectures and devi
 <details>
   <summary>Click for default settings details</summary>
 
-### Username & Password & webbasepath:
+### Username, Password, Port, and Web Base Path
 
-  These will be generated randomly if you skip modifying them.
+If you choose not to modify these settings, they will be generated randomly (this does not apply to Docker).
 
-  - **Port:** the default port for panel is `2053`
+**Default Settings for Docker:**
+- **Username:** admin
+- **Password:** admin
+- **Port:** 2053
 
 ### Database Management:
 
