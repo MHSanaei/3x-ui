@@ -186,7 +186,7 @@ config_after_install() {
 
             local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
 
-            if [[ ${#existing_webBasePath} -lt 3 ]]; then
+            if [[ ${#existing_webBasePath} -lt 4 ]]; then
                 echo -e "${yellow}WebBasePath is empty, generating a random one...${plain}"
 
                 /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
