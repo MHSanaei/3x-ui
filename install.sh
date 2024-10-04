@@ -199,24 +199,32 @@ install_x-ui() {
     cd /usr/local/
 
     if [ $# == 0 ]; then
-        last_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-        if [[ ! -n "$last_version" ]]; then
-            echo -e "${red}Failed to fetch x-ui version, it maybe due to Github API restrictions, please try it later${plain}"
+        tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [[ ! -n "$tag_version" ]]; then
+            echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
             exit 1
         fi
-        echo -e "Got x-ui latest version: ${last_version}, beginning the installation..."
-        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch).tar.gz
+        echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
+        wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Downloading x-ui failed, please be sure that your server can access Github ${plain}"
+            echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
         fi
     else
-        last_version=$1
-        url="https://github.com/MHSanaei/3x-ui/releases/download/${last_version}/x-ui-linux-$(arch).tar.gz"
+        tag_version=$1
+        tag_version_numeric=${tag_version#v}
+        min_version="2.3.5"
+
+        if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
+            echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
+            exit 1
+        fi
+
+        url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         wget -N --no-check-certificate -O /usr/local/x-ui-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui $1 failed,please check the version exists ${plain}"
+            echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
             exit 1
         fi
     fi
@@ -247,7 +255,7 @@ install_x-ui() {
     systemctl daemon-reload
     systemctl enable x-ui
     systemctl start x-ui
-    echo -e "${green}x-ui ${last_version}${plain} installation finished, it is running now..."
+    echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "x-ui control menu usages: "
     echo -e "----------------------------------------------"
