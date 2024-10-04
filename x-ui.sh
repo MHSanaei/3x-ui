@@ -265,12 +265,13 @@ gen_random_string() {
 reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
     
-    # Prompt user to set a new web base path
-    read -rp "Please set the new web base path [press 'y' for a random path]: " config_webBasePath
-    
-    if [[ $config_webBasePath == "y" ]]; then
-        config_webBasePath=$(gen_random_string 10)
+    read -rp "Are you sure you want to reset the web base path? (y/n): " confirm
+    if [[ $confirm != "y" && $confirm != "Y" ]]; then
+        echo -e "${yellow}Operation canceled.${plain}"
+        return
     fi
+
+    config_webBasePath=$(gen_random_string 10)
     
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
