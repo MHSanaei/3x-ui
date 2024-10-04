@@ -186,20 +186,26 @@ update_menu() {
 }
 
 custom_version() {
-    echo "Enter the panel version (like 2.0.0):"
-    read panel_version
+    echo "Enter the panel version (like 2.4.0):"
+    read tag_version
 
-    if [ -z "$panel_version" ]; then
+    if [ -z "$tag_version" ]; then
         echo "Panel version cannot be empty. Exiting."
+        exit 1
+    fi
+
+    min_version="2.3.5"
+    if [[ "$(printf '%s\n' "$tag_version" "$min_version" | sort -V | head -n1)" == "$tag_version" && "$tag_version" != "$min_version" ]]; then
+        echo "Please use a newer version (at least 2.3.5). Exiting."
         exit 1
     fi
 
     download_link="https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh"
 
     # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls $download_link) v$panel_version"
+    install_command="bash <(curl -Ls $download_link) v$tag_version"
 
-    echo "Downloading and installing panel version $panel_version..."
+    echo "Downloading and installing panel version $tag_version..."
     eval $install_command
 }
 
