@@ -184,10 +184,13 @@ config_after_install() {
         else
             echo -e "${yellow}This is your upgrade, keeping old settings. If you forgot your login info, you can type 'x-ui settings' to check${plain}"
 
-            local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: [^ ]+' | awk '{print $2}')
-            if [[ -z "$existing_webBasePath" ]]; then
-                echo -e "${yellow}WebBasePath is empty, generating a random one: ${config_webBasePath}${plain}"
+            local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+
+            if [[ ${#existing_webBasePath} -lt 3 ]]; then
+                echo -e "${yellow}WebBasePath is empty, generating a random one...${plain}"
+
                 /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
+                echo -e "${green}New webBasePath: ${config_webBasePath}${plain}"
             fi
         fi
     fi
