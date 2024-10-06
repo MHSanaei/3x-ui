@@ -245,6 +245,7 @@ location /sub {
 - Ubuntu 20.04+
 - Debian 11+
 - CentOS 8+
+- OpenEuler 22+
 - Fedora 36+
 - Arch Linux
 - Parch Linux
