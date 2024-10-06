@@ -55,6 +55,8 @@ elif [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
+elif [[ "${release}" == "openEuler" ]]; then
+    echo "Your OS is openEuler"    
 elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 2004 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
