@@ -51,12 +51,14 @@ elif [[ "${release}" == "armbian" ]]; then
     echo "Your OS is Armbian"
 elif [[ "${release}" == "opensuse-tumbleweed" ]]; then
     echo "Your OS is OpenSUSE Tumbleweed"
+elif [[ "${release}" == "openEuler" ]]; then
+	if [[ ${os_version} -lt 2203 ]]; then
+		echo -e "${red} Please use openEuler 22.03 or higher ${plain}\n" && exit 1
+	fi
 elif [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
     fi
-elif [[ "${release}" == "openEuler" ]]; then
-    echo "Your OS is openEuler"    
 elif [[ "${release}" == "ubuntu" ]]; then
     if [[ ${os_version} -lt 2004 ]]; then
         echo -e "${red} Please use Ubuntu 20 or higher version!${plain}\n" && exit 1
