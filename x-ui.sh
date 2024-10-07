@@ -789,6 +789,7 @@ ssl_cert_issue_main() {
     echo -e "${green}\t2.${plain} Revoke"
     echo -e "${green}\t3.${plain} Force Renew"
     echo -e "${green}\t4.${plain} Show Existing Domains"
+    echo -e "${green}\t5.${plain} Set Cert paths for the panel"
     echo -e "${green}\t0.${plain} Back to Main Menu"
 
     read -p "Choose an option: " choice
@@ -800,7 +801,6 @@ ssl_cert_issue_main() {
         ssl_cert_issue
         ;;
     2)
-        # Auto-detect existing domains for revoking
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
         if [ -z "$domains" ]; then
             echo "No certificates found to revoke."
@@ -817,7 +817,6 @@ ssl_cert_issue_main() {
         fi
         ;;
     3)
-        # Auto-detect existing domains for force renewal
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
         if [ -z "$domains" ]; then
             echo "No certificates found to renew."
@@ -834,7 +833,6 @@ ssl_cert_issue_main() {
         fi
         ;;
     4)
-        # Show existing certificate paths for all domains
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
         if [ -z "$domains" ]; then
             echo "No certificates found."
@@ -853,7 +851,33 @@ ssl_cert_issue_main() {
             done
         fi
         ;;
-    *)
+    5)
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found."
+        else
+            echo "Available domains:"
+            echo "$domains"
+            read -p "Please choose a domain to set the panel paths: " domain
+            if [[ " $domains " =~ " $domain " ]]; then
+                local webCertFile="/root/cert/${domain}/fullchain.pem"
+                local webKeyFile="/root/cert/${domain}/privkey.pem"
+                
+                if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
+                    /usr/local/x-ui/x-ui setting -webCert "$webCertFile"
+                    /usr/local/x-ui/x-ui setting -webCertKey "$webKeyFile"
+                    echo "Panel paths set for domain: $domain"
+                    echo "  - Certificate File: $webCertFile"
+                    echo "  - Private Key File: $webKeyFile"
+                else
+                    echo "Certificate or private key not found for domain: $domain."
+                fi
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
+        ;;
+    *) 
         echo "Invalid choice"
         ;;
     esac
