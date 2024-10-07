@@ -772,15 +772,23 @@ update_geo() {
 }
 
 install_acme() {
-    cd ~
-    LOGI "install acme..."
-    curl https://get.acme.sh | sh
+    # Check if acme.sh is already installed
+    if command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        LOGI "acme.sh is already installed."
+        return 0
+    fi
+
+    LOGI "Installing acme.sh..."
+    cd ~ || return 1  # Ensure you can change to the home directory
+
+    curl -s https://get.acme.sh | sh
     if [ $? -ne 0 ]; then
-        LOGE "install acme failed"
+        LOGE "Installation of acme.sh failed."
         return 1
     else
-        LOGI "install acme succeed"
+        LOGI "Installation of acme.sh succeeded."
     fi
+
     return 0
 }
 
