@@ -788,7 +788,9 @@ ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL"
     echo -e "${green}\t2.${plain} Revoke"
     echo -e "${green}\t3.${plain} Force Renew"
+    echo -e "${green}\t4.${plain} Show Existing Domains"
     echo -e "${green}\t0.${plain} Back to Main Menu"
+
     read -p "Choose an option: " choice
     case "$choice" in
     0)
@@ -798,17 +800,62 @@ ssl_cert_issue_main() {
         ssl_cert_issue
         ;;
     2)
-        local domain=""
-        read -p "Please enter your domain name to revoke the certificate: " domain
-        ~/.acme.sh/acme.sh --revoke -d ${domain}
-        LOGI "Certificate revoked"
+        # Auto-detect existing domains for revoking
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found to revoke."
+        else
+            echo "Existing domains:"
+            echo "$domains"
+            read -p "Please enter a domain from the list to revoke the certificate: " domain
+            if [[ " $domains " =~ " $domain " ]]; then
+                ~/.acme.sh/acme.sh --revoke -d ${domain}
+                LOGI "Certificate revoked for domain: $domain"
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
         ;;
     3)
-        local domain=""
-        read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
-        ~/.acme.sh/acme.sh --renew -d ${domain} --force
+        # Auto-detect existing domains for force renewal
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found to renew."
+        else
+            echo "Existing domains:"
+            echo "$domains"
+            read -p "Please enter a domain from the list to renew the SSL certificate: " domain
+            if [[ " $domains " =~ " $domain " ]]; then
+                ~/.acme.sh/acme.sh --renew -d ${domain} --force
+                LOGI "Certificate forcefully renewed for domain: $domain"
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
         ;;
-    *) echo "Invalid choice" ;;
+    4)
+        # Show existing certificate paths for all domains
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found."
+        else
+            echo "Existing domains and their paths:"
+            for domain in $domains; do
+                local cert_path="/root/cert/${domain}/fullchain.pem"
+                local key_path="/root/cert/${domain}/privkey.pem"
+                if [[ -f "${cert_path}" && -f "${key_path}" ]]; then
+                    echo -e "Domain: ${domain}"
+                    echo -e "\tCertificate Path: ${cert_path}"
+                    echo -e "\tPrivate Key Path: ${key_path}"
+                else
+                    echo -e "Domain: ${domain} - Certificate or Key missing."
+                fi
+            done
+        fi
+        ;;
+    *)
+        echo "Invalid choice"
+        ;;
     esac
 }
 
