@@ -176,12 +176,12 @@ update_menu() {
         fi
         return 0
     fi
-    
+
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
-    
-     if [[ $? == 0 ]]; then
+
+    if [[ $? == 0 ]]; then
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
         exit 0
     else
@@ -216,7 +216,7 @@ custom_version() {
 
 # Function to handle the deletion of the script file
 delete_script() {
-    rm "$0"  # Remove the script file itself
+    rm "$0" # Remove the script file itself
     exit 1
 }
 
@@ -275,7 +275,7 @@ gen_random_string() {
 
 reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
-    
+
     read -rp "Are you sure you want to reset the web base path? (y/n): " confirm
     if [[ $confirm != "y" && $confirm != "Y" ]]; then
         echo -e "${yellow}Operation canceled.${plain}"
@@ -283,11 +283,11 @@ reset_webbasepath() {
     fi
 
     config_webBasePath=$(gen_random_string 10)
-    
+
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
     systemctl restart x-ui
-    
+
     # Display confirmation message
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
     echo -e "${green}Please use the new web base path to access the panel.${plain}"
@@ -732,7 +732,7 @@ delete_ports() {
     done
 
     # Confirm that the ports are deleted
-    
+
     echo "Deleted the specified ports:"
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
@@ -753,7 +753,7 @@ update_geo() {
     echo -e "${green}\t3.${plain} vuong2023 (geoip_VN.dat, geosite_VN.dat)"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
-    
+
     systemctl stop x-ui
     cd /usr/local/x-ui/bin
 
@@ -783,7 +783,7 @@ update_geo() {
         echo "Invalid option selected! No updates made."
         ;;
     esac
-    
+
     systemctl start x-ui
     before_show_menu
 }
@@ -796,7 +796,7 @@ install_acme() {
     fi
 
     LOGI "Installing acme.sh..."
-    cd ~ || return 1  # Ensure you can change to the home directory
+    cd ~ || return 1 # Ensure you can change to the home directory
 
     curl -s https://get.acme.sh | sh
     if [ $? -ne 0 ]; then
@@ -833,7 +833,7 @@ ssl_cert_issue_main() {
             echo "Existing domains:"
             echo "$domains"
             read -p "Please enter a domain from the list to revoke the certificate: " domain
-            if [[ " $domains " =~ " $domain " ]]; then
+            if echo "$domains" | grep -qw "$domain"; then
                 ~/.acme.sh/acme.sh --revoke -d ${domain}
                 LOGI "Certificate revoked for domain: $domain"
             else
@@ -849,7 +849,7 @@ ssl_cert_issue_main() {
             echo "Existing domains:"
             echo "$domains"
             read -p "Please enter a domain from the list to renew the SSL certificate: " domain
-            if [[ " $domains " =~ " $domain " ]]; then
+            if echo "$domains" | grep -qw "$domain"; then
                 ~/.acme.sh/acme.sh --renew -d ${domain} --force
                 LOGI "Certificate forcefully renewed for domain: $domain"
             else
@@ -884,13 +884,13 @@ ssl_cert_issue_main() {
             echo "Available domains:"
             echo "$domains"
             read -p "Please choose a domain to set the panel paths: " domain
-            if [[ " $domains " =~ " $domain " ]]; then
+
+            if echo "$domains" | grep -qw "$domain"; then
                 local webCertFile="/root/cert/${domain}/fullchain.pem"
                 local webKeyFile="/root/cert/${domain}/privkey.pem"
-                
+
                 if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
-                    /usr/local/x-ui/x-ui cert -webCert "$webCertFile"
-                    /usr/local/x-ui/x-ui cert -webCertKey "$webKeyFile"
+                    /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
                     echo "Panel paths set for domain: $domain"
                     echo "  - Certificate File: $webCertFile"
                     echo "  - Private Key File: $webKeyFile"
@@ -902,7 +902,8 @@ ssl_cert_issue_main() {
             fi
         fi
         ;;
-    *) 
+
+    *)
         echo "Invalid choice"
         ;;
     esac
@@ -1021,10 +1022,9 @@ ssl_cert_issue() {
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
         local webCertFile="/root/cert/${domain}/fullchain.pem"
         local webKeyFile="/root/cert/${domain}/privkey.pem"
-        
+
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            /usr/local/x-ui/x-ui cert -webCert "$webCertFile"
-            /usr/local/x-ui/x-ui cert -webCertKey "$webKeyFile"
+            /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
             LOGI "Panel paths set for domain: $domain"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
@@ -1146,7 +1146,6 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
-
 create_iplimit_jails() {
     # Use default bantime if not passed => 15 minutes
     local bantime="${1:-15}"
