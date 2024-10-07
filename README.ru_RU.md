@@ -479,6 +479,7 @@ WARP встроен, и дополнительная установка не т�
 
 #### Использование
 
+- [API документация](https://documenter.getpostman.com/view/5146551/2sAXxP8Y12)
 - `/login` с `POST`-данными: `{username: '', password: ''}` для входа
 - `/panel/api/inbounds` это базовый путь для следующих действий:
 
@@ -512,7 +513,6 @@ WARP встроен, и дополнительная установка не т�
 </details>
 
 
-- [API документация](https://documenter.getpostman.com/view/5146551/2sAXxP8Y12)
 - [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/5146551-e6aac565-e0e2-46df-acff-2607a51bbd04?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-e6aac565-e0e2-46df-acff-2607a51bbd04%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
 </details>
 
