@@ -286,11 +286,10 @@ reset_webbasepath() {
 
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
-    systemctl restart x-ui
-
-    # Display confirmation message
+    
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
     echo -e "${green}Please use the new web base path to access the panel.${plain}"
+    restart
 }
 
 reset_config() {
@@ -894,6 +893,7 @@ ssl_cert_issue_main() {
                     echo "Panel paths set for domain: $domain"
                     echo "  - Certificate File: $webCertFile"
                     echo "  - Private Key File: $webKeyFile"
+                    restart
                 else
                     echo "Certificate or private key not found for domain: $domain."
                 fi
@@ -1028,6 +1028,7 @@ ssl_cert_issue() {
             LOGI "Panel paths set for domain: $domain"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
+            restart
         else
             LOGE "Error: Certificate or private key file not found for domain: $domain."
         fi
