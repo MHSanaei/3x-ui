@@ -1184,7 +1184,7 @@ class StreamSettings extends XrayCommonClass {
 
 class Sniffing extends XrayCommonClass {
     constructor(
-        enabled = true,
+        enabled = false,
         destOverride = ['http', 'tls', 'quic', 'fakedns'],
         metadataOnly = false,
         routeOnly = false) {
