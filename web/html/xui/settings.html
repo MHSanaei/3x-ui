@@ -464,8 +464,7 @@
           outboundTag: "direct",
           domain: [
             "geosite:category-ir"
-          ],
-          "enabled": true
+          ]
         },
         {
           type: "field",
@@ -473,8 +472,7 @@
           ip: [
             "geoip:private",
             "geoip:ir"
-          ],
-          enabled: true
+          ]
         },
       ],
       geoIPOptions: [
@@ -751,16 +749,25 @@
         get: function () {
           if (!this.enableDirect) return [];
           const rules = JSON.parse(this.allSetting.subJsonRules);
-          return Array.isArray(rules) ? rules[1].ip.map(d => d.replace("geoip:", "")) : [];
+          if (!Array.isArray(rules)) return [];
+          const ipRule = rules.find(r => r.ip);
+          return ipRule?.ip.map(d => d.replace("geoip:", "")) ?? [];
         },
         set: function (v) {
-          const rules = JSON.parse(this.allSetting.subJsonRules);
+          let rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
 
-          rules[1].ip = [];
-          v.forEach(d => {
-            rules[1].ip.push("geoip:" + d);
-          });
+          if (v.length == 0) {
+            rules = rules.filter(r => !r.ip);
+          } else {
+            let ruleIndex = rules.findIndex(r => r.ip);
+            if (ruleIndex == -1) ruleIndex = rules.push(this.defaultRules[1]) - 1;
+
+            rules[ruleIndex].ip = [];
+            v.forEach(d => {
+              rules[ruleIndex].ip.push("geoip:" + d);
+            });
+          }
           this.allSetting.subJsonRules = JSON.stringify(rules);
         }
       },
@@ -768,29 +775,37 @@
         get: function () {
           if (!this.enableDirect) return [];
           const rules = JSON.parse(this.allSetting.subJsonRules);
-          return Array.isArray(rules) ?
-            rules[0].domain.map(d => {
-              if (d.startsWith("geosite:category-")) {
-                return d.replace("geosite:category-", ""); 
-              }
-              return d.replace("geosite:", "");
-            })
-            : [];
+          if (!Array.isArray(rules)) return [];
+          const domainRule = rules.find(r => r.domain);
+          return domainRule?.domain.map(d => {
+            if (d.startsWith("geosite:category-")) {
+              return d.replace("geosite:category-", "");
+            }
+            return d.replace("geosite:", "");
+          })
+          ?? [];
         },
         set: function (v) {
-          const rules = JSON.parse(this.allSetting.subJsonRules);
+          let rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
 
-          rules[0].domain = [];
-          v.forEach(d => {
-            let category = '';
-            if (["cn", "apple", "meta", "google"].includes(d)) {
-              category = "";
-            } else if (["ru", "ir"].includes(d)) {
-              category = "category-";
-            }
-            rules[0].domain.push("geosite:" + category + d);
-          });
+          if (v.length == 0) {
+            rules = rules.filter(r => !r.domain);
+          } else {
+            let ruleIndex = rules.findIndex(r => r.domain);
+            if (ruleIndex == -1) ruleIndex = rules.push(this.defaultRules[0]) - 1;
+
+            rules[ruleIndex].domain = [];
+            v.forEach(d => {
+              let category = '';
+              if (["cn", "apple", "meta", "google"].includes(d)) {
+                category = "";
+              } else if (["ru", "ir"].includes(d)) {
+                category = "category-";
+              }
+              rules[ruleIndex].domain.push("geosite:" + category + d);
+            });
+          }
           this.allSetting.subJsonRules = JSON.stringify(rules);
         }
       },
