@@ -280,6 +280,22 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		} else {
 			msg += t.I18nBot("tgbot.commands.unknown")
 		}
+	case "restart":
+		onlyMessage = true
+		if isAdmin && len(commandArgs) > 0 && commandArgs[0] == "force" {
+			if t.xrayService.IsXrayRunning() {
+				err := t.xrayService.RestartXray(true)
+				msg += t.I18nBot("tgbot.commands.restartSuccess")
+				if err != nil {
+					msg += t.I18nBot("tgbot.commands.restartFailed", "Error=="+err.Error())
+				}
+			} else {
+				msg += t.I18nBot("tgbot.commands.xrayNotRunning")
+			}
+		} else {
+			msg += t.I18nBot("tgbot.commands.unknown")
+			msg += t.I18nBot("tgbot.commands.restartUsage")
+		}
 	default:
 		msg += t.I18nBot("tgbot.commands.unknown")
 	}
