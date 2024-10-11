@@ -48,6 +48,10 @@ elif [[ "${release}" == "armbian" ]]; then
     echo "Your OS is Armbian"
 elif [[ "${release}" == "opensuse-tumbleweed" ]]; then
     echo "Your OS is OpenSUSE Tumbleweed"
+elif [[ "${release}" == "openEuler" ]]; then
+    if [[ ${os_version} -lt 2203 ]]; then
+        echo -e "${red} Please use OpenEuler 22.03 or higher ${plain}\n" && exit 1
+    fi
 elif [[ "${release}" == "centos" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use CentOS 8 or higher ${plain}\n" && exit 1
@@ -76,7 +80,7 @@ elif [[ "${release}" == "rocky" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use Rocky Linux 8 or higher ${plain}\n" && exit 1
     fi
-elif [[ "${release}" == "oracle" ]]; then
+elif [[ "${release}" == "ol" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use Oracle Linux 8 or higher ${plain}\n" && exit 1
     fi
@@ -86,6 +90,7 @@ else
     echo "- Ubuntu 20.04+"
     echo "- Debian 11+"
     echo "- CentOS 8+"
+    echo "- OpenEuler 22.03+"
     echo "- Fedora 36+"
     echo "- Arch Linux"
     echo "- Parch Linux"
@@ -175,8 +180,8 @@ update_menu() {
     wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/Suiranoil/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
-    
-     if [[ $? == 0 ]]; then
+
+    if [[ $? == 0 ]]; then
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
         exit 0
     else
@@ -211,7 +216,7 @@ custom_version() {
 
 # Function to handle the deletion of the script file
 delete_script() {
-    rm "$0"  # Remove the script file itself
+    rm "$0" # Remove the script file itself
     exit 1
 }
 
@@ -270,7 +275,7 @@ gen_random_string() {
 
 reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
-    
+
     read -rp "Are you sure you want to reset the web base path? (y/n): " confirm
     if [[ $confirm != "y" && $confirm != "Y" ]]; then
         echo -e "${yellow}Operation canceled.${plain}"
@@ -278,14 +283,13 @@ reset_webbasepath() {
     fi
 
     config_webBasePath=$(gen_random_string 10)
-    
+
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
-    systemctl restart x-ui
     
-    # Display confirmation message
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
     echo -e "${green}Please use the new web base path to access the panel.${plain}"
+    restart
 }
 
 reset_config() {
@@ -482,7 +486,7 @@ enable_bbr() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
         ;;
-    centos | almalinux | rocky | oracle)
+    centos | almalinux | rocky | ol)
         yum -y update && yum -y install ca-certificates
         ;;
     fedora | amzn)
@@ -727,7 +731,7 @@ delete_ports() {
     done
 
     # Confirm that the ports are deleted
-    
+
     echo "Deleted the specified ports:"
     for port in "${PORT_LIST[@]}"; do
         if [[ $port == *-* ]]; then
@@ -743,39 +747,64 @@ delete_ports() {
 }
 
 update_geo() {
-    local defaultBinFolder="/usr/local/x-ui/bin"
-    read -p "Please enter x-ui bin folder path. Leave blank for default. (Default: '${defaultBinFolder}')" binFolder
-    binFolder=${binFolder:-${defaultBinFolder}}
-    if [[ ! -d ${binFolder} ]]; then
-        LOGE "Folder ${binFolder} not exists!"
-        LOGI "making bin folder: ${binFolder}..."
-        mkdir -p ${binFolder}
-    fi
+    echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
+    echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
+    echo -e "${green}\t3.${plain} vuong2023 (geoip_VN.dat, geosite_VN.dat)"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
 
     systemctl stop x-ui
-    cd ${binFolder}
-    rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip_VN.dat geosite_VN.dat
-    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-    wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-    wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-    wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-    wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
-    wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
+    cd /usr/local/x-ui/bin
+
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        rm -f geoip.dat geosite.dat
+        wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+        wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+        echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
+        ;;
+    2)
+        rm -f geoip_IR.dat geosite_IR.dat
+        wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+        wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+        echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
+        ;;
+    3)
+        rm -f geoip_VN.dat geosite_VN.dat
+        wget -O geoip_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
+        wget -O geosite_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
+        echo -e "${green}vuong2023 datasets have been updated successfully!${plain}"
+        ;;
+    *)
+        echo "Invalid option selected! No updates made."
+        ;;
+    esac
+
     systemctl start x-ui
-    echo -e "${green}Geosite.dat + Geoip.dat + geoip_IR.dat + geosite_IR.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
 
 install_acme() {
-    cd ~
-    LOGI "install acme..."
-    curl https://get.acme.sh | sh
+    # Check if acme.sh is already installed
+    if command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        LOGI "acme.sh is already installed."
+        return 0
+    fi
+
+    LOGI "Installing acme.sh..."
+    cd ~ || return 1 # Ensure you can change to the home directory
+
+    curl -s https://get.acme.sh | sh
     if [ $? -ne 0 ]; then
-        LOGE "install acme failed"
+        LOGE "Installation of acme.sh failed."
         return 1
     else
-        LOGI "install acme succeed"
+        LOGI "Installation of acme.sh succeeded."
     fi
+
     return 0
 }
 
@@ -783,7 +812,10 @@ ssl_cert_issue_main() {
     echo -e "${green}\t1.${plain} Get SSL"
     echo -e "${green}\t2.${plain} Revoke"
     echo -e "${green}\t3.${plain} Force Renew"
+    echo -e "${green}\t4.${plain} Show Existing Domains"
+    echo -e "${green}\t5.${plain} Set Cert paths for the panel"
     echo -e "${green}\t0.${plain} Back to Main Menu"
+
     read -p "Choose an option: " choice
     case "$choice" in
     0)
@@ -793,17 +825,87 @@ ssl_cert_issue_main() {
         ssl_cert_issue
         ;;
     2)
-        local domain=""
-        read -p "Please enter your domain name to revoke the certificate: " domain
-        ~/.acme.sh/acme.sh --revoke -d ${domain}
-        LOGI "Certificate revoked"
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found to revoke."
+        else
+            echo "Existing domains:"
+            echo "$domains"
+            read -p "Please enter a domain from the list to revoke the certificate: " domain
+            if echo "$domains" | grep -qw "$domain"; then
+                ~/.acme.sh/acme.sh --revoke -d ${domain}
+                LOGI "Certificate revoked for domain: $domain"
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
         ;;
     3)
-        local domain=""
-        read -p "Please enter your domain name to forcefully renew an SSL certificate: " domain
-        ~/.acme.sh/acme.sh --renew -d ${domain} --force
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found to renew."
+        else
+            echo "Existing domains:"
+            echo "$domains"
+            read -p "Please enter a domain from the list to renew the SSL certificate: " domain
+            if echo "$domains" | grep -qw "$domain"; then
+                ~/.acme.sh/acme.sh --renew -d ${domain} --force
+                LOGI "Certificate forcefully renewed for domain: $domain"
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
         ;;
-    *) echo "Invalid choice" ;;
+    4)
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found."
+        else
+            echo "Existing domains and their paths:"
+            for domain in $domains; do
+                local cert_path="/root/cert/${domain}/fullchain.pem"
+                local key_path="/root/cert/${domain}/privkey.pem"
+                if [[ -f "${cert_path}" && -f "${key_path}" ]]; then
+                    echo -e "Domain: ${domain}"
+                    echo -e "\tCertificate Path: ${cert_path}"
+                    echo -e "\tPrivate Key Path: ${key_path}"
+                else
+                    echo -e "Domain: ${domain} - Certificate or Key missing."
+                fi
+            done
+        fi
+        ;;
+    5)
+        local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+        if [ -z "$domains" ]; then
+            echo "No certificates found."
+        else
+            echo "Available domains:"
+            echo "$domains"
+            read -p "Please choose a domain to set the panel paths: " domain
+
+            if echo "$domains" | grep -qw "$domain"; then
+                local webCertFile="/root/cert/${domain}/fullchain.pem"
+                local webKeyFile="/root/cert/${domain}/privkey.pem"
+
+                if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
+                    /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                    echo "Panel paths set for domain: $domain"
+                    echo "  - Certificate File: $webCertFile"
+                    echo "  - Private Key File: $webKeyFile"
+                    restart
+                else
+                    echo "Certificate or private key not found for domain: $domain."
+                fi
+            else
+                echo "Invalid domain entered."
+            fi
+        fi
+        ;;
+
+    *)
+        echo "Invalid choice"
+        ;;
     esac
 }
 
@@ -817,12 +919,13 @@ ssl_cert_issue() {
             exit 1
         fi
     fi
+
     # install socat second
     case "${release}" in
     ubuntu | debian | armbian)
         apt update && apt install socat -y
         ;;
-    centos | almalinux | rocky | oracle)
+    centos | almalinux | rocky | ol)
         yum -y update && yum -y install socat
         ;;
     fedora | amzn)
@@ -843,23 +946,23 @@ ssl_cert_issue() {
         LOGI "install socat succeed..."
     fi
 
-    # get the domain here,and we need verify it
+    # get the domain here, and we need to verify it
     local domain=""
-    read -p "Please enter your domain name:" domain
-    LOGD "your domain is:${domain},check it..."
-    # here we need to judge whether there exists cert already
-    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
+    read -p "Please enter your domain name: " domain
+    LOGD "Your domain is: ${domain}, checking it..."
 
-    if [ ${currentCert} == ${domain} ]; then
+    # check if there already exists a certificate
+    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
+    if [ "${currentCert}" == "${domain}" ]; then
         local certInfo=$(~/.acme.sh/acme.sh --list)
-        LOGE "system already has certs here,can not issue again,current certs details:"
+        LOGE "System already has certificates for this domain. Cannot issue again. Current certificate details:"
         LOGI "$certInfo"
         exit 1
     else
-        LOGI "your domain is ready for issuing cert now..."
+        LOGI "Your domain is ready for issuing certificates now..."
     fi
 
-    # create a directory for install cert
+    # create a directory for the certificate
     certPath="/root/cert/${domain}"
     if [ ! -d "$certPath" ]; then
         mkdir -p "$certPath"
@@ -868,47 +971,69 @@ ssl_cert_issue() {
         mkdir -p "$certPath"
     fi
 
-    # get needed port here
+    # get the port number for the standalone server
     local WebPort=80
-    read -p "please choose which port do you use,default will be 80 port:" WebPort
+    read -p "Please choose which port to use (default is 80): " WebPort
     if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
-        LOGE "your input ${WebPort} is invalid,will use default port"
+        LOGE "Your input ${WebPort} is invalid, will use default port 80."
+        WebPort=80
     fi
-    LOGI "will use port:${WebPort} to issue certs,please make sure this port is open..."
-    # NOTE:This should be handled by user
-    # open the port and kill the occupied progress
+    LOGI "Will use port: ${WebPort} to issue certificates. Please make sure this port is open."
+
+    # issue the certificate
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort}
     if [ $? -ne 0 ]; then
-        LOGE "issue certs failed,please check logs"
+        LOGE "Issuing certificate failed, please check logs."
         rm -rf ~/.acme.sh/${domain}
         exit 1
     else
-        LOGE "issue certs succeed,installing certs..."
+        LOGE "Issuing certificate succeeded, installing certificates..."
     fi
-    # install cert
+
+    # install the certificate
     ~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
         --fullchain-file /root/cert/${domain}/fullchain.pem
 
     if [ $? -ne 0 ]; then
-        LOGE "install certs failed,exit"
+        LOGE "Installing certificate failed, exiting."
         rm -rf ~/.acme.sh/${domain}
         exit 1
     else
-        LOGI "install certs succeed,enable auto renew..."
+        LOGI "Installing certificate succeeded, enabling auto renew..."
     fi
 
+    # enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade
     if [ $? -ne 0 ]; then
-        LOGE "auto renew failed, certs details:"
+        LOGE "Auto renew failed, certificate details:"
         ls -lah cert/*
         chmod 755 $certPath/*
         exit 1
     else
-        LOGI "auto renew succeed, certs details:"
+        LOGI "Auto renew succeeded, certificate details:"
         ls -lah cert/*
         chmod 755 $certPath/*
+    fi
+
+    # Prompt user to set panel paths after successful certificate installation
+    read -p "Would you like to set this certificate for the panel? (y/n): " setPanel
+    if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
+        local webCertFile="/root/cert/${domain}/fullchain.pem"
+        local webKeyFile="/root/cert/${domain}/privkey.pem"
+
+        if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
+            /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            LOGI "Panel paths set for domain: $domain"
+            LOGI "  - Certificate File: $webCertFile"
+            LOGI "  - Private Key File: $webKeyFile"
+            restart
+        else
+            LOGE "Error: Certificate or private key file not found for domain: $domain."
+        fi
+    else
+        LOGI "Skipping panel path setting."
     fi
 }
 
@@ -1022,7 +1147,6 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
-
 create_iplimit_jails() {
     # Use default bantime if not passed => 15 minutes
     local bantime="${1:-15}"
@@ -1172,7 +1296,7 @@ install_iplimit() {
         debian | armbian)
             apt update && apt install fail2ban -y
             ;;
-        centos | almalinux | rocky | oracle)
+        centos | almalinux | rocky | ol)
             yum update -y && yum install epel-release -y
             yum -y install fail2ban
             ;;
@@ -1253,7 +1377,7 @@ remove_iplimit() {
             apt-get purge -y fail2ban -y
             apt-get autoremove -y
             ;;
-        centos | almalinux | rocky | oracle)
+        centos | almalinux | rocky | ol)
             yum remove fail2ban -y
             yum autoremove -y
             ;;
