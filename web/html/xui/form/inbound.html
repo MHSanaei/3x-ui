@@ -115,13 +115,19 @@
 </template>
 
 <!-- sniffing -->
-<template>
-    {{template "form/sniffing"}}
-</template>
+<a-collapse>
+    <a-collapse-panel header='Sniffing'>
+        {{template "form/sniffing"}}
+    </a-collapse-panel>
+</a-collapse>
 
 <!-- allocate -->
-<template>
-    {{template "form/allocate"}}
-</template>
+<!-- Temporarily disabled until we accepts range for port allocation
+<a-collapse>
+    <a-collapse-panel header='Allocate'>
+        {{template "form/allocate"}}
+    </a-collapse-panel>
+</a-collapse>
+-->
 
 {{end}}

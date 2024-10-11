@@ -34,10 +34,10 @@
     <a-form-item label="No SSE Header">
         <a-switch v-model="inbound.stream.splithttp.noSSEHeader"></a-switch>
     </a-form-item>
-    <a-form-item label="Max Concurrency">
+    <a-form-item label="Max Concurrency" v-if="!inbound.stream.splithttp.xmux.maxConnections">
         <a-input-number v-model="inbound.stream.splithttp.xmux.maxConcurrency"></a-input-number>
     </a-form-item>
-    <a-form-item label="Max Connections">
+    <a-form-item label="Max Connections" v-if="!inbound.stream.splithttp.xmux.maxConcurrency">
         <a-input-number v-model="inbound.stream.splithttp.xmux.maxConnections"></a-input-number>
     </a-form-item>
     <a-form-item label="Max Reuse Times">

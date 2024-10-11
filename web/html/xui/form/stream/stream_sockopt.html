@@ -32,7 +32,7 @@
         <a-form-item label="Multipath TCP">
             <a-switch v-model.trim="inbound.stream.sockopt.tcpMptcp"></a-switch>
         </a-form-item>
-        <a-form-item label="TCP No-Delay">
+        <a-form-item label="TCP No-Delay" v-if="inbound.stream.sockopt.tcpMptcp">
             <a-switch v-model.trim="inbound.stream.sockopt.tcpNoDelay"></a-switch>
         </a-form-item>
         <a-form-item label="V6 Only">

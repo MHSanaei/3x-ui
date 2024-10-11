@@ -2,9 +2,7 @@ package service
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -101,8 +99,9 @@ func (s *InboundService) getAllEmails() ([]string, error) {
 }
 
 func (s *InboundService) contains(slice []string, str string) bool {
+	lowerStr := strings.ToLower(str)
 	for _, s := range slice {
-		if s == str {
+		if strings.ToLower(s) == lowerStr {
 			return true
 		}
 	}
@@ -414,12 +413,6 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 		return false, err
 	}
 
-	email := clients[0].Email
-	valid, err := validateEmail(email)
-	if !valid {
-		return false, err
-	}
-
 	var settings map[string]interface{}
 	err = json.Unmarshal([]byte(data.Settings), &settings)
 	if err != nil {
@@ -607,12 +600,6 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) (bool, error) {
 	clients, err := s.GetClients(data)
 	if err != nil {
-		return false, err
-	}
-
-	email := clients[0].Email
-	valid, err := validateEmail(email)
-	if !valid {
 		return false, err
 	}
 
@@ -1050,8 +1037,12 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 			if err1 == nil {
 				logger.Debug("Inbound disabled by api:", tag)
 			} else {
-				logger.Debug("Error in disabling inbound by api:", err1)
-				needRestart = true
+				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", tag)) {
+					logger.Debug("User is already disabled. Nothing to do more...")
+				} else {
+					logger.Debug("Error in disabling client by api:", err1)
+					needRestart = true
+				}
 			}
 		}
 		s.xrayApi.Close()
@@ -1089,8 +1080,16 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			if err1 == nil {
 				logger.Debug("Client disabled by api:", result.Email)
 			} else {
-				logger.Debug("Error in disabling client by api:", err1)
-				needRestart = true
+				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
+					logger.Debug("User is already disabled. Nothing to do more...")
+				} else {
+					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
+						logger.Debug("User is already disabled. Nothing to do more...")
+					} else {
+						logger.Debug("Error in disabling client by api:", err1)
+						needRestart = true
+					}
+				}
 			}
 		}
 		s.xrayApi.Close()
@@ -2021,21 +2020,4 @@ func (s *InboundService) MigrateDB() {
 
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
-}
-
-func validateEmail(email string) (bool, error) {
-	if strings.Contains(email, " ") {
-		return false, errors.New("email contains spaces, please remove them")
-	}
-
-	if email != strings.ToLower(email) {
-		return false, errors.New("email contains uppercase letters, please convert to lowercase")
-	}
-
-	emailPattern := `^[a-z0-9@._-]+$`
-	if !regexp.MustCompile(emailPattern).MatchString(email) {
-		return false, errors.New("email contains invalid characters, please use only lowercase letters, digits, and @._-")
-	}
-
-	return true, nil
 }

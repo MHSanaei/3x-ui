@@ -32,10 +32,10 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Instalar una Versión Personalizada
 
-Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.4.2`:
+Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.4.3`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.2
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.3
 ```
 
 ## Certificado SSL
@@ -218,6 +218,7 @@ location /sub {
 - Ubuntu 20.04+
 - Debian 11+
 - CentOS 8+
+- OpenEuler 22.03+
 - Fedora 36+
 - Arch Linux
 - Parch Linux
@@ -284,11 +285,14 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
 <details>
   <summary>Haz clic para ver los detalles de la configuración predeterminada</summary>
 
-### Nombre de Usuario & Contraseña & Ruta Base Web:
+### Nombre de usuario, Contraseña, Puerto y Ruta Base Web
 
-  Estos se generarán aleatoriamente si no los modificas.
+Si elige no modificar estas configuraciones, se generarán aleatoriamente (esto no se aplica a Docker).
 
-  - **Puerto:** el puerto predeterminado para el panel es `2053`
+**Configuraciones predeterminadas para Docker:**
+- **Nombre de usuario:** admin
+- **Contraseña:** admin
+- **Puerto:** 2053
 
 ### Gestión de la Base de Datos:
 
@@ -448,6 +452,7 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 
 #### Uso
 
+- [Documentación de API](https://documenter.getpostman.com/view/5146551/2sAXxP8Y12)
 - `/login` con `POST` datos de usuario: `{username: '', password: ''}` para iniciar sesión
 - `/panel/api/inbounds` base para las siguientes acciones:
 
@@ -477,9 +482,7 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 - `client.password` para TROJAN
 - `client.email` para Shadowsocks
 
-
-- [Documentación de API](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
-- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/5146551-e6aac565-e0e2-46df-acff-2607a51bbd04?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-e6aac565-e0e2-46df-acff-2607a51bbd04%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
 </details>
 
 ## Variables de Entorno
