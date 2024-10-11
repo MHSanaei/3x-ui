@@ -138,7 +138,7 @@ gen_random_string() {
 
 config_after_install() {
     echo -e "${yellow}Install/update finished! For security, it's recommended to modify panel settings ${plain}"
-    read -p "Would you like to customize ${yellow}the Panel Port ${plain}settings? (If not, random settings will be applied) [y/n]: " config_confirm
+    read -p "Would you like to customize the Panel Port settings? (If not, random settings will be applied) [y/n]: " config_confirm
 
     local config_webBasePath=$(gen_random_string 15)
     local config_account=$(gen_random_string 10)

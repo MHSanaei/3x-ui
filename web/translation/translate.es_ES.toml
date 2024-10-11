@@ -424,6 +424,8 @@
 [pages.xray.dns]
 "enable" = "Habilitar DNS"
 "enableDesc" = "Habilitar servidor DNS incorporado"
+"tag" = "Etiqueta de Entrada DNS"
+"tagDesc" = "Esta etiqueta estará disponible como una etiqueta de entrada en las reglas de enrutamiento."
 "strategy" = "Estrategia de Consulta"
 "strategyDesc" = "Estrategia general para resolver nombres de dominio"
 "add" = "Agregar Servidor"
