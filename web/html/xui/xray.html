@@ -316,7 +316,7 @@
                                     v-model="directDomains"
                                     :dropdown-class-name="themeSwitcher.currentTheme">
                                         <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
+                                            v-for="p in settingsData.DirectDomainsOptions"> [[ p.label ]]
                                         </a-select-option>
                                     </a-select>
                                 </template>
@@ -903,11 +903,16 @@
                     { label: '🇨🇳 China', value: 'geoip:cn' },
                     { label: '🇷🇺 Russia', value: 'geoip:ru' },
                     { label: '🇻🇳 Vietnam', value: 'ext:geoip_VN.dat:vn' },
+                    { label: '🇪🇸 Spain', value: 'geoip:es' },
+                    { label: '🇮🇩 Indonesia', value: 'geoip:id' },
+                    { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
+                    { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
+                    { label: '🇧🇷 Brazil', value: 'geoip:br' },
                 ],
                 DomainsOptions: [
                     { label: 'Ads All', value: 'geosite:category-ads-all' },
-                    { label: 'Ads IR', value: 'ext:geosite_IR.dat:category-ads-all' },
-                    { label: 'Ads VN', value: 'ext:geosite_VN.dat:ads' },
+                    { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
+                    { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
                     { label: 'Sec-IR malware', value: 'geosite_IR.dat:malware' },
                     { label: 'Sec-IR phishing', value: 'geosite_IR.dat:phishing' },
                     { label: 'Sec-IR cryptominers', value: 'geosite_IR.dat:cryptominers' },
@@ -916,7 +921,18 @@
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
                     { label: '🇨🇳 China', value: 'geosite:cn' },
                     { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },  //https://github.com/v2fly/domain-list-community/blob/master/data/category-ru
+                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+                ],
+                DirectDomainsOptions: [
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
                     { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
                     { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
