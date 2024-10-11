@@ -1,9 +1,10 @@
 name: Release 3X-UI for Docker
+
 on:
+  workflow_dispatch:
   push:
     tags:
-      - "*"
-  workflow_dispatch:
+      - "v*.*.*"
 
 jobs:
   build_and_push:

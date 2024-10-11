@@ -228,14 +228,10 @@
                     </a-row>
                     <a-list-item>
                       <setting-list-item type="switch" title='{{ i18n "pages.xray.Torrent"}}' desc='{{ i18n "pages.xray.TorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.PrivateIp"}}' desc='{{ i18n "pages.xray.PrivateIpDesc"}}' v-model="privateIpSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.Ads"}}' desc='{{ i18n "pages.xray.AdsDesc"}}' v-model="AdsSettings"></setting-list-item>
                       <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.Security"}}' desc='{{ i18n "pages.xray.SecurityDesc"}}' v-model="SecuritySettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.Speedtest"}}' desc='{{ i18n "pages.xray.SpeedtestDesc"}}' v-model="SpeedTestSettings"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.blockConnectionsConfigs"}}'>
+                  <a-collapse-panel header='{{ i18n "pages.xray.basicRouting"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center;">
                         <template slot="message">
@@ -245,36 +241,44 @@
                       </a-alert>
                     </a-row>
                     <a-list-item>
-                        <a-collapse>
-                            <a-collapse-panel header='{{ i18n "pages.xray.blockips"}}'>
-                                <setting-list-item type="switch" title='🇮🇷 Iran'
-                                    v-model="IRIpSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇨🇳 China'
-                                    v-model="ChinaIpSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇷🇺 Russia'
-                                    v-model="RussiaIpSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
-                                    v-model="VNIpSettings"></setting-list-item>
-                            </a-collapse-panel>
-                        </a-collapse>
-                        <br>
-                        <a-collapse>
-                            <a-collapse-panel header='{{ i18n "pages.xray.blockdomains"}}'>
-                                <setting-list-item type="switch" title='🇮🇷 Iran'
-                                    v-model="IRDomainSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇨🇳 China'
-                                    v-model="ChinaDomainSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇷🇺 Russia'
-                                    v-model="RussiaDomainSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
-                                    v-model="VNDomainSettings"></setting-list-item>
-                            </a-collapse-panel>
-                        </a-collapse>
+                        <a-row style="padding: 0 20px">
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta 
+                                    title='{{ i18n "pages.xray.blockips" }}'/>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <template>
+                                    <a-select mode="tags" v-model="blockedIPs" style="width: 100%"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in settingsData.IPsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-col>
+                        </a-row>
                     </a-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.directConnectionsConfigs"}}'>
+                    <a-list-item>
+                        <a-row style="padding: 0 20px">
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta 
+                                    title='{{ i18n "pages.xray.blockdomains" }}'/>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <template>
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="blockedDomains"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-col>
+                        </a-row>
+                    </a-list-item>
                     <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
+                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
                           <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
                           {{ i18n "pages.xray.directConnectionsConfigsDesc" }}
@@ -282,65 +286,99 @@
                       </a-alert>
                     </a-row>
                     <a-list-item>
-                        <a-collapse>
-                            <a-collapse-panel header='{{ i18n "pages.xray.directips"}}'>
-                                <setting-list-item type="switch" title='🇮🇷 Iran'
-                                    v-model="IRIpDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇨🇳 China'
-                                    v-model="ChinaIpDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇷🇺 Russia'
-                                    v-model="RussiaIpDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
-                                    v-model="VNIpDirectSettings"></setting-list-item>
-                            </a-collapse-panel>
-                        </a-collapse>
-                        <br>
-                        <a-collapse>
-                            <a-collapse-panel header='{{ i18n "pages.xray.directdomains"}}'>
-                                <setting-list-item type="switch" title='🇮🇷 Iran'
-                                    v-model="IRDomainDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇨🇳 China'
-                                    v-model="ChinaDomainDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇷🇺 Russia'
-                                    v-model="RussiaDomainDirectSettings"></setting-list-item>
-                                <setting-list-item type="switch" title='🇻🇳 Vietnam'
-                                    v-model="VNDomainDirectSettings"></setting-list-item>
-                            </a-collapse-panel>
-                        </a-collapse>
+                        <a-row style="padding: 0 20px">
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta 
+                                    title='{{ i18n "pages.xray.directips" }}'/>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <template>
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="directIPs"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in settingsData.IPsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-col>
+                        </a-row>
                     </a-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.ipv4Configs"}}'>
+                    <a-list-item>
+                        <a-row style="padding: 0 20px">
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta 
+                                    title='{{ i18n "pages.xray.directdomains" }}'/>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <template>
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="directDomains"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in settingsData.DirectDomainsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-col>
+                        </a-row>
+                    </a-list-item>
                     <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
+                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
                           <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.ipv4ConfigsDesc" }}
+                          {{ i18n "pages.xray.ipv4RoutingDesc" }}
                         </template>
                       </a-alert>
                     </a-row>
                     <a-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleIPv4"}}' desc='{{ i18n "pages.xray.GoogleIPv4Desc"}}' v-model="GoogleIPv4Settings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixIPv4"}}' desc='{{ i18n "pages.xray.NetflixIPv4Desc"}}' v-model="NetflixIPv4Settings"></setting-list-item>
+                        <a-row style="padding: 0 20px">
+                            <a-col :lg="24" :xl="12">
+                                <a-list-item-meta 
+                                    title='{{ i18n "pages.xray.ipv4Routing" }}'/>
+                            </a-col>
+                            <a-col :lg="24" :xl="12">
+                                <template>
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="ipv4Domains"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in settingsData.ServicesOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-col>
+                        </a-row>
                     </a-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.warpConfigs"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
+                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
                           <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.warpConfigsDesc" }}
+                          {{ i18n "pages.xray.warpRoutingDesc" }}
                         </template>
                       </a-alert>
                     </a-row>
                     <a-list-item>
                       <template v-if="WarpExist">
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.GoogleWARP"}}' desc='{{ i18n "pages.xray.GoogleWARPDesc"}}' v-model="GoogleWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.OpenAIWARP"}}' desc='{{ i18n "pages.xray.OpenAIWARPDesc"}}' v-model="OpenAIWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.NetflixWARP"}}' desc='{{ i18n "pages.xray.NetflixWARPDesc"}}' v-model="NetflixWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.SpotifyWARP"}}' desc='{{ i18n "pages.xray.SpotifyWARPDesc"}}' v-model="SpotifyWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.MetaWARP"}}' desc='{{ i18n "pages.xray.MetaWARPDesc"}}' v-model="MetaWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.AppleWARP"}}' desc='{{ i18n "pages.xray.AppleWARPDesc"}}' v-model="AppleWARPSettings"></setting-list-item>
-                        <setting-list-item type="switch" title='{{ i18n "pages.xray.RedditWARP"}}' desc='{{ i18n "pages.xray.RedditWARPDesc"}}' v-model="RedditWARPSettings"></setting-list-item>
+                        <a-list-item>
+                            <a-row style="padding: 0 20px">
+                                <a-col :lg="24" :xl="12">
+                                    <a-list-item-meta 
+                                        title='{{ i18n "pages.xray.warpRouting" }}'/>
+                                </a-col>
+                                <a-col :lg="24" :xl="12">
+                                    <template>
+                                        <a-select mode="tags" style="width: 100%"
+                                        v-model="warpDomains"
+                                        :dropdown-class-name="themeSwitcher.currentTheme">
+                                            <a-select-option :value="p.value" :label="p.label"
+                                                v-for="p in settingsData.ServicesOptions"> [[ p.label ]]
+                                            </a-select-option>
+                                        </a-select>
+                                    </template>
+                                </a-col>
+                            </a-row>
+                        </a-list-item>
                       </template>
                       <a-button style="margin-left: 20px;" v-else type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
                     </a-list-item>
@@ -859,52 +897,56 @@
                 protocols: {
                     bittorrent: ["bittorrent"],
                 },
-                ips: {
-                    local: ["geoip:private"],
-                    cn: ["geoip:cn"],
-                    ir: ["ext:geoip_IR.dat:ir"],
-                    ru: ["geoip:ru"],
-                    vn: ["ext:geoip_VN.dat:vn"],
-                },
-                domains: {
-                    ads: [
-                        "geosite:category-ads-all",
-                        "ext:geosite_IR.dat:category-ads-all"
-                    ],
-                    security: [
-                        "ext:geosite_IR.dat:malware",
-                        "ext:geosite_IR.dat:phishing",
-                        "ext:geosite_IR.dat:cryptominers"
-                    ],
-                    speedtest: ["geosite:speedtest"],
-                    openai: ["geosite:openai"],
-                    google: ["geosite:google"],
-                    spotify: ["geosite:spotify"],
-                    netflix: ["geosite:netflix"],
-                    meta: ["geosite:meta"],
-                    apple: ["geosite:apple"],
-                    reddit: ["geosite:reddit"],
-                    cn: [
-                        "regexp:.*\\.cn$",
-                        "geosite:cn"
-                    ],
-                    ru: [
-                        "regexp:.*\\.ru$",
-                        "geosite:category-ru"  //https://github.com/v2fly/domain-list-community/blob/master/data/category-ru
-                        
-                    ],
-                    ir: [
-                        "regexp:.*\\.ir$",
-                        "ext:geosite_IR.dat:ir",
-                        "geosite:category-ir",  // https://github.com/v2fly/domain-list-community/blob/master/data/category-ir
-                        "regexp:.*\\.xn--mgba3a4f16a$"  // .ایران
-                    ],
-                    vn: [
-                        "regexp:.*\\.vn$",
-                        "ext:geosite_VN.dat:vn",
-                        "ext:geosite_VN.dat:ads"
-                    ]
-                },
+                IPsOptions: [
+                    { label: 'Private IP', value: 'geoip:private' },
+                    { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
+                    { label: '🇨🇳 China', value: 'geoip:cn' },
+                    { label: '🇷🇺 Russia', value: 'geoip:ru' },
+                    { label: '🇻🇳 Vietnam', value: 'ext:geoip_VN.dat:vn' },
+                    { label: '🇪🇸 Spain', value: 'geoip:es' },
+                    { label: '🇮🇩 Indonesia', value: 'geoip:id' },
+                    { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
+                    { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
+                    { label: '🇧🇷 Brazil', value: 'geoip:br' },
+                ],
+                DomainsOptions: [
+                    { label: 'Ads All', value: 'geosite:category-ads-all' },
+                    { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
+                    { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
+                    { label: 'Sec-IR malware', value: 'geosite_IR.dat:malware' },
+                    { label: 'Sec-IR phishing', value: 'geosite_IR.dat:phishing' },
+                    { label: 'Sec-IR cryptominers', value: 'geosite_IR.dat:cryptominers' },
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+                ],
+                DirectDomainsOptions: [
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+                ],
+                ServicesOptions: [
+                    { label: 'Apple', value: 'geosite:apple' },
+                    { label: 'Meta', value: 'geosite:meta' },
+                    { label: 'Google', value: 'geosite:google' },
+                    { label: 'OpenAI', value: 'geosite:openai' },
+                    { label: 'Spotify', value: 'geosite:spotify' },
+                    { label: 'Netflix', value: 'geosite:netflix' },
+                    { label: 'Reddit', value: 'geosite:reddit' },
+                    { label: 'Speedtest', value: 'geosite:speedtest' },
+                ],
                 familyProtectDNS: {
                     "servers": [
                         "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
@@ -1861,54 +1903,6 @@
                     }
                 },
             },
-            privateIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.local, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.local];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.local.includes(data));
-                    }
-                },
-            },
-            AdsSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ads, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ads];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ads.includes(data));
-                    }
-                },
-            },
-            SecuritySettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.security, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.security];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.security.includes(data));
-                    }
-                },
-            },
-            SpeedTestSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.speedtest, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.speedtest];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.speedtest.includes(data));
-                    }
-                },
-            },
             familyProtectSettings: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
@@ -1924,309 +1918,9 @@
                     this.templateSettings = newTemplateSettings;
                 },
             },
-            GoogleIPv4Settings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.ipv4Domains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.google];
-                    } else {
-                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.google.includes(data));
-                    }
-                },
-            },
-            NetflixIPv4Settings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.ipv4Domains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.ipv4Domains = [...this.ipv4Domains, ...this.settingsData.domains.netflix];
-                    } else {
-                        this.ipv4Domains = this.ipv4Domains.filter(data => !this.settingsData.domains.netflix.includes(data));
-                    }
-                },
-            },
-            IRIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ir, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ir];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ir.includes(data));
-                    }
-                }
-            },
-            IRDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ir, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ir];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ir.includes(data));
-                    }
-                }
-            },
-            ChinaIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.cn, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.cn];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.cn.includes(data));
-                    }
-                }
-            },
-            ChinaDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.cn, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.cn];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.cn.includes(data));
-                    }
-                }
-            },
-            RussiaIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ru, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.ru];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.ru.includes(data));
-                    }
-                }
-            },
-            RussiaDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ru, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.ru];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.ru.includes(data));
-                    }
-                }
-            },
-            VNIpSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.vn, this.blockedIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedIPs = [...this.blockedIPs, ...this.settingsData.ips.vn];
-                    } else {
-                        this.blockedIPs = this.blockedIPs.filter(data => !this.settingsData.ips.vn.includes(data));
-                    }
-                }
-            },
-            VNDomainSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.vn, this.blockedDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.blockedDomains = [...this.blockedDomains, ...this.settingsData.domains.vn];
-                    } else {
-                        this.blockedDomains = this.blockedDomains.filter(data => !this.settingsData.domains.vn.includes(data));
-                    }
-                }
-            },
-            IRIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ir, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ir];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ir.includes(data));
-                    }
-                }
-            },
-            IRDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ir, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ir];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ir.includes(data));
-                    }
-                }
-            },
-            ChinaIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.cn, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.cn];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.cn.includes(data));
-                    }
-                }
-            },
-            ChinaDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.cn, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.cn];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.cn.includes(data));
-                    }
-                }
-            },
-            RussiaIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.ru, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.ru];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.ru.includes(data));
-                    }
-                }
-            },
-            RussiaDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.ru, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.ru];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.ru.includes(data));
-                    }
-                }
-            },
-            VNIpDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.ips.vn, this.directIPs);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directIPs = [...this.directIPs, ...this.settingsData.ips.vn];
-                    } else {
-                        this.directIPs = this.directIPs.filter(data => !this.settingsData.ips.vn.includes(data));
-                    }
-                }
-            },
-            VNDomainDirectSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.vn, this.directDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.directDomains = [...this.directDomains, ...this.settingsData.domains.vn];
-                    } else {
-                        this.directDomains = this.directDomains.filter(data => !this.settingsData.domains.vn.includes(data));
-                    }
-                }
-            },
             WarpExist: {
                 get: function() {
                     return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp")>=0  : false;
-                },
-            },
-            GoogleWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.google, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.google];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.google.includes(data));
-                    }
-                },
-            },
-            OpenAIWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.openai, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.openai];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.openai.includes(data));
-                    }
-                },
-            },
-            NetflixWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.netflix, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.netflix];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.netflix.includes(data));
-                    }
-                },
-            },
-            MetaWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.meta, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.meta];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.meta.includes(data));
-                    }
-                },
-            },
-            AppleWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.apple, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.apple];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.apple.includes(data));
-                    }
-                },
-            },
-            RedditWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.reddit, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.reddit];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.reddit.includes(data));
-                    }
-                },
-            },
-            SpotifyWARPSettings: {
-                get: function () {
-                    return doAllItemsExist(this.settingsData.domains.spotify, this.warpDomains);
-                },
-                set: function (newValue) {
-                    if (newValue) {
-                        this.warpDomains = [...this.warpDomains, ...this.settingsData.domains.spotify];
-                    } else {
-                        this.warpDomains = this.warpDomains.filter(data => !this.settingsData.domains.spotify.includes(data));
-                    }
                 },
             },
             enableDNS: {
