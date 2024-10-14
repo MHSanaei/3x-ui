@@ -483,8 +483,12 @@
 "status" = "✅ Bot çalışıyor!"
 "usage" = "❗ Lütfen aramak için bir metin sağlayın!"
 "getID" = "🆔 Kimliğiniz: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Bir müşteri e-postasını aramak için:\r\n<code>/usage [E-posta]</code>\r\n\r\nGelenleri aramak için (müşteri istatistikleri ile):\r\n<code>/inbound [Açıklama]</code>\r\n\r\nTelegram Sohbet Kimliği:\r\n<code>/id</code>"
+"helpAdminCommands" = "Xray Core'u yeniden başlatmak için:\r\n<code>/restart force</code>\r\n\r\nBir müşteri e-postasını aramak için:\r\n<code>/usage [E-posta]</code>\r\n\r\nGelenleri aramak için (müşteri istatistikleri ile):\r\n<code>/inbound [Açıklama]</code>\r\n\r\nTelegram Sohbet Kimliği:\r\n<code>/id</code>"
 "helpClientCommands" = "İstatistikleri aramak için şu komutu kullanın:\r\n\r\n<code>/usage [E-posta]</code>\r\n\r\nTelegram Sohbet Kimliği:\r\n<code>/id</code>"
+"restartUsage" = "\r\n\r\n<code>/restart force</code>"
+"restartSuccess" = "✅ İşlem başarılı!"
+"restartFailed" = "❗ İşlem hatası.\r\n\r\n<code>Hata: {{ .Error }}</code>."
+"xrayNotRunning" = "❗ Xray Core çalışmıyor."
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Yükü {{ .Percent }}% eşiği {{ .Threshold }}%'yi aşıyor"

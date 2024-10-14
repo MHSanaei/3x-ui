@@ -482,12 +482,12 @@
 "welcome" = "🤖 Selamat datang di <b>{{.Hostname }}</b> bot managemen.\r\n"
 "status" = "✅ Bot dalam keadaan baik!"
 "usage" = "❗ Harap berikan teks untuk mencari!"
-"getID" = "🆔 ID Anda:<code>{{.ID }}</code>"
-"helpAdminCommands" = "Untuk mencari email klien:\r\n<code>/usage [Email]</code>\r\n\r\nUntuk mencari inbound (dengan statistik klien):\r\n<code>/inbound [Catatan]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
+"getID" = "🆔 ID Anda: <code>{{ .ID }}</code>"
+"helpAdminCommands" = "Untuk memulai ulang Xray Core:\r\n<code>/restart force</code>\r\n\r\nUntuk mencari email klien:\r\n<code>/usage [Email]</code>\r\n\r\nUntuk mencari inbound (dengan statistik klien):\r\n<code>/inbound [Catatan]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
 "helpClientCommands" = "Untuk mencari statistik, gunakan perintah berikut:\r\n<code>/usage [Email]</code>\r\n\r\nID Obrolan Telegram:\r\n<code>/id</code>"
 "restartUsage" = "\r\n\r\n<code>/restart force</code>"
 "restartSuccess" = "✅ Operasi berhasil!"
-"restartFailed" = "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{.Error }}</code>."
+"restartFailed" = "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core tidak berjalan."
 
 [tgbot.messages]
