@@ -282,19 +282,26 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		}
 	case "restart":
 		onlyMessage = true
-		if isAdmin && len(commandArgs) > 0 && commandArgs[0] == "force" {
-			if t.xrayService.IsXrayRunning() {
-				err := t.xrayService.RestartXray(true)
-				msg += t.I18nBot("tgbot.commands.restartSuccess")
-				if err != nil {
-					msg += t.I18nBot("tgbot.commands.restartFailed", "Error=="+err.Error())
+		if isAdmin && len(commandArgs) == 0 {
+			msg += t.I18nBot("tgbot.commands.unknown")
+			msg += t.I18nBot("tgbot.commands.restartUsage")
+		} else if isAdmin && len(commandArgs) > 0 {
+			if strings.ToLower(commandArgs[0]) == "force" {
+				if t.xrayService.IsXrayRunning() {
+					err := t.xrayService.RestartXray(true)
+					msg += t.I18nBot("tgbot.commands.restartSuccess")
+					if err != nil {
+						msg += t.I18nBot("tgbot.commands.restartFailed", "Error=="+err.Error())
+					}
+				} else {
+					msg += t.I18nBot("tgbot.commands.xrayNotRunning")
 				}
 			} else {
-				msg += t.I18nBot("tgbot.commands.xrayNotRunning")
+				msg += t.I18nBot("tgbot.commands.unknown")
+				msg += t.I18nBot("tgbot.commands.restartUsage")
 			}
 		} else {
 			msg += t.I18nBot("tgbot.commands.unknown")
-			msg += t.I18nBot("tgbot.commands.restartUsage")
 		}
 	default:
 		msg += t.I18nBot("tgbot.commands.unknown")
@@ -888,6 +895,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
 		),
+		// TODOOOOOOOOOOOOOO: Add restart button here.
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
