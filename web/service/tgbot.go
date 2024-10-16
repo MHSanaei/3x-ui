@@ -153,12 +153,12 @@ func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tel
 			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
 		}))
 	} else {
-		if !strings.HasPrefix(proxyUrl, "http") {
+		if !strings.HasPrefix(apiServerUrl, "http") {
 			logger.Warning("Invalid http(s) URL, starting with default")
 			return telego.NewBot(token)
 		}
 
-		_, err := url.Parse(proxyUrl)
+		_, err := url.Parse(apiServerUrl)
 		if err != nil {
 			logger.Warning("Can't parse API server URL, using default instance for tgbot:", err)
 			return telego.NewBot(token)
