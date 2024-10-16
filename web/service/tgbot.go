@@ -108,8 +108,14 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
+	// Get Telegram bot API server URL
+	tgBotAPIServer, err := t.settingService.GetTgBotAPIServer()
+	if err != nil {
+		logger.Warning("Failed to get Telegram bot API server URL:", err)
+	}
+
 	// Create new Telegram bot instance
-	bot, err = t.NewBot(tgBotToken, tgBotProxy)
+	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
@@ -125,9 +131,9 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	return nil
 }
 
-func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
-	if proxyUrl == "" {
-		// No proxy URL provided, use default instance
+func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
+	if proxyUrl == "" && apiServerUrl == "" {
+		// No proxy or API server URL provided, use default instance
 		return telego.NewBot(token)
 	}
 
@@ -142,9 +148,14 @@ func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
 		return telego.NewBot(token)
 	}
 
-	return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
-		Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
-	}))
+	if proxyUrl != "" {
+		return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
+			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
+		}))
+	} else {
+		return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
+	}
+
 }
 
 func (t *Tgbot) IsRunning() bool {

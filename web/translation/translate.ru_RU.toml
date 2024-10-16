@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "Необходимо получить токен у менеджера ботов Telegram @botfather"
 "telegramProxy" = "Прокси Socks5"
 "telegramProxyDesc" = "Если для подключения к Telegram вам нужен прокси Socks5. Настройте его параметры согласно руководству."
+"telegramAPIServer" = "API-сервер Telegram"
+"telegramAPIServerDesc" = "Используемый API-сервер Telegram. Оставьте пустым, чтобы использовать сервер по умолчанию."
 "telegramChatId" = "Идентификатор Telegram администратора бота"
 "telegramChatIdDesc" = "Один или несколько идентификаторов администратора бота. Чтобы получить идентификатор, используйте @userinfobot или команду '/id' в боте."
 "telegramNotifyTime" = "Частота уведомлений бота Telegram"

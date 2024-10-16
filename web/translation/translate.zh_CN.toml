@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "从 '@BotFather' 获取的 Telegram 机器人令牌"
 "telegramProxy" = "SOCKS5 Proxy"
 "telegramProxyDesc" = "启用 SOCKS5 代理连接到 Telegram（根据指南调整设置）"
+"telegramAPIServer" = "Telegram API Server"
+"telegramAPIServerDesc" = "要使用的 Telegram API 服务器。留空以使用默认服务器。"
 "telegramChatId" = "管理员聊天 ID"
 "telegramChatIdDesc" = "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 @userinfobot 获取，或在机器人中使用 '/id' 命令获取）"
 "telegramNotifyTime" = "通知时间"
