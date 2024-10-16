@@ -21,6 +21,9 @@
   <a-form-item label='Kernel Mode'>
     <a-switch v-model="inbound.settings.kernelMode"></a-switch>
   </a-form-item>
+  <a-form-item label='Kernel Tun'>
+    <a-switch v-model="inbound.settings.kernelTun"></a-switch>
+  </a-form-item>
   <a-form-item label="Peers">
     <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addPeer()"></a-button>
   </a-form-item>
