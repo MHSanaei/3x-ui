@@ -152,8 +152,9 @@ config_after_install() {
             echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
         else
             echo -e "${green}Username, Password, and WebBasePath are already set. Exiting...${plain}"
-            return 0
         fi
+        /usr/local/x-ui/x-ui migrate
+        return 0
     fi
 
     read -p "Would you like to customize the Panel Port settings? (If not, random settings will be applied) [y/n]: " config_confirm
