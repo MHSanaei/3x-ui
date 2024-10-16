@@ -12,7 +12,7 @@
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label='Dest'>
+    <a-form-item label='Dest (Target)'>
         <a-input v-model.trim="inbound.stream.reality.dest"></a-input>
     </a-form-item>
     <a-form-item label='SNI'>
