@@ -483,8 +483,12 @@
 "status" = "✅ ¡El bot está bien!"
 "usage" = "❗ ¡Por favor proporciona un texto para buscar!"
 "getID" = "🆔 Tu ID: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Para buscar un correo electrónico de cliente:\r\n<code>/usage [Correo electrónico]</code>\r\n\r\nPara buscar entradas (con estadísticas de cliente):\r\n<code>/inbound [Observación]</code>\r\n\r\nID de Chat de Telegram:\r\n<code>/id</code>"
+"helpAdminCommands" = "Para reiniciar Xray Core:\r\n<code>/restart force</code>\r\n\r\nPara buscar un correo electrónico de cliente:\r\n<code>/usage [Correo electrónico]</code>\r\n\r\nPara buscar entradas (con estadísticas de cliente):\r\n<code>/inbound [Observación]</code>\r\n\r\nID de Chat de Telegram:\r\n<code>/id</code>"
 "helpClientCommands" = "Para buscar estadísticas, utiliza el siguiente comando:\r\n<code>/usage [Correo electrónico]</code>\r\n\r\nID de Chat de Telegram:\r\n<code>/id</code>"
+"restartUsage" = "\r\n\r\n<code>/restart force</code>"
+"restartSuccess" = "✅ ¡Operación exitosa!"
+"restartFailed" = "❗ Error en la operación.\r\n\r\n<code>Error: {{ .Error }}</code>."
+"xrayNotRunning" = "❗ Xray Core no está en ejecución."
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 El uso de CPU {{ .Percent }}% es mayor que el umbral {{ .Threshold }}%"
