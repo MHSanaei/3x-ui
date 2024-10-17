@@ -30,12 +30,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## 安装指定版本
+## 安装指定版本 (我们不建议)
 
-要安装所需的版本，请将该版本添加到安装命令的末尾。 e.g., ver `v2.4.3`:
+要安装您想要的版本，请使用以下安装命令。例如，ver `v1.7.9`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.3
+VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/refs/tags/$VERSION/install.sh") $VERSION
 ```
 
 ### SSL证书

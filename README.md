@@ -30,12 +30,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## Install Custom Version
+## Install Custom Version (we don't recommend)
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.4.4`:
+To install your desired version, use following installation command. e.g., ver `v1.7.9`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.4
+VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/refs/tags/$VERSION/install.sh") $VERSION
 ```
 
 ## SSL Certificate
