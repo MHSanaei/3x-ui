@@ -51,9 +51,11 @@ VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui
 2. 在终端中运行 `x-ui` 命令，然后选择 `SSL证书管理`。
 3. 您将看到以下选项：
 
-   - **获取SSL证书:** 获取SSL证书。
-   - **吊销:** 吊销现有的SSL证书。
-   - **强制更新:** 强制更新SSL证书。
+   - **Get SSL:** 获取SSL证书。
+   - **Revoke:** 吊销现有的SSL证书。
+   - **Force Renew:** 强制更新SSL证书。
+   - **Show Existing Domains:** 显示服务器上所有可用的域证书。  
+   - **Set Certificate Paths for the Panel:** 指定用于面板的域证书。
 
 ### Certbot
 

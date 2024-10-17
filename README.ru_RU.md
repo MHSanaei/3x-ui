@@ -54,6 +54,8 @@ VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui
    - **Get SSL:** Получить SSL сертификаты.
    - **Revoke:** Отозвать существующие SSL сертификаты.
    - **Force Renew:** Принудительно перевыпустить SSL сертификаты.
+   - **Show Existing Domains:** Отобразить все сертификаты доменов, доступные на сервере.  
+   - **Set Certificate Paths for the Panel:** Укажите сертификат для вашего домена, который будет использоваться панелью.
 
 ### Certbot
 
