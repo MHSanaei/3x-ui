@@ -30,6 +30,7 @@ type AllSetting struct {
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`
 	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`
+	TgBotAPIServer   string `json:"tgBotAPIServer" form:"tgBotAPIServer"`
 	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`
 	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`

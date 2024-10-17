@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "'@BotFather'dan alınan Telegram bot token."
 "telegramProxy" = "SOCKS Proxy"
 "telegramProxyDesc" = "Telegram'a bağlanmak için SOCKS5 proxy'sini etkinleştirir. (ayarları kılavuzda belirtilen şekilde ayarlayın)"
+"telegramAPIServer" = "Telegram API Server"
+"telegramAPIServerDesc" = "Kullanılacak Telegram API sunucusu. Varsayılan sunucuyu kullanmak için boş bırakın."
 "telegramChatId" = "Yönetici Sohbet Kimliği"
 "telegramChatIdDesc" = "Telegram Yönetici Sohbet Kimliği(leri). (virgülle ayrılmış)(buradan alın @userinfobot) veya (botta '/id' komutunu kullanın)"
 "telegramNotifyTime" = "Bildirim Zamanı"
