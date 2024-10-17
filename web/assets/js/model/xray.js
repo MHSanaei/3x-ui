@@ -529,10 +529,10 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         scMinPostsIntervalMs = "10-50",
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
-        xmux = { 
-            maxConcurrency: 0,
+        xmux = {
+            maxConcurrency: "16-32",
             maxConnections: 0,
-            cMaxReuseTimes: 0,
+            cMaxReuseTimes: "64-128",
             cMaxLifetimeMs: 0
         }
     ) {
@@ -545,7 +545,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
-        this.xmux = xmux;   
+        this.xmux = xmux;
     }
 
     addHeader(name, value) {
@@ -909,7 +909,7 @@ class RealityStreamSettings extends XrayCommonClass {
         this.minClient = minClient;
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
-        this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds; 
+        this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds;
         this.settings = settings;
     }
 
@@ -920,7 +920,9 @@ class RealityStreamSettings extends XrayCommonClass {
                 json.settings.publicKey,
                 json.settings.fingerprint,
                 json.settings.serverName,
-                json.settings.spiderX);}
+                json.settings.spiderX
+            );
+        }
         return new RealityStreamSettings(
             json.show,
             json.xver,
@@ -2598,7 +2600,7 @@ Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
 
 Inbound.HttpSettings = class extends Inbound.Settings {
     constructor(
-        protocol, 
+        protocol,
         accounts = [new Inbound.HttpSettings.HttpAccount()],
         allowTransparent = false,
     ) {
@@ -2644,13 +2646,21 @@ Inbound.HttpSettings.HttpAccount = class extends XrayCommonClass {
 };
 
 Inbound.WireguardSettings = class extends XrayCommonClass {
-    constructor(protocol, mtu = 1420, secretKey = Wireguard.generateKeypair().privateKey, peers = [new Inbound.WireguardSettings.Peer()], kernelMode = false) {
+    constructor(
+        protocol,
+        mtu = 1420,
+        secretKey = Wireguard.generateKeypair().privateKey,
+        peers = [new Inbound.WireguardSettings.Peer()],
+        kernelMode = false,
+        kernelTun = false,
+    ) {
         super(protocol);
         this.mtu = mtu;
         this.secretKey = secretKey;
         this.pubKey = secretKey.length > 0 ? Wireguard.generateKeypair(secretKey).publicKey : '';
         this.peers = peers;
         this.kernelMode = kernelMode;
+        this.kernelTun = kernelTun;
     }
 
     addPeer() {
@@ -2668,6 +2678,7 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
             json.secretKey,
             json.peers.map(peer => Inbound.WireguardSettings.Peer.fromJson(peer)),
             json.kernelMode,
+            json.kernelTun,
         );
     }
 
@@ -2677,6 +2688,7 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
             secretKey: this.secretKey,
             peers: Inbound.WireguardSettings.Peer.toJsonArray(this.peers),
             kernelMode: this.kernelMode,
+            kernelTun: this.kernelTun,
         };
     }
 };

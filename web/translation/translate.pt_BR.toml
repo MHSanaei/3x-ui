@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "O token do bot do Telegram obtido de '@BotFather'."
 "telegramProxy" = "Proxy SOCKS"
 "telegramProxyDesc" = "Ativa o proxy SOCKS5 para conectar ao Telegram. (ajuste as configurações conforme o guia)"
+"telegramAPIServer" = "API Server do Telegram"
+"telegramAPIServerDesc" = "O servidor API do Telegram a ser usado. Deixe em branco para usar o servidor padrão."
 "telegramChatId" = "ID de Chat do Administrador"
 "telegramChatIdDesc" = "O(s) ID(s) de Chat do Administrador no Telegram. (separado por vírgulas)(obtenha aqui @userinfobot) ou (use o comando '/id' no bot)"
 "telegramNotifyTime" = "Hora da Notificação"
@@ -483,8 +485,12 @@
 "status" = "✅ Bot está OK!"
 "usage" = "❗ Por favor, forneça um texto para pesquisar!"
 "getID" = "🆔 Seu ID: <code>{{ .ID }}</code>"
-"helpAdminCommands" = "Para pesquisar por um email de cliente:\r\n<code>/usage [Email]</code>\r\n\r\nPara pesquisar por inbounds (com estatísticas do cliente):\r\n<code>/inbound [Remark]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
+"helpAdminCommands" = "Para reiniciar o Xray Core:\r\n<code>/restart force</code>\r\n\r\nPara pesquisar por um email de cliente:\r\n<code>/usage [Email]</code>\r\n\r\nPara pesquisar por inbounds (com estatísticas do cliente):\r\n<code>/inbound [Remark]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
 "helpClientCommands" = "Para pesquisar por estatísticas, use o seguinte comando:\r\n\r\n<code>/usage [Email]</code>\r\n\r\nTelegram Chat ID:\r\n<code>/id</code>"
+"restartUsage" = "\r\n\r\n<code>/restart force</code>"
+"restartSuccess" = "✅ Operação bem-sucedida!"
+"restartFailed" = "❗ Erro na operação.\r\n\r\n<code>Erro: {{ .Error }}</code>."
+"xrayNotRunning" = "❗ Xray Core não está em execução."
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 A carga da CPU {{ .Percent }}% excede o limite de {{ .Threshold }}%"

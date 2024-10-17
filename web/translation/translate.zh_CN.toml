@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "从 '@BotFather' 获取的 Telegram 机器人令牌"
 "telegramProxy" = "SOCKS5 Proxy"
 "telegramProxyDesc" = "启用 SOCKS5 代理连接到 Telegram（根据指南调整设置）"
+"telegramAPIServer" = "Telegram API Server"
+"telegramAPIServerDesc" = "要使用的 Telegram API 服务器。留空以使用默认服务器。"
 "telegramChatId" = "管理员聊天 ID"
 "telegramChatIdDesc" = "Telegram 管理员聊天 ID (多个以逗号分隔)（可通过 @userinfobot 获取，或在机器人中使用 '/id' 命令获取）"
 "telegramNotifyTime" = "通知时间"
@@ -483,8 +485,12 @@
 "status" = "✅ 机器人正常运行！"
 "usage" = "❗ 请输入要搜索的文本！"
 "getID" = "🆔 您的 ID 为：<code>{{ .ID }}</code>"
-"helpAdminCommands" = "要搜索客户电子邮件：\r\n<code>/usage [电子邮件]</code>\r\n\r\n要搜索入站（带有客户统计数据）：\r\n<code>/inbound [备注]</code>\r\n\r\nTelegram聊天ID：\r\n<code>/id</code>"
+"helpAdminCommands" = "要重新启动 Xray Core：\r\n<code>/restart force</code>\r\n\r\n要搜索客户电子邮件：\r\n<code>/usage [电子邮件]</code>\r\n\r\n要搜索入站（带有客户统计数据）：\r\n<code>/inbound [备注]</code>\r\n\r\nTelegram聊天ID：\r\n<code>/id</code>"
 "helpClientCommands" = "要搜索统计数据，请使用以下命令：\r\n<code>/usage [电子邮件]</code>\r\n\r\nTelegram聊天ID：\r\n<code>/id</code>"
+"restartUsage" = "\r\n\r\n<code>/restart force</code>"
+"restartSuccess" = "✅ 操作成功!"
+"restartFailed" = "❗ 操作错误。\r\n\r\n<code>错误: {{ .Error }}</code>."
+"xrayNotRunning" = "❗ Xray Core 未运行。"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU 使用率为 {{ .Percent }}%，超过阈值 {{ .Threshold }}%"

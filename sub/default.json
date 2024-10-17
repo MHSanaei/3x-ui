@@ -47,7 +47,9 @@
       "tag": "direct",
       "protocol": "freedom",
       "settings": {
-        "domainStrategy": "UseIP"
+        "domainStrategy": "UseIP",
+        "redirect": "",
+        "noises": []
       }
     },
     {

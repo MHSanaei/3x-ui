@@ -270,7 +270,7 @@
                                     v-model="blockedDomains"
                                     :dropdown-class-name="themeSwitcher.currentTheme">
                                         <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
+                                            v-for="p in settingsData.BlockDomainsOptions"> [[ p.label ]]
                                         </a-select-option>
                                     </a-select>
                                 </template>
@@ -316,7 +316,7 @@
                                     v-model="directDomains"
                                     :dropdown-class-name="themeSwitcher.currentTheme">
                                         <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.DirectDomainsOptions"> [[ p.label ]]
+                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
                                         </a-select-option>
                                     </a-select>
                                 </template>
@@ -898,7 +898,7 @@
                     bittorrent: ["bittorrent"],
                 },
                 IPsOptions: [
-                    { label: 'Private IP', value: 'geoip:private' },
+                    { label: 'Private IPs', value: 'geoip:private' },
                     { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
                     { label: '🇨🇳 China', value: 'geoip:cn' },
                     { label: '🇷🇺 Russia', value: 'geoip:ru' },
@@ -910,12 +910,6 @@
                     { label: '🇧🇷 Brazil', value: 'geoip:br' },
                 ],
                 DomainsOptions: [
-                    { label: 'Ads All', value: 'geosite:category-ads-all' },
-                    { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
-                    { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
-                    { label: 'Sec-IR malware', value: 'geosite_IR.dat:malware' },
-                    { label: 'Sec-IR phishing', value: 'geosite_IR.dat:phishing' },
-                    { label: 'Sec-IR cryptominers', value: 'geosite_IR.dat:cryptominers' },
                     { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
                     { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
@@ -926,7 +920,13 @@
                     { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
-                DirectDomainsOptions: [
+                BlockDomainsOptions: [
+                    { label: 'Ads All', value: 'geosite:category-ads-all' },
+                    { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
+                    { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
+                    { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
+                    { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
+                    { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
                     { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
                     { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },

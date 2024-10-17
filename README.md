@@ -30,12 +30,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## Install Custom Version
+## Install Custom Version (we don't recommend)
 
-To install your desired version, add the version to the end of the installation command. e.g., ver `v2.4.4`:
+To install your desired version, use following installation command. e.g., ver `v1.7.9`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.4
+VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/refs/tags/$VERSION/install.sh") $VERSION
 ```
 
 ## SSL Certificate
@@ -54,6 +54,8 @@ To manage SSL certificates using ACME:
    - **Get SSL:** Obtain SSL certificates.
    - **Revoke:** Revoke existing SSL certificates.
    - **Force Renew:** Force renewal of SSL certificates.
+   - **Show Existing Domains:** Display all domain certificates available on the server.  
+   - **Set Certificate Paths for the Panel:** Specify the certificate for your domain to be used by the panel. 
 
 ### Certbot
 

@@ -416,10 +416,31 @@ disable() {
 }
 
 show_log() {
-    journalctl -u x-ui.service -e --no-pager -f
-    if [[ $# == 0 ]]; then
+    echo -e "${green}\t1.${plain} Debug Log"
+    echo -e "${green}\t2.${plain} Clear All logs"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
+
+    case "$choice" in
+    0)
+        return
+        ;;
+    1)
+        journalctl -u x-ui -e --no-pager -f -p debug
+        if [[ $# == 0 ]]; then
         before_show_menu
-    fi
+        fi
+        ;;
+    2)
+        sudo journalctl --rotate
+        sudo journalctl --vacuum-time=1s
+        echo "All Logs cleared."
+        restart
+        ;;
+    *)
+        echo "Invalid choice"
+        ;;
+    esac
 }
 
 show_banlog() {
@@ -1449,7 +1470,7 @@ show_menu() {
   ${green}12.${plain} Stop
   ${green}13.${plain} Restart
   ${green}14.${plain} Check Status
-  ${green}15.${plain} Check Logs
+  ${green}15.${plain} Logs Management
 ————————————————
   ${green}16.${plain} Enable Autostart
   ${green}17.${plain} Disable Autostart

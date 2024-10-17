@@ -5,9 +5,9 @@ const ONE_TB = ONE_GB * 1024;
 const ONE_PB = ONE_TB * 1024;
 
 function sizeFormat(size) {
-    if (size < 0) {
-        return "0 B";
-    } else if (size < ONE_KB) {
+    if (size <= 0) return "0 B";
+
+    if (size < ONE_KB) {
         return size.toFixed(0) + " B";
     } else if (size < ONE_MB) {
         return (size / ONE_KB).toFixed(2) + " KB";
@@ -59,7 +59,7 @@ function formatSecond(second) {
         return (second / 3600).toFixed(0) + 'h';
     } else {
         day = Math.floor(second / 3600 / 24);
-        remain = ((second/3600) - (day*24)).toFixed(0);
+        remain = ((second / 3600) - (day * 24)).toFixed(0);
         return day + 'd' + (remain > 0 ? ' ' + remain + 'h' : '');
     }
 }
@@ -149,7 +149,7 @@ function userExpiryColor(threshold, client, isDark = false) {
         return isDark ? '#2c3950' : '#bcbcbc';
     }
     now = new Date().getTime(),
-    expiry = client.expiryTime;
+        expiry = client.expiryTime;
     switch (true) {
         case expiry === null:
             return "#7a316f"; // purple

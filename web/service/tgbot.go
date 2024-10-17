@@ -108,8 +108,14 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
+	// Get Telegram bot API server URL
+	tgBotAPIServer, err := t.settingService.GetTgBotAPIServer()
+	if err != nil {
+		logger.Warning("Failed to get Telegram bot API server URL:", err)
+	}
+
 	// Create new Telegram bot instance
-	bot, err = t.NewBot(tgBotToken, tgBotProxy)
+	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
@@ -125,26 +131,40 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	return nil
 }
 
-func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
-	if proxyUrl == "" {
-		// No proxy URL provided, use default instance
+func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
+	if proxyUrl == "" && apiServerUrl == "" {
 		return telego.NewBot(token)
 	}
 
-	if !strings.HasPrefix(proxyUrl, "socks5://") {
-		logger.Warning("Invalid socks5 URL, starting with default")
+	if proxyUrl != "" {
+		if !strings.HasPrefix(proxyUrl, "socks5://") {
+			logger.Warning("Invalid socks5 URL, using default")
+			return telego.NewBot(token)
+		}
+
+		_, err := url.Parse(proxyUrl)
+		if err != nil {
+			logger.Warningf("Can't parse proxy URL, using default instance for tgbot: %v", err)
+			return telego.NewBot(token)
+		}
+
+		return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
+			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
+		}))
+	}
+
+	if !strings.HasPrefix(apiServerUrl, "http") {
+		logger.Warning("Invalid http(s) URL, using default")
 		return telego.NewBot(token)
 	}
 
-	_, err := url.Parse(proxyUrl)
+	_, err := url.Parse(apiServerUrl)
 	if err != nil {
-		logger.Warning("Can't parse proxy URL, using default instance for tgbot:", err)
+		logger.Warningf("Can't parse API server URL, using default instance for tgbot: %v", err)
 		return telego.NewBot(token)
 	}
 
-	return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
-		Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
-	}))
+	return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
 }
 
 func (t *Tgbot) IsRunning() bool {
@@ -243,7 +263,12 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 
 	command, _, commandArgs := tu.ParseCommand(message.Text)
 
-	// Extract the command from the Message.
+	// Helper function to handle unknown commands.
+	handleUnknownCommand := func() {
+		msg += t.I18nBot("tgbot.commands.unknown")
+	}
+
+	// Handle the command.
 	switch command {
 	case "help":
 		msg += t.I18nBot("tgbot.commands.help")
@@ -266,9 +291,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 			if isAdmin {
 				t.searchClient(chatId, commandArgs[0])
 			} else {
-				// Convert message.From.ID to int64
-				fromID := int64(message.From.ID)
-				t.getClientUsage(chatId, fromID, commandArgs[0])
+				t.getClientUsage(chatId, int64(message.From.ID), commandArgs[0])
 			}
 		} else {
 			msg += t.I18nBot("tgbot.commands.usage")
@@ -278,19 +301,46 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		if isAdmin && len(commandArgs) > 0 {
 			t.searchInbound(chatId, commandArgs[0])
 		} else {
-			msg += t.I18nBot("tgbot.commands.unknown")
+			handleUnknownCommand()
+		}
+	case "restart":
+		onlyMessage = true
+		if isAdmin {
+			if len(commandArgs) == 0 {
+				msg += t.I18nBot("tgbot.commands.restartUsage")
+			} else if strings.ToLower(commandArgs[0]) == "force" {
+				if t.xrayService.IsXrayRunning() {
+					err := t.xrayService.RestartXray(true)
+					if err != nil {
+						msg += t.I18nBot("tgbot.commands.restartFailed", "Error=="+err.Error())
+					} else {
+						msg += t.I18nBot("tgbot.commands.restartSuccess")
+					}
+				} else {
+					msg += t.I18nBot("tgbot.commands.xrayNotRunning")
+				}
+			} else {
+				handleUnknownCommand()
+				msg += t.I18nBot("tgbot.commands.restartUsage")
+			}
+		} else {
+			handleUnknownCommand()
 		}
 	default:
-		msg += t.I18nBot("tgbot.commands.unknown")
+		handleUnknownCommand()
 	}
 
 	if msg != "" {
-		if onlyMessage {
-			t.SendMsgToTgbot(chatId, msg)
-			return
-		} else {
-			t.SendAnswer(chatId, msg, isAdmin)
-		}
+		t.sendResponse(chatId, msg, onlyMessage, isAdmin)
+	}
+}
+
+// Helper function to send the message based on onlyMessage flag.
+func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool) {
+	if onlyMessage {
+		t.SendMsgToTgbot(chatId, msg)
+	} else {
+		t.SendAnswer(chatId, msg, isAdmin)
 	}
 }
 
@@ -872,6 +922,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.onlines")).WithCallbackData(t.encodeQuery("onlines")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
 		),
+		// TODOOOOOOOOOOOOOO: Add restart button here.
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(

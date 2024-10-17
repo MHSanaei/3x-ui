@@ -1574,7 +1574,7 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 			return false, err
 		}
 		for _, client := range clients {
-			if client.Email == clientEmail {
+			if client.Email == clientEmail && client.Enable {
 				s.xrayApi.Init(p.GetAPIPort())
 				cipher := ""
 				if string(inbound.Protocol) == "shadowsocks" {
