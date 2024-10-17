@@ -54,6 +54,8 @@ To manage SSL certificates using ACME:
    - **Get SSL:** Obtain SSL certificates.
    - **Revoke:** Revoke existing SSL certificates.
    - **Force Renew:** Force renewal of SSL certificates.
+   - **Show Existing Domains:** Display all domain certificates available on the server.  
+   - **Set Certificate Paths for the Panel:** Specify the certificate for your domain to be used by the panel. 
 
 ### Certbot
 
