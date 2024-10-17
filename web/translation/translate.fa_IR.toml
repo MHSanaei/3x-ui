@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "دریافت کنید @botfather توکن را می‌توانید از"
 "telegramProxy" = "SOCKS پراکسی"
 "telegramProxyDesc" = "را برای اتصال به تلگرام فعال می کند SOCKS5 پراکسی"
+"telegramAPIServer" = "سرور API تلگرام"
+"telegramAPIServerDesc" = "API سرور تلگرام برای اتصال را تغییر میدهد. برای استفاده از سرور پیش فرض خالی بگذارید"
 "telegramChatId" = "آی‌دی چت مدیر"
 "telegramChatIdDesc" = "دریافت ‌کنید ('/id'یا (دستور (@userinfobot) آی‌دی(های) چت تلگرام مدیر، از"
 "telegramNotifyTime" = "زمان نوتیفیکیشن"

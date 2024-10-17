@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "Токен бота Telegram, отриманий від '@BotFather'."
 "telegramProxy" = "SOCKS Проксі"
 "telegramProxyDesc" = "Вмикає проксі-сервер SOCKS5 для підключення до Telegram. (відкоригуйте параметри відповідно до посібника)"
+"telegramAPIServer" = "Сервер Telegram API"
+"telegramAPIServerDesc" = "Сервер Telegram API для використання. Залиште поле порожнім, щоб використовувати сервер за умовчанням."
 "telegramChatId" = "Ідентифікатор чату адміністратора"
 "telegramChatIdDesc" = "Ідентифікатори чату адміністратора Telegram. (розділені комами) (отримайте тут @userinfobot) або (використовуйте команду '/id' у боті)"
 "telegramNotifyTime" = "Час сповіщення"

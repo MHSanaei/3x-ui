@@ -265,6 +265,8 @@
 "telegramTokenDesc" = "Token bot Telegram yang diperoleh dari '@BotFather'."
 "telegramProxy" = "Proxy SOCKS"
 "telegramProxyDesc" = "Mengaktifkan proxy SOCKS5 untuk terhubung ke Telegram. (sesuaikan pengaturan sesuai panduan)"
+"telegramAPIServer" = "Telegram API Server"
+"telegramAPIServerDesc" = "Server API Telegram yang akan digunakan. Biarkan kosong untuk menggunakan server default."
 "telegramChatId" = "ID Obrolan Admin"
 "telegramChatIdDesc" = "ID Obrolan Admin Telegram. (dipisahkan koma)(dapatkan di sini @userinfobot) atau (gunakan perintah '/id' di bot)"
 "telegramNotifyTime" = "Waktu Notifikasi"

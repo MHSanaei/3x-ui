@@ -246,6 +246,7 @@
                   <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyLogin" }}' desc='{{ i18n "pages.settings.tgNotifyLoginDesc" }}' v-model="allSetting.tgBotLoginNotify"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.telegramProxy"}}' desc='{{ i18n "pages.settings.telegramProxyDesc"}}' v-model="allSetting.tgBotProxy" placeholder="socks5://user:pass@host:port"></setting-list-item>
+                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramAPIServer"}}' desc='{{ i18n "pages.settings.telegramAPIServerDesc"}}' v-model="allSetting.tgBotAPIServer" placeholder="https://api.example.com"></setting-list-item>
                   <a-list-item>
                     <a-row style="padding: 20px">
                       <a-col :lg="24" :xl="12">

@@ -108,8 +108,14 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		logger.Warning("Failed to get Telegram bot proxy URL:", err)
 	}
 
+	// Get Telegram bot API server URL
+	tgBotAPIServer, err := t.settingService.GetTgBotAPIServer()
+	if err != nil {
+		logger.Warning("Failed to get Telegram bot API server URL:", err)
+	}
+
 	// Create new Telegram bot instance
-	bot, err = t.NewBot(tgBotToken, tgBotProxy)
+	bot, err = t.NewBot(tgBotToken, tgBotProxy, tgBotAPIServer)
 	if err != nil {
 		logger.Error("Failed to initialize Telegram bot API:", err)
 		return err
@@ -125,26 +131,40 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	return nil
 }
 
-func (t *Tgbot) NewBot(token string, proxyUrl string) (*telego.Bot, error) {
-	if proxyUrl == "" {
-		// No proxy URL provided, use default instance
+func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
+	if proxyUrl == "" && apiServerUrl == "" {
 		return telego.NewBot(token)
 	}
 
-	if !strings.HasPrefix(proxyUrl, "socks5://") {
-		logger.Warning("Invalid socks5 URL, starting with default")
+	if proxyUrl != "" {
+		if !strings.HasPrefix(proxyUrl, "socks5://") {
+			logger.Warning("Invalid socks5 URL, using default")
+			return telego.NewBot(token)
+		}
+
+		_, err := url.Parse(proxyUrl)
+		if err != nil {
+			logger.Warningf("Can't parse proxy URL, using default instance for tgbot: %v", err)
+			return telego.NewBot(token)
+		}
+
+		return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
+			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
+		}))
+	}
+
+	if !strings.HasPrefix(apiServerUrl, "http") {
+		logger.Warning("Invalid http(s) URL, using default")
 		return telego.NewBot(token)
 	}
 
-	_, err := url.Parse(proxyUrl)
+	_, err := url.Parse(apiServerUrl)
 	if err != nil {
-		logger.Warning("Can't parse proxy URL, using default instance for tgbot:", err)
+		logger.Warningf("Can't parse API server URL, using default instance for tgbot: %v", err)
 		return telego.NewBot(token)
 	}
 
-	return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
-		Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
-	}))
+	return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
 }
 
 func (t *Tgbot) IsRunning() bool {
