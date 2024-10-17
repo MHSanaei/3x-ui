@@ -529,7 +529,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         scMinPostsIntervalMs = "10-50",
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
-        xmux = { 
+        xmux = {
             maxConcurrency: 0,
             maxConnections: 0,
             cMaxReuseTimes: 0,
@@ -545,7 +545,7 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
-        this.xmux = xmux;   
+        this.xmux = xmux;
     }
 
     addHeader(name, value) {
@@ -909,7 +909,7 @@ class RealityStreamSettings extends XrayCommonClass {
         this.minClient = minClient;
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
-        this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds; 
+        this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds;
         this.settings = settings;
     }
 
@@ -920,7 +920,9 @@ class RealityStreamSettings extends XrayCommonClass {
                 json.settings.publicKey,
                 json.settings.fingerprint,
                 json.settings.serverName,
-                json.settings.spiderX);}
+                json.settings.spiderX
+            );
+        }
         return new RealityStreamSettings(
             json.show,
             json.xver,
@@ -2598,7 +2600,7 @@ Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
 
 Inbound.HttpSettings = class extends Inbound.Settings {
     constructor(
-        protocol, 
+        protocol,
         accounts = [new Inbound.HttpSettings.HttpAccount()],
         allowTransparent = false,
     ) {

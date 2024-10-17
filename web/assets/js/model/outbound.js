@@ -890,7 +890,11 @@ Outbound.FreedomSettings = class extends CommonClass {
 };
 
 Outbound.FreedomSettings.Fragment = class extends CommonClass {
-    constructor(packets = '1-3', length = '', interval = '') {
+    constructor(
+        packets = '1-3',
+        length = '',
+        interval = ''
+    ) {
         super();
         this.packets = packets;
         this.length = length;
