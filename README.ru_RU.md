@@ -30,12 +30,12 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## Установка определённой версии
+## Установка определённой версии (мы не рекомендуем)
 
-Чтобы установить нужную вам версию, добавьте номер версии в конец команды установки. Например, `v2.4.3`:
+Чтобы установить желаемую версию, используйте следующую команду установки. Например, ver `v1.7.9`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.4.3
+VERSION=v1.7.9 bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/refs/tags/$VERSION/install.sh") $VERSION
 ```
 
 ## SSL Сертификат
