@@ -133,40 +133,38 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 
 func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
 	if proxyUrl == "" && apiServerUrl == "" {
-		// No proxy or API server URL provided, use default instance
 		return telego.NewBot(token)
 	}
 
 	if proxyUrl != "" {
 		if !strings.HasPrefix(proxyUrl, "socks5://") {
-			logger.Warning("Invalid socks5 URL, starting with default")
+			logger.Warning("Invalid socks5 URL, using default")
 			return telego.NewBot(token)
 		}
 
 		_, err := url.Parse(proxyUrl)
 		if err != nil {
-			logger.Warning("Can't parse proxy URL, using default instance for tgbot:", err)
+			logger.Warningf("Can't parse proxy URL, using default instance for tgbot: %v", err)
 			return telego.NewBot(token)
 		}
 
 		return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
 			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
 		}))
-	} else {
-		if !strings.HasPrefix(apiServerUrl, "http") {
-			logger.Warning("Invalid http(s) URL, starting with default")
-			return telego.NewBot(token)
-		}
-
-		_, err := url.Parse(apiServerUrl)
-		if err != nil {
-			logger.Warning("Can't parse API server URL, using default instance for tgbot:", err)
-			return telego.NewBot(token)
-		}
-
-		return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
 	}
 
+	if !strings.HasPrefix(apiServerUrl, "http") {
+		logger.Warning("Invalid http(s) URL, using default")
+		return telego.NewBot(token)
+	}
+
+	_, err := url.Parse(apiServerUrl)
+	if err != nil {
+		logger.Warningf("Can't parse API server URL, using default instance for tgbot: %v", err)
+		return telego.NewBot(token)
+	}
+
+	return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
 }
 
 func (t *Tgbot) IsRunning() bool {
