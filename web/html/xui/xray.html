@@ -230,25 +230,6 @@
                       <setting-list-item type="switch" title='{{ i18n "pages.xray.Torrent"}}' desc='{{ i18n "pages.xray.TorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
                       <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
                     </a-list-item>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.blockdomains" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="blockedDomains"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.ProtectionOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.basicRouting"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
@@ -289,7 +270,7 @@
                                     v-model="blockedDomains"
                                     :dropdown-class-name="themeSwitcher.currentTheme">
                                         <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
+                                            v-for="p in settingsData.BlockDomainsOptions"> [[ p.label ]]
                                         </a-select-option>
                                     </a-select>
                                 </template>
@@ -939,13 +920,22 @@
                     { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
-                ProtectionOptions: [
+                BlockDomainsOptions: [
                     { label: 'Ads All', value: 'geosite:category-ads-all' },
                     { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
                     { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
-                    { label: 'Malware 🇮🇷', value: 'geosite_IR.dat:malware' },
-                    { label: 'Phishing 🇮🇷', value: 'geosite_IR.dat:phishing' },
-                    { label: 'Cryptominers 🇮🇷', value: 'geosite_IR.dat:cryptominers' },
+                    { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
+                    { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
+                    { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
                 ServicesOptions: [
                     { label: 'Apple', value: 'geosite:apple' },
