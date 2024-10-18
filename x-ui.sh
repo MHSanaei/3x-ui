@@ -273,23 +273,67 @@ gen_random_string() {
     echo "$random_string"
 }
 
-reset_webbasepath() {
-    echo -e "${yellow}Resetting Web Base Path${plain}"
+set_webbasepath() {
+    echo -e "${green}\t1.${plain} Set Web Base Path"
+    echo -e "${green}\t2.${plain} Random Web Base Path"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -p "Choose an option: " choice
 
-    read -rp "Are you sure you want to reset the web base path? (y/n): " confirm
-    if [[ $confirm != "y" && $confirm != "Y" ]]; then
-        echo -e "${yellow}Operation canceled.${plain}"
-        return
-    fi
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        webBasePath="$(/usr/local/x-ui/x-ui setting -show true | grep -oP 'webBasePath: \K.*')"
+        echo -e "current webBasePath: "${green}${webBasePath}${plain}
+        echo -e "type ${yellow}none${plain} for BasePath ${green}/${plain}"
+        echo -e "${red}warning!${plain} just type letter without ${yellow}/${plain}"
+        echo ""
+        read -rp "type the webBasePath: " newBasePath
 
-    config_webBasePath=$(gen_random_string 10)
+        if [[ -z "$newBasePath" || "$newBasePath" == "none" ]]; then
+            config_webBasePath="/"
+        else
+            config_webBasePath="/$newBasePath"
+        fi
+        
+        echo ""
+        echo -e "change on: ${yellow}${config_webBasePath}${plain}"
+        read -rp "is that right? (y/n): " confirm
+        if [[ $confirm != "y" && $confirm != "Y" ]]; then
+            echo -e "${yellow}Operation canceled.${plain}"
+            return
+        fi
 
-    # Apply the new web base path setting
-    /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
+        # Apply the new web base path setting
+        /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
+
+        echo -e "Web base path has been set to: ${green}${config_webBasePath}${plain}"
+        echo -e "${green}Please use the new web base path to access the panel.${plain}"
+        restart
+        ;;
+    2)
+        echo -e "${yellow}Resetting Web Base Path${plain}"
+
+        read -rp "Are you sure you want to random the web base path? (y/n): " confirm
+        if [[ $confirm != "y" && $confirm != "Y" ]]; then
+            echo -e "${yellow}Operation canceled.${plain}"
+            return
+        fi
+
+        config_webBasePath=$(gen_random_string 10)
+
+        # Apply the new web base path setting
+        /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
     
-    echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
-    echo -e "${green}Please use the new web base path to access the panel.${plain}"
-    restart
+        echo -e "Web base path has been generated to: ${green}${config_webBasePath}${plain}"
+        echo -e "${green}Please use the new web base path to access the panel.${plain}"
+        restart
+        ;;
+    *)
+        echo "Invalid choice"
+        ;;
+    esac
 }
 
 reset_config() {
@@ -1461,7 +1505,7 @@ show_menu() {
   ${green}5.${plain} Uninstall
 ————————————————
   ${green}6.${plain} Reset Username & Password & Secret Token
-  ${green}7.${plain} Reset Web Base Path
+  ${green}7.${plain} Web Base Path Management
   ${green}8.${plain} Reset Settings
   ${green}9.${plain} Change Port
   ${green}10.${plain} View Current Settings
@@ -1510,7 +1554,7 @@ show_menu() {
         check_install && reset_user
         ;;
     7)
-        check_install && reset_webbasepath
+        check_install && set_webbasepath
         ;;
     8)
         check_install && reset_config
