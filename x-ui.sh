@@ -467,13 +467,14 @@ show_log() {
 
     case "$choice" in
     0)
-        return
+        show_menu
         ;;
     1)
+        # Set trap to catch Ctrl+C and return to the menu
+        trap 'before_show_menu' SIGINT
         journalctl -u x-ui -e --no-pager -f -p debug
-        if [[ $# == 0 ]]; then
+        # After exiting journalctl, return to the menu
         before_show_menu
-        fi
         ;;
     2)
         sudo journalctl --rotate

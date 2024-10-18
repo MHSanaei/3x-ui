@@ -143,7 +143,7 @@ config_after_install() {
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
 
     # Check if username and password exist
-    if [[ -n "$existing_username" && -n "$existing_password" ]]; then
+    if [[ -n "$existing_username" && -n "$existing_password" && -n "$existing_webBasePath" ]]; then
         # If webBasePath is missing, generate a new one
         if [[ ${#existing_webBasePath} -lt 4 ]]; then
             local config_webBasePath=$(gen_random_string 15)
