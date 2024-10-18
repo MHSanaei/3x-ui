@@ -10,7 +10,7 @@ const supportLangs = [
 		icon: "🇮🇷",
 	},
 	{
-		name: "簡體中文",
+		name: "简体中文",
 		value: "zh-CN",
 		icon: "🇨🇳",
 	},
