@@ -2651,16 +2651,14 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
         mtu = 1420,
         secretKey = Wireguard.generateKeypair().privateKey,
         peers = [new Inbound.WireguardSettings.Peer()],
-        kernelMode = false,
-        kernelTun = false,
+        noKernelTun = false
     ) {
         super(protocol);
         this.mtu = mtu;
         this.secretKey = secretKey;
         this.pubKey = secretKey.length > 0 ? Wireguard.generateKeypair(secretKey).publicKey : '';
         this.peers = peers;
-        this.kernelMode = kernelMode;
-        this.kernelTun = kernelTun;
+        this.noKernelTun = noKernelTun;
     }
 
     addPeer() {
@@ -2677,8 +2675,7 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
             json.mtu,
             json.secretKey,
             json.peers.map(peer => Inbound.WireguardSettings.Peer.fromJson(peer)),
-            json.kernelMode,
-            json.kernelTun,
+            json.noKernelTun,
         );
     }
 
@@ -2687,8 +2684,7 @@ Inbound.WireguardSettings = class extends XrayCommonClass {
             mtu: this.mtu ?? undefined,
             secretKey: this.secretKey,
             peers: Inbound.WireguardSettings.Peer.toJsonArray(this.peers),
-            kernelMode: this.kernelMode,
-            kernelTun: this.kernelTun,
+            noKernelTun: this.noKernelTun,
         };
     }
 };
