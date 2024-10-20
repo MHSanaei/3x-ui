@@ -1457,7 +1457,7 @@ show_menu() {
   ${green}1.${plain} Install
   ${green}2.${plain} Update
   ${green}3.${plain} Update Menu
-  ${green}4.${plain} Custom Version
+  ${green}4.${plain} Old Version
   ${green}5.${plain} Uninstall
 ————————————————
   ${green}6.${plain} Reset Username & Password & Secret Token
