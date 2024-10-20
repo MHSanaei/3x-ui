@@ -26,7 +26,7 @@
           "quic",
           "fakedns"
         ],
-        "enabled": true
+        "enabled": false
       },
       "tag": "socks"
     },
