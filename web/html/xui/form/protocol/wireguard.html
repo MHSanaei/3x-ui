@@ -18,11 +18,8 @@
   <a-form-item label='MTU'>
     <a-input-number v-model.number="inbound.settings.mtu"></a-input-number>
   </a-form-item>
-  <a-form-item label='Kernel Mode'>
-    <a-switch v-model="inbound.settings.kernelMode"></a-switch>
-  </a-form-item>
-  <a-form-item label='Kernel Tun'>
-    <a-switch v-model="inbound.settings.kernelTun"></a-switch>
+  <a-form-item label='No Kernel Tun'>
+    <a-switch v-model="inbound.settings.noKernelTun"></a-switch>
   </a-form-item>
   <a-form-item label="Peers">
     <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addPeer()"></a-button>
