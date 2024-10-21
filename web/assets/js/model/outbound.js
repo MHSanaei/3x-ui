@@ -875,16 +875,16 @@ Outbound.FreedomSettings = class extends CommonClass {
             json.domainStrategy,
             json.redirect,
             json.fragment ? Outbound.FreedomSettings.Fragment.fromJson(json.fragment) : undefined,
-            json.noises ? json.noises.map(noise => Outbound.FreedomSettings.Noise.fromJson(noise)) : [new Outbound.FreedomSettings.Noise()],
+            json.noises ? json.noises.map(noise => Outbound.FreedomSettings.Noise.fromJson(noise)) : undefined,
         );
     }
 
     toJson() {
         return {
             domainStrategy: ObjectUtil.isEmpty(this.domainStrategy) ? undefined : this.domainStrategy,
-            redirect: this.redirect,
+            redirect: ObjectUtil.isEmpty(this.redirect) ? undefined: this.redirect,
             fragment: Object.keys(this.fragment).length === 0 ? undefined : this.fragment,
-            noises: Outbound.FreedomSettings.Noise.toJsonArray(this.noises),
+            noises: this.noises.length === 0 ? undefined : Outbound.FreedomSettings.Noise.toJsonArray(this.noises),
         };
     }
 };
@@ -936,10 +936,6 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
             packet: this.packet,
             delay: this.delay,
         };
-    }
-
-    static toJsonArray(noises) {
-        return noises.map(noise => noise.toJson());
     }
 };
 
