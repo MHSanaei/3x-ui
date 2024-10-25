@@ -139,75 +139,55 @@ gen_random_string() {
 }
 
 config_after_install() {
-    local goto_custom_settings=false
     local existing_username=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'username: .+' | awk '{print $2}')
     local existing_password=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'password: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
 
-    if [[ -n "$existing_username" && -n "$existing_password" ]]; then
+    if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_username" == "admin" && "$existing_password" == "admin" ]]; then
-            echo -e "${yellow}Default credentials detected. Security update required...${plain}"
-            goto_custom_settings=true
-        elif [[ ${#existing_webBasePath} -lt 4 ]]; then
             local config_webBasePath=$(gen_random_string 15)
-            echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
-            /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
-            echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
-            /usr/local/x-ui/x-ui migrate
-            return 0
-        else
-            echo -e "${green}Username, Password, and WebBasePath are properly set. Exiting...${plain}"
-            /usr/local/x-ui/x-ui migrate
-            return 0
-        fi
-    else
-        goto_custom_settings=true
-    fi
+            local config_username=$(gen_random_string 10)
+            local config_password=$(gen_random_string 10)
 
-    if [[ "$goto_custom_settings" == "true" ]]; then
-        read -p "Would you like to customize the Panel Port settings? (If not, random settings will be applied) [y/n]: " config_confirm
-
-        local config_webBasePath=$(gen_random_string 15)
-        local config_username=$(gen_random_string 10)
-        local config_password=$(gen_random_string 10)
-
-        if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
-            read -p "Please set up the panel port: " config_port
-            echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
-
-            echo -e "${yellow}Your Username will be generated randomly: ${config_username}${plain}"
-            echo -e "${yellow}Your Password will be generated randomly: ${config_password}${plain}"
-            echo -e "${yellow}Your Web Base Path will be generated randomly: ${config_webBasePath}${plain}"
-
-            echo -e "${yellow}Initializing, please wait...${plain}"
+            read -p "Would you like to customize the Panel Port settings? (If not, random port will be applied) [y/n]: " config_confirm
+            if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
+                read -p "Please set up the panel port: " config_port
+                echo -e "${yellow}Your Panel Port is: ${config_port}${plain}"
+            else
+                local config_port=$(shuf -i 1024-62000 -n 1)
+                echo -e "${yellow}Generated random port: ${config_port}${plain}"
+            fi
 
             /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
-            echo -e "${green}Settings applied successfully!${plain}"
-
+            echo -e "This is a fresh installation, generating random login info for security concerns:"
             echo -e "###############################################"
             echo -e "${green}Username: ${config_username}${plain}"
             echo -e "${green}Password: ${config_password}${plain}"
             echo -e "${green}Port: ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
             echo -e "###############################################"
+            echo -e "${yellow}If you forgot your login info, you can type 'x-ui settings' to check${plain}"
         else
-            echo -e "${red}Cancel...${plain}"
+            local config_webBasePath=$(gen_random_string 15)
+            echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
+            /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
+            echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
+        fi
+    else
+        if [[ "$existing_username" == "admin" && "$existing_password" == "admin" ]]; then
+            local config_username=$(gen_random_string 10)
+            local config_password=$(gen_random_string 10)
 
-            if [[ ! -f "/etc/x-ui/x-ui.db" ]]; then
-                local portTemp=$(shuf -i 1024-62000 -n 1)
-
-                /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}" -port "${portTemp}" -webBasePath "${config_webBasePath}"
-                echo -e "This is a fresh installation, generating random login info for security concerns:"
-                echo -e "###############################################"
-                echo -e "${green}Username: ${config_username}${plain}"
-                echo -e "${green}Password: ${config_password}${plain}"
-                echo -e "${green}Port: ${portTemp}${plain}"
-                echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
-                echo -e "###############################################"
-                echo -e "${yellow}If you forgot your login info, you can type 'x-ui settings' to check after installation${plain}"
-            else
-                echo -e "${yellow}This is your upgrade, keeping old settings. If you forgot your login info, you can type 'x-ui settings' to check${plain}"
-            fi
+            echo -e "${yellow}Default credentials detected. Security update required...${plain}"
+            /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}"
+            echo -e "Generated new random login credentials:"
+            echo -e "###############################################"
+            echo -e "${green}Username: ${config_username}${plain}"
+            echo -e "${green}Password: ${config_password}${plain}"
+            echo -e "###############################################"
+            echo -e "${yellow}If you forgot your login info, you can type 'x-ui settings' to check${plain}"
+        else
+            echo -e "${green}Username, Password, and WebBasePath are properly set. Exiting...${plain}"
         fi
     fi
 
