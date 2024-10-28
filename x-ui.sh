@@ -1170,6 +1170,7 @@ run_speedtest() {
     # Run Speedtest
     speedtest
 }
+
 create_iplimit_jails() {
     # Use default bantime if not passed => 15 minutes
     local bantime="${1:-15}"
@@ -1177,7 +1178,7 @@ create_iplimit_jails() {
     # Uncomment 'allowipv6 = auto' in fail2ban.conf
     sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
 
-    #On Debian 12+ fail2ban's default backend should be changed to systemd
+    # On Debian 12+ fail2ban's default backend should be changed to systemd
     if [[  "${release}" == "debian" && ${os_version} -ge 12 ]]; then
         sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
     fi
@@ -1187,7 +1188,7 @@ create_iplimit_jails() {
 enabled=true
 backend=auto
 filter=3x-ipl
-action=3x-ipl
+action = %(known/action)s[name=%(__name__)s, protocol="%(protocol)s", chain="%(chain)s"]
 logpath=${iplimit_log_path}
 maxretry=2
 findtime=32
@@ -1203,7 +1204,7 @@ EOF
 
     cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
 [INCLUDES]
-before = iptables-allports.conf
+before = iptables-common.conf
 
 [Definition]
 actionstart = <iptables> -N f2b-<name>
@@ -1223,6 +1224,11 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
+# Use default settings from iptables-common.conf
+# This will automatically handle both IPv4 and IPv6
+name = default
+protocol = tcp
+chain = INPUT
 EOF
 
     echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
@@ -1247,10 +1253,11 @@ iplimit_main() {
     echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
     echo -e "${green}\t2.${plain} Change Ban Duration"
     echo -e "${green}\t3.${plain} Unban Everyone"
-    echo -e "${green}\t4.${plain} Check Logs"
-    echo -e "${green}\t5.${plain} Fail2ban Status"
-    echo -e "${green}\t6.${plain} Restart Fail2ban"
-    echo -e "${green}\t7.${plain} Uninstall Fail2ban"
+    echo -e "${green}\t4.${plain} Ban Logs"
+    echo -e "${green}\t5.${plain} Real-Time Logs"
+    echo -e "${green}\t6.${plain} Service Status"
+    echo -e "${green}\t7.${plain} Service Restart"
+    echo -e "${green}\t8.${plain} Uninstall Fail2ban and IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -1291,12 +1298,15 @@ iplimit_main() {
         show_banlog
         ;;
     5)
-        service fail2ban status
+        tail -f /var/log/fail2ban.log
         ;;
     6)
-        systemctl restart fail2ban
+        service fail2ban status
         ;;
     7)
+        systemctl restart fail2ban
+        ;;
+    8)
         remove_iplimit
         ;;
     *) echo "Invalid choice" ;;
