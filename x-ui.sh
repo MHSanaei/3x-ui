@@ -308,12 +308,19 @@ reset_config() {
 }
 
 check_config() {
-    info=$(/usr/local/x-ui/x-ui setting -show true)
+    local info=$(/usr/local/x-ui/x-ui setting -show true)
     if [[ $? != 0 ]]; then
         LOGE "get current settings error, please check logs"
         show_menu
+        return
     fi
     LOGI "${info}"
+
+    local existing_webBasePath=$(echo "$info" | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(echo "$info" | grep -Eo 'port: .+' | awk '{print $2}')
+    local server_ip=$(curl -s https://api.ipify.org)
+
+    echo -e "${green}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
 }
 
 set_port() {
