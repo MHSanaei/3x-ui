@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "O histórico de IPs. (para ativar o inbound após a desativação, limpe o log)"
 "IPLimitlogclear" = "Limpar o Log"
 "setDefaultCert" = "Definir Certificado pelo Painel"
-"xtlsDesc" = "O Xray deve ser v1.7.5"
-"realityDesc" = "O Xray deve ser v1.8.0+"
 "telegramDesc" = "Por favor, forneça o ID do Chat do Telegram. (use o comando '/id' no bot) ou (@userinfobot)"
 "subscriptionDesc" = "Para encontrar seu URL de assinatura, navegue até 'Detalhes'. Além disso, você pode usar o mesmo nome para vários clientes."
 "info" = "Informações"

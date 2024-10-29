@@ -452,38 +452,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
-	if security == "xtls" {
-		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
-		alpns, _ := xtlsSetting["alpn"].([]interface{})
-		var alpn []string
-		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
-		}
-		if len(alpn) > 0 {
-			params["alpn"] = strings.Join(alpn, ",")
-		}
-		if sniValue, ok := searchKey(xtlsSetting, "serverName"); ok {
-			params["sni"], _ = sniValue.(string)
-		}
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
-		if xtlsSetting != nil {
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
-			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
-				if insecure.(bool) {
-					params["allowInsecure"] = "1"
-				}
-			}
-		}
-
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
-	}
-
-	if security != "tls" && security != "reality" && security != "xtls" {
+	if security != "tls" && security != "reality" {
 		params["security"] = "none"
 	}
 
@@ -676,39 +645,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		}
 	}
 
-	if security == "xtls" {
-		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
-		alpns, _ := xtlsSetting["alpn"].([]interface{})
-		var alpn []string
-		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
-		}
-		if len(alpn) > 0 {
-			params["alpn"] = strings.Join(alpn, ",")
-		}
-		if sniValue, ok := searchKey(xtlsSetting, "serverName"); ok {
-			params["sni"], _ = sniValue.(string)
-		}
-
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
-		if xtlsSetting != nil {
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
-			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
-				if insecure.(bool) {
-					params["allowInsecure"] = "1"
-				}
-			}
-		}
-
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
-	}
-
-	if security != "tls" && security != "reality" && security != "xtls" {
+	if security != "tls" && security != "reality" {
 		params["security"] = "none"
 	}
 

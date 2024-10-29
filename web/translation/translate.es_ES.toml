@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "Registro de historial de IPs (antes de habilitar la entrada después de que haya sido desactivada por el límite de IP, debes borrar el registro)."
 "IPLimitlogclear" = "Limpiar el Registro"
 "setDefaultCert" = "Establecer certificado desde el panel"
-"xtlsDesc" = "La versión del núcleo de Xray debe ser 1.7.5"
-"realityDesc" = "La versión del núcleo de Xray debe ser 1.8.0 o superior."
 "telegramDesc" = "Por favor, proporciona el ID de Chat de Telegram. (usa el comando '/id' en el bot) o (@userinfobot)"
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
 "info" = "Info"

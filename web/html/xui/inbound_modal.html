@@ -102,11 +102,6 @@
                         client.flow = "";
                     });
                 }
-                if ((this.inModal.inbound.protocol == Protocols.VLESS || this.inModal.inbound.protocol == Protocols.TROJAN) && !inModal.inbound.xtls) {
-                    this.inModal.inbound.settings.vlesses.forEach(client => {
-                        client.flow = "";
-                    });
-                }
             },
             SSMethodChange() {
                 if (this.inModal.inbound.isSSMultiUser) {
@@ -131,10 +126,6 @@
             setDefaultCertData(index) {
                 inModal.inbound.stream.tls.certs[index].certFile = app.defaultCert;
                 inModal.inbound.stream.tls.certs[index].keyFile = app.defaultKey;
-            },
-            setDefaultCertXtls(index) {
-                inModal.inbound.stream.xtls.certs[index].certFile = app.defaultCert;
-                inModal.inbound.stream.xtls.certs[index].keyFile = app.defaultKey;
             },
             async getNewX25519Cert() {
                 inModal.loading(true);

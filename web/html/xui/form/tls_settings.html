@@ -5,18 +5,7 @@
   <a-form-item label='{{ i18n "security" }}'>
     <a-radio-group v-model="inbound.stream.security" button-style="solid">
       <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
-      <a-tooltip>
-        <template slot="title">
-          <span>{{ i18n "pages.inbounds.xtlsDesc" }}</span>
-        </template>
-        <a-radio-button v-if="inbound.canEnableXtls()" value="xtls">XTLS</a-radio-button>
-      </a-tooltip>
-      <a-tooltip>
-        <template slot="title">
-          <span>{{ i18n "pages.inbounds.realityDesc" }}</span>
-        </template>
-        <a-radio-button v-if="inbound.canEnableReality()" value="reality">REALITY</a-radio-button>
-      </a-tooltip>
+      <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
       <a-radio-button value="tls">TLS</a-radio-button>
     </a-radio-group>
   </a-form-item>
@@ -114,11 +103,6 @@
         <a-switch v-model="cert.buildChain"></a-switch>
       </a-form-item>
     </template>
-  </template>
-
-  <!-- xtls settings -->
-  <template v-else-if="inbound.stream.isXtls">
-    {{template "form/xtlsSettings"}}
   </template>
 
   <!-- reality settings -->
