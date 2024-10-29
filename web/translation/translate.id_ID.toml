@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "Log histori IP. (untuk mengaktifkan masuk setelah menonaktifkan, hapus log)"
 "IPLimitlogclear" = "Hapus Log"
 "setDefaultCert" = "Atur Sertifikat dari Panel"
-"xtlsDesc" = "Xray harus versi 1.7.5"
-"realityDesc" = "Xray harus versi 1.8.0+"
 "telegramDesc" = "Harap berikan ID Obrolan Telegram. (gunakan perintah '/id' di bot) atau (@userinfobot)"
 "subscriptionDesc" = "Untuk menemukan URL langganan Anda, buka 'Rincian'. Selain itu, Anda dapat menggunakan nama yang sama untuk beberapa klien."
 "info" = "Info"

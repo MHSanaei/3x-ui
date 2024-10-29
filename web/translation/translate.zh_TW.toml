@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "IP 歷史日誌（要啟用被禁用的入站流量，請清除日誌）"
 "IPLimitlogclear" = "清除日誌"
 "setDefaultCert" = "從面板設定證書"
-"xtlsDesc" = "Xray 核心需要 1.7.5"
-"realityDesc" = "Xray 核心需要 1.8.0 及以上版本"
 "telegramDesc" = "請提供Telegram聊天ID。（在機器人中使用'/id'命令）或（@userinfobot"
 "subscriptionDesc" = "要找到你的訂閱 URL，請導航到“詳細資訊”。此外，你可以為多個客戶端使用相同的名稱。"
 "info" = "資訊"

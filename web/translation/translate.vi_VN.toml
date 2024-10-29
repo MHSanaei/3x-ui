@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "Lịch sử đăng nhập IP (trước khi kích hoạt điểm vào sau khi bị vô hiệu hóa bởi giới hạn IP, bạn nên xóa lịch sử)."
 "IPLimitlogclear" = "Xóa Lịch sử"
 "setDefaultCert" = "Đặt chứng chỉ từ bảng điều khiển"
-"xtlsDesc" = "Xray core cần phiên bản 1.7.5"
-"realityDesc" = "Xray core cần phiên bản 1.8.0 hoặc cao hơn."
 "telegramDesc" = "Vui lòng cung cấp ID Trò chuyện Telegram. (sử dụng lệnh '/id' trong bot) hoặc (@userinfobot)"
 "subscriptionDesc" = "Bạn có thể tìm liên kết gói đăng ký của mình trong Chi tiết, cũng như bạn có thể sử dụng cùng tên cho nhiều cấu hình khác nhau"
 "info" = "Thông tin"
