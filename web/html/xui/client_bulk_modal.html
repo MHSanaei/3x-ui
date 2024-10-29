@@ -39,12 +39,6 @@
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.xtls">
-            <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-                <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-            </a-select>
-        </a-form-item>
         <a-form-item v-if="app.subSettings.enable">
             <template slot="label">
                 <a-tooltip>
@@ -179,9 +173,6 @@
                 newClient._totalGB = clientsBulkModal.totalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
                 if (clientsBulkModal.inbound.canEnableTlsFlow()) {
-                    newClient.flow = clientsBulkModal.flow;
-                }
-                if (clientsBulkModal.inbound.xtls) {
                     newClient.flow = clientsBulkModal.flow;
                 }
                 newClient.reset = clientsBulkModal.reset;

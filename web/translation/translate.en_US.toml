@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "The IPs history log. (to enable inbound after disabling, clear the log)"
 "IPLimitlogclear" = "Clear The Log"
 "setDefaultCert" = "Set Cert from Panel"
-"xtlsDesc" = "Xray must be v1.7.5"
-"realityDesc" = "Xray must be v1.8.0+"
 "telegramDesc" = "Please provide Telegram Chat ID. (use '/id' command in the bot) or (@userinfobot)"
 "subscriptionDesc" = "To find your subscription URL, navigate to the 'Details'. Additionally, you can use the same name for several clients."
 "info" = "Info"

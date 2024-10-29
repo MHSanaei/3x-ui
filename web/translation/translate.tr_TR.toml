@@ -178,8 +178,6 @@
 "IPLimitlogDesc" = "IP geçmiş günlüğü. (devre dışı bırakıldıktan sonra gelini etkinleştirmek için günlüğü temizleyin)"
 "IPLimitlogclear" = "Günlüğü Temizle"
 "setDefaultCert" = "Panelden Sertifikayı Ayarla"
-"xtlsDesc" = "Xray v1.7.5 olmalıdır"
-"realityDesc" = "Xray v1.8.0+ olmalıdır"
 "telegramDesc" = "Lütfen Telegram Sohbet Kimliği sağlayın. (botta '/id' komutunu kullanın) veya (@userinfobot)"
 "subscriptionDesc" = "Abonelik URL'inizi bulmak için 'Detaylar'a gidin. Ayrıca, aynı adı birden fazla müşteri için kullanabilirsiniz."
 "info" = "Bilgi"

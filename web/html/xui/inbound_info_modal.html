@@ -154,15 +154,6 @@
             <a-tag color="orange">{{ i18n "none" }}</a-tag>
           </td>
         </tr>
-        <tr v-if="infoModal.inbound.xtls">
-          <td>Flow</td>
-          <td v-if="infoModal.clientSettings.flow">
-            <a-tag>[[ infoModal.clientSettings.flow ]]</a-tag>
-          </td>
-          <td v-else>
-            <a-tag color="orange">{{ i18n "none" }}</a-tag>
-          </td>
-        </tr>
         <tr v-if="infoModal.clientSettings.password">
           <td>{{ i18n "password" }}</td>
           <td>
