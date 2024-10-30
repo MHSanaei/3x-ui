@@ -136,6 +136,15 @@ func showSetting(show bool) {
 			fmt.Println("get webBasePath failed, error info:", err)
 		}
 
+		certFile, err := settingService.GetCertFile()
+		if err != nil {
+			fmt.Println("get cert file failed, error info:", err)
+		}
+		keyFile, err := settingService.GetKeyFile()
+		if err != nil {
+			fmt.Println("get key file failed, error info:", err)
+		}
+
 		userService := service.UserService{}
 		userModel, err := userService.GetFirstUser()
 		if err != nil {
@@ -149,14 +158,15 @@ func showSetting(show bool) {
 		}
 
 		fmt.Println("current panel settings as follows:")
+		if certFile == "" || keyFile == "" {
+			fmt.Println("Warning: Panel is not secure with SSL")
+		} else {
+			fmt.Println("Panel is secure with SSL")
+		}
 		fmt.Println("username:", username)
 		fmt.Println("password:", userpasswd)
 		fmt.Println("port:", port)
-		if webBasePath != "" {
-			fmt.Println("webBasePath:", webBasePath)
-		} else {
-			fmt.Println("webBasePath is not set")
-		}
+		fmt.Println("webBasePath:", webBasePath)
 	}
 }
 
@@ -290,6 +300,37 @@ func updateCert(publicKey string, privateKey string) {
 	}
 }
 
+func GetCertificate(getCert bool) {
+	if getCert {
+		settingService := service.SettingService{}
+		certFile, err := settingService.GetCertFile()
+		if err != nil {
+			fmt.Println("get cert file failed, error info:", err)
+		}
+		keyFile, err := settingService.GetKeyFile()
+		if err != nil {
+			fmt.Println("get key file failed, error info:", err)
+		}
+
+		fmt.Println("cert:", certFile)
+		fmt.Println("key:", keyFile)
+	}
+}
+
+func GetListenIP(getListen bool) {
+	if getListen {
+
+		settingService := service.SettingService{}
+		ListenIP, err := settingService.GetListen()
+		if err != nil {
+			log.Printf("Failed to retrieve listen IP: %v", err)
+			return
+		}
+
+		fmt.Println("listenIP:", ListenIP)
+	}
+}
+
 func migrateDb() {
 	inboundService := service.InboundService{}
 
@@ -349,6 +390,7 @@ func main() {
 	var password string
 	var webBasePath string
 	var listenIP string
+	var getListen bool
 	var webCertFile string
 	var webKeyFile string
 	var tgbottoken string
@@ -357,6 +399,7 @@ func main() {
 	var tgbotRuntime string
 	var reset bool
 	var show bool
+	var getCert bool
 	var remove_secret bool
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
@@ -365,7 +408,9 @@ func main() {
 	settingCmd.StringVar(&username, "username", "", "Set login username")
 	settingCmd.StringVar(&password, "password", "", "Set login password")
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
-	settingCmd.StringVar(&listenIP, "listen", "", "set panel listen IP")
+	settingCmd.StringVar(&listenIP, "listenIP", "", "set panel listenIP IP")
+	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
+	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
 	settingCmd.StringVar(&webCertFile, "webCert", "", "Set path to public key file for panel")
 	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "Set path to private key file for panel")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "Set token for Telegram bot")
@@ -413,6 +458,9 @@ func main() {
 		if show {
 			showSetting(show)
 		}
+		if getListen {
+			GetListenIP(getListen)
+		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
 		}
@@ -432,6 +480,9 @@ func main() {
 			updateCert("", "")
 		} else {
 			updateCert(webCertFile, webKeyFile)
+		}
+		if getCert {
+			GetCertificate(getCert)
 		}
 
 	default:
