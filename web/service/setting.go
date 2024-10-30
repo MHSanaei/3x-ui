@@ -243,6 +243,10 @@ func (s *SettingService) GetListen() (string, error) {
 	return s.getString("webListen")
 }
 
+func (s *SettingService) SetListen(ip string) error {
+	return s.setString("webListen", ip)
+}
+
 func (s *SettingService) GetWebDomain() (string, error) {
 	return s.getString("webDomain")
 }
