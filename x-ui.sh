@@ -1447,6 +1447,85 @@ remove_iplimit() {
     esac
 }
 
+SSH_port_forwarding() {
+    local server_ip=$(curl -s https://api.ipify.org)
+    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_listenIP=$(/usr/local/x-ui/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')
+    local existing_cert=$(/usr/local/x-ui/x-ui cert -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
+    local existing_key=$(/usr/local/x-ui/x-ui cert -getCert true | grep -Eo 'key: .+' | awk '{print $2}')
+
+    local config_listenIP=""
+    local listen_choice=""
+
+    if [[ -n "$existing_cert" && -n "$existing_key" ]]; then
+        echo "Panel is secure with SSL."
+        return 0
+    fi
+    if [[ -z "$existing_cert" && -z "$existing_key" && -z "$existing_listenIP"  ]]; then
+    echo -e "\n${red}Warning: No Cert and Key found! The panel is not secure.${plain}"
+    echo "Please obtain a certificate or set up SSH port forwarding."
+    fi
+
+    if [[ -n "$existing_listenIP" && (-z "$existing_cert" && -z "$existing_key") ]]; then
+        echo -e "\n${green}Current SSH Port Forwarding Configuration:${plain}"
+        echo -e "Standard SSH command:"
+        echo -e "${yellow}ssh -L 2222:${existing_listenIP}:${existing_port} root@${server_ip}${plain}"
+        echo -e "\nIf using SSH key:"
+        echo -e "${yellow}ssh -i <sshkeypath> -L 2222:${existing_listenIP}:${existing_port} root@${server_ip}${plain}"
+        echo -e "\nAfter connecting, access the panel at:"
+        echo -e "${yellow}http://localhost:2222${existing_webBasePath}${plain}"
+    fi
+    
+    echo -e "\nChoose an option:"
+    echo -e "${green}1.${plain} Set listen IP"
+    echo -e "${green}2.${plain} Clear listen IP"
+    echo -e "${green}0.${plain} Abort"
+    read -p "Choose an option: " num
+
+    case "$num" in
+        1)
+            if [[ -z "$existing_listenIP" ]]; then
+                echo -e "\nNo listenIP configured. Choose an option:"
+                echo -e "1. Use default IP (127.0.0.1)"
+                echo -e "2. Set a custom IP"
+                read -p "Select an option (1 or 2): " listen_choice
+
+                config_listenIP="127.0.0.1"
+                [[ "$listen_choice" == "2" ]] && read -p "Enter custom IP to listen on: " config_listenIP
+
+                /usr/local/x-ui/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
+                echo -e "${green}listen IP has been set to ${config_listenIP}.${plain}"
+                restart
+            else
+                config_listenIP="${existing_listenIP}"
+                echo -e "${green}Current listen IP is already set to ${config_listenIP}.${plain}"
+            fi
+
+            if [[ -n "${config_listenIP}" ]]; then
+                echo -e "\n${green}SSH Port Forwarding Configuration:${plain}"
+                echo -e "Standard SSH command:"
+                echo -e "${yellow}ssh -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
+                echo -e "\nIf using SSH key:"
+                echo -e "${yellow}ssh -i <sshkeypath> -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
+                echo -e "\nAfter connecting, access the panel at:"
+                echo -e "${yellow}http://localhost:2222${existing_webBasePath}${plain}"
+            fi
+            ;;
+        2)
+            /usr/local/x-ui/x-ui setting -listenIP ' ' >/dev/null 2>&1
+            echo -e "${green}Listen IP has been cleared.${plain}"
+            restart
+            ;;
+        0)
+            echo "Operation aborted."
+            ;;
+        *)
+            echo "Invalid option. Exiting."
+            ;;
+    esac
+}
+
 show_usage() {
     echo "x-ui control menu usages: "
     echo "------------------------------------------"
@@ -1498,13 +1577,14 @@ show_menu() {
   ${green}19.${plain} Cloudflare SSL Certificate
   ${green}20.${plain} IP Limit Management
   ${green}21.${plain} Firewall Management
+  ${green}22.${plain} SSH Port Forwarding Management
 ————————————————
-  ${green}22.${plain} Enable BBR 
-  ${green}23.${plain} Update Geo Files
-  ${green}24.${plain} Speedtest by Ookla
+  ${green}23.${plain} Enable BBR 
+  ${green}24.${plain} Update Geo Files
+  ${green}25.${plain} Speedtest by Ookla
 "
     show_status
-    echo && read -p "Please enter your selection [0-24]: " num
+    echo && read -p "Please enter your selection [0-25]: " num
 
     case "${num}" in
     0)
@@ -1574,16 +1654,19 @@ show_menu() {
         firewall_menu
         ;;
     22)
-        bbr_menu
+        SSH_port_forwarding
         ;;
     23)
-        update_geo
+        bbr_menu
         ;;
     24)
+        update_geo
+        ;;
+    25)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-24]"
+        LOGE "Please enter the correct number [0-25]"
         ;;
     esac
 }
