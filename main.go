@@ -216,7 +216,7 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 	}
 }
 
-func updateSetting(port int, username string, password string, webBasePath string) {
+func updateSetting(port int, username string, password string, webBasePath string, listenIP string) {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
@@ -250,6 +250,15 @@ func updateSetting(port int, username string, password string, webBasePath strin
 			fmt.Println("Failed to set base URI path:", err)
 		} else {
 			fmt.Println("Base URI path set successfully")
+		}
+	}
+
+	if listenIP != "" {
+		err := settingService.SetListen(listenIP)
+		if err != nil {
+			fmt.Println("Failed to set listen IP:", err)
+		} else {
+			fmt.Printf("listen %v set successfully", listenIP)
 		}
 	}
 }
@@ -339,6 +348,7 @@ func main() {
 	var username string
 	var password string
 	var webBasePath string
+	var listenIP string
 	var webCertFile string
 	var webKeyFile string
 	var tgbottoken string
@@ -355,6 +365,7 @@ func main() {
 	settingCmd.StringVar(&username, "username", "", "Set login username")
 	settingCmd.StringVar(&password, "password", "", "Set login password")
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
+	settingCmd.StringVar(&listenIP, "listen", "", "set panel listen IP")
 	settingCmd.StringVar(&webCertFile, "webCert", "", "Set path to public key file for panel")
 	settingCmd.StringVar(&webKeyFile, "webCertKey", "", "Set path to private key file for panel")
 	settingCmd.StringVar(&tgbottoken, "tgbottoken", "", "Set token for Telegram bot")
@@ -397,7 +408,7 @@ func main() {
 		if reset {
 			resetSetting()
 		} else {
-			updateSetting(port, username, password, webBasePath)
+			updateSetting(port, username, password, webBasePath, listenIP)
 		}
 		if show {
 			showSetting(show)
