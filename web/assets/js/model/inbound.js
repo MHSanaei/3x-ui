@@ -1259,7 +1259,7 @@ class Inbound extends XrayCommonClass {
 
     canEnableReality() {
         if (![Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
-        return ["tcp", "http", "grpc"].includes(this.network);
+        return ["tcp", "http", "grpc", "splithttp"].includes(this.network);
     }
 
     canEnableStream() {
