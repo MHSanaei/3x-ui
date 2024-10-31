@@ -274,7 +274,7 @@ install_x-ui() {
     echo -e "x-ui log          - Check logs"
     echo -e "x-ui banlog       - Check Fail2ban ban logs"
     echo -e "x-ui update       - Update"
-    echo -e "x-ui custom       - custom version"
+    echo -e "x-ui legacy       - legacy version"
     echo -e "x-ui install      - Install"
     echo -e "x-ui uninstall    - Uninstall"
     echo -e "----------------------------------------------"
