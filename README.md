@@ -30,7 +30,7 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## Install Old Version (we don't recommend)
+## Install legacy Version (we don't recommend)
 
 To install your desired version, use following installation command. e.g., ver `v1.7.9`:
 

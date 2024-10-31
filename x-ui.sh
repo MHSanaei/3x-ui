@@ -192,7 +192,7 @@ update_menu() {
     fi
 }
 
-custom_version() {
+legacy_version() {
     echo "Enter the panel version (like 2.4.0):"
     read tag_version
 
@@ -200,17 +200,8 @@ custom_version() {
         echo "Panel version cannot be empty. Exiting."
         exit 1
     fi
-
-    min_version="2.3.5"
-    if [[ "$(printf '%s\n' "$tag_version" "$min_version" | sort -V | head -n1)" == "$tag_version" && "$tag_version" != "$min_version" ]]; then
-        echo "Please use a newer version (at least 2.3.5). Exiting."
-        exit 1
-    fi
-
-    download_link="https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh"
-
     # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls $download_link) v$tag_version"
+    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
     eval $install_command
@@ -1476,7 +1467,7 @@ show_menu() {
   ${green}1.${plain} Install
   ${green}2.${plain} Update
   ${green}3.${plain} Update Menu
-  ${green}4.${plain} Old Version
+  ${green}4.${plain} Legacy Version
   ${green}5.${plain} Uninstall
 ————————————————
   ${green}6.${plain} Reset Username & Password & Secret Token
@@ -1520,7 +1511,7 @@ show_menu() {
         check_install && update_menu
         ;;
     4)
-        check_install && custom_version
+        check_install && legacy_version
         ;;
     5)
         check_install && uninstall
@@ -1620,8 +1611,8 @@ if [[ $# > 0 ]]; then
     "update")
         check_install 0 && update 0
         ;;
-    "custom")
-        check_install 0 && custom_version 0
+    "legacy")
+        check_install 0 && legacy_version 0
         ;;
     "install")
         check_uninstall 0 && install 0
