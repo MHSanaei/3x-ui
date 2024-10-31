@@ -1443,14 +1443,14 @@ SSH_port_forwarding() {
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_listenIP=$(/usr/local/x-ui/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')
-    local existing_cert=$(/usr/local/x-ui/x-ui cert -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
-    local existing_key=$(/usr/local/x-ui/x-ui cert -getCert true | grep -Eo 'key: .+' | awk '{print $2}')
+    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
+    local existing_key=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'key: .+' | awk '{print $2}')
 
     local config_listenIP=""
     local listen_choice=""
 
     if [[ -n "$existing_cert" && -n "$existing_key" ]]; then
-        echo "Panel is secure with SSL."
+        echo -e "${green}Panel is secure with SSL.${plain}"
         return 0
     fi
     if [[ -z "$existing_cert" && -z "$existing_key" && -z "$existing_listenIP"  ]]; then
