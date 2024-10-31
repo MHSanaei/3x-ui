@@ -931,6 +931,8 @@ ssl_cert_issue_main() {
 }
 
 ssl_cert_issue() {
+    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         echo "acme.sh could not be found. we will install it"
@@ -1049,6 +1051,7 @@ ssl_cert_issue() {
             LOGI "Panel paths set for domain: $domain"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
+            echo -e "${green}Access URL: https://${domain}:${existing_port}${existing_webBasePath}${plain}"
             restart
         else
             LOGE "Error: Certificate or private key file not found for domain: $domain."
@@ -1453,12 +1456,12 @@ SSH_port_forwarding() {
         echo -e "${green}Panel is secure with SSL.${plain}"
         return 0
     fi
-    if [[ -z "$existing_cert" && -z "$existing_key" && -z "$existing_listenIP"  ]]; then
-    echo -e "\n${red}Warning: No Cert and Key found! The panel is not secure.${plain}"
-    echo "Please obtain a certificate or set up SSH port forwarding."
+    if [[ -z "$existing_cert" && -z "$existing_key" && (-z "$existing_listenIP" || "$existing_listenIP" == "0.0.0.0") ]]; then
+        echo -e "\n${red}Warning: No Cert and Key found! The panel is not secure.${plain}"
+        echo "Please obtain a certificate or set up SSH port forwarding."
     fi
 
-    if [[ -n "$existing_listenIP" && (-z "$existing_cert" && -z "$existing_key") ]]; then
+    if [[ -n "$existing_listenIP" && "$existing_listenIP" != "0.0.0.0" && (-z "$existing_cert" && -z "$existing_key") ]]; then
         echo -e "\n${green}Current SSH Port Forwarding Configuration:${plain}"
         echo -e "Standard SSH command:"
         echo -e "${yellow}ssh -L 2222:${existing_listenIP}:${existing_port} root@${server_ip}${plain}"
@@ -1467,7 +1470,7 @@ SSH_port_forwarding() {
         echo -e "\nAfter connecting, access the panel at:"
         echo -e "${yellow}http://localhost:2222${existing_webBasePath}${plain}"
     fi
-    
+
     echo -e "\nChoose an option:"
     echo -e "${green}1.${plain} Set listen IP"
     echo -e "${green}2.${plain} Clear listen IP"
@@ -1475,45 +1478,42 @@ SSH_port_forwarding() {
     read -p "Choose an option: " num
 
     case "$num" in
-        1)
-            if [[ -z "$existing_listenIP" ]]; then
-                echo -e "\nNo listenIP configured. Choose an option:"
-                echo -e "1. Use default IP (127.0.0.1)"
-                echo -e "2. Set a custom IP"
-                read -p "Select an option (1 or 2): " listen_choice
+    1)
+        if [[ -z "$existing_listenIP" || "$existing_listenIP" == "0.0.0.0" ]]; then
+            echo -e "\nNo listenIP configured. Choose an option:"
+            echo -e "1. Use default IP (127.0.0.1)"
+            echo -e "2. Set a custom IP"
+            read -p "Select an option (1 or 2): " listen_choice
 
-                config_listenIP="127.0.0.1"
-                [[ "$listen_choice" == "2" ]] && read -p "Enter custom IP to listen on: " config_listenIP
+            config_listenIP="127.0.0.1"
+            [[ "$listen_choice" == "2" ]] && read -p "Enter custom IP to listen on: " config_listenIP
 
-                /usr/local/x-ui/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
-                echo -e "${green}listen IP has been set to ${config_listenIP}.${plain}"
-                restart
-            else
-                config_listenIP="${existing_listenIP}"
-                echo -e "${green}Current listen IP is already set to ${config_listenIP}.${plain}"
-            fi
-
-            if [[ -n "${config_listenIP}" ]]; then
-                echo -e "\n${green}SSH Port Forwarding Configuration:${plain}"
-                echo -e "Standard SSH command:"
-                echo -e "${yellow}ssh -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
-                echo -e "\nIf using SSH key:"
-                echo -e "${yellow}ssh -i <sshkeypath> -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
-                echo -e "\nAfter connecting, access the panel at:"
-                echo -e "${yellow}http://localhost:2222${existing_webBasePath}${plain}"
-            fi
-            ;;
-        2)
-            /usr/local/x-ui/x-ui setting -listenIP ' ' >/dev/null 2>&1
-            echo -e "${green}Listen IP has been cleared.${plain}"
+            /usr/local/x-ui/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
+            echo -e "${green}listen IP has been set to ${config_listenIP}.${plain}"
+            echo -e "\n${green}SSH Port Forwarding Configuration:${plain}"
+            echo -e "Standard SSH command:"
+            echo -e "${yellow}ssh -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
+            echo -e "\nIf using SSH key:"
+            echo -e "${yellow}ssh -i <sshkeypath> -L 2222:${config_listenIP}:${existing_port} root@${server_ip}${plain}"
+            echo -e "\nAfter connecting, access the panel at:"
+            echo -e "${yellow}http://localhost:2222${existing_webBasePath}${plain}"
             restart
-            ;;
-        0)
-            echo "Operation aborted."
-            ;;
-        *)
-            echo "Invalid option. Exiting."
-            ;;
+        else
+            config_listenIP="${existing_listenIP}"
+            echo -e "${green}Current listen IP is already set to ${config_listenIP}.${plain}"
+        fi
+        ;;
+    2)
+        /usr/local/x-ui/x-ui setting -listenIP 0.0.0.0 >/dev/null 2>&1
+        echo -e "${green}Listen IP has been cleared.${plain}"
+        restart
+        ;;
+    0)
+        echo "Operation aborted."
+        ;;
+    *)
+        echo "Invalid option. Exiting."
+        ;;
     esac
 }
 
