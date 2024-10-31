@@ -461,6 +461,9 @@ func main() {
 		if getListen {
 			GetListenIP(getListen)
 		}
+		if getCert {
+			GetCertificate(getCert)
+		}
 		if (tgbottoken != "") || (tgbotchatid != "") || (tgbotRuntime != "") {
 			updateTgbotSetting(tgbottoken, tgbotchatid, tgbotRuntime)
 		}
@@ -481,10 +484,6 @@ func main() {
 		} else {
 			updateCert(webCertFile, webKeyFile)
 		}
-		if getCert {
-			GetCertificate(getCert)
-		}
-
 	default:
 		fmt.Println("Invalid subcommands")
 		fmt.Println()
