@@ -107,8 +107,8 @@ github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
-github.com/mymmrac/telego v0.31.3 h1:yZlD+dm+1W6p3OmCG8K+MbS02Y6paUgwPnqfZN3RWQQ=
-github.com/mymmrac/telego v0.31.3/go.mod h1:coOoqXVmjFnwBlzusjfEezbQ7RH9wQnDowJdMm+bnEo=
+github.com/mymmrac/telego v0.31.4 h1:NpiNl0P/8eydknka/k6XaaaWVj5BKMlM3Ibba63QTBU=
+github.com/mymmrac/telego v0.31.4/go.mod h1:T12js1PgbYDYznvoN05MSMuPMfWTYo7D9LKl5cPFWiI=
 github.com/nicksnyder/go-i18n/v2 v2.4.1 h1:zwzjtX4uYyiaU02K5Ia3zSkpJZrByARkRB4V3YPrr0g=
 github.com/nicksnyder/go-i18n/v2 v2.4.1/go.mod h1:++Pl70FR6Cki7hdzZRnEEqdc2dJt+SAGotyFg/SvZMk=
 github.com/onsi/ginkgo/v2 v2.20.2 h1:7NVCeyIWROIAheY21RLS+3j2bb52W0W82tkberYytp4=
