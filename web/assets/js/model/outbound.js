@@ -960,7 +960,7 @@ Outbound.BlackholeSettings = class extends CommonClass {
 Outbound.DNSSettings = class extends CommonClass {
     constructor(
         network = 'udp',
-        address = '1.1.1.1',
+        address = '',
         port = 53,
         nonIPQuery = 'drop',
         blockTypes = []
