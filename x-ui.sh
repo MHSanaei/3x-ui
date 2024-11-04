@@ -164,7 +164,7 @@ update() {
     bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
-        exit 0
+        before_show_menu
     fi
 }
 
@@ -185,7 +185,7 @@ update_menu() {
 
     if [[ $? == 0 ]]; then
         echo -e "${green}Update successful. The panel has automatically restarted.${plain}"
-        exit 0
+        before_show_menu
     else
         echo -e "${red}Failed to update the menu.${plain}"
         return 1
@@ -294,8 +294,8 @@ reset_config() {
         return 0
     fi
     /usr/local/x-ui/x-ui setting -reset
-    echo -e "All panel settings have been reset to default, Please restart the panel now, and use the default ${green}2053${plain} Port to Access the web Panel"
-    confirm_restart
+    echo -e "All panel settings have been reset to default."
+    restart
 }
 
 check_config() {
@@ -423,7 +423,7 @@ show_log() {
 
     case "$choice" in
     0)
-        return
+        show_menu
         ;;
     1)
         journalctl -u x-ui -e --no-pager -f -p debug
@@ -438,21 +438,41 @@ show_log() {
         restart
         ;;
     *)
-        echo "Invalid choice"
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        show_log
         ;;
     esac
 }
 
 show_banlog() {
-    if test -f "${iplimit_banned_log_path}"; then
+    local system_log="/var/log/fail2ban.log"
+    
+    echo -e "${green}Checking ban logs...${plain}\n"
+    
+    if ! systemctl is-active --quiet fail2ban; then
+        echo -e "${red}Fail2ban service is not running!${plain}\n"
+        return 1
+    fi
+
+    if [[ -f "$system_log" ]]; then
+        echo -e "${green}Recent system ban activities from fail2ban.log:${plain}"
+        grep "3x-ipl" "$system_log" | grep -E "Ban|Unban" | tail -n 10 || echo -e "${yellow}No recent system ban activities found${plain}"
+        echo ""
+    fi
+
+    if [[ -f "${iplimit_banned_log_path}" ]]; then
+        echo -e "${green}3X-IPL ban log entries:${plain}"
         if [[ -s "${iplimit_banned_log_path}" ]]; then
-            cat ${iplimit_banned_log_path}
+            grep -v "INIT" "${iplimit_banned_log_path}" | tail -n 10 || echo -e "${yellow}No ban entries found${plain}"
         else
-            echo -e "${red}Log file is empty.${plain}\n"
+            echo -e "${yellow}Ban log file is empty${plain}"
         fi
     else
-        echo -e "${red}Log file not found. Please Install Fail2ban and IP Limit first.${plain}\n"
+        echo -e "${red}Ban log file not found at: ${iplimit_banned_log_path}${plain}"
     fi
+
+    echo -e "\n${green}Current jail status:${plain}"
+    fail2ban-client status 3x-ipl || echo -e "${yellow}Unable to get jail status${plain}"
 }
 
 bbr_menu() {
@@ -466,11 +486,16 @@ bbr_menu() {
         ;;
     1)
         enable_bbr
+        bbr_menu
         ;;
     2)
         disable_bbr
+        bbr_menu
         ;;
-    *) echo "Invalid choice" ;;
+    *) 
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        bbr_menu
+        ;;
     esac
 }
 
@@ -478,7 +503,7 @@ disable_bbr() {
 
     if ! grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf || ! grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
         echo -e "${yellow}BBR is not currently enabled.${plain}"
-        exit 0
+        before_show_menu
     fi
 
     # Replace BBR with CUBIC configurations
@@ -499,7 +524,7 @@ disable_bbr() {
 enable_bbr() {
     if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
         echo -e "${green}BBR is already enabled!${plain}"
-        exit 0
+        before_show_menu
     fi
 
     # Check the OS and install necessary packages
@@ -545,7 +570,8 @@ update_shell() {
         before_show_menu
     else
         chmod +x /usr/bin/x-ui
-        LOGI "Upgrade script succeeded, Please rerun the script" && exit 0
+        LOGI "Upgrade script succeeded, Please rerun the script" 
+        before_show_menu
     fi
 }
 
@@ -657,17 +683,24 @@ firewall_menu() {
         ;;
     1)
         open_ports
+        firewall_menu
         ;;
     2)
         sudo ufw status
+        firewall_menu
         ;;
     3)
         delete_ports
+        firewall_menu
         ;;
     4)
         sudo ufw disable
+        firewall_menu
         ;;
-    *) echo "Invalid choice" ;;
+    *) 
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        firewall_menu
+        ;;
     esac
 }
 
@@ -786,21 +819,25 @@ update_geo() {
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
+        restart
         ;;
     2)
         rm -f geoip_IR.dat geosite_IR.dat
         wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
+        restart
         ;;
     3)
         rm -f geoip_VN.dat geosite_VN.dat
         wget -O geoip_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
         echo -e "${green}vuong2023 datasets have been updated successfully!${plain}"
+        restart
         ;;
     *)
-        echo "Invalid option selected! No updates made."
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        update_geo
         ;;
     esac
 
@@ -844,6 +881,7 @@ ssl_cert_issue_main() {
         ;;
     1)
         ssl_cert_issue
+        ssl_cert_issue_main
         ;;
     2)
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -860,6 +898,7 @@ ssl_cert_issue_main() {
                 echo "Invalid domain entered."
             fi
         fi
+        ssl_cert_issue_main
         ;;
     3)
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -876,6 +915,7 @@ ssl_cert_issue_main() {
                 echo "Invalid domain entered."
             fi
         fi
+        ssl_cert_issue_main
         ;;
     4)
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -895,6 +935,7 @@ ssl_cert_issue_main() {
                 fi
             done
         fi
+        ssl_cert_issue_main
         ;;
     5)
         local domains=$(find /root/cert/ -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
@@ -922,10 +963,12 @@ ssl_cert_issue_main() {
                 echo "Invalid domain entered."
             fi
         fi
+        ssl_cert_issue_main
         ;;
 
     *)
-        echo "Invalid choice"
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        ssl_cert_issue_main
         ;;
     esac
 }
@@ -1297,20 +1340,28 @@ iplimit_main() {
         ;;
     4)
         show_banlog
+        iplimit_main
         ;;
     5)
         tail -f /var/log/fail2ban.log
+        iplimit_main
         ;;
     6)
         service fail2ban status
+        iplimit_main
         ;;
     7)
         systemctl restart fail2ban
+        iplimit_main
         ;;
     8)
         remove_iplimit
+        iplimit_main
         ;;
-    *) echo "Invalid choice" ;;
+    *) 
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        iplimit_main
+        ;;
     esac
 }
 
@@ -1391,7 +1442,7 @@ install_iplimit() {
 remove_iplimit() {
     echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
     echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
-    echo -e "${green}\t0.${plain} Abort"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " num
     case "$num" in
     1)
@@ -1431,8 +1482,7 @@ remove_iplimit() {
         before_show_menu
         ;;
     0)
-        echo -e "${yellow}Cancelled.${plain}\n"
-        iplimit_main
+        show_menu
         ;;
     *)
         echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
@@ -1454,7 +1504,7 @@ SSH_port_forwarding() {
 
     if [[ -n "$existing_cert" && -n "$existing_key" ]]; then
         echo -e "${green}Panel is secure with SSL.${plain}"
-        return 0
+        before_show_menu
     fi
     if [[ -z "$existing_cert" && -z "$existing_key" && (-z "$existing_listenIP" || "$existing_listenIP" == "0.0.0.0") ]]; then
         echo -e "\n${red}Warning: No Cert and Key found! The panel is not secure.${plain}"
@@ -1474,7 +1524,7 @@ SSH_port_forwarding() {
     echo -e "\nChoose an option:"
     echo -e "${green}1.${plain} Set listen IP"
     echo -e "${green}2.${plain} Clear listen IP"
-    echo -e "${green}0.${plain} Abort"
+    echo -e "${green}0.${plain} Back to Main Menu"
     read -p "Choose an option: " num
 
     case "$num" in
@@ -1509,10 +1559,11 @@ SSH_port_forwarding() {
         restart
         ;;
     0)
-        echo "Operation aborted."
+        show_menu
         ;;
     *)
-        echo "Invalid option. Exiting."
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        SSH_port_forwarding
         ;;
     esac
 }
