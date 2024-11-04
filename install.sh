@@ -198,6 +198,24 @@ config_after_install() {
     /usr/local/x-ui/x-ui migrate
 }
 
+update_dns() {
+    # Remove the /etc/resolv.conf file
+    rm -f /etc/resolv.conf
+
+    # Create a new /etc/resolv.conf file with the specified data
+    cat <<EOF > /etc/resolv.conf
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+nameserver 2606:4700:4700::1111
+nameserver 2606:4700:4700::1001
+EOF
+
+    # Make /etc/resolv.conf immutable
+    chattr +i /etc/resolv.conf
+
+    echo "DNS configuration updated and locked successfully."
+}
+
 install_x-ui() {
     cd /usr/local/
 
@@ -282,4 +300,5 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
+update_dns
 install_x-ui $1
