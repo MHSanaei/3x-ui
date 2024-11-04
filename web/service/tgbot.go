@@ -1245,19 +1245,33 @@ func (t *Tgbot) clientInfoMsg(
 	printRefreshed bool,
 ) string {
 	now := time.Now().Unix()
-	expiryTime := ""
-	flag := true
+	expiryTimeStr := ""
+	daysLeftStr := ""
 	diff := traffic.ExpiryTime/1000 - now
+
 	if traffic.ExpiryTime == 0 {
-		expiryTime = t.I18nBot("tgbot.unlimited")
-	} else if diff > 172800 || !traffic.Enable {
-		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
-	} else if traffic.ExpiryTime < 0 {
-		expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/-86400000, t.I18nBot("tgbot.days"))
-		flag = true
+		expiryTimeStr = t.I18nBot("tgbot.unlimited")
+		daysLeftStr = t.I18nBot("tgbot.unlimited")
 	} else {
-		expiryTime = fmt.Sprintf("%d %s", diff/3600, t.I18nBot("tgbot.hours"))
-		flag = true
+		expiryTime := time.Unix(traffic.ExpiryTime/1000, 0)
+		expiryTimeStr = expiryTime.Format("2006-01-02 15:04:05")
+
+		if diff > 0 {
+			daysLeft := diff / 86400
+			hoursLeft := (diff % 86400) / 3600
+			if daysLeft > 0 {
+				daysLeftStr = fmt.Sprintf("%d %s", daysLeft, t.I18nBot("tgbot.days"))
+				if hoursLeft > 0 {
+					daysLeftStr += fmt.Sprintf(" %d %s", hoursLeft, t.I18nBot("tgbot.hours"))
+				}
+			} else if hoursLeft > 0 {
+				daysLeftStr = fmt.Sprintf("%d %s", hoursLeft, t.I18nBot("tgbot.hours"))
+			} else {
+				daysLeftStr = t.I18nBot("tgbot.lessThanHour")
+			}
+		} else {
+			daysLeftStr = t.I18nBot("tgbot.expired")
+		}
 	}
 
 	total := ""
@@ -1307,11 +1321,8 @@ func (t *Tgbot) clientInfoMsg(
 		output += t.I18nBot("tgbot.messages.active", "Enable=="+active)
 	}
 	if printDate {
-		if flag {
-			output += t.I18nBot("tgbot.messages.expireIn", "Time=="+expiryTime)
-		} else {
-			output += t.I18nBot("tgbot.messages.expire", "Time=="+expiryTime)
-		}
+		output += t.I18nBot("tgbot.messages.expire", "Time=="+expiryTimeStr)
+		output += t.I18nBot("tgbot.messages.daysLeft", "DaysLeft=="+daysLeftStr)
 	}
 	if printTraffic {
 		output += t.I18nBot("tgbot.messages.upload", "Upload=="+common.FormatTraffic(traffic.Up))
