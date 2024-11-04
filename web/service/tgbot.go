@@ -1246,7 +1246,7 @@ func (t *Tgbot) clientInfoMsg(
 ) string {
 	now := time.Now().Unix()
 	expiryTime := ""
-	flag := false
+	flag := true
 	diff := traffic.ExpiryTime/1000 - now
 	if traffic.ExpiryTime == 0 {
 		expiryTime = t.I18nBot("tgbot.unlimited")
