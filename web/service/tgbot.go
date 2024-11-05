@@ -881,6 +881,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.clientUsage"))
 		t.getClientUsage(chatId, tgUserID)
 	case "admin_help":
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.adminContact"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.adminContact"))
 	case "client_commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
@@ -894,6 +895,38 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "commands":
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.commands"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpAdminCommands"))
+	case "payments":
+		price1, price2, price3, price4, err := t.settingService.GetAllPricesString()
+		if err != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
+		month1, month2, month3, month4, err := t.settingService.GetAllMonthsString()
+		if err != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+			return
+		}
+
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.payments"))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.payments",
+			"Price1=="+price1,
+			"Month1=="+month1,
+			"Price2=="+price2,
+			"Month2=="+month2,
+			"Price3=="+price3,
+			"Month3=="+month3,
+			"Price4=="+price4,
+			"Month4=="+month4),
+			tu.InlineKeyboard(
+				tu.InlineKeyboardRow(
+					tu.InlineKeyboardButton(price1).WithCallbackData(t.encodeQuery("first_price_payment")),
+					tu.InlineKeyboardButton(price2).WithCallbackData(t.encodeQuery("second_price_payment")),
+				),
+				tu.InlineKeyboardRow(
+					tu.InlineKeyboardButton(price3).WithCallbackData(t.encodeQuery("third_price_payment")),
+					tu.InlineKeyboardButton(price4).WithCallbackData(t.encodeQuery("fourth_price_payment")),
+				),
+			))
 	}
 }
 
@@ -932,6 +965,12 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.adminContact")).WithCallbackData(t.encodeQuery("admin_help")),
 		),
 	)
+
+	if t.isClientExist(chatId) {
+		numericKeyboardClient.InlineKeyboard = append(numericKeyboardClient.InlineKeyboard, tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.payments")).WithCallbackData(t.encodeQuery("payments")),
+		))
+	}
 
 	var ReplyMarkup telego.ReplyMarkup
 	if isAdmin {
@@ -1455,6 +1494,17 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 		).WithIsPersistent().WithResizeKeyboard()
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.buttons.selectOneTGUser"), keyboard)
 	}
+}
+
+func (t *Tgbot) isClientExist(tgUserID int64) bool {
+	traffic, err := t.inboundService.GetClientTrafficTgBot(tgUserID)
+	if err != nil {
+		return false
+	}
+	if len(traffic) > 0 {
+		return true
+	}
+	return false
 }
 
 func (t *Tgbot) searchClient(chatId int64, email string, messageID ...int) {

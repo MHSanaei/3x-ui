@@ -66,6 +66,7 @@ require (
 	github.com/refraction-networking/utls v1.6.7 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
+	github.com/rvinnie/yookassa-sdk-go v0.0.0-20240629113713-dfd7cc31b343 // indirect
 	github.com/sagernet/sing v0.4.3 // indirect
 	github.com/sagernet/sing-shadowsocks v0.2.7 // indirect
 	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38 // indirect

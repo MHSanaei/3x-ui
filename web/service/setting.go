@@ -68,6 +68,14 @@ var defaultValueMap = map[string]string{
 	"subJsonRules":       "",
 	"datepicker":         "gregorian",
 	"warp":               "",
+	"price1":             "500.0",
+	"price2":             "1400.0",
+	"price3":             "2500.0",
+	"price4":             "4000.0",
+	"month1":             "1",
+	"month2":             "3",
+	"month3":             "6",
+	"month4":             "12",
 }
 
 type SettingService struct{}
@@ -229,6 +237,18 @@ func (s *SettingService) getInt(key string) (int, error) {
 		return 0, err
 	}
 	return strconv.Atoi(str)
+}
+
+func (s *SettingService) getFloat64(key string) (float64, error) {
+	str, err := s.getString(key)
+	if err != nil {
+		return 0, err
+	}
+	return strconv.ParseFloat(str, 64)
+}
+
+func (s *SettingService) setFloat64(key string, value float64) error {
+	return s.setString(key, strconv.FormatFloat(value, 'f', -1, 64))
 }
 
 func (s *SettingService) setInt(key string, value int) error {
@@ -478,6 +498,130 @@ func (s *SettingService) GetSubJsonNoises() (string, error) {
 
 func (s *SettingService) GetSubJsonMux() (string, error) {
 	return s.getString("subJsonMux")
+}
+
+func (s *SettingService) GetFirstPriceFloat() (float64, error) {
+	return s.getFloat64("price1")
+}
+
+func (s *SettingService) GetSecondPriceFloat() (float64, error) {
+	return s.getFloat64("price2")
+}
+
+func (s *SettingService) GetThirdPriceFloat() (float64, error) {
+	return s.getFloat64("price3")
+}
+
+func (s *SettingService) GetFourthPriceFloat() (float64, error) {
+	return s.getFloat64("price4")
+}
+
+func (s *SettingService) GetFirstPriceString() (string, error) {
+	return s.getString("price1")
+}
+
+func (s *SettingService) GetSecondPriceString() (string, error) {
+	return s.getString("price2")
+}
+
+func (s *SettingService) GetThirdPriceString() (string, error) {
+	return s.getString("price3")
+}
+
+func (s *SettingService) GetFourthPriceString() (string, error) {
+	return s.getString("price4")
+}
+
+func (s *SettingService) GetAllPricesString() (string, string, string, string, error) {
+	price1, err := s.GetFirstPriceString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	price2, err := s.GetSecondPriceString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	price3, err := s.GetThirdPriceString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	price4, err := s.GetFourthPriceString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	return price1, price2, price3, price4, nil
+}
+
+func (s *SettingService) GetAllPricesFloat() (float64, float64, float64, float64, error) {
+	price1, err := s.GetFirstPriceFloat()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	price2, err := s.GetSecondPriceFloat()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	price3, err := s.GetThirdPriceFloat()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	price4, err := s.GetFourthPriceFloat()
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	return price1, price2, price3, price4, nil
+}
+
+func (s *SettingService) GetFirstMonthString() (string, error) {
+	return s.getString("month1")
+}
+
+func (s *SettingService) GetSecondMonthString() (string, error) {
+	return s.getString("month2")
+}
+
+func (s *SettingService) GetThirdMonthString() (string, error) {
+	return s.getString("month3")
+}
+
+func (s *SettingService) GetFourthMonthString() (string, error) {
+	return s.getString("month4")
+}
+
+func (s *SettingService) GetAllMonthsString() (string, string, string, string, error) {
+	month1, err := s.GetFirstMonthString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	month2, err := s.GetSecondMonthString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	month3, err := s.GetThirdMonthString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	month4, err := s.GetFourthMonthString()
+	if err != nil {
+		return "", "", "", "", err
+	}
+	return month1, month2, month3, month4, nil
+}
+
+func (s *SettingService) GetFirstMonthInt() (int, error) {
+	return s.getInt("month1")
+}
+
+func (s *SettingService) GetSecondMonthInt() (int, error) {
+	return s.getInt("month2")
+}
+
+func (s *SettingService) GetThirdMonthInt() (int, error) {
+	return s.getInt("month3")
+}
+
+func (s *SettingService) GetFourthMonthInt() (int, error) {
+	return s.getInt("month4")
 }
 
 func (s *SettingService) GetSubJsonRules() (string, error) {
