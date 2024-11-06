@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net"
 	"strings"
+	"os"
 
 	"github.com/gin-gonic/gin"
 )
@@ -57,8 +58,11 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
-		host = h
+	host = os.Getenv("XUI_SERVER_IP")
+	if host == "" {
+		if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
+			host = h
+		}
 	}
 	if host == "" {
 		host = c.GetHeader("X-Real-IP")
@@ -95,8 +99,11 @@ func (a *SUBController) subs(c *gin.Context) {
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
 	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
-		host = h
+	host = os.Getenv("XUI_SERVER_IP")
+	if host == "" {
+		if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
+			host = h
+		}
 	}
 	if host == "" {
 		host = c.GetHeader("X-Real-IP")

@@ -4,6 +4,7 @@
 FROM golang:1.23-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
+ARG ANTIZAPRET
 
 RUN apk --no-cache --update add \
   build-base \
@@ -16,20 +17,22 @@ COPY . .
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+RUN ./DockerInit.sh "$TARGETARCH" "$ANTIZAPRET"
 
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
 FROM alpine
-ENV TZ=Asia/Tehran
+ENV TZ=Europe/Moscow
 WORKDIR /app
 
 RUN apk add --no-cache --update \
   ca-certificates \
   tzdata \
   fail2ban \
-  bash
+  bash \
+  nano \
+  unzip
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/

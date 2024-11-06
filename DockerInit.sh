@@ -38,3 +38,33 @@ wget -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/
 wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
 wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
 cd ../../
+
+# Antizapret
+case $2 in
+    0)
+        ANTIZAPRET="0"
+        ;;
+    1)
+        ANTIZAPRET="1"
+        ;;
+    *)
+        ANTIZAPRET="0"
+        ;;
+esac
+if [[ $ANTIZAPRET == "1" ]]; then
+    wget https://github.com/warexify/antizapret-xray/archive/refs/heads/main.zip
+    unzip main.zip
+    mv antizapret-xray-main antizapret-xray
+    mkdir -p antizapret-xray/z-i
+    cd antizapret-xray/z-i
+    wget -O dump.csv https://github.com/zapret-info/z-i/raw/master/dump.csv
+    cd ../
+    go build
+    chmod +x antizapret-xray
+    ./antizapret-xray
+    mv publish/geosite.dat ../build/bin/geosite_antizapret.dat
+    cd ../
+    echo "Antizapret: ext:geosite_antizapret.dat:zapretinfo"
+else
+    echo "Antizapret: disabled"
+fi

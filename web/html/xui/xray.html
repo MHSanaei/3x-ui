@@ -917,6 +917,9 @@
                     { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
                     { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
                     { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
+                    { label: '🇷🇺 Antizapret', value: 'ext:geosite_antizapret.dat:zapretinfo' },
                     { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
@@ -927,6 +930,7 @@
                     { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
                     { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
                     { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
+                    { label: 'Antizapret 🇷🇺', value: 'ext:geosite_antizapret.dat:zapretinfo' },
                     { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
                     { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
@@ -934,6 +938,8 @@
                     { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
                     { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
                     { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
                     { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
@@ -946,13 +952,25 @@
                     { label: 'Netflix', value: 'geosite:netflix' },
                     { label: 'Reddit', value: 'geosite:reddit' },
                     { label: 'Speedtest', value: 'geosite:speedtest' },
+                    { label: 'Telegram', value: 'geosite:telegram' },
+                    { label: 'Instagram', value: 'geosite:instagram' },
+                    { label: 'Stripe', value: 'geosite:stripe' },
+                    { label: 'Adobe', value: 'geosite:adobe' },
+                    { label: 'Amazon', value: 'geosite:amazon' },
+                    { label: 'AWS', value: 'geosite:aws' },
+                    { label: 'Google Gemini', value: 'geosite:google-gemini' },
+                    { label: 'Perplexity', value: 'geosite:perplexity' },
+                    { label: 'Booking', value: 'geosite:booking' },
+                    { label: 'X (Twitter)', value: 'geosite:x' },
+                    { label: 'Category: Porn', value: 'geosite:category-porn' },
+                    { label: 'Category: AI Chats', value: 'geosite:category-ai-chat-!cn' },
                 ],
                 familyProtectDNS: {
                     "servers": [
-                        "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
-                        "1.0.0.3",
-                        "2606:4700:4700::1113",
-                        "2606:4700:4700::1003"
+                        "1.1.1.1",  // https://developers.cloudflare.com/1.1.1.1/setup/
+                        "1.0.0.1",
+                        "2606:4700:4700::1111",
+                        "2606:4700:4700::1001"
                     ],
                     "queryStrategy": "UseIP"
                 },
