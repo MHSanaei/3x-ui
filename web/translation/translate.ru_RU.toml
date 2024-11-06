@@ -349,8 +349,8 @@
 "RoutingStrategyDesc" = "Установка общей стратегии маршрутизации разрешения DNS"
 "Torrent" = "Запрет использования BitTorrent"
 "TorrentDesc" = "Изменение шаблона конфигурации для предупреждения использования BitTorrent пользователями"
-"Family" = "Блокируйте вредоносное ПО и контент для взрослых"
-"FamilyDesc" = "DNS-преобразователи Cloudflare для блокировки вредоносного ПО и контента для взрослых в целях защиты семьи."
+"Family" = "Cloudflare DNS"
+"FamilyDesc" = "DNS-преобразователи Cloudflare (1.1.1.1; 1.0.0.1)."
 "Inbounds" = "Входящие"
 "InboundsDesc" = "Изменение шаблона конфигурации для подключения определенных пользователей"
 "Outbounds" = "Исходящие"
@@ -572,7 +572,7 @@
 "allClients" = "Все клиенты"
 
 [tgbot.answers]
-"successfulOperation" = "✅ Успешный!"
+"successfulOperation" = "✅ OK!"
 "errorOperation" = "❗ Ошибка в операции."
 "getInboundsFailed" = "❌ Не удалось получить входящие потоки."
 "getClientsFailed" = "❌ Не удалось получить клиентов."
