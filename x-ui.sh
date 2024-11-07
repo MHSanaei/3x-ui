@@ -1568,6 +1568,24 @@ SSH_port_forwarding() {
     esac
 }
 
+dns_configuration() {
+    # Remove the /etc/resolv.conf file
+    rm -f /etc/resolv.conf
+
+    # Create a new /etc/resolv.conf file with the specified data
+    cat <<EOF > /etc/resolv.conf
+nameserver 1.1.1.1
+nameserver 1.0.0.1
+nameserver 2606:4700:4700::1111
+nameserver 2606:4700:4700::1001
+EOF
+
+    # Make /etc/resolv.conf immutable
+    chattr +i /etc/resolv.conf
+
+    echo "DNS configuration updated and locked successfully."
+}
+
 show_usage() {
     echo "x-ui control menu usages: "
     echo "------------------------------------------"
@@ -1620,10 +1638,11 @@ show_menu() {
   ${green}20.${plain} IP Limit Management
   ${green}21.${plain} Firewall Management
   ${green}22.${plain} SSH Port Forwarding Management
+  ${green}23.${plain} DNS Configuration
 ————————————————
-  ${green}23.${plain} Enable BBR 
-  ${green}24.${plain} Update Geo Files
-  ${green}25.${plain} Speedtest by Ookla
+  ${green}24.${plain} Enable BBR 
+  ${green}25.${plain} Update Geo Files
+  ${green}26.${plain} Speedtest by Ookla
 "
     show_status
     echo && read -p "Please enter your selection [0-25]: " num
@@ -1699,12 +1718,15 @@ show_menu() {
         SSH_port_forwarding
         ;;
     23)
-        bbr_menu
+        dns_configuration
         ;;
     24)
-        update_geo
+        bbr_menu
         ;;
     25)
+        update_geo
+        ;;
+    26)
         run_speedtest
         ;;
     *)
