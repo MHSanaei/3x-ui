@@ -4,9 +4,11 @@ import (
 	"embed"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -1858,4 +1860,46 @@ func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlin
 	if _, err := bot.EditMessageText(&params); err != nil {
 		logger.Warning(err)
 	}
+}
+func BackupDB(dbPath, backupDir string) error {
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		return fmt.Errorf("файл базы данных не найден: %s", dbPath)
+	}
+
+	if _, err := os.Stat(backupDir); os.IsNotExist(err) {
+		err = os.MkdirAll(backupDir, os.ModePerm)
+		if err != nil {
+			return fmt.Errorf("не удалось создать папку для бэкапов: %v", err)
+		}
+	}
+
+	timestamp := time.Now().Format("20060102_150405")
+	backupFileName := fmt.Sprintf("backup_%s.db", timestamp)
+	backupFilePath := filepath.Join(backupDir, backupFileName)
+
+	sourceFile, err := os.Open(dbPath)
+	if err != nil {
+		return fmt.Errorf("не удалось открыть файл базы данных: %v", err)
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(backupFilePath)
+	if err != nil {
+		return fmt.Errorf("не удалось создать файл резервной копии: %v", err)
+	}
+	defer destFile.Close()
+
+	bytesCopied, err := io.Copy(destFile, sourceFile)
+	if err != nil {
+		return fmt.Errorf("не удалось копировать данные: %v", err)
+	}
+
+	fmt.Printf("Скопировано %d байт\n", bytesCopied)
+
+	if err := destFile.Sync(); err != nil {
+		return fmt.Errorf("не удалось сохранить данные на диск: %v", err)
+	}
+
+	fmt.Printf("Резервная копия базы данных успешно создана: %s\n", backupFilePath)
+	return nil
 }

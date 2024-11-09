@@ -336,6 +336,8 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
+
+	protocol := "HTTP"
 	if certFile != "" || keyFile != "" {
 		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 		if err == nil {
@@ -344,14 +346,13 @@ func (s *Server) Start() (err error) {
 			}
 			listener = network.NewAutoHttpsListener(listener)
 			listener = tls.NewListener(listener, c)
-			logger.Info("Web server running HTTPS on", listener.Addr())
+			protocol = "HTTPS"
 		} else {
 			logger.Error("Error loading certificates:", err)
-			logger.Info("Web server running HTTP on", listener.Addr())
 		}
-	} else {
-		logger.Info("Web server running HTTP on", listener.Addr())
 	}
+
+	logger.Info("Server running", protocol, "on", listener.Addr())
 	s.listener = listener
 
 	s.httpServer = &http.Server{

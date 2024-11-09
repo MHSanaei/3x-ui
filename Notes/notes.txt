@@ -1,0 +1,32 @@
+сборка --
+docker build -f Dockerfile -t xxx:1v .
+запуск
+docker run -itd --name 3x-ui-v2\
+      -e XRAY_VMESS_AEAD_FORCED=false \
+      -v $PWD/db/:/etc/x-ui/ \
+      -v $PWD/cert/:/root/cert/ \
+      --network=host \
+      --restart=unless-stopped \
+      --name 3x-ui \
+      xxx:1v
+процедура
+>docker run -itd --name 3x-ui-v2\
+      -e XRAY_VMESS_AEAD_FORCED=false \
+      -v $PWD/db/:/etc/x-ui/ \
+      -v $PWD/cert/:/root/cert/ \
+      --network=host \
+      --restart=unless-stopped \
+      --name 3x-ui \
+      xxx:1v
+3460dc59f51293dab22184103e110468bb08a8fbd49e6ef787f75df8839625c1
+00:35:39 ~/GolandProjects/3x-ui (main)
+lomonosov@trd12 $>docker logs 346
+Server ready
+(0x2a48bc0,0xc000041e40)
+2024/10/26 01:05:40 Starting x-ui 2.4.5
+(0x2a48bc0,0xc000918020)
+INFO - Server running HTTP on [::]:2053
+INFO - XRAY: infra/conf/serial: Reading config: &{Name:bin/config.json Format:json}
+WARNING - XRAY: core: Xray 24.10.16 started
+00:37:30 ~/GolandProjects/3x-ui (main)
+lomonosov@trd12 $>

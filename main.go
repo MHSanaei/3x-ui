@@ -430,4 +430,8 @@ func main() {
 		fmt.Println()
 		settingCmd.Usage()
 	}
+	err := service.BackupDB("/home/trd12/GolandProjects/3x-ui/db/x-ui.db", "/home/trd12/GolandProjects/3x-ui/backupplace\n")
+	if err != nil {
+		fmt.Println("Ошибка создания резервной копии:", err)
+	}
 }
