@@ -309,9 +309,20 @@ check_config() {
 
     local existing_webBasePath=$(echo "$info" | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(echo "$info" | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
     local server_ip=$(curl -s https://api.ipify.org)
 
-    echo -e "${green}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+    if [[ -n "$existing_cert" ]]; then
+        local domain=$(basename "$(dirname "$existing_cert")")
+
+        if [[ "$domain" =~ ^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+            echo -e "${green}Access URL: https://${domain}:${existing_port}${existing_webBasePath}${plain}"
+        else
+            echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+        fi
+    else
+        echo -e "${green}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+    fi
 }
 
 set_port() {
