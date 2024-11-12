@@ -258,6 +258,7 @@ location /sub {
 - Oracle Linux 8+
 - OpenSUSE Tubleweed
 - Amazon Linux 2023
+- Windows x64
 
 ## Supported Architectures and Devices
 
