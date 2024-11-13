@@ -331,7 +331,7 @@
       <a-form layout="inline">
         <a-form-item style="margin-right: 0.5rem;">
           <a-input-group compact>
-            <a-select size="small" v-model="logDomainsModal.rows" style="width:70px;"
+            <a-select size="small" v-model="logDomainsModal.rows" style="width:90px;"
                 @change="openLogDomains()" :dropdown-class-name="themeSwitcher.currentTheme">
               <a-select-option value="500">Few</a-select-option>
               <a-select-option value="2500">Medium</a-select-option>
@@ -676,7 +676,7 @@
             },
             async openLogDomains(){
                 logDomainsModal.loading = true;
-                const msg = await HttpUtil.get('server/logs-'.+(logDomainsModal.type==='blocked'?'blocked':'sniffed')+.'/'+logDomainsModal.rows);
+                const msg = await HttpUtil.get('server/logs-'+(logDomainsModal.type==='blocked'?'blocked':'sniffed')+'/'+logDomainsModal.rows);
                 if (!msg.success) {
                     return;
                 }
