@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "Tem certeza de que deseja alterar a versão do Xray para"
 "dontRefresh" = "Instalação em andamento, por favor não atualize a página"
 "logs" = "Logs"
+"logDomains" = "Log Domains"
 "config" = "Configuração"
 "backup" = "Backup e Restauração"
 "backupTitle" = "Backup e Restauração do Banco de Dados"
