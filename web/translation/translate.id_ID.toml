@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "Apakah Anda yakin ingin mengubah versi Xray menjadi"
 "dontRefresh" = "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini"
 "logs" = "Log"
+"logDomains" = "Log Domains"
 "config" = "Konfigurasi"
 "backup" = "Cadangan & Pulihkan"
 "backupTitle" = "Cadangan & Pulihkan Database"

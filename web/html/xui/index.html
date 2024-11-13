@@ -125,6 +125,7 @@
                 <a-card hoverable>
                   <b>{{ i18n "menu.link" }}:</b>
                   <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                  <a-tag color="purple" style="cursor: pointer;" @click="openLogDomains()">{{ i18n "pages.index.logDomains" }}</a-tag>
                   <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
                   <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                 </a-card>
@@ -314,6 +315,43 @@
       </a-form>
       <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logModal.formattedLogs"></div>
     </a-modal>
+    <a-modal id="log-domains-modal" v-model="logDomainsModal.visible"
+        :closable="true" @cancel="() => logDomainsModal.visible = false"
+        :class="themeSwitcher.currentTheme"
+        width="800px" footer="">
+      <template slot="title">
+        {{ i18n "pages.index.logDomains" }}
+        <a-icon :spin="logDomainsModal.loading"
+          type="sync"
+          style="vertical-align: middle; margin-left: 10px;"
+          :disabled="logDomainsModal.loading"
+          @click="openLogDomains()">
+        </a-icon>
+      </template>
+      <a-form layout="inline">
+        <a-form-item style="margin-right: 0.5rem;">
+          <a-input-group compact>
+            <a-select size="small" v-model="logDomainsModal.rows" style="width:90px;"
+                @change="openLogDomains()" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="500">Few</a-select-option>
+              <a-select-option value="2500">Medium</a-select-option>
+              <a-select-option value="7000">Many</a-select-option>
+            </a-select>
+            <a-select size="small" v-model="logDomainsModal.type" style="width:95px;"
+                @change="openLogDomains()" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="sniffed">Sniffed</a-select-option>
+              <a-select-option value="blocked">Blocked</a-select-option>
+            </a-select>
+          </a-input-group>
+        </a-form-item>
+        <a-form-item style="float: right;">
+          <a-button type="primary" icon="download"
+            :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logDomainsModal.logs?.join('\n'))" download="x-ui-domains.log">
+          </a-button>
+        </a-form-item>
+      </a-form>
+      <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logDomainsModal.formattedLogs"></div>
+    </a-modal>
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
         :closable="true" footer=""
         :class="themeSwitcher.currentTheme">
@@ -490,6 +528,47 @@
         },
     };
 
+    const logDomainsModal = {
+        visible: false,
+        logs: [],
+        rows: 500,
+        type: 'sniffed',
+        loading: false,
+        show(logs) {
+            this.visible = true;
+            this.logs = logs; 
+            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs, this.type) : "No Record...";
+        },
+        formatLogs(logs, type) {
+            let formattedLogs = '';
+
+            logs.forEach((log, index) => {
+                let [data, message] = log.split(" - ",2);
+                const parts = data.split(" ");
+                if(index>0) formattedLogs += '<br>';
+
+                if (parts.length === 2) {
+                    const d = parts[0];
+                    const t = parts[1];
+                    formattedLogs += `<span style="color: gray;">${d} ${t}</span>`;
+                } else {
+                    formattedLogs += `<span style="color: gray;">${data}</span>`;
+                }
+
+                if (message) {
+                    message = "<b>"+(type === 'sniffed' ? 'Sniffed' : 'Blocked')+": </b>" + message;
+                }
+
+                formattedLogs += message ? ' - ' + message : '';
+            });
+
+            return formattedLogs;
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+
     const backupModal = {
         visible: false,
         title: '',
@@ -594,6 +673,16 @@
                 logModal.show(msg.obj);
                 await PromiseUtil.sleep(500);
                 logModal.loading = false;
+            },
+            async openLogDomains(){
+                logDomainsModal.loading = true;
+                const msg = await HttpUtil.get('server/logs-'+(logDomainsModal.type==='blocked'?'blocked':'sniffed')+'/'+logDomainsModal.rows);
+                if (!msg.success) {
+                    return;
+                }
+                logDomainsModal.show(msg.obj);
+                await PromiseUtil.sleep(500);
+                logDomainsModal.loading = false;
             },
             async openConfig() {
                 this.loading(true);

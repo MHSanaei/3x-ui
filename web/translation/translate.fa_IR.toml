@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "آیا از تغییر نسخه‌ مطمئن هستید؟"
 "dontRefresh" = "در حال نصب، لطفا صفحه را رفرش نکنید"
 "logs" = "گزارش‌ها"
+"logDomains" = "Log Domains"
 "config" = "پیکربندی"
 "backup" = "پشتیبان‌گیری"
 "backupTitle" = "پشتیبان‌گیری دیتابیس"

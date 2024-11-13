@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "Xray sürümünü değiştirmek istediğinizden emin misiniz"
 "dontRefresh" = "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin"
 "logs" = "Günlükler"
+"logDomains" = "Log Domains"
 "config" = "Yapılandırma"
 "backup" = "Yedekle & Geri Yükle"
 "backupTitle" = "Veritabanı Yedekleme & Geri Yükleme"

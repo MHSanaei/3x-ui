@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "Bạn có chắc chắn muốn chuyển đổi phiên bản Xray sang"
 "dontRefresh" = "Đang tiến hành cài đặt, vui lòng không làm mới trang này."
 "logs" = "Nhật ký"
+"logDomains" = "Log Domains"
 "config" = "Cấu hình"
 "backup" = "Sao lưu & Khôi phục"
 "backupTitle" = "Sao lưu & Khôi phục Cơ sở dữ liệu"
