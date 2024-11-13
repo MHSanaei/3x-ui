@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"strings"
 
 	"github.com/op/go-logging"
 )
@@ -122,6 +123,22 @@ func GetLogs(c int, level string) []string {
 	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
 		if logBuffer[i].level <= logLevel {
 			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
+		}
+	}
+	return output
+}
+
+func GetLogsSniffedDomains(c int) []string {
+	var output []string
+	logLevel, _ := logging.LogLevel("info")
+
+	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
+		if logBuffer[i].level <= logLevel && strings.Contains(logBuffer[i].log, "sniffed domain: ") {
+			index := strings.LastIndex(log, ": ")
+			if index != -1 {
+				domain := log[index+2:]
+				output = append(output, fmt.Sprintf("%s - %s", logBuffer[i].time, domain))
+			}
 		}
 	}
 	return output

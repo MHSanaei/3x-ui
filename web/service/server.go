@@ -442,6 +442,15 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
+func (s *ServerService) GetLogsSniffedDomains(count string) []string {
+	c, _ := strconv.Atoi(count)
+	var lines []string
+
+	lines = logger.GetLogsSniffedDomains(c)
+
+	return lines
+}
+
 func (s *ServerService) GetConfigJson() (interface{}, error) {
 	config, err := s.xrayService.GetXrayConfig()
 	if err != nil {
