@@ -185,8 +185,8 @@ github.com/vishvananda/netns v0.0.5 h1:DfiHV+j8bA32MFM7bfEunvT8IAqQ/NzSJHtcmW5zd
 github.com/vishvananda/netns v0.0.5/go.mod h1:SpkAiCQRtJ6TvvxPnOSyH3BMl6unz3xZlaprSwhNNJM=
 github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 h1:g1Cj7d+my6k/HHxLAyxPwyX8i7FGRr6ulBDMkBzg2BM=
 github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463/go.mod h1:BjIOLmkEEtAgloAiVUcYj0Mt+YU00JARZw8AEU0IwAg=
-github.com/xtls/xray-core v1.8.25-0.20241031075831-4ec5c78c3453 h1:2piT7IYX0SKhYjD+XiJMDZAbY01MkP1HYO54njmisaQ=
-github.com/xtls/xray-core v1.8.25-0.20241031075831-4ec5c78c3453/go.mod h1:OlJhs59caMUabGbOamwTc2khBSOfd34qtVJVXFhpfWM=
+github.com/xtls/xray-core v1.8.25-0.20241111042233-0df2446f824d h1:00+ceMqRs5YdBMm4NLdsupYnxkP5Ghka9Lzw2ciVhgk=
+github.com/xtls/xray-core v1.8.25-0.20241111042233-0df2446f824d/go.mod h1:n8wJBW828YcDQ+9+BnAtbofXVt31VMvz4TwbZK0BaEE=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
