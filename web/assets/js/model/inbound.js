@@ -2198,13 +2198,15 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
         method = SSMethods.BLAKE3_AES_256_GCM,
         password = RandomUtil.randomShadowsocksPassword(),
         network = 'tcp,udp',
-        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()]
+        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()],
+        ivCheck = false,
     ) {
         super(protocol);
         this.method = method;
         this.password = password;
         this.network = network;
         this.shadowsockses = shadowsockses;
+        this.ivCheck = ivCheck;
     }
 
     static fromJson(json = {}) {
@@ -2214,6 +2216,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.password,
             json.network,
             json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            json.ivCheck,
         );
     }
 
@@ -2222,7 +2225,8 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             method: this.method,
             password: this.password,
             network: this.network,
-            clients: Inbound.ShadowsocksSettings.toJsonArray(this.shadowsockses)
+            clients: Inbound.ShadowsocksSettings.toJsonArray(this.shadowsockses),
+            ivCheck: this.ivCheck,
         };
     }
 };
