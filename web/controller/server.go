@@ -46,6 +46,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/installXray/:version", a.installXray)
 	g.POST("/logs/:count", a.getLogs)
 	g.GET("/logs-sniffed/:count", a.getLogsSniffedDomains)
+	g.GET("/logs-blocked/:count", a.getLogsBlockedDomains)
 	g.POST("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
 	g.POST("/importDB", a.importDB)
@@ -129,6 +130,12 @@ func (a *ServerController) getLogs(c *gin.Context) {
 func (a *ServerController) getLogsSniffedDomains(c *gin.Context) {
 	count := c.Param("count")
 	logs := a.serverService.GetLogsSniffedDomains(count)
+	jsonObj(c, logs, nil)
+}
+
+func (a *ServerController) getLogsBlockedDomains(c *gin.Context) {
+	count := c.Param("count")
+	logs := a.serverService.GetLogsBlockedDomains(count)
 	jsonObj(c, logs, nil)
 }
 

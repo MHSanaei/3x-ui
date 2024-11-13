@@ -143,3 +143,19 @@ func GetLogsSniffedDomains(c int) []string {
 	}
 	return output
 }
+
+func GetLogsBlockedDomains(c int) []string {
+	var output []string
+	logLevel, _ := logging.LogLevel("info")
+
+	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
+		if logBuffer[i].level <= logLevel && strings.Contains(logBuffer[i].log, "[blocked] for ") {
+			index := strings.LastIndex(logBuffer[i].log, "for [")
+			if index != -1 {
+				domain := strings.Replace(logBuffer[i].log[index+5:], "]", "", -1)
+				output = append(output, fmt.Sprintf("%s - %s", logBuffer[i].time, domain))
+			}
+		}
+	}
+	return output
+}
