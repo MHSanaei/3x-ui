@@ -134,9 +134,9 @@ func GetLogsSniffedDomains(c int) []string {
 
 	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
 		if logBuffer[i].level <= logLevel && strings.Contains(logBuffer[i].log, "sniffed domain: ") {
-			index := strings.LastIndex(log, ": ")
+			index := strings.LastIndex(logBuffer[i].log, ": ")
 			if index != -1 {
-				domain := log[index+2:]
+				domain := logBuffer[i].log[index+2:]
 				output = append(output, fmt.Sprintf("%s - %s", logBuffer[i].time, domain))
 			}
 		}
