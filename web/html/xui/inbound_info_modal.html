@@ -58,6 +58,14 @@
               </td>
             </tr>
           </template>
+          <template v-if="inbound.isSplithttp">
+            <tr>
+              <td>Mode</td>
+              <td>
+                <a-tag>[[ inbound.stream.splithttp.mode ]]</a-tag>
+              </td>
+            </tr>
+          </template>
           <template v-if="inbound.isKcp">
             <tr>
               <td>kcp {{ i18n "encryption" }}</td>

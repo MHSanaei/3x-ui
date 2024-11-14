@@ -380,6 +380,11 @@
           <a-form-item label='{{ i18n "path" }}'>
             <a-input v-model.trim="outbound.stream.splithttp.path"></a-input>
           </a-form-item>
+          <a-form-item label='Mode'>
+            <a-select v-model="outbound.stream.splithttp.mode" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+          </a-form-item>
         </template>
       </template>
 
