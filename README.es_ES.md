@@ -477,7 +477,7 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 
 #### Uso
 
-- [Documentación de API](https://documenter.getpostman.com/view/5146551/2sAXxP8Y12)
+- [Documentación de API](https://www.postman.com/hsanaei/3x-ui/collection/q1l5l0u/3x-ui)
 - `/login` con `POST` datos de usuario: `{username: '', password: ''}` para iniciar sesión
 - `/panel/api/inbounds` base para las siguientes acciones:
 
@@ -507,7 +507,7 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 - `client.password` para TROJAN
 - `client.email` para Shadowsocks
 
-- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/5146551-e6aac565-e0e2-46df-acff-2607a51bbd04?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-e6aac565-e0e2-46df-acff-2607a51bbd04%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
 </details>
 
 ## Variables de Entorno
