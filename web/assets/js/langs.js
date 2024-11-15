@@ -20,9 +20,9 @@ const supportLangs = [
 		icon: "🇹🇼",
 	},
 	{
-		name: "日本語“,
-	        value: "ja-JP",
-	        icon: "🇯🇵",
+		name: "日本語",
+		value: "ja-JP",
+		icon: "🇯🇵",
 	},
 	{
 		name: "Русский",
