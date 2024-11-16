@@ -1184,6 +1184,10 @@ ssl_cert_issue_CF() {
 
         # Install the certificate
         mkdir -p ${certPath}/${CF_Domain}
+        if [ $? -ne 0 ]; then
+            LOGE "Failed to create directory: ${certPath}/${CF_Domain}"
+            exit 1
+        fi
 
         ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
             --fullchain-file ${certPath}/${CF_Domain}/fullchain.pem \
