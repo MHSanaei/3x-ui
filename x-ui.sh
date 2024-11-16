@@ -1183,8 +1183,10 @@ ssl_cert_issue_CF() {
         fi
 
         # Install the certificate
+        mkdir -p ${certPath}/${CF_Domain}
+
         ~/.acme.sh/acme.sh --installcert -d ${CF_Domain} -d *.${CF_Domain} \
-            --cert-file ${certPath}/${CF_Domain}/fullchain.pem \
+            --fullchain-file ${certPath}/${CF_Domain}/fullchain.pem \
             --key-file ${certPath}/${CF_Domain}/privkey.pem
 
         if [ $? -ne 0 ]; then
