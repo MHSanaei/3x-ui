@@ -2,12 +2,16 @@
 .vscode
 .cache
 .sync*
+.env
+*.tar
 *.tar.gz
 *.log
 access.log
 error.log
 tmp
 main
+db/
+cert/
 backup/
 bin/
 dist/
