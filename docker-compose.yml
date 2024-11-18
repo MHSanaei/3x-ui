@@ -1,12 +1,10 @@
 ---
-version: "3"
-
 services:
-  3x-ui:
+  ui:
     build:
       context: .
       args:
-        ANTIZAPRET: "1"
+        ANTIZAPRET: "${BUILD_WITH_ANTIZAPRET:-0}"
     deploy:
       resources:
         limits:
@@ -18,21 +16,21 @@ services:
     networks:
       traefik:
     labels:
-      - traefik.enable=true
-      - traefik.http.routers.3x-ui.rule=Host(`<...>`)
-      - traefik.http.routers.3x-ui.service=3x-ui
-      - traefik.http.routers.3x-ui.entrypoints=https
-      - traefik.http.services.3x-ui.loadbalancer.server.port=<...>
+      - "traefik.enable=true"
+      - "traefik.http.routers.3x-ui.rule=Host(`${XUI_PANEL_DOMAIN}`)"
+      - "traefik.http.routers.3x-ui.service=3x-ui"
+      - "traefik.http.routers.3x-ui.entrypoints=https"
+      - "traefik.http.services.3x-ui.loadbalancer.server.port=2053"
       #
-      - traefik.http.routers.3x-ui-sub.rule=Host(`<...>`)
-      - traefik.http.routers.3x-ui-sub.service=3x-ui-sub
-      - traefik.http.routers.3x-ui-sub.entrypoints=https
-      - traefik.http.services.3x-ui-sub.loadbalancer.server.port=<...>
+      - "traefik.http.routers.3x-ui-sub.rule=Host(`${XUI_SUB_DOMAIN}`)"
+      - "traefik.http.routers.3x-ui-sub.service=3x-ui-sub"
+      - "traefik.http.routers.3x-ui-sub.entrypoints=https"
+      - "traefik.http.services.3x-ui-sub.loadbalancer.server.port=2096"
       #
-      - traefik.tcp.routers.vless.rule=HostSNI(`<...>`)
-      - traefik.tcp.routers.vless.tls.passthrough=true
-      - traefik.tcp.routers.vless.service=3x-ui-inbound-443
-      - traefik.tcp.services.3x-ui-inbound-443.loadbalancer.server.port=443
+      - "traefik.tcp.routers.vless.rule=HostSNI(`${XUI_VLESS_SNI}`)"
+      - "traefik.tcp.routers.vless.tls.passthrough=true"
+      - "traefik.tcp.routers.vless.service=3x-ui-inbound-443"
+      - "traefik.tcp.services.3x-ui-inbound-443.loadbalancer.server.port=443"
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
@@ -41,7 +39,7 @@ services:
       PGID: 1000
       XRAY_VMESS_AEAD_FORCED: "false"
       TZ: Europe/Moscow
-      XUI_SERVER_IP: "" # Server IP
+      XUI_SERVER_IP: "${XUI_SERVER_IP}"
     tty: true
     restart: unless-stopped
 
