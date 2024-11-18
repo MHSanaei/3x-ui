@@ -238,6 +238,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			headers, _ := splithttp["headers"].(map[string]interface{})
 			obj["host"] = searchHost(headers)
 		}
+		obj["mode"] = splithttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	obj["tls"] = security
@@ -389,6 +390,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			headers, _ := splithttp["headers"].(map[string]interface{})
 			params["host"] = searchHost(headers)
 		}
+		params["mode"] = splithttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -586,6 +588,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			headers, _ := splithttp["headers"].(map[string]interface{})
 			params["host"] = searchHost(headers)
 		}
+		params["mode"] = splithttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -783,6 +786,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			headers, _ := splithttp["headers"].(map[string]interface{})
 			params["host"] = searchHost(headers)
 		}
+		params["mode"] = splithttp["mode"].(string)
 	}
 
 	security, _ := stream["security"].(string)
