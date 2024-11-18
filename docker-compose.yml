@@ -7,6 +7,12 @@ services:
       context: .
       args:
         ANTIZAPRET: "1"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
     container_name: 3x-ui
     hostname: 3x-ui
     networks:
