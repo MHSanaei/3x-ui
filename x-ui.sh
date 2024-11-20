@@ -1265,7 +1265,6 @@ run_speedtest() {
         fi
     fi
 
-    # Run Speedtest
     speedtest
 }
 
@@ -1286,7 +1285,7 @@ create_iplimit_jails() {
 enabled=true
 backend=auto
 filter=3x-ipl
-action = %(known/action)s[name=%(__name__)s, protocol="%(protocol)s", chain="%(chain)s"]
+action=3x-ipl
 logpath=${iplimit_log_path}
 maxretry=2
 findtime=32
@@ -1322,8 +1321,6 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
-# Use default settings from iptables-common.conf
-# This will automatically handle both IPv4 and IPv6
 name = default
 protocol = tcp
 chain = INPUT

@@ -433,13 +433,11 @@
 "domains" = "ドメイン"
 "expectIPs" = "期待されるIP"
 
-
 [pages.xray.fakedns]
 "add" = "フェイクDNS追加"
 "edit" = "フェイクDNS編集"
 "ipPool" = "IPプールサブネット"
 "poolSize" = "プールサイズ"
-
 
 [pages.settings.security]
 "admin" = "管理者"
