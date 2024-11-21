@@ -818,7 +818,6 @@ update_geo() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
 
-    systemctl stop x-ui
     cd /usr/local/x-ui/bin
 
     case "$choice" in
@@ -826,6 +825,7 @@ update_geo() {
         show_menu
         ;;
     1)
+        systemctl stop x-ui
         rm -f geoip.dat geosite.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
@@ -833,6 +833,7 @@ update_geo() {
         restart
         ;;
     2)
+        systemctl stop x-ui
         rm -f geoip_IR.dat geosite_IR.dat
         wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
@@ -840,6 +841,7 @@ update_geo() {
         restart
         ;;
     3)
+        systemctl stop x-ui
         rm -f geoip_VN.dat geosite_VN.dat
         wget -O geoip_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
@@ -852,7 +854,6 @@ update_geo() {
         ;;
     esac
 
-    systemctl start x-ui
     before_show_menu
 }
 
