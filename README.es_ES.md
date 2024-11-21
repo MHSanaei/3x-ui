@@ -277,14 +277,18 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
 
 ## Idiomas
 
-- Inglés
-- Farsi
-- Chino
-- Ruso
-- Vietnamita
-- Español
-- Indonesio
-- Ucraniano
+- English (inglés)  
+- Persian (persa)  
+- Traditional Chinese (chino tradicional)  
+- Simplified Chinese (chino simplificado)  
+- Japanese (japonés)  
+- Russian (ruso)  
+- Vietnamese (vietnamita)  
+- Spanish (español)  
+- Indonesian (indonesio)  
+- Ukrainian (ucraniano)  
+- Turkish (turco)  
+- Português (Brazil) (portugués (Brasil))  
 
 
 ## Características

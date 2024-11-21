@@ -277,14 +277,18 @@ location /sub {
 
 ## Languages
 
-- English（英语）
-- Farsi（伊朗语）
-- Chinese（中文）
-- Russian（俄语）
-- Vietnamese（越南语）
-- Spanish（西班牙语）
-- Indonesian （印度尼西亚语）
-- Ukrainian（乌克兰语）
+- English（英语）  
+- Persian（波斯语）  
+- Traditional Chinese（繁体中文）  
+- Simplified Chinese（简体中文）  
+- Japanese（日语）  
+- Russian（俄语）  
+- Vietnamese（越南语）  
+- Spanish（西班牙语）  
+- Indonesian（印尼语）  
+- Ukrainian（乌克兰语）  
+- Turkish（土耳其语）  
+- Português (Brazil)（葡萄牙语（巴西））
 
 
 ## Features
