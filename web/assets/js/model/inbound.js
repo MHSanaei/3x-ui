@@ -113,6 +113,12 @@ const USERS_SECURITY = {
     ZERO: "zero",
 };
 
+const MODE_OPTION = {
+    AUTO: "auto",
+    PACKET_UP: "packet-up",
+    STREAM_UP: "stream-up",
+};
+
 Object.freeze(Protocols);
 Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
@@ -125,6 +131,7 @@ Object.freeze(USAGE_OPTION);
 Object.freeze(DOMAIN_STRATEGY_OPTION);
 Object.freeze(TCP_CONGESTION_OPTION);
 Object.freeze(USERS_SECURITY);
+Object.freeze(MODE_OPTION);
 
 class XrayCommonClass {
 
@@ -528,7 +535,9 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             maxConnections: 0,
             cMaxReuseTimes: "64-128",
             cMaxLifetimeMs: 0
-        }
+        },
+        mode = MODE_OPTION.AUTO,
+        noGRPCHeader = false,
     ) {
         super();
         this.path = path;
@@ -540,6 +549,8 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
         this.xmux = xmux;
+        this.mode = mode;
+        this.noGRPCHeader = noGRPCHeader;
     }
 
     addHeader(name, value) {
@@ -561,6 +572,8 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
             json.noSSEHeader,
             json.xPaddingBytes,
             json.xmux,
+            json.mode,
+            json.noGRPCHeader
         );
     }
 
@@ -579,7 +592,9 @@ class SplitHTTPStreamSettings extends XrayCommonClass {
                 maxConnections: this.xmux.maxConnections,
                 cMaxReuseTimes: this.xmux.cMaxReuseTimes,
                 cMaxLifetimeMs: this.xmux.cMaxLifetimeMs
-            }
+            },
+            mode: this.mode,
+            noGRPCHeader: this.noGRPCHeader
         };
     }
 }
@@ -1329,6 +1344,7 @@ class Inbound extends XrayCommonClass {
             const splithttp = this.stream.splithttp;
             obj.path = splithttp.path;
             obj.host = splithttp.host?.length > 0 ? splithttp.host : this.getHeader(splithttp, 'host');
+            obj.mode = splithttp.mode;
         }
 
         if (security === 'tls') {
@@ -1401,6 +1417,7 @@ class Inbound extends XrayCommonClass {
                 const splithttp = this.stream.splithttp;
                 params.set("path", splithttp.path);
                 params.set("host", splithttp.host?.length > 0 ? splithttp.host : this.getHeader(splithttp, 'host'));
+                params.set("mode", splithttp.mode);
                 break;
         }
 
@@ -1504,6 +1521,7 @@ class Inbound extends XrayCommonClass {
                 const splithttp = this.stream.splithttp;
                 params.set("path", splithttp.path);
                 params.set("host", splithttp.host?.length > 0 ? splithttp.host : this.getHeader(splithttp, 'host'));
+                params.set("mode", splithttp.mode);
                 break;
         }
 
@@ -1586,6 +1604,7 @@ class Inbound extends XrayCommonClass {
                 const splithttp = this.stream.splithttp;
                 params.set("path", splithttp.path);
                 params.set("host", splithttp.host?.length > 0 ? splithttp.host : this.getHeader(splithttp, 'host'));
+                params.set("mode", splithttp.mode);
                 break;
         }
 
@@ -2198,13 +2217,15 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
         method = SSMethods.BLAKE3_AES_256_GCM,
         password = RandomUtil.randomShadowsocksPassword(),
         network = 'tcp,udp',
-        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()]
+        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()],
+        ivCheck = false,
     ) {
         super(protocol);
         this.method = method;
         this.password = password;
         this.network = network;
         this.shadowsockses = shadowsockses;
+        this.ivCheck = ivCheck;
     }
 
     static fromJson(json = {}) {
@@ -2214,6 +2235,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.password,
             json.network,
             json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            json.ivCheck,
         );
     }
 
@@ -2222,7 +2244,8 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             method: this.method,
             password: this.password,
             network: this.network,
-            clients: Inbound.ShadowsocksSettings.toJsonArray(this.shadowsockses)
+            clients: Inbound.ShadowsocksSettings.toJsonArray(this.shadowsockses),
+            ivCheck: this.ivCheck,
         };
     }
 };
