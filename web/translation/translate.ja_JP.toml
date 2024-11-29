@@ -105,6 +105,7 @@
 "xraySwitchVersionDialogDesc" = "Xrayのバージョンを切り替えますか？"
 "dontRefresh" = "インストール中、このページをリロードしないでください"
 "logs" = "ログ"
+"logDomains" = "Log Domains"
 "config" = "設定"
 "backup" = "バックアップと復元"
 "backupTitle" = "データベースのバックアップと復元"
