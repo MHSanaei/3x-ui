@@ -818,7 +818,6 @@ update_geo() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
 
-    systemctl stop x-ui
     cd /usr/local/x-ui/bin
 
     case "$choice" in
@@ -826,6 +825,7 @@ update_geo() {
         show_menu
         ;;
     1)
+        systemctl stop x-ui
         rm -f geoip.dat geosite.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
@@ -833,6 +833,7 @@ update_geo() {
         restart
         ;;
     2)
+        systemctl stop x-ui
         rm -f geoip_IR.dat geosite_IR.dat
         wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
@@ -840,6 +841,7 @@ update_geo() {
         restart
         ;;
     3)
+        systemctl stop x-ui
         rm -f geoip_VN.dat geosite_VN.dat
         wget -O geoip_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_VN.dat -N https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
@@ -852,7 +854,6 @@ update_geo() {
         ;;
     esac
 
-    systemctl start x-ui
     before_show_menu
 }
 
@@ -1238,34 +1239,41 @@ ssl_cert_issue_CF() {
 run_speedtest() {
     # Check if Speedtest is already installed
     if ! command -v speedtest &>/dev/null; then
-        # If not installed, install it
-        local pkg_manager=""
-        local speedtest_install_script=""
-
-        if command -v dnf &>/dev/null; then
-            pkg_manager="dnf"
-            speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v yum &>/dev/null; then
-            pkg_manager="yum"
-            speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
-        elif command -v apt-get &>/dev/null; then
-            pkg_manager="apt-get"
-            speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
-        elif command -v apt &>/dev/null; then
-            pkg_manager="apt"
-            speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
-        fi
-
-        if [[ -z $pkg_manager ]]; then
-            echo "Error: Package manager not found. You may need to install Speedtest manually."
-            return 1
+        # If not installed, determine installation method
+        if command -v snap &>/dev/null; then
+            # Use snap to install Speedtest
+            echo "Installing Speedtest using snap..."
+            snap install speedtest
         else
-            curl -s $speedtest_install_script | bash
-            $pkg_manager install -y speedtest
+            # Fallback to using package managers
+            local pkg_manager=""
+            local speedtest_install_script=""
+
+            if command -v dnf &>/dev/null; then
+                pkg_manager="dnf"
+                speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
+            elif command -v yum &>/dev/null; then
+                pkg_manager="yum"
+                speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.rpm.sh"
+            elif command -v apt-get &>/dev/null; then
+                pkg_manager="apt-get"
+                speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
+            elif command -v apt &>/dev/null; then
+                pkg_manager="apt"
+                speedtest_install_script="https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh"
+            fi
+
+            if [[ -z $pkg_manager ]]; then
+                echo "Error: Package manager not found. You may need to install Speedtest manually."
+                return 1
+            else
+                echo "Installing Speedtest using $pkg_manager..."
+                curl -s $speedtest_install_script | bash
+                $pkg_manager install -y speedtest
+            fi
         fi
     fi
 
-    # Run Speedtest
     speedtest
 }
 
@@ -1286,7 +1294,7 @@ create_iplimit_jails() {
 enabled=true
 backend=auto
 filter=3x-ipl
-action = %(known/action)s[name=%(__name__)s, protocol="%(protocol)s", chain="%(chain)s"]
+action=3x-ipl
 logpath=${iplimit_log_path}
 maxretry=2
 findtime=32
@@ -1322,8 +1330,6 @@ actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
               echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
-# Use default settings from iptables-common.conf
-# This will automatically handle both IPv4 and IPv6
 name = default
 protocol = tcp
 chain = INPUT

@@ -1,6 +1,11 @@
 [English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
-<p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
+    <img alt="3x-ui" src="./media/3x-ui-light.png">
+  </picture>
+</p>
 
 **一个更好的面板 • 基于Xray Core构建**
 
@@ -277,14 +282,18 @@ location /sub {
 
 ## Languages
 
-- English（英语）
-- Farsi（伊朗语）
-- Chinese（中文）
-- Russian（俄语）
-- Vietnamese（越南语）
-- Spanish（西班牙语）
-- Indonesian （印度尼西亚语）
-- Ukrainian（乌克兰语）
+- English（英语）  
+- Persian（波斯语）  
+- Traditional Chinese（繁体中文）  
+- Simplified Chinese（简体中文）  
+- Japanese（日语）  
+- Russian（俄语）  
+- Vietnamese（越南语）  
+- Spanish（西班牙语）  
+- Indonesian（印尼语）  
+- Ukrainian（乌克兰语）  
+- Turkish（土耳其语）  
+- Português (Brazil)（葡萄牙语（巴西））
 
 
 ## Features
@@ -535,13 +544,33 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 ## 预览
 
-![1](./media/1.png)
-![2](./media/2.png)
-![3](./media/3.png)
-![4](./media/4.png)
-![5](./media/5.png)
-![6](./media/6.png)
-![7](./media/7.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
+  <img alt="3x-ui" src="./media/01-overview-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/02-inbounds-dark.png">
+  <img alt="3x-ui" src="./media/02-inbounds-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-inbound-dark.png">
+  <img alt="3x-ui" src="./media/03-add-inbound-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/04-add-client-dark.png">
+  <img alt="3x-ui" src="./media/04-add-client-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/05-settings-dark.png">
+  <img alt="3x-ui" src="./media/05-settings-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/06-configs-dark.png">
+  <img alt="3x-ui" src="./media/06-configs-light.png">
+</picture>
+<picture>
+  <img alt="3x-ui" src="./media/7.png">
+</picture>
 
 ## 特别感谢
 
