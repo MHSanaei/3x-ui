@@ -1,15 +1,15 @@
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23-bookworm AS builder
 WORKDIR /app
 ARG TARGETARCH
 
-RUN apk --no-cache --update add \
-  build-base \
-  gcc \
-  wget \
-  unzip
+RUN apt-get update -y 
+RUN apt-get install -y \
+    gcc \
+    wget \
+    unzip
 
 COPY . .
 
@@ -21,12 +21,12 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-FROM alpine
+FROM ubuntu:rolling
 ENV TZ=Asia/Tehran
 WORKDIR /app
 
-RUN apk add --no-cache --update \
-  ca-certificates \
+RUN apt-get update -y 
+RUN apt-get install -y \
   tzdata \
   fail2ban \
   bash
@@ -37,7 +37,7 @@ COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
 
 # Configure fail2ban
-RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
+RUN rm -f /etc/fail2ban/jail.d/*.conf \
   && cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local \
   && sed -i "s/^\[ssh\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
   && sed -i "s/^\[sshd\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
