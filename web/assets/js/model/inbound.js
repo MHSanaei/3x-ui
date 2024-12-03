@@ -117,6 +117,7 @@ const MODE_OPTION = {
     AUTO: "auto",
     PACKET_UP: "packet-up",
     STREAM_UP: "stream-up",
+    STREAM_ONE: "stream-one",
 };
 
 Object.freeze(Protocols);
