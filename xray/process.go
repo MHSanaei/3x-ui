@@ -226,7 +226,6 @@ func (p *process) Start() (err error) {
 		if err != nil {
 			logger.Error("Failure in running xray-core:", err)
 			p.exitErr = err
-			p.witeCrachReport(err)
 		}
 	}()
 
@@ -243,7 +242,7 @@ func (p *process) Stop() error {
 	return p.cmd.Process.Signal(syscall.SIGTERM)
 }
 
-func (p *process) witeCrachReport(err error) error {
+func writeCrachReport(m []byte) error {
 	crashReportPath := config.GetBinFolderPath() + "/core_crash_" + time.Now().Format("20060102_150405") + ".log"
-	return os.WriteFile(crashReportPath, []byte(err.Error()), os.ModePerm)
+	return os.WriteFile(crashReportPath, m, os.ModePerm)
 }
