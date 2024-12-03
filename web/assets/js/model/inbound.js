@@ -379,13 +379,15 @@ class WsStreamSettings extends XrayCommonClass {
         acceptProxyProtocol = false,
         path = '/',
         host = '',
-        headers = []
+        headers = [],
+        heartbeatPeriod = 0,
     ) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
         this.path = path;
         this.host = host;
         this.headers = headers;
+        this.heartbeatPeriod = heartbeatPeriod;
     }
 
     addHeader(name, value) {
@@ -402,6 +404,7 @@ class WsStreamSettings extends XrayCommonClass {
             json.path,
             json.host,
             XrayCommonClass.toHeaders(json.headers),
+            json.heartbeatPeriod,
         );
     }
 
@@ -411,6 +414,7 @@ class WsStreamSettings extends XrayCommonClass {
             path: this.path,
             host: this.host,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
+            heartbeatPeriod: this.heartbeatPeriod,
         };
     }
 }

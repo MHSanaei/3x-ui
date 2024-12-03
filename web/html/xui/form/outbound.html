@@ -337,6 +337,9 @@
           <a-form-item label='{{ i18n "path" }}'>
             <a-input v-model.trim="outbound.stream.ws.path"></a-input>
           </a-form-item>
+          <a-form-item label='Heartbeat Period'>
+            <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
+          </a-form-item>
         </template>
 
         <!-- http -->
