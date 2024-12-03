@@ -206,16 +206,23 @@ class KcpStreamSettings extends CommonClass {
 }
 
 class WsStreamSettings extends CommonClass {
-    constructor(path = '/', host = '') {
+    constructor(
+        path = '/', 
+        host = '',
+        heartbeatPeriod = 0,
+
+    ) {
         super();
         this.path = path;
         this.host = host;
+        this.heartbeatPeriod = heartbeatPeriod;
     }
 
     static fromJson(json = {}) {
         return new WsStreamSettings(
             json.path,
             json.host,
+            json.heartbeatPeriod,
         );
     }
 
@@ -223,6 +230,7 @@ class WsStreamSettings extends CommonClass {
         return {
             path: this.path,
             host: this.host,
+            heartbeatPeriod: this.heartbeatPeriod
         };
     }
 }
