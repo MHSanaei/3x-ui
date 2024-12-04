@@ -270,7 +270,6 @@
             <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
-            <a-select-option value="http">HTTP</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
             <a-select-option value="xhttp">XHTTP</a-select-option>
@@ -339,16 +338,6 @@
           </a-form-item>
           <a-form-item label='Heartbeat Period'>
             <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
-          </a-form-item>
-        </template>
-
-        <!-- http -->
-        <template v-if="outbound.stream.network === 'http'">
-          <a-form-item label='{{ i18n "host" }}'>
-            <a-input v-model.trim="outbound.stream.http.host"></a-input>
-          </a-form-item>
-          <a-form-item label='{{ i18n "path" }}'>
-            <a-input v-model.trim="outbound.stream.http.path"></a-input>
           </a-form-item>
         </template>
         
