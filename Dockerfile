@@ -1,15 +1,17 @@
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM golang:1.23-bookworm AS builder
+FROM golang:1.23-alpine AS builder   
+# because builder doesn't matter as i've tested recently 
+
 WORKDIR /app
 ARG TARGETARCH
 
-RUN apt-get update -y 
-RUN apt-get install -y \
-    gcc \
-    wget \
-    unzip
+RUN apk --no-cache --update add \
+  build-base \
+  gcc \
+  wget \
+  unzip
 
 COPY . .
 
@@ -21,12 +23,16 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-FROM ubuntu:rolling
+FROM ubuntu:devel
+# while being techniacally newer "devel" image proven to be more stable and more lightweight 
 ENV TZ=Asia/Tehran
 WORKDIR /app
 
 RUN apt-get update -y 
 RUN apt-get install -y \
+  --no-install-recommends \
+# to make image less "bloated" due of way apt works
+  ca-certificates \
   tzdata \
   fail2ban \
   bash
@@ -37,7 +43,7 @@ COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
 
 
 # Configure fail2ban
-RUN rm -f /etc/fail2ban/jail.d/*.conf \
+RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
   && cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local \
   && sed -i "s/^\[ssh\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
   && sed -i "s/^\[sshd\]$/&\nenabled = false/" /etc/fail2ban/jail.local \
