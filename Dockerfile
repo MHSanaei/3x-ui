@@ -9,7 +9,8 @@ RUN apk --no-cache --update add \
   build-base \
   gcc \
   wget \
-  unzip
+  unzip \
+  dos2unix
 
 COPY . .
 
@@ -17,6 +18,9 @@ ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH"
+
+RUN dos2unix /app/DockerEntrypoint.sh
+RUN dos2unix /app/x-ui.sh
 
 # ========================================================
 # Stage: Final Image of 3x-ui
@@ -29,12 +33,12 @@ RUN apk add --no-cache --update \
   ca-certificates \
   tzdata \
   fail2ban \
-  bash
+  bash \
+  curl
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
-COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
-
+COPY --from=builder /app/x-ui.sh /usr/local/x-ui/x-ui
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -46,7 +50,7 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
-  /usr/bin/x-ui
+  /usr/local/x-ui/x-ui
 
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
