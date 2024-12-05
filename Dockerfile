@@ -1,7 +1,9 @@
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM golang:1.23-alpine AS builder
+FROM golang:1.23-alpine AS builder   
+# because builder doesn't matter as i've tested recently 
+
 WORKDIR /app
 ARG TARGETARCH
 
@@ -21,11 +23,15 @@ RUN ./DockerInit.sh "$TARGETARCH"
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-FROM alpine
+FROM ubuntu:devel
+# while being techniacally newer "devel" image proven to be more stable and more lightweight 
 ENV TZ=Asia/Tehran
 WORKDIR /app
 
-RUN apk add --no-cache --update \
+RUN apt-get update -y 
+RUN apt-get install -y \
+  --no-install-recommends \
+# to make image less "bloated" due of way apt works
   ca-certificates \
   tzdata \
   fail2ban \

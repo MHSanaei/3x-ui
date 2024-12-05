@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 case $1 in
     amd64)
         ARCH="64"
