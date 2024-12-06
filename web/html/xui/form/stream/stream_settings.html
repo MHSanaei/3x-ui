@@ -7,10 +7,9 @@
             <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
-            <a-select-option value="http">HTTP</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
-            <a-select-option value="splithttp">SplitHTTP (XHTTP)</a-select-option>
+            <a-select-option value="xhttp">XHTTP</a-select-option>
         </a-select>
     </a-form-item>
 </a-form>
@@ -30,11 +29,6 @@
     {{template "form/streamWS"}}
 </template>
 
-<!-- http -->
-<template v-if="inbound.stream.network === 'http'">
-    {{template "form/streamHTTP"}}
-</template>
-
 <!-- grpc -->
 <template v-if="inbound.stream.network === 'grpc'">
     {{template "form/streamGRPC"}}
@@ -45,9 +39,9 @@
     {{template "form/streamHTTPUpgrade"}}
 </template>
 
-<!-- splithttp -->
-<template v-if="inbound.stream.network === 'splithttp'">
-    {{template "form/streamSplitHTTP"}}
+<!-- xhttp -->
+<template v-if="inbound.stream.network === 'xhttp'">
+    {{template "form/streamXHTTP"}}
 </template>
 
 <!-- sockopt -->

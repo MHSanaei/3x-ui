@@ -69,7 +69,7 @@ func (a *IndexController) login(c *gin.Context) {
 	safePass := template.HTMLEscapeString(form.Password)
 	safeSecret := template.HTMLEscapeString(form.LoginSecret)
 	if user == nil {
-		logger.Warningf("wrong username or password or secret: \"%s\" \"%s\" \"%s\"", safeUser, safePass, safeSecret)
+		logger.Warningf("wrong username: \"%s\", password: \"%s\", secret: \"%s\", IP: \"%s\"", safeUser, safePass, safeSecret, getRemoteIp(c))
 		a.tgbot.UserLoginNotify(safeUser, safePass, getRemoteIp(c), timeStr, 0)
 		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return

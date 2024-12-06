@@ -9,6 +9,9 @@
   <a-form-item label='{{ i18n "path" }}'>
     <a-input v-model.trim="inbound.stream.ws.path"></a-input>
   </a-form-item>
+  <a-form-item label='Heartbeat Period'>
+    <a-input-number v-model.number="inbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
+  </a-form-item>
   <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
     <a-button icon="plus" size="small" @click="inbound.stream.ws.addHeader('host', '')"></a-button>
   </a-form-item>
