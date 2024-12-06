@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"net"
 	"strings"
+	"io/ioutil"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -74,6 +75,23 @@ func (a *SUBController) subs(c *gin.Context) {
 			host = c.Request.Host
 		}
 	}
+	var profileTitle string
+	profileTitle = os.Getenv("XUI_SUB_PROFILE_TITLE")
+	if profileTitle == "" {
+		profileTitle = subId
+	}
+	var supportUrl string
+	supportUrl = os.Getenv("XUI_SUB_PROFILE_TITLE")
+	if supportUrl == "" {
+		supportUrl = os.Getenv("XUI_SUB_DOMAIN")
+	}
+	var profileWebPageUrl string
+	profileWebPageUrl = os.Getenv("XUI_SUB_PROFILE_WEB_PAGE_URL")
+	if profileWebPageUrl == "" {
+		profileWebPageUrl = os.Getenv("XUI_SUB_DOMAIN")
+	}
+	var announceText string
+	announceText = getAnnounceText()
 	subs, header, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
@@ -86,7 +104,12 @@ func (a *SUBController) subs(c *gin.Context) {
 		// Add headers
 		c.Writer.Header().Set("Subscription-Userinfo", header)
 		c.Writer.Header().Set("Profile-Update-Interval", a.updateInterval)
-		c.Writer.Header().Set("Profile-Title", subId)
+		c.Writer.Header().Set("Profile-Title", profileTitle)
+		c.Writer.Header().Set("Support-Url", supportUrl)
+		c.Writer.Header().Set("Profile-Web-Page-Url", profileWebPageUrl)
+		if announceText != "" {
+			c.Writer.Header().Set("Announce", announceText)
+		}
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -115,6 +138,23 @@ func (a *SUBController) subJsons(c *gin.Context) {
 			host = c.Request.Host
 		}
 	}
+	var profileTitle string
+	profileTitle = os.Getenv("XUI_SUB_PROFILE_TITLE")
+	if profileTitle == "" {
+		profileTitle = subId
+	}
+	var supportUrl string
+	supportUrl = os.Getenv("XUI_SUB_PROFILE_TITLE")
+	if supportUrl == "" {
+		supportUrl = os.Getenv("XUI_SUB_DOMAIN")
+	}
+	var profileWebPageUrl string
+	profileWebPageUrl = os.Getenv("XUI_SUB_PROFILE_WEB_PAGE_URL")
+	if profileWebPageUrl == "" {
+		profileWebPageUrl = os.Getenv("XUI_SUB_DOMAIN")
+	}
+	var announceText string
+	announceText = getAnnounceText()
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")
@@ -123,10 +163,30 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		// Add headers
 		c.Writer.Header().Set("Subscription-Userinfo", header)
 		c.Writer.Header().Set("Profile-Update-Interval", a.updateInterval)
-		c.Writer.Header().Set("Profile-Title", subId)
+		c.Writer.Header().Set("Profile-Title", profileTitle)
+		c.Writer.Header().Set("Support-Url", supportUrl)
+		c.Writer.Header().Set("Profile-Web-Page-Url", profileWebPageUrl)
+		if announceText != "" {
+			c.Writer.Header().Set("Announce", announceText)
+		}
 
 		c.String(200, jsonSub)
 	}
+}
+
+func getAnnounceText() (string) {
+	announceFilePath := "/etc/x-ui/announce.txt"
+	_, err := os.Stat(announceFilePath)
+    if os.IsNotExist(err) {
+        return ""
+    }
+
+    content, err := ioutil.ReadFile(announceFilePath)
+    if err != nil {
+        return ""
+    }
+
+    return string(content)
 }
 
 func getHostFromXFH(s string) (string, error) {
