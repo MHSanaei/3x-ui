@@ -18,9 +18,6 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
-# check root
-[[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
-
 # Check OS and set release variable
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
@@ -28,6 +25,8 @@ if [[ -f /etc/os-release ]]; then
 elif [[ -f /usr/lib/os-release ]]; then
     source /usr/lib/os-release
     release=$ID
+elif command -v sw_vers &> /dev/null; then
+    release="macos"
 else
     echo "Failed to check the system OS, please contact the author!" >&2
     exit 1
@@ -36,7 +35,11 @@ fi
 echo "The OS release is: $release"
 
 os_version=""
-os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
+if [[ "${release}" != "macos" ]]; then
+    os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
+    # check root
+    [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
+fi
 
 if [[ "${release}" == "arch" ]]; then
     echo "Your OS is Arch Linux"
@@ -86,6 +89,8 @@ elif [[ "${release}" == "ol" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use Oracle Linux 8 or higher ${plain}\n" && exit 1
     fi
+elif [[ "${release}" == "macos" ]]; then
+    echo "Your OS is MacOS"
 else
     echo -e "${red}Your operating system is not supported by this script.${plain}\n"
     echo "Please ensure you are using one of the following supported operating systems:"
@@ -103,6 +108,7 @@ else
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
     echo "- Amazon Linux 2023"
+    echo "- MacOS (build only)"
     exit 1
 fi
 
@@ -1277,6 +1283,11 @@ run_speedtest() {
     speedtest
 }
 
+build_image_tar() {
+    docker compose version;
+    docker compose --progress plain build --no-cache && docker save -o 3x-ui.tar 3x-ui:latest && echo "Image saved: 3x-ui.tar";
+}
+
 create_iplimit_jails() {
     # Use default bantime if not passed => 15 minutes
     local bantime="${1:-15}"
@@ -1684,6 +1695,7 @@ show_menu() {
   ${green}23.${plain} Enable BBR 
   ${green}24.${plain} Update Geo Files
   ${green}25.${plain} Speedtest by Ookla
+  ${green}99.${plain} Build Docker Image (tar archive)
 "
     show_status
     echo && read -p "Please enter your selection [0-25]: " num
@@ -1766,6 +1778,9 @@ show_menu() {
         ;;
     25)
         run_speedtest
+        ;;
+    99)
+        build_image_tar
         ;;
     *)
         LOGE "Please enter the correct number [0-25]"
