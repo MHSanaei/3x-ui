@@ -204,24 +204,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.FuncMap["i18n"] = i18nWebFunc
 	engine.Use(locale.LocalizerMiddleware())
 
-	// set static files and template
-	if config.IsDebug() {
-		// for development
-		files, err := s.getHtmlFiles()
-		if err != nil {
-			return nil, err
-		}
-		engine.LoadHTMLFiles(files...)
-		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/assets")))
-	} else {
-		// for production
-		template, err := s.getHtmlTemplate(engine.FuncMap)
-		if err != nil {
-			return nil, err
-		}
-		engine.SetHTMLTemplate(template)
-		engine.StaticFS(basePath+"assets", http.FS(&wrapAssetsFS{FS: assetsFS}))
+	template, err := s.getHtmlTemplate(engine.FuncMap)
+	if err != nil {
+		return nil, err
 	}
+	engine.SetHTMLTemplate(template)
+	engine.StaticFS(basePath+"assets", http.FS(&wrapAssetsFS{FS: assetsFS}))
 
 	// Apply the redirect middleware (`/xui` to `/panel`)
 	engine.Use(middleware.RedirectMiddleware(basePath))
@@ -289,12 +277,16 @@ func (s *Server) startTask() {
 		cpuThreshold, err := s.settingService.GetTgCpu()
 		if (err == nil) && (cpuThreshold > 0) {
 			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
+		} else if err != nil {
+			logger.Errorf("Add NewCheckCpuJob error: %s", err)
 		}
 
 		// Check RAM and alarm to TgBot if threshold passes
 		memThreshold, err := s.settingService.GetTgMem()
 		if (err == nil) && (memThreshold > 0) {
 			s.cron.AddJob("@every 10s", job.NewCheckMemJob())
+		} else if err != nil {
+			logger.Errorf("Add NewCheckMemJob error: %s", err)
 		}
 	} else {
 		s.cron.Remove(entry)

@@ -34,6 +34,7 @@ services:
     volumes:
       - ./db/:/etc/x-ui/
       - ./db/fail2ban.sqlite3:/var/lib/fail2ban/fail2ban.sqlite3
+      - ./db/announce.txt:/etc/x-ui/announce.txt
       - ./cert/:/root/cert/
       - ./logs/xray-access.log:/app/access.log
       - ./logs/xray-error.log:/app/error.log
@@ -41,7 +42,6 @@ services:
       - ./logs/3xipl-ap.log:/var/log/3xipl-ap.log
       - ./logs/3xipl-banned.log:/var/log/3xipl-banned.log
       - ./logs/fail2ban.log:/var/log/fail2ban.log
-      - ./announce.txt:/etc/x-ui/announce.txt
     environment:
       PUID: 1000
       PGID: 1000
@@ -51,6 +51,8 @@ services:
       XUI_SUB_PROFILE_TITLE: "${XUI_SUB_PROFILE_TITLE:-}"
       XUI_SUB_SUPPORT_URL: "${XUI_SUB_SUPPORT_URL:-}"
       XUI_SUB_PROFILE_WEB_PAGE_URL: "${XUI_SUB_PROFILE_WEB_PAGE_URL:-}"
+      XUI_DEBUG: "${XUI_DEBUG:-false}"
+      XUI_LOG_LEVEL: "${XUI_LOG_LEVEL:-info}"
     tty: true
     restart: unless-stopped
 

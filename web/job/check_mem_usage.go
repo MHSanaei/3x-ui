@@ -30,7 +30,7 @@ func (j *CheckMemJob) Run() {
 	} else {
 		currentMem := memInfo.Used
 		totalMem := memInfo.Total
-		percentMem := int(currentMem / totalMem * 100)
+		percentMem := int(float64(currentMem) / float64(totalMem) * 100)
 
 		if percentMem >= int(threshold) && bool(needRestart) == true {
 			msg := j.tgbotService.I18nBot("tgbot.messages.memThreshold", "Threshold=="+strconv.Itoa(threshold))

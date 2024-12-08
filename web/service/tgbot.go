@@ -1074,6 +1074,8 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	info += t.I18nBot("tgbot.messages.xrayVersion", "XrayVersion=="+fmt.Sprint(t.lastStatus.Xray.Version))
 
 	// get ip address
+	var host string
+	host = os.Getenv("XUI_SERVER_IP")
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
 		logger.Error("net.Interfaces failed, err: ", err.Error())
@@ -1087,7 +1089,11 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 				for _, address := range addrs {
 					if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
 						if ipnet.IP.To4() != nil {
-							ipv4 += ipnet.IP.String() + " "
+							if host != "" {
+								ipv4 += host + " "
+							} else {
+								ipv4 += ipnet.IP.String() + " "
+							}
 						} else if ipnet.IP.To16() != nil && !ipnet.IP.IsLinkLocalUnicast() {
 							ipv6 += ipnet.IP.String() + " "
 						}
