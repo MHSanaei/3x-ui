@@ -95,6 +95,12 @@ type ServerService struct {
 }
 
 func getPublicIP(url string) string {
+	var host string
+	host = os.Getenv("XUI_SERVER_IP")
+	if host != "" && !strings.ContainsAny(str1, "6") {
+		return host
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return "N/A"

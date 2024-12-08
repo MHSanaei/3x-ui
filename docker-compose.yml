@@ -33,7 +33,14 @@ services:
       - "traefik.tcp.services.3x-ui-inbound-443.loadbalancer.server.port=443"
     volumes:
       - ./db/:/etc/x-ui/
+      - ./db/fail2ban.sqlite3:/var/lib/fail2ban/fail2ban.sqlite3
       - ./cert/:/root/cert/
+      - ./logs/xray-access.log:/app/access.log
+      - ./logs/xray-error.log:/app/error.log
+      - ./logs/3xipl.log:/var/log/3xipl.log
+      - ./logs/3xipl-ap.log:/var/log/3xipl-ap.log
+      - ./logs/3xipl-banned.log:/var/log/3xipl-banned.log
+      - ./logs/fail2ban.log:/var/log/fail2ban.log
       - ./announce.txt:/etc/x-ui/announce.txt
     environment:
       PUID: 1000
