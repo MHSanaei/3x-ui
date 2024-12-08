@@ -97,7 +97,7 @@ type ServerService struct {
 func getPublicIP(url string) string {
 	var host string
 	host = os.Getenv("XUI_SERVER_IP")
-	if host != "" && !strings.ContainsAny(str1, "6") {
+	if host != "" && !strings.ContainsAny(url, "6") {
 		return host
 	}
 
