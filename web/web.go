@@ -290,6 +290,12 @@ func (s *Server) startTask() {
 		if (err == nil) && (cpuThreshold > 0) {
 			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
 		}
+
+		// Check RAM and alarm to TgBot if threshold passes
+		memThreshold, err := s.settingService.GetTgMem()
+		if (err == nil) && (memThreshold > 0) {
+			s.cron.AddJob("@every 10s", job.NewCheckMemJob())
+		}
 	} else {
 		s.cron.Remove(entry)
 	}

@@ -282,6 +282,10 @@
 "trafficDiffDesc" = "Bu eşik seviyesine ulaşıldığında trafik sınırı hakkında bildirim alın. (birim: GB)"
 "tgNotifyCpu" = "CPU Yükü Bildirimi"
 "tgNotifyCpuDesc" = "CPU yükü bu eşik seviyesini aşarsa bildirim alın. (birim: %)"
+"tgNotifyMem" = "RAM Load Notification"
+"tgNotifyMemDesc" = "Get notified if RAM load exceeds this threshold. (unit: %)"
+"restartAtMemThreshold" = "Restart Xray when the threshold is reached"
+"restartAtMemThresholdDesc" = "When the RAM utilization reaches the specified percentage, Xray will be restarted"
 "timeZone" = "Saat Dilimi"
 "timeZoneDesc" = "Planlanmış görevler bu saat dilimine göre çalışacaktır."
 "subSettings" = "Abonelik"
@@ -493,6 +497,7 @@
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Yükü {{ .Percent }}% eşiği {{ .Threshold }}%'yi aşıyor"
+"memThreshold" = "🔴 RAM Threshold\r\nThe {{ .Threshold }}% threshold has been reached. Reboot performed"
 "selectUserFailed" = "❌ Kullanıcı seçiminde hata!"
 "userSaved" = "✅ Telegram Kullanıcısı kaydedildi."
 "loginSuccess" = "✅ Panele başarıyla giriş yapıldı.\r\n"

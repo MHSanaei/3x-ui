@@ -282,6 +282,10 @@
 "trafficDiffDesc" = "Получение уведомления об исчерпании трафика до достижения порога (значение: ГБ)"
 "tgNotifyCpu" = "Порог нагрузки на ЦП для уведомления"
 "tgNotifyCpuDesc" = "Получение уведомления, если нагрузка на ЦП превышает этот порог (значение: %)"
+"tgNotifyMem" = "RAM Load Notification"
+"tgNotifyMemDesc" = "Get notified if RAM load exceeds this threshold. (unit: %)"
+"restartAtMemThreshold" = "Restart Xray when the threshold is reached"
+"restartAtMemThresholdDesc" = "When the RAM utilization reaches the specified percentage, Xray will be restarted"
 "timeZone" = "Часовой пояс"
 "timeZoneDesc" = "Запланированные задачи выполняются в соответствии со временем в этом часовом поясе"
 "subSettings" = "Подписка"
@@ -493,6 +497,7 @@
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Загрузка процессора составляет {{ .Percent }}%, что превышает пороговое значение {{ .Threshold }}%"
+"memThreshold" = "🔴 RAM Threshold\r\nThe {{ .Threshold }}% threshold has been reached. Reboot performed"
 "selectUserFailed" = "❌ Ошибка при выборе пользователя!"
 "userSaved" = "✅ Пользователь Telegram сохранен."
 "loginSuccess" = "✅ Успешный вход в панель.\r\n"

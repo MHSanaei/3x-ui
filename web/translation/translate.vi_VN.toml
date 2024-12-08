@@ -282,6 +282,10 @@
 "trafficDiffDesc" = "Nhận thông báo về việc cạn kiệt lưu lượng trước khi đạt đến ngưỡng này (đơn vị: GB)"
 "tgNotifyCpu" = "Ngưỡng cảnh báo tỷ lệ CPU"
 "tgNotifyCpuDesc" = "Nhận thông báo nếu tỷ lệ sử dụng CPU vượt quá ngưỡng này (đơn vị: %)"
+"tgNotifyMem" = "RAM Load Notification"
+"tgNotifyMemDesc" = "Get notified if RAM load exceeds this threshold. (unit: %)"
+"restartAtMemThreshold" = "Restart Xray when the threshold is reached"
+"restartAtMemThresholdDesc" = "When the RAM utilization reaches the specified percentage, Xray will be restarted"
 "timeZone" = "Múi giờ"
 "timeZoneDesc" = "Các tác vụ được lên lịch chạy theo thời gian trong múi giờ này."
 "subSettings" = "Gói đăng ký"
@@ -493,6 +497,7 @@
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
+"memThreshold" = "🔴 RAM Threshold\r\nThe {{ .Threshold }}% threshold has been reached. Reboot performed"
 "selectUserFailed" = "❌ Lỗi khi chọn người dùng!"
 "userSaved" = "✅ Người dùng Telegram đã được lưu."
 "loginSuccess" = "✅ Đăng nhập thành công vào bảng điều khiển.\r\n"

@@ -282,6 +282,10 @@
 "trafficDiffDesc" = "Dapatkan notifikasi tentang batas traffic saat mencapai ambang batas ini. (unit: GB)"
 "tgNotifyCpu" = "Notifikasi Beban CPU"
 "tgNotifyCpuDesc" = "Dapatkan notifikasi jika beban CPU melebihi ambang batas ini. (unit: %)"
+"tgNotifyMem" = "RAM Load Notification"
+"tgNotifyMemDesc" = "Get notified if RAM load exceeds this threshold. (unit: %)"
+"restartAtMemThreshold" = "Restart Xray when the threshold is reached"
+"restartAtMemThresholdDesc" = "When the RAM utilization reaches the specified percentage, Xray will be restarted"
 "timeZone" = "Zone Waktu"
 "timeZoneDesc" = "Tugas terjadwal akan berjalan berdasarkan zona waktu ini."
 "subSettings" = "Langganan"
@@ -493,6 +497,7 @@
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%"
+"memThreshold" = "🔴 RAM Threshold\r\nThe {{ .Threshold }}% threshold has been reached. Reboot performed"
 "selectUserFailed" = "❌ Kesalahan dalam pemilihan pengguna!"
 "userSaved" = "✅ Pengguna Telegram tersimpan."
 "loginSuccess" = "✅ Berhasil masuk ke panel.\r\n"

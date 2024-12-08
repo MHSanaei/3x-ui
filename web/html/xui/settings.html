@@ -245,6 +245,8 @@
                   <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyBackup" }}' desc='{{ i18n "pages.settings.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
                   <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyLogin" }}' desc='{{ i18n "pages.settings.tgNotifyLoginDesc" }}' v-model="allSetting.tgBotLoginNotify"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
+                  <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyMem" }}' desc='{{ i18n "pages.settings.tgNotifyMemDesc" }}' v-model="allSetting.tgMem" :min="0" :max="100"></setting-list-item>
+                  <setting-list-item type="switch" title='{{ i18n "pages.settings.restartAtMemThreshold" }}' desc='{{ i18n "pages.settings.restartAtMemThresholdDesc" }}' v-model="allSetting.restartAtMemThreshold"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.telegramProxy"}}' desc='{{ i18n "pages.settings.telegramProxyDesc"}}' v-model="allSetting.tgBotProxy" placeholder="socks5://user:pass@host:port"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.telegramAPIServer"}}' desc='{{ i18n "pages.settings.telegramAPIServerDesc"}}' v-model="allSetting.tgBotAPIServer" placeholder="https://api.example.com"></setting-list-item>
                   <a-list-item>
@@ -464,7 +466,7 @@
           type: "field",
           outboundTag: "direct",
           domain: [
-            "geosite:category-ir"
+            "geosite:category-ru"
           ]
         },
         {
@@ -472,7 +474,7 @@
           outboundTag: "direct",
           ip: [
             "geoip:private",
-            "geoip:ir"
+            "geoip:ru"
           ]
         },
       ],
@@ -824,7 +826,7 @@
             subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
             if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
           }
-          return alerts
+          return alerts;
         }
       }
     },

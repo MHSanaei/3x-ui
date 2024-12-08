@@ -282,6 +282,10 @@
 "trafficDiffDesc" = "(فاصله زمانی هشدار تا رسیدن به اتمام ترافیک. (واحد: گیگابایت"
 "tgNotifyCpu" = "آستانه هشدار بار پردازنده"
 "tgNotifyCpuDesc" = "(اگر بار روی پردازنده ازاین آستانه فراتر رفت، برای شما پیام ارسال می‌شود. (واحد: درصد"
+"tgNotifyMem" = "RAM Load Notification"
+"tgNotifyMemDesc" = "Get notified if RAM load exceeds this threshold. (unit: %)"
+"restartAtMemThreshold" = "Restart Xray when the threshold is reached"
+"restartAtMemThresholdDesc" = "When the RAM utilization reaches the specified percentage, Xray will be restarted"
 "timeZone" = "منطقه زمانی"
 "timeZoneDesc" = "وظایف برنامه ریزی شده بر اساس این منطقه‌زمانی اجرا می‌شود"
 "subSettings" = "سابسکریپشن"
@@ -493,6 +497,7 @@
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 بار ‌پردازنده {{ .Percent }}% بیشتر از آستانه است {{ .Threshold }}%"
+"memThreshold" = "🔴 RAM Threshold\r\nThe {{ .Threshold }}% threshold has been reached. Reboot performed"
 "selectUserFailed" = "❌ خطا در انتخاب کاربر!"
 "userSaved" = "✅ کاربر تلگرام ذخیره شد."
 "loginSuccess" = "✅ با موفقیت به پنل وارد شدید.\r\n"

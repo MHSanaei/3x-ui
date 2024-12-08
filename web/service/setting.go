@@ -37,7 +37,7 @@ var defaultValueMap = map[string]string{
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"remarkModel":        "-ieo",
-	"timeLocation":       "Asia/Tehran",
+	"timeLocation":       "Europe/Moscow",
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
 	"tgBotProxy":         "",
@@ -47,6 +47,8 @@ var defaultValueMap = map[string]string{
 	"tgBotBackup":        "false",
 	"tgBotLoginNotify":   "true",
 	"tgCpu":              "80",
+	"tgMem":              "80",
+	"restartAtMemThreshold":"false",
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
 	"subEnable":          "false",
@@ -309,6 +311,14 @@ func (s *SettingService) GetTgBotLoginNotify() (bool, error) {
 
 func (s *SettingService) GetTgCpu() (int, error) {
 	return s.getInt("tgCpu")
+}
+
+func (s *SettingService) GetTgMem() (int, error) {
+	return s.getInt("tgMem")
+}
+
+func (s *SettingService) GetRestartAtMemThreshold() (bool, error) {
+	return s.getBool("restartAtMemThreshold")
 }
 
 func (s *SettingService) GetTgLang() (string, error) {
