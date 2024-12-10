@@ -61,6 +61,7 @@ type Status struct {
 		State    ProcessState `json:"state"`
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
+		ApiPort  string       `json:"apiPort"`
 	} `json:"xray"`
 	Uptime   uint64    `json:"uptime"`
 	Loads    []float64 `json:"loads"`
@@ -239,6 +240,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
+	status.Xray.ApiPort = s.xrayService.GetXrayApiPort()
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 

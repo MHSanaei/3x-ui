@@ -204,6 +204,35 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
 }
 
+func (x *XrayAPI) GetClientOnlineIPs(email string) (int, error) {
+	if x.grpcClient == nil {
+		return 0, common.NewError("xray api is not initialized")
+	}
+
+	statName := "user>>>" + email + ">>>online"
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+
+	if x.StatsServiceClient == nil {
+		return 0, common.NewError("xray StatusServiceClient is not initialized")
+	}
+
+	r := &statsService.GetStatsRequest{
+		Name:   statName,
+		Reset_: false,
+	}
+	resp, err := (*x.StatsServiceClient).GetStatsOnline(ctx, r)
+	if err != nil {
+		logger.Debug("Failed to query Xray statsonline:", err)
+		return 0, err
+	}
+
+	count := resp.GetStat().Value
+	
+	return int(count), nil
+}
+
 func processTraffic(matches []string, value int64, trafficMap map[string]*Traffic) {
 	isInbound := matches[1] == "inbound"
 	tag := matches[2]

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"sync"
+	"strconv"
 
 	"x-ui/logger"
 	"x-ui/xray"
@@ -54,6 +55,13 @@ func (s *XrayService) GetXrayVersion() string {
 		return "Unknown"
 	}
 	return p.GetVersion()
+}
+
+func (s *XrayService) GetXrayApiPort() string {
+	if p == nil {
+		return "Unknown"
+	}
+	return strconv.Itoa(p.GetAPIPort())
 }
 
 func RemoveIndex(s []interface{}, index int) []interface{} {

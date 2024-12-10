@@ -12,6 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type ClientOnlineIPsResponse struct {
+	Count int `json:"count"`
+}
+
 type InboundController struct {
 	inboundService service.InboundService
 	xrayService    service.XrayService
@@ -30,6 +34,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/update/:id", a.updateInbound)
+	g.POST("/clientOnlineIps/:email", a.getClientOnlineIPs)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
@@ -144,6 +149,21 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if err == nil && needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+func (a *InboundController) getClientOnlineIPs(c *gin.Context) {
+	email := c.Param("email")
+
+	count, err := a.inboundService.GetClientOnlineIPs(email)
+	res := &ClientOnlineIPsResponse{
+		Count: count,
+	}
+	if err != nil {
+		jsonObj(c, res, err)
+		return
+	}
+
+	jsonObj(c, res, nil)
 }
 
 func (a *InboundController) getClientIps(c *gin.Context) {

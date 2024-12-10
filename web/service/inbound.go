@@ -1855,6 +1855,18 @@ func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.Client
 	return traffic, nil
 }
 
+func (s *InboundService) GetClientOnlineIPs(email string) (int, error) {
+	s.xrayApi.Init(p.GetAPIPort())
+	defer s.xrayApi.Close()
+
+	count, err := s.xrayApi.GetClientOnlineIPs(email)
+	if err != nil {
+		logger.Debug("Failed to fetch Xray Client Online IPs:", err)
+		return 0, err
+	}
+	return count, nil
+}
+
 func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error) {
 	db := database.GetDB()
 	InboundClientIps := &model.InboundClientIps{}
