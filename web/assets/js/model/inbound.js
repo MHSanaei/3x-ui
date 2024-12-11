@@ -507,6 +507,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         },
         mode = MODE_OPTION.AUTO,
         noGRPCHeader = false,
+        keepAlivePeriod = 45,
     ) {
         super();
         this.path = path;
@@ -520,6 +521,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.xmux = xmux;
         this.mode = mode;
         this.noGRPCHeader = noGRPCHeader;
+        this.keepAlivePeriod = keepAlivePeriod;
     }
 
     addHeader(name, value) {
@@ -542,7 +544,8 @@ class xHTTPStreamSettings extends XrayCommonClass {
             json.xPaddingBytes,
             json.xmux,
             json.mode,
-            json.noGRPCHeader
+            json.noGRPCHeader,
+            json.keepAlivePeriod,
         );
     }
 
@@ -563,7 +566,8 @@ class xHTTPStreamSettings extends XrayCommonClass {
                 cMaxLifetimeMs: this.xmux.cMaxLifetimeMs
             },
             mode: this.mode,
-            noGRPCHeader: this.noGRPCHeader
+            noGRPCHeader: this.noGRPCHeader,
+            keepAlivePeriod: this.keepAlivePeriod,
         };
     }
 }

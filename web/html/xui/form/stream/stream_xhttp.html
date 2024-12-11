@@ -17,8 +17,7 @@
             </a-input>
             <a-input style="width: 50%" v-model.trim="header.value"
                 placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
-                <a-button slot="addonAfter" size="small"
-                    @click="inbound.stream.xhttp.removeHeader(index)">-</a-button>
+                <a-button slot="addonAfter" size="small" @click="inbound.stream.xhttp.removeHeader(index)">-</a-button>
             </a-input>
         </a-input-group>
     </a-form-item>
@@ -27,6 +26,9 @@
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
+    </a-form-item>
+    <a-form-item label='keep-Alive Period'>
+        <a-input-number v-model.number="inbound.stream.xhttp.keepAlivePeriod"></a-input-number>
     </a-form-item>
     <a-form-item label="Max Concurrent Upload">
         <a-input v-model.trim="inbound.stream.xhttp.scMaxConcurrentPosts"></a-input>
