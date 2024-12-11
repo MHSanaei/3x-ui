@@ -450,22 +450,56 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
-func (s *ServerService) GetLogsSniffedDomains(count string) []string {
-	c, _ := strconv.Atoi(count)
-	var lines []string
+func (s *ServerService) GetAccessLog(count string, grep string) []string {
+	accessLogPath, err := xray.GetAccessLogPath()
+	if err != nil {
+		return []string{"Error in Access Log retrieval: " + err.Error()}
+	}
 
-	lines = logger.GetLogsSniffedDomains(c)
-
-	return lines
+	if accessLogPath != "none" && accessLogPath != "" {
+		var cmdArgs []string
+		if grep != "" {
+			cmdArgs = []string{"bash", "-c", fmt.Sprintf("tail -n %s %s | grep '%s' | sort -r", count, accessLogPath, grep)}
+    	} else {
+    		cmdArgs = []string{"bash", "-c", fmt.Sprintf("tail -n %s %s | sort -r", count, accessLogPath)}
+    	}
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			return []string{"Failed to run command: " + err.Error()}
+		}
+		return strings.Split(out.String(), "\n")
+	} else {
+		return []string{"Access Log disabled!"}
+	}
 }
 
-func (s *ServerService) GetLogsBlockedDomains(count string) []string {
-	c, _ := strconv.Atoi(count)
-	var lines []string
+func (s *ServerService) GetErrorLog(count string, grep string) []string {
+	errorLogPath, err := xray.GetErrorLogPath()
+	if err != nil {
+		return []string{"Error in Error Log retrieval: " + err.Error()}
+	}
 
-	lines = logger.GetLogsBlockedDomains(c)
-
-	return lines
+	if errorLogPath != "none" && errorLogPath != "" {
+		var cmdArgs []string
+		if grep != "" {
+			cmdArgs = []string{"bash", "-c", fmt.Sprintf("tail -n %s %s | grep '%s' | sort -r", count, errorLogPath, grep)}
+    	} else {
+    		cmdArgs = []string{"bash", "-c", fmt.Sprintf("tail -n %s %s | sort -r", count, errorLogPath)}
+    	}
+		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			return []string{"Failed to run command: " + err.Error()}
+		}
+		return strings.Split(out.String(), "\n")
+	} else {
+		return []string{"Error Log disabled!"}
+	}
 }
 
 func (s *ServerService) GetConfigJson() (interface{}, error) {
