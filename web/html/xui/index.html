@@ -654,13 +654,13 @@
                 formattedLogs += ' - ';
                 
                 if (id.substr(0, 1) === '[') {
-                  let idColor = idColors[idColorIndex];
                   if (lastLogId !== '' && lastLogId !== id) {
                     idColorIndex++;
                   }
                   if (idColorIndex >= idColors.length) {
                     idColorIndex = 0;
                   }
+                  let idColor = idColors[idColorIndex];
                   lastLogId = id;
                   formattedLogs += `<span style="color: ${idColor};">${id}</span> <span style="color: ${levelColors[5]};">${message}</span>`;
                 } else {
