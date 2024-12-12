@@ -11,6 +11,7 @@ import (
 
 	"x-ui/config"
 	"x-ui/database"
+	"x-ui/caching"
 	"x-ui/logger"
 	"x-ui/sub"
 	"x-ui/web"
@@ -61,6 +62,17 @@ func runWebServer() {
 		return
 	}
 
+	var cacheInstance *caching.Cache
+	cacheInstance = caching.NewCache()
+	global.SetCache(cacheInstance)
+	err = cacheInstance.Init()
+	if err != nil {
+		log.Fatalf("Cache initialization error: %v", err)
+		return
+	} else {
+		log.Println("Cache initialized")
+	}
+
 	sigCh := make(chan os.Signal, 1)
 	// Trap shutdown signals
 	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
@@ -78,6 +90,10 @@ func runWebServer() {
 			err = subServer.Stop()
 			if err != nil {
 				logger.Debug("Error stopping sub server:", err)
+			}
+			err = cacheInstance.Flush()
+			if err != nil {
+				logger.Debug("Error clearing cache:", err)
 			}
 
 			server = web.NewServer()
@@ -98,10 +114,20 @@ func runWebServer() {
 			}
 			log.Println("Sub server restarted successfully.")
 
+			cacheInstance = caching.NewCache()
+			global.SetCache(cacheInstance)
+			err = cacheInstance.Init()
+			if err != nil {
+				log.Fatalf("Cache re-initialization error: %v", err)
+				return
+			}
+			log.Println("Cache cleared.")
+
 		default:
 			server.Stop()
 			subServer.Stop()
-			log.Println("Shutting down servers.")
+			cacheInstance.Flush()
+			log.Println("Shutting down servers and cache clearing.")
 			return
 		}
 	}

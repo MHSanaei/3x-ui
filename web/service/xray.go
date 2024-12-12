@@ -213,6 +213,10 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	if err != nil {
 		return err
 	}
+	if isForce {
+		logger.Debug("Xray Api Port: ", strconv.Itoa(p.GetAPIPort()))
+	}
+
 	return nil
 }
 

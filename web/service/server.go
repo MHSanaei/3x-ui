@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"regexp"
 
 	"x-ui/config"
 	"x-ui/database"
@@ -22,6 +23,7 @@ import (
 	"x-ui/util/common"
 	"x-ui/util/sys"
 	"x-ui/xray"
+	"x-ui/web/global"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
@@ -61,8 +63,10 @@ type Status struct {
 		State    ProcessState `json:"state"`
 		ErrorMsg string       `json:"errorMsg"`
 		Version  string       `json:"version"`
-		ApiPort  string       `json:"apiPort"`
 	} `json:"xray"`
+	XUI struct {
+		LatestVersion string `json:"latestVersion"`
+	} `json:"xui"`
 	Uptime   uint64    `json:"uptime"`
 	Loads    []float64 `json:"loads"`
 	TcpCount int       `json:"tcpCount"`
@@ -95,6 +99,14 @@ type ServerService struct {
 	inboundService InboundService
 }
 
+func extractValue(body string, key string) string {
+    keystr := "\"" + key + "\":[^,;\\]}]*"
+    r, _ := regexp.Compile(keystr)
+    match := r.FindString(body)
+    keyValMatch := strings.Split(match, ":")
+    return strings.TrimSpace(strings.ReplaceAll(keyValMatch[1], "\"", ""))
+}
+
 func getPublicIP(url string) string {
 	var host string
 	host = os.Getenv("XUI_SERVER_IP")
@@ -121,7 +133,37 @@ func getPublicIP(url string) string {
 	return ipString
 }
 
+func getXuiLatestVersion() string {
+	cache := global.GetCache().Memory()
+	if data, found := cache.Get("xui_latest_tag_name"); found {
+		if tag, ok := data.(string); ok {
+			return string(tag)
+		} else {
+			return ""
+		}
+	} else {
+		url := "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest"
+		
+		resp, err := http.Get(url)
+		if err != nil {
+			return ""
+		}
+		defer resp.Body.Close()
+		
+		json, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return ""
+		}
+
+		tag := extractValue(string(json), "tag_name")
+		cache.Set("xui_latest_tag_name", tag, 60*time.Minute)
+		return tag
+	}
+}
+
 func (s *ServerService) GetStatus(lastStatus *Status) *Status {
+	cache := global.GetCache().Memory()
+
 	now := time.Now()
 	status := &Status{
 		T: now,
@@ -224,8 +266,27 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	status.PublicIP.IPv4 = getPublicIP("https://api.ipify.org")
-	status.PublicIP.IPv6 = getPublicIP("https://api6.ipify.org")
+	if data, found := cache.Get("xui_public_ipv4"); found {
+		if ipv4, ok := data.(string); ok {
+			status.PublicIP.IPv4 = string(ipv4)
+		} else {
+			status.PublicIP.IPv4 = "N/A"
+		}
+	} else {
+		status.PublicIP.IPv4 = getPublicIP("https://api.ipify.org")
+		cache.Set("xui_public_ipv4", status.PublicIP.IPv4, 720*time.Hour)
+	}
+
+	if data, found := cache.Get("xui_public_ipv6"); found {
+		if ipv6, ok := data.(string); ok {
+			status.PublicIP.IPv6 = string(ipv6)
+		} else {
+			status.PublicIP.IPv6 = "N/A"
+		}
+	} else {
+		status.PublicIP.IPv6 = getPublicIP("https://api6.ipify.org")
+		cache.Set("xui_public_ipv6", status.PublicIP.IPv6, 720*time.Hour)
+	}
 
 	if s.xrayService.IsXrayRunning() {
 		status.Xray.State = Running
@@ -240,7 +301,9 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.Xray.ErrorMsg = s.xrayService.GetXrayResult()
 	}
 	status.Xray.Version = s.xrayService.GetXrayVersion()
-	status.Xray.ApiPort = s.xrayService.GetXrayApiPort()
+
+	status.XUI.LatestVersion = getXuiLatestVersion()
+
 	var rtm runtime.MemStats
 	runtime.ReadMemStats(&rtm)
 

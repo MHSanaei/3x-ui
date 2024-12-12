@@ -5,11 +5,13 @@ import (
 	_ "unsafe"
 
 	"github.com/robfig/cron/v3"
+	"github.com/patrickmn/go-cache"
 )
 
 var (
 	webServer WebServer
 	subServer SubServer
+	caching Cache
 )
 
 type WebServer interface {
@@ -18,6 +20,11 @@ type WebServer interface {
 }
 
 type SubServer interface {
+	GetCtx() context.Context
+}
+
+type Cache interface {
+	Memory() *cache.Cache
 	GetCtx() context.Context
 }
 
@@ -35,4 +42,12 @@ func SetSubServer(s SubServer) {
 
 func GetSubServer() SubServer {
 	return subServer
+}
+
+func SetCache(c Cache) {
+	caching = c
+}
+
+func GetCache() Cache {
+	return caching
 }
