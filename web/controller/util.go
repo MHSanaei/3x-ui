@@ -3,6 +3,7 @@ package controller
 import (
 	"net"
 	"net/http"
+	"os"
 	"strings"
 
 	"x-ui/config"
@@ -13,7 +14,19 @@ import (
 )
 
 func getRemoteIp(c *gin.Context) string {
-	value := c.GetHeader("X-Real-IP")
+	var value string
+	priorityHeader := os.Getenv("XUI_GETREMOTEIP_PRIORITY_HEADER")
+	if priorityHeader != "" {
+		value = c.GetHeader(priorityHeader)
+		if strings.Contains(value, ",") {
+			ips := strings.Split(value, ",")
+			value = ips[0]
+		}
+		if value != "" {
+			return value
+		}
+	}
+	value = c.GetHeader("X-Real-IP")
 	if value != "" {
 		return value
 	}
@@ -46,8 +59,13 @@ func jsonMsgObj(c *gin.Context, msg string, obj interface{}, err error) {
 		}
 	} else {
 		m.Success = false
-		m.Msg = msg + " " + I18nWeb(c, "fail") + ": " + err.Error()
-		logger.Warning(msg+" "+I18nWeb(c, "fail")+": ", err)
+		if msg != "" {
+			m.Msg = msg + " " + I18nWeb(c, "fail") + ": " + err.Error()
+			logger.Warning(msg+" "+I18nWeb(c, "fail")+": ", err)
+		} else {
+			m.Msg = I18nWeb(c, "fail") + ": " + err.Error()
+			logger.Warning(I18nWeb(c, "fail")+": ", err)
+		}
 	}
 	c.JSON(http.StatusOK, m)
 }

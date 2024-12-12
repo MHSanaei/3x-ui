@@ -125,7 +125,8 @@
                 <a-card hoverable>
                   <b>{{ i18n "menu.link" }}:</b>
                   <a-tag color="purple" style="cursor: pointer;" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
-                  <a-tag color="purple" style="cursor: pointer;" @click="openLogDomains()">{{ i18n "pages.index.logDomains" }}</a-tag>
+                  <a-tag color="purple" style="cursor: pointer;" @click="openAccessLog">{{ i18n "pages.index.accessLog" }}</a-tag>
+                  <a-tag color="purple" style="cursor: pointer;" @click="openErrorLog">{{ i18n "pages.index.errorLog" }}</a-tag>
                   <a-tag color="purple" style="cursor: pointer;" @click="openConfig">{{ i18n "pages.index.config" }}</a-tag>
                   <a-tag color="purple" style="cursor: pointer;" @click="openBackup">{{ i18n "pages.index.backup" }}</a-tag>
                 </a-card>
@@ -315,42 +316,87 @@
       </a-form>
       <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logModal.formattedLogs"></div>
     </a-modal>
-    <a-modal id="log-domains-modal" v-model="logDomainsModal.visible"
-        :closable="true" @cancel="() => logDomainsModal.visible = false"
+    <a-modal id="access-log-modal" v-model="accessLogModal.visible"
+        :closable="true" @cancel="() => accessLogModal.visible = false"
         :class="themeSwitcher.currentTheme"
         width="800px" footer="">
       <template slot="title">
-        {{ i18n "pages.index.logDomains" }}
-        <a-icon :spin="logDomainsModal.loading"
+        {{ i18n "pages.index.accessLog" }}
+        <a-icon :spin="accessLogModal.loading"
           type="sync"
           style="vertical-align: middle; margin-left: 10px;"
-          :disabled="logDomainsModal.loading"
-          @click="openLogDomains()">
+          :disabled="accessLogModal.loading"
+          @click="openAccessLog()">
         </a-icon>
       </template>
       <a-form layout="inline">
         <a-form-item style="margin-right: 0.5rem;">
           <a-input-group compact>
-            <a-select size="small" v-model="logDomainsModal.rows" style="width:90px;"
-                @change="openLogDomains()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="500">Few</a-select-option>
-              <a-select-option value="2500">Medium</a-select-option>
-              <a-select-option value="7000">Many</a-select-option>
-            </a-select>
-            <a-select size="small" v-model="logDomainsModal.type" style="width:95px;"
-                @change="openLogDomains()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="sniffed">Sniffed</a-select-option>
-              <a-select-option value="blocked">Blocked</a-select-option>
+            <a-select size="small" v-model="accessLogModal.rows" style="width:90px;"
+                @change="openAccessLog()" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="500">500</a-select-option>
+              <a-select-option value="2500">2500</a-select-option>
+              <a-select-option value="7000">7000</a-select-option>
             </a-select>
           </a-input-group>
         </a-form-item>
+        <a-form-item>
+          <a-input-search
+            v-model="accessLogModal.grep"
+            placeholder="Search.."
+            size="small"
+            enter-button
+            @search="openAccessLog"
+          />
+        </a-form-item>
         <a-form-item style="float: right;">
           <a-button type="primary" icon="download"
-            :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logDomainsModal.logs?.join('\n'))" download="x-ui-domains.log">
+            :href="'data:application/text;charset=utf-8,' + encodeURIComponent(accessLogModal.logs?.join('\n'))" download="xray-access.log">
           </a-button>
         </a-form-item>
       </a-form>
-      <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logDomainsModal.formattedLogs"></div>
+      <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="accessLogModal.formattedLogs"></div>
+    </a-modal>
+    <a-modal id="error-log-modal" v-model="errorLogModal.visible"
+        :closable="true" @cancel="() => errorLogModal.visible = false"
+        :class="themeSwitcher.currentTheme"
+        width="800px" footer="">
+      <template slot="title">
+        {{ i18n "pages.index.errorLog" }}
+        <a-icon :spin="errorLogModal.loading"
+          type="sync"
+          style="vertical-align: middle; margin-left: 10px;"
+          :disabled="errorLogModal.loading"
+          @click="openErrorLog()">
+        </a-icon>
+      </template>
+      <a-form layout="inline">
+        <a-form-item style="margin-right: 0.5rem;">
+          <a-input-group compact>
+            <a-select size="small" v-model="errorLogModal.rows" style="width:90px;"
+                @change="openErrorLog()" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="500">500</a-select-option>
+              <a-select-option value="2500">2500</a-select-option>
+              <a-select-option value="7000">7000</a-select-option>
+            </a-select>
+          </a-input-group>
+        </a-form-item>
+        <a-form-item>
+          <a-input-search
+            v-model="errorLogModal.grep"
+            placeholder="Search.."
+            size="small"
+            enter-button
+            @search="openErrorLog"
+          />
+        </a-form-item>
+        <a-form-item style="float: right;">
+          <a-button type="primary" icon="download"
+            :href="'data:application/text;charset=utf-8,' + encodeURIComponent(errorLogModal.logs?.join('\n'))" download="xray-error.log">
+          </a-button>
+        </a-form-item>
+      </a-form>
+      <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="errorLogModal.formattedLogs"></div>
     </a-modal>
     <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
         :closable="true" footer=""
@@ -528,38 +574,99 @@
         },
     };
 
-    const logDomainsModal = {
+    const accessLogModal = {
         visible: false,
         logs: [],
         rows: 500,
-        type: 'sniffed',
+        grep: '',
         loading: false,
         show(logs) {
             this.visible = true;
             this.logs = logs; 
-            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs, this.type) : "No Record...";
+            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
         },
-        formatLogs(logs, type) {
+        formatLogs(logs) {
             let formattedLogs = '';
+            const levelColors = ["#3c89e8","#008771","#008771","#f37b24","#e04141","#bcbcbc"];
 
             logs.forEach((log, index) => {
-                let [data, message] = log.split(" - ",2);
-                const parts = data.split(" ");
-                if(index>0) formattedLogs += '<br>';
+              if (log.length <= 3) {
+                return;
+              }
+              let [date, time] = log.split(' ', 2);
+              let message = log.substr(date?.length !== undefined && time?.length !== undefined ? (date.length+time.length+2) : 0);
+              let messageColor = levelColors[5];
+              if (message && message.indexOf('-> blocked') !== -1) {
+                messageColor = levelColors[4];
+              }
+              
+              if (index > 0) formattedLogs += '<br/>';
+              formattedLogs += `<span style="color: ${levelColors[0]};">${date} ${time}</span> `;
+              formattedLogs += `- <span style="color: ${messageColor};">${message}</span>`;
+            });
 
-                if (parts.length === 2) {
-                    const d = parts[0];
-                    const t = parts[1];
-                    formattedLogs += `<span style="color: gray;">${d} ${t}</span>`;
+            return formattedLogs;
+        },
+        hide() {
+            this.visible = false;
+        },
+    };
+
+    const errorLogModal = {
+        visible: false,
+        logs: [],
+        rows: 500,
+        grep: '',
+        loading: false,
+        show(logs) {
+            this.visible = true;
+            this.logs = logs;
+            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
+        },
+        formatLogs(logs) {
+            let formattedLogs = '';
+            const levels = ["DEBUG","INFO","NOTICE","WARNING","ERROR"];
+            const levelsMap = {"[Debug]": levels[0], "[Info]": levels[1], "[Notice]": levels[2], "[Warning]": levels[3], "[Error]": levels[4]};
+            const levelColors = ["#3c89e8","#008771","#008771","#f37b24","#e04141","#bcbcbc"];
+            const idColors = ['#CADABF','#5F6F65','#FFDFD6','#BC9F8B','#C9DABF','#9CA986','#808D7C','#E7E8D8','#B5CFB7'];
+            let idColorIndex = 0;
+            let lastLogId = '';
+
+            logs.forEach((log, index) => {
+              if (log.length <= 3) {
+                return;
+              }
+              let [date, time, levelTag, id] = log.split(' ', 4);
+              if (date?.length === undefined || time?.length === undefined || levelTag?.length === undefined || id?.length === undefined) {
+                if (index > 0) formattedLogs += '<br/>';
+                formattedLogs += log;
+              } else {
+                let message = log.substr(
+                  date?.length !== undefined && time?.length !== undefined && levelTag?.length !== undefined && id?.length !== undefined ?
+                    (date.length + time.length + levelTag.length + id.length + 4) : 0
+                );
+                let level = levelsMap[levelTag];
+                const levelIndex = levels.indexOf(level, levels) || 5;
+
+                if (index > 0) formattedLogs += '<br/>';
+                formattedLogs += `<span style="color: ${levelColors[0]};">${date} ${time}</span> `;
+                formattedLogs += `<span style="color: ${levelColors[levelIndex]};">${level}</span> `;
+                formattedLogs += ' - ';
+                
+                if (id.substr(0, 1) === '[') {
+                  if (lastLogId !== '' && lastLogId !== id) {
+                    idColorIndex++;
+                  }
+                  if (idColorIndex >= idColors.length) {
+                    idColorIndex = 0;
+                  }
+                  let idColor = idColors[idColorIndex];
+                  lastLogId = id;
+                  formattedLogs += `<span style="color: ${idColor};">${id}</span> <span style="color: ${levelColors[5]};">${message}</span>`;
                 } else {
-                    formattedLogs += `<span style="color: gray;">${data}</span>`;
+                  formattedLogs += `<span style="color: ${levelColors[5]};">${id} ${message}</span>`;
                 }
-
-                if (message) {
-                    message = "<b>"+(type === 'sniffed' ? 'Sniffed' : 'Blocked')+": </b>" + message;
-                }
-
-                formattedLogs += message ? ' - ' + message : '';
+              }
             });
 
             return formattedLogs;
@@ -674,15 +781,25 @@
                 await PromiseUtil.sleep(500);
                 logModal.loading = false;
             },
-            async openLogDomains(){
-                logDomainsModal.loading = true;
-                const msg = await HttpUtil.get('server/logs-'+(logDomainsModal.type==='blocked'?'blocked':'sniffed')+'/'+logDomainsModal.rows);
+            async openAccessLog() {
+                accessLogModal.loading = true;
+                const msg = await HttpUtil.post('server/access-log/'+accessLogModal.rows, { grep: accessLogModal.grep });
                 if (!msg.success) {
                     return;
                 }
-                logDomainsModal.show(msg.obj);
+                accessLogModal.show(msg.obj);
                 await PromiseUtil.sleep(500);
-                logDomainsModal.loading = false;
+                accessLogModal.loading = false;
+            },
+            async openErrorLog() {
+                errorLogModal.loading = true;
+                const msg = await HttpUtil.post('server/error-log/'+errorLogModal.rows, { grep: errorLogModal.grep });
+                if (!msg.success) {
+                    return;
+                }
+                errorLogModal.show(msg.obj);
+                await PromiseUtil.sleep(500);
+                errorLogModal.loading = false;
             },
             async openConfig() {
                 this.loading(true);

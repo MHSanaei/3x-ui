@@ -81,6 +81,30 @@ func GetAccessLogPath() (string, error) {
 	return "", err
 }
 
+func GetErrorLogPath() (string, error) {
+	config, err := os.ReadFile(GetConfigPath())
+	if err != nil {
+		logger.Warningf("Failed to read configuration file: %s", err)
+		return "", err
+	}
+
+	jsonConfig := map[string]interface{}{}
+	err = json.Unmarshal([]byte(config), &jsonConfig)
+	if err != nil {
+		logger.Warningf("Failed to parse JSON configuration: %s", err)
+		return "", err
+	}
+
+	if jsonConfig["log"] != nil {
+		jsonLog := jsonConfig["log"].(map[string]interface{})
+		if jsonLog["error"] != nil {
+			errorLogPath := jsonLog["error"].(string)
+			return errorLogPath, nil
+		}
+	}
+	return "", err
+}
+
 func stopProcess(p *Process) {
 	p.Stop()
 }
