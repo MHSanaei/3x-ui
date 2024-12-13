@@ -52,6 +52,6 @@ jobs:
         build-args: |
           BUILD_WITH_ANTIZAPRET=${{ vars.BUILD_WITH_ANTIZAPRET }}
         push: true
-        platforms: linux/amd64, linux/arm64/v8, linux/arm/v7, linux/arm/v6, linux/386
+        platforms: linux/amd64, linux/arm64/v8
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
