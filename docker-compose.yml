@@ -1,10 +1,7 @@
 ---
 services:
   ui:
-    build:
-      context: .
-      args:
-        ANTIZAPRET: "${BUILD_WITH_ANTIZAPRET:-0}"
+    image: ghcr.io/serogaq/3x-ui:latest
     deploy:
       resources:
         limits:

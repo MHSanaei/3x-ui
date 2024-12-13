@@ -42,16 +42,16 @@ cd ../../
 # Antizapret
 case $2 in
     0)
-        ANTIZAPRET="0"
+        BUILD_WITH_ANTIZAPRET="0"
         ;;
     1)
-        ANTIZAPRET="1"
+        BUILD_WITH_ANTIZAPRET="1"
         ;;
     *)
-        ANTIZAPRET="0"
+        BUILD_WITH_ANTIZAPRET="0"
         ;;
 esac
-if [[ $ANTIZAPRET == "1" ]]; then
+if [[ $BUILD_WITH_ANTIZAPRET == "1" ]]; then
     wget https://github.com/warexify/antizapret-xray/archive/refs/heads/main.zip
     unzip main.zip
     mv antizapret-xray-main antizapret-xray
