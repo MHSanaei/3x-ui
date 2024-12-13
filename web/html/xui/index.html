@@ -93,6 +93,7 @@
                 <a-card hoverable>
                   <b>3X-UI:</b>
                   <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                  <a v-if="'v{{ .cur_ver }}' !== status.xui.latestVersion" rel="noopener" :href="`https://github.com/MHSanaei/3x-ui/releases/tag/${status.xui.latestVersion}`" target="_blank"><a-tag color="purple">Available [[ status.xui.latestVersion ]]</a-tag></a>
                   <a rel="noopener" href="https://t.me/XrayUI" target="_blank"><a-tag color="green">@XrayUI</a-tag></a>
                 </a-card>
               </a-col>
@@ -472,6 +473,7 @@
             this.appUptime = 0;
             this.appStats = {threads: 0, mem: 0, uptime: 0};
             this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
+            this.xui = { latestVersion: "" };
 
             if (data == null) {
                 return;
@@ -493,6 +495,7 @@
             this.appUptime = data.appUptime;
             this.appStats = data.appStats;
             this.xray = data.xray;
+            this.xui = data.xui;
             switch (this.xray.state) {
                 case State.Running:
                     this.xray.color = "green";
