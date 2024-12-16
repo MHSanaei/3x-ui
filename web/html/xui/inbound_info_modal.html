@@ -34,7 +34,7 @@
               <a-tag color="green">[[ inbound.network ]]</a-tag>
             </td>
           </tr>
-          <template v-if="inbound.isTcp || inbound.isWs || inbound.isH2 || inbound.isHttpupgrade || inbound.isSplithttp">
+          <template v-if="inbound.isTcp || inbound.isWs || inbound.isHttpupgrade || inbound.isXHTTP">
             <tr>
               <td>{{ i18n "host" }}</td>
               <td v-if="inbound.host">
@@ -55,6 +55,14 @@
                 </a-tooltip>
               <td v-else>
                 <a-tag color="orange">{{ i18n "none" }}</a-tag>
+              </td>
+            </tr>
+          </template>
+          <template v-if="inbound.isXHTTP">
+            <tr>
+              <td>Mode</td>
+              <td>
+                <a-tag>[[ inbound.stream.xhttp.mode ]]</a-tag>
               </td>
             </tr>
           </template>

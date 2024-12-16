@@ -1,6 +1,11 @@
 [English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
-<p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
+    <img alt="3x-ui" src="./media/3x-ui-light.png">
+  </picture>
+</p>
 
 **一个更好的面板 • 基于Xray Core构建**
 
@@ -254,6 +259,7 @@ location /sub {
 - Oracle Linux 8+
 - OpenSUSE Tubleweed
 - Amazon Linux 2023
+- Windows x64
 
 ## 支持的架构和设备
 <details>
@@ -276,14 +282,18 @@ location /sub {
 
 ## Languages
 
-- English（英语）
-- Farsi（伊朗语）
-- Chinese（中文）
-- Russian（俄语）
-- Vietnamese（越南语）
-- Spanish（西班牙语）
-- Indonesian （印度尼西亚语）
-- Ukrainian（乌克兰语）
+- English（英语）  
+- Persian（波斯语）  
+- Traditional Chinese（繁体中文）  
+- Simplified Chinese（简体中文）  
+- Japanese（日语）  
+- Russian（俄语）  
+- Vietnamese（越南语）  
+- Spanish（西班牙语）  
+- Indonesian（印尼语）  
+- Ukrainian（乌克兰语）  
+- Turkish（土耳其语）  
+- Português (Brazil)（葡萄牙语（巴西））
 
 
 ## Features
@@ -476,7 +486,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 
 #### 使用
 
-- [API 文档](https://documenter.getpostman.com/view/5146551/2sAXxP8Y12)
+- [API 文档](https://www.postman.com/hsanaei/3x-ui/collection/q1l5l0u/3x-ui)
 - `/login` 使用 `POST` 用户名称 & 密码： `{username: '', password: ''}` 登录
 - `/panel/api/inbounds` 以下操作的基础：
 
@@ -506,7 +516,7 @@ Web 面板通过 Telegram Bot 支持每日流量、面板登录、数据库备�
 - `client.password`  TROJAN
 - `client.email`  Shadowsocks
 
-- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://god.gw.postman.com/run-collection/5146551-e6aac565-e0e2-46df-acff-2607a51bbd04?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-e6aac565-e0e2-46df-acff-2607a51bbd04%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
 </details>
 
 ## 环境变量
@@ -534,13 +544,33 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 ## 预览
 
-![1](./media/1.png)
-![2](./media/2.png)
-![3](./media/3.png)
-![4](./media/4.png)
-![5](./media/5.png)
-![6](./media/6.png)
-![7](./media/7.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
+  <img alt="3x-ui" src="./media/01-overview-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/02-inbounds-dark.png">
+  <img alt="3x-ui" src="./media/02-inbounds-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-inbound-dark.png">
+  <img alt="3x-ui" src="./media/03-add-inbound-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/04-add-client-dark.png">
+  <img alt="3x-ui" src="./media/04-add-client-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/05-settings-dark.png">
+  <img alt="3x-ui" src="./media/05-settings-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/06-configs-dark.png">
+  <img alt="3x-ui" src="./media/06-configs-light.png">
+</picture>
+<picture>
+  <img alt="3x-ui" src="./media/7.png">
+</picture>
 
 ## 特别感谢
 

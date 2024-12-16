@@ -267,13 +267,12 @@
       <template v-if="outbound.canEnableStream()">
         <a-form-item label='{{ i18n "transmission" }}'>
           <a-select v-model="outbound.stream.network" @change="streamNetworkChange" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="tcp">TCP</a-select-option>
+            <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
-            <a-select-option value="http">H2</a-select-option>
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
-            <a-select-option value="splithttp">SplitHTTP</a-select-option>
+            <a-select-option value="xhttp">XHTTP</a-select-option>
           </a-select>
         </a-form-item>
         <template v-if="outbound.stream.network === 'tcp'">
@@ -337,15 +336,8 @@
           <a-form-item label='{{ i18n "path" }}'>
             <a-input v-model.trim="outbound.stream.ws.path"></a-input>
           </a-form-item>
-        </template>
-
-        <!-- http -->
-        <template v-if="outbound.stream.network === 'http'">
-          <a-form-item label='{{ i18n "host" }}'>
-            <a-input v-model.trim="outbound.stream.http.host"></a-input>
-          </a-form-item>
-          <a-form-item label='{{ i18n "path" }}'>
-            <a-input v-model.trim="outbound.stream.http.path"></a-input>
+          <a-form-item label='Heartbeat Period'>
+            <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
           </a-form-item>
         </template>
         
@@ -372,13 +364,18 @@
           </a-form-item>
         </template>
 
-        <!-- splithttp -->
-        <template v-if="outbound.stream.network === 'splithttp'">
+        <!-- xhttp -->
+        <template v-if="outbound.stream.network === 'xhttp'">
           <a-form-item label='{{ i18n "host" }}'>
-            <a-input v-model="outbound.stream.splithttp.host"></a-input>
+            <a-input v-model="outbound.stream.xhttp.host"></a-input>
           </a-form-item>
           <a-form-item label='{{ i18n "path" }}'>
-            <a-input v-model.trim="outbound.stream.splithttp.path"></a-input>
+            <a-input v-model.trim="outbound.stream.xhttp.path"></a-input>
+          </a-form-item>
+          <a-form-item label='Mode'>
+            <a-select v-model="outbound.stream.xhttp.mode" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
+            </a-select>
           </a-form-item>
         </template>
       </template>
