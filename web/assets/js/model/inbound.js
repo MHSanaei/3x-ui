@@ -503,11 +503,12 @@ class xHTTPStreamSettings extends XrayCommonClass {
             maxConcurrency: "16-32",
             maxConnections: 0,
             cMaxReuseTimes: "64-128",
-            cMaxLifetimeMs: 0
+            cMaxLifetimeMs: 0,
+            hMaxRequestTimes: "800-900",
+            hKeepAlivePeriod: 0,
         },
         mode = MODE_OPTION.AUTO,
-        noGRPCHeader = false,
-        keepAlivePeriod = 45,
+        noGRPCHeader = false
     ) {
         super();
         this.path = path;
@@ -521,7 +522,6 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.xmux = xmux;
         this.mode = mode;
         this.noGRPCHeader = noGRPCHeader;
-        this.keepAlivePeriod = keepAlivePeriod;
     }
 
     addHeader(name, value) {
@@ -545,7 +545,6 @@ class xHTTPStreamSettings extends XrayCommonClass {
             json.xmux,
             json.mode,
             json.noGRPCHeader,
-            json.keepAlivePeriod,
         );
     }
 
@@ -563,11 +562,12 @@ class xHTTPStreamSettings extends XrayCommonClass {
                 maxConcurrency: this.xmux.maxConcurrency,
                 maxConnections: this.xmux.maxConnections,
                 cMaxReuseTimes: this.xmux.cMaxReuseTimes,
-                cMaxLifetimeMs: this.xmux.cMaxLifetimeMs
+                cMaxLifetimeMs: this.xmux.cMaxLifetimeMs,
+                hMaxRequestTimes: this.xmux.hMaxRequestTimes,
+                hKeepAlivePeriod: this.xmux.hKeepAlivePeriod,
             },
             mode: this.mode,
             noGRPCHeader: this.noGRPCHeader,
-            keepAlivePeriod: this.keepAlivePeriod,
         };
     }
 }
