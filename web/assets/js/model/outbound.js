@@ -287,11 +287,24 @@ class xHTTPStreamSettings extends CommonClass {
         path = '/',
         host = '',
         mode = '',
+        noGRPCHeader = false,
+        scMinPostsIntervalMs = "30",
+        xmux = {
+            maxConcurrency: "16-32",
+            maxConnections: 0,
+            cMaxReuseTimes: "64-128",
+            cMaxLifetimeMs: 0,
+            hMaxRequestTimes: "800-900",
+            hKeepAlivePeriod: 0,
+        },
     ) {
         super();
         this.path = path;
         this.host = host;
         this.mode = mode;
+        this.noGRPCHeader = noGRPCHeader;
+        this.scMinPostsIntervalMs = scMinPostsIntervalMs;
+        this.xmux = xmux;
     }
 
     static fromJson(json = {}) {
@@ -299,6 +312,9 @@ class xHTTPStreamSettings extends CommonClass {
             json.path,
             json.host,
             json.mode,
+            json.noGRPCHeader,
+            json.scMinPostsIntervalMs,
+            json.xmux
         );
     }
 
@@ -307,6 +323,16 @@ class xHTTPStreamSettings extends CommonClass {
             path: this.path,
             host: this.host,
             mode: this.mode,
+            noGRPCHeader: this.noGRPCHeader,
+            scMinPostsIntervalMs: this.scMinPostsIntervalMs,
+            xmux: {
+                maxConcurrency: this.xmux.maxConcurrency,
+                maxConnections: this.xmux.maxConnections,
+                cMaxReuseTimes: this.xmux.cMaxReuseTimes,
+                cMaxLifetimeMs: this.xmux.cMaxLifetimeMs,
+                hMaxRequestTimes: this.xmux.hMaxRequestTimes,
+                hKeepAlivePeriod: this.xmux.hKeepAlivePeriod,
+            },
         };
     }
 }
