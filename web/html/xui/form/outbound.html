@@ -377,6 +377,30 @@
               <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
             </a-select>
           </a-form-item>
+          <a-form-item label="No gRPC Header" v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
+            <a-switch v-model="outbound.stream.xhttp.noGRPCHeader"></a-switch>
+          </a-form-item>
+          <a-form-item label="Min Upload Interval (Ms)" v-if="outbound.stream.xhttp.mode === 'packet-up'">
+            <a-input v-model.trim="outbound.stream.xhttp.scMinPostsIntervalMs"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Concurrency" v-if="!outbound.stream.xhttp.xmux.maxConnections">
+            <a-input v-model="outbound.stream.xhttp.xmux.maxConcurrency"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Connections" v-if="!outbound.stream.xhttp.xmux.maxConcurrency">
+            <a-input v-model="outbound.stream.xhttp.xmux.maxConnections"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Reuse Times">
+            <a-input v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Lifetime (ms)">
+            <a-input v-model="outbound.stream.xhttp.xmux.cMaxLifetimeMs"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Request Times">
+            <a-input v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+          </a-form-item>
+          <a-form-item label='Keep Alive Period'>
+            <a-input v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input>
+          </a-form-item>
         </template>
       </template>
 
