@@ -27,11 +27,8 @@
             <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item label='keep-Alive Period'>
-        <a-input-number v-model.number="inbound.stream.xhttp.keepAlivePeriod"></a-input-number>
-    </a-form-item>
-    <a-form-item label="Max Concurrent Upload">
-        <a-input v-model.trim="inbound.stream.xhttp.scMaxConcurrentPosts"></a-input>
+    <a-form-item label="Max Buffered Upload">
+        <a-input v-model.trim="inbound.stream.xhttp.scMaxBufferedPosts"></a-input>
     </a-form-item>
     <a-form-item label="Max Upload Size (Byte)">
         <a-input v-model.trim="inbound.stream.xhttp.scMaxEachPostBytes"></a-input>
@@ -56,6 +53,12 @@
     </a-form-item>
     <a-form-item label="Max Lifetime (ms)">
         <a-input v-model="inbound.stream.xhttp.xmux.cMaxLifetimeMs"></a-input>
+    </a-form-item>
+    <a-form-item label="Max Request Times">
+        <a-input v-model="inbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+    </a-form-item>
+    <a-form-item label='Keep Alive Period'>
+        <a-input v-model.number="inbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input>
     </a-form-item>
     <a-form-item label="No gRPC Header">
         <a-switch v-model="inbound.stream.xhttp.noGRPCHeader"></a-switch>
