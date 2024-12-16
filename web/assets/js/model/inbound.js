@@ -494,7 +494,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         path = '/',
         host = '',
         headers = [],
-        scMaxConcurrentPosts = "100",
+        scMaxBufferedPosts = 30,
         scMaxEachPostBytes = "1000000",
         scMinPostsIntervalMs = "30",
         noSSEHeader = false,
@@ -514,7 +514,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.path = path;
         this.host = host;
         this.headers = headers;
-        this.scMaxConcurrentPosts = scMaxConcurrentPosts;
+        this.scMaxBufferedPosts = scMaxBufferedPosts;
         this.scMaxEachPostBytes = scMaxEachPostBytes;
         this.scMinPostsIntervalMs = scMinPostsIntervalMs;
         this.noSSEHeader = noSSEHeader;
@@ -537,7 +537,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             json.path,
             json.host,
             XrayCommonClass.toHeaders(json.headers),
-            json.scMaxConcurrentPosts,
+            json.scMaxBufferedPosts,
             json.scMaxEachPostBytes,
             json.scMinPostsIntervalMs,
             json.noSSEHeader,
@@ -553,7 +553,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             path: this.path,
             host: this.host,
             headers: XrayCommonClass.toV2Headers(this.headers, false),
-            scMaxConcurrentPosts: this.scMaxConcurrentPosts,
+            scMaxBufferedPosts: this.scMaxBufferedPosts,
             scMaxEachPostBytes: this.scMaxEachPostBytes,
             scMinPostsIntervalMs: this.scMinPostsIntervalMs,
             noSSEHeader: this.noSSEHeader,
