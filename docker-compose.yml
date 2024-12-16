@@ -24,10 +24,16 @@ services:
       - "traefik.http.routers.3x-ui-sub.entrypoints=https"
       - "traefik.http.services.3x-ui-sub.loadbalancer.server.port=2096"
       #
-      - "traefik.tcp.routers.vless.rule=HostSNI(`${XUI_VLESS_SNI}`)"
-      - "traefik.tcp.routers.vless.tls.passthrough=true"
-      - "traefik.tcp.routers.vless.service=3x-ui-inbound-443"
+      - "traefik.tcp.routers.vless-reality.rule=HostSNI(`${XUI_VLESS_REALITY_SNI}`)"
+      - "traefik.tcp.routers.vless-reality.tls.passthrough=true"
+      - "traefik.tcp.routers.vless-reality.service=3x-ui-inbound-443"
       - "traefik.tcp.services.3x-ui-inbound-443.loadbalancer.server.port=443"
+      #
+      - "traefik.tcp.routers.vless-grpc.rule=HostSNI(`${XUI_VLESS_GRPC_SNI}`)"
+      - "traefik.tcp.routers.vless-grpc.tls.passthrough=true"
+      - "traefik.tcp.routers.vless-grpc.entrypoints=https"
+      - "traefik.tcp.routers.vless-grpc.service=3x-ui-inbound-8888"
+      - "traefik.tcp.services.3x-ui-inbound-8888.loadbalancer.server.port=8888"
     volumes:
       - ./db/:/etc/x-ui/
       - ./db/fail2ban.sqlite3:/var/lib/fail2ban/fail2ban.sqlite3
