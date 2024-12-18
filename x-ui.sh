@@ -1406,7 +1406,7 @@ iplimit_main() {
         ;;
     5)
         read -rp "Enter the IP address you want to ban: " ban_ip
-        if [[ $ban_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ $ban_ip =~ ^(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]))$ || $ban_ip =~ ^(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})$ ]]; then
             fail2ban-client set 3x-ipl banip "$ban_ip"
             echo -e "${green}IP Address ${ban_ip} has been banned successfully.${plain}"
         else
@@ -1416,7 +1416,7 @@ iplimit_main() {
         ;;
     6)
         read -rp "Enter the IP address you want to unban: " unban_ip
-        if [[ $unban_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        if [[ $unban_ip =~ ^(((25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9]?[0-9]))$ || $unban_ip =~ ^(([0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4})$ ]]; then
             fail2ban-client set 3x-ipl unbanip "$unban_ip"
             echo -e "${green}IP Address ${unban_ip} has been unbanned successfully.${plain}"
         else
@@ -1440,7 +1440,7 @@ iplimit_main() {
         remove_iplimit
         iplimit_main
         ;;
-    *) 
+    *)
         echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
         iplimit_main
         ;;
