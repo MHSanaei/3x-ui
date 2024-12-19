@@ -687,7 +687,7 @@ firewall_menu() {
     echo -e "${green}\t3.${plain} Open Ports"
     echo -e "${green}\t4.${plain} Delete Ports from List"
     echo -e "${green}\t5.${plain} Disable Firewall"
-    echo -e "${green}\t5.${plain} Firewall Status"
+    echo -e "${green}\t6.${plain} Firewall Status"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
