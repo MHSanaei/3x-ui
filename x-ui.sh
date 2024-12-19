@@ -685,6 +685,7 @@ firewall_menu() {
     echo -e "${green}\t1.${plain} Install Firewall & open ports"
     echo -e "${green}\t2.${plain} Allowed List"
     echo -e "${green}\t3.${plain} Delete Ports from List"
+    
     echo -e "${green}\t4.${plain} Disable Firewall"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
@@ -697,11 +698,11 @@ firewall_menu() {
         firewall_menu
         ;;
     2)
-        sudo ufw status
+        sudo ufw status numbered
         firewall_menu
         ;;
     3)
-        delete_ports
+        sudo delete_ports
         firewall_menu
         ;;
     4)
