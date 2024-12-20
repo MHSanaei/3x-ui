@@ -682,10 +682,12 @@ show_xray_status() {
 }
 
 firewall_menu() {
-    echo -e "${green}\t1.${plain} Install Firewall & open ports"
-    echo -e "${green}\t2.${plain} Allowed List"
-    echo -e "${green}\t3.${plain} Delete Ports from List"
-    echo -e "${green}\t4.${plain} Disable Firewall"
+    echo -e "${green}\t1.${plain} Install Firewall"
+    echo -e "${green}\t2.${plain} Port List"
+    echo -e "${green}\t3.${plain} Open Ports"
+    echo -e "${green}\t4.${plain} Delete Ports from List"
+    echo -e "${green}\t5.${plain} Disable Firewall"
+    echo -e "${green}\t6.${plain} Firewall Status"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -693,19 +695,27 @@ firewall_menu() {
         show_menu
         ;;
     1)
-        open_ports
+        install_firewall
         firewall_menu
         ;;
     2)
-        sudo ufw status
+        sudo ufw status numbered
         firewall_menu
         ;;
     3)
-        delete_ports
+        sudo open_ports
         firewall_menu
         ;;
     4)
+        sudo delete_ports
+        firewall_menu
+        ;;
+    5)
         sudo ufw disable
+        firewall_menu
+        ;;
+    6)
+        sudo ufw status verbose
         firewall_menu
         ;;
     *) 
@@ -715,7 +725,7 @@ firewall_menu() {
     esac
 }
 
-open_ports() {
+install_firewall() {
     if ! command -v ufw &>/dev/null; then
         echo "ufw firewall is not installed. Installing now..."
         apt-get update
@@ -733,13 +743,17 @@ open_ports() {
         ufw allow ssh
         ufw allow http
         ufw allow https
-        ufw allow 2053/tcp
+        ufw allow 2053/tcp #webPort
+        ufw allow 2096/tcp #subport
 
         # Enable the firewall
         ufw --force enable
-    fi
+        fi
+    done
+}
 
-    # Prompt the user to enter a list of ports
+open_ports() {
+    # Prompt the user to enter the ports they want to open
     read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
 
     # Check if the input is valid
@@ -755,19 +769,28 @@ open_ports() {
             # Split the range into start and end ports
             start_port=$(echo $port | cut -d'-' -f1)
             end_port=$(echo $port | cut -d'-' -f2)
+            # Open the port range
             ufw allow $start_port:$end_port/tcp
             ufw allow $start_port:$end_port/udp
         else
+            # Open the single port
             ufw allow "$port"
         fi
     done
 
-    # Confirm that the ports are open
-    echo "The following ports are now open:"
-    ufw status | grep "ALLOW" | grep -Eo "[0-9]+(/[a-z]+)?"
-
-    echo "Firewall status:"
-    ufw status verbose
+    # Confirm that the ports are opened
+    echo "Opened the specified ports:"
+    for port in "${PORT_LIST[@]}"; do
+        if [[ $port == *-* ]]; then
+            start_port=$(echo $port | cut -d'-' -f1)
+            end_port=$(echo $port | cut -d'-' -f2)
+            # Check if the port range has been successfully opened
+            (ufw status | grep -q "$start_port:$end_port") && echo "$start_port-$end_port"
+        else
+            # Check if the individual port has been successfully opened
+            (ufw status | grep -q "$port") && echo "$port"
+        fi
+    done
 }
 
 delete_ports() {
