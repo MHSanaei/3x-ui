@@ -700,23 +700,23 @@ firewall_menu() {
         firewall_menu
         ;;
     2)
-        sudo ufw status numbered
+        ufw status numbered
         firewall_menu
         ;;
     3)
-        sudo open_ports
+        open_ports
         firewall_menu
         ;;
     4)
-        sudo delete_ports
+        delete_ports
         firewall_menu
         ;;
     5)
-        sudo ufw disable
+        ufw disable
         firewall_menu
         ;;
     6)
-        sudo ufw status verbose
+        ufw status verbose
         firewall_menu
         ;;
     *) 
