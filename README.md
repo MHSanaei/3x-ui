@@ -566,7 +566,8 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
   <img alt="3x-ui" src="./media/06-configs-light.png">
 </picture>
 <picture>
-  <img alt="3x-ui" src="./media/7.png">
+  <source media="(prefers-color-scheme: dark)" srcset="./media/07-bot-dark.png">
+  <img alt="3x-ui" src="./media/07-bot-light.png">
 </picture>
 
 ## A Special Thanks to
