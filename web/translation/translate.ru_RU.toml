@@ -41,7 +41,7 @@
 "offline" = "Офлайн"
 "online" = "Онлайн"
 "domainName" = "Домен"
-"monitor" = "Порт IP"
+"monitor" = "Слушать IP"
 "certificate" = "Цифровой сертификат"
 "fail" = "Неудачно"
 "success" = "Успешно"

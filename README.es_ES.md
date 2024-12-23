@@ -569,7 +569,8 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
   <img alt="3x-ui" src="./media/06-configs-light.png">
 </picture>
 <picture>
-  <img alt="3x-ui" src="./media/7.png">
+  <source media="(prefers-color-scheme: dark)" srcset="./media/07-bot-dark.png">
+  <img alt="3x-ui" src="./media/07-bot-light.png">
 </picture>
 
 ## Un agradecimiento especial a
@@ -583,4 +584,4 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 ## Estrellas a lo largo del tiempo
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
