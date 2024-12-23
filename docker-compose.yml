@@ -9,31 +9,36 @@ services:
         reservations:
           memory: 256M
     container_name: 3x-ui
-    hostname: 3x-ui
+    hostname: ${HOSTNAME:-3x-ui}
     networks:
       traefik:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.3x-ui.rule=Host(`${XUI_PANEL_DOMAIN}`)"
+      - "traefik.http.routers.3x-ui.middlewares=cf-x-real-ip@file"
+      - "traefik.http.routers.3x-ui.entrypoints=websecure"
       - "traefik.http.routers.3x-ui.service=3x-ui"
-      - "traefik.http.routers.3x-ui.entrypoints=https"
       - "traefik.http.services.3x-ui.loadbalancer.server.port=2053"
       #
       - "traefik.http.routers.3x-ui-sub.rule=Host(`${XUI_SUB_DOMAIN}`)"
+      - "traefik.http.routers.3x-ui-sub.middlewares=cf-x-real-ip@file"
+      - "traefik.http.routers.3x-ui-sub.entrypoints=websecure"
       - "traefik.http.routers.3x-ui-sub.service=3x-ui-sub"
-      - "traefik.http.routers.3x-ui-sub.entrypoints=https"
       - "traefik.http.services.3x-ui-sub.loadbalancer.server.port=2096"
       #
-      - "traefik.tcp.routers.vless-reality.rule=HostSNI(`${XUI_VLESS_REALITY_SNI}`)"
+      - "traefik.tcp.routers.vless-reality.rule=HostSNI(`${XUI_VLESS_REALITY_SNI}`) || HostSNI(`www.${XUI_VLESS_REALITY_SNI}`)"
       - "traefik.tcp.routers.vless-reality.tls.passthrough=true"
+      - "traefik.tcp.routers.vless-reality.entrypoints=websecure"
       - "traefik.tcp.routers.vless-reality.service=3x-ui-inbound-443"
       - "traefik.tcp.services.3x-ui-inbound-443.loadbalancer.server.port=443"
+      - "traefik.tcp.services.3x-ui-inbound-443.loadbalancer.proxyprotocol.version=2"
       #
       - "traefik.tcp.routers.vless-grpc.rule=HostSNI(`${XUI_VLESS_GRPC_SNI}`)"
       - "traefik.tcp.routers.vless-grpc.tls.passthrough=true"
-      - "traefik.tcp.routers.vless-grpc.entrypoints=https"
+      - "traefik.tcp.routers.vless-grpc.entrypoints=websecure"
       - "traefik.tcp.routers.vless-grpc.service=3x-ui-inbound-8888"
       - "traefik.tcp.services.3x-ui-inbound-8888.loadbalancer.server.port=8888"
+      - "traefik.tcp.services.3x-ui-inbound-8888.loadbalancer.proxyprotocol.version=2"
     volumes:
       - ./db/:/etc/x-ui/
       - ./db/fail2ban.sqlite3:/var/lib/fail2ban/fail2ban.sqlite3
