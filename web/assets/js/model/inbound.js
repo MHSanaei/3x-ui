@@ -1278,7 +1278,7 @@ class Inbound extends XrayCommonClass {
             obj.mode = xhttp.mode;
         }
 
-        if (security === 'tls') {
+        if (tls === 'tls') {
             if (!ObjectUtil.isEmpty(this.stream.tls.sni)) {
                 obj.sni = this.stream.tls.sni;
             }
