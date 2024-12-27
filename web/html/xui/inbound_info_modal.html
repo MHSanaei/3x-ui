@@ -185,6 +185,14 @@
             <a-tag>↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
           </td>
         </tr>
+        <tr v-if="infoModal.clientSettings.comment">
+          <td>Comment</td>
+          <td>
+            <a-tooltip :title="[[ infoModal.clientSettings.comment  ]]">
+              <a-tag class="info-large-tag">[[ infoModal.clientSettings.comment ]]</a-tag>
+            </a-tooltip>
+          </td>
+        </tr>
         <tr v-if="app.ipLimitEnable">
           <td>{{ i18n "pages.inbounds.IPLimit" }}</td>
           <td>

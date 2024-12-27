@@ -98,5 +98,6 @@ type Client struct {
 	Enable     bool   `json:"enable" form:"enable"`
 	TgID       int64  `json:"tgId" form:"tgId"`
 	SubID      string `json:"subId" form:"subId"`
+	Comment    string `json:"comment" form:"comment"`
 	Reset      int    `json:"reset" form:"reset"`
 }

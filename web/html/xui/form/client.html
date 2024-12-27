@@ -68,6 +68,9 @@
         </template>
         <a-input-number style="width: 50%" v-model="client.tgId" min="0"></a-input-number>
     </a-form-item>
+    <a-form-item v-if="client.email" label='Comment'>
+        <a-input v-model.trim="client.comment"></a-input>
+    </a-form-item>
     <a-form-item v-if="app.ipLimitEnable">
         <template slot="label">
             <a-tooltip>
