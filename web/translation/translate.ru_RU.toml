@@ -44,6 +44,7 @@
 "monitor" = "Слушать IP"
 "certificate" = "Цифровой сертификат"
 "fail" = "Неудачно"
+"comment" = "Комментарий"
 "success" = "Успешно"
 "getVersion" = "Узнать версию"
 "install" = "Установка"
