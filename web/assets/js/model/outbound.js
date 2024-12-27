@@ -721,6 +721,7 @@ class Outbound extends CommonClass {
         let headerType = url.searchParams.get('headerType') ?? undefined;
         let host = url.searchParams.get('host') ?? undefined;
         let path = url.searchParams.get('path') ?? undefined;
+        let mode = url.searchParams.get('mode') ?? undefined;
 
         if (type === 'tcp' || type === 'none') {
             stream.tcp = new TcpStreamSettings(headerType ?? 'none', host, path);
