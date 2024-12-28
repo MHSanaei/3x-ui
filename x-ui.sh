@@ -716,7 +716,6 @@ firewall_menu() {
         ufw enable
         firewall_menu
         ;;
-    
     6)
         ufw disable
         firewall_menu
