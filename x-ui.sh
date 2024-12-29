@@ -683,12 +683,13 @@ show_xray_status() {
 }
 
 firewall_menu() {
-    echo -e "${green}\t1.${plain} Install Firewall"
+    echo -e "${green}\t1.${plain} ${green}Install${plain} Firewall"
     echo -e "${green}\t2.${plain} Port List"
-    echo -e "${green}\t3.${plain} Open Ports"
-    echo -e "${green}\t4.${plain} Delete Ports from List"
-    echo -e "${green}\t5.${plain} Disable Firewall"
-    echo -e "${green}\t6.${plain} Firewall Status"
+    echo -e "${green}\t3.${plain} ${green}Open${plain} Ports"
+    echo -e "${green}\t4.${plain} ${red}Delete{${plain} Ports from List"
+    echo -e "${green}\t5.${plain} ${green}Enable${plain} Firewall"
+    echo -e "${green}\t6.${plain} ${red}Disable${plain} Firewall"
+    echo -e "${green}\t7.${plain} Firewall Status"
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -p "Choose an option: " choice
     case "$choice" in
@@ -712,10 +713,14 @@ firewall_menu() {
         firewall_menu
         ;;
     5)
-        ufw disable
+        ufw enable
         firewall_menu
         ;;
     6)
+        ufw disable
+        firewall_menu
+        ;;
+    7)
         ufw status verbose
         firewall_menu
         ;;
