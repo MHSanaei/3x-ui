@@ -44,7 +44,6 @@
 "monitor" = "Dinleme IP"
 "certificate" = "Dijital Sertifika"
 "fail" = "Başarısız"
-"comment" = "Yorum"
 "success" = "Başarılı"
 "getVersion" = "Sürümü Al"
 "install" = "Yükle"
