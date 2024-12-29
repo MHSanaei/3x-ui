@@ -44,6 +44,7 @@
 "monitor" = "Listening IP"
 "certificate" = "Certificado Digital"
 "fail" = "Falló"
+"comment" = "Comentario"
 "success" = "Éxito"
 "getVersion" = "Obtener versión"
 "install" = "Instalar"
