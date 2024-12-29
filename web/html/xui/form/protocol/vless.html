@@ -18,7 +18,7 @@
     </table>
   </a-collapse-panel>
 </a-collapse>
-<template v-if="inbound.isTcp && !inbound.stream.isReality">
+<template v-if="inbound.isTcp && (inbound.stream.isReality || inbound.stream.isTls)">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label="Fallbacks">
       <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addFallback()"></a-button>
