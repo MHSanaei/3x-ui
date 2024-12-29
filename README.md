@@ -354,7 +354,7 @@ If you choose not to modify these settings, they will be generated randomly (thi
    - The path will be randomly generated, or you can enter a custom path.
 
 3. **View Current Settings:**
-   - To view your current settings, use the `x-ui settings` command in the terminal or `View Current Settings` in `x-ui`
+   - To view your current settings, use the `x-ui setting` command in the terminal or `View Current Settings` in `x-ui`
 
 ### Security Recommendation:
 - For enhanced security, use a long, random word in your URL structure.
