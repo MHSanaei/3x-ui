@@ -44,6 +44,7 @@
 "monitor" = "監聽"
 "certificate" = "憑證"
 "fail" = "失敗"
+"comment" = "評論"
 "success" = "成功"
 "getVersion" = "獲取版本"
 "install" = "安裝"

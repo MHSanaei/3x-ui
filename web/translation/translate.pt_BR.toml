@@ -44,6 +44,7 @@
 "monitor" = "IP de Escuta"
 "certificate" = "Certificado Digital"
 "fail" = "Falhou"
+"comment" = "Comentário"
 "success" = "Com Sucesso"
 "getVersion" = "Obter Versão"
 "install" = "Instalar"
