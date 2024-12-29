@@ -211,6 +211,25 @@ systemctl restart x-ui
 
 </details>
 
+## Web UI and Command Line UI
+
+<details>
+
+There are two primary ways to manage and configure Xray Core settings using the tools included in this package. Most of the functionality for managing Xray Core is accessible through the Web UI, which becomes available after the x-ui service is started and listening on the default port 2053. By default, it is available only via HTTP interface. However, certain features, such as configuring firewall settings or IP limit management, are only available via the `x-ui` command-line tool (3X-UI Panel Management Script), which provides a pseudo-UI interface.
+
+An example of `x-ui` command-line tool look and feel:
+
+   ![x-ui command-line tool](./media/x-ui-cmd-tool.png)
+
+> **NOTE**:
+> The `x-ui` tool (a shell script) is not compatible with the Docker environment. Attempting to run it within a Docker container will result in improper functionality. The screenshot above was taken in a Docker environment, which is why the script is unable to detect that the 3X-UI Panel is installed.
+
+An example of Web UI look and feel:
+
+   ![Web UI](./media/01-overview-light.png)
+
+</details>
+
 ## Nginx Settings
 <details>
   <summary>Click for Reverse Proxy Configuration</summary>
