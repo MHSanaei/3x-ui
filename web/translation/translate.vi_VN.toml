@@ -44,6 +44,7 @@
 "monitor" = "Listening IP"
 "certificate" = "Chứng chỉ số"
 "fail" = "Thất bại"
+"comment" = "Bình luận"
 "success" = "Thành công"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
