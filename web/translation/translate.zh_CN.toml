@@ -44,6 +44,7 @@
 "monitor" = "监听"
 "certificate" = "数字证书"
 "fail" = "失败"
+"comment" = "评论"
 "success" = "成功"
 "getVersion" = "获取版本"
 "install" = "安装"
