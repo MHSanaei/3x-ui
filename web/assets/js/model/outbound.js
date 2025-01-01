@@ -411,14 +411,14 @@ class SockoptStreamSettings extends CommonClass {
         tcpFastOpen = false,
         tcpKeepAliveInterval = 0,
         tcpMptcp = false,
-        tcpNoDelay = false
+        penetrate = false
     ) {
         super();
         this.dialerProxy = dialerProxy;
         this.tcpFastOpen = tcpFastOpen;
         this.tcpKeepAliveInterval = tcpKeepAliveInterval;
         this.tcpMptcp = tcpMptcp;
-        this.tcpNoDelay = tcpNoDelay;
+        this.penetrate = penetrate;
     }
 
     static fromJson(json = {}) {
@@ -428,7 +428,7 @@ class SockoptStreamSettings extends CommonClass {
             json.tcpFastOpen,
             json.tcpKeepAliveInterval,
             json.tcpMptcp,
-            json.tcpNoDelay,
+            json.penetrate,
         );
     }
 
@@ -438,7 +438,7 @@ class SockoptStreamSettings extends CommonClass {
             tcpFastOpen: this.tcpFastOpen,
             tcpKeepAliveInterval: this.tcpKeepAliveInterval,
             tcpMptcp: this.tcpMptcp,
-            tcpNoDelay: this.tcpNoDelay,
+            penetrate: this.penetrate,
         };
     }
 }
