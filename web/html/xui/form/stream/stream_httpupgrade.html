@@ -10,7 +10,7 @@
     <a-input v-model.trim="inbound.stream.httpupgrade.path"></a-input>
   </a-form-item>
   <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
-    <a-button icon="plus" size="small" @click="inbound.stream.httpupgrade.addHeader('host', '')"></a-button>
+    <a-button icon="plus" size="small" @click="inbound.stream.httpupgrade.addHeader('', '')"></a-button>
   </a-form-item>
   <a-form-item :wrapper-col="{span:24}">
     <a-input-group compact v-for="(header, index) in inbound.stream.httpupgrade.headers">
