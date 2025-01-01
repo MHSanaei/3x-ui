@@ -44,6 +44,7 @@
 "monitor" = "IP Pemantauan"
 "certificate" = "Sertifikat Digital"
 "fail" = "Gagal"
+"comment" = "Komentar"
 "success" = "Berhasil"
 "getVersion" = "Dapatkan Versi"
 "install" = "Instal"

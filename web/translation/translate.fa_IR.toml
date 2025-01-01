@@ -44,6 +44,7 @@
 "monitor" = "آی‌پی اتصال"
 "certificate" = "گواهی دیجیتال"
 "fail" = "ناموفق"
+"comment" = "توضیحات"
 "success" = "موفق"
 "getVersion" = "دریافت نسخه"
 "install" = "نصب"

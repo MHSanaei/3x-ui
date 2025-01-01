@@ -44,6 +44,7 @@
 "monitor" = "監視"
 "certificate" = "証明書"
 "fail" = "失敗"
+"comment" = "コメント"
 "success" = "成功"
 "getVersion" = "バージョン取得"
 "install" = "インストール"

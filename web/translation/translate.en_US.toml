@@ -44,6 +44,7 @@
 "monitor" = "Listen IP"
 "certificate" = "Digital Certificate"
 "fail" = "Failed"
+"comment" = "Comment"
 "success" = "Successfully"
 "getVersion" = "Get Version"
 "install" = "Install"
