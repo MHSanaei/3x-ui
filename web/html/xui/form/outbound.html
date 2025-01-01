@@ -392,11 +392,11 @@
           <a-form-item label="Max Reuse Times">
             <a-input v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
           </a-form-item>
-          <a-form-item label="Max Lifetime (ms)">
-            <a-input v-model="outbound.stream.xhttp.xmux.cMaxLifetimeMs"></a-input>
-          </a-form-item>
           <a-form-item label="Max Request Times">
             <a-input v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+          </a-form-item>
+          <a-form-item label="Max Reusable Secs">
+            <a-input v-model="outbound.stream.xhttp.xmux.hMaxReusableSecs"></a-input>
           </a-form-item>
           <a-form-item label='Keep Alive Period'>
             <a-input v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input>
