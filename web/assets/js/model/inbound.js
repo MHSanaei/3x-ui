@@ -816,7 +816,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         mark = 0,
         tproxy = "off",
         tcpMptcp = false,
-        tcpNoDelay = false,
+        penetrate = false,
         domainStrategy = DOMAIN_STRATEGY_OPTION.USE_IP,
         tcpMaxSeg = 1440,
         dialerProxy = "",
@@ -834,7 +834,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         this.mark = mark;
         this.tproxy = tproxy;
         this.tcpMptcp = tcpMptcp;
-        this.tcpNoDelay = tcpNoDelay;
+        this.penetrate = penetrate;
         this.domainStrategy = domainStrategy;
         this.tcpMaxSeg = tcpMaxSeg;
         this.dialerProxy = dialerProxy;
@@ -855,7 +855,7 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.mark,
             json.tproxy,
             json.tcpMptcp,
-            json.tcpNoDelay,
+            json.penetrate,
             json.domainStrategy,
             json.tcpMaxSeg,
             json.dialerProxy,
@@ -876,7 +876,7 @@ class SockoptStreamSettings extends XrayCommonClass {
             mark: this.mark,
             tproxy: this.tproxy,
             tcpMptcp: this.tcpMptcp,
-            tcpNoDelay: this.tcpNoDelay,
+            penetrate: this.penetrate,
             domainStrategy: this.domainStrategy,
             tcpMaxSeg: this.tcpMaxSeg,
             dialerProxy: this.dialerProxy,
