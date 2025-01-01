@@ -758,7 +758,7 @@ class RealityStreamSettings extends XrayCommonClass {
             json.maxClient,
             json.maxTimediff,
             json.shortIds,
-            json.settings,
+            settings,
         );
     }
 
