@@ -7,7 +7,7 @@
             <a-input v-model.trim="fakednsModal.fakeDns.ipPool"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.fakedns.poolSize" }}'>
-          <a-input-number style="width: 100%;" type="number" min="1" v-model.trim="fakednsModal.fakeDns.poolSize"></a-input-number>
+          <a-input-number v-model.number="fakednsModal.fakeDns.poolSize" :min="1"></a-input-number>
         </a-form-item>
     </a-form>
 </a-modal>
