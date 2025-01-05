@@ -14,10 +14,10 @@
             </a-select>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.first" }}' v-if="clientsBulkModal.emailMethod>1">
-            <a-input-number v-model="clientsBulkModal.firstNum" :min="1"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.firstNum" :min="1"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.last" }}' v-if="clientsBulkModal.emailMethod>1">
-            <a-input-number v-model="clientsBulkModal.lastNum" :min="clientsBulkModal.firstNum"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.lastNum" :min="clientsBulkModal.firstNum"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.prefix" }}' v-if="clientsBulkModal.emailMethod>0">
             <a-input v-model.trim="clientsBulkModal.emailPrefix"></a-input>
@@ -26,7 +26,7 @@
             <a-input v-model.trim="clientsBulkModal.emailPostfix"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
-            <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "security" }}' v-if="inbound.protocol === Protocols.VMESS">
             <a-select v-model="clientsBulkModal.security" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -61,7 +61,7 @@
                     <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>
-            <a-input-number style="width: 50%" v-model="clientsBulkModal.tgId" min="0"></a-input-number>
+            <a-input-number style="width: 50%" v-model.number="clientsBulkModal.tgId" min="0"></a-input-number>
         </a-form-item>
         <a-form-item v-if="app.ipLimitEnable">
             <template slot="label">
@@ -73,7 +73,7 @@
                     <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>
-            <a-input-number v-model="clientsBulkModal.limitIp" min="0"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.limitIp" min="0"></a-input-number>
         </a-form-item>
         <a-form-item>
             <template slot="label">
@@ -85,7 +85,7 @@
                     <a-icon type="question-circle"></a-icon>
                 </a-tooltip>
             </template>
-            <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
