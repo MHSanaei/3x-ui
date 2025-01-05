@@ -106,7 +106,7 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 
 func (j *CheckClientIpJob) processLogFile() bool {
 
-	ipRegex := regexp.MustCompile(`from \[?([0-9a-fA-F:.]+)\]?:\d+ accepted`)
+	ipRegex := regexp.MustCompile(`from (?:tcp:|udp:)?\[?([0-9a-fA-F\.:]+)\]?:\d+ accepted`)
 	emailRegex := regexp.MustCompile(`email: (.+)$`)
 
 	accessLogPath, _ := xray.GetAccessLogPath()
