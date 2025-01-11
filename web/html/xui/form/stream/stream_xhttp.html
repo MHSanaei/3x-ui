@@ -17,7 +17,7 @@
             </a-input>
             <a-input style="width: 50%" v-model.trim="header.value"
                 placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
-                <a-button slot="addonAfter" size="small" @click="inbound.stream.xhttp.removeHeader(index)">-</a-button>
+                <a-button icon="minus" slot="addonAfter" size="small" @click="inbound.stream.xhttp.removeHeader(index)"></a-button>
             </a-input>
         </a-input-group>
     </a-form-item>
