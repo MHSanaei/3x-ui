@@ -15,14 +15,14 @@
     overflow-y: hidden;
   }
   .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper {
-    margin:-10px 22px !important;
+	  margin:-10px 22px !important;
   }
   .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper .ant-table {
     border-bottom-left-radius: 1rem;
     border-bottom-right-radius: 1rem;
   }
   .ant-table .ant-table-content .ant-table-tbody tr:last-child tr:last-child td {
-    border-bottom-color: transparent;
+	  border-bottom-color: transparent;
   }
   .ant-table .ant-table-tbody tr:last-child.ant-table-expanded-row .ant-table-wrapper .ant-table-tbody>tr:last-child>td:first-child {
     border-bottom-left-radius: 6px;
@@ -40,7 +40,7 @@
       padding: .5rem;
     }
     .ant-table .ant-table-content .ant-table-tbody tr:last-child .ant-table-wrapper {
-      margin:-10px 2px !important;
+	    margin:-10px 2px !important;
     }
   }
   .ant-col-sm-24 {
@@ -130,10 +130,10 @@
       <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
-                   message='{{ i18n "secAlertTitle" }}'
-                   color="red"
-                   description='{{ i18n "secAlertSsl" }}'
-                   show-icon closable>
+            message='{{ i18n "secAlertTitle" }}'
+            color="red"
+            description='{{ i18n "secAlertSsl" }}'
+            show-icon closable>
           </a-alert>
         </transition>
         <transition name="list" appear>
@@ -233,10 +233,10 @@
                 </a-col>
                 <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
                   <a-select v-model="refreshInterval"
-                            style="width: 65px;"
-                            v-if="isRefreshEnabled"
-                            @change="changeRefreshInterval"
-                            :dropdown-class-name="themeSwitcher.currentTheme">
+                      style="width: 65px;"
+                      v-if="isRefreshEnabled"
+                      @change="changeRefreshInterval"
+                      :dropdown-class-name="themeSwitcher.currentTheme">
                     <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
                   </a-select>
                   <a-icon type="sync" :spin="refreshing" @click="manualRefresh" style="margin: 0 5px;"></a-icon>
@@ -246,8 +246,8 @@
             </div>
             <div :style="isMobile ? '' : 'display: flex; align-items: center; justify-content: flex-start;'">
               <a-switch v-model="enableFilter"
-                        :style="isMobile ? 'margin-bottom: .5rem; display: flex;' : 'margin-right: .5rem;'"
-                        @change="toggleFilter">
+                  :style="isMobile ? 'margin-bottom: .5rem; display: flex;' : 'margin-right: .5rem;'"
+                  @change="toggleFilter">
                 <a-icon slot="checkedChildren" type="search"></a-icon>
                 <a-icon slot="unCheckedChildren" type="filter"></a-icon>
               </a-switch>
@@ -262,15 +262,15 @@
             </div>
             <a-back-top></a-back-top>
             <a-table :columns="isMobile ? mobileColumns : columns" :row-key="dbInbound => dbInbound.id"
-                     :data-source="searchedInbounds"
-                     :scroll="isMobile ? {} : { x: 1000 }"
-                     :pagination=pagination(searchedInbounds)
-                     :expand-icon-as-cell="false"
-                     :expand-row-by-click="false"
-                     :expand-icon-column-index="0"
-                     :indent-size="0"
-                     :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
-                     style="margin-top: 10px">
+                :data-source="searchedInbounds"
+                :scroll="isMobile ? {} : { x: 1000 }"
+                :pagination=pagination(searchedInbounds)
+                :expand-icon-as-cell="false"
+                :expand-row-by-click="false"
+                :expand-icon-column-index="0"
+                :indent-size="0"
+                :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
+                style="margin-top: 10px">
               <template slot="action" slot-scope="text, dbInbound">
                 <a-dropdown :trigger="['click']">
                   <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 20px; text-decoration: solid;"></a-icon>
@@ -391,7 +391,7 @@
                   <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
                     [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
                     <template v-if="dbInbound.total > 0">
-                      [[ sizeFormat(dbInbound.total) ]]
+                        [[ sizeFormat(dbInbound.total) ]]
                     </template>
                     <template v-else>
                       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -488,10 +488,10 @@
                               </table>
                             </template>
                             <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                              [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
-                              <template v-if="dbInbound.total > 0">
-                                [[ sizeFormat(dbInbound.total) ]]
-                              </template>
+                                [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
+                                <template v-if="dbInbound.total > 0">
+                                    [[ sizeFormat(dbInbound.total) ]]
+                                </template>
                               <template v-else>
                                 <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                                   <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
@@ -505,7 +505,7 @@
                         <td>{{ i18n "pages.inbounds.expireDate" }}</td>
                         <td>
                           <a-tag style="min-width: 50px; text-align: center;" v-if="dbInbound.expiryTime > 0"
-                                 :color="dbInbound.isExpiry? 'red': 'blue'">
+                            :color="dbInbound.isExpiry? 'red': 'blue'">
                             <template v-if="app.datepicker === 'gregorian'">
                               [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
                             </template>
@@ -532,11 +532,11 @@
               </template>
               <template slot="expandedRowRender" slot-scope="record">
                 <a-table
-                        :row-key="client => client.id"
-                        :columns="isMobile ? innerMobileColumns : innerColumns"
-                        :data-source="getInboundClients(record)"
-                        :pagination=pagination(getInboundClients(record))
-                        :style="isMobile ? 'margin: -10px 2px -11px;' : 'margin: -10px 22px -11px;'">
+                  :row-key="client => client.id"
+                  :columns="isMobile ? innerMobileColumns : innerColumns"
+                  :data-source="getInboundClients(record)"
+                  :pagination=pagination(getInboundClients(record))
+                  :style="isMobile ? 'margin: -10px 2px -11px;' : 'margin: -10px 22px -11px;'">
                   {{template "client_table"}}
                 </a-table>
               </template>

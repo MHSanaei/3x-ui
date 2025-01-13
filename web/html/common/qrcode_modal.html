@@ -45,13 +45,15 @@
     qrcodes: [],
     clipboard: null,
     visible: false,
-    isJustSub: false,subId: '',
+    isJustSub: false,
+    subId: '',
     show: function(title = '', dbInbound, client, isJustSub = false) {
       this.title = title;
       this.dbInbound = dbInbound;
       this.inbound = dbInbound.toInbound();
       this.client = client;
-      this.isJustSub = isJustSub;this.subId = '';
+      this.isJustSub = isJustSub;
+      this.subId = '';
       this.qrcodes = [];
       if (this.inbound.protocol == Protocols.WIREGUARD) {
         this.inbound.genInboundLinks(dbInbound.remark).split('\r\n').forEach((l, index) => {
