@@ -1289,10 +1289,10 @@
             },
             resetClientTrafficHandler(client, dbInboundId, clients = []) {
                 if (clients.length > 0){
-                    clients.forEach((client) => {
+                    clients.forEach(async (client) => {
                         const inbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId)
                         if(inbound && this.hasClientStats(inbound, client.email)) {
-                           this.submit('/panel/inbound/' + client.inboundId + '/resetClientTraffic/' + client.email)
+                           await this.submit('/panel/inbound/' + client.inboundId + '/resetClientTraffic/' + client.email)
                         }
                     })
                 }else {
