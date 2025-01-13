@@ -147,7 +147,7 @@
 "meansNoLimit" = "= Без ограничений (значение: ГБ)"
 "totalFlow" = "Общий расход"
 "leaveBlankToNeverExpire" = "Оставьте пустым, чтобы не истекало"
-"noRecommendKeepDefault" = "Не рекомендуется оставлять настройки по умолчанию"
+"noRecommendKeepDefault" = "Рекомендуется оставить настройки по умолчанию"
 "certificatePath" = "Путь к файлу"
 "certificateContent" = "Содержимое файла"
 "publicKey" = "Публичный ключ"
