@@ -7,10 +7,8 @@ import (
 	"strings"
 )
 
-//go:embed version
 var version string
 
-//go:embed name
 var name string
 
 type LogLevel string

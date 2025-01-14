@@ -533,6 +533,101 @@ Enter the user ID in input field number 4. The Telegram accounts with this id wi
 <details>
   <summary>Click for environment variables details</summary>
 
+### Set startup settings via environment variables
+
+WEB_LISTEN - Panel listening domain / By default, leave blank to monitor all domains and IP addresses
+
+WEB_DOMAIN Panel IP address / Leave blank to connect from any IP
+
+WEB_PORT - Port used to display this panel
+
+WEB_CERT_FILE - Path to the panel's public key file / Enter the full path starting with '/'
+
+WEB_KEY_FILE - Path to the panel's private key file / Enter the full path starting with '/'
+
+WEB_BASE_PATH - Root path of the panel's URL
+Must start with '/' and end with '/'
+
+SESSION_MAX_AGE - Session duration
+Duration of a session in the system (value: minute)
+
+PAGE_SIZE - Pagination size
+Define the page size for the incoming table. Set to 0 to disable
+
+EXPIRE_DIFF - Session expiration threshold for notification
+Receive notification about session expiration before reaching the threshold (value: day)
+
+TRAFFIC_DIFF - Traffic threshold for notification
+Receive notification about traffic exhaustion before reaching the threshold (value: GB)
+
+TIME_LOCATION (def. "Asia/Tehran")- Time zone
+Scheduled tasks are executed according to the time in this time zone
+
+TG_BOT_ENABLE (def. "false") - Enable Telegram bot
+Connect to the functions of this panel via Telegram bot
+
+TG_BOT_TOKEN - Telegram bot token
+You need to get a token from Telegram bot manager @botfather
+
+TG_BOT_PROXY- Socks5 proxy
+If you need a Socks5 proxy to connect to Telegram. Configure its parameters according to the manual.
+
+TG_BOT_API_SERVER - Telegram API Server
+The Telegram API server to use. Leave blank to use the default server.
+
+TG_BOT_CHAT_ID - Bot Admin Telegram ID
+One or more bot admin IDs. To get the ID, use @userinfobot or the '/id' command in the bot.
+
+TG_RUN_TIME - Telegram bot notification frequency
+Use Crontab time format
+
+TG_BOT_BACKUP - Database Backup
+Include database backup file with report notification
+
+TG_BOT_LOGIN_NOTIFY - Login Notification
+Displays the username, IP address, and time when someone tries to log into your dashboard.
+
+TG_CPU - CPU load threshold for notification
+Receive notification if CPU load exceeds this threshold (value: %)
+
+TG_LANG - Telegram bot language (def. "en-US")
+
+SUB_ENABLE - Enable service
+Subscription feature with separate configuration
+
+SUB_LISTEN - IP listening
+Leave empty by default to monitor all IP addresses
+
+SUB_PORT - Subscription port
+The port number for serving the subscription service should not be used on the server
+
+SUB_PATH - Root path of the subscription URL
+Must start with '/' and end with '/'
+
+SUB_DOMAIN - Listening domain
+Leave empty by default to monitor all domains and IP addresses
+
+SUB_CERT_FILE - Path to the public key file of the subscription certificate
+Enter the full path starting with '/'
+
+SUB_KEY_FILE - Path to subscription certificate private key file
+Enter full path starting with '/'
+
+SUB_UPDATES - Subscription update intervals
+Interval between updates in client application (in hours)
+
+SUB_ENCRYPT - Encrypt configs
+Encrypt returned configs in subscription
+
+SUB_SHOW_INFO - Show usage information
+Show remaining traffic and date after config name
+
+SUB_URI - Reverse proxy URI
+Change base URI of subscription URL for use behind proxy servers
+
+DATEPICKER (def. gregorian) - Date picker
+Scheduled tasks are executed according to this calendar  
+
 #### Usage
 
 | Variable       |                      Type                      | Default       |

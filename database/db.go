@@ -19,12 +19,6 @@ import (
 
 var db *gorm.DB
 
-const (
-	defaultUsername = "admin"
-	defaultPassword = "admin"
-	defaultSecret   = ""
-)
-
 func initModels() error {
 	models := []interface{}{
 		&model.User{},
@@ -50,10 +44,25 @@ func initUser() error {
 		return err
 	}
 	if empty {
+		username := os.Getenv("DEFAULT_USERNAME")
+		if username == "" {
+			username = "admin"
+		}
+
+		password := os.Getenv("DEFAULT_PASSWORD")
+		if password == "" {
+			password = "admin"
+		}
+
+		secret := os.Getenv("DEFAULT_SECRET")
+		if secret == "" {
+			secret = ""
+		}
+
 		user := &model.User{
-			Username:    defaultUsername,
-			Password:    defaultPassword,
-			LoginSecret: defaultSecret,
+			Username:    username,
+			Password:    password,
+			LoginSecret: secret,
 		}
 		return db.Create(user).Error
 	}
