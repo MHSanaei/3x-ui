@@ -3,15 +3,17 @@ version: "3"
 
 services:
   3x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
+    image: 3x-ui:latest
     container_name: 3x-ui
-    hostname: yourhostname
+    hostname: localhost
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       X_UI_ENABLE_FAIL2BAN: "true"
+      WEB_PORT: "2067"
+      WEB_BASE_PATH: "/control/"
     tty: true
     network_mode: host
     restart: unless-stopped
