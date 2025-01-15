@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -23,51 +24,58 @@ import (
 //go:embed config.json
 var xrayTemplateConfig string
 
+func getEnvOrDefault(envKey, defaultValue string) string {
+	if value, exists := os.LookupEnv(envKey); exists {
+		return value
+	}
+	return defaultValue
+}
+
 var defaultValueMap = map[string]string{
 	"xrayTemplateConfig": xrayTemplateConfig,
-	"webListen":          "",
-	"webDomain":          "",
-	"webPort":            "2053",
-	"webCertFile":        "",
-	"webKeyFile":         "",
-	"secret":             random.Seq(32),
-	"webBasePath":        "/",
-	"sessionMaxAge":      "60",
-	"pageSize":           "50",
-	"expireDiff":         "0",
-	"trafficDiff":        "0",
-	"remarkModel":        "-ieo",
-	"timeLocation":       "Local",
-	"tgBotEnable":        "false",
-	"tgBotToken":         "",
-	"tgBotProxy":         "",
-	"tgBotAPIServer":     "",
-	"tgBotChatId":        "",
-	"tgRunTime":          "@daily",
-	"tgBotBackup":        "false",
-	"tgBotLoginNotify":   "true",
-	"tgCpu":              "80",
-	"tgLang":             "en-US",
-	"secretEnable":       "false",
-	"subEnable":          "false",
-	"subListen":          "",
-	"subPort":            "2096",
-	"subPath":            "/sub/",
-	"subDomain":          "",
-	"subCertFile":        "",
-	"subKeyFile":         "",
-	"subUpdates":         "12",
-	"subEncrypt":         "true",
-	"subShowInfo":        "true",
-	"subURI":             "",
-	"subJsonPath":        "/json/",
-	"subJsonURI":         "",
-	"subJsonFragment":    "",
-	"subJsonNoises":      "",
-	"subJsonMux":         "",
-	"subJsonRules":       "",
-	"datepicker":         "gregorian",
-	"warp":               "",
+	"webListen":          getEnvOrDefault("WEB_LISTEN", ""),
+	"webDomain":          getEnvOrDefault("WEB_DOMAIN", ""),
+	"webPort":            getEnvOrDefault("WEB_PORT", "2053"),
+	"webCertFile":        getEnvOrDefault("WEB_CERT_FILE", ""),
+	"webKeyFile":         getEnvOrDefault("WEB_KEY_FILE", ""),
+	"secret":             getEnvOrDefault("SECRET", random.Seq(32)),
+	"webBasePath":        getEnvOrDefault("WEB_BASE_PATH", "/"),
+	"sessionMaxAge":      getEnvOrDefault("SESSION_MAX_AGE", "60"),
+	"pageSize":           getEnvOrDefault("PAGE_SIZE", "50"),
+	"expireDiff":         getEnvOrDefault("EXPIRE_DIFF", "0"),
+	"trafficDiff":        getEnvOrDefault("TRAFFIC_DIFF", "0"),
+	"remarkModel":        getEnvOrDefault("REMARK_MODEL", "-ieo"),
+	"timeLocation":       getEnvOrDefault("TIME_LOCATION", "Asia/Tehran"),
+	"tgBotEnable":        getEnvOrDefault("TG_BOT_ENABLE", "false"),
+	"tgBotToken":         getEnvOrDefault("TG_BOT_TOKEN", ""),
+	"tgBotProxy":         getEnvOrDefault("TG_BOT_PROXY", ""),
+	"tgBotAPIServer":     getEnvOrDefault("TG_BOT_API_SERVER", ""),
+	"tgBotChatId":        getEnvOrDefault("TG_BOT_CHAT_ID", ""),
+	"tgRunTime":          getEnvOrDefault("TG_RUN_TIME", "@daily"),
+	"tgBotBackup":        getEnvOrDefault("TG_BOT_BACKUP", "false"),
+	"tgBotLoginNotify":   getEnvOrDefault("TG_BOT_LOGIN_NOTIFY", "true"),
+	"tgCpu":              getEnvOrDefault("TG_CPU", "80"),
+	"tgLang":             getEnvOrDefault("TG_LANG", "en-US"),
+	"secretEnable":       getEnvOrDefault("SECRET_ENABLE", "false"),
+	"subEnable":          getEnvOrDefault("SUB_ENABLE", "false"),
+	"subListen":          getEnvOrDefault("SUB_LISTEN", ""),
+	"subPort":            getEnvOrDefault("SUB_PORT", "2096"),
+	"subPath":            getEnvOrDefault("SUB_PATH", "/sub/"),
+	"subDomain":          getEnvOrDefault("SUB_DOMAIN", ""),
+	"subCertFile":        getEnvOrDefault("SUB_CERT_FILE", ""),
+	"subKeyFile":         getEnvOrDefault("SUB_KEY_FILE", ""),
+	"subUpdates":         getEnvOrDefault("SUB_UPDATES", "12"),
+	"subEncrypt":         getEnvOrDefault("SUB_ENCRYPT", "true"),
+	"subShowInfo":        getEnvOrDefault("SUB_SHOW_INFO", "true"),
+	"subURI":             getEnvOrDefault("SUB_URI", ""),
+	"subJsonPath":        getEnvOrDefault("SUB_JSON_PATH", "/json/"),
+	"subJsonURI":         getEnvOrDefault("SUB_JSON_URI", ""),
+	"subJsonFragment":    getEnvOrDefault("SUB_JSON_FRAGMENT", ""),
+	"subJsonNoises":      getEnvOrDefault("SUB_JSON_NOISES", ""),
+	"subJsonMux":         getEnvOrDefault("SUB_JSON_MUX", ""),
+	"subJsonRules":       getEnvOrDefault("SUB_JSON_RULES", ""),
+	"datepicker":         getEnvOrDefault("DATEPICKER", "gregorian"),
+	"warp":               getEnvOrDefault("WARP", ""),
 }
 
 type SettingService struct{}
