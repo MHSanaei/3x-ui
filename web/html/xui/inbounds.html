@@ -1145,6 +1145,8 @@
             },
             async delClientHandler(dbInboundId, currentClient, clients = []) {
                 if (clients.length > 0) {
+                    const deleteRequestData = [];
+
                     for (const client of clients) {
                         const dbInbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId);
                         if (dbInbound) {
@@ -1161,9 +1163,14 @@
                                     await this.submit(`/panel/inbound/addClient`, data, null);
                                 }
                             }
+
+                            deleteRequestData.push({
+                                inboundId: client.inboundId,
+                                clientId: client.clientId,
+                            });
                         }
-                        await this.submit(`/panel/inbound/${client.inboundId}/delClient/${client.clientId}`);
                     }
+                    await this.submit('/panel/inbound/delGroupClients', deleteRequestData, null, true);
                 } else {
                     const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                     const clientId = this.getClientId(dbInbound.protocol, currentClient);
@@ -1172,7 +1179,7 @@
             },
             delClient(dbInboundId, currentClient, confirmation = true) {
                 const subGroup = this.subSettings.enable ? this.getSubGroupClients(this.dbInbounds, currentClient) : [];
-                const clients = subGroup && subGroup.clients && subGroup.clients.length > 0  ? subGroup.clients : [];
+                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1  ? subGroup.clients : [];
                 if (confirmation){
                     const clientEmails = clients.length > 0 ? clients.map(item => item.email) : currentClient.email
                     this.$confirm({
@@ -1295,19 +1302,20 @@
             },
             resetClientTrafficHandler(client, dbInboundId, clients = []) {
                 if (clients.length > 0){
-                    clients.forEach(async (client) => {
-                        const inbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId)
-                        if(inbound && this.hasClientStats(inbound, client.email)) {
-                           await this.submit('/panel/inbound/' + client.inboundId + '/resetClientTraffic/' + client.email)
-                        }
-                    })
+                    const resetRequests = clients
+                        .filter(client => {
+                            const inbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId);
+                            return inbound && this.hasClientStats(inbound, client.email);
+                        }).map(client => ({ inboundId: client.inboundId, email: client.email}));
+
+                    this.submit('/panel/inbound/resetGroupClientTraffic', resetRequests, null, true)
                 }else {
                     this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
                 }
             },
             resetClientTraffic(client, dbInboundId, confirmation = true) {
                 const subGroup = this.subSettings.enable ? this.getSubGroupClients(this.dbInbounds, client) : [];
-                const clients = subGroup && subGroup.clients && subGroup.clients.length > 0  ? subGroup.clients : [];
+                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1  ? subGroup.clients : [];
                 if (confirmation){
                     const clientEmails = clients.length > 0 ? clients.map(item => item.email) : client.email
                     this.$confirm({

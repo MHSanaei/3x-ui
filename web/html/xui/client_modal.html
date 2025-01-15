@@ -271,21 +271,20 @@
             },
             async resetClientTrafficHandler(client, dbInboundId, clients = []) {
                 if (clients.length > 0) {
-                    let response;
-                    clients.forEach((client) => {
-                        const inbound = clientModal.dbInbounds.find(inbound => inbound.id === client.inboundId)
-                        if(inbound && app.hasClientStats(inbound, client.email)) {
-                            response = HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
-                        }
-                    })
-                    return response;
+                    const resetRequests = clients
+                        .filter(client => {
+                            const inbound = clientModal.dbInbounds.find(inbound => inbound.id === client.inboundId);
+                            return inbound && app.hasClientStats(inbound, client.email);
+                        }).map(client => ({ inboundId: client.inboundId, email: client.email}));
+
+                    return HttpUtil.postWithModalJson('/panel/inbound/resetGroupClientTraffic', resetRequests, null)
                 } else {
                     return HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email)
                 }
             },
             resetClientTraffic(client, dbInboundId, iconElement) {
                 const subGroup = app.subSettings.enable && clientModal.group.isGroup && clientModal.group.canGroup && clientModal.dbInbounds && clientModal.dbInbounds.length > 0 ? app.getSubGroupClients(clientModal.dbInbounds, client) : [];
-                const clients = subGroup && subGroup.clients && subGroup.clients.length > 0 ? subGroup.clients : [];
+                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1 ? subGroup.clients : [];
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
