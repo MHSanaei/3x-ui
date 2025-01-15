@@ -260,6 +260,9 @@ func (s *Server) startTask() {
 		s.cron.AddJob("@every 10s", job.NewXrayTrafficJob())
 	}()
 
+	// Sync the client traffic with same SubId every 10 seconds
+	s.cron.AddJob("@every 10s", job.NewClientTrafficSyncJob())
+
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
 
