@@ -230,20 +230,29 @@
         },
         methods: {
             makeGroupEmailsUnique(dbInbounds, baseEmail, groupClients) {
+                // Extract the base part of the email (before the "__" if present)
                 const match = baseEmail.match(/^(.*?)__/);
-                let base = match ? match[1] : baseEmail;
+                const base = match ? match[1] : baseEmail;
 
+                // Generate initial emails for each client in the group
                 const generatedEmails = groupClients.map((_, index) => `${base}__${index + 1}`);
 
-                const isDuplicate = (emailToCheck) => {
+                // Function to check if an email already exists in dbInbounds but belongs to a different subId
+                const isDuplicate = (emailToCheck, clientSubId) => {
                     return dbInbounds.some((dbInbound) => {
                         const settings = JSON.parse(dbInbound.settings);
                         const clients = settings && settings.clients ? settings.clients : [];
-                        return clients.some(client => emailToCheck.includes(client.email));
+                        return clients.some(client => client.email === emailToCheck && client.subId !== clientSubId);
                     });
                 };
 
-                if (generatedEmails.some(email => isDuplicate(email))) {
+                // Check if any of the generated emails are duplicates
+                const hasDuplicates = generatedEmails.some((email, index) => {
+                    return isDuplicate(email, groupClients[index].subId);
+                });
+
+                // If duplicates exist, add a random string to the base email to ensure uniqueness
+                if (hasDuplicates) {
                     const randomString = `-${RandomUtil.randomLowerAndNum(4)}`;
                     return groupClients.map((_, index) => `${base}${randomString}__${index + 1}`);
                 }

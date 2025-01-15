@@ -1017,8 +1017,11 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbounds: this.dbInbounds,
                     confirm: async (clients, dbInboundIds) => {
-                        await this.addGroupClient(clients, dbInboundIds, clientModal);
-                        await this.showQrcode(dbInboundIds[0],clients[0], true)
+                        await this.addGroupClient(clients, dbInboundIds, clientModal).then((res) => {
+                            if(res){
+                                this.showQrcode(dbInboundIds[0],clients[0], true)
+                            }
+                        });
                     },
                     isEdit: false
                 });
@@ -1030,8 +1033,11 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        await this.addClient(clients, dbInboundId, clientModal);
-                        await this.showQrcode(dbInboundId,clients)
+                        await this.addClient(clients, dbInboundId, clientModal).then((res) => {
+                            if(res){
+                                this.showQrcode(dbInboundId,clients)
+                            }
+                        });
                     },
                     isEdit: false
                 });
