@@ -290,6 +290,8 @@
 "subSettings" = "Subscription"
 "subEnable" = "Enable Subscription Service"
 "subEnableDesc" = "Enables the subscription service."
+"subSyncEnable" = "Enable Subscription Sync"
+"subSyncEnableDesc" = "Traffic from clients with the same subscription will be synchronized every 10 seconds."
 "subListen" = "Listen IP"
 "subListenDesc" = "The IP address for the subscription service. (leave blank to listen on all IPs)"
 "subPort" = "Listen Port"

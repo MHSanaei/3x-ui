@@ -290,6 +290,8 @@
 "subSettings" = "サブスクリプション設定"
 "subEnable" = "サブスクリプションサービスを有効にする"
 "subEnableDesc" = "サブスクリプションサービス機能を有効にする"
+"subSyncEnable" = "サブスクリプション同期を有効にする"
+"subSyncEnableDesc" = "同じサブスクリプションを持つクライアントからのトラフィックは 10 秒ごとに同期されます。"
 "subListen" = "監視IP"
 "subListenDesc" = "サブスクリプションサービスが監視するIPアドレス（空白にするとすべてのIPを監視）"
 "subPort" = "監視ポート"
