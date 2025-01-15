@@ -79,7 +79,7 @@
 "invalidFormData" = "Недопустимый формат данных"
 "emptyUsername" = "Введите имя пользователя"
 "emptyPassword" = "Введите пароль"
-"wrongUsernameOrPassword" = "Неверное имя пользователя или пароль"
+"wrongUsernameOrPassword" = "Неверное имя пользователя, пароль или секретный токен."
 "successLogin" = "Успешный вход"
 
 [pages.index]
@@ -109,7 +109,7 @@
 "config" = "Конфигурация"
 "backup" = "Бэкап и восстановление"
 "backupTitle" = "База данных бэкапа и восстановления"
-"backupDescription" = "Не забудьте сделать резервную копию перед импортом новой базы данных"
+"backupDescription" = "Рекомендуется сделать резервную копию перед восстановлением базы данных."
 "exportDatabase" = "Экспорт базы данных"
 "importDatabase" = "Импорт базы данных"
 
@@ -147,7 +147,7 @@
 "meansNoLimit" = "= Без ограничений (значение: ГБ)"
 "totalFlow" = "Общий расход"
 "leaveBlankToNeverExpire" = "Оставьте пустым, чтобы не истекало"
-"noRecommendKeepDefault" = "Не рекомендуется оставлять настройки по умолчанию"
+"noRecommendKeepDefault" = "Рекомендуется оставить настройки по умолчанию"
 "certificatePath" = "Путь к файлу"
 "certificateContent" = "Содержимое файла"
 "publicKey" = "Публичный ключ"
