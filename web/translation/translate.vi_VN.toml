@@ -191,6 +191,8 @@
 [pages.client]
 "add" = "Thêm người dùng"
 "groupAdd" = "Thêm người dùng đăng ký"
+"isGroupEdit" = "Chỉnh sửa nhóm"
+"isGroupEditDesc" = "Tất cả người dùng có cùng đăng ký đều có thể được chỉnh sửa"
 "edit" = "Chỉnh sửa người dùng"
 "submitAdd" = "Thêm"
 "submitEdit" = "Lưu thay đổi"
