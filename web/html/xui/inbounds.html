@@ -1094,7 +1094,7 @@
                         settings: '{"clients": [' + clients[index].toString() + ']}',
                     })
                 })
-                await this.submit(`/panel/inbound/addGroupClient`, data, modal, true)
+                return await this.submit(`/panel/inbound/addGroupClient`, data, modal, true)
             },
             async updateClient(client, dbInboundId, clientId) {
                 if (Array.isArray(client) && Array.isArray(dbInboundId) && Array.isArray(clientId)){
@@ -1296,6 +1296,7 @@
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
+                return msg
             },
             getInboundClients(dbInbound) {
                 return dbInbound.toInbound().clients;
