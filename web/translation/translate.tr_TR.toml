@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "Müşteri Ekle"
+"groupAdd" = "Abonelik kullanıcısı ekle"
+"isGroupEdit" = "Grup düzenleme"
+"isGroupEditDesc" = "Aynı aboneliğe sahip tüm istemciler düzenlendi"
 "edit" = "Müşteriyi Düzenle"
 "submitAdd" = "Müşteri Ekle"
 "submitEdit" = "Değişiklikleri Kaydet"
@@ -287,6 +290,8 @@
 "subSettings" = "Abonelik"
 "subEnable" = "Abonelik Hizmetini Etkinleştir"
 "subEnableDesc" = "Abonelik hizmetini etkinleştirir."
+"subSyncEnable" = "Abonelik Senkronizasyonunu Etkinleştir"
+"subSyncEnableDesc" = "Aynı aboneliğe sahip istemcilerden gelen trafik her 10 saniyede bir senkronize edilecektir."
 "subListen" = "Dinleme IP"
 "subListenDesc" = "Abonelik hizmeti için IP adresi. (tüm IP'leri dinlemek için boş bırakın)"
 "subPort" = "Dinleme Portu"
