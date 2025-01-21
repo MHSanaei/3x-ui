@@ -50,6 +50,7 @@ var defaultValueMap = map[string]string{
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
 	"subEnable":          "false",
+	"subSyncEnable":      "true",
 	"subListen":          "",
 	"subPort":            "2096",
 	"subPath":            "/sub/",
@@ -416,6 +417,14 @@ func (s *SettingService) GetSubEnable() (bool, error) {
 	return s.getBool("subEnable")
 }
 
+func (s *SettingService) GetSubSyncEnable() (bool, error) {
+	return s.getBool("subSyncEnable")
+}
+
+func (s *SettingService) SetSubSyncEnable(value bool) error {
+	return s.setBool("subSyncEnable", value)
+}
+
 func (s *SettingService) GetSubListen() (string, error) {
 	return s.getString("subListen")
 }
@@ -544,6 +553,7 @@ func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
 		"defaultKey":    func() (interface{}, error) { return s.GetKeyFile() },
 		"tgBotEnable":   func() (interface{}, error) { return s.GetTgbotEnabled() },
 		"subEnable":     func() (interface{}, error) { return s.GetSubEnable() },
+		"subSyncEnable": func() (interface{}, error) { return s.GetSubSyncEnable() },
 		"subURI":        func() (interface{}, error) { return s.GetSubURI() },
 		"subJsonURI":    func() (interface{}, error) { return s.GetSubJsonURI() },
 		"remarkModel":   func() (interface{}, error) { return s.GetRemarkModel() },
