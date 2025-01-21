@@ -190,6 +190,9 @@
 
 [pages.client]
 "add" = "Tambah Klien"
+"groupAdd" = "Tambahkan pengguna langganan"
+"isGroupEdit" = "Pengeditan grup"
+"isGroupEditDesc" = "Semua klien dengan langganan yang sama akan diedit"
 "edit" = "Edit Klien"
 "submitAdd" = "Tambah Klien"
 "submitEdit" = "Simpan Perubahan"
@@ -287,6 +290,8 @@
 "subSettings" = "Langganan"
 "subEnable" = "Aktifkan Layanan Langganan"
 "subEnableDesc" = "Mengaktifkan layanan langganan."
+"subSyncEnable" = "Aktifkan Sinkronisasi Langganan"
+"subSyncEnableDesc" = "Lalu lintas dari klien dengan langganan yang sama akan disinkronkan setiap 10 detik."
 "subListen" = "IP Pendengar"
 "subListenDesc" = "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)"
 "subPort" = "Port Pendengar"

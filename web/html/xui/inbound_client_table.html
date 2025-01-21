@@ -12,7 +12,7 @@
     <template slot="title">{{ i18n "info" }}</template>
     <a-icon style="font-size: 24px;" class="normal-icon" type="info-circle" @click="showInfo(record.id,client);"></a-icon>
   </a-tooltip>
-  <a-tooltip>
+  <a-tooltip v-if="hasClientStats(record, client.email)">
     <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
     <a-popconfirm @confirm="resetClientTraffic(client,record.id,false)" title='{{ i18n "pages.inbounds.resetTrafficContent"}}' :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}' cancel-text='{{ i18n "cancel"}}'>
       <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: var(--color-primary-100)' : 'color: var(--color-primary-100)'"></a-icon>
