@@ -493,6 +493,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         headers = [],
         scMaxBufferedPosts = 30,
         scMaxEachPostBytes = "1000000",
+        scStreamUpServerSecs = "0",
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
         mode = MODE_OPTION.AUTO,
@@ -503,6 +504,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.headers = headers;
         this.scMaxBufferedPosts = scMaxBufferedPosts;
         this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.scStreamUpServerSecs = scStreamUpServerSecs;
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
         this.mode = mode;
@@ -523,6 +525,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             XrayCommonClass.toHeaders(json.headers),
             json.scMaxBufferedPosts,
             json.scMaxEachPostBytes,
+            json.scStreamUpServerSecs,
             json.noSSEHeader,
             json.xPaddingBytes,
             json.mode,
@@ -536,6 +539,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             headers: XrayCommonClass.toV2Headers(this.headers, false),
             scMaxBufferedPosts: this.scMaxBufferedPosts,
             scMaxEachPostBytes: this.scMaxEachPostBytes,
+            scStreamUpServerSecs: this.scStreamUpServerSecs,
             noSSEHeader: this.noSSEHeader,
             xPaddingBytes: this.xPaddingBytes,
             mode: this.mode,
