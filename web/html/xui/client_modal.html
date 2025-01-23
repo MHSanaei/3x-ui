@@ -36,12 +36,13 @@
         ok() {
             if (app.subSettings.enable && clientModal.group.isGroup && clientModal.group.canGroup) {
                 const currentClient = clientModal.group.currentClient;
-                const { limitIp, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
+                const { limitIp, comment, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
                 const uniqueEmails = clientModalApp.makeGroupEmailsUnique(clientModal.dbInbounds, currentClient.email, clientModal.group.clients);
 
                 clientModal.group.clients.forEach((client, index) => {
                     client.email = uniqueEmails[index];
                     client.limitIp = limitIp;
+                    client.comment = comment;
                     client.totalGB = totalGB;
                     client.expiryTime = expiryTime;
                     client.reset = reset;
