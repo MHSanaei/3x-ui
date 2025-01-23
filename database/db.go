@@ -82,9 +82,31 @@ func InitDB(dbPath string) error {
 	}
 
 	c := &gorm.Config{
-		Logger: gormLogger,
+		Logger:                 gormLogger,
+		SkipDefaultTransaction: true,
+		PrepareStmt:            true,
 	}
-	db, err = gorm.Open(sqlite.Open(dbPath), c)
+
+	dsn := dbPath + "?cache=shared&_journal_mode=WAL&_synchronous=NORMAL"
+	db, err = gorm.Open(sqlite.Open(dsn), c)
+	if err != nil {
+		return err
+	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+
+	_, err = sqlDB.Exec("PRAGMA cache_size = -64000;")
+	if err != nil {
+		return err
+	}
+	_, err = sqlDB.Exec("PRAGMA temp_store = MEMORY;")
+	if err != nil {
+		return err
+	}
+	_, err = sqlDB.Exec("PRAGMA foreign_keys = ON;")
 	if err != nil {
 		return err
 	}
@@ -101,6 +123,11 @@ func InitDB(dbPath string) error {
 
 func CloseDB() error {
 	if db != nil {
+
+		if err := Checkpoint(); err != nil {
+			log.Printf("error executing checkpoint: %v", err)
+		}
+
 		sqlDB, err := db.DB()
 		if err != nil {
 			return err
