@@ -382,14 +382,40 @@
                       </a-col>
                     </a-row>
                     <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.xray.directips"}}'>
-                        <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="directIPs" :options="IPsOptions"></a-checkbox-group>
+                      <a-collapse-panel header='{{ i18n "pages.settings.direct"}}'>
+                        <a-list-item>
+                            <a-row style="padding: 0 20px">
+                                <a-col :lg="24" :xl="12">
+                                    <a-list-item-meta 
+                                        title='{{ i18n "pages.xray.directips" }}'/>
+                                </a-col>
+                                <a-col :lg="24" :xl="12">
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="directIPs"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in directIPsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </a-col>
+                            </a-row>
                         </a-list-item>
-                      </a-collapse-panel>
-                      <a-collapse-panel header='{{ i18n "pages.xray.directdomains"}}'>
-                        <a-list-item style="padding: 10px 20px">
-                          <a-checkbox-group v-model="directDomains" :options="DomainsOptions"></a-checkbox-group>
+                        <a-list-item>
+                            <a-row style="padding: 0 20px">
+                                <a-col :lg="24" :xl="12">
+                                    <a-list-item-meta 
+                                        title='{{ i18n "pages.xray.directdomains" }}'/>
+                                </a-col>
+                                <a-col :lg="24" :xl="12">
+                                    <a-select mode="tags" style="width: 100%"
+                                    v-model="directDomains"
+                                    :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="p.value" :label="p.label"
+                                            v-for="p in diretDomainsOptions"> [[ p.label ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </a-col>
+                            </a-row>
                         </a-list-item>
                       </a-collapse-panel>
                     </a-collapse>
@@ -477,25 +503,26 @@
           ]
         },
       ],
-      IPsOptions: [
-        { label: 'Private IP', value: 'private' },
-        { label: '🇮🇷 Iran', value: 'ir' },
-        { label: '🇨🇳 China', value: 'cn' },
-        { label: '🇷🇺 Russia', value: 'ru' },
-        { label: '🇻🇳 Vietnam', value: 'vn' },
-        { label: '🇪🇸 Spain', value: 'es' },
-        { label: '🇮🇩 Indonesia', value: 'id' },
-        { label: '🇺🇦 Ukraine', value: 'ua' },
-        { label: '🇹🇷 Türkiye', value: 'tr' },
-        { label: '🇧🇷 Brazil', value: 'br' },
+      directIPsOptions: [
+        { label: 'Private IP', value: 'geoip:private' },
+        { label: '🇮🇷 Iran', value: 'geoip:ir' },
+        { label: '🇨🇳 China', value: 'geoip:cn' },
+        { label: '🇷🇺 Russia', value: 'geoip:ru' },
+        { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
+        { label: '🇪🇸 Spain', value: 'geoip:es' },
+        { label: '🇮🇩 Indonesia', value: 'geoip:id' },
+        { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
+        { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
+        { label: '🇧🇷 Brazil', value: 'geoip:br' },
       ],
-      DomainsOptions: [
-        { label: '🇮🇷 Iran', value: 'ir' },
-        { label: '🇨🇳 China', value: 'cn' },
-        { label: '🇷🇺 Russia', value: 'ru' },
-        { label: 'Apple', value: 'apple' },
-        { label: 'Meta', value: 'meta' },
-        { label: 'Google', value: 'google' },
+      diretDomainsOptions: [
+        { label: 'Private DNS', value: 'geosite:private' },
+        { label: '🇮🇷 Iran', value: 'geosite:category-ir' },
+        { label: '🇨🇳 China', value: 'geosite:cn' },
+        { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+        { label: 'Apple', value: 'geosite:apple' },
+        { label: 'Meta', value: 'geosite:meta' },
+        { label: 'Google', value: 'geosite:google' },
       ],
       get remarkModel() {
         rm = this.allSetting.remarkModel;
@@ -753,7 +780,7 @@
           const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return [];
           const ipRule = rules.find(r => r.ip);
-          return ipRule?.ip.map(d => d.replace("geoip:", "")) ?? [];
+          return ipRule?.ip ?? [];
         },
         set: function (v) {
           let rules = JSON.parse(this.allSetting.subJsonRules);
@@ -767,7 +794,7 @@
 
             rules[ruleIndex].ip = [];
             v.forEach(d => {
-              rules[ruleIndex].ip.push("geoip:" + d);
+              rules[ruleIndex].ip.push(d);
             });
           }
           this.allSetting.subJsonRules = JSON.stringify(rules);
@@ -779,34 +806,18 @@
           const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return [];
           const domainRule = rules.find(r => r.domain);
-          return domainRule?.domain.map(d => {
-            if (d.startsWith("geosite:category-")) {
-              return d.replace("geosite:category-", "");
-            }
-            return d.replace("geosite:", "");
-          })
-          ?? [];
+          return domainRule?.domain ?? [];
         },
         set: function (v) {
           let rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
-
           if (v.length == 0) {
             rules = rules.filter(r => !r.domain);
           } else {
             let ruleIndex = rules.findIndex(r => r.domain);
             if (ruleIndex == -1) ruleIndex = rules.push(this.defaultRules[0]) - 1;
 
-            rules[ruleIndex].domain = [];
-            v.forEach(d => {
-              let category = '';
-              if (["cn", "apple", "meta", "google"].includes(d)) {
-                category = "";
-              } else if (["ru", "ir"].includes(d)) {
-                category = "category-";
-              }
-              rules[ruleIndex].domain.push("geosite:" + category + d);
-            });
+            rules[ruleIndex].domain = v;
           }
           this.allSetting.subJsonRules = JSON.stringify(rules);
         }
