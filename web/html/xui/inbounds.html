@@ -1455,7 +1455,7 @@
                 if (clients != null){
                     clients.forEach(c => {
                         if (c.subId && c.subId.length>0){
-                            subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                            subLinks.push(this.subSettings.subURI + c.subId)
                         }
                     })
                 }
@@ -1482,7 +1482,7 @@
                     if (clients != null){
                         clients.forEach(c => {
                             if (c.subId && c.subId.length>0){
-                                subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                                subLinks.push(this.subSettings.subURI + c.subId)
                             }
                         })
                     }
