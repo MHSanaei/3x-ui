@@ -120,9 +120,11 @@
                     this.group.isGroup = true;
                     dbInbounds.forEach((dbInboundItem) => {
                         this.showProcess(dbInboundItem);
-                        this.addClient(this.inbound.protocol, this.clients);
-                        this.group.inbounds.push(dbInboundItem.id)
-                        this.group.clients.push(this.clients[this.index])
+                        if (this.dbInbound.isMultiUser()) {
+                            this.addClient(this.inbound.protocol, this.clients);
+                            this.group.inbounds.push(dbInboundItem.id)
+                            this.group.clients.push(this.clients[this.index])
+                        }
                     })
                     this.group.currentClient = this.clients[this.index]
                 }
@@ -140,9 +142,11 @@
         showProcess(dbInbound, index = null) {
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
-            this.clients = this.inbound.clients;
-            this.index = index === null ? this.clients.length : index;
-            this.delayedStart = false;
+            if (this.dbInbound.isMultiUser()) {
+                this.clients = this.inbound.clients;
+                this.index = index === null ? this.clients.length : index;
+                this.delayedStart = false;
+            }
         },
         singleEditClientProcess(index) {
             if (this.clients[index].expiryTime < 0) {
