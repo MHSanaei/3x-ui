@@ -291,10 +291,8 @@ Our platform offers compatibility with a diverse range of architectures and devi
 
 - English
 - Persian
-- Traditional Chinese
-- Simplified Chinese
+- Taiwanese Mandarin
 - Japanese
-- Russian
 - Vietnamese
 - Spanish
 - Indonesian
