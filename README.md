@@ -1,4 +1,4 @@
-[English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [Español](/README.es_ES.md)
 
 <p align="center">
   <picture>
