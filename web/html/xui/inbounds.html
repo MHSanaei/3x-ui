@@ -1195,35 +1195,48 @@
                 }
             },
             getSubGroupClients(dbInbounds, currentClient) {
-                const response = {
-                  inbounds: [],
-                  clients: [],
-                  editIds: []
+            const response = {
+              inbounds: [],
+              clients: [],
+              editIds: [],
+            };
+
+            if (!Array.isArray(dbInbounds) || dbInbounds.length === 0) {
+              return response;
+            }
+            if (!currentClient || !currentClient.subId) {
+              return response;
+            }
+
+            dbInbounds.forEach((dbInboundItem) => {
+              try {
+                const dbInbound = new DBInbound(dbInboundItem);
+                if (!dbInbound) {
+                  return;
                 }
-                if (dbInbounds && dbInbounds.length > 0 && currentClient) {
-                    dbInbounds.forEach((dbInboundItem) => {
-                        const dbInbound = new DBInbound(dbInboundItem);
-                        if (dbInbound) {
-                            const inbound = dbInbound.toInbound();
-                            if (inbound) {
-                                const clients = inbound.clients;
-                                if (clients.length > 0) {
-                                    clients.forEach((client) => {
-                                        if (client['subId'] === currentClient['subId']) {
-                                            client['inboundId'] = dbInboundItem.id
-                                            client['clientId'] = this.getClientId(dbInbound.protocol, client)
-                                            response.inbounds.push(dbInboundItem.id)
-                                            response.clients.push(client)
-                                            response.editIds.push(client['clientId'])
-                                        }
-                                    })
-                                }
-                            }
-                        }
-                    })
+
+                const inbound = dbInbound.toInbound();
+                if (!inbound || !Array.isArray(inbound.clients)) {
+                  return;
                 }
-                return response;
-            },
+
+                inbound.clients.forEach((client) => {
+                  if (client.subId === currentClient.subId) {
+                    client.inboundId = dbInboundItem.id;
+                    client.clientId = this.getClientId(dbInbound.protocol, client);
+
+                    response.inbounds.push(dbInboundItem.id);
+                    response.clients.push(client);
+                    response.editIds.push(client.clientId);
+                  }
+                });
+              } catch (error) {
+                console.error("Error processing dbInboundItem:", dbInboundItem, error);
+              }
+            });
+
+            return response;
+          },
             getClientId(protocol, client) {
                 switch (protocol) {
                     case Protocols.TROJAN: return client.password;
