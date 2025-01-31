@@ -374,7 +374,7 @@
 "dnsLog" = "Nhật ký DNS"
 "dnsLogDesc" = "Có bật nhật ký truy vấn DNS không"
 "outBoundTraffic" = "Outbounds Traffic"
-"outBoundTrafficDesc" = "Whether to enable outbound traffic"
+"outBoundTrafficDesc" = "Có nên bật lưu lượng ra không"
 "maskAddress" = "Ẩn Địa Chỉ"
 "maskAddressDesc" = "Mặt nạ địa chỉ IP, khi được bật, sẽ tự động thay thế địa chỉ IP xuất hiện trong nhật ký."
 
