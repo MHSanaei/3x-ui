@@ -72,7 +72,7 @@ jobs:
             export GOARCH=s390x
             export CC=s390x-linux-gnu-gcc
           fi
-          go build -o xui-release -v main.go
+          go build -ldflags "-w -s" -o xui-release -v main.go
           
           mkdir x-ui
           cp xui-release x-ui/
@@ -85,41 +85,41 @@ jobs:
           # Download dependencies
           Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v25.1.1/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
-            wget ${Xray_URL}Xray-linux-64.zip
+            wget -q ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
             rm -f Xray-linux-64.zip
           elif [ "${{ matrix.platform }}" == "arm64" ]; then
-            wget ${Xray_URL}Xray-linux-arm64-v8a.zip
+            wget -q ${Xray_URL}Xray-linux-arm64-v8a.zip
             unzip Xray-linux-arm64-v8a.zip
             rm -f Xray-linux-arm64-v8a.zip
           elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            wget ${Xray_URL}Xray-linux-arm32-v7a.zip
+            wget -q ${Xray_URL}Xray-linux-arm32-v7a.zip
             unzip Xray-linux-arm32-v7a.zip
             rm -f Xray-linux-arm32-v7a.zip
           elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            wget ${Xray_URL}Xray-linux-arm32-v6.zip
+            wget -q ${Xray_URL}Xray-linux-arm32-v6.zip
             unzip Xray-linux-arm32-v6.zip
             rm -f Xray-linux-arm32-v6.zip
           elif [ "${{ matrix.platform }}" == "386" ]; then
-            wget ${Xray_URL}Xray-linux-32.zip
+            wget -q ${Xray_URL}Xray-linux-32.zip
             unzip Xray-linux-32.zip
             rm -f Xray-linux-32.zip
           elif [ "${{ matrix.platform }}" == "armv5" ]; then
-            wget ${Xray_URL}Xray-linux-arm32-v5.zip
+            wget -q ${Xray_URL}Xray-linux-arm32-v5.zip
             unzip Xray-linux-arm32-v5.zip
             rm -f Xray-linux-arm32-v5.zip
           elif [ "${{ matrix.platform }}" == "s390x" ]; then
-            wget ${Xray_URL}Xray-linux-s390x.zip
+            wget -q ${Xray_URL}Xray-linux-s390x.zip
             unzip Xray-linux-s390x.zip
             rm -f Xray-linux-s390x.zip
           fi
           rm -f geoip.dat geosite.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-          wget -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-          wget -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-          wget -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-          wget -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+          wget -q -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+          wget -q -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+          wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
           

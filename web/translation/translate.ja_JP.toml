@@ -373,6 +373,8 @@
 "errorLogDesc" = "エラーログのファイルパス。特殊値 'none' はエラーログを無効にします"
 "dnsLog" = "DNS ログ"
 "dnsLogDesc" = "DNSクエリのログを有効にするかどうか"
+"outboundTraffic" = "アウトバウンドトラフィック"
+"outboundTrafficDesc" = "アウトバウンドトラフィックを有効にするかどうか"
 "maskAddress" = "アドレスをマスク"
 "maskAddressDesc" = "IPアドレスをマスクし、有効にするとログに表示されるIPアドレスを自動的に置き換えます"
 

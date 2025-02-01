@@ -373,6 +373,8 @@
 "errorLogDesc" = "错误日志的文件路径。特殊值 'none' 禁用错误日志"
 "dnsLog" = "DNS 日志"
 "dnsLogDesc" = "是否启用 DNS 查询日志"
+"outboundTraffic" = "出站流量"
+"outboundTrafficDesc" = "是否启用出站流量"
 "maskAddress" = "隐藏地址"
 "maskAddressDesc" = "IP 地址掩码，启用时会自动替换日志中出现的 IP 地址。"
 

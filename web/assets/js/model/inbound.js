@@ -493,7 +493,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         headers = [],
         scMaxBufferedPosts = 30,
         scMaxEachPostBytes = "1000000",
-        scStreamUpServerSecs = "0",
+        scStreamUpServerSecs = "20-80",
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
         mode = MODE_OPTION.AUTO,
@@ -554,6 +554,7 @@ class TlsStreamSettings extends XrayCommonClass {
         maxVersion = TLS_VERSION_OPTION.TLS13,
         cipherSuites = '',
         rejectUnknownSni = false,
+        serverNameToVerify = 'dns.google',
         disableSystemRoot = false,
         enableSessionResumption = false,
         certificates = [new TlsStreamSettings.Cert()],
@@ -566,6 +567,7 @@ class TlsStreamSettings extends XrayCommonClass {
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
+        this.serverNameToVerify = serverNameToVerify;
         this.disableSystemRoot = disableSystemRoot;
         this.enableSessionResumption = enableSessionResumption;
         this.certs = certificates;
@@ -597,6 +599,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
+            json.serverNameToVerify,
             json.disableSystemRoot,
             json.enableSessionResumption,
             certs,
@@ -612,6 +615,7 @@ class TlsStreamSettings extends XrayCommonClass {
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
+            serverNameToVerify: this.serverNameToVerify,
             disableSystemRoot: this.disableSystemRoot,
             enableSessionResumption: this.enableSessionResumption,
             certificates: TlsStreamSettings.toJsonArray(this.certs),

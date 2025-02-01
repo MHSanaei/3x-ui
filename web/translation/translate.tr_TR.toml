@@ -373,6 +373,8 @@
 "errorLogDesc" = "Hata günlüğü için dosya yolu. 'none' özel değeri hata günlüklerini devre dışı bırakır"
 "dnsLog" = "DNS Günlüğü"
 "dnsLogDesc" = "DNS sorgu günlüklerini etkinleştirin"
+"outboundTraffic" = "Outbounds Traffic"
+"outboundTrafficDesc" = "Çıkış trafiğini etkinleştirip etkinleştirmeyeceğiniz"
 "maskAddress" = "Adres Maskesi"
 "maskAddressDesc" = "IP adresi maskesi, etkinleştirildiğinde, günlükte görünen IP adresini otomatik olarak değiştirecektir."
 

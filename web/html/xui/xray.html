@@ -143,6 +143,7 @@
                           </a-select>
                         </a-col>
                       </a-row>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.outboundTraffic"}}' desc='{{ i18n "pages.xray.outboundTrafficDesc"}}' v-model="outboundTraffic"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
@@ -1820,6 +1821,18 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.log.dnsLog = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            outboundTraffic: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundDownlink) return false;
+                    return this.templateSettings.policy.system.statsOutboundDownlink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsOutboundDownlink = newValue;
+                    newTemplateSettings.policy.system.statsOutboundUplink = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },

@@ -373,6 +373,8 @@
 "errorLogDesc" = "Jalur file untuk log kesalahan. Nilai khusus 'tidak ada' menonaktifkan log kesalahan"
 "dnsLog" = "Log DNS"
 "dnsLogDesc" = "Apakah akan mengaktifkan log kueri DNS"
+"outboundTraffic" = "Lalu Lintas Keluar"
+"outboundTrafficDesc" = "Apakah mengaktifkan lalu lintas keluar"
 "maskAddress" = "Alamat Masker"
 "maskAddressDesc" = "Masker alamat IP, ketika diaktifkan, akan secara otomatis mengganti alamat IP yang muncul di log."
 

@@ -373,6 +373,8 @@
 "errorLogDesc" = "O caminho do arquivo para o log de erros. O valor especial 'none' desativa os logs de erro."
 "dnsLog" = "Log DNS"
 "dnsLogDesc" = "Se ativar logs de consulta DNS"
+"outboundTraffic" = "Tráfego de saída"
+"outboundTrafficDesc" = "Se deve habilitar o tráfego de saída"
 "maskAddress" = "Mascarar Endereço"
 "maskAddressDesc" = "Máscara de endereço IP, quando ativado, substitui automaticamente o endereço IP que aparece no log."
 

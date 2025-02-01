@@ -33,7 +33,7 @@
     <a-form-item label="Max Upload Size (Byte)" v-if="inbound.stream.xhttp.mode === 'packet-up'">
         <a-input v-model.trim="inbound.stream.xhttp.scMaxEachPostBytes"></a-input>
     </a-form-item>
-    <a-form-item label="Stream-Up Server">
+    <a-form-item label="Stream-Up Server" v-if="inbound.stream.xhttp.mode === 'stream-up'">
         <a-input v-model.trim="inbound.stream.xhttp.scStreamUpServerSecs"></a-input>
     </a-form-item>
     <a-form-item label="Padding Bytes">

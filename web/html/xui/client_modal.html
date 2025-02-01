@@ -36,12 +36,13 @@
         ok() {
             if (app.subSettings.enable && clientModal.group.isGroup && clientModal.group.canGroup) {
                 const currentClient = clientModal.group.currentClient;
-                const { limitIp, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
+                const { limitIp, comment, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
                 const uniqueEmails = clientModalApp.makeGroupEmailsUnique(clientModal.dbInbounds, currentClient.email, clientModal.group.clients);
 
                 clientModal.group.clients.forEach((client, index) => {
                     client.email = uniqueEmails[index];
                     client.limitIp = limitIp;
+                    client.comment = comment;
                     client.totalGB = totalGB;
                     client.expiryTime = expiryTime;
                     client.reset = reset;
@@ -119,9 +120,11 @@
                     this.group.isGroup = true;
                     dbInbounds.forEach((dbInboundItem) => {
                         this.showProcess(dbInboundItem);
-                        this.addClient(this.inbound.protocol, this.clients);
-                        this.group.inbounds.push(dbInboundItem.id)
-                        this.group.clients.push(this.clients[this.index])
+                        if (this.dbInbound.isMultiUser()) {
+                            this.addClient(this.inbound.protocol, this.clients);
+                            this.group.inbounds.push(dbInboundItem.id)
+                            this.group.clients.push(this.clients[this.index])
+                        }
                     })
                     this.group.currentClient = this.clients[this.index]
                 }
@@ -139,9 +142,11 @@
         showProcess(dbInbound, index = null) {
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
-            this.clients = this.inbound.clients;
-            this.index = index === null ? this.clients.length : index;
-            this.delayedStart = false;
+            if (this.dbInbound.isMultiUser()) {
+                this.clients = this.inbound.clients;
+                this.index = index === null ? this.clients.length : index;
+                this.delayedStart = false;
+            }
         },
         singleEditClientProcess(index) {
             if (this.clients[index].expiryTime < 0) {
@@ -258,6 +263,23 @@
                 }
 
                 return generatedEmails;
+            },
+            async getDBClientIps(email) {
+                const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
+                if (!msg.success) {
+                    document.getElementById("clientIPs").value = msg.obj;
+                    return;
+                }
+                let ips = msg.obj;
+                if (typeof ips === 'string' && ips.startsWith('[') && ips.endsWith(']')) {
+                    try {
+                        ips = JSON.parse(ips);
+                        ips = Array.isArray(ips) ? ips.join("\n") : ips;
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+                document.getElementById("clientIPs").value = ips;
             },
             async clearDBClientIps(email) {
                 try {
