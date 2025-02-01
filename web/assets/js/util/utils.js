@@ -70,6 +70,41 @@ class HttpUtil {
         }
         return msg;
     }
+
+    static async jsonPost(url, data) {
+        let msg;
+        try {
+            const requestOptions = {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data),
+            };
+            const resp = await fetch(basePath + url.replace(/^\/+|\/+$/g, ''), requestOptions);
+            const response = await resp.json();
+
+            msg = this._respToMsg({data : response});
+        } catch (e) {
+            msg = new Msg(false, e.toString());
+        }
+        this._handleMsg(msg);
+        return msg;
+    }
+
+    static async postWithModalJson(url, data, modal) {
+        if (modal) {
+            modal.loading(true);
+        }
+        const msg = await this.jsonPost(url, data);
+        if (modal) {
+            modal.loading(false);
+            if (msg instanceof Msg && msg.success) {
+                modal.close();
+            }
+        }
+        return msg;
+    }
 }
 
 class PromiseUtil {

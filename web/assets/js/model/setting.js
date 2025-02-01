@@ -26,6 +26,7 @@ class AllSetting {
         this.xrayTemplateConfig = "";
         this.secretEnable = false;
         this.subEnable = false;
+        this.subSyncEnable = true;
         this.subListen = "";
         this.subPort = 2096;
         this.subPath = "/sub/";
@@ -43,7 +44,7 @@ class AllSetting {
         this.subJsonMux = "";
         this.subJsonRules = "";
 
-        this.timeLocation = "Asia/Tehran";
+        this.timeLocation = "Local";
 
         if (data == null) {
             return

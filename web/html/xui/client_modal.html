@@ -16,7 +16,16 @@
         title: '',
         okText: '',
         isEdit: false,
+        group: {
+            canGroup: true,
+            isGroup: false,
+            currentClient: null,
+            inbounds: [],
+            clients: [],
+            editIds: []
+        },
         dbInbound: new DBInbound(),
+        dbInbounds: null,
         inbound: new Inbound(),
         clients: [],
         clientStats: [],
@@ -25,33 +34,126 @@
         clientIps: null,
         delayedStart: false,
         ok() {
-            if (clientModal.isEdit) {
-                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
+            if (app.subSettings.enable && clientModal.group.isGroup && clientModal.group.canGroup) {
+                const currentClient = clientModal.group.currentClient;
+                const { limitIp, comment, totalGB, expiryTime, reset, enable, subId, tgId, flow } = currentClient;
+                const uniqueEmails = clientModalApp.makeGroupEmailsUnique(clientModal.dbInbounds, currentClient.email, clientModal.group.clients);
+
+                clientModal.group.clients.forEach((client, index) => {
+                    client.email = uniqueEmails[index];
+                    client.limitIp = limitIp;
+                    client.comment = comment;
+                    client.totalGB = totalGB;
+                    client.expiryTime = expiryTime;
+                    client.reset = reset;
+                    client.enable = enable;
+
+                    if (subId) {
+                        client.subId = subId;
+                    }
+                    if (tgId) {
+                        client.tgId = tgId;
+                    }
+                    if (flow) {
+                        client.flow = flow;
+                    }
+                });
+
+                if (clientModal.isEdit) {
+                    ObjectUtil.execute(clientModal.confirm, clientModal.group.clients, clientModal.group.inbounds, clientModal.group.editIds);
+                } else {
+                    ObjectUtil.execute(clientModal.confirm, clientModal.group.clients, clientModal.group.inbounds);
+                }
             } else {
-                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
+                if (clientModal.isEdit) {
+                    ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
+                } else {
+                    ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
+                }
             }
         },
-        show({ title = '', okText = '{{ i18n "sure" }}', index = null, dbInbound = null, confirm = () => { }, isEdit = false }) {
+        show({
+                 title = '',
+                 okText = '{{ i18n "sure" }}',
+                 index = null,
+                 dbInbound = null,
+                 dbInbounds = null,
+                 confirm = () => {
+                 },
+                 isEdit = false
+             }) {
+            this.group = {
+                canGroup: true,
+                isGroup: false,
+                currentClient: null,
+                inbounds: [],
+                clients: [],
+                editIds: []
+            }
+            this.dbInbounds = dbInbounds;
             this.visible = true;
             this.title = title;
             this.okText = okText;
             this.isEdit = isEdit;
-            this.dbInbound = new DBInbound(dbInbound);
-            this.inbound = dbInbound.toInbound();
-            this.clients = this.inbound.clients;
-            this.index = index === null ? this.clients.length : index;
-            this.delayedStart = false;
-            if (isEdit) {
-                if (this.clients[index].expiryTime < 0) {
-                    this.delayedStart = true;
+            if (app.subSettings.enable && dbInbounds !== null && Array.isArray(dbInbounds)) {
+                if (isEdit) {
+                    this.showProcess(dbInbound, index);
+                    let processSingleEdit = true
+                    if (this.group.canGroup) {
+                        this.group.currentClient = this.clients[this.index]
+                        const response = app.getSubGroupClients(dbInbounds, this.group.currentClient)
+                        if (response.clients.length > 1) {
+                            this.group.isGroup = true;
+                            this.group.inbounds = response.inbounds
+                            this.group.clients = response.clients
+                            this.group.editIds = response.editIds
+                            if (this.clients[index].expiryTime < 0) {
+                                this.delayedStart = true;
+                            }
+                            processSingleEdit = false
+                        }
+                    }
+                    if (processSingleEdit) {
+                        this.singleEditClientProcess(index)
+                    }
+                } else {
+                    this.group.isGroup = true;
+                    dbInbounds.forEach((dbInboundItem) => {
+                        this.showProcess(dbInboundItem);
+                        if (this.dbInbound.isMultiUser()) {
+                            this.addClient(this.inbound.protocol, this.clients);
+                            this.group.inbounds.push(dbInboundItem.id)
+                            this.group.clients.push(this.clients[this.index])
+                        }
+                    })
+                    this.group.currentClient = this.clients[this.index]
                 }
-                this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
             } else {
-                this.addClient(this.inbound.protocol, this.clients);
+                this.showProcess(dbInbound, index);
+                if (isEdit) {
+                    this.singleEditClientProcess(index)
+                } else {
+                    this.addClient(this.inbound.protocol, this.clients);
+                }
             }
             this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
             this.confirm = confirm;
-        },  
+        },
+        showProcess(dbInbound, index = null) {
+            this.dbInbound = new DBInbound(dbInbound);
+            this.inbound = dbInbound.toInbound();
+            if (this.dbInbound.isMultiUser()) {
+                this.clients = this.inbound.clients;
+                this.index = index === null ? this.clients.length : index;
+                this.delayedStart = false;
+            }
+        },
+        singleEditClientProcess(index) {
+            if (this.clients[index].expiryTime < 0) {
+                this.delayedStart = true;
+            }
+            this.oldClientId = this.getClientId(this.dbInbound.protocol, this.clients[index]);
+        },
         getClientId(protocol, client) {
             switch (protocol) {
                 case Protocols.TROJAN: return client.password;
@@ -72,7 +174,7 @@
             clientModal.visible = false;
             clientModal.loading(false);
         },
-        loading(loading=true) {
+        loading(loading = true) {
             clientModal.confirmLoading = loading;
         },
     };
@@ -93,6 +195,18 @@
             },
             get isEdit() {
                 return this.clientModal.isEdit;
+            },
+            get isGroup() {
+                return this.clientModal.group.isGroup;
+            },
+            get isGroupEdit() {
+                return this.clientModal.group.canGroup;
+            },
+            set isGroupEdit(value) {
+                this.clientModal.group.canGroup = value;
+                if (!value) {
+                    this.clientModal.singleEditClientProcess(this.clientModal.index)
+                }
             },
             get datepicker() {
                 return app.datepicker;
@@ -120,6 +234,36 @@
             },
         },
         methods: {
+            makeGroupEmailsUnique(dbInbounds, baseEmail, groupClients) {
+                // Extract the base part of the email (before the "__" if present)
+                const match = baseEmail.match(/^(.*?)__/);
+                const base = match ? match[1] : baseEmail;
+
+                // Generate initial emails for each client in the group
+                const generatedEmails = groupClients.map((_, index) => `${base}__${index + 1}`);
+
+                // Function to check if an email already exists in dbInbounds but belongs to a different subId
+                const isDuplicate = (emailToCheck, clientSubId) => {
+                    return dbInbounds.some((dbInbound) => {
+                        const settings = JSON.parse(dbInbound.settings);
+                        const clients = settings && settings.clients ? settings.clients : [];
+                        return clients.some(client => client.email === emailToCheck && client.subId !== clientSubId);
+                    });
+                };
+
+                // Check if any of the generated emails are duplicates
+                const hasDuplicates = generatedEmails.some((email, index) => {
+                    return isDuplicate(email, groupClients[index].subId);
+                });
+
+                // If duplicates exist, add a random string to the base email to ensure uniqueness
+                if (hasDuplicates) {
+                    const randomString = `-${RandomUtil.randomLowerAndNum(4)}`;
+                    return groupClients.map((_, index) => `${base}${randomString}__${index + 1}`);
+                }
+
+                return generatedEmails;
+            },
             async getDBClientIps(email) {
                 const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
                 if (!msg.success) {
@@ -147,7 +291,22 @@
                 } catch (error) {
                 }
             },
-            resetClientTraffic(email, dbInboundId, iconElement) {
+            async resetClientTrafficHandler(client, dbInboundId, clients = []) {
+                if (clients.length > 0) {
+                    const resetRequests = clients
+                        .filter(client => {
+                            const inbound = clientModal.dbInbounds.find(inbound => inbound.id === client.inboundId);
+                            return inbound && app.hasClientStats(inbound, client.email);
+                        }).map(client => ({ inboundId: client.inboundId, email: client.email}));
+
+                    return HttpUtil.postWithModalJson('/panel/inbound/resetGroupClientTraffic', resetRequests, null)
+                } else {
+                    return HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email)
+                }
+            },
+            resetClientTraffic(client, dbInboundId, iconElement) {
+                const subGroup = app.subSettings.enable && clientModal.group.isGroup && clientModal.group.canGroup && clientModal.dbInbounds && clientModal.dbInbounds.length > 0 ? app.getSubGroupClients(clientModal.dbInbounds, client) : [];
+                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1 ? subGroup.clients : [];
                 this.$confirm({
                     title: '{{ i18n "pages.inbounds.resetTraffic"}}',
                     content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
@@ -156,8 +315,8 @@
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         iconElement.disabled = true;
-                        const msg = await HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + email);
-                        if (msg.success) {
+                        const msg = await this.resetClientTrafficHandler(client, dbInboundId, clients);
+                        if (msg && msg.success) {
                             this.clientModal.clientStats.up = 0;
                             this.clientModal.clientStats.down = 0;
                         }

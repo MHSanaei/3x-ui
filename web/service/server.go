@@ -248,28 +248,45 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 }
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
-	url := "https://api.github.com/repos/XTLS/Xray-core/releases"
-	resp, err := http.Get(url)
+	const (
+		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
+		bufferSize = 8192
+	)
+
+	resp, err := http.Get(XrayURL)
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
-	buffer := bytes.NewBuffer(make([]byte, 8192))
+
+	buffer := bytes.NewBuffer(make([]byte, bufferSize))
 	buffer.Reset()
-	_, err = buffer.ReadFrom(resp.Body)
-	if err != nil {
+	if _, err := buffer.ReadFrom(resp.Body); err != nil {
 		return nil, err
 	}
 
-	releases := make([]Release, 0)
-	err = json.Unmarshal(buffer.Bytes(), &releases)
-	if err != nil {
+	var releases []Release
+	if err := json.Unmarshal(buffer.Bytes(), &releases); err != nil {
 		return nil, err
 	}
+
 	var versions []string
 	for _, release := range releases {
-		if release.TagName >= "v1.7.5" {
+		tagVersion := strings.TrimPrefix(release.TagName, "v")
+		tagParts := strings.Split(tagVersion, ".")
+		if len(tagParts) != 3 {
+			continue
+		}
+
+		major, err1 := strconv.Atoi(tagParts[0])
+		minor, err2 := strconv.Atoi(tagParts[1])
+		patch, err3 := strconv.Atoi(tagParts[2])
+		if err1 != nil || err2 != nil || err3 != nil {
+			continue
+		}
+
+		if (major == 1 && minor == 8 && patch == 24) ||
+			(major >= 25) {
 			versions = append(versions, release.TagName)
 		}
 	}

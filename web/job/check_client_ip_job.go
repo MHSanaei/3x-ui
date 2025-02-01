@@ -106,7 +106,7 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 
 func (j *CheckClientIpJob) processLogFile() bool {
 
-	ipRegex := regexp.MustCompile(`from \[?([0-9a-fA-F:.]+)\]?:\d+ accepted`)
+	ipRegex := regexp.MustCompile(`from (?:tcp:|udp:)?\[?([0-9a-fA-F\.:]+)\]?:\d+ accepted`)
 	emailRegex := regexp.MustCompile(`email: (.+)$`)
 
 	accessLogPath, _ := xray.GetAccessLogPath()
@@ -151,13 +151,13 @@ func (j *CheckClientIpJob) processLogFile() bool {
 		}
 		sort.Strings(ips)
 
-		inboundClientIps, err := j.getInboundClientIps(email)
+		clientIpsRecord, err := j.getInboundClientIps(email)
 		if err != nil {
 			j.addInboundClientIps(email, ips)
 			continue
 		}
 
-		shouldCleanLog = j.updateInboundClientIps(inboundClientIps, email, ips) || shouldCleanLog
+		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, email, ips) || shouldCleanLog
 	}
 
 	return shouldCleanLog
@@ -309,12 +309,12 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 
 func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound, error) {
 	db := database.GetDB()
-	var inbounds *model.Inbound
+	inbound := &model.Inbound{}
 
-	err := db.Model(model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").Find(&inbounds).Error
+	err := db.Model(&model.Inbound{}).Where("settings LIKE ?", "%"+clientEmail+"%").First(inbound).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return inbounds, nil
+	return inbound, nil
 }
