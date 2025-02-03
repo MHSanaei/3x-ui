@@ -29,14 +29,14 @@ type User struct {
 
 type Inbound struct {
 	Id          int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	UserId      int                  `json:"-"`
+	UserId      int                  `json:"-" gorm:"index"`
 	Up          int64                `json:"up" form:"up"`
 	Down        int64                `json:"down" form:"down"`
 	Total       int64                `json:"total" form:"total"`
 	Remark      string               `json:"remark" form:"remark"`
 	Enable      bool                 `json:"enable" form:"enable"`
 	ExpiryTime  int64                `json:"expiryTime" form:"expiryTime"`
-	ClientStats []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
+	ClientStats []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id;constraint:OnDelete:CASCADE" json:"clientStats"`
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`
