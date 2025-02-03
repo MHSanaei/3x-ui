@@ -190,9 +190,6 @@
 
 [pages.client]
 "add" = "Adicionar Cliente"
-"groupAdd" = "Adicionar usuário de assinatura"
-"isGroupEdit" = "Edição de grupo"
-"isGroupEditDesc" = "Todos os clientes com a mesma assinatura são editados"
 "edit" = "Editar Cliente"
 "submitAdd" = "Adicionar Cliente"
 "submitEdit" = "Salvar Alterações"
@@ -290,8 +287,6 @@
 "subSettings" = "Assinatura"
 "subEnable" = "Ativar Serviço de Assinatura"
 "subEnableDesc" = "Ativa o serviço de assinatura."
-"subSyncEnable" = "Habilitar sincronização de assinatura"
-"subSyncEnableDesc" = "O tráfego de clientes com a mesma assinatura será sincronizado a cada 10 segundos."
 "subListen" = "IP de Escuta"
 "subListenDesc" = "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)"
 "subPort" = "Porta de Escuta"

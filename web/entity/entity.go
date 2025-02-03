@@ -40,7 +40,6 @@ type AllSetting struct {
 	TimeLocation     string `json:"timeLocation" form:"timeLocation"`
 	SecretEnable     bool   `json:"secretEnable" form:"secretEnable"`
 	SubEnable        bool   `json:"subEnable" form:"subEnable"`
-	SubSyncEnable    bool   `json:"subSyncEnable" form:"subSyncEnable"`
 	SubListen        string `json:"subListen" form:"subListen"`
 	SubPort          int    `json:"subPort" form:"subPort"`
 	SubPath          string `json:"subPath" form:"subPath"`
