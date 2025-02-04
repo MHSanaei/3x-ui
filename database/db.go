@@ -116,11 +116,6 @@ func InitDB(dbPath string) error {
 
 func CloseDB() error {
 	if db != nil {
-
-		if err := Checkpoint(); err != nil {
-			log.Printf("error executing checkpoint: %v", err)
-		}
-
 		sqlDB, err := db.DB()
 		if err != nil {
 			return err
