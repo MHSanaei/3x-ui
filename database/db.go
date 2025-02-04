@@ -26,35 +26,20 @@ const (
 )
 
 func initModels() error {
-	// Order matters: first create tables without dependencies
-	baseModels := []interface{}{
+	models := []interface{}{
 		&model.User{},
-		&model.Setting{},
-	}
-
-	// Migrate base models
-	for _, model := range baseModels {
-		if err := db.AutoMigrate(model); err != nil {
-			log.Printf("Error auto migrating base model: %v", err)
-			return err
-		}
-	}
-
-	// Then migrate models with dependencies
-	dependentModels := []interface{}{
 		&model.Inbound{},
 		&model.OutboundTraffics{},
+		&model.Setting{},
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 	}
-
-	for _, model := range dependentModels {
+	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
-			log.Printf("Error auto migrating dependent model: %v", err)
+			log.Printf("Error auto migrating model: %v", err)
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -97,31 +82,9 @@ func InitDB(dbPath string) error {
 	}
 
 	c := &gorm.Config{
-		Logger:                 gormLogger,
-		SkipDefaultTransaction: true,
-		PrepareStmt:            true,
+		Logger: gormLogger,
 	}
-
-	dsn := dbPath + "?cache=shared&_journal_mode=WAL&_synchronous=NORMAL"
-	db, err = gorm.Open(sqlite.Open(dsn), c)
-	if err != nil {
-		return err
-	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return err
-	}
-
-	_, err = sqlDB.Exec("PRAGMA cache_size = -64000;")
-	if err != nil {
-		return err
-	}
-	_, err = sqlDB.Exec("PRAGMA temp_store = MEMORY;")
-	if err != nil {
-		return err
-	}
-	_, err = sqlDB.Exec("PRAGMA foreign_keys = ON;")
+	db, err = gorm.Open(sqlite.Open(dbPath), c)
 	if err != nil {
 		return err
 	}
@@ -138,11 +101,6 @@ func InitDB(dbPath string) error {
 
 func CloseDB() error {
 	if db != nil {
-
-		if err := Checkpoint(); err != nil {
-			log.Printf("error executing checkpoint: %v", err)
-		}
-
 		sqlDB, err := db.DB()
 		if err != nil {
 			return err
