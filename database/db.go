@@ -26,35 +26,20 @@ const (
 )
 
 func initModels() error {
-	// Order matters: first create tables without dependencies
-	baseModels := []interface{}{
+	models := []interface{}{
 		&model.User{},
-		&model.Setting{},
-	}
-
-	// Migrate base models
-	for _, model := range baseModels {
-		if err := db.AutoMigrate(model); err != nil {
-			log.Printf("Error auto migrating base model: %v", err)
-			return err
-		}
-	}
-
-	// Then migrate models with dependencies
-	dependentModels := []interface{}{
 		&model.Inbound{},
 		&model.OutboundTraffics{},
+		&model.Setting{},
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 	}
-
-	for _, model := range dependentModels {
+	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
-			log.Printf("Error auto migrating dependent model: %v", err)
+			log.Printf("Error auto migrating model: %v", err)
 			return err
 		}
 	}
-
 	return nil
 }
 
