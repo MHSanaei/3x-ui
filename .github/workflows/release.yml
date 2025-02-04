@@ -22,7 +22,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        
+      - name: Clean Go module cache
+        run: go clean -modcache
+        
+      - name: Force update Go modules
+        run: |
+          go mod tidy
+          go mod download
+          
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
