@@ -134,7 +134,7 @@ jobs:
 
       - name: Delete existing asset (if exists)
         run: |
-          gh release delete-asset ${{ github.ref }} x-ui-linux-${{ matrix.platform }}.tar.gz --yes || true
+          gh release delete-asset v${{ env.VERSION }} x-ui-linux-${{ matrix.platform }}.tar.gz --yes || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -142,7 +142,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: v${{ env.VERSION }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           prerelease: true
