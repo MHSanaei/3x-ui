@@ -17,10 +17,6 @@ jobs:
           
       - name: Clean Go module cache
         run: go clean -modcache
-        
-      - name: dependencies
-        run: |
-          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
           
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -29,7 +25,7 @@ jobs:
       
       - name: Update dependencies
         run: |
-          go get -u ./...
+          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
           go mod tidy
 
       - name: Check for changes
