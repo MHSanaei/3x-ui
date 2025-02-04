@@ -96,6 +96,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250127172529-29210b9bc287 // indirect
 	google.golang.org/protobuf v1.36.4 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	replace gvisor.dev/gvisor v0.0.0-20240320123526-dc6abceb7ff0 // indirect
+	gvisor.dev/gvisor v0.0.0-20240320123526-dc6abceb7ff0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
 )
