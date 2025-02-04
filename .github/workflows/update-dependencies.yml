@@ -15,10 +15,12 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Clean Go module cache
+        run: go clean -modcache
+        
       - name: dependencies
         run: |
           go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
-          go mod tidy
           
       - name: Setup Go
         uses: actions/setup-go@v5
