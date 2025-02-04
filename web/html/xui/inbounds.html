@@ -224,10 +224,6 @@
                         <a-icon type="rest"></a-icon>
                         {{ i18n "pages.inbounds.delDepletedClients" }}
                       </a-menu-item>
-                      <a-menu-item v-if="subSettings.enable && dbInbounds.length > 0" key="addGroupClient">
-                        <a-icon type="usergroup-add"></a-icon>
-                        {{ i18n "pages.client.groupAdd"}}
-                      </a-menu-item>
                     </a-menu>
                   </a-dropdown>
                 </a-col>
@@ -863,9 +859,6 @@
                     case "delDepletedClients":
                         this.delDepletedClients(-1)
                         break;
-                    case "addGroupClient":
-                        this.openGroupAddClient()
-                        break;
                 }
             },
             clickAction(action, dbInbound) {
@@ -1011,21 +1004,6 @@
 
                 await this.submit(`/panel/inbound/update/${dbInbound.id}`, data, inModal);
             },
-            openGroupAddClient() {
-                clientModal.show({
-                    title: '{{ i18n "pages.client.groupAdd"}}',
-                    okText: '{{ i18n "pages.client.submitAdd"}}',
-                    dbInbounds: this.dbInbounds,
-                    confirm: async (clients, dbInboundIds) => {
-                        await this.addGroupClient(clients, dbInboundIds, clientModal).then((res) => {
-                            if(res){
-                                this.showQrcode(dbInboundIds[0],clients[0], true)
-                            }
-                        });
-                    },
-                    isEdit: false
-                });
-            },
             openAddClient(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 clientModal.show({
@@ -1033,11 +1011,7 @@
                     okText: '{{ i18n "pages.client.submitAdd"}}',
                     dbInbound: dbInbound,
                     confirm: async (clients, dbInboundId) => {
-                        await this.addClient(clients, dbInboundId, clientModal).then((res) => {
-                            if(res){
-                                this.showQrcode(dbInboundId,clients)
-                            }
-                        });
+                        await this.addClient(clients, dbInboundId, clientModal);
                     },
                     isEdit: false
                 });
@@ -1060,7 +1034,6 @@
                 clientModal.show({
                     title: '{{ i18n "pages.client.edit"}}',
                     okText: '{{ i18n "pages.client.submitEdit"}}',
-                    dbInbounds: this.dbInbounds,
                     dbInbound: dbInbound,
                     index: index,
                     confirm: async (client, dbInboundId, clientId) => {
@@ -1086,36 +1059,12 @@
                 };
                 await this.submit(`/panel/inbound/addClient`, data, modal);
             },
-            async addGroupClient(clients, dbInboundIds, modal) {
-                const data = []
-                dbInboundIds.forEach((dbInboundId, index) => {
-                    data.push({
-                        id: dbInboundId,
-                        settings: '{"clients": [' + clients[index].toString() + ']}',
-                    })
-                })
-                return await this.submit(`/panel/inbound/addGroupClient`, data, modal, true)
-            },
             async updateClient(client, dbInboundId, clientId) {
-                if (Array.isArray(client) && Array.isArray(dbInboundId) && Array.isArray(clientId)){
-                    const data = []
-                    client.forEach((client, index) => {
-                        data.push({
-                            clientId: clientId[index],
-                            inbound: {
-                              id: dbInboundId[index],
-                              settings: '{"clients": [' + client.toString() + ']}',
-                            }
-                        })
-                    })
-                    await this.submit(`/panel/inbound/updateClients`, data, clientModal, true);
-                }else{
-                    const data = {
-                        id: dbInboundId,
-                        settings: '{"clients": [' + client.toString() + ']}',
-                    };
-                    await this.submit(`/panel/inbound/updateClient/${clientId}`, data, clientModal);
-                }
+                const data = {
+                    id: dbInboundId,
+                    settings: '{"clients": [' + client.toString() + ']}',
+                };
+                await this.submit(`/panel/inbound/updateClient/${clientId}`, data, clientModal);
             },
             resetTraffic(dbInboundId) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1143,100 +1092,52 @@
                     onOk: () => this.submit('/panel/inbound/del/' + dbInboundId),
                 });
             },
-            async delClientHandler(dbInboundId, currentClient, clients = []) {
-                if (clients.length > 0) {
-                    const deleteRequestData = [];
-
-                    for (const client of clients) {
-                        const dbInbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId);
-                        if (dbInbound) {
-                            const inbound = dbInbound.toInbound();
-                            if (inbound && inbound.clients && inbound.clients.length === 1) {
-                                let newClient = Inbound.Settings.getSettings(inbound.protocol).toString();
-                                newClient = JSON.parse(newClient);
-                                newClient = newClient && newClient.clients && newClient.clients.length > 0 ? JSON.stringify(newClient.clients[0], null, 2) : null;
-                                if (newClient) {
-                                    const data = {
-                                        id: client.inboundId,
-                                        settings: '{"clients": [' + newClient + ']}',
-                                    };
-                                    await this.submit(`/panel/inbound/addClient`, data, null);
-                                }
-                            }
-
-                            deleteRequestData.push({
-                                inboundId: client.inboundId,
-                                clientId: client.clientId,
-                            });
-                        }
-                    }
-                    await this.submit('/panel/inbound/delGroupClients', deleteRequestData, null, true);
-                } else {
-                    const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                    const clientId = this.getClientId(dbInbound.protocol, currentClient);
-                    await this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
-                }
-            },
-            delClient(dbInboundId, currentClient, confirmation = true) {
-                const subGroup = this.subSettings.enable ? this.getSubGroupClients(this.dbInbounds, currentClient) : [];
-                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1  ? subGroup.clients : [];
+            delClient(dbInboundId, client,confirmation = true) {
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                clientId = this.getClientId(dbInbound.protocol, client);
                 if (confirmation){
-                    const clientEmails = clients.length > 0 ? clients.map(item => item.email) : currentClient.email
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.deleteClient"}}' + ' ' + clientEmails,
+                        title: '{{ i18n "pages.inbounds.deleteClient"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.deleteClientContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "delete"}}',
                         cancelText: '{{ i18n "cancel"}}',
-                        onOk: () => this.delClientHandler(dbInboundId, currentClient, clients),
+                        onOk: () => this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`),
                     });
                 } else {
-                    this.delClientHandler(dbInboundId, currentClient, clients)
+                    this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
                 }
             },
             getSubGroupClients(dbInbounds, currentClient) {
-            const response = {
-              inbounds: [],
-              clients: [],
-              editIds: [],
-            };
-
-            if (!Array.isArray(dbInbounds) || dbInbounds.length === 0) {
-              return response;
-            }
-            if (!currentClient || !currentClient.subId) {
-              return response;
-            }
-
-            dbInbounds.forEach((dbInboundItem) => {
-              try {
-                const dbInbound = new DBInbound(dbInboundItem);
-                if (!dbInbound) {
-                  return;
+                const response = {
+                  inbounds: [],
+                  clients: [],
+                  editIds: []
                 }
-
-                const inbound = dbInbound.toInbound();
-                if (!inbound || !Array.isArray(inbound.clients)) {
-                  return;
+                if (dbInbounds && dbInbounds.length > 0 && currentClient) {
+                    dbInbounds.forEach((dbInboundItem) => {
+                        const dbInbound = new DBInbound(dbInboundItem);
+                        if (dbInbound) {
+                            const inbound = dbInbound.toInbound();
+                            if (inbound) {
+                                const clients = inbound.clients;
+                                if (clients.length > 0) {
+                                    clients.forEach((client) => {
+                                        if (client['subId'] === currentClient['subId']) {
+                                            client['inboundId'] = dbInboundItem.id
+                                            client['clientId'] = this.getClientId(dbInbound.protocol, client)
+                                            response.inbounds.push(dbInboundItem.id)
+                                            response.clients.push(client)
+                                            response.editIds.push(client['clientId'])
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                    })
                 }
-
-                inbound.clients.forEach((client) => {
-                  if (client.subId === currentClient.subId) {
-                    client.inboundId = dbInboundItem.id;
-                    client.clientId = this.getClientId(dbInbound.protocol, client);
-
-                    response.inbounds.push(dbInboundItem.id);
-                    response.clients.push(client);
-                    response.editIds.push(client.clientId);
-                  }
-                });
-              } catch (error) {
-                console.error("Error processing dbInboundItem:", dbInboundItem, error);
-              }
-            });
-
-            return response;
-          },
+                return response;
+            },
             getClientId(protocol, client) {
                 switch (protocol) {
                     case Protocols.TROJAN: return client.password;
@@ -1264,10 +1165,10 @@
                 }
                 return newDbInbound;
             },
-            showQrcode(dbInboundId, client, isJustSub = false) {
+            showQrcode(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
                 newDbInbound = this.checkFallback(dbInbound);
-                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client, isJustSub);
+                qrModal.show('{{ i18n "qrCode"}}', newDbInbound, client);
             },
             showInfo(dbInboundId, client) {
                 dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1287,61 +1188,36 @@
             },
             async switchEnableClient(dbInboundId, client) {
                 this.loading()
-                const subGroup = this.subSettings.enable ? this.getSubGroupClients(this.dbInbounds, client) : [];
-                if (subGroup && subGroup.clients && subGroup.clients.length > 0){
-                    await this.updateClient(subGroup.clients.map(item => {
-                      item.enable = !item.enable
-                      return item
-                    }), subGroup.inbounds, subGroup.editIds);
-                }else{
-                    dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                    inbound = dbInbound.toInbound();
-                    clients = inbound.clients;
-                    index = this.findIndexOfClient(dbInbound.protocol, clients, client);
-                    clients[index].enable = !clients[index].enable;
-                    clientId = this.getClientId(dbInbound.protocol, clients[index]);
-                    await this.updateClient(clients[index], dbInboundId, clientId);
-                }
+                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+                inbound = dbInbound.toInbound();
+                clients = inbound.clients;
+                index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+                clients[index].enable = !clients[index].enable;
+                clientId = this.getClientId(dbInbound.protocol, clients[index]);
+                await this.updateClient(clients[index], dbInboundId, clientId);
                 this.loading(false);
             },
-            async submit(url, data, model, isJson = false) {
-                const msg = isJson ? await HttpUtil.postWithModalJson(url, data, model) : await HttpUtil.postWithModal(url, data, model);
+            async submit(url, data, modal) {
+                const msg = await HttpUtil.postWithModal(url, data, modal);
                 if (msg.success) {
                     await this.getDBInbounds();
                 }
-                return msg
             },
             getInboundClients(dbInbound) {
                 return dbInbound.toInbound().clients;
             },
-            resetClientTrafficHandler(client, dbInboundId, clients = []) {
-                if (clients.length > 0){
-                    const resetRequests = clients
-                        .filter(client => {
-                            const inbound = this.dbInbounds.find(inbound => inbound.id === client.inboundId);
-                            return inbound && this.hasClientStats(inbound, client.email);
-                        }).map(client => ({ inboundId: client.inboundId, email: client.email}));
-
-                    this.submit('/panel/inbound/resetGroupClientTraffic', resetRequests, null, true)
-                }else {
-                    this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
-                }
-            },
             resetClientTraffic(client, dbInboundId, confirmation = true) {
-                const subGroup = this.subSettings.enable ? this.getSubGroupClients(this.dbInbounds, client) : [];
-                const clients = subGroup && subGroup.clients && subGroup.clients.length > 1  ? subGroup.clients : [];
                 if (confirmation){
-                    const clientEmails = clients.length > 0 ? clients.map(item => item.email) : client.email
                     this.$confirm({
-                        title: '{{ i18n "pages.inbounds.resetTraffic"}}' + ' ' + clientEmails,
+                        title: '{{ i18n "pages.inbounds.resetTraffic"}}' + ' ' + client.email,
                         content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
                         class: themeSwitcher.currentTheme,
                         okText: '{{ i18n "reset"}}',
                         cancelText: '{{ i18n "cancel"}}',
-                        onOk: () => this.resetClientTrafficHandler(client, dbInboundId, clients),
+                        onOk: () => this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email),
                     })
                 } else {
-                    this.resetClientTrafficHandler(client, dbInboundId, clients);
+                    this.submit('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + client.email);
                 }
             },
             resetAllTraffic() {
@@ -1376,10 +1252,6 @@
             },
             isExpiry(dbInbound, index) {
                 return dbInbound.toInbound().isExpiry(index);
-            },
-            hasClientStats(dbInbound, email) {
-                if (email.length == 0) return 0;
-                return !!dbInbound.clientStats.find(stats => stats.email === email);
             },
             getUpStats(dbInbound, email) {
                 if (email.length == 0) return 0;

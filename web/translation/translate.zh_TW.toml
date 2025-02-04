@@ -190,9 +190,6 @@
 
 [pages.client]
 "add" = "新增客戶端"
-"groupAdd" = "新增訂閱使用者"
-"isGroupEdit" = "群組編輯"
-"isGroupEditDesc" = "所有具有相同訂閱的用戶端都被編輯"
 "edit" = "編輯客戶端"
 "submitAdd" = "新增客戶端"
 "submitEdit" = "儲存修改"
@@ -290,8 +287,6 @@
 "subSettings" = "訂閱設定"
 "subEnable" = "啟用訂閱服務"
 "subEnableDesc" = "啟用訂閱服務功能"
-"subSyncEnable" = "啟用訂閱同步"
-"subSyncEnableDesc" = "來自具有相同訂閱的客戶端的流量將每 10 秒同步一次。"
 "subListen" = "監聽 IP"
 "subListenDesc" = "訂閱服務監聽的 IP 地址（留空表示監聽所有 IP）"
 "subPort" = "監聽埠"

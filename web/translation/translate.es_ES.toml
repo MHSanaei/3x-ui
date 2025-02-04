@@ -190,7 +190,6 @@
 
 [pages.client]
 "add" = "Agregar Cliente"
-"groupAdd" = "Agregar usuario de suscripción"
 "edit" = "Editar Cliente"
 "submitAdd" = "Agregar Cliente"
 "submitEdit" = "Guardar Cambios"
@@ -288,8 +287,6 @@
 "subSettings" = "Suscripción"
 "subEnable" = "Habilitar Servicio"
 "subEnableDesc" = "Función de suscripción con configuración separada."
-"subSyncEnable" = "Habilitar sincronización de suscripciones"
-"subSyncEnableDesc" = "El tráfico de los clientes con la misma suscripción se sincronizará cada 10 segundos."
 "subListen" = "Listening IP"
 "subListenDesc" = "Dejar en blanco por defecto para monitorear todas las IPs."
 "subPort" = "Puerto de Suscripción"
