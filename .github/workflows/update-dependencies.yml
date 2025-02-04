@@ -1,0 +1,43 @@
+name: Update Go Dependencies
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'  # Запуск каждую неделю (понедельник в 00:00 UTC)
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Update dependencies
+        run: |
+          go get -u ./...
+          go mod tidy
+
+      - name: Check for changes
+        run: |
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "changes=true" >> $GITHUB_ENV
+          else
+            echo "changes=false" >> $GITHUB_ENV
+          fi
+
+      - name: Commit and push changes
+        if: env.changes == 'true'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add go.mod go.sum
+          git commit -m "chore(deps): update Go dependencies"
+          git push origin ${{ github.ref }}
