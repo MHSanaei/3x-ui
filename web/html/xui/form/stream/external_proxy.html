@@ -1,0 +1,29 @@
+{{define "form/externalProxy"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <a-divider style="margin:5px 0 0;"></a-divider>
+  <a-form-item label="External Proxy">
+    <a-switch v-model="externalProxy"></a-switch>
+    <a-button icon="plus" v-if="externalProxy" type="primary" style="margin-left: 10px" size="small" @click="inbound.stream.externalProxy.push({forceTls: 'same', dest: '', port: 443, remark: ''})"></a-button>
+  </a-form-item>
+  <a-input-group style="margin: 8px 0;" compact v-for="(row, index) in inbound.stream.externalProxy">
+    <template>
+      <a-tooltip title="Force TLS">
+        <a-select v-model="row.forceTls" style="width:20%; margin: 0px" :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option value="same">{{ i18n "pages.inbounds.same" }}</a-select-option>
+          <a-select-option value="none">{{ i18n "none" }}</a-select-option>
+          <a-select-option value="tls">TLS</a-select-option>
+        </a-select>
+      </a-tooltip>
+    </template>
+    <a-input style="width: 35%" v-model.trim="row.dest" placeholder='{{ i18n "host" }}'></a-input>
+    <a-tooltip title='{{ i18n "pages.inbounds.port" }}'>
+      <a-input-number style="width: 15%;" v-model.number="row.port" min="1" max="65531"></a-input-number>
+    </a-tooltip>
+    <a-input style="width: 30%; top: 0;" v-model.trim="row.remark" placeholder='{{ i18n "remark" }}'>
+      <template slot="addonAfter">
+        <a-button icon="minus" size="small" @click="inbound.stream.externalProxy.splice(index, 1)"></a-button>
+      </template>
+    </a-input>
+  </a-input-group>
+</a-form>
+{{end}}

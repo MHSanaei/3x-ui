@@ -1,0 +1,23 @@
+{{define "form/vmess"}}
+<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vmesses.slice(0,1)" v-if="!isEdit">    
+    <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+        {{template "form/client"}}
+    </a-collapse-panel>
+</a-collapse>
+<a-collapse v-else>
+    <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vmesses.length">
+        <table width="100%">
+            <tr class="client-table-header">
+                <th>{{ i18n "pages.inbounds.email" }}</th>
+                <th>ID</th>
+                <th>{{ i18n "security" }}</th>
+            </tr>
+            <tr v-for="(client, index) in inbound.settings.vmesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+                <td>[[ client.email ]]</td>
+                <td>[[ client.id ]]</td>
+                <td>[[ client.security ]]</td>
+            </tr>
+        </table>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

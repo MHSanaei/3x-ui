@@ -1,0 +1,32 @@
+{{define "head"}}
+<head>
+  <meta charset="UTF-8">
+  <meta name="renderer" content="webkit">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="{{ .base_path }}assets/ant-design-vue/antd.min.css">
+  <link rel="stylesheet" href="{{ .base_path }}assets/element-ui/theme-chalk/display.css">
+  <link rel="stylesheet" href="{{ .base_path }}assets/css/custom.min.css?{{ .cur_ver }}">
+  <style>
+    [v-cloak] {
+      display: none;
+    }
+    /* vazirmatn-regular - arabic_latin_latin-ext */
+    @font-face {
+      font-display: swap;
+      font-family: 'Vazirmatn';
+      font-style: normal;
+      font-weight: 400;
+      src: url('{{ .base_path }}assets/Vazirmatn-UI-NL-Regular.woff2') format('woff2');
+      unicode-range: U+0600-06FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE80-FEFC, U+0030-0039;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Vazirmatn', 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+        'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol';
+    }
+  </style>
+  <title>{{ .host }}-{{ i18n .title}}</title>
+</head>
+<div id="message"></div>
+{{end}}

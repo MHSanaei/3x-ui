@@ -1,0 +1,250 @@
+{{define "clientsBulkModal"}}
+<a-modal id="client-bulk-modal" v-model="clientsBulkModal.visible" :title="clientsBulkModal.title"
+    @ok="clientsBulkModal.ok" :confirm-loading="clientsBulkModal.confirmLoading" :closable="true" :mask-closable="false"
+    :ok-text="clientsBulkModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label='{{ i18n "pages.client.method" }}'>
+            <a-select v-model="clientsBulkModal.emailMethod" buttonStyle="solid"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option :value="0">Random</a-select-option>
+                <a-select-option :value="1">Random+Prefix</a-select-option>
+                <a-select-option :value="2">Random+Prefix+Num</a-select-option>
+                <a-select-option :value="3">Random+Prefix+Num+Postfix</a-select-option>
+                <a-select-option :value="4">Prefix+Num+Postfix</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.first" }}' v-if="clientsBulkModal.emailMethod>1">
+            <a-input-number v-model="clientsBulkModal.firstNum" :min="1"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.last" }}' v-if="clientsBulkModal.emailMethod>1">
+            <a-input-number v-model="clientsBulkModal.lastNum" :min="clientsBulkModal.firstNum"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.prefix" }}' v-if="clientsBulkModal.emailMethod>0">
+            <a-input v-model.trim="clientsBulkModal.emailPrefix"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.postfix" }}' v-if="clientsBulkModal.emailMethod>2">
+            <a-input v-model.trim="clientsBulkModal.emailPostfix"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
+            <a-input-number v-model="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "security" }}' v-if="inbound.protocol === Protocols.VMESS">
+            <a-select v-model="clientsBulkModal.security" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Flow' v-if="clientsBulkModal.inbound.canEnableTlsFlow()">
+            <a-select v-model="clientsBulkModal.flow" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item v-if="app.subSettings.enable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.subscriptionDesc" }}</span>
+                    </template>
+                    Subscription
+                    <a-icon @click="clientsBulkModal.subId = RandomUtil.randomLowerAndNum(16)" type="sync"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input v-model.trim="clientsBulkModal.subId"></a-input>
+        </a-form-item>
+        <a-form-item v-if="app.tgBotEnable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
+                    </template>
+                    Telegram ChatID
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number style="width: 50%" v-model="clientsBulkModal.tgId" min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item v-if="app.ipLimitEnable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.IPLimitDesc" }}</span>
+                    </template>
+                    <span>{{ i18n "pages.inbounds.IPLimit" }} </span>
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model="clientsBulkModal.limitIp" min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                    </template>
+                    {{ i18n "pages.inbounds.totalFlow" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model="clientsBulkModal.totalGB" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
+            <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.client.expireDays" }}' v-if="clientsBulkModal.delayedStart">
+            <a-input-number v-model.number="delayedExpireDays" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item v-else>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.leaveBlankToNeverExpire" }}</span>
+                    </template>
+                    {{ i18n "pages.inbounds.expireDate" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-date-picker v-if="datepicker == 'gregorian'" :show-time="{ format: 'HH:mm:ss' }"
+                format="YYYY-MM-DD HH:mm:ss" :dropdown-class-name="themeSwitcher.currentTheme"
+                v-model="clientsBulkModal.expiryTime"></a-date-picker>
+            <persian-datepicker v-else placeholder='{{ i18n "pages.settings.datepickerPlaceholder" }}'
+                value="clientsBulkModal.expiryTime" v-model="clientsBulkModal.expiryTime">
+            </persian-datepicker>
+        </a-form-item>
+        <a-form-item v-if="clientsBulkModal.expiryTime != 0">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.client.renewDesc" }}</span>
+                    </template>
+                    {{ i18n "pages.client.renew" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model.number="clientsBulkModal.reset" :min="0"></a-input-number>
+        </a-form-item>
+    </a-form>
+</a-modal>
+<script>
+
+    const clientsBulkModal = {
+        visible: false,
+        confirmLoading: false,
+        title: '',
+        okText: '',
+        confirm: null,
+        dbInbound: new DBInbound(),
+        inbound: new Inbound(),
+        quantity: 1,
+        totalGB: 0,
+        limitIp: 0,
+        expiryTime: '',
+        emailMethod: 0,
+        firstNum: 1,
+        lastNum: 1,
+        emailPrefix: "",
+        emailPostfix: "",
+        subId: "",
+        tgId: '',
+        security: "auto",
+        flow: "",
+        delayedStart: false,
+        reset: 0,
+        ok() {
+            clients = [];
+            method = clientsBulkModal.emailMethod;
+            if (method > 1) {
+                start = clientsBulkModal.firstNum;
+                end = clientsBulkModal.lastNum + 1;
+            } else {
+                start = 0;
+                end = clientsBulkModal.quantity;
+            }
+            prefix = (method > 0 && clientsBulkModal.emailPrefix.length > 0) ? clientsBulkModal.emailPrefix : "";
+            useNum = (method > 1);
+            postfix = (method > 2 && clientsBulkModal.emailPostfix.length > 0) ? clientsBulkModal.emailPostfix : "";
+            for (let i = start; i < end; i++) {
+                newClient = clientsBulkModal.newClient(clientsBulkModal.dbInbound.protocol);
+                if (method == 4) newClient.email = "";
+                newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
+                if (clientsBulkModal.subId.length > 0) newClient.subId = clientsBulkModal.subId;
+                newClient.tgId = clientsBulkModal.tgId;
+                newClient.security = clientsBulkModal.security;
+                newClient.limitIp = clientsBulkModal.limitIp;
+                newClient._totalGB = clientsBulkModal.totalGB;
+                newClient._expiryTime = clientsBulkModal.expiryTime;
+                if (clientsBulkModal.inbound.canEnableTlsFlow()) {
+                    newClient.flow = clientsBulkModal.flow;
+                }
+                newClient.reset = clientsBulkModal.reset;
+                clients.push(newClient);
+            }
+            ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
+        },
+        show({
+            title = '',
+            okText = '{{ i18n "sure" }}',
+            dbInbound = null,
+            confirm = (inbound, dbInbound) => { }
+        }) {
+            this.visible = true;
+            this.title = title;
+            this.okText = okText;
+            this.confirm = confirm;
+            this.quantity = 1;
+            this.totalGB = 0;
+            this.expiryTime = 0;
+            this.emailMethod = 0;
+            this.limitIp = 0;
+            this.firstNum = 1;
+            this.lastNum = 1;
+            this.emailPrefix = "";
+            this.emailPostfix = "";
+            this.subId = "";
+            this.tgId = '';
+            this.security = "auto";
+            this.flow = "";
+            this.dbInbound = new DBInbound(dbInbound);
+            this.inbound = dbInbound.toInbound();
+            this.delayedStart = false;
+            this.reset = 0;
+        },
+        newClient(protocol) {
+            switch (protocol) {
+                case Protocols.VMESS: return new Inbound.VmessSettings.VMESS();
+                case Protocols.VLESS: return new Inbound.VLESSSettings.VLESS();
+                case Protocols.TROJAN: return new Inbound.TrojanSettings.Trojan();
+                case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings.Shadowsocks(clientsBulkModal.inbound.settings.shadowsockses[0].method);
+                default: return null;
+            }
+        },
+        close() {
+            clientsBulkModal.visible = false;
+            clientsBulkModal.loading(false);
+        },
+        loading(loading = true) {
+            clientsBulkModal.confirmLoading = loading;
+        },
+    };
+
+    const clientsBulkModalApp = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#client-bulk-modal',
+        data: {
+            clientsBulkModal,
+            get inbound() {
+                return this.clientsBulkModal.inbound;
+            },
+            get delayedExpireDays() {
+                return this.clientsBulkModal.expiryTime < 0 ? this.clientsBulkModal.expiryTime / -86400000 : 0;
+            },
+            get datepicker() {
+                return app.datepicker;
+            },
+            set delayedExpireDays(days) {
+                this.clientsBulkModal.expiryTime = -86400000 * days;
+            },
+        },
+    });
+
+</script>
+{{end}}

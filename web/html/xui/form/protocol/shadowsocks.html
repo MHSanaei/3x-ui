@@ -1,0 +1,50 @@
+{{define "form/shadowsocks"}}
+<template v-if="inbound.isSSMultiUser">
+    <a-collapse activeKey="0" v-for="(client, index) in inbound.settings.shadowsockses.slice(0,1)" v-if="!isEdit">  
+        <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+            {{template "form/client"}}
+        </a-collapse-panel>
+    </a-collapse>
+    <a-collapse v-else>
+        <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.shadowsockses.length">
+            <table width="100%">
+                <tr class="client-table-header">
+                    <th>{{ i18n "pages.inbounds.email" }}</th>
+                    <th>Password</th>
+                </tr>
+                <tr v-for="(client, index) in inbound.settings.shadowsockses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+                    <td>[[ client.email ]]</td>
+                    <td>[[ client.password ]]</td>
+                </tr>
+            </table>
+        </a-collapse-panel>
+    </a-collapse>
+</template>
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='{{ i18n "encryption" }}'>
+        <a-select v-model="inbound.settings.method" @change="SSMethodChange" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="(method,method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item v-if="inbound.isSS2022">
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "reset" }}</span>
+                </template> Password <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="inbound.settings.password"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
+        <a-select v-model="inbound.settings.network" style="width: 100px;" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="tcp,udp">TCP,UDP</a-select-option>
+            <a-select-option value="tcp">TCP</a-select-option>
+            <a-select-option value="udp">UDP</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label='ivCheck'>
+        <a-switch v-model="inbound.settings.ivCheck"></a-switch>
+    </a-form-item>
+</a-form>
+{{end}}

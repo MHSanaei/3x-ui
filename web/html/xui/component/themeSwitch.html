@@ -1,0 +1,113 @@
+{{define "component/themeSwitchTemplate"}}
+<template>
+  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+    <a-sub-menu>
+      <span slot="title">
+        <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
+        <span>Theme</span>
+      </span>
+      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> Dark <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      </a-menu-item>
+      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOffUltra()"> Ultra <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      </a-menu-item>
+    </a-sub-menu>
+  </a-menu>
+</template>
+{{end}}
+
+{{define "component/themeSwitchTemplateLogin"}}
+<template>
+  <a-menu @mousedown="themeSwitcher.animationsOff()" id="change-theme" :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+    <a-menu-item mode="inline" class="ant-menu-theme-switch">
+      <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
+      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <template v-if="themeSwitcher.isDarkTheme">
+        <a-checkbox style="margin-left: 1rem; vertical-align: middle;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()">Ultra</a-checkbox>
+      </template>
+    </a-menu-item>
+  </a-menu>
+</template>
+{{end}}
+
+{{define "component/themeSwitcher"}}
+<script>
+  function createThemeSwitcher() {
+    const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
+    const isUltra = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
+    if (isUltra) {
+      document.documentElement.setAttribute('data-theme', 'ultra-dark');
+    }
+    const theme = isDarkTheme ? 'dark' : 'light';
+    document.querySelector('body').setAttribute('class', theme);
+    return {
+      animationsOff() {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+        const themeAnimations = document.querySelector('#change-theme');
+        themeAnimations.addEventListener('mouseleave', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+        themeAnimations.addEventListener('touchend', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+      },
+      animationsOffUltra() {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+        const themeAnimationsUltra = document.querySelector('#change-theme-ultra');
+        themeAnimationsUltra.addEventListener('mouseleave', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+        themeAnimationsUltra.addEventListener('touchend', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+      },
+      isDarkTheme,
+      isUltra,
+      get currentTheme() {
+        return this.isDarkTheme ? 'dark' : 'light';
+      },
+      toggleTheme() {
+        this.isDarkTheme = !this.isDarkTheme;
+        localStorage.setItem('dark-mode', this.isDarkTheme);
+        document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light');
+        document.getElementById('message').className = themeSwitcher.currentTheme;
+      },
+      toggleUltra() {
+        this.isUltra = !this.isUltra;
+        if (this.isUltra) {
+          document.documentElement.setAttribute('data-theme', 'ultra-dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+        localStorage.setItem('isUltraDarkThemeEnabled', this.isUltra.toString());
+      }
+    };
+  }
+  const themeSwitcher = createThemeSwitcher();
+  Vue.component('theme-switch', {
+    props: [],
+    template: `{{template "component/themeSwitchTemplate"}}`,
+    data: () => ({
+      themeSwitcher
+    }),
+    mounted() {
+      this.$message.config({
+        getContainer: () => document.getElementById('message')
+      });
+      document.getElementById('message').className = themeSwitcher.currentTheme;
+    }
+  });
+  Vue.component('theme-switch-login', {
+    props: [],
+    template: `{{template "component/themeSwitchTemplateLogin"}}`,
+    data: () => ({
+      themeSwitcher
+    }),
+    mounted() {
+      this.$message.config({
+        getContainer: () => document.getElementById('message')
+      });
+      document.getElementById('message').className = themeSwitcher.currentTheme;
+    }
+  });
+</script>
+{{end}}

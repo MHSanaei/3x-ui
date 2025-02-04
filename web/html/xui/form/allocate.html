@@ -1,0 +1,15 @@
+{{define "form/allocate"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='Strategy'>
+      <a-select v-model="inbound.allocate.strategy" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option v-for="s in ['always','random']" :value="s">[[ s ]]</a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item label='Refresh'>
+      <a-input-number v-model.number="inbound.allocate.refresh" min="0"></a-input-number>
+    </a-form-item>
+    <a-form-item label='Concurrency'>
+      <a-input-number v-model.number="inbound.allocate.concurrency" min="0"></a-input-number>
+    </a-form-item>
+</a-form>
+{{end}}

@@ -1,0 +1,127 @@
+{{define "outModal"}}
+<a-modal id="out-modal" v-model="outModal.visible" :title="outModal.title" @ok="outModal.ok"
+         :confirm-loading="outModal.confirmLoading" :closable="true" :mask-closable="false"
+         :ok-button-props="{ props: { disabled: !outModal.isValid } }" style="overflow: hidden;"
+         :ok-text="outModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
+         {{template "form/outbound"}}
+</a-modal>
+<script>
+
+    const outModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        confirm: null,
+        outbound: new Outbound(),
+        jsonMode: false,
+        link: '',
+        cm: null,
+        duplicateTag: false,
+        isValid: true,
+        activeKey: '1',
+        tags: [],
+        ok() {
+            ObjectUtil.execute(outModal.confirm, outModal.outbound.toJson());
+        },
+        show({ title='', okText='{{ i18n "sure" }}', outbound, confirm=(outbound)=>{}, isEdit=false, tags=[]  }) {
+            this.title = title;
+            this.okText = okText;
+            this.confirm = confirm;
+            this.jsonMode = false;
+            this.link = '';
+            this.activeKey = '1';
+            this.visible = true;
+            this.outbound = isEdit ? Outbound.fromJson(outbound) : new Outbound();
+            this.isEdit = isEdit;
+            this.tags = tags;
+            this.check()
+        },
+        close() {
+            outModal.visible = false;
+            outModal.loading(false);
+        },
+        loading(loading=true) {
+            outModal.confirmLoading = loading;
+        },
+        check(){
+            if(outModal.outbound.tag == '' || outModal.tags.includes(outModal.outbound.tag)){
+                this.duplicateTag = true;
+                this.isValid = false;
+            } else {
+                this.duplicateTag = false;
+                this.isValid = true;
+            }
+        },
+        toggleJson(jsonTab) {
+            textAreaObj = document.getElementById('outboundJson');
+            if(jsonTab){
+                if(this.cm != null) {
+                        this.cm.toTextArea();
+                        this.cm=null;
+                }
+                textAreaObj.value = JSON.stringify(this.outbound.toJson(), null, 2);
+                this.cm = CodeMirror.fromTextArea(textAreaObj, app.cmOptions);
+                this.cm.on('change',editor => {
+                    value = editor.getValue();
+                    if(this.isJsonString(value)){
+                        this.outbound = Outbound.fromJson(JSON.parse(value));
+                        this.check();
+                    }
+                });
+                this.activeKey = '2';
+            } else {
+                if(this.cm != null) {
+                        this.cm.toTextArea();
+                        this.cm=null;
+                }
+                this.activeKey = '1';
+            }
+        },
+        isJsonString(str) {
+            try {
+                JSON.parse(str);
+            } catch (e) {
+                return false;
+            }
+            return true;
+        },
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#out-modal',
+        data: {
+            outModal: outModal,
+            get outbound() {
+                return outModal.outbound;
+            },
+        },
+        methods: {
+            streamNetworkChange() {
+                if (this.outModal.outbound.protocol == Protocols.VLESS && !outModal.outbound.canEnableTlsFlow()) {
+                    delete this.outModal.outbound.settings.flow;
+                }
+            },
+            canEnableTls() {
+                return this.outModal.outbound.canEnableTls();
+            },
+            convertLink(){
+                newOutbound = Outbound.fromLink(outModal.link);
+                if(newOutbound){
+                    this.outModal.outbound = newOutbound;
+                    this.outModal.toggleJson(true);
+                    this.outModal.check();
+                    this.$message.success('Link imported successfully...');      
+                    outModal.link = '';
+                } else {
+                    this.$message.error('Wrong Link!');
+                    outModal.link = '';
+                }
+            },
+        },
+    });
+
+</script>
+{{end}}

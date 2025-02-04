@@ -1,0 +1,246 @@
+{{define "warpModal"}}
+<a-modal id="warp-modal" v-model="warpModal.visible" title="Cloudflare WARP"
+         :confirm-loading="warpModal.confirmLoading" :closable="true" :mask-closable="true"
+         :footer="null" :class="themeSwitcher.currentTheme">
+    <template v-if="ObjectUtil.isEmpty(warpModal.warpData)">
+        <a-button icon="api" @click="register" :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.create" }}</a-button>
+    </template>
+    <template v-else>
+        <table style="margin: 5px 0; width: 100%;">
+            <tr class="client-table-odd-row">
+                <td>Access Token</td>
+                <td>[[ warpModal.warpData.access_token ]]</td>
+            </tr>
+            <tr>
+                <td>Device ID</td>
+                <td>[[ warpModal.warpData.device_id ]]</td>
+            </tr>
+            <tr class="client-table-odd-row">
+                <td>License Key</td>
+                <td>[[ warpModal.warpData.license_key ]]</td>
+            </tr>
+            <tr>
+                <td>Private Key</td>
+                <td>[[ warpModal.warpData.private_key ]]</td>
+            </tr>
+        </table>
+        <a-button @click="delConfig" :loading="warpModal.confirmLoading" type="danger">{{ i18n "delete" }}</a-button>
+        <a-divider style="margin: 0;">{{ i18n "pages.xray.outbound.settings" }}</a-divider>
+        <a-collapse style="margin: 10px 0;">
+            <a-collapse-panel header='WARP/WARP+ License Key'>
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:14} }">
+                    <a-form-item label="Key">
+                        <a-input v-model="warpPlus"></a-input>
+                        <a-button @click="updateLicense(warpPlus)" :disabled="warpPlus.length<26"
+                            :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.update" }}</a-button>
+                    </a-form-item>
+                </a-form>
+            </a-collapse-panel>
+        </a-collapse>
+        <a-divider style="margin: 0;">{{ i18n "pages.xray.outbound.accountInfo" }}</a-divider>
+        <a-button icon="sync" @click="getConfig" style="margin-top: 5px; margin-bottom: 10px;"
+            :loading="warpModal.confirmLoading" type="primary">{{ i18n "info" }}</a-button>
+        <template v-if="!ObjectUtil.isEmpty(warpModal.warpConfig)">
+            <table style="width: 100%">
+                <tr class="client-table-odd-row">
+                    <td>Device Name</td>
+                    <td>[[ warpModal.warpConfig.name ]]</td>
+                </tr>
+                <tr>
+                    <td>Device Model</td>
+                    <td>[[ warpModal.warpConfig.model ]]</td>
+                </tr>
+                <tr class="client-table-odd-row">
+                    <td>Device Enabled</td>
+                    <td>[[ warpModal.warpConfig.enabled ]]</td>
+                </tr>
+                <template v-if="!ObjectUtil.isEmpty(warpModal.warpConfig.account)">
+                    <tr>
+                        <td>Account Type</td>
+                        <td>[[ warpModal.warpConfig.account.account_type ]]</td>
+                    </tr>
+                    <tr class="client-table-odd-row">
+                        <td>Role</td>
+                        <td>[[ warpModal.warpConfig.account.role ]]</td>
+                    </tr>
+                    <tr>
+                        <td>WARP+ Data</td>
+                        <td>[[ sizeFormat(warpModal.warpConfig.account.premium_data) ]]</td>
+                    </tr>
+                    <tr class="client-table-odd-row">
+                        <td>Quota</td>
+                        <td>[[ sizeFormat(warpModal.warpConfig.account.quota) ]]</td>
+                    </tr>
+                    <tr v-if="!ObjectUtil.isEmpty(warpModal.warpConfig.account.usage)">
+                        <td>Usage</td>
+                        <td>[[ sizeFormat(warpModal.warpConfig.account.usage) ]]</td>
+                    </tr>
+                </template>
+            </table>
+            <a-divider style="margin: 10px 0;">{{ i18n "pages.xray.outbound.outboundStatus" }}</a-divider>
+            <a-form :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+                <template v-if="warpOutboundIndex>=0">
+                    <a-tag color="green" style="line-height: 31px;">{{ i18n "enabled" }}</a-tag>
+                    <a-button @click="resetOutbound" :loading="warpModal.confirmLoading" type="danger">{{ i18n "reset" }}</a-button>
+                </template>
+                <template v-else>
+                    <a-tag color="orange" style="line-height: 31px;">{{ i18n "disabled" }}</a-tag>
+                    <a-button @click="addOutbound" :loading="warpModal.confirmLoading" type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                </template>
+                </a-form-item>
+            </a-form>
+        </template>
+    </template>
+</a-modal>
+<script>
+
+    const warpModal = {
+        visible: false,
+        confirmLoading: false,
+        warpData: null,
+        warpConfig: null,
+        warpOutbound: null,
+        show() {
+            this.visible = true;
+            this.warpConfig = null;
+            this.getData();
+        },
+        close() {
+            this.visible = false;
+            this.loading(false);
+        },
+        loading(loading = true) {
+            this.confirmLoading = loading;
+        },
+        async getData() {
+            this.loading(true);
+            const msg = await HttpUtil.post('/panel/xray/warp/data');
+            this.loading(false);
+            if (msg.success) {
+                this.warpData = msg.obj.length > 0 ? JSON.parse(msg.obj) : null;
+            }
+        },
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#warp-modal',
+        data: {
+            warpModal: warpModal,
+            warpPlus: '',
+        },
+        methods: {
+            collectConfig() {
+                config = warpModal.warpConfig.config;
+                peer = config.peers[0];
+                if (config) {
+                    warpModal.warpOutbound = Outbound.fromJson({
+                        tag: 'warp',
+                        protocol: Protocols.Wireguard,
+                        settings: {
+                            mtu: 1420,
+                            secretKey: warpModal.warpData.private_key,
+                            address: this.getAddresses(config.interface.addresses),
+                            reserved: this.getResolved(config.client_id),
+                            domainStrategy: 'ForceIP',
+                            peers: [{
+                                publicKey: peer.public_key,
+                                endpoint: peer.endpoint.host,
+                            }],
+                            noKernelTun: false,
+                        }
+                    });
+                }
+            },
+            getAddresses(addrs) {
+                let addresses = [];
+                if (addrs.v4) addresses.push(addrs.v4 + "/32");
+                if (addrs.v6) addresses.push(addrs.v6 + "/128");
+                return addresses;
+            },
+            getResolved(client_id) {
+                let reserved = [];
+                let decoded = atob(client_id);
+                let hexString = '';
+                for (let i = 0; i < decoded.length; i++) {
+                    let hex = decoded.charCodeAt(i).toString(16);
+                    hexString += (hex.length === 1 ? '0' : '') + hex;
+                }
+
+                for (let i = 0; i < hexString.length; i += 2) {
+                    let hexByte = hexString.slice(i, i + 2);
+                    let decValue = parseInt(hexByte, 16);
+                    reserved.push(decValue);
+                }
+                return reserved;
+            },
+            async register() {
+                warpModal.loading(true);
+                keys = Wireguard.generateKeypair();
+                const msg = await HttpUtil.post('/panel/xray/warp/reg', keys);
+                if (msg.success) {
+                    resp = JSON.parse(msg.obj);
+                    warpModal.warpData = resp.data;
+                    warpModal.warpConfig = resp.config;
+                    this.collectConfig();
+                }
+                warpModal.loading(false);
+            },
+            async updateLicense(l) {
+                warpModal.loading(true);
+                const msg = await HttpUtil.post('/panel/xray/warp/license', { license: l });
+                if (msg.success) {
+                    warpModal.warpData = JSON.parse(msg.obj);
+                    warpModal.warpConfig = null;
+                    this.warpPlus = '';
+                }
+                warpModal.loading(false);
+            },
+            async getConfig() {
+                warpModal.loading(true);
+                const msg = await HttpUtil.post('/panel/xray/warp/config');
+                warpModal.loading(false);
+                if (msg.success) {
+                    warpModal.warpConfig = JSON.parse(msg.obj);
+                    this.collectConfig();
+                }
+            },
+            async delConfig() {
+                warpModal.loading(true);
+                const msg = await HttpUtil.post('/panel/xray/warp/del');
+                warpModal.loading(false);
+                if (msg.success) {
+                    warpModal.warpData = null;
+                    warpModal.warpConfig = null;
+                    this.delOutbound();
+                }
+            },
+            addOutbound() {
+                app.templateSettings.outbounds.push(warpModal.warpOutbound.toJson());
+                app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+                warpModal.close();
+            },
+            resetOutbound() {
+                app.templateSettings.outbounds[this.warpOutboundIndex] = warpModal.warpOutbound.toJson();
+                app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+                warpModal.close();
+            },
+            delOutbound() {
+                if (this.warpOutboundIndex != -1) {
+                    app.templateSettings.outbounds.splice(this.warpOutboundIndex, 1);
+                    app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+                }
+                warpModal.close();
+            }
+        },
+        computed: {
+            warpOutboundIndex: {
+                get: function () {
+                    return app.templateSettings ? app.templateSettings.outbounds.findIndex((o) => o.tag == 'warp') : -1;
+                }
+            }
+        }
+    });
+
+</script>
+{{end}}

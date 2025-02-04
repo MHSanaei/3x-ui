@@ -1,0 +1,65 @@
+{{define "menuItems"}}
+<a-menu-item key="{{ .base_path }}panel/">
+  <a-icon type="dashboard"></a-icon>
+  <span>
+    <b>{{ i18n "menu.dashboard"}}</b>
+  </span>
+</a-menu-item>
+<a-menu-item key="{{ .base_path }}panel/inbounds">
+  <a-icon type="user"></a-icon>
+  <span>
+    <b>{{ i18n "menu.inbounds"}}</b>
+  </span>
+</a-menu-item>
+<a-menu-item key="{{ .base_path }}panel/settings">
+  <a-icon type="setting"></a-icon>
+  <span>
+    <b>{{ i18n "menu.settings"}}</b>
+  </span>
+</a-menu-item>
+<a-menu-item key="{{ .base_path }}panel/xray">
+  <a-icon type="tool"></a-icon>
+  <span>
+    <b>{{ i18n "menu.xray"}}</b>
+  </span>
+</a-menu-item>
+<a-menu-item key="{{ .base_path }}logout">
+  <a-icon type="logout"></a-icon>
+  <span>
+    <b>{{ i18n "menu.logout"}}</b>
+  </span>
+</a-menu-item>
+{{end}}
+
+
+{{define "commonSider"}}
+<a-layout-sider :theme="themeSwitcher.currentTheme" id="sider" collapsible breakpoint="md">
+  <theme-switch></theme-switch>
+  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']" @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
+    {{template "menuItems" .}}
+  </a-menu>
+</a-layout-sider>
+<a-drawer id="sider-drawer" placement="left" :closable="false" @close="siderDrawer.close()" :visible="siderDrawer.visible" :wrap-class-name="themeSwitcher.currentTheme" :wrap-style="{ padding: 0 }">
+  <div class="drawer-handle" @click="siderDrawer.change()" slot="handle">
+    <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
+  </div>
+  <theme-switch></theme-switch>
+  <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']" @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
+    {{template "menuItems" .}}
+  </a-menu>
+</a-drawer>
+<script>
+  const siderDrawer = {
+    visible: false,
+    show() {
+      this.visible = true;
+    },
+    close() {
+      this.visible = false;
+    },
+    change() {
+      this.visible = !this.visible;
+    },
+  };
+</script>
+{{end}}

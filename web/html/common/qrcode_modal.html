@@ -1,0 +1,165 @@
+{{define "qrcodeModal"}}
+<a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
+    :dialog-style="isMobileQr ? { top: '18px' } : {}"
+    :closable="true"
+    :class="themeSwitcher.currentTheme"
+    :footer="null" width="fit-content">
+  <tr-qr-modal class="qr-modal">
+    <template v-if="app.subSettings.enable && qrModal.subId">
+      <tr-qr-box class="qr-box">
+        <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
+        <tr-qr-bg class="qr-bg-sub">
+          <tr-qr-bg-inner class="qr-bg-sub-inner">
+            <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
+          </tr-qr-bg-inner>
+        </tr-qr-bg>
+      </tr-qr-box>
+      <tr-qr-box class="qr-box">
+        <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}} Json</span></a-tag>
+        <tr-qr-bg class="qr-bg-sub">
+          <tr-qr-bg-inner class="qr-bg-sub-inner">
+            <canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
+          </tr-qr-bg-inner>
+        </tr-qr-bg>
+      </tr-qr-box>
+    </template>
+    <template v-for="(row, index) in qrModal.qrcodes">
+      <tr-qr-box class="qr-box">
+        <a-tag color="green" class="qr-tag"><span>[[ row.remark ]]</span></a-tag>
+        <tr-qr-bg class="qr-bg">
+          <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
+        </tr-qr-bg>
+      </tr-qr-box>
+    </template>
+  </tr-qr-modal>
+</a-modal>
+
+<script>
+  const isMobileQr = window.innerWidth <= 768;
+  const qrModal = {
+    title: '',
+    dbInbound: new DBInbound(),
+    client: null,
+    qrcodes: [],
+    clipboard: null,
+    visible: false,
+    subId: '',
+    show: function(title = '', dbInbound, client) {
+      this.title = title;
+      this.dbInbound = dbInbound;
+      this.inbound = dbInbound.toInbound();
+      this.client = client;
+      this.subId = '';
+      this.qrcodes = [];
+      if (this.inbound.protocol == Protocols.WIREGUARD) {
+        this.inbound.genInboundLinks(dbInbound.remark).split('\r\n').forEach((l, index) => {
+          this.qrcodes.push({
+            remark: "Peer " + (index + 1),
+            link: l
+          });
+        });
+      } else {
+        this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
+          this.qrcodes.push({
+            remark: l.remark,
+            link: l.link
+          });
+        });
+      }
+      this.visible = true;
+    },
+    close: function() {
+      this.visible = false;
+    },
+  };
+  const qrModalApp = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#qrcode-modal',
+    data: {
+      qrModal: qrModal,
+    },
+    methods: {
+      copyToClipboard(elementId, content) {
+        this.qrModal.clipboard = new ClipboardJS('#' + elementId, {
+          text: () => content,
+        });
+        this.qrModal.clipboard.on('success', () => {
+          app.$message.success('{{ i18n "copied" }}')
+          this.qrModal.clipboard.destroy();
+        });
+      },
+      setQrCode(elementId, content) {
+        new QRious({
+          element: document.querySelector('#' + elementId),
+          size: 400,
+          value: content,
+          background: 'white',
+          backgroundAlpha: 0,
+          foreground: 'black',
+          padding: 2,
+          level: 'L'
+        });
+      },
+      genSubLink(subID) {
+        return app.subSettings.subURI + subID;
+      },
+      genSubJsonLink(subID) {
+        return app.subSettings.subJsonURI + subID;
+      },
+      revertOverflow() {
+        const elements = document.querySelectorAll(".qr-tag");
+        elements.forEach((element) => {
+          element.classList.remove("tr-marquee");
+          element.children[0].style.animation = '';
+          while (element.children.length > 1) {
+            element.removeChild(element.lastChild);
+          }
+        });
+      }
+    },
+    updated() {
+      if (this.qrModal.visible) {
+        fixOverflow();
+      } else {
+        this.revertOverflow();
+      }
+      if (qrModal.client && qrModal.client.subId) {
+        qrModal.subId = qrModal.client.subId;
+        this.setQrCode("qrCode-sub", this.genSubLink(qrModal.subId));
+        this.setQrCode("qrCode-subJson", this.genSubJsonLink(qrModal.subId));
+      }
+      qrModal.qrcodes.forEach((element, index) => {
+        this.setQrCode("qrCode-" + index, element.link);
+      });
+    }
+  });
+
+  function fixOverflow() {
+    const elements = document.querySelectorAll(".qr-tag");
+    elements.forEach((element) => {
+      function isElementOverflowing(element) {
+        const overflowX = element.offsetWidth < element.scrollWidth,
+          overflowY = element.offsetHeight < element.scrollHeight;
+        return overflowX || overflowY;
+      }
+
+      function wrapContentsInMarquee(element) {
+        element.classList.add("tr-marquee");
+        element.children[0].style.animation = `move-ltr ${
+            (element.children[0].clientWidth / element.clientWidth) * 5
+          }s ease-in-out infinite`;
+        const marqueeText = element.children[0];
+        if (element.children.length < 2) {
+          for (let i = 0; i < 1; i++) {
+            const marqueeText = element.children[0].cloneNode(true);
+            element.children[0].after(marqueeText);
+          }
+        }
+      }
+      if (isElementOverflowing(element)) {
+        wrapContentsInMarquee(element);
+      }
+    });
+  }
+</script>
+{{end}}

@@ -1,0 +1,34 @@
+{{define "form/socks"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <a-form-item label='{{ i18n "pages.inbounds.enable" }} UDP'>
+    <a-switch v-model="inbound.settings.udp"></a-switch>
+  </a-form-item>
+  <a-form-item label="IP" v-if="inbound.settings.udp">
+    <a-input v-model.trim="inbound.settings.ip"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "password" }}'>
+    <a-switch :checked="inbound.settings.auth === 'password'" @change="checked => inbound.settings.auth = checked ? 'password' : 'noauth'"></a-switch>
+  </a-form-item>
+  <template v-if="inbound.settings.auth === 'password'">
+    <table style="width: 100%; text-align: center; margin: 1rem 0;">
+      <tr>
+        <td width="45%">{{ i18n "username" }}</td>
+        <td width="45%">{{ i18n "password" }}</td>
+        <td>
+          <a-button icon="plus" size="small" @click="inbound.settings.addAccount(new Inbound.SocksSettings.SocksAccount())"></a-button>
+        </td>
+      </tr>
+    </table>
+    <a-input-group compact v-for="(account, index) in inbound.settings.accounts" style="margin-bottom: 10px;">
+      <a-input style="width: 50%" v-model.trim="account.user" placeholder='{{ i18n "username" }}'>
+        <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+      </a-input>
+      <a-input style="width: 50%" v-model.trim="account.pass" placeholder='{{ i18n "password" }}'>
+        <template slot="addonAfter">
+          <a-button icon="minus" size="small" @click="inbound.settings.delAccount(index)"></a-button>
+        </template>
+      </a-input>
+    </a-input-group>
+  </template>
+</a-form>
+{{end}}

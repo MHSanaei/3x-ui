@@ -1,0 +1,172 @@
+{{define "clientsModal"}}
+<a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
+         :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
+         :class="themeSwitcher.currentTheme"
+         :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
+    <template v-if="isEdit">
+        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+    </template>
+    {{template "form/client"}}
+</a-modal>
+<script>
+
+    const clientModal = {
+        visible: false,
+        confirmLoading: false,
+        title: '',
+        okText: '',
+        isEdit: false,
+        dbInbound: new DBInbound(),
+        inbound: new Inbound(),
+        clients: [],
+        clientStats: [],
+        oldClientId: "",
+        index: null,
+        clientIps: null,
+        delayedStart: false,
+        ok() {
+            if (clientModal.isEdit) {
+                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id, clientModal.oldClientId);
+            } else {
+                ObjectUtil.execute(clientModal.confirm, clientModalApp.client, clientModal.dbInbound.id);
+            }
+        },
+        show({ title = '', okText = '{{ i18n "sure" }}', index = null, dbInbound = null, confirm = () => { }, isEdit = false }) {
+            this.visible = true;
+            this.title = title;
+            this.okText = okText;
+            this.isEdit = isEdit;
+            this.dbInbound = new DBInbound(dbInbound);
+            this.inbound = dbInbound.toInbound();
+            this.clients = this.inbound.clients;
+            this.index = index === null ? this.clients.length : index;
+            this.delayedStart = false;
+            if (isEdit) {
+                if (this.clients[index].expiryTime < 0) {
+                    this.delayedStart = true;
+                }
+                this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
+            } else {
+                this.addClient(this.inbound.protocol, this.clients);
+            }
+            this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
+            this.confirm = confirm;
+        },  
+        getClientId(protocol, client) {
+            switch (protocol) {
+                case Protocols.TROJAN: return client.password;
+                case Protocols.SHADOWSOCKS: return client.email;
+                default: return client.id;
+            }
+        },
+        addClient(protocol, clients) {
+            switch (protocol) {
+                case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.VMESS());
+                case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
+                case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
+                case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks(clients[0].method));
+                default: return null;
+            }
+        },
+        close() {
+            clientModal.visible = false;
+            clientModal.loading(false);
+        },
+        loading(loading=true) {
+            clientModal.confirmLoading = loading;
+        },
+    };
+
+    const clientModalApp = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#client-modal',
+        data: {
+            clientModal,
+            get inbound() {
+                return this.clientModal.inbound;
+            },
+            get client() {
+                return this.clientModal.clients[this.clientModal.index];
+            },
+            get clientStats() {
+                return this.clientModal.clientStats;
+            },
+            get isEdit() {
+                return this.clientModal.isEdit;
+            },
+            get datepicker() {
+                return app.datepicker;
+            },
+            get isTrafficExhausted() {
+                if (!clientStats) return false
+                if (clientStats.total <= 0) return false
+                if (clientStats.up + clientStats.down < clientStats.total) return false
+                return true
+            },
+            get isExpiry() {
+                return this.clientModal.isEdit && this.client.expiryTime >0 ? (this.client.expiryTime < new Date().getTime()) : false;
+            },
+            get delayedStart() {
+                return this.clientModal.delayedStart;
+            },
+            set delayedStart(value) {
+                this.clientModal.delayedStart = value;
+            },
+            get delayedExpireDays() {
+                return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
+            },
+            set delayedExpireDays(days) {
+                this.client.expiryTime = -86400000 * days;
+            },
+        },
+        methods: {
+            async getDBClientIps(email) {
+                const msg = await HttpUtil.post(`/panel/inbound/clientIps/${email}`);
+                if (!msg.success) {
+                    document.getElementById("clientIPs").value = msg.obj;
+                    return;
+                }
+                let ips = msg.obj;
+                if (typeof ips === 'string' && ips.startsWith('[') && ips.endsWith(']')) {
+                    try {
+                        ips = JSON.parse(ips);
+                        ips = Array.isArray(ips) ? ips.join("\n") : ips;
+                    } catch (e) {
+                        console.error('Error parsing JSON:', e);
+                    }
+                }
+                document.getElementById("clientIPs").value = ips;
+            },
+            async clearDBClientIps(email) {
+                try {
+                    const msg = await HttpUtil.post(`/panel/inbound/clearClientIps/${email}`);
+                    if (!msg.success) {
+                        return;
+                    }
+                    document.getElementById("clientIPs").value = "";
+                } catch (error) {
+                }
+            },
+            resetClientTraffic(email, dbInboundId, iconElement) {
+                this.$confirm({
+                    title: '{{ i18n "pages.inbounds.resetTraffic"}}',
+                    content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
+                    class: themeSwitcher.currentTheme,
+                    okText: '{{ i18n "reset"}}',
+                    cancelText: '{{ i18n "cancel"}}',
+                    onOk: async () => {
+                        iconElement.disabled = true;
+                        const msg = await HttpUtil.postWithModal('/panel/inbound/' + dbInboundId + '/resetClientTraffic/' + email);
+                        if (msg.success) {
+                            this.clientModal.clientStats.up = 0;
+                            this.clientModal.clientStats.down = 0;
+                        }
+                        iconElement.disabled = false;
+                    },
+                })
+            },
+        },
+    });
+
+</script>
+{{end}}

@@ -1,0 +1,123 @@
+{{define "balancerModal"}}
+<a-modal 
+    id="balancer-modal"
+    v-model="balancerModal.visible"
+    :title="balancerModal.title"
+    @ok="balancerModal.ok"
+    :confirm-loading="balancerModal.confirmLoading"
+    :ok-button-props="{ props: { disabled: !balancerModal.isValid } }"
+    :closable="true"
+    :mask-closable="false"
+    :ok-text="balancerModal.okText"
+    cancel-text='{{ i18n "close" }}'
+    :class="themeSwitcher.currentTheme">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label='{{ i18n "pages.xray.balancer.tag" }}' has-feedback
+            :validate-status="balancerModal.duplicateTag? 'warning' : 'success'">
+            <a-input v-model.trim="balancerModal.balancer.tag" @change="balancerModal.check()"
+                placeholder='{{ i18n "pages.xray.balancer.tagDesc" }}'></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.balancer.balancerStrategy" }}'>
+            <a-select v-model="balancerModal.balancer.strategy" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="random">Random</a-select-option>
+                <a-select-option value="roundRobin">Round Robin</a-select-option>
+                <a-select-option value="leastLoad">Least Load</a-select-option>
+                <a-select-option value="leastPing">Least Ping</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.balancer.balancerSelectors" }}' has-feedback
+            :validate-status="balancerModal.emptySelector? 'warning' : 'success'">
+            <a-select v-model="balancerModal.balancer.selector" mode="tags" @change="balancerModal.checkSelector()"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in balancerModal.outboundTags" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label="Fallback">
+            <a-select v-model="balancerModal.balancer.fallbackTag" clearable
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="tag in [ '', ...balancerModal.outboundTags]" :value="tag">[[ tag ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        </table>
+    </a-form>
+</a-modal>
+<script>
+    const balancerModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        confirm: null,
+        duplicateTag: false,
+        emptySelector: false,
+        balancer: {
+            tag: '',
+            strategy: 'random',
+            selector: [],
+            fallbackTag: ''
+        },
+        outboundTags: [],
+        balancerTags:[],
+        ok() {
+            if (balancerModal.balancer.selector.length == 0) {
+                balancerModal.emptySelector = true;
+                return;
+            }
+            balancerModal.emptySelector = false;
+            ObjectUtil.execute(balancerModal.confirm, balancerModal.balancer);
+        },
+        show({ title = '', okText = '{{ i18n "sure" }}', balancerTags = [], balancer, confirm = (balancer) => { }, isEdit = false }) {
+            this.title = title;
+            this.okText = okText;
+            this.confirm = confirm;
+            this.visible = true;
+            if (isEdit) {
+                balancerModal.balancer = balancer;
+            } else {
+                balancerModal.balancer = {
+                    tag: '',
+                    strategy: 'random',
+                    selector: [],
+                    fallbackTag: ''
+                };
+            }
+            this.balancerTags = balancerTags.filter((tag) => tag != balancer.tag);
+            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
+            this.isEdit = isEdit;
+            this.check();
+            this.checkSelector();
+        },
+        close() {
+            this.visible = false;
+            this.loading(false);
+        },
+        loading(loading=true) {
+            this.confirmLoading = loading;
+        },
+        check() {
+            if (this.balancer.tag == '' || this.balancerTags.includes(this.balancer.tag)) {
+                this.duplicateTag = true;
+                this.isValid = false;
+            } else {
+                this.duplicateTag = false;
+                this.isValid = true;
+            }
+        },
+        checkSelector() {
+            this.emptySelector = this.balancer.selector.length == 0;
+        }
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#balancer-modal',
+        data: {
+            balancerModal: balancerModal
+        },
+        methods: {
+        }
+    });
+
+</script>
+{{end}}

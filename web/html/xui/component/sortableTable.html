@@ -1,0 +1,216 @@
+{{define "component/sortableTableTrigger"}}
+<a-icon type="drag"
+  class="sortable-icon"
+  style="cursor: move;"
+  @mouseup="mouseUpHandler"
+  @mousedown="mouseDownHandler"
+  @click="clickHandler" />
+{{end}}
+
+{{define "component/sortableTable"}}
+<script>
+  const DRAGGABLE_ROW_CLASS = 'draggable-row';
+  const findParentRowElement = (el) => {
+    if (!el || !el.tagName) {
+      return null;
+    } else if (el.classList.contains(DRAGGABLE_ROW_CLASS)) {
+      return el;
+    } else if (el.parentNode) {
+      return findParentRowElement(el.parentNode);
+    } else {
+      return null;
+    }
+  }
+  Vue.component('a-table-sortable', {
+    data() {
+      return {
+        sortingElementIndex: null,
+        newElementIndex: null,
+      };
+    },
+    props: ['data-source', 'customRow'],
+    inheritAttrs: false,
+    provide() {
+      const sortable = {}
+      Object.defineProperty(sortable, "setSortableIndex", {
+        enumerable: true,
+        get: () => this.setCurrentSortableIndex,
+      });
+      Object.defineProperty(sortable, "resetSortableIndex", {
+        enumerable: true,
+        get: () => this.resetSortableIndex,
+      });
+      return {
+        sortable,
+      }
+    },
+    render: function(createElement) {
+      return createElement('a-table', {
+        class: {
+          'ant-table-is-sorting': this.isDragging(),
+        },
+        props: {
+          ...this.$attrs,
+          'data-source': this.records,
+          customRow: (record, index) => this.customRowRender(record, index),
+        },
+        on: this.$listeners,
+        nativeOn: {
+          drop: (e) => this.dropHandler(e),
+        },
+        scopedSlots: this.$scopedSlots,
+      }, this.$slots.default, )
+    },
+    created() {
+      this.$memoSort = {};
+    },
+    methods: {
+      isDragging() {
+        const currentIndex = this.sortingElementIndex;
+        return currentIndex !== null && currentIndex !== undefined;
+      },
+      resetSortableIndex(e, index) {
+        this.sortingElementIndex = null;
+        this.newElementIndex = null;
+        this.$memoSort = {};
+      },
+      setCurrentSortableIndex(e, index) {
+        this.sortingElementIndex = index;
+      },
+      dragStartHandler(e, index) {
+        if (!this.isDragging()) {
+          e.preventDefault();
+          return;
+        }
+        const hideDragImage = this.$el.cloneNode(true);
+        hideDragImage.id = "hideDragImage-hide";
+        hideDragImage.style.opacity = 0;
+        e.dataTransfer.setDragImage(hideDragImage, 0, 0);
+      },
+      dragStopHandler(e, index) {
+        const hideDragImage = document.getElementById('hideDragImage-hide');
+        if (hideDragImage) hideDragImage.remove();
+        this.resetSortableIndex(e, index);
+      },
+      dragOverHandler(e, index) {
+        if (!this.isDragging()) {
+          return;
+        }
+        e.preventDefault();
+        const currentIndex = this.sortingElementIndex;
+        if (index === currentIndex) {
+          this.newElementIndex = null;
+          return;
+        }
+        const row = findParentRowElement(e.target);
+        if (!row) {
+          return;
+        }
+        const rect = row.getBoundingClientRect();
+        const offsetTop = e.pageY - rect.top;
+        if (offsetTop < rect.height / 2) {
+          this.newElementIndex = Math.max(index - 1, 0);
+        } else {
+          this.newElementIndex = index;
+        }
+      },
+      dropHandler(e) {
+        if (this.isDragging()) {
+          this.$emit('onsort', this.sortingElementIndex, this.newElementIndex);
+        }
+      },
+      customRowRender(record, index) {
+        const parentMethodResult = this.customRow?.(record, index) || {};
+        const newIndex = this.newElementIndex;
+        const currentIndex = this.sortingElementIndex;
+        return {
+          ...parentMethodResult,
+          attrs: {
+            ...(parentMethodResult?.attrs || {}),
+            draggable: true,
+          },
+          on: {
+            ...(parentMethodResult?.on || {}),
+            dragstart: (e) => this.dragStartHandler(e, index),
+            dragend: (e) => this.dragStopHandler(e, index),
+            dragover: (e) => this.dragOverHandler(e, index),
+          },
+          class: {
+            ...(parentMethodResult?.class || {}),
+            [DRAGGABLE_ROW_CLASS]: true,
+            ['dragging']: this.isDragging() ? (newIndex === null ? index === currentIndex : index === newIndex) : false,
+          },
+        };
+      }
+    },
+    computed: {
+      records() {
+        const newIndex = this.newElementIndex;
+        const currentIndex = this.sortingElementIndex;
+        if (!this.isDragging() || newIndex === null || currentIndex === newIndex) {
+          return this.dataSource;
+        }
+        if (this.$memoSort.newIndex === newIndex) {
+          return this.$memoSort.list;
+        }
+        let list = [...this.dataSource];
+        list.splice(newIndex, 0, list.splice(currentIndex, 1)[0]);
+        this.$memoSort = {
+          newIndex,
+          list,
+        };
+        return list;
+      }
+    }
+  });
+  Vue.component('table-sort-trigger', {
+    template: `{{template "component/sortableTableTrigger"}}`,
+    props: ['item-index'],
+    inject: ['sortable'],
+    methods: {
+      mouseDownHandler(e) {
+        if (this.sortable) {
+          this.sortable.setSortableIndex(e, this.itemIndex);
+        }
+      },
+      mouseUpHandler(e) {
+        if (this.sortable) {
+          this.sortable.resetSortableIndex(e, this.itemIndex);
+        }
+      },
+      clickHandler(e) {
+        e.preventDefault();
+      },
+    }
+  })
+</script>
+<style>
+  @media only screen and (max-width: 767px) {
+    .sortable-icon {
+      display: none;
+    }
+  }
+  .ant-table-is-sorting .draggable-row td {
+    background-color: #ffffff !important;
+  }
+  .dark .ant-table-is-sorting .draggable-row td {
+    background-color: var(--dark-color-surface-100) !important;
+  }
+  .ant-table-is-sorting .dragging td {
+    background-color: rgb(232 244 242) !important;
+    color: rgba(0, 0, 0, 0.3);
+  }
+  .dark .ant-table-is-sorting .dragging td {
+    background-color: var(--dark-color-table-hover) !important;
+    color: rgba(255, 255, 255, 0.3);
+  }
+  .ant-table-is-sorting .dragging {
+    opacity: 1;
+    box-shadow: 1px -2px 2px #008771;
+    transition: all 0.2s;
+  }
+  .ant-table-is-sorting .dragging .ant-table-row-index {
+    opacity: 0.3;
+  }
+</style>
+{{end}}

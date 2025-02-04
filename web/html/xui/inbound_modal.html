@@ -1,0 +1,144 @@
+{{define "inboundModal"}}
+<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title"
+        :dialog-style="{ top: '20px' }" @ok="inModal.ok"
+        :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
+        :class="themeSwitcher.currentTheme"
+        :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
+    {{template "form/inbound"}}
+</a-modal>
+<script>
+
+    const inModal = {
+        title: '',
+        visible: false,
+        confirmLoading: false,
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        confirm: null,
+        inbound: new Inbound(),
+        dbInbound: new DBInbound(),
+        ok() {
+            ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
+        },
+        show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => {}, isEdit = false }) {
+            this.title = title;
+            this.okText = okText;
+            if (inbound) {
+                this.inbound = Inbound.fromJson(inbound.toJson());
+            } else {
+                this.inbound = new Inbound();
+            }
+            if (dbInbound) {
+                this.dbInbound = new DBInbound(dbInbound);
+            } else {
+                this.dbInbound = new DBInbound();
+            }
+            this.confirm = confirm;
+            this.visible = true;
+            this.isEdit = isEdit;
+        },
+        close() {
+            inModal.visible = false;
+            inModal.loading(false);
+        },
+        loading(loading=true) {
+            inModal.confirmLoading = loading;
+        },
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#inbound-modal',
+        data: {
+            inModal: inModal,
+            delayedStart: false,
+            get inbound() {
+                return inModal.inbound;
+            },
+            get dbInbound() {
+                return inModal.dbInbound;
+            },
+            get isEdit() {
+                return inModal.isEdit;
+            },
+            get client() {
+                return inModal.inbound.clients[0];
+            },
+            get datepicker() {
+                return app.datepicker;
+            },
+            get delayedExpireDays() {
+                return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
+            },
+            set delayedExpireDays(days) {
+                this.client.expiryTime = -86400000 * days;
+            },
+            get externalProxy() {
+                return this.inbound.stream.externalProxy.length > 0;
+            },
+            set externalProxy(value) {
+                if (value) {
+                    inModal.inbound.stream.externalProxy = [{
+                        forceTls: "same",
+                        dest: window.location.hostname,
+                        port: inModal.inbound.port,
+                        remark: ""
+                    }];
+                } else {
+                    inModal.inbound.stream.externalProxy = [];
+                }
+            }
+        },
+        methods: {
+            streamNetworkChange() {
+                if (!inModal.inbound.canEnableTls()) {
+                    this.inModal.inbound.stream.security = 'none';
+                }
+                if (!inModal.inbound.canEnableReality()) {
+                    this.inModal.inbound.reality = false;
+                }
+                if (this.inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
+                    this.inModal.inbound.settings.vlesses.forEach(client => {
+                        client.flow = "";
+                    });
+                }
+            },
+            SSMethodChange() {
+                if (this.inModal.inbound.isSSMultiUser) {
+                    if (this.inModal.inbound.settings.shadowsockses.length ==0){
+                        this.inModal.inbound.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
+                    }
+                    if (!this.inModal.inbound.isSS2022) {
+                        this.inModal.inbound.settings.shadowsockses.forEach(client => {
+                            client.method = this.inModal.inbound.settings.method;
+                        })
+                    } else {
+                        this.inModal.inbound.settings.shadowsockses.forEach(client => {
+                            client.method = "";
+                        })
+                    }
+                } else {
+                    if (this.inModal.inbound.settings.shadowsockses.length > 0){
+                        this.inModal.inbound.settings.shadowsockses = [];
+                    }
+                }
+            },
+            setDefaultCertData(index) {
+                inModal.inbound.stream.tls.certs[index].certFile = app.defaultCert;
+                inModal.inbound.stream.tls.certs[index].keyFile = app.defaultKey;
+            },
+            async getNewX25519Cert() {
+                inModal.loading(true);
+                const msg = await HttpUtil.post('/server/getNewX25519Cert');
+                inModal.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                inModal.inbound.stream.reality.privateKey = msg.obj.privateKey;
+                inModal.inbound.stream.reality.settings.publicKey = msg.obj.publicKey;
+            }
+        },
+    });
+
+</script>
+{{end}}
