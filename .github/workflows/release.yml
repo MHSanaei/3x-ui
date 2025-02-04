@@ -123,6 +123,17 @@ jobs:
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
           
+      - name: Read version from file
+        id: get_version
+        run: echo "VERSION=$(cat config/version | tr -d '[:space:]')" >> $GITHUB_ENV
+
+      - name: Create Git tag
+        run: |
+          git tag v${{ env.VERSION }}
+          git push origin v${{ env.VERSION }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
 
