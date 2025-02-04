@@ -25,23 +25,6 @@ jobs:
         
       - name: Clean Go module cache
         run: go clean -modcache
-        
-      - name: Force update Go modules
-        run: |
-          go mod init || true
-          go mod tidy
-          go mod download
-
-      - name: Commit go.sum if missing
-        run: |
-          if [ ! -f go.sum ]; then
-            go mod tidy
-            git config --global user.email "github-actions@github.com"
-            git config --global user.name "GitHub Actions"
-            git add go.sum
-            git commit -m "Add missing go.sum"
-            git push origin main || echo "No changes to push"
-          fi
           
       - name: Setup Go
         uses: actions/setup-go@v5
