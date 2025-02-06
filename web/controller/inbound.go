@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"errors"
 
 	"x-ui/database/model"
 	"x-ui/web/service"
@@ -144,6 +145,60 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if err == nil && needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+func (a *InboundController) getInboundClients(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+		jsonMsg(c, "GetInboundClients", errors.New("Incorrect inbound id"))
+		return
+    }
+
+	client, err := a.inboundService.GetInboundClients(id)
+	if err != nil {
+		jsonMsg(c, "GetInboundClientById", err)
+		return
+	}
+
+	jsonObj(c, client, nil)
+}
+
+func (a *InboundController) getClientById(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+		jsonMsg(c, "GetInboundClientById", errors.New("Incorrect inbound id"))
+		return
+    }
+
+	client, err := a.inboundService.GetInboundClientById(id, c.Param("clientId"))
+	if err != nil {
+		jsonMsg(c, "GetInboundClientById", err)
+		return
+	}
+	if client == nil {
+		jsonMsg(c, "GetInboundClientById", errors.New("Client not found"))
+		return
+	}
+	jsonObj(c, client, nil)
+}
+
+func (a *InboundController) getClientByEmail(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+		jsonMsg(c, "GetInboundClientByEmail", errors.New("Incorrect inbound id"))
+		return
+    }
+
+	client, err := a.inboundService.GetInboundClientByEmail(id, c.Param("email"))
+	if err != nil {
+		jsonMsg(c, "GetInboundClientByEmail", err)
+		return
+	}
+	if client == nil {
+		jsonMsg(c, "GetInboundClientByEmail", errors.New("Client not found"))
+		return
+	}
+	jsonObj(c, client, nil)
 }
 
 func (a *InboundController) getClientIps(c *gin.Context) {
