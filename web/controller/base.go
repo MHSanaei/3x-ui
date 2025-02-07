@@ -17,7 +17,7 @@ func (a *BaseController) checkLogin(c *gin.Context) {
 		if isAjax(c) {
 			pureJsonMsg(c, http.StatusUnauthorized, false, I18nWeb(c, "pages.login.loginAgain"))
 		} else {
-			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
+			c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path") + "?redirect=" + c.FullPath())
 		}
 		c.Abort()
 	} else {

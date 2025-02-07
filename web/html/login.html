@@ -502,7 +502,12 @@
         const msg = await HttpUtil.post('/login', this.user);
         this.loading = false;
         if (msg.success) {
-          location.href = basePath + 'panel/';
+          const redirect = new URLSearchParams(location.search).get('redirect');
+          if (redirect && redirect.startsWith('/')) {
+            location.href = redirect;
+          } else {
+            location.href = basePath + 'panel/';
+          }
         }
       },
       async getSecretStatus() {
