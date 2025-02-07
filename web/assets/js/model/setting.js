@@ -31,6 +31,8 @@ class AllSetting {
         this.subPath = "/sub/";
         this.subJsonPath = "/json/";
         this.subDomain = "";
+        this.externalInformEnable = false;
+        this.externalTrafficInformURI = "";
         this.subCertFile = "";
         this.subKeyFile = "";
         this.subUpdates = 12;
