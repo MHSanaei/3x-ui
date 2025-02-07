@@ -1,137 +1,137 @@
-# Documentación de la API
+# API Documentation
 
 ## Inbounds
 
-### Obtener todos los Inbounds
-- **Método**: `GET`
+### Get All Inbounds
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/`
-- **Descripción**: Obtener una lista de todos los inbounds.
+- **Description**: Получить список всех inbounds.
 
-### Restablecer todo el tráfico de clientes
-- **Método**: `DELETE`
+### Reset All Client Traffics
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/traffic`
-- **Descripción**: Restablecer el tráfico de todos los clientes.
+- **Description**: Сбросить трафик всех клиентов.
 
 ---
 
 ## Inbound
 
-### Agregar Inbound
-- **Método**: `POST`
+### Add Inbound
+- **Method**: `POST`
 - **Endpoint**: `/inbounds/`
-- **Descripción**: Agregar un nuevo inbound.
+- **Description**: Добавить новый inbound.
 
-### Obtener Inbound por ID
-- **Método**: `GET`
+### Get Inbound by ID
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id`
-- **Descripción**: Obtener información sobre un inbound específico por su ID.
+- **Description**: Получить информацию о конкретном inbound по его ID.
 
-### Eliminar Inbound por ID
-- **Método**: `DELETE`
+### Delete Inbound by ID
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id`
-- **Descripción**: Eliminar un inbound por su ID.
+- **Description**: Удалить inbound по его ID.
 
-### Actualizar Inbound por ID
-- **Método**: `PUT`
+### Update Inbound by ID
+- **Method**: `PUT`
 - **Endpoint**: `/inbounds/:id`
-- **Descripción**: Actualizar la información de un inbound por su ID.
+- **Description**: Обновить информацию о inbound по его ID.
 
-### Eliminar tráfico de Inbound
-- **Método**: `DELETE`
+### Delete Inbound Traffic
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id/traffic`
-- **Descripción**: Eliminar el tráfico de un inbound por su ID.
+- **Description**: Удалить трафик inbound по его ID.
 
-### Eliminar clientes con tráfico agotado
-- **Método**: `DELETE`
+### Delete Depleted Clients
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id/depleted-clients`
-- **Descripción**: Eliminar clientes con tráfico agotado para un inbound específico.
+- **Description**: Удалить клиентов с исчерпанным трафиком для конкретного inbound.
 
 ---
 
-## Clientes de Inbound
+## Inbound Clients
 
-### Obtener clientes de Inbound
-- **Método**: `GET`
+### Get Inbound Clients
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/`
-- **Descripción**: Obtener una lista de clientes para un inbound específico.
+- **Description**: Получить список клиентов для конкретного inbound.
 
 ---
 
-## Cliente de Inbound
+## Inbound Client
 
-### Agregar cliente de Inbound
-- **Método**: `POST`
+### Add Inbound Client
+- **Method**: `POST`
 - **Endpoint**: `/inbounds/:id/clients`
-- **Descripción**: Agregar un nuevo cliente a un inbound.
+- **Description**: Добавить нового клиента к inbound.
 
-### Obtener cliente por ID
-- **Método**: `GET`
+### Get Client by ID
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/:clientId`
-- **Descripción**: Obtener información sobre un cliente por su ID.
+- **Description**: Получить информацию о клиенте по его ID.
 
-### Actualizar cliente de Inbound
-- **Método**: `PUT`
+### Update Inbound Client
+- **Method**: `PUT`
 - **Endpoint**: `/inbounds/:id/clients/:clientId`
-- **Descripción**: Actualizar la información del cliente por su ID.
+- **Description**: Обновить информацию о клиенте по его ID.
 
-### Eliminar cliente de Inbound
-- **Método**: `DELETE`
+### Delete Inbound Client
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id/clients/:clientId`
-- **Descripción**: Eliminar un cliente por su ID.
+- **Description**: Удалить клиента по его ID.
 
-### Obtener tráfico del cliente por ID
-- **Método**: `GET`
+### Get Client Traffics by ID
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/:clientId/traffic`
-- **Descripción**: Obtener estadísticas de tráfico para un cliente por su ID.
+- **Description**: Получить статистику трафика клиента по его ID.
 
 ---
 
-## Cliente de Inbound por correo electrónico
+## Inbound Client by Email
 
-### Obtener cliente por correo electrónico
-- **Método**: `GET`
+### Get Client by Email
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/email/:email`
-- **Descripción**: Obtener información del cliente por correo electrónico.
+- **Description**: Получить информацию о клиенте по его email.
 
-### Obtener IPs del cliente
-- **Método**: `GET`
+### Get Client IPs
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/email/:email/ips`
-- **Descripción**: Obtener una lista de direcciones IP del cliente por correo electrónico.
+- **Description**: Получить список IP-адресов клиента по его email.
 
-### Limpiar IPs del cliente
-- **Método**: `DELETE`
+### Clear Client IPs
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id/clients/email/:email/ips`
-- **Descripción**: Limpiar la lista de direcciones IP del cliente por correo electrónico.
+- **Description**: Очистить список IP-адресов клиента по его email.
 
-### Obtener tráfico del cliente por correo electrónico
-- **Método**: `GET`
+### Get Client Traffics by Email
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/:id/clients/email/:email/traffic`
-- **Descripción**: Obtener estadísticas de tráfico para un cliente por correo electrónico.
+- **Description**: Получить статистику трафика клиента по его email.
 
-### Restablecer tráfico del cliente por correo electrónico
-- **Método**: `DELETE`
+### Reset Client Traffic by Email
+- **Method**: `DELETE`
 - **Endpoint**: `/inbounds/:id/clients/email/:email/traffic`
-- **Descripción**: Restablecer el tráfico de un cliente por correo electrónico.
+- **Description**: Сбросить трафик клиента по его email.
 
 ---
 
-## Otros
+## Other
 
-### Crear copia de seguridad
-- **Método**: `GET`
+### Create Backup
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/create-backup`
-- **Descripción**: Crear una copia de seguridad de los datos.
+- **Description**: Создать резервную копию данных.
 
-### Obtener clientes en línea
-- **Método**: `GET`
+### Get Online Clients
+- **Method**: `GET`
 - **Endpoint**: `/inbounds/online`
-- **Descripción**: Obtener una lista de clientes en línea.
+- **Description**: Получить список онлайн-клиентов.
 
 ---
 
-## Servidor
+## Server
 
-### Obtener estado del servidor
-- **Método**: `GET`
+### Get Server Status
+- **Method**: `GET`
 - **Endpoint**: `/server/status`
-- **Descripción**: Obtener el estado del servidor.
+- **Description**: Получить статус сервера.
