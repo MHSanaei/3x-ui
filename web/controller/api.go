@@ -104,7 +104,7 @@ func (controller *APIController) initApiV2Router(router *gin.RouterGroup) {
 
     inboundsApiGroup.GET("/:id/clients/:clientId/traffic", controller.inbounds.getClientTrafficsById)
     // TODO: get client ips by ID
-    // TODO: client client ips by ID
+    // TODO: clear client ips by ID
     // TODO: reset client traffic by ID
 
     /**
