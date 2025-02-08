@@ -2,7 +2,6 @@ package job
 
 import (
 	"encoding/json"
-	"fmt"
 	"x-ui/logger"
 	"x-ui/web/service"
 	"x-ui/xray"
@@ -37,7 +36,7 @@ func (j *XrayTrafficJob) Run() {
 	if err != nil {
 		logger.Warning("add outbound traffic failed:", err)
 	}
-	if ExternalInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalInformEnable {
+	if ExternalTrafficInformEnable, err := j.settingService.GetExternalTrafficInformEnable(); ExternalTrafficInformEnable {
 		j.informTrafficToExternalAPI(traffics, clientTraffics)
 	} else if err != nil {
 		logger.Warning("get ExternalTrafficInformEnable failed:", err)
@@ -67,7 +66,6 @@ func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traf
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
 	if err := fasthttp.Do(request, response); err != nil {
-		fmt.Println("err ", err)
 		logger.Warning("POST ExternalTrafficInformURI failed:", err)
 	}
 }
