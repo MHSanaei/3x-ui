@@ -21,7 +21,7 @@ type SubJsonService struct {
 	configJson       map[string]interface{}
 	defaultOutbounds []json_util.RawMessage
 	fragment         string
-	noises            string
+	noises           string
 	mux              string
 
 	inboundService service.InboundService
@@ -61,7 +61,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragment:         fragment,
-		noises:            noises,
+		noises:           noises,
 		mux:              mux,
 		SubService:       subService,
 	}
@@ -217,7 +217,7 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 	delete(streamSettings, "sockopt")
 
 	if s.fragment != "" {
-		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "tcpMptcp": true, "tcpNoDelay": true}`)
+		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "tcpMptcp": true, "penetrate": true}`)
 	}
 
 	// remove proxy protocol

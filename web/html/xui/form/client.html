@@ -66,7 +66,10 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number style="width: 50%" v-model="client.tgId" min="0"></a-input-number>
+        <a-input-number style="width: 50%" v-model.number="client.tgId" min="0"></a-input-number>
+    </a-form-item>
+    <a-form-item v-if="client.email" label='{{ i18n "comment" }}'>
+        <a-input v-model.trim="client.comment"></a-input>
     </a-form-item>
     <a-form-item v-if="app.ipLimitEnable">
         <template slot="label">
@@ -78,7 +81,7 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number v-model="client.limitIp" min="0"></a-input-number>
+        <a-input-number v-model.number="client.limitIp" min="0"></a-input-number>
     </a-form-item>
     <a-form-item v-if="app.ipLimitEnable && client.limitIp > 0 && client.email && isEdit">
         <template slot="label">
@@ -120,7 +123,7 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+        <a-input-number v-model.number="client._totalGB" :min="0"></a-input-number>
     </a-form-item>
     <a-form-item v-if="isEdit && clientStats" label='{{ i18n "usage" }}'>
         <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">

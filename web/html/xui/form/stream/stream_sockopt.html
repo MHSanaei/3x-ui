@@ -6,22 +6,22 @@
     </a-form-item>
     <template v-if="inbound.stream.sockoptSwitch">
         <a-form-item label="Route Mark">
-            <a-input-number v-model="inbound.stream.sockopt.mark" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.mark" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP Keep Alive Interval">
-            <a-input-number v-model="inbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP Keep Alive Idle">
-            <a-input-number v-model="inbound.stream.sockopt.tcpKeepAliveIdle" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.tcpKeepAliveIdle" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP Max Seg">
-            <a-input-number v-model="inbound.stream.sockopt.tcpMaxSeg" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.tcpMaxSeg" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP User Timeout">
-            <a-input-number v-model="inbound.stream.sockopt.tcpUserTimeout" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.tcpUserTimeout" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP Window Clamp">
-            <a-input-number v-model="inbound.stream.sockopt.tcpWindowClamp" :min="0"></a-input-number>
+            <a-input-number v-model.number="inbound.stream.sockopt.tcpWindowClamp" :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="Proxy Protocol">
             <a-switch v-model="inbound.stream.sockopt.acceptProxyProtocol"></a-switch>
@@ -32,8 +32,8 @@
         <a-form-item label="Multipath TCP">
             <a-switch v-model.trim="inbound.stream.sockopt.tcpMptcp"></a-switch>
         </a-form-item>
-        <a-form-item label="TCP No-Delay" v-if="inbound.stream.sockopt.tcpMptcp">
-            <a-switch v-model.trim="inbound.stream.sockopt.tcpNoDelay"></a-switch>
+        <a-form-item label="Penetrate">
+            <a-switch v-model.trim="inbound.stream.sockopt.penetrate"></a-switch>
         </a-form-item>
         <a-form-item label="V6 Only">
             <a-switch v-model.trim="inbound.stream.sockopt.V6Only"></a-switch>

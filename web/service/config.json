@@ -51,8 +51,8 @@
     "system": {
       "statsInboundDownlink": true,
       "statsInboundUplink": true,
-      "statsOutboundDownlink": true,
-      "statsOutboundUplink": true
+      "statsOutboundDownlink": false,
+      "statsOutboundUplink": false
     }
   },
   "routing": {

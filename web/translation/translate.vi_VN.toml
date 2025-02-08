@@ -44,6 +44,7 @@
 "monitor" = "Listening IP"
 "certificate" = "Chứng chỉ số"
 "fail" = "Thất bại"
+"comment" = "Bình luận"
 "success" = "Thành công"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
@@ -367,6 +368,8 @@
 "errorLogDesc" = "Đường dẫn tệp cho nhật ký lỗi. Nhật ký lỗi bị vô hiệu hóa có giá trị đặc biệt 'không'"
 "dnsLog" = "Nhật ký DNS"
 "dnsLogDesc" = "Có bật nhật ký truy vấn DNS không"
+"outboundTraffic" = "Lưu lượng đi ra"
+"outboundTrafficDesc" = "Có nên bật lưu lượng ra không"
 "maskAddress" = "Ẩn Địa Chỉ"
 "maskAddressDesc" = "Mặt nạ địa chỉ IP, khi được bật, sẽ tự động thay thế địa chỉ IP xuất hiện trong nhật ký."
 

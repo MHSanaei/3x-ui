@@ -143,6 +143,7 @@
                           </a-select>
                         </a-col>
                       </a-row>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.outboundTraffic"}}' desc='{{ i18n "pages.xray.outboundTrafficDesc"}}' v-model="outboundTraffic"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
@@ -901,8 +902,8 @@
                     { label: 'Private IPs', value: 'geoip:private' },
                     { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
                     { label: '🇨🇳 China', value: 'geoip:cn' },
-                    { label: '🇷🇺 Russia', value: 'geoip:ru' },
-                    { label: '🇻🇳 Vietnam', value: 'ext:geoip_VN.dat:vn' },
+                    { label: '🇷🇺 Russia', value: 'ext:geoip_RU.dat:ru' },
+                    { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
                     { label: '🇪🇸 Spain', value: 'geoip:es' },
                     { label: '🇮🇩 Indonesia', value: 'geoip:id' },
                     { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
@@ -915,15 +916,16 @@
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
                     { label: '🇨🇳 China', value: 'geosite:cn' },
                     { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
-                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
-                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
                 BlockDomainsOptions: [
                     { label: 'Ads All', value: 'geosite:category-ads-all' },
                     { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
-                    { label: 'Ads VN 🇻🇳', value: 'ext:geosite_VN.dat:ads' },
+                    { label: 'Ads RU 🇷🇺', value: 'ext:geosite_RU.dat:category-ads-all' },
                     { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
                     { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
                     { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
@@ -932,9 +934,10 @@
                     { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
                     { label: '🇨🇳 China', value: 'geosite:cn' },
                     { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
-                    { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
+                    { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
                     { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
-                    { label: '🇻🇳 Vietnam', value: 'ext:geosite_VN.dat:vn' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
                     { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
                 ],
                 ServicesOptions: [
@@ -1818,6 +1821,18 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.log.dnsLog = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            outboundTraffic: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundDownlink) return false;
+                    return this.templateSettings.policy.system.statsOutboundDownlink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsOutboundDownlink = newValue;
+                    newTemplateSettings.policy.system.statsOutboundUplink = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },
