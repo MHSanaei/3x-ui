@@ -42,7 +42,7 @@ jobs:
           go list -m all
           
           # Обновляем только объявленные зависимости
-          go get -u ./...
+          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
           
           # Приводим зависимости в порядок
           go mod tidy
