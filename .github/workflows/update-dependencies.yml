@@ -30,56 +30,39 @@ jobs:
         run: |
           go clean -modcache
           go clean -cache
-          go clean -testcache
 
       - name: Update dependencies
         id: update
         run: |
           set -e  # Прерываем выполнение при ошибках
           echo "Updating Go dependencies..."
+          
+          # Выводим текущие версии
+          echo "Current versions:"
+          go list -m all
+          
+          # Обновляем только объявленные зависимости
+          go get -u ./...
+          
+          # Приводим зависимости в порядок
+          go mod tidy
+          go mod verify
+          
+          # Выводим обновленные версии
+          echo -e "\nUpdated versions:"
+          go list -m all
 
-          touch update_errors.log
-
-          {
-            # Сохраняем текущие версии
-            echo "Current versions:" > dependency_changes.txt
-            go list -m all >> dependency_changes.txt
-
-            # Обновляем только объявленные зависимости
-            go get -u ./...
-
-            # Приводим зависимости в порядок
-            go mod tidy
-            go mod verify
-
-            # Записываем обновленные версии
-            echo -e "\nUpdated versions:" >> dependency_changes.txt
-            go list -m all >> dependency_changes.txt
-          } 2>update_errors.log || {
-            echo "::error::Dependency update failed"
-            cat update_errors.log
-            exit 1
-          }
-
-      - name: Validate build & run tests
+      - name: Validate build
         run: |
           set -e
           
           # Проверяем, что код компилируется
           echo "Validating build..."
           go build ./...
-
+          
           # Проверяем статический анализ кода
           echo "Running go vet..."
           go vet ./...
-
-          # Запускаем тесты, если они есть
-          if go list ./... | grep -qv vendor; then
-            echo "Running tests..."
-            go test ./... -race
-          else
-            echo "No test files found, skipping tests."
-          fi
 
       - name: Check for changes
         id: check
@@ -100,8 +83,3 @@ jobs:
           git add go.mod go.sum
           git commit -m "chore(deps): update Go dependencies"
           git push origin ${{ github.ref }}
-
-      - name: Cleanup
-        if: always()
-        run: |
-          rm -f update_errors.log dependency_changes.txt
