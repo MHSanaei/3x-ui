@@ -2,38 +2,91 @@ name: Update Go Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждую неделю (понедельник в 00:00 UTC)
-  workflow_dispatch:  # Позволяет запускать вручную
+    - cron: '0 0 * * 1'  # Run weekly on Monday at 00:00 UTC
+  workflow_dispatch:      # Allow manual triggering
+  
+permissions:
+  contents: write        # Explicitly set permissions
 
 jobs:
   update:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest  # Use latest Ubuntu for better security
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0    # Fetch all history for better change detection
           token: ${{ secrets.GITHUB_TOKEN }}
-          
-      - name: Clean Go module cache
-        run: go clean -modcache
-          
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      
-      - name: Update dependencies
+          check-latest: true
+          cache: true       # Enable Go module caching
+
+      - name: Clean Go module cache
         run: |
-          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
-          go mod tidy
+          go clean -modcache
+          go clean -cache
+          go clean -testcache
+
+      - name: Update dependencies
+        id: update
+        run: |
+          # Create error log file
+          touch update_errors.log
+          
+          # Update dependencies with error handling
+          {
+            # List current versions
+            echo "Current versions:" > dependency_changes.txt
+            go list -m all >> dependency_changes.txt
+            
+            # Update dependencies, excluding specific packages
+            go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
+              grep -v 'gvisor.dev/gvisor')
+            
+            # Tidy and verify modules
+            go mod tidy
+            go mod verify
+            
+            # List updated versions
+            echo -e "\nUpdated versions:" >> dependency_changes.txt
+            go list -m all >> dependency_changes.txt
+            
+          } 2>update_errors.log || {
+            echo "::error::Failed to update dependencies"
+            cat update_errors.log
+            exit 1
+          }
+
+      - name: Validate build
+        run: |
+          # Verify the project still builds
+          go build ./... || {
+            echo "::error::Build validation failed after dependency updates"
+            exit 1
+          }
+          
+          # Run tests if they exist
+          if [ -n "$(go list ./... | grep -v vendor)" ]; then
+            go test ./... -race || {
+              echo "::error::Tests failed after dependency updates"
+              exit 1
+            }
+          fi
 
       - name: Check for changes
+        id: check
         run: |
           if ! git diff --exit-code go.mod go.sum; then
             echo "changes=true" >> $GITHUB_ENV
+            echo "Changes detected in dependencies"
           else
             echo "changes=false" >> $GITHUB_ENV
+            echo "No dependency changes needed"
           fi
 
       - name: Commit and push changes
@@ -44,3 +97,8 @@ jobs:
           git add go.mod go.sum
           git commit -m "chore(deps): update Go dependencies"
           git push origin ${{ github.ref }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f update_errors.log dependency_changes.txt
