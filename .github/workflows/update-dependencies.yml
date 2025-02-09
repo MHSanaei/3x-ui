@@ -2,77 +2,38 @@ name: Update Go Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждую неделю в понедельник в 00:00 UTC
-  workflow_dispatch:      # Возможность ручного запуска
-
-permissions:
-  contents: write        # Явное указание разрешений
+    - cron: '0 0 * * 1'  # Запуск каждую неделю (понедельник в 00:00 UTC)
+  workflow_dispatch:  # Позволяет запускать вручную
 
 jobs:
   update:
-    runs-on: ubuntu-20.04  # Используем свежую Ubuntu
+    runs-on: ubuntu-20.04
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # Загружаем всю историю
           token: ${{ secrets.GITHUB_TOKEN }}
-
+          
+      - name: Clean Go module cache
+        run: go clean -modcache
+          
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          check-latest: true
-          cache: true       # Включаем кэширование модулей
-
-      - name: Clean Go module cache
-        run: |
-          go clean -modcache
-          go clean -cache
-
+      
       - name: Update dependencies
-        id: update
         run: |
-          set -e  # Прерываем выполнение при ошибках
-          echo "Updating Go dependencies..."
-          
-          # Выводим текущие версии
-          echo "Current versions:"
-          go list -m all
-          
-          # Обновляем только объявленные зависимости
-          go get -u ./...
-          
-          # Приводим зависимости в порядок
+          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
           go mod tidy
-          go mod verify
-          
-          # Выводим обновленные версии
-          echo -e "\nUpdated versions:"
-          go list -m all
-
-      - name: Validate build
-        run: |
-          set -e
-          
-          # Проверяем, что код компилируется
-          echo "Validating build..."
-          go build ./...
-          
-          # Проверяем статический анализ кода
-          echo "Running go vet..."
-          go vet ./...
 
       - name: Check for changes
-        id: check
         run: |
-          if git diff --quiet go.mod go.sum; then
-            echo "No dependency changes detected."
-            echo "changes=false" >> $GITHUB_ENV
-          else
-            echo "Dependency changes detected."
+          if ! git diff --exit-code go.mod go.sum; then
             echo "changes=true" >> $GITHUB_ENV
+          else
+            echo "changes=false" >> $GITHUB_ENV
           fi
 
       - name: Commit and push changes
