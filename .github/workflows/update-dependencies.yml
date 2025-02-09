@@ -10,7 +10,9 @@ permissions:
 
 jobs:
   update:
-    runs-on: ubuntu-20.04  # Используем свежую Ubuntu
+    runs-on: ubuntu-20.04  # Используем последнюю версию Ubuntu
+    
+    timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
 
     steps:
       - name: Checkout repository
@@ -26,6 +28,13 @@ jobs:
           check-latest: true
           cache: true       # Включаем кэширование модулей
 
+      - name: Check go.mod exists
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "Error: go.mod file not found"
+            exit 1
+          fi
+
       - name: Clean Go module cache
         run: |
           go clean -modcache
@@ -34,40 +43,59 @@ jobs:
       - name: Update dependencies
         id: update
         run: |
-          set -e  # Прерываем выполнение при ошибках
+          set -euo pipefail  # Строгий режим для bash
+          
           echo "Updating Go dependencies..."
           
-          # Выводим текущие версии
-          echo "Current versions:"
-          go list -m all
-          
-          # Обновляем только объявленные зависимости
-          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
-          
-          # Приводим зависимости в порядок
+          # Обновляем зависимости с исключением gvisor без использования временных файлов
+          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
+            grep -v 'gvisor.dev/gvisor' | \
+            xargs -r go get -u
+
+          # Очистка и проверка
           go mod tidy
-          go mod verify
+          go mod verify || exit 1
           
-          # Выводим обновленные версии
-          echo -e "\nUpdated versions:"
+          # Выводим изменения для лога
+          echo "Updated dependencies:"
           go list -m all
 
       - name: Check for changes
         id: check
         run: |
           if git diff --quiet go.mod go.sum; then
-            echo "No dependency changes detected."
-            echo "changes=false" >> $GITHUB_ENV
+            echo "changes=false" >> $GITHUB_OUTPUT
           else
-            echo "Dependency changes detected."
-            echo "changes=true" >> $GITHUB_ENV
+            echo "changes=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Commit and push changes
-        if: env.changes == 'true'
+        if: steps.check.outputs.changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
           git add go.mod go.sum
-          git commit -m "chore(deps): update Go dependencies"
-          git push origin ${{ github.ref }}
+          git commit -m "chore(deps): update Go dependencies
+          
+          Automated update of Go dependencies excluding gvisor"
+          
+          # Попытка push с повторами при ошибках
+          max_attempts=3
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            if git push origin ${{ github.ref }}; then
+              echo "Successfully pushed changes on attempt $attempt"
+              break
+            else
+              if [ $attempt -eq $max_attempts ]; then
+                echo "Failed to push after $max_attempts attempts"
+                exit 1
+              fi
+              echo "Push failed on attempt $attempt, retrying..."
+              attempt=$((attempt + 1))
+              git pull --rebase
+              sleep 5
+            fi
+          done
