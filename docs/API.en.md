@@ -1,5 +1,11 @@
 # API Documentation
 
+To make requests to REST API v2, you need to include the Authorization header with the Bearer type and the token in each request.
+
+```
+Authorization: Bearer {token}
+```
+
 ## Inbounds
 
 ### Get All Inbounds

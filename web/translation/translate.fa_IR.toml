@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "یک لایه اضافی از احراز هویت برای ایجاد امنیت بیشتر اضافه می کند"
 "secretToken" = "توکن مخفی"
 "secretTokenDesc" = "لطفاً این توکن را در مکانی امن ذخیره کنید. این توکن برای ورود به سیستم مورد نیاز است و قابل بازیابی نیست"
+"apiDescription" = "برای انجام درخواست‌ها به REST API v2، در هر درخواست باید هدر Authorization با نوع Bearer و توکن ارسال شود.\nمثال: Authorization: Bearer {token}"
+"apiGenerateToken" = "توکن ایجاد کنید"
+"apiTokenGeneratedSuccessful" = "توکن با موفقیت ایجاد شد"
+"apiConfirmRemoveTokenTitle" = "تایید حذف توکن"
+"apiConfirmRemoveTokenText" = "پس از حذف توکن، دسترسی به API غیرفعال می‌شود و انجام درخواست‌ها امکان‌پذیر نخواهد بود."
 
 [pages.settings.toasts]
 "modifySettings" = "ویرایش تنظیمات"

@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Menambahkan lapisan otentikasi tambahan untuk memberikan keamanan lebih."
 "secretToken" = "Token Rahasia"
 "secretTokenDesc" = "Simpan token ini dengan aman di tempat yang aman. Token ini diperlukan untuk login dan tidak dapat dipulihkan."
+"apiDescription" = "Untuk melakukan permintaan ke REST API v2, Anda perlu menyertakan header Authorization dengan tipe Bearer dan token di setiap permintaan.\nContoh: Authorization: Bearer {token}"
+"apiGenerateToken" = "Buat token"
+"apiTokenGeneratedSuccessful" = "Token berhasil dibuat"
+"apiConfirmRemoveTokenTitle" = "Konfirmasi penghapusan token"
+"apiConfirmRemoveTokenText" = "Setelah menghapus token, akses ke API akan tidak tersedia, dan permintaan tidak dapat dilakukan."
 
 [pages.settings.toasts]
 "modifySettings" = "Ubah Pengaturan"

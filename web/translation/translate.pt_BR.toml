@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Adiciona uma camada extra de autenticação para fornecer mais segurança."
 "secretToken" = "Token Secreto"
 "secretTokenDesc" = "Por favor, armazene este token em um local seguro. Este token é necessário para o login e não pode ser recuperado."
+"apiDescription" = "Para fazer solicitações à REST API v2, você precisa incluir o cabeçalho Authorization com o tipo Bearer e o token em cada solicitação.\nExemplo: Authorization: Bearer {token}"
+"apiGenerateToken" = "Gerar token"
+"apiTokenGeneratedSuccessful" = "Token gerado com sucesso"
+"apiConfirmRemoveTokenTitle" = "Confirmar exclusão do token"
+"apiConfirmRemoveTokenText" = "Após excluir o token, o acesso à API não estará mais disponível e não será possível fazer solicitações."
 
 [pages.settings.toasts]
 "modifySettings" = "Modificar Configurações"

@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "追加の認証を追加してセキュリティを向上させる"
 "secretToken" = "セキュリティトークン"
 "secretTokenDesc" = "このトークンを安全な場所に保管してください。このトークンはログインに使用され、紛失すると回復できません。"
+"apiDescription" = "REST API v2 にリクエストを送信するには、Authorization ヘッダーに Bearer タイプのトークンを含める必要があります。\n例: Authorization: Bearer {token}"
+"apiGenerateToken" = "トークンを生成"
+"apiTokenGeneratedSuccessful" = "トークンが正常に生成されました"
+"apiConfirmRemoveTokenTitle" = "トークン削除の確認"
+"apiConfirmRemoveTokenText" = "トークンを削除すると、API へのアクセスができなくなり、リクエストを送信できなくなります。"
 
 [pages.settings.toasts]
 "modifySettings" = "設定を変更"

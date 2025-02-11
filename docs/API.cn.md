@@ -1,5 +1,11 @@
 # API 文档
 
+要向 REST API v2 发送请求，您需要在每个请求中包含带有 Bearer 类型的 Authorization 头和令牌。
+
+```
+Authorization: Bearer {token}
+```
+
 ## Inbounds
 
 ### 获取所有 Inbounds

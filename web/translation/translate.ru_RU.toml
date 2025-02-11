@@ -446,6 +446,12 @@
 "loginSecurityDesc" = "Включить дополнительные меры безопасности входа пользователя"
 "secretToken" = "Секретный токен"
 "secretTokenDesc" = "Пожалуйста, скопируйте и сохраните этот токен в безопасном месте. Этот токен необходим для входа в систему и не может быть восстановлен с помощью инструмента x-ui"
+"apiTitle" = "REST API"
+"apiDescription" = "Для выполнения запросов к REST API v2 в каждом запросе необходимо передавать заголовок Authorization с типом Bearer и указанием токена.\nПример: Authorization: Bearer {token}"
+"apiGenerateToken" = "Сгенерировать токен"
+"apiTokenGeneratedSuccess" = "Токен сгенерирован"
+"apiConfirmRemoveTokenTitle" = "Подтвердите удаление токена"
+"apiConfirmRemoveTokenText" = "После удаления токена доступ к API станет недоступным, и выполнение запросов будет невозможно."
 
 [pages.settings.toasts]
 "modifySettings" = "Изменение настроек"
@@ -453,6 +459,8 @@
 "modifyUser" = "Изменение пользователя"
 "originalUserPassIncorrect" = "Неверное имя пользователя или пароль"
 "userPassMustBeNotEmpty" = "Новое имя пользователя и новый пароль должны быть заполнены"
+
+
 
 [tgbot]
 "keyboardClosed" = "❌ Закрыта настраиваемая клавиатура!"

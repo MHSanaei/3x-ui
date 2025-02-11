@@ -1,5 +1,11 @@
 # API Documentation
 
+Для выполнения запросов к REST API v2 в каждом запросе необходимо передавать заголовок Authorization с типом Bearer и указанием токена.
+
+```
+Authorization: Bearer {token}
+```
+
 ## Inbounds
 
 ### Get All Inbounds

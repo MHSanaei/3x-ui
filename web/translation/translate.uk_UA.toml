@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Додає додатковий рівень автентифікації для забезпечення більшої безпеки."
 "secretToken" = "Секретний маркер"
 "secretTokenDesc" = "Будь ласка, надійно зберігайте цей маркер у безпечному місці. Цей маркер потрібен для входу, і його неможливо відновити."
+"apiDescription" = "Щоб надсилати запити до REST API v2, вам потрібно додати заголовок Authorization із типом Bearer і токен у кожен запит.\nПриклад: Authorization: Bearer {token}"
+"apiGenerateToken" = "Створити токен"
+"apiTokenGeneratedSuccessful" = "Токен успішно створено"
+"apiConfirmRemoveTokenTitle" = "Підтвердження видалення токена"
+"apiConfirmRemoveTokenText" = "Після видалення токена доступ до API буде неможливим, і надсилати запити більше не вдасться."
 
 [pages.settings.toasts]
 "modifySettings" = "Змінити налаштування"

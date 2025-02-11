@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Bật bước bảo mật đăng nhập bổ sung cho người dùng"
 "secretToken" = "Mã bí mật"
 "secretTokenDesc" = "Vui lòng sao chép và lưu trữ mã này một cách an toàn ở nơi an toàn. Mã này cần thiết để đăng nhập và không thể phục hồi từ công cụ lệnh x-ui."
+"apiDescription" = "Để gửi yêu cầu đến REST API v2, bạn cần bao gồm tiêu đề Authorization với loại Bearer và token trong mỗi yêu cầu.\nVí dụ: Authorization: Bearer {token}"
+"apiGenerateToken" = "Tạo token"
+"apiTokenGeneratedSuccessful" = "Token đã được tạo thành công"
+"apiConfirmRemoveTokenTitle" = "Xác nhận xóa token"
+"apiConfirmRemoveTokenText" = "Sau khi xóa token, quyền truy cập API sẽ không còn khả dụng và bạn sẽ không thể gửi yêu cầu nữa."
 
 [pages.settings.toasts]
 "modifySettings" = "Chỉnh sửa cài đặt "

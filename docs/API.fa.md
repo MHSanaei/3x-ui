@@ -1,5 +1,11 @@
 # مستندات API
 
+برای انجام درخواست‌ها به REST API v2، در هر درخواست باید هدر Authorization با نوع Bearer و توکن ارسال شود.
+
+```
+Authorization: Bearer {token}
+```
+
 ## ورودی‌ها (Inbounds)
 
 ### دریافت تمام ورودی‌ها

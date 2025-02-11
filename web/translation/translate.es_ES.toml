@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Habilitar un paso adicional de seguridad para el inicio de sesión de usuarios."
 "secretToken" = "Token Secreto"
 "secretTokenDesc" = "Por favor, copia y guarda este token de forma segura en un lugar seguro. Este token es necesario para iniciar sesión y no se puede recuperar con la herramienta de comando x-ui."
+"apiDescription" = "Para realizar solicitudes al REST API v2, es necesario incluir en cada solicitud el encabezado Authorization con el tipo Bearer y el token.\nEjemplo: Authorization: Bearer {token}"
+"apiGenerateToken" = "Generar token"
+"apiTokenGeneratedSuccess" = "Token generado con éxito"
+"apiConfirmRemoveTokenTitle" = "Confirmar eliminación del token"
+"apiConfirmRemoveTokenText" = "Después de eliminar el token, el acceso al API no estará disponible y no se podrán realizar solicitudes."
 
 [pages.settings.toasts]
 "modifySettings" = "Modificar Configuraciones "

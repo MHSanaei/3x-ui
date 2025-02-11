@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "新增額外的身份驗證以提高安全性"
 "secretToken" = "安全令牌"
 "secretTokenDesc" = "請將此令牌儲存在安全的地方。此令牌用於登入，丟失無法恢復。"
+"apiDescription" = "要向 REST API v2 發送請求，您需要在每個請求中包含帶有 Bearer 類型的 Authorization 標頭和權杖。\n示例: Authorization: Bearer {token}"
+"apiGenerateToken" = "生成權杖"
+"apiTokenGeneratedSuccessful" = "權杖生成成功"
+"apiConfirmRemoveTokenTitle" = "確認刪除權杖"
+"apiConfirmRemoveTokenText" = "刪除權杖後，將無法存取 API，並且無法再發送請求。"
 
 [pages.settings.toasts]
 "modifySettings" = "修改設定"

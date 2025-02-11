@@ -1,5 +1,11 @@
 # Documentación de la API
 
+Para realizar solicitudes al REST API v2, es necesario incluir en cada solicitud el encabezado Authorization con el tipo Bearer y el token.
+
+```
+Authorization: Bearer {token}
+```
+
 ## Inbounds
 
 ### Obtener todos los Inbounds

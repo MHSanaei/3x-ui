@@ -182,7 +182,7 @@ func (a *SettingController) generateApiToken(c *gin.Context) {
 		return
 	}
 
-	jsonMsgObj(c, I18nWeb(c, "pages.settings.security.apiTokenGeneratedSuccessful"), response, nil)
+	jsonMsgObj(c, I18nWeb(c, "pages.settings.security.apiTokenGeneratedSuccess"), response, nil)
 }
 
 func (a *SettingController) removeApiToken(c *gin.Context) {

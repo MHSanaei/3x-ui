@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Adds an additional layer of authentication to provide more security."
 "secretToken" = "Secret Token"
 "secretTokenDesc" = "Please securely store this token in a safe place. This token is required for login and cannot be recovered."
+"apiDescription" = "To make requests to REST API v2, you need to include the Authorization header with the Bearer type and the token in each request.\nExample: Authorization: Bearer {token}"
+"apiGenerateToken" = "Generate token"
+"apiTokenGeneratedSuccess" = "Token generated"
+"apiConfirmRemoveTokenTitle" = "Confirm token deletion"
+"apiConfirmRemoveTokenText" = "After deleting the token, access to the API will be unavailable, and making requests will no longer be possible."
 
 [pages.settings.toasts]
 "modifySettings" = "Modify Settings"

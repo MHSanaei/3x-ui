@@ -446,6 +446,11 @@
 "loginSecurityDesc" = "Daha fazla güvenlik sağlamak için ek bir kimlik doğrulama katmanı ekler."
 "secretToken" = "Gizli Anahtar"
 "secretTokenDesc" = "Bu anahtarı güvenli bir yerde saklayın. Bu anahtar giriş için gereklidir ve geri alınamaz."
+"apiDescription" = "REST API v2'ye istek gönderebilmek için, her isteğe Bearer türünde bir yetkilendirme (Authorization) başlığı ve token eklemeniz gerekir.\nÖrnek: Authorization: Bearer {token}"
+"apiGenerateToken" = "Token oluştur"
+"apiTokenGeneratedSuccessful" = "Token başarıyla oluşturuldu"
+"apiConfirmRemoveTokenTitle" = "Token silme onayı"
+"apiConfirmRemoveTokenText" = "Token silindikten sonra API erişimi mümkün olmayacak ve istek gönderilemeyecektir."
 
 [pages.settings.toasts]
 "modifySettings" = "Ayarları Değiştir"
