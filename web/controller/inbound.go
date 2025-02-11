@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"errors"
 
 	"x-ui/database/model"
 	"x-ui/web/service"
@@ -44,8 +45,17 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 }
 
 func (a *InboundController) getInbounds(c *gin.Context) {
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, inbounds, nil)
+}
+
+func (a *InboundController) getAllInbounds(c *gin.Context) {
+	inbounds, err := a.inboundService.GetAllInbounds()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
 		return
@@ -56,7 +66,7 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "get"), err)
+		jsonMsg(c, I18nWeb(c, "get"), errors.New("Invalid inbound id"))
 		return
 	}
 	inbound, err := a.inboundService.GetInbound(id)
@@ -94,7 +104,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.create"), err)
 		return
 	}
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
@@ -144,6 +154,60 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if err == nil && needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+}
+
+func (a *InboundController) getInboundClients(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        jsonMsg(c, "GetInboundClients", errors.New("Incorrect inbound id"))
+        return
+    }
+
+    client, err := a.inboundService.GetInboundClients(id)
+    if err != nil {
+        jsonMsg(c, "GetInboundClientById", err)
+        return
+    }
+
+    jsonObj(c, client, nil)
+}
+
+func (a *InboundController) getClientById(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        jsonMsg(c, "GetInboundClientById", errors.New("Incorrect inbound id"))
+        return
+    }
+
+    client, err := a.inboundService.GetInboundClientById(id, c.Param("clientId"))
+    if err != nil {
+        jsonMsg(c, "GetInboundClientById", err)
+        return
+    }
+    if client == nil {
+        jsonMsg(c, "GetInboundClientById", errors.New("Client not found"))
+        return
+    }
+    jsonObj(c, client, nil)
+}
+
+func (a *InboundController) getClientByEmail(c *gin.Context) {
+    id, err := strconv.Atoi(c.Param("id"))
+    if err != nil {
+        jsonMsg(c, "GetInboundClientByEmail", errors.New("Incorrect inbound id"))
+        return
+    }
+
+    client, err := a.inboundService.GetInboundClientByEmail(id, c.Param("email"))
+    if err != nil {
+        jsonMsg(c, "GetInboundClientByEmail", err)
+        return
+    }
+    if client == nil {
+        jsonMsg(c, "GetInboundClientByEmail", errors.New("Client not found"))
+        return
+    }
+    jsonObj(c, client, nil)
 }
 
 func (a *InboundController) getClientIps(c *gin.Context) {
@@ -288,7 +352,7 @@ func (a *InboundController) importInbound(c *gin.Context) {
 		jsonMsg(c, "Something went wrong!", err)
 		return
 	}
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	inbound.Id = 0
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {

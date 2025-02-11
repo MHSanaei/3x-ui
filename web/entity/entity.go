@@ -57,6 +57,7 @@ type AllSetting struct {
 	SubJsonMux       string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules     string `json:"subJsonRules" form:"subJsonRules"`
 	Datepicker       string `json:"datepicker" form:"datepicker"`
+	ApiToken	     string `json:"apiToken" form:"apiToken"`
 }
 
 func (s *AllSetting) CheckValid() error {

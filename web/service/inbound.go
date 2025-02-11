@@ -1729,6 +1729,56 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 	return nil
 }
 
+func (s *InboundService) GetInboundClients(inboundId int) (client []model.Client, err error) {
+    inbound, err := s.GetInbound(inboundId)
+    if err != nil {
+        return nil, err
+    }
+    clients, err := s.GetClients(inbound)
+    if err != nil {
+        return nil, err
+    }
+    if (clients == nil) {
+        return make([]model.Client, 0), nil
+    }
+    return clients, nil
+}
+
+func (s *InboundService) GetInboundClientById(inboundId int, clientId string) (client *model.Client, err error) {
+    inbound, err := s.GetInbound(inboundId)
+    if err != nil {
+        return nil, err
+    }
+
+    clients, err := s.GetClients(inbound)
+    if err != nil {
+        return nil, err
+    }
+    for _, client := range clients {
+        if client.ID == clientId {
+            return &client, nil
+        }
+    }
+    return nil, nil
+}
+
+func (s *InboundService) GetInboundClientByEmail(inboundId int, email string) (client *model.Client, err error) {
+    inbound, err := s.GetInbound(inboundId)
+    if err != nil {
+        return nil, err
+    }
+    clients, err := s.GetClients(inbound)
+    if err != nil {
+        return nil, err
+    }
+    for _, client := range clients {
+        if client.Email == email {
+            return &client, nil
+        }
+    }
+    return nil, nil
+}
+
 func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound

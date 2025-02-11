@@ -86,7 +86,7 @@ func (a *IndexController) login(c *gin.Context) {
 	}
 
 	session.SetMaxAge(c, sessionMaxAge*60)
-	session.SetLoginUser(c, user)
+	session.SetSessionUser(c, user)
 	if err := sessions.Default(c).Save(); err != nil {
 		logger.Warning("Unable to save session: ", err)
 		return
@@ -97,7 +97,7 @@ func (a *IndexController) login(c *gin.Context) {
 }
 
 func (a *IndexController) logout(c *gin.Context) {
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	if user != nil {
 		logger.Infof("%s logged out successfully", user.Username)
 	}
