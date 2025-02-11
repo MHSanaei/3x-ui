@@ -3,6 +3,9 @@ package controller
 import (
 	"errors"
 	"time"
+	"crypto/rand"
+	"crypto/sha512"
+	"encoding/hex"
 
 	"x-ui/web/entity"
 	"x-ui/web/service"
@@ -28,6 +31,10 @@ type SettingController struct {
 	panelService   service.PanelService
 }
 
+type ApiTokenResponse struct {
+	Token string `json:"token"`
+}
+
 func NewSettingController(g *gin.RouterGroup) *SettingController {
 	a := &SettingController{}
 	a.initRouter(g)
@@ -45,6 +52,10 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.POST("/updateUserSecret", a.updateSecret)
 	g.POST("/getUserSecret", a.getUserSecret)
+
+	g.GET("/apiToken", a.getApiToken)
+	g.POST("/apiToken", a.generateApiToken)
+	g.DELETE("/apiToken", a.removeApiToken)
 }
 
 func (a *SettingController) getAllSetting(c *gin.Context) {
@@ -83,7 +94,7 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 		return
 	}
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	if user.Username != form.OldUsername || user.Password != form.OldPassword {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), errors.New(I18nWeb(c, "pages.settings.toasts.originalUserPassIncorrect")))
 		return
@@ -96,7 +107,7 @@ func (a *SettingController) updateUser(c *gin.Context) {
 	if err == nil {
 		user.Username = form.NewUsername
 		user.Password = form.NewPassword
-		session.SetLoginUser(c, user)
+		session.SetSessionUser(c, user)
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
 }
@@ -112,17 +123,17 @@ func (a *SettingController) updateSecret(c *gin.Context) {
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 	}
-	user := session.GetLoginUser(c)
+	user := session.GetSessionUser(c)
 	err = a.userService.UpdateUserSecret(user.Id, form.LoginSecret)
 	if err == nil {
 		user.LoginSecret = form.LoginSecret
-		session.SetLoginUser(c, user)
+		session.SetSessionUser(c, user)
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
 }
 
 func (a *SettingController) getUserSecret(c *gin.Context) {
-	loginUser := session.GetLoginUser(c)
+	loginUser := session.GetSessionUser(c)
 	user := a.userService.GetUserSecret(loginUser.Id)
 	if user != nil {
 		jsonObj(c, user, nil)
@@ -136,4 +147,51 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+func (a *SettingController) getApiToken(c *gin.Context) {
+    response := &ApiTokenResponse{}
+	token, err := a.settingService.GetApiToken()
+	if err != nil {
+        jsonObj(c, response , err)
+        return
+	}
+
+	response.Token = token
+
+    jsonObj(c, response , nil)
+}
+
+func (a *SettingController) generateApiToken(c *gin.Context) {
+    response := &ApiTokenResponse{}
+	randomBytes := make([]byte, 32)
+
+	_, err := rand.Read(randomBytes)
+	if err != nil {
+		jsonObj(c, nil, err)
+		return
+	}
+
+	hash := sha512.Sum512(randomBytes)
+	response.Token = hex.EncodeToString(hash[:])
+
+	saveErr := a.settingService.SaveApiToken(response.Token)
+
+	if saveErr != nil {
+		jsonObj(c, nil, saveErr)
+		return
+	}
+
+	jsonMsgObj(c, I18nWeb(c, "pages.settings.security.apiTokenGeneratedSuccessful"), response, nil)
+}
+
+func (a *SettingController) removeApiToken(c *gin.Context) {
+	err := a.settingService.RemoveApiToken()
+
+	if err != nil {
+		jsonObj(c, nil, err)
+		return
+	}
+
+	jsonMsg(c, "Removed", nil)
 }

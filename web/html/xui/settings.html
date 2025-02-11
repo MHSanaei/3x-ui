@@ -235,6 +235,28 @@
                   </a-list-item>
                   <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
                 </a-form>
+
+                <a-divider>{{ i18n "pages.settings.security.apiTitle"}}</a-divider>
+                <a-list-item>
+                  <a-row>
+                    <a-col :lg="24" :xl="12" style="white-space: pre-line;">
+                      <a-list-item-meta description='{{ i18n "pages.settings.security.apiDescription" }}'>
+                      </a-list-item-meta>
+                    </a-col>
+                    <a-col :lg="24" :xl="12">
+                      <a-tag class="tr-info-tag" color="green" v-if="apiToken">[[ apiToken ]]</a-tag>
+                      <div style="display: flex; flex-direction: row; align-items: center; gap: 0.5rem; margin-top: 0.5rem">
+                        <a-tooltip title='{{ i18n "copy" }}' v-if="apiToken">
+                          <a-button style="min-width: 24px;" size="small" icon="snippets" :id="'copy-api-token'" @click="copyApiToken"></a-button>
+                        </a-tooltip>
+                        <a-button @click="this.generateApiToken">{{ i18n "pages.settings.security.apiGenerateToken" }}</a-button>
+                        <a-tooltip title='{{ i18n "delete" }}' v-if="apiToken">
+                          <a-button type="danger" style="min-width: 24px;" size="small" icon="delete" :id="'copy-api-token'" @click="removeApiToken"></a-button>
+                        </a-tooltip>
+                      </div>
+                    </a-col>
+                  </a-row>
+                </a-list-item>
               </a-tab-pane>
               <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
                 <a-list item-layout="horizontal">
@@ -401,6 +423,7 @@
       </a-layout-content>
     </a-layout>
   </a-layout>
+  <script src="{{ .base_path }}assets/clipboard/clipboard.min.js?{{ .cur_ver }}"></script>
 {{template "js" .}}
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/themeSwitcher" .}}
@@ -522,132 +545,166 @@
         sample = []
         this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
         this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
-      }
+      },
+      apiToken: null,
     },
-    methods: {
-      loading(spinning = true) {
-        this.spinning = spinning;
-      },
-      async getAllSetting() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/all");
-        this.loading(false);
-        if (msg.success) {
-          this.oldAllSetting = new AllSetting(msg.obj);
-          this.allSetting = new AllSetting(msg.obj);
-          app.changeRemarkSample();
-          this.saveBtnDisable = true;
-        }
-        await this.fetchUserSecret();
-      },
-      async updateAllSetting() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
-        this.loading(false);
-        if (msg.success) {
-          await this.getAllSetting();
-        }
-      },
-      async updateUser() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
-        this.loading(false);
-        if (msg.success) {
-          this.user = {};
-          window.location.replace(basePath + "logout");
-        }
-      },
-      async restartPanel() {
-        await new Promise(resolve => {
-          this.$confirm({
-            title: '{{ i18n "pages.settings.restartPanel" }}',
-            content: '{{ i18n "pages.settings.restartPanelDesc" }}',
-            class: themeSwitcher.currentTheme,
-            okText: '{{ i18n "sure" }}',
-            cancelText: '{{ i18n "cancel" }}',
-            onOk: () => resolve(),
-          });
-        });
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/restartPanel");
-        this.loading(false);
-        if (msg.success) {
-          this.loading(true);
-          await PromiseUtil.sleep(5000);
-          var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
-          if (host == this.oldAllSetting.webDomain) host = null;
-          if (port == this.oldAllSetting.webPort) port = null;
-          const isTLS = webCertFile !== "" || webKeyFile !== "";
-          const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
-          window.location.replace(url);
-        }
-      },
-      async fetchUserSecret() {
-        this.loading(true);
-        const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
-        if (userMessage.success) {
-          this.user = userMessage.obj;
-        }
-        this.loading(false);
-      },
-      async updateSecret() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-        if (msg && msg.obj) {
-          this.user = msg.obj;
-        }
-        this.loading(false);
-        await this.updateAllSetting();
-      },
-      generateRandomString(length) {
-        var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        let randomString = "";
-        for (let i = 0; i < length; i++) {
-          randomString += chars[Math.floor(Math.random() * chars.length)];
-        }
-        return randomString;
-      },
-      async getNewSecret() {
-        if (!this.changeSecret) {
-          this.changeSecret = true;
-          this.user.loginSecret = '';
-          const newSecret = this.generateRandomString(64);
-          await PromiseUtil.sleep(1000);
-          this.user.loginSecret = newSecret;
-          this.changeSecret = false;
-        }
-      },
-      async toggleToken(value) {
-        if (value) {
-          await this.getNewSecret();
-        } else {
-          this.user.loginSecret = "";
-        }
-      },
-      addNoise() {
-        const newNoise = { type: "rand", packet: "10-20", delay: "10-16" };
-        this.noisesArray = [...this.noisesArray, newNoise];
-      },
-      removeNoise(index) {
-        const newNoises = [...this.noisesArray];
-        newNoises.splice(index, 1);
-        this.noisesArray = newNoises;
-      },
-      updateNoiseType(index, value) {
-        const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], type: value };
-        this.noisesArray = updatedNoises;
-      },
-      updateNoisePacket(index, value) {
-        const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], packet: value };
-        this.noisesArray = updatedNoises;
-      },
-      updateNoiseDelay(index, value) {
-        const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], delay: value };
-        this.noisesArray = updatedNoises;
-      },
+        methods: {
+          loading(spinning = true) {
+            this.spinning = spinning;
+          },
+          async getAllSetting() {
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/all");
+            this.loading(false);
+            if (msg.success) {
+              this.oldAllSetting = new AllSetting(msg.obj);
+              this.allSetting = new AllSetting(msg.obj);
+              this.apiToken = msg.obj.apiToken;
+              app.changeRemarkSample();
+              this.saveBtnDisable = true;
+            }
+            await this.fetchUserSecret();
+          },
+          async updateAllSetting() {
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
+            this.loading(false);
+            if (msg.success) {
+              await this.getAllSetting();
+            }
+          },
+          async updateUser() {
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
+            this.loading(false);
+            if (msg.success) {
+              this.user = {};
+              window.location.replace(basePath + "logout");
+            }
+          },
+          async restartPanel() {
+            await new Promise(resolve => {
+              this.$confirm({
+                title: '{{ i18n "pages.settings.restartPanel" }}',
+                content: '{{ i18n "pages.settings.restartPanelDesc" }}',
+                class: themeSwitcher.currentTheme,
+                okText: '{{ i18n "sure" }}',
+                cancelText: '{{ i18n "cancel" }}',
+                onOk: () => resolve(),
+              });
+            });
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/restartPanel");
+            this.loading(false);
+            if (msg.success) {
+              this.loading(true);
+              await PromiseUtil.sleep(5000);
+              var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
+              if (host == this.oldAllSetting.webDomain) host = null;
+              if (port == this.oldAllSetting.webPort) port = null;
+              const isTLS = webCertFile !== "" || webKeyFile !== "";
+              const url = buildURL({ host, port, isTLS, base, path: "panel/settings" });
+              window.location.replace(url);
+            }
+          },
+          async fetchUserSecret() {
+            this.loading(true);
+            const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
+            if (userMessage.success) {
+              this.user = userMessage.obj;
+            }
+            this.loading(false);
+          },
+          async updateSecret() {
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
+            if (msg && msg.obj) {
+              this.user = msg.obj;
+            }
+            this.loading(false);
+            await this.updateAllSetting();
+          },
+          generateRandomString(length) {
+            var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+            let randomString = "";
+            for (let i = 0; i < length; i++) {
+              randomString += chars[Math.floor(Math.random() * chars.length)];
+            }
+            return randomString;
+          },
+          async getNewSecret() {
+            if (!this.changeSecret) {
+              this.changeSecret = true;
+              this.user.loginSecret = '';
+              const newSecret = this.generateRandomString(64);
+              await PromiseUtil.sleep(1000);
+              this.user.loginSecret = newSecret;
+              this.changeSecret = false;
+            }
+          },
+          async toggleToken(value) {
+            if (value) {
+              await this.getNewSecret();
+            } else {
+              this.user.loginSecret = "";
+            }
+          },
+          addNoise() {
+            const newNoise = { type: "rand", packet: "10-20", delay: "10-16" };
+            this.noisesArray = [...this.noisesArray, newNoise];
+          },
+          removeNoise(index) {
+            const newNoises = [...this.noisesArray];
+            newNoises.splice(index, 1);
+            this.noisesArray = newNoises;
+          },
+          updateNoiseType(index, value) {
+            const updatedNoises = [...this.noisesArray];
+            updatedNoises[index] = { ...updatedNoises[index], type: value };
+            this.noisesArray = updatedNoises;
+          },
+          updateNoisePacket(index, value) {
+            const updatedNoises = [...this.noisesArray];
+            updatedNoises[index] = { ...updatedNoises[index], packet: value };
+            this.noisesArray = updatedNoises;
+          },
+          updateNoiseDelay(index, value) {
+            const updatedNoises = [...this.noisesArray];
+            updatedNoises[index] = { ...updatedNoises[index], delay: value };
+            this.noisesArray = updatedNoises;
+          },
+          async generateApiToken() {
+            this.loading(true);
+            const msg = await HttpUtil.post("/panel/setting/apiToken");
+            if (msg && msg.obj) {
+              this.apiToken = msg.obj.token;
+            }
+            this.loading(false);
+          },
+          copyApiToken() {
+            ClipboardJS.copy(this.apiToken);
+            app.$message.success('{{ i18n "copied" }}')
+          },
+          async removeApiToken() {
+            await new Promise(() => {
+              this.$confirm({
+                title: '{{ i18n "pages.settings.security.apiConfirmRemoveTokenTitle" }}',
+                content: '{{ i18n "pages.settings.security.apiConfirmRemoveTokenText" }}',
+                class: themeSwitcher.currentTheme,
+                okText: '{{ i18n "delete"}}',
+                cancelText: '{{ i18n "cancel" }}',
+                onOk: async () => {
+                  this.loading(true);
+                  const msg = await HttpUtil.delete("/panel/setting/apiToken");
+                  if (msg && msg.success) {
+                    app.$message.success('{{ i18n "deleted" }}')
+                    this.apiToken = null;
+                  }
+                  this.loading(false);
+                },
+              });
+            });
+          },
     },
     computed: {
       fragment: {

@@ -18,7 +18,7 @@ func init() {
 	gob.Register(model.User{})
 }
 
-func SetLoginUser(c *gin.Context, user *model.User) {
+func SetSessionUser(c *gin.Context, user *model.User) {
 	if user == nil {
 		return
 	}
@@ -35,7 +35,7 @@ func SetMaxAge(c *gin.Context, maxAge int) {
 	})
 }
 
-func GetLoginUser(c *gin.Context) *model.User {
+func GetSessionUser(c *gin.Context) *model.User {
 	s := sessions.Default(c)
 	obj := s.Get(loginUserKey)
 	if obj == nil {
@@ -51,7 +51,7 @@ func GetLoginUser(c *gin.Context) *model.User {
 }
 
 func IsLogin(c *gin.Context) bool {
-	return GetLoginUser(c) != nil
+	return GetSessionUser(c) != nil
 }
 
 func ClearSession(c *gin.Context) {

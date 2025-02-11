@@ -596,3 +596,46 @@ func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
 
 	return result, nil
 }
+
+
+func (s *SettingService) GetApiToken() (token string, err error) {
+	db := database.GetDB()
+	setting := &model.Setting{}
+	err = db.Model(model.Setting{}).Where("key = 'apiToken'").Find(setting).Error
+	if err != nil {
+		return "", err
+	}
+	return setting.Value, nil
+}
+
+func (s *SettingService) SaveApiToken(token string) error {
+	db := database.GetDB()
+	setting := &model.Setting{}
+	err := db.Model(model.Setting{}).Where("key = 'apiToken'").Find(setting).Error
+
+	if err != nil {
+		return err
+	}
+
+	if setting.Value == "" {
+		newSetting := model.Setting{
+			Key: "apiToken",
+			Value: token,
+		}
+		fmt.Println("New setting created")
+		return db.Model(model.Setting{}).Create(&newSetting).Error
+	}
+	return db.Model(model.Setting{}).
+		Where("key = 'apiToken'").
+		Update("value", token).Error
+}
+
+func (s *SettingService) RemoveApiToken() error {
+	db := database.GetDB()
+	setting := &model.Setting{}
+	err := db.Model(model.Setting{}).Where("key = 'apiToken'").Find(setting).Error
+	if err != nil {
+		return err
+	}
+	return db.Model(model.Setting{}).Delete(setting, setting.Id).Error
+}

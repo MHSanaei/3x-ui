@@ -64,7 +64,7 @@ func (a *APIController) createBackup(c *gin.Context) {
 
 func (controller *APIController) initApiV2Router(router *gin.RouterGroup) {
     apiV2 := router.Group("/api/v2")
-    apiV2.Use(controller.checkLogin)
+    apiV2.Use(controller.apiTokenGuard)
 
     serverApiGroup := apiV2.Group("/server")
     inboundsApiGroup := apiV2.Group("/inbounds")
