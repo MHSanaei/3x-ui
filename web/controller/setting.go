@@ -150,20 +150,20 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 }
 
 func (a *SettingController) getApiToken(c *gin.Context) {
-    response := &ApiTokenResponse{}
+	response := &ApiTokenResponse{}
 	token, err := a.settingService.GetApiToken()
 	if err != nil {
-        jsonObj(c, response , err)
-        return
+		jsonObj(c, response , err)
+		return
 	}
 
 	response.Token = token
 
-    jsonObj(c, response , nil)
+	jsonObj(c, response , nil)
 }
 
 func (a *SettingController) generateApiToken(c *gin.Context) {
-    response := &ApiTokenResponse{}
+	response := &ApiTokenResponse{}
 	randomBytes := make([]byte, 32)
 
 	_, err := rand.Read(randomBytes)

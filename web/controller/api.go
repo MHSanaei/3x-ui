@@ -21,10 +21,10 @@ func NewAPIController(g *gin.RouterGroup) *APIController {
 }
 
 func (controller *APIController) initRouter(router *gin.RouterGroup) {
-    apiV1 := router.Group("/panel/api")
-    apiV1.Use(controller.checkLogin)
+	apiV1 := router.Group("/panel/api")
+	apiV1.Use(controller.checkLogin)
 
-    inboundsApiGroup := apiV1.Group("/inbounds")
+	inboundsApiGroup := apiV1.Group("/inbounds")
 	controller.inbounds = NewInboundController(inboundsApiGroup)
 
 	inboundRoutes := []struct {
@@ -69,8 +69,8 @@ func (controller *APIController) initApiV2Router(router *gin.RouterGroup) {
     serverApiGroup := apiV2.Group("/server")
     inboundsApiGroup := apiV2.Group("/inbounds")
 
-	controller.inbounds = NewInboundController(inboundsApiGroup)
-	controller.server = NewServerController(serverApiGroup)
+    controller.inbounds = NewInboundController(inboundsApiGroup)
+    controller.server = NewServerController(serverApiGroup)
 
     /**
     * Inbounds

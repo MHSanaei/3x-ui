@@ -42,14 +42,14 @@ func I18nWeb(c *gin.Context, name string, params ...string) string {
 }
 
 func (a *BaseController) apiTokenGuard(c *gin.Context) {
-    bearerToken := c.Request.Header.Get("Authorization")
-    tokenParts := strings.Split(bearerToken, " ")
-    if len(tokenParts) != 2 {
+	bearerToken := c.Request.Header.Get("Authorization")
+	tokenParts := strings.Split(bearerToken, " ")
+	if len(tokenParts) != 2 {
 		pureJsonMsg(c, http.StatusUnauthorized, false, "Invalid token format")
-    	c.Abort()
-        return
-    }
-    reqToken := tokenParts[1]
+		c.Abort()
+		return
+	}
+	reqToken := tokenParts[1]
 	token, err := a.settingService.GetApiToken()
 
 	if err != nil {
@@ -59,7 +59,7 @@ func (a *BaseController) apiTokenGuard(c *gin.Context) {
 	}
 
 	if reqToken != token {
-        pureJsonMsg(c, http.StatusUnauthorized, false, "Auth failed")
+		pureJsonMsg(c, http.StatusUnauthorized, false, "Auth failed")
 		c.Abort()
 		return
 	}
@@ -72,7 +72,7 @@ func (a *BaseController) apiTokenGuard(c *gin.Context) {
 
 	session.SetSessionUser(c, user)
 
-    c.Next()
+	c.Next()
 
 	session.ClearSession(c)
 }
