@@ -142,6 +142,8 @@
                   <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
                   <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
+                  <setting-list-item type="switch" title='{{ i18n "pages.settings.externalTrafficInformEnable"}}' desc='{{ i18n "pages.settings.externalTrafficInformEnableDesc"}}' v-model="allSetting.externalTrafficInformEnable"></setting-list-item>
+                  <setting-list-item type="text" title='{{ i18n "pages.settings.externalTrafficInformURI"}}' desc='{{ i18n "pages.settings.externalTrafficInformURIDesc"}}' v-model="allSetting.externalTrafficInformURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
                   <setting-list-item type="text" title='{{ i18n "pages.settings.timeZone"}}' desc='{{ i18n "pages.settings.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
                   <a-list-item>
                     <a-row style="padding: 20px">
