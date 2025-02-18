@@ -7,7 +7,7 @@
         <a-input v-model.trim="inbound.stream.xhttp.path"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
-        <a-button icon="plus" size="small" @click="inbound.stream.xhttp.addHeader('host', '')"></a-button>
+        <a-button icon="plus" size="small" @click="inbound.stream.xhttp.addHeader('', '')"></a-button>
     </a-form-item>
     <a-form-item :wrapper-col="{span:24}">
         <a-input-group compact v-for="(header, index) in inbound.stream.xhttp.headers">
@@ -17,7 +17,7 @@
             </a-input>
             <a-input style="width: 50%" v-model.trim="header.value"
                 placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
-                <a-button slot="addonAfter" size="small" @click="inbound.stream.xhttp.removeHeader(index)">-</a-button>
+                <a-button icon="minus" slot="addonAfter" size="small" @click="inbound.stream.xhttp.removeHeader(index)"></a-button>
             </a-input>
         </a-input-group>
     </a-form-item>
@@ -28,10 +28,13 @@
         </a-select>
     </a-form-item>
     <a-form-item label="Max Buffered Upload" v-if="inbound.stream.xhttp.mode === 'packet-up'">
-        <a-input v-model.trim="inbound.stream.xhttp.scMaxBufferedPosts"></a-input>
+        <a-input-number v-model.number="inbound.stream.xhttp.scMaxBufferedPosts"></a-input-number>
     </a-form-item>
     <a-form-item label="Max Upload Size (Byte)" v-if="inbound.stream.xhttp.mode === 'packet-up'">
         <a-input v-model.trim="inbound.stream.xhttp.scMaxEachPostBytes"></a-input>
+    </a-form-item>
+    <a-form-item label="Stream-Up Server" v-if="inbound.stream.xhttp.mode === 'stream-up'">
+        <a-input v-model.trim="inbound.stream.xhttp.scStreamUpServerSecs"></a-input>
     </a-form-item>
     <a-form-item label="Padding Bytes">
         <a-input v-model.trim="inbound.stream.xhttp.xPaddingBytes"></a-input>

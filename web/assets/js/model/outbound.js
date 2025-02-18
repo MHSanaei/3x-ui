@@ -293,9 +293,9 @@ class xHTTPStreamSettings extends CommonClass {
         xmux = {
             maxConcurrency: "16-32",
             maxConnections: 0,
-            cMaxReuseTimes: "64-128",
-            cMaxLifetimeMs: 0,
-            hMaxRequestTimes: "800-900",
+            cMaxReuseTimes: 0,
+            hMaxRequestTimes: "600-900",
+            hMaxReusableSecs: "1800-3000",
             hKeepAlivePeriod: 0,
         },
     ) {
@@ -330,8 +330,8 @@ class xHTTPStreamSettings extends CommonClass {
                 maxConcurrency: this.xmux.maxConcurrency,
                 maxConnections: this.xmux.maxConnections,
                 cMaxReuseTimes: this.xmux.cMaxReuseTimes,
-                cMaxLifetimeMs: this.xmux.cMaxLifetimeMs,
                 hMaxRequestTimes: this.xmux.hMaxRequestTimes,
+                hMaxReusableSecs: this.xmux.hMaxReusableSecs,
                 hKeepAlivePeriod: this.xmux.hKeepAlivePeriod,
             },
         };
@@ -411,14 +411,14 @@ class SockoptStreamSettings extends CommonClass {
         tcpFastOpen = false,
         tcpKeepAliveInterval = 0,
         tcpMptcp = false,
-        tcpNoDelay = false
+        penetrate = false
     ) {
         super();
         this.dialerProxy = dialerProxy;
         this.tcpFastOpen = tcpFastOpen;
         this.tcpKeepAliveInterval = tcpKeepAliveInterval;
         this.tcpMptcp = tcpMptcp;
-        this.tcpNoDelay = tcpNoDelay;
+        this.penetrate = penetrate;
     }
 
     static fromJson(json = {}) {
@@ -428,7 +428,7 @@ class SockoptStreamSettings extends CommonClass {
             json.tcpFastOpen,
             json.tcpKeepAliveInterval,
             json.tcpMptcp,
-            json.tcpNoDelay,
+            json.penetrate,
         );
     }
 
@@ -438,7 +438,7 @@ class SockoptStreamSettings extends CommonClass {
             tcpFastOpen: this.tcpFastOpen,
             tcpKeepAliveInterval: this.tcpKeepAliveInterval,
             tcpMptcp: this.tcpMptcp,
-            tcpNoDelay: this.tcpNoDelay,
+            penetrate: this.penetrate,
         };
     }
 }
@@ -721,6 +721,7 @@ class Outbound extends CommonClass {
         let headerType = url.searchParams.get('headerType') ?? undefined;
         let host = url.searchParams.get('host') ?? undefined;
         let path = url.searchParams.get('path') ?? undefined;
+        let mode = url.searchParams.get('mode') ?? undefined;
 
         if (type === 'tcp' || type === 'none') {
             stream.tcp = new TcpStreamSettings(headerType ?? 'none', host, path);

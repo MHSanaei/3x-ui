@@ -1,4 +1,4 @@
-[English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -9,7 +9,7 @@
 
 **Продвинутая веб-панель • Построена на основе Xray Core**
 
-[![](https://img.shields.io/github/v/release/serogaq/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
+[![](https://img.shields.io/github/v/release/serogaq/3x-ui.svg)](https://github.com/serogaq/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/serogaq/3x-ui/release.yml.svg)](#)
 [![GO Version](https://img.shields.io/github/go-mod/go-version/serogaq/3x-ui.svg)](#)
 [![Downloads](https://img.shields.io/github/downloads/serogaq/3x-ui/total.svg)](#)
@@ -575,4 +575,4 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ## Благодарности
 
 - [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (License: **GPL-3.0**): _Enhanced v2ray/xray and v2ray/xray-clients routing rules with built-in Iranian domains and a focus on security and adblocking._
-- [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _A hosted domain hosted in Vietnam and blocklist with the most efficiency for Vietnamese._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _Этот репозиторий содержит автоматически обновляемые правила маршрутизации V2Ray на основе данных о заблокированных доменах и адресах в России._

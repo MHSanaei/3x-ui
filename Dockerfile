@@ -16,7 +16,7 @@ COPY . .
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -o build/x-ui main.go
+RUN go build -ldflags "-w -s" -o build/x-ui main.go
 RUN ./DockerInit.sh "$TARGETARCH" "$BUILD_WITH_ANTIZAPRET"
 
 # ========================================================
@@ -133,6 +133,7 @@ RUN chmod +x \
   /app/x-ui \
   /usr/bin/x-ui
 
+ENV X_UI_ENABLE_FAIL2BAN="true"
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

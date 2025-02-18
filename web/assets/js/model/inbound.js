@@ -493,6 +493,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         headers = [],
         scMaxBufferedPosts = 30,
         scMaxEachPostBytes = "1000000",
+        scStreamUpServerSecs = "20-80",
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
         mode = MODE_OPTION.AUTO,
@@ -503,6 +504,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.headers = headers;
         this.scMaxBufferedPosts = scMaxBufferedPosts;
         this.scMaxEachPostBytes = scMaxEachPostBytes;
+        this.scStreamUpServerSecs = scStreamUpServerSecs;
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
         this.mode = mode;
@@ -523,6 +525,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             XrayCommonClass.toHeaders(json.headers),
             json.scMaxBufferedPosts,
             json.scMaxEachPostBytes,
+            json.scStreamUpServerSecs,
             json.noSSEHeader,
             json.xPaddingBytes,
             json.mode,
@@ -536,6 +539,7 @@ class xHTTPStreamSettings extends XrayCommonClass {
             headers: XrayCommonClass.toV2Headers(this.headers, false),
             scMaxBufferedPosts: this.scMaxBufferedPosts,
             scMaxEachPostBytes: this.scMaxEachPostBytes,
+            scStreamUpServerSecs: this.scStreamUpServerSecs,
             noSSEHeader: this.noSSEHeader,
             xPaddingBytes: this.xPaddingBytes,
             mode: this.mode,
@@ -550,6 +554,7 @@ class TlsStreamSettings extends XrayCommonClass {
         maxVersion = TLS_VERSION_OPTION.TLS13,
         cipherSuites = '',
         rejectUnknownSni = false,
+        serverNameToVerify = 'dns.google',
         disableSystemRoot = false,
         enableSessionResumption = false,
         certificates = [new TlsStreamSettings.Cert()],
@@ -562,6 +567,7 @@ class TlsStreamSettings extends XrayCommonClass {
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
+        this.serverNameToVerify = serverNameToVerify;
         this.disableSystemRoot = disableSystemRoot;
         this.enableSessionResumption = enableSessionResumption;
         this.certs = certificates;
@@ -593,6 +599,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
+            json.serverNameToVerify,
             json.disableSystemRoot,
             json.enableSessionResumption,
             certs,
@@ -608,6 +615,7 @@ class TlsStreamSettings extends XrayCommonClass {
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
+            serverNameToVerify: this.serverNameToVerify,
             disableSystemRoot: this.disableSystemRoot,
             enableSessionResumption: this.enableSessionResumption,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
@@ -758,7 +766,7 @@ class RealityStreamSettings extends XrayCommonClass {
             json.maxClient,
             json.maxTimediff,
             json.shortIds,
-            json.settings,
+            settings,
         );
     }
 
@@ -816,7 +824,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         mark = 0,
         tproxy = "off",
         tcpMptcp = false,
-        tcpNoDelay = false,
+        penetrate = false,
         domainStrategy = DOMAIN_STRATEGY_OPTION.USE_IP,
         tcpMaxSeg = 1440,
         dialerProxy = "",
@@ -834,7 +842,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         this.mark = mark;
         this.tproxy = tproxy;
         this.tcpMptcp = tcpMptcp;
-        this.tcpNoDelay = tcpNoDelay;
+        this.penetrate = penetrate;
         this.domainStrategy = domainStrategy;
         this.tcpMaxSeg = tcpMaxSeg;
         this.dialerProxy = dialerProxy;
@@ -855,7 +863,7 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.mark,
             json.tproxy,
             json.tcpMptcp,
-            json.tcpNoDelay,
+            json.penetrate,
             json.domainStrategy,
             json.tcpMaxSeg,
             json.dialerProxy,
@@ -876,7 +884,7 @@ class SockoptStreamSettings extends XrayCommonClass {
             mark: this.mark,
             tproxy: this.tproxy,
             tcpMptcp: this.tcpMptcp,
-            tcpNoDelay: this.tcpNoDelay,
+            penetrate: this.penetrate,
             domainStrategy: this.domainStrategy,
             tcpMaxSeg: this.tcpMaxSeg,
             dialerProxy: this.dialerProxy,
@@ -1278,7 +1286,7 @@ class Inbound extends XrayCommonClass {
             obj.mode = xhttp.mode;
         }
 
-        if (security === 'tls') {
+        if (tls === 'tls') {
             if (!ObjectUtil.isEmpty(this.stream.tls.sni)) {
                 obj.sni = this.stream.tls.sni;
             }
@@ -1778,6 +1786,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        comment = '',
         reset = 0
     ) {
         super();
@@ -1790,6 +1799,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.comment = comment;
         this.reset = reset;
     }
 
@@ -1804,6 +1814,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.comment,
             json.reset,
         );
     }
@@ -1884,6 +1895,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        comment = '',
         reset = 0
     ) {
         super();
@@ -1896,6 +1908,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.comment = comment;
         this.reset = reset;
     }
 
@@ -1910,6 +1923,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.comment,
             json.reset,
         );
     }
@@ -2020,6 +2034,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        comment = '',
         reset = 0
     ) {
         super();
@@ -2031,6 +2046,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.comment = comment;
         this.reset = reset;
     }
 
@@ -2044,6 +2060,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            comment: this.comment,
             reset: this.reset,
         };
     }
@@ -2058,6 +2075,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.comment,
             json.reset,
         );
     }
@@ -2177,6 +2195,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        comment = '',
         reset = 0
     ) {
         super();
@@ -2189,6 +2208,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.comment = comment;
         this.reset = reset;
     }
 
@@ -2203,6 +2223,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            comment: this.comment,
             reset: this.reset,
         };
     }
@@ -2218,6 +2239,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.comment,
             json.reset,
         );
     }

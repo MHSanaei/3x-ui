@@ -1108,6 +1108,36 @@
                     this.submit(`/panel/inbound/${dbInboundId}/delClient/${clientId}`);
                 }
             },
+            getSubGroupClients(dbInbounds, currentClient) {
+                const response = {
+                  inbounds: [],
+                  clients: [],
+                  editIds: []
+                }
+                if (dbInbounds && dbInbounds.length > 0 && currentClient) {
+                    dbInbounds.forEach((dbInboundItem) => {
+                        const dbInbound = new DBInbound(dbInboundItem);
+                        if (dbInbound) {
+                            const inbound = dbInbound.toInbound();
+                            if (inbound) {
+                                const clients = inbound.clients;
+                                if (clients.length > 0) {
+                                    clients.forEach((client) => {
+                                        if (client['subId'] === currentClient['subId']) {
+                                            client['inboundId'] = dbInboundItem.id
+                                            client['clientId'] = this.getClientId(dbInbound.protocol, client)
+                                            response.inbounds.push(dbInboundItem.id)
+                                            response.clients.push(client)
+                                            response.editIds.push(client['clientId'])
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                    })
+                }
+                return response;
+            },
             getClientId(protocol, client) {
                 switch (protocol) {
                     case Protocols.TROJAN: return client.password;
@@ -1310,7 +1340,7 @@
                 if (clients != null){
                     clients.forEach(c => {
                         if (c.subId && c.subId.length>0){
-                            subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                            subLinks.push(this.subSettings.subURI + c.subId)
                         }
                     })
                 }
@@ -1337,7 +1367,7 @@
                     if (clients != null){
                         clients.forEach(c => {
                             if (c.subId && c.subId.length>0){
-                                subLinks.push(this.subSettings.subURI + c.subId + "?name=" + c.subId)
+                                subLinks.push(this.subSettings.subURI + c.subId)
                             }
                         })
                     }
