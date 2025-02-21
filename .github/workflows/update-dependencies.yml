@@ -88,7 +88,8 @@ jobs:
           else
             echo "changes=true" >> $GITHUB_OUTPUT
             echo "Changes detected in dependencies:"
-            git diff --unified=0 go.mod | grep -E '^\+' | grep -v '^\+\+'
+            # Добавляем || true чтобы предотвратить код ошибки, если grep ничего не находит
+            git diff go.mod || true
           fi
 
       - name: Commit and push changes
