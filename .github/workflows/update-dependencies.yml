@@ -60,15 +60,7 @@ jobs:
             xargs -r go get -u
           
           echo "Specifically updating xray-core to latest commit..."
-          # Принудительно обновляем до последнего коммита в master/main
-          go get github.com/xtls/xray-core@master
-          
-          # Если по каким-то причинам master не существует, пробуем main
-          if [ $? -ne 0 ]; then
-            echo "Trying main branch instead..."
-            go get github.com/xtls/xray-core@main
-          fi
-          
+          go get github.com/xtls/xray-core@main
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
           go list -m github.com/xtls/xray-core
