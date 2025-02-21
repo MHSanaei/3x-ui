@@ -14,10 +14,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          
+      
       - name: Clean Go module cache
         run: go clean -modcache
-          
+      
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -25,16 +25,19 @@ jobs:
       
       - name: Update dependencies
         run: |
-          go get -u $(go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
+          # Обновляем все зависимости, кроме gvisor
+          go list -m -u all | awk '{print $1}' | grep -v '^gvisor.dev/gvisor$' | xargs go get -u
+          
+          # Принудительно обновляем github.com/xtls/xray-core до последней версии
+          go get github.com/xtls/xray-core@latest
+
+          # Убираем неиспользуемые зависимости и обновляем файлы
           go mod tidy
 
       - name: Check for changes
+        id: check_changes
         run: |
-          if ! git diff --exit-code go.mod go.sum; then
-            echo "changes=true" >> $GITHUB_ENV
-          else
-            echo "changes=false" >> $GITHUB_ENV
-          fi
+          git diff --quiet go.mod go.sum || echo "changes=true" >> $GITHUB_ENV
 
       - name: Commit and push changes
         if: env.changes == 'true'
