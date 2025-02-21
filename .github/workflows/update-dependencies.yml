@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   update:
-    runs-on: ubuntu-20.04  # Используем последнюю версию Ubuntu
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
     
     timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
 
