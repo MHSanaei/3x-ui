@@ -2,48 +2,116 @@ name: Update Go Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждую неделю (понедельник в 00:00 UTC)
-  workflow_dispatch:  # Позволяет запускать вручную
+    - cron: '0 0 * * 1'  # Запуск каждую неделю в понедельник в 00:00 UTC
+  workflow_dispatch:      # Возможность ручного запуска
+
+permissions:
+  contents: write        # Явное указание разрешений
 
 jobs:
   update:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
+    
+    timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0    # Загружаем всю историю
           token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Clean Go module cache
-        run: go clean -modcache
-      
+
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      
-      - name: Update dependencies
-        run: |
-          # Обновляем все зависимости, кроме gvisor
-          go list -m -u all | awk '{print $1}' | grep -v '^gvisor.dev/gvisor$' | xargs go get -u
-          
-          # Принудительно обновляем github.com/xtls/xray-core до последней версии
-          go get github.com/xtls/xray-core@latest
+          check-latest: true
+          cache: true       # Включаем кэширование модулей
 
-          # Убираем неиспользуемые зависимости и обновляем файлы
+      - name: Check go.mod exists
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "Error: go.mod file not found"
+            exit 1
+          fi
+
+      - name: Clean Go module cache
+        run: |
+          go clean -modcache
+          go clean -cache
+
+      - name: Update dependencies
+        id: update
+        run: |
+          set -euo pipefail  # Строгий режим для bash
+          
+          echo "Updating standard Go dependencies..."
+          
+          # Обновляем стандартные зависимости с исключением gvisor 
+          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
+            grep -v 'gvisor.dev/gvisor' | \
+            grep -v 'github.com/xtls/xray-core' | \
+            xargs -r go get -u
+          
+          echo "Specifically updating xray-core to latest version..."
+          # Получаем последнюю версию xray-core (не псевдоверсию)
+          LATEST_XRAY=$(go list -m -versions github.com/xtls/xray-core | tr ' ' '\n' | grep -v '-0.' | sort -V | tail -1)
+          
+          if [ -n "$LATEST_XRAY" ]; then
+            echo "Latest stable xray-core version: $LATEST_XRAY"
+            go get github.com/xtls/xray-core@$LATEST_XRAY
+          else
+            echo "Trying to get latest commit from xray-core..."
+            go get github.com/xtls/xray-core@latest
+          fi
+
+          # Очистка и проверка
           go mod tidy
+          go mod verify || exit 1
+          
+          # Выводим изменения для лога
+          echo "Updated dependencies:"
+          go list -m all
 
       - name: Check for changes
-        id: check_changes
+        id: check
         run: |
-          git diff --quiet go.mod go.sum || echo "changes=true" >> $GITHUB_ENV
+          if git diff --quiet go.mod go.sum; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in dependencies"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in dependencies:"
+            git diff --unified=0 go.mod | grep -E '^\+' | grep -v '^\+\+'
+          fi
 
       - name: Commit and push changes
-        if: env.changes == 'true'
+        if: steps.check.outputs.changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
           git add go.mod go.sum
-          git commit -m "chore(deps): update Go dependencies"
-          git push origin ${{ github.ref }}
+          git commit -m "chore(deps): update Go dependencies
+          
+          Automated update of Go dependencies including xray-core to latest stable version"
+          
+          # Попытка push с повторами при ошибках
+          max_attempts=3
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            if git push origin ${{ github.ref }}; then
+              echo "Successfully pushed changes on attempt $attempt"
+              break
+            else
+              if [ $attempt -eq $max_attempts ]; then
+                echo "Failed to push after $max_attempts attempts"
+                exit 1
+              fi
+              echo "Push failed on attempt $attempt, retrying..."
+              attempt=$((attempt + 1))
+              git pull --rebase
+              sleep 5
+            fi
+          done
