@@ -12,12 +12,12 @@ jobs:
       matrix:
         platform:
           - amd64
-          - arm64
-          - armv7
-          - armv6
-          - 386
-          - armv5
-          - s390x
+#          - arm64
+#          - armv7
+#          - armv6
+#          - 386
+#          - armv5
+#          - s390x
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repository
