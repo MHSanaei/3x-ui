@@ -11,8 +11,7 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
-    
-    timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
+    timeout-minutes: 30     # Таймаут для предотвращения зависания
 
     steps:
       - name: Checkout repository
@@ -21,19 +20,19 @@ jobs:
           fetch-depth: 0    # Загружаем всю историю
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-          cache: true       # Включаем кэширование модулей
-
       - name: Check go.mod exists
         run: |
           if [ ! -f go.mod ]; then
             echo "Error: go.mod file not found"
             exit 1
           fi
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod  # Используем версию из go.mod
+          check-latest: true
+          cache: true       # Включаем кэширование модулей
 
       - name: Clean Go module cache
         run: |
@@ -45,28 +44,68 @@ jobs:
         run: |
           set -euo pipefail  # Строгий режим для bash
           
-          echo "Updating Go dependencies..."
+          echo "::group::Updating Go dependencies"
           
-          # Обновляем зависимости с исключением gvisor без использования временных файлов
-          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
-            grep -v 'gvisor.dev/gvisor' | \
-            xargs -r go get -u
-
+          # Сохраняем текущие версии для сравнения
+          go list -m all > before_update.txt
+          
+          # Обновляем все зависимости кроме gvisor
+          modules_to_update=$(go list -f '{{if and (not .Main) (not .Indirect)}}{{.Path}}{{end}}' -m all | grep -v 'gvisor.dev/gvisor')
+          
+          if [ -n "$modules_to_update" ]; then
+            echo "Updating modules: $modules_to_update"
+            echo "$modules_to_update" | xargs -r go get -u
+          else
+            echo "No direct modules to update"
+          fi
+          
+          # Обновляем косвенные зависимости (кроме gvisor)
+          go get -u all
+          
+          # Исключаем обновление gvisor (вернем его к исходной версии если было обновлено)
+          if go list -m gvisor.dev/gvisor &>/dev/null; then
+            original_version=$(grep "gvisor.dev/gvisor" go.mod | head -1 | awk '{print $2}')
+            if [ -n "$original_version" ]; then
+              echo "Restoring gvisor to original version: $original_version"
+              go get gvisor.dev/gvisor@$original_version
+            fi
+          fi
+          
           # Очистка и проверка
           go mod tidy
-          go mod verify || exit 1
+          go mod verify || {
+            echo "Module verification failed"
+            exit 1
+          }
           
           # Выводим изменения для лога
-          echo "Updated dependencies:"
-          go list -m all
+          go list -m all > after_update.txt
+          echo "Updates summary:"
+          diff -u before_update.txt after_update.txt || true
+          rm before_update.txt after_update.txt
+          
+          echo "::endgroup::"
+
+      - name: Test compilation
+        run: |
+          echo "::group::Testing compilation after updates"
+          # Проверяем, что проект компилируется после обновлений
+          go build -v ./... || {
+            echo "Compilation failed after dependency updates"
+            exit 1
+          }
+          echo "::endgroup::"
 
       - name: Check for changes
         id: check
         run: |
           if git diff --quiet go.mod go.sum; then
             echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes to dependencies detected"
           else
             echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in dependencies"
+            git diff --stat go.mod go.sum
           fi
 
       - name: Commit and push changes
@@ -75,17 +114,22 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          git add go.mod go.sum
-          git commit -m "chore(deps): update Go dependencies
+          # Создаем информативное сообщение коммита с перечнем обновлений
+          echo "Preparing commit message with dependency changes"
+          COMMIT_MSG="chore(deps): update Go dependencies\n\nAutomated update of Go dependencies excluding gvisor\n\nUpdated modules:"
+          git diff go.mod | grep -E "^\+\s+[a-z0-9]" | sed 's/^+[[:space:]]*/- /' > updated_modules.txt
+          UPDATES=$(cat updated_modules.txt)
           
-          Automated update of Go dependencies excluding gvisor"
+          git add go.mod go.sum
+          git commit -m "$(echo -e "$COMMIT_MSG\n$UPDATES")"
           
           # Попытка push с повторами при ошибках
           max_attempts=3
           attempt=1
           
           while [ $attempt -le $max_attempts ]; do
-            if git push origin ${{ github.ref }}; then
+            echo "Push attempt $attempt of $max_attempts"
+            if git push origin HEAD; then
               echo "Successfully pushed changes on attempt $attempt"
               break
             else
@@ -93,9 +137,10 @@ jobs:
                 echo "Failed to push after $max_attempts attempts"
                 exit 1
               fi
-              echo "Push failed on attempt $attempt, retrying..."
+              echo "Push failed on attempt $attempt, retrying after pull and rebase..."
+              git pull --rebase origin $(git rev-parse --abbrev-ref HEAD)
               attempt=$((attempt + 1))
-              git pull --rebase
-              sleep 5
+              sleep $((5 * attempt))  # Увеличиваем время ожидания с каждой попыткой
             fi
           done
+          rm -f updated_modules.txt
