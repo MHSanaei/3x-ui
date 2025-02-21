@@ -13,10 +13,10 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.1
-	github.com/valyala/fasthttp v1.58.0
-	github.com/xtls/xray-core v1.8.25-0.20250130105737-0a8470cb14eb
+	github.com/valyala/fasthttp v1.59.0
+	github.com/xtls/xray-core v1.8.24
 	go.uber.org/atomic v1.11.0
-	golang.org/x/text v0.21.0
+	golang.org/x/text v0.22.0
 	google.golang.org/grpc v1.70.0
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
@@ -24,19 +24,20 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/bytedance/sonic v1.12.8 // indirect
+	github.com/bytedance/sonic v1.12.9 // indirect
 	github.com/bytedance/sonic/loader v0.2.3 // indirect
 	github.com/cloudflare/circl v1.5.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/dgryski/go-metro v0.0.0-20250106013310-edb8663e5e33 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect
 	github.com/fasthttp/router v1.5.4 // indirect
+	github.com/francoispqt/gojay v1.2.13 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/sse v1.0.0 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
-	github.com/go-playground/validator/v10 v10.24.0 // indirect
+	github.com/go-playground/validator/v10 v10.25.0 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/pprof v0.0.0-20250202011525-fc3143867406 // indirect
@@ -48,7 +49,7 @@ require (
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
@@ -82,19 +83,19 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/mock v0.5.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/arch v0.13.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
+	golang.org/x/arch v0.14.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
 	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.34.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/net v0.35.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250127172529-29210b9bc287 // indirect
-	google.golang.org/protobuf v1.36.4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250219182151-9fdb1cabc7b2 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20240320123526-dc6abceb7ff0 // indirect
 	lukechampine.com/blake3 v1.3.0 // indirect
