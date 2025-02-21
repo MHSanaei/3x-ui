@@ -34,6 +34,19 @@ jobs:
             echo "Error: go.mod file not found"
             exit 1
           fi
+          
+      - name: Check go.mod and go.sum exist
+        run: |
+          if [ ! -f go.mod ]; then
+            echo "Error: go.mod file not found"
+            exit 1
+          fi
+          
+          # Проверка наличия go.sum и создание, если отсутствует
+          if [ ! -f go.sum ]; then
+            echo "go.sum file not found, initializing it..."
+            go mod tidy
+          fi
 
       - name: Clean Go module cache
         run: |
