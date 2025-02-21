@@ -28,13 +28,6 @@ jobs:
           check-latest: true
           cache: true       # Включаем кэширование модулей
 
-      - name: Check go.mod exists
-        run: |
-          if [ ! -f go.mod ]; then
-            echo "Error: go.mod file not found"
-            exit 1
-          fi
-          
       - name: Check go.mod and go.sum exist
         run: |
           if [ ! -f go.mod ]; then
@@ -68,7 +61,7 @@ jobs:
           
           echo "Specifically updating xray-core to latest version..."
           # Получаем последнюю версию xray-core (не псевдоверсию)
-          LATEST_XRAY=$(go list -m -versions github.com/xtls/xray-core | tr ' ' '\n' | grep -v '-0.' | sort -V | tail -1)
+          LATEST_XRAY=$(go list -m -versions github.com/xtls/xray-core | tr ' ' '\n' | grep -v -- '-0\.' | sort -V | tail -1)
           
           if [ -n "$LATEST_XRAY" ]; then
             echo "Latest stable xray-core version: $LATEST_XRAY"
