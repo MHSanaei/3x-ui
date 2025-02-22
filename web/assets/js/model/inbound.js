@@ -554,7 +554,7 @@ class TlsStreamSettings extends XrayCommonClass {
         maxVersion = TLS_VERSION_OPTION.TLS13,
         cipherSuites = '',
         rejectUnknownSni = false,
-        serverNameToVerify = 'dns.google',
+        verifyPeerCertInNames = ['dns.google', 'cloudflare-dns.com'],
         disableSystemRoot = false,
         enableSessionResumption = false,
         certificates = [new TlsStreamSettings.Cert()],
@@ -567,7 +567,7 @@ class TlsStreamSettings extends XrayCommonClass {
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
-        this.serverNameToVerify = serverNameToVerify;
+        this.verifyPeerCertInNames = Array.isArray(verifyPeerCertInNames) ? verifyPeerCertInNames.join(",") : verifyPeerCertInNames;
         this.disableSystemRoot = disableSystemRoot;
         this.enableSessionResumption = enableSessionResumption;
         this.certs = certificates;
@@ -599,7 +599,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
-            json.serverNameToVerify,
+            json.verifyPeerCertInNames,
             json.disableSystemRoot,
             json.enableSessionResumption,
             certs,
@@ -615,7 +615,7 @@ class TlsStreamSettings extends XrayCommonClass {
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
-            serverNameToVerify: this.serverNameToVerify,
+            verifyPeerCertInNames: this.verifyPeerCertInNames.split(","),
             disableSystemRoot: this.disableSystemRoot,
             enableSessionResumption: this.enableSessionResumption,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
