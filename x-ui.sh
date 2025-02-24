@@ -552,7 +552,7 @@ enable_bbr() {
     centos | almalinux | rocky | ol)
         yum -y update && yum -y install ca-certificates
         ;;
-    fedora | amzn)
+    fedora | amzn | virtuozzo)
         dnf -y update && dnf -y install ca-certificates
         ;;
     arch | manjaro | parch)
@@ -1074,7 +1074,7 @@ ssl_cert_issue() {
     centos | almalinux | rocky | ol)
         yum -y update && yum -y install socat
         ;;
-    fedora | amzn)
+    fedora | amzn | virtuozzo)
         dnf -y update && dnf -y install socat
         ;;
     arch | manjaro | parch)
@@ -1542,7 +1542,7 @@ install_iplimit() {
             yum update -y && yum install epel-release -y
             yum -y install fail2ban
             ;;
-        fedora | amzn)
+        fedora | amzn | virtuozzo)
             dnf -y update && dnf -y install fail2ban
             ;;
         arch | manjaro | parch)
@@ -1623,7 +1623,7 @@ remove_iplimit() {
             yum remove fail2ban -y
             yum autoremove -y
             ;;
-        fedora | amzn)
+        fedora | amzn | virtuozzo)
             dnf remove fail2ban -y
             dnf autoremove -y
             ;;
