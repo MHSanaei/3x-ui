@@ -235,7 +235,7 @@
 "panelSettings" = "Настройки панели"
 "securitySettings" = "Настройки безопасности"
 "TGBotSettings" = "Настройки Telegram бота"
-"panelListeningIP" = "IP-адрес панели"
+"panelListeningIP" = "Ограничение подключения по IP"
 "panelListeningIPDesc" = "Оставьте пустым для подключения с любого IP"
 "panelListeningDomain" = "Домен прослушивания панели"
 "panelListeningDomainDesc" = "По умолчанию оставьте пустым, чтобы отслеживать все домены и IP-адреса"
