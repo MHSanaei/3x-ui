@@ -87,6 +87,10 @@ elif [[ "${release}" == "ol" ]]; then
     if [[ ${os_version} -lt 8 ]]; then
         echo -e "${red} Please use Oracle Linux 8 or higher ${plain}\n" && exit 1
     fi
+elif [[ "${release}" == "virtuozzo" ]]; then
+    if [[ ${os_version} -lt 8 ]]; then
+        echo -e "${red} Please use Virtuozzo Linux 8 or higher ${plain}\n" && exit 1
+    fi
 else
     echo -e "${red}Your operating system is not supported by this script.${plain}\n"
     echo "Please ensure you are using one of the following supported operating systems:"
@@ -104,6 +108,7 @@ else
     echo "- Oracle Linux 8+"
     echo "- OpenSUSE Tumbleweed"
     echo "- Amazon Linux 2023"
+    echo "- Virtuozzo Linux 8+"
     exit 1
 fi
 
@@ -547,7 +552,7 @@ enable_bbr() {
     centos | almalinux | rocky | ol)
         yum -y update && yum -y install ca-certificates
         ;;
-    fedora | amzn)
+    fedora | amzn | virtuozzo)
         dnf -y update && dnf -y install ca-certificates
         ;;
     arch | manjaro | parch)
@@ -1069,7 +1074,7 @@ ssl_cert_issue() {
     centos | almalinux | rocky | ol)
         yum -y update && yum -y install socat
         ;;
-    fedora | amzn)
+    fedora | amzn | virtuozzo)
         dnf -y update && dnf -y install socat
         ;;
     arch | manjaro | parch)
@@ -1537,7 +1542,7 @@ install_iplimit() {
             yum update -y && yum install epel-release -y
             yum -y install fail2ban
             ;;
-        fedora | amzn)
+        fedora | amzn | virtuozzo)
             dnf -y update && dnf -y install fail2ban
             ;;
         arch | manjaro | parch)
@@ -1618,7 +1623,7 @@ remove_iplimit() {
             yum remove fail2ban -y
             yum autoremove -y
             ;;
-        fedora | amzn)
+        fedora | amzn | virtuozzo)
             dnf remove fail2ban -y
             dnf autoremove -y
             ;;
