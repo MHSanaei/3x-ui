@@ -868,7 +868,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		'o': "",
 	}
 	if len(email) > 0 {
-		orders['e'] = email
+		orders['e'] = "🇷🇺 Москва - 🇩🇪 Германия"
 	}
 	if len(inbound.Remark) > 0 {
 		orders['i'] = inbound.Remark
@@ -900,7 +900,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		// Get remained days
 		if statsExist {
 			if !stats.Enable {
-				return fmt.Sprintf("⛔️N/A%s%s", separationChar, strings.Join(remark, separationChar))
+				return "Срок действия подписки истёк ⛔️"
 			}
 			if vol := stats.Total - (stats.Up + stats.Down); vol > 0 {
 				remark = append(remark, fmt.Sprintf("%s%s", common.FormatTraffic(vol), "📊"))
@@ -912,32 +912,12 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 				days := remainingSeconds / 86400
 				hours := (remainingSeconds % 86400) / 3600
 				minutes := (remainingSeconds % 3600) / 60
-				if days > 0 {
-					if hours > 0 {
-						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
-					} else {
-						remark = append(remark, fmt.Sprintf("%dD⏳", days))
-					}
-				} else if hours > 0 {
-					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
-				} else {
-					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
-				}
+				remark = append(remark, fmt.Sprintf("%dд.,%dч., %dм. ⏳", days, hours, minutes))
 			case exp < 0:
 				days := exp / -86400
 				hours := (exp % -86400) / 3600
 				minutes := (exp % -3600) / 60
-				if days > 0 {
-					if hours > 0 {
-						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
-					} else {
-						remark = append(remark, fmt.Sprintf("%dD⏳", days))
-					}
-				} else if hours > 0 {
-					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
-				} else {
-					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
-				}
+				remark = append(remark, fmt.Sprintf("%dд.,%dч., %dм. ⏳", days, hours, minutes))
 			}
 		}
 	}
