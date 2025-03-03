@@ -60,6 +60,7 @@ const UTLS_FINGERPRINT = {
     UTLS_QQ: "qq",
     UTLS_RANDOM: "random",
     UTLS_RANDOMIZED: "randomized",
+    UTLS_RONDOMIZEDNOALPN: "randomizednoalpn",
     UTLS_UNSAFE: "unsafe",
 };
 
