@@ -14,7 +14,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/valyala/fasthttp v1.59.0
-	github.com/xtls/xray-core v1.8.25-0.20250302130755-b9cb93d3c23d
+	github.com/xtls/xray-core v1.8.25-0.20250303153022-e15dff94b5bd
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.22.0
 	google.golang.org/grpc v1.70.0
@@ -93,7 +93,7 @@ require (
 	golang.org/x/tools v0.29.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20231211153847-12269c276173 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250227231956-55c901821b1e // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20240320123526-dc6abceb7ff0 // indirect
