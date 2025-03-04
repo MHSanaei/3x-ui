@@ -59,8 +59,15 @@ jobs:
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
-          echo "Specifically updating xray-core to latest commit..."
-          go get github.com/xtls/xray-core@main
+          echo "Specifically updating xray-core to latest release tag..."
+          # Получаем последний релизный тег для xray-core
+          latest_tag=$(git ls-remote --tags https://github.com/xtls/xray-core | awk -F/ '{print $3}' | grep -v {} | sort -V | tail -n1)
+          if [ -z "$latest_tag" ]; then
+            echo "Error: Could not find latest release tag for xray-core"
+            exit 1
+          fi
+          
+          go get github.com/xtls/xray-core@$latest_tag
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
           go list -m github.com/xtls/xray-core
