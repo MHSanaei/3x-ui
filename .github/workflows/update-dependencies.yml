@@ -34,13 +34,13 @@ jobs:
           # Получаем список релизов
           API_RESPONSE=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases)
 
-          # Извлекаем последний стабильный тег (v25.3.3, v25.2.21 и т. д.)
+          # Извлекаем последний стабильный тег (например, v25.2.21)
           LATEST_TAG=$(echo "$API_RESPONSE" | jq -r 'map(select(.prerelease == false)) | .[0].tag_name')
 
-          # Получаем commit SHA, привязанный к этому тегу
-          COMMIT_HASH=$(echo "$API_RESPONSE" | jq -r 'map(select(.prerelease == false)) | .[0].target_commitish')
+          # Находим конкретный commit SHA для этого тега
+          COMMIT_HASH=$(curl -s "https://api.github.com/repos/XTLS/Xray-core/git/ref/tags/${LATEST_TAG}" | jq -r .object.sha)
 
-          # Генерируем псевдоверсию Go (пример: v1.8.25-0.20241218133935-cab2fdefd321)
+          # Генерируем псевдоверсию Go (v1.8.25-0.<date>-<commit>)
           GO_VERSION="v1.8.25-0.$(date -u +%Y%m%d%H%M%S)-$COMMIT_HASH"
 
           echo "Latest release: $LATEST_TAG (commit: $COMMIT_HASH, go version: $GO_VERSION)"
@@ -78,7 +78,7 @@ jobs:
             xargs -r go get -u
           
           echo "Updating Xray-core to release ${{ env.latest_tag }} (Go version: ${{ env.go_version }})"
-          go get github.com/xtls/xray-core@${{ env.go_version }}
+          go get github.com/xtls/xray-core@${{ env.commit_hash }}
 
           echo "Updated Xray-core to:"
           go list -m github.com/xtls/xray-core
