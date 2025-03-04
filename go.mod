@@ -14,7 +14,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.24.11
 	github.com/valyala/fasthttp v1.58.0
-	github.com/xtls/xray-core/v25 v25.2.21
+	github.com/xtls/xray-core/ v25.2.21
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.21.0
 	google.golang.org/grpc v1.69.2
