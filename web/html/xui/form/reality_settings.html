@@ -7,7 +7,7 @@
         <a-input-number v-model.number="inbound.stream.reality.xver" :min="0"></a-input-number>
     </a-form-item>
     <a-form-item label='uTLS'>
-        <a-select v-model="inbound.stream.reality.settings.fingerprint" style="width: 50%"
+        <a-select v-model="inbound.stream.reality.settings.fingerprint" style="width: 100%"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
         </a-select>
