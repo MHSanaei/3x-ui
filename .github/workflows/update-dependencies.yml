@@ -55,12 +55,12 @@ jobs:
           # Получаем последний тег релиза
           LATEST_RELEASE=$(curl -s https://api.github.com/repos/xtls/xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
           
-          # Обновляем xray-core до последнего тега релиза
-          go get github.com/xtls/xray-core@$LATEST_RELEASE
+          # Обновляем xray-core с учетом мажорной версии
+          go get github.com/xtls/xray-core/v25@$LATEST_RELEASE
           
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
-          go list -m github.com/xtls/xray-core
+          go list -m github.com/xtls/xray-core/v25
           
           # Очистка и проверка
           go mod tidy
