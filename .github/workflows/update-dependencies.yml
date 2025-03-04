@@ -46,6 +46,14 @@ jobs:
           go clean -modcache
           go clean -cache
 
+      - name: Get latest Xray release tag
+        id: xray-release
+        run: |
+          # Получаем последний release tag из GitHub API
+          LATEST_TAG=$(curl -s https://api.github.com/repos/xtls/xray-core/releases/latest | jq -r .tag_name)
+          echo "xray_version=$LATEST_TAG" >> $GITHUB_OUTPUT
+          echo "Latest Xray release tag: $LATEST_TAG"
+
       - name: Update dependencies
         id: update
         run: |
@@ -53,14 +61,15 @@ jobs:
           
           echo "Updating standard Go dependencies..."
           
-          # Обновляем стандартные зависимости с исключением gvisor 
+          # Обновляем стандартные зависимости с исключением gvisor и xray-core
           go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
             grep -v 'gvisor.dev/gvisor' | \
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
-          echo "Specifically updating xray-core to latest commit..."
-          go get github.com/xtls/xray-core@main
+          echo "Specifically updating xray-core to latest release tag: ${{ steps.xray-release.outputs.xray_version }}"
+          go get github.com/xtls/xray-core@${{ steps.xray-release.outputs.xray_version }}
+          
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
           go list -m github.com/xtls/xray-core
@@ -92,10 +101,13 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Получаем версию Xray для коммит-сообщения
+          XRAY_VERSION="${{ steps.xray-release.outputs.xray_version }}"
+          
           git add go.mod go.sum
           git commit -m "chore(deps): update Go dependencies
           
-          Automated update of Go dependencies including xray-core to latest stable version"
+          Automated update of Go dependencies including xray-core to version $XRAY_VERSION"
           
           # Попытка push с повторами при ошибках
           max_attempts=3
