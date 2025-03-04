@@ -2,23 +2,22 @@ name: Update Go Dependencies
 
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждую неделю в понедельник в 00:00 UTC
-  workflow_dispatch:      # Возможность ручного запуска
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
 
 permissions:
-  contents: write        # Явное указание разрешений
+  contents: write
 
 jobs:
   update:
-    runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
-    
-    timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0    # Загружаем всю историю
+          fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Go
@@ -26,100 +25,66 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true       # Включаем кэширование модулей
+          cache: true
 
       - name: Check go.mod and go.sum exist
         run: |
-          if [ ! -f go.mod ]; then
-            echo "Error: go.mod file not found"
-            exit 1
-          fi
-          
-          # Проверка наличия go.sum и создание, если отсутствует
-          if [ ! -f go.sum ]; then
-            echo "go.sum file not found, initializing it..."
-            go mod tidy
-          fi
+          [ -f go.mod ] || (echo "Error: go.mod not found" && exit 1)
+          [ -f go.sum ] || (go mod tidy && echo "Initialized go.sum")
 
       - name: Clean Go module cache
-        run: |
-          go clean -modcache
-          go clean -cache
+        run: go clean -modcache && go clean -cache
 
       - name: Update dependencies
         id: update
         run: |
-          set -euo pipefail  # Строгий режим для bash
-          
-          echo "Updating standard Go dependencies..."
-          
-          # Обновляем стандартные зависимости с исключением gvisor 
-          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
-            grep -v 'gvisor.dev/gvisor' | \
-            grep -v 'github.com/xtls/xray-core' | \
-            xargs -r go get -u
-          
-          echo "Specifically updating xray-core to latest release tag..."
-          # Получаем последний релизный тег для xray-core
-          latest_tag=$(git ls-remote --tags https://github.com/xtls/xray-core | awk -F/ '{print $3}' | grep -v {} | sort -V | tail -n1)
-          if [ -z "$latest_tag" ]; then
-            echo "Error: Could not find latest release tag for xray-core"
-            exit 1
-          fi
-          
-          go get github.com/xtls/xray-core@$latest_tag
-          # Проверяем, какую версию получили
-          echo "Updated xray-core to:"
-          go list -m github.com/xtls/xray-core
+          set -euo pipefail
 
-          # Очистка и проверка
-          go mod tidy
-          go mod verify || exit 1
+          # Обновляем стандартные зависимости
+          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all \
+            | grep -v -e 'gvisor.dev/gvisor' -e 'github.com/xtls/xray-core' \
+            | xargs -r go get -u
+
+          # Получаем последний релизный тег и его коммит
+          echo "Fetching latest xray-core release tag..."
+          latest_tag=$(git ls-remote --tags https://github.com/xtls/xray-core \
+            | awk -F'[/ ]' '{print $3}' \
+            | grep '^v' \
+            | sort -V \
+            | tail -n1)
+
+          echo "Latest release tag: $latest_tag"
           
-          # Выводим изменения для лога
-          echo "Updated dependencies:"
-          go list -m all
+          # Получаем хэш коммита для тега
+          commit_hash=$(git ls-remote https://github.com/xtls/xray-core refs/tags/$latest_tag \
+            | awk '{print $1}')
+
+          echo "Associated commit hash: $commit_hash"
+
+          # Обновляем до конкретного коммита (будет сгенерирована псевдоверсия)
+          go get github.com/xtls/xray-core@$commit_hash
+
+          # Форсируем правильный формат псевдоверсии
+          go mod edit -require github.com/xtls/xray-core@v0.0.0-$(echo $commit_hash | sed 's/\(.\{12\}\).*/\1/')-$(date -d @$(echo $commit_hash | cut -c1-8) +%Y%m%d%H%M%S)
+
+          go mod tidy
+          go mod verify
 
       - name: Check for changes
         id: check
         run: |
           if git diff --quiet go.mod go.sum; then
             echo "changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected in dependencies"
           else
             echo "changes=true" >> $GITHUB_OUTPUT
-            echo "Changes detected in dependencies:"
-            # Добавляем || true чтобы предотвратить код ошибки, если grep ничего не находит
-            git diff go.mod || true
+            git diff go.mod
           fi
 
       - name: Commit and push changes
         if: steps.check.outputs.changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add go.mod go.sum
-          git commit -m "chore(deps): update Go dependencies
-          
-          Automated update of Go dependencies including xray-core to latest stable version"
-          
-          # Попытка push с повторами при ошибках
-          max_attempts=3
-          attempt=1
-          
-          while [ $attempt -le $max_attempts ]; do
-            if git push origin ${{ github.ref }}; then
-              echo "Successfully pushed changes on attempt $attempt"
-              break
-            else
-              if [ $attempt -eq $max_attempts ]; then
-                echo "Failed to push after $max_attempts attempts"
-                exit 1
-              fi
-              echo "Push failed on attempt $attempt, retrying..."
-              attempt=$((attempt + 1))
-              git pull --rebase
-              sleep 5
-            fi
-          done
+          git commit -m "chore(deps): update xray-core to pseudo-version"
+          git push origin HEAD:${{ github.ref }}
