@@ -31,11 +31,20 @@ jobs:
       - name: Fetch latest Xray-core release
         id: get_latest_release
         run: |
-          LATEST_TAG=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest | jq -r .tag_name)
-          CLEAN_TAG=${LATEST_TAG#v}  # Убираем 'v' в начале
-          echo "Latest Xray-core release: $LATEST_TAG (cleaned: $CLEAN_TAG)"
+          # Получаем JSON с информацией о последнем релизе
+          API_RESPONSE=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest)
+
+          # Извлекаем тег версии (например, v25.2.21)
+          LATEST_TAG=$(echo "$API_RESPONSE" | jq -r .tag_name)
+
+          # Получаем хеш коммита, связанный с этим релизом
+          COMMIT_HASH=$(echo "$API_RESPONSE" | jq -r .target_commitish)
+
+          echo "Latest Xray-core release: $LATEST_TAG (commit: $COMMIT_HASH)"
+
+          # Записываем в переменные среды
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_ENV
-          echo "clean_tag=$CLEAN_TAG" >> $GITHUB_ENV
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_ENV
 
       - name: Check go.mod and go.sum exist
         run: |
@@ -59,23 +68,22 @@ jobs:
         id: update
         run: |
           set -euo pipefail  # Строгий режим для bash
-          
+
           echo "Updating standard Go dependencies..."
-          
           go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
             grep -v 'gvisor.dev/gvisor' | \
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
-          echo "Updating xray-core to latest release: ${{ env.clean_tag }}"
-          go get github.com/xtls/xray-core@${{ env.clean_tag }}
+          echo "Updating xray-core to commit: ${{ env.commit_hash }}"
+          go get github.com/xtls/xray-core@${{ env.commit_hash }}
 
           echo "Updated xray-core to:"
           go list -m github.com/xtls/xray-core
 
           go mod tidy
           go mod verify || exit 1
-          
+
           echo "Updated dependencies:"
           go list -m all
 
