@@ -72,17 +72,15 @@ jobs:
           set -euo pipefail  # Строгий режим для bash
 
           echo "Updating standard Go dependencies..."
-          go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
-            grep -v 'gvisor.dev/gvisor' | \
-            grep -v 'github.com/xtls/xray-core' | \
-            xargs -r go get -u
-          
-          echo "Updating Xray-core to release ${{ env.latest_tag }} (Go version: ${{ env.go_version }})"
+          go list -m all | awk '{print $1}' | grep -v 'gvisor.dev/gvisor' | grep -v 'github.com/xtls/xray-core' | xargs -r go get -u=patch
+
+          echo "Updating indirect dependencies..."
+          go list -m all | awk '{print $1}' | grep -E 'golang.org/x/|github.com/google/|github.com/dgryski/' | xargs -r go get -u
+
+          echo "Updating Xray-core to release ${{ env.latest_tag }} (commit: ${{ env.commit_hash }})"
           go get github.com/xtls/xray-core@${{ env.commit_hash }}
 
-          echo "Updated Xray-core to:"
-          go list -m github.com/xtls/xray-core
-
+          echo "Cleaning up and verifying..."
           go mod tidy
           go mod verify || exit 1
 
