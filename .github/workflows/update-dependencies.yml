@@ -68,7 +68,7 @@ jobs:
             xargs -r go get -u
           
           echo "Specifically updating xray-core to latest release tag: ${{ steps.xray-release.outputs.xray_version }}"
-          go get github.com/xtls/xray-core@${{ steps.xray-release.outputs.xray_version }}
+          go get github.com/xtls/xray-core/v25@${{ steps.xray-release.outputs.xray_version }}
           
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
