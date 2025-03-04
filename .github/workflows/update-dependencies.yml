@@ -1,33 +1,27 @@
 name: Update Go Dependencies
-
 on:
   schedule:
-    - cron: '0 0 * * 1'  # Запуск каждую неделю в понедельник в 00:00 UTC
+    - cron: '0 0 * *1'  # Запуск каждую неделю в понедельник в 00:00 UTC
   workflow_dispatch:      # Возможность ручного запуска
-
 permissions:
   contents: write        # Явное указание разрешений
-
 jobs:
   update:
     runs-on: ubuntu-latest  # Используем последнюю версию Ubuntu
-
+    
     timeout-minutes: 30     # Добавляем таймаут для предотвращения зависания
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0    # Загружаем всю историю
           token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: true       # Включаем кэширование модулей
-
       - name: Check go.mod and go.sum exist
         run: |
           if [ ! -f go.mod ]; then
@@ -40,20 +34,10 @@ jobs:
             echo "go.sum file not found, initializing it..."
             go mod tidy
           fi
-
       - name: Clean Go module cache
         run: |
           go clean -modcache
           go clean -cache
-
-      - name: Get latest Xray release tag
-        id: xray-release
-        run: |
-          # Получаем последний release tag из GitHub API
-          LATEST_TAG=$(curl -s https://api.github.com/repos/xtls/xray-core/releases/latest | jq -r .tag_name)
-          echo "xray_version=$LATEST_TAG" >> $GITHUB_OUTPUT
-          echo "Latest Xray release tag: $LATEST_TAG"
-
       - name: Update dependencies
         id: update
         run: |
@@ -61,19 +45,21 @@ jobs:
           
           echo "Updating standard Go dependencies..."
           
-          # Обновляем стандартные зависимости с исключением gvisor и xray-core
+          # Обновляем стандартные зависимости с исключением gvisor 
           go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
             grep -v 'gvisor.dev/gvisor' | \
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
-          echo "Specifically updating xray-core to latest release tag: ${{ steps.xray-release.outputs.xray_version }}"
-          go get github.com/xtls/xray-core/v25@${{ steps.xray-release.outputs.xray_version }}
+          echo "Specifically updating xray-core to latest release..."
+          # Получаем последний тег релиза и обновляем xray-core до него
+          LATEST_RELEASE=$(curl -s https://api.github.com/repos/xtls/xray-core/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+          go get github.com/xtls/xray-core@$LATEST_RELEASE
           
           # Проверяем, какую версию получили
           echo "Updated xray-core to:"
           go list -m github.com/xtls/xray-core
-
+          
           # Очистка и проверка
           go mod tidy
           go mod verify || exit 1
@@ -81,7 +67,6 @@ jobs:
           # Выводим изменения для лога
           echo "Updated dependencies:"
           go list -m all
-
       - name: Check for changes
         id: check
         run: |
@@ -94,20 +79,16 @@ jobs:
             # Добавляем || true чтобы предотвратить код ошибки, если grep ничего не находит
             git diff go.mod || true
           fi
-
       - name: Commit and push changes
         if: steps.check.outputs.changes == 'true'
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Получаем версию Xray для коммит-сообщения
-          XRAY_VERSION="${{ steps.xray-release.outputs.xray_version }}"
-          
           git add go.mod go.sum
           git commit -m "chore(deps): update Go dependencies
           
-          Automated update of Go dependencies including xray-core to version $XRAY_VERSION"
+          Automated update of Go dependencies including xray-core to latest stable version"
           
           # Попытка push с повторами при ошибках
           max_attempts=3
