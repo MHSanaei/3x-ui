@@ -673,9 +673,7 @@
                                     <a-switch v-model="enableDNS"></a-switch>
                                 </a-col>
                             </a-row>
-                        </a-list-item>
-                        <template v-if="enableDNS">  
-                            <a-list-item>
+                            <template v-if="enableDNS">
                                 <a-row style="padding: 10px 20px;">
                                     <a-col :lg="24" :xl="12">
                                         <a-list-item-meta title='{{ i18n "pages.xray.dns.tag" }}'
@@ -685,8 +683,15 @@
                                         <a-input type="text" v-model="dnsTag"></a-input>
                                     </a-col>
                                 </a-row>
-                            </a-list-item>
-                            <a-list-item>
+                                <a-row style="padding: 10px 20px;">
+                                    <a-col :lg="24" :xl="12">
+                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.clientIp" }}' 
+                                            description='{{ i18n "pages.xray.dns.clientIpDesc" }}'/>
+                                    </a-col>
+                                    <a-col :lg="24" :xl="12">
+                                        <a-input type="text" v-model="dnsClientIp"></a-input>
+                                    </a-col>
+                                </a-row>
                                 <a-row style="padding: 10px 20px;">
                                     <a-col :lg="24" :xl="12">
                                         <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}'
@@ -701,8 +706,35 @@
                                         </a-select>
                                     </a-col>
                                 </a-row>
-                            </a-list-item>
-                        </template>
+                                <a-row style="padding: 10px 20px;">
+                                    <a-col :lg="24" :xl="12">
+                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableCache" }}' 
+                                            description='{{ i18n "pages.xray.dns.disableCacheDesc" }}'/>
+                                    </a-col>
+                                    <a-col :lg="24" :xl="12">
+                                        <a-switch v-model="dnsDisableCache"></a-switch>
+                                    </a-col>
+                                </a-row>
+                                <a-row style="padding: 10px 20px;">
+                                    <a-col :lg="24" :xl="12">
+                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableFallback" }}' 
+                                            description='{{ i18n "pages.xray.dns.disableFallbackDesc" }}'/>
+                                    </a-col>
+                                    <a-col :lg="24" :xl="12">
+                                        <a-switch v-model="dnsDisableFallback"></a-switch>
+                                    </a-col>
+                                </a-row>
+                                <a-row style="padding: 10px 20px;">
+                                    <a-col :lg="24" :xl="12">
+                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableFallbackIfMatch" }}' 
+                                            description='{{ i18n "pages.xray.dns.disableFallbackIfMatchDesc" }}'/>
+                                    </a-col>
+                                    <a-col :lg="24" :xl="12">
+                                        <a-switch v-model="dnsDisableFallbackIfMatch"></a-switch>
+                                    </a-col>
+                                </a-row>
+                            </template>
+                        </a-list-item>
                     </a-collapse-panel>
                     <template v-if="enableDNS">
                         <a-collapse-panel header='DNS'>
@@ -1971,7 +2003,11 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     if (newValue) {
-                        newTemplateSettings.dns = { servers: [], queryStrategy: "UseIP", tag: "dns_inbound" };
+                        newTemplateSettings.dns = { 
+                            servers: [], 
+                            queryStrategy: "UseIP", 
+                            tag: "dns_inbound"
+                        };
                         newTemplateSettings.fakedns = null; 
                     } else {
                         delete newTemplateSettings.dns;
@@ -1986,7 +2022,63 @@
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
-                    newTemplateSettings.dns.tag =  newValue;
+                    newTemplateSettings.dns.tag = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsClientIp: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.clientIp : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.clientIp = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.clientIp;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableCache: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableCache : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableCache = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableCache
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableFallback: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableFallback : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableFallback = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableFallback
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableFallbackIfMatch: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableFallbackIfMatch : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableFallbackIfMatch = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableFallbackIfMatch
+                    }
                     this.templateSettings = newTemplateSettings;
                 }
             },
