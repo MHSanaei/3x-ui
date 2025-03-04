@@ -31,20 +31,22 @@ jobs:
       - name: Fetch latest Xray-core release
         id: get_latest_release
         run: |
-          # Получаем JSON с информацией о последнем релизе
-          API_RESPONSE=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases/latest)
+          # Получаем список релизов
+          API_RESPONSE=$(curl -s https://api.github.com/repos/XTLS/Xray-core/releases)
 
-          # Извлекаем тег версии (например, v25.2.21)
-          LATEST_TAG=$(echo "$API_RESPONSE" | jq -r .tag_name)
+          # Извлекаем последний стабильный тег (v25.3.3, v25.2.21 и т. д.)
+          LATEST_TAG=$(echo "$API_RESPONSE" | jq -r 'map(select(.prerelease == false)) | .[0].tag_name')
 
-          # Получаем хеш коммита, связанный с этим релизом
-          COMMIT_HASH=$(echo "$API_RESPONSE" | jq -r .target_commitish)
+          # Получаем commit SHA, привязанный к этому тегу
+          COMMIT_HASH=$(echo "$API_RESPONSE" | jq -r 'map(select(.prerelease == false)) | .[0].target_commitish')
 
-          echo "Latest Xray-core release: $LATEST_TAG (commit: $COMMIT_HASH)"
+          # Генерируем псевдоверсию Go (пример: v1.8.25-0.20241218133935-cab2fdefd321)
+          GO_VERSION="v1.8.25-0.$(date -u +%Y%m%d%H%M%S)-$COMMIT_HASH"
 
-          # Записываем в переменные среды
+          echo "Latest release: $LATEST_TAG (commit: $COMMIT_HASH, go version: $GO_VERSION)"
           echo "latest_tag=$LATEST_TAG" >> $GITHUB_ENV
           echo "commit_hash=$COMMIT_HASH" >> $GITHUB_ENV
+          echo "go_version=$GO_VERSION" >> $GITHUB_ENV
 
       - name: Check go.mod and go.sum exist
         run: |
@@ -75,10 +77,10 @@ jobs:
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
-          echo "Updating xray-core to commit: ${{ env.commit_hash }}"
-          go get github.com/xtls/xray-core@${{ env.commit_hash }}
+          echo "Updating Xray-core to release ${{ env.latest_tag }} (Go version: ${{ env.go_version }})"
+          go get github.com/xtls/xray-core@${{ env.go_version }}
 
-          echo "Updated xray-core to:"
+          echo "Updated Xray-core to:"
           go list -m github.com/xtls/xray-core
 
           go mod tidy
