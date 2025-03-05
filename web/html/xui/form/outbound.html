@@ -465,11 +465,16 @@
             <a-select-option v-for="tag in ['', ...outModal.tags]" :value="tag">[[ tag ]]</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item label="TCP Fast Open">
-          <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
+        <a-form-item label='Address Port Strategy'>
+          <a-select v-model="outbound.stream.sockopt.addressPortStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="key in Address_Port_Strategy" :value="key">[[ key ]]</a-select-option>
+          </a-select>
         </a-form-item>
         <a-form-item label="Keep Alive Interval">
           <a-input-number v-model.number="outbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
+        </a-form-item>
+        <a-form-item label="TCP Fast Open">
+          <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
         </a-form-item>
         <a-form-item label="Multipath TCP">
           <a-switch v-model.trim="outbound.stream.sockopt.tcpMptcp"></a-switch>
