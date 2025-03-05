@@ -1,0 +1,85 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .sId }} - Sub Info</title>
+    <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss-with-all-plugins.js"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@33.003/Vazirmatn-Variable-font-face.css"
+          rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+          integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
+          crossorigin="anonymous"/>
+    <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"
+            integrity="sha256-25ncr0CpJhgbzkUiR3wu/Fkk9sSykRG2qX+upHfJUos=" crossorigin="anonymous"></script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gray-900 text-white font-[Vazirmatn] mr-4 ml-4">
+<div class="container text-center bg-gray-800 p-8 rounded-lg shadow-lg">
+    <h1 class="text-2xl font-bold mb-4">اطلاعات سابسکریپشن</h1>
+    <canvas id="qrcode" class="rounded-md inline mt-2 mb-2"></canvas>
+    <div class="text-lg mb-2"><i class="fa-regular fa-id-badge"></i> شناسه اشتراک : {{ .sId }}</div>
+    <div class="mb-2"><i class=" fa-solid fa-download"></i> دانلود : {{ .download }}</div>
+    <div class="mb-2"><i class=" fa-solid fa-upload"></i> آپلود : {{ .upload }}</div>
+    <div class="mb-2"><i class="fa-regular fa-calendar"></i> تاریخ پایان : <span id="timestamp"></span></div>
+    <div class="mb-4"><i class="fa-regular fa-star"></i> حجم کلی : {{ .total }}</div>
+    <div class="bg-gray-700 rounded-lg shadow-lg p-4 font-mono flow-text break-words">
+        {{ range .result }}
+        <div class="text-gray-400 text-sm">
+            <button onclick="copyToClipboard('{{ . }}')"><i
+                    class="fa-regular fa-copy"></i></button>
+            {{ . }}
+        </div>
+        {{ end }}
+    </div>
+    <script>
+        // Get the HTML element to display the timestamp.
+        const humanDateElement = document.getElementById('timestamp');
+        // Convert timestamp to a human-readable date
+        const timestamp = parseInt("{{ .expire }}", 10) * 1000; // Parse and convert to milliseconds
+        const date = new Date(timestamp);
+        // Extract the Gregorian year, month, and day
+        const gregorianYear = date.getFullYear();
+        const gregorianMonth = date.getMonth() + 1; // Months are 0-indexed
+        const gregorianDay = date.getDate();
+        // Convert Gregorian to Jalali
+        const jalaliDate = jalaali.toJalaali(gregorianYear, gregorianMonth, gregorianDay);
+        // Format the Jalali date
+        const formattedJalaliDate = `${jalaliDate.jy}/${jalaliDate.jm}/${jalaliDate.jd}`;
+        // Display the Jalali date in the HTML
+        humanDateElement.textContent = formattedJalaliDate;
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+        }
+
+        (function () {
+            var qr = new QRious({
+                element: document.getElementById('qrcode'),
+                value: '{{ .subUrl }}',
+                size: 250
+            });
+        })();
+    </script>
+    <div class="mt-4 flex justify-center gap-4">
+        <button class="flex items-center gap-2 px-3 py-3 bg-zinc-900 text-white rounded-lg hover:bg-zinc-600"
+                onclick="window.location.href='v2box://install-sub?url={{ .subUrl }}&name={{ .sId }}';">
+            <span>افزودن به V2Box</span>
+        </button>
+        <button class="flex items-center gap-2 px-3 py-3 bg-violet-900 text-white rounded-lg hover:bg-violet-600"
+                onclick="window.location.href='streisand://import/{{ .subUrl }}';">
+            <span>افزودن به Streisand</span>
+        </button>
+        <button class="flex items-center gap-2 px-3 py-3 bg-gray-100 text-black rounded-lg hover:bg-gray-500"
+                onclick="window.location.href='v2rayng://install-config?url={{ .subUrl }}';">
+            <span>افزودن به V2RayNG</span>
+        </button>
+    </div>
+</div>
+</div>
+</body>
+
+</html>
