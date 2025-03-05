@@ -66,7 +66,7 @@
             </a-divider>
             <a-form-item label='Type'>
               <a-select v-model="noise.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['rand','base64','str']" :value="s">[[ s ]]</a-select-option>
+                <a-select-option v-for="s in ['rand','base64','str', 'hex']" :value="s">[[ s ]]</a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label='Packet'>

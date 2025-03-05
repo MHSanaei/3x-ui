@@ -377,7 +377,7 @@
                             <a-col :lg="24" :xl="12">
                               <a-select :value="noise.type" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme"
                                 @change="(value) => updateNoiseType(index, value)">
-                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str']" :key="p">
+                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p">
                                   [[ p ]] </a-select-option>
                               </a-select>
                             </a-col>
