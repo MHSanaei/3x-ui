@@ -2,7 +2,10 @@ package sub
 
 import (
 	"encoding/base64"
+	"fmt"
+	"math"
 	"net"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -78,16 +81,42 @@ func (a *SUBController) subs(c *gin.Context) {
 		for _, sub := range subs {
 			result += sub + "\n"
 		}
+		resultSlice := strings.Split(strings.TrimSpace(result), "\n")
 
 		// Add headers
 		c.Writer.Header().Set("Subscription-Userinfo", header)
 		c.Writer.Header().Set("Profile-Update-Interval", a.updateInterval)
 		c.Writer.Header().Set("Profile-Title", subId)
 
-		if a.subEncrypt {
-			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
+		acceptHeader := c.GetHeader("Accept")
+		headerMap := parseHeaderString(header)
+		expireValue := headerMap["expire"]
+		upValue := formatBytes(headerMap["upload"], 2)
+		downValue := formatBytes(headerMap["download"], 2)
+		totalValue := formatBytes(headerMap["total"], 2)
+
+		currentURL := "https://" + c.Request.Host + c.Request.RequestURI
+
+		if strings.Contains(acceptHeader, "text/html") {
+			if a.subEncrypt {
+				c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
+			} else {
+				c.HTML(200, "sub.html", gin.H{
+					"result":   resultSlice,
+					"total":    totalValue,
+					"expire":   expireValue,
+					"upload":   upValue,
+					"download": downValue,
+					"sId":      subId,
+					"subUrl":   currentURL,
+				})
+			}
 		} else {
-			c.String(200, result)
+			if a.subEncrypt {
+				c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
+			} else {
+				c.String(200, result)
+			}
 		}
 	}
 }
@@ -131,4 +160,32 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
+}
+
+func parseHeaderString(header string) map[string]string {
+	headerMap := make(map[string]string)
+	pairs := strings.Split(header, ";")
+	for _, pair := range pairs {
+		kv := strings.Split(strings.TrimSpace(pair), "=")
+		if len(kv) == 2 {
+			headerMap[kv[0]] = kv[1]
+		}
+	}
+	return headerMap
+}
+
+func formatBytes(sizeStr string, precision int) string {
+	// Convert the string input to a float64
+	size, _ := strconv.ParseFloat(sizeStr, 64)
+
+	if size == 0 {
+		return "0 B"
+	}
+
+	// Calculate base and suffix
+	base := math.Log(size) / math.Log(1024)
+	suffixes := []string{"B", "K", "M", "G", "T"}
+
+	value := math.Pow(1024, base-math.Floor(base))
+	return fmt.Sprintf("%.*f %s", precision, value, suffixes[int(math.Floor(base))])
 }
