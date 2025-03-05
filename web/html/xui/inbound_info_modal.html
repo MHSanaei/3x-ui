@@ -477,9 +477,9 @@
       this.dbInbound = new DBInbound(dbInbound);
       this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
-      this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+      this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === (this.clientSettings.email ?? '-')) : [];
 
-      if (app.ipLimitEnable && this.clientSettings.limitIp) {
+      if (app.ipLimitEnable && this.clientSettings.limitIp && this.clientStats !== undefined) {
         refreshIPs(this.clientStats.email).then((ips) => {
           this.clientIps = ips;
         })
