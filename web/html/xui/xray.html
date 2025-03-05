@@ -143,7 +143,14 @@
                           </a-select>
                         </a-col>
                       </a-row>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.outboundTraffic"}}' desc='{{ i18n "pages.xray.outboundTrafficDesc"}}' v-model="outboundTraffic"></setting-list-item>
+                    </a-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.xray.statistics" }}'>
+                    <a-list-item>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsInboundUplink" }}' desc='{{ i18n "pages.xray.statsInboundUplinkDesc" }}' style="padding-top: 0 !important;" v-model="statsInboundUplink"></setting-list-item>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsInboundDownlink" }}' desc='{{ i18n "pages.xray.statsInboundDownlinkDesc" }}' v-model="statsInboundDownlink"></setting-list-item>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsOutboundUplink" }}' desc='{{ i18n "pages.xray.statsOutboundUplinkDesc" }}' v-model="statsOutboundUplink"></setting-list-item>
+                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsOutboundDownlink" }}' desc='{{ i18n "pages.xray.statsOutboundDownlinkDesc" }}' v-model="statsOutboundDownlink"></setting-list-item>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
@@ -1882,7 +1889,40 @@
                     this.templateSettings = newTemplateSettings;
                 }
             },
-            outboundTraffic: {
+            statsInboundUplink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsInboundUplink) return false;
+                    return this.templateSettings.policy.system.statsInboundUplink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsInboundUplink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsInboundDownlink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsInboundDownlink) return false;
+                    return this.templateSettings.policy.system.statsInboundDownlink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsInboundDownlink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsOutboundUplink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundUplink) return false;
+                    return this.templateSettings.policy.system.statsOutboundUplink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsOutboundUplink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsOutboundDownlink: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundDownlink) return false;
                     return this.templateSettings.policy.system.statsOutboundDownlink;
@@ -1890,7 +1930,6 @@
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;
                     newTemplateSettings.policy.system.statsOutboundDownlink = newValue;
-                    newTemplateSettings.policy.system.statsOutboundUplink = newValue;
                     this.templateSettings = newTemplateSettings;
                 }
             },
