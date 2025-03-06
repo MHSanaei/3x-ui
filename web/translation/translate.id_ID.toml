@@ -320,7 +320,15 @@
 "muxSett" = "Pengaturan Mux"
 "direct" = "Koneksi langsung"
 "directDesc" = "Secara langsung membuat koneksi dengan domain atau rentang IP negara tertentu."
-
+"notifications" = "Notifikasi"
+"certs" = "Sertifikat"
+"externalTraffic" = "Lalu Lintas Eksternal"
+"dateAndTime" = "Tanggal dan Waktu"
+"proxyAndServer" = "Proxy dan Server"
+"intervals" = "Interval"
+"information" = "Informasi"
+"language" = "Bahasa"
+"telegramBotLanguage" = "Bahasa Bot Telegram"
 
 [pages.xray]
 "title" = "Konfigurasi Xray"
@@ -461,7 +469,7 @@
 "poolSize" = "Ukuran Kolam"
 
 [pages.settings.security]
-"admin" = "Admin"
+"admin" = "Kredensial admin"
 "secret" = "Token Rahasia"
 "loginSecurity" = "Login Aman"
 "loginSecurityDesc" = "Menambahkan lapisan otentikasi tambahan untuk memberikan keamanan lebih."

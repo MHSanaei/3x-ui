@@ -114,44 +114,54 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.FreedomStrategy" }}'
-                            description='{{ i18n "pages.xray.FreedomStrategyDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <a-select v-model="freedomStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
-                                style="width: 100%">
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.FreedomStrategy" }}</template>
+                        <template #description>{{ i18n "pages.xray.FreedomStrategyDesc" }}</template>
+                        <template #control>
+                            <a-select v-model="freedomStrategy" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                               <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
                             </a-select>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.RoutingStrategy" }}'
-                            description='{{ i18n "pages.xray.RoutingStrategyDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
-                              style="width: 100%">
-                            <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
-                          </a-select>
-                        </a-col>
-                      </a-row>
-                    </a-list-item>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.RoutingStrategy" }}</template>
+                        <template #description>{{ i18n "pages.xray.RoutingStrategyDesc" }}</template>
+                        <template #control>
+                            <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
+                                <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.statistics" }}'>
-                    <a-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsInboundUplink" }}' desc='{{ i18n "pages.xray.statsInboundUplinkDesc" }}' style="padding-top: 0 !important;" v-model="statsInboundUplink"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsInboundDownlink" }}' desc='{{ i18n "pages.xray.statsInboundDownlinkDesc" }}' v-model="statsInboundDownlink"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsOutboundUplink" }}' desc='{{ i18n "pages.xray.statsOutboundUplinkDesc" }}' v-model="statsOutboundUplink"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.statsOutboundDownlink" }}' desc='{{ i18n "pages.xray.statsOutboundDownlinkDesc" }}' v-model="statsOutboundDownlink"></setting-list-item>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.statsInboundUplink" }}</template>
+                        <template #description>{{ i18n "pages.xray.statsInboundUplinkDesc" }}</template>
+                        <template #control>
+                            <a-switch v-model="statsInboundUplink"></a-switch>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.statsInboundDownlink" }}</template>
+                        <template #description>{{ i18n "pages.xray.statsInboundDownlinkDesc" }}</template>
+                        <template #control>
+                            <a-switch v-model="statsInboundDownlink"></a-switch>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.statsOutboundUplink" }}</template>
+                        <template #description>{{ i18n "pages.xray.statsOutboundUplinkDesc" }}</template>
+                        <template #control>
+                            <a-switch v-model="statsOutboundUplink"></a-switch>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.statsOutboundDownlink" }}</template>
+                        <template #description>{{ i18n "pages.xray.statsOutboundDownlinkDesc" }}</template>
+                        <template #control>
+                            <a-switch v-model="statsOutboundDownlink"></a-switch>
+                        </template>
+                    </a-setting-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
                     <a-row :xs="24" :sm="24" :lg="12">
@@ -162,68 +172,52 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.logLevel" }}'
-                            description='{{ i18n "pages.xray.logLevelDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.logLevel" }}</template>
+                        <template #description>{{ i18n "pages.xray.logLevelDesc" }}</template>
+                        <template #control>
                             <a-select v-model="logLevel" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                 <a-select-option v-for="s in log.loglevel" :value="s">[[ s ]]</a-select-option>
                             </a-select>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.accessLog" }}'
-                            description='{{ i18n "pages.xray.accessLogDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.accessLog" }}</template>
+                        <template #description>{{ i18n "pages.xray.accessLogDesc" }}</template>
+                        <template #control>
                             <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                 <a-select-option value=''>Empty</a-select-option>
                                 <a-select-option v-for="s in log.access" :value="s">[[ s ]]</a-select-option>
                             </a-select>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.errorLog" }}'
-                            description='{{ i18n "pages.xray.errorLogDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.errorLog" }}</template>
+                        <template #description>{{ i18n "pages.xray.errorLogDesc" }}</template>
+                        <template #control>
                             <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                 <a-select-option value=''>Empty</a-select-option>
                                 <a-select-option v-for="s in log.error" :value="s">[[ s ]]</a-select-option>
                             </a-select>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.xray.maskAddress" }}'
-                            description='{{ i18n "pages.xray.maskAddressDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.maskAddress" }}</template>
+                        <template #description>{{ i18n "pages.xray.maskAddressDesc" }}</template>
+                        <template #control>
                             <a-select v-model="maskAddressLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                                 <a-select-option value=''>Empty</a-select-option>
                                 <a-select-option v-for="s in log.maskAddress" :value="s">[[ s ]]</a-select-option>
                             </a-select>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.dnsLog"}}' desc='{{ i18n "pages.xray.dnsLogDesc"}}' v-model="dnslog"></setting-list-item>
-                    </a-list-item>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.dnsLog"}}</template>
+                        <template #description>{{ i18n "pages.xray.dnsLogDesc"}}</template>
+                        <template #control>
+                            <a-switch v-model="dnslog"></a-switch>
+                        </template>
+                    </a-setting-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
@@ -234,10 +228,20 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.Torrent"}}' desc='{{ i18n "pages.xray.TorrentDesc"}}' v-model="torrentSettings"></setting-list-item>
-                      <setting-list-item type="switch" title='{{ i18n "pages.xray.Family"}}' desc='{{ i18n "pages.xray.FamilyDesc"}}' v-model="familyProtectSettings"></setting-list-item>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.Torrent"}}</template>
+                        <template #description>{{ i18n "pages.xray.TorrentDesc"}}</template>
+                        <template #control>
+                            <a-switch v-model="torrentSettings"></a-switch>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.Family"}}</template>
+                        <template #description>{{ i18n "pages.xray.FamilyDesc"}}</template>
+                        <template #control>
+                            <a-switch v-model="familyProtectSettings"></a-switch>
+                        </template>
+                    </a-setting-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.xray.basicRouting"}}'>
                     <a-row :xs="24" :sm="24" :lg="12">
@@ -248,43 +252,22 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.blockips" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" v-model="blockedIPs" style="width: 100%"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.IPsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.blockdomains" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="blockedDomains"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.BlockDomainsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.blockips" }}</template>
+                        <template #control>
+                            <a-select mode="tags" v-model="blockedIPs" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">[[ p.label ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.blockdomains" }}</template>
+                        <template #control>
+                            <a-select mode="tags" v-model="blockedDomains" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.BlockDomainsOptions">[[ p.label ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
@@ -293,44 +276,22 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.directips" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="directIPs"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.IPsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.directdomains" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="directDomains"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.DomainsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.directips" }}</template>
+                        <template #control>
+                            <a-select mode="tags" style="width: 100%" v-model="directIPs" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">[[ p.label ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.directdomains" }}</template>
+                        <template #control>
+                            <a-select mode="tags" style="width: 100%" v-model="directDomains" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.DomainsOptions">[[ p.label ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
@@ -339,25 +300,14 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                        <a-row style="padding: 0 20px">
-                            <a-col :lg="24" :xl="12">
-                                <a-list-item-meta 
-                                    title='{{ i18n "pages.xray.ipv4Routing" }}'/>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
-                                <template>
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="ipv4Domains"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in settingsData.ServicesOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-col>
-                        </a-row>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.ipv4Routing" }}</template>
+                        <template #control>
+                            <a-select mode="tags" style="width: 100%" v-model="ipv4Domains" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">[[ p.label ]]</a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
                     <a-row :xs="24" :sm="24" :lg="12">
                       <a-alert type="warning" style="text-align: center; margin-top: 20px;">
                         <template slot="message">
@@ -366,30 +316,19 @@
                         </template>
                       </a-alert>
                     </a-row>
-                    <a-list-item>
-                      <template v-if="WarpExist">
-                        <a-list-item>
-                            <a-row style="padding: 0 20px">
-                                <a-col :lg="24" :xl="12">
-                                    <a-list-item-meta 
-                                        title='{{ i18n "pages.xray.warpRouting" }}'/>
-                                </a-col>
-                                <a-col :lg="24" :xl="12">
-                                    <template>
-                                        <a-select mode="tags" style="width: 100%"
-                                        v-model="warpDomains"
-                                        :dropdown-class-name="themeSwitcher.currentTheme">
-                                            <a-select-option :value="p.value" :label="p.label"
-                                                v-for="p in settingsData.ServicesOptions"> [[ p.label ]]
-                                            </a-select-option>
-                                        </a-select>
-                                    </template>
-                                </a-col>
-                            </a-row>
-                        </a-list-item>
-                      </template>
-                      <a-button style="margin-left: 20px;" v-else type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
-                    </a-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.warpRouting" }}</template>
+                        <template #control>
+                            <template v-if="WarpExist">
+                                <a-select mode="tags" style="width: 100%" v-model="warpDomains" :dropdown-class-name="themeSwitcher.currentTheme">
+                                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">[[ p.label ]]</a-select-option>
+                                </a-select>
+                            </template>
+                            <template v-else>
+                                <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
+                            </template>
+                        </template>
+                    </a-setting-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
                     <a-space direction="horizontal" style="padding: 0 20px">
@@ -670,78 +609,61 @@
             <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
                 <a-collapse>
                     <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
-                        <a-list-item>
-                            <a-row style="padding: 10px 20px; padding-top: 0;">
-                                <a-col :lg="24" :xl="12">
-                                    <a-list-item-meta title='{{ i18n "pages.xray.dns.enable" }}'
-                                        description='{{ i18n "pages.xray.dns.enableDesc" }}' />
-                                </a-col>
-                                <a-col :lg="24" :xl="12">
-                                    <a-switch v-model="enableDNS"></a-switch>
-                                </a-col>
-                            </a-row>
-                            <template v-if="enableDNS">
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.tag" }}'
-                                            description='{{ i18n "pages.xray.dns.tagDesc" }}' />
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-input type="text" v-model="dnsTag"></a-input>
-                                    </a-col>
-                                </a-row>
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.clientIp" }}' 
-                                            description='{{ i18n "pages.xray.dns.clientIpDesc" }}'/>
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-input type="text" v-model="dnsClientIp"></a-input>
-                                    </a-col>
-                                </a-row>
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.strategy" }}'
-                                            description='{{ i18n "pages.xray.dns.strategyDesc" }}' />
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-select v-model="dnsStrategy" style="width: 100%"
-                                            :dropdown-class-name="themeSwitcher.currentTheme">
-                                            <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
-                                                [[ l ]]
-                                            </a-select-option>
-                                        </a-select>
-                                    </a-col>
-                                </a-row>
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableCache" }}' 
-                                            description='{{ i18n "pages.xray.dns.disableCacheDesc" }}'/>
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-switch v-model="dnsDisableCache"></a-switch>
-                                    </a-col>
-                                </a-row>
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableFallback" }}' 
-                                            description='{{ i18n "pages.xray.dns.disableFallbackDesc" }}'/>
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-switch v-model="dnsDisableFallback"></a-switch>
-                                    </a-col>
-                                </a-row>
-                                <a-row style="padding: 10px 20px;">
-                                    <a-col :lg="24" :xl="12">
-                                        <a-list-item-meta title='{{ i18n "pages.xray.dns.disableFallbackIfMatch" }}' 
-                                            description='{{ i18n "pages.xray.dns.disableFallbackIfMatchDesc" }}'/>
-                                    </a-col>
-                                    <a-col :lg="24" :xl="12">
-                                        <a-switch v-model="dnsDisableFallbackIfMatch"></a-switch>
-                                    </a-col>
-                                </a-row>
+                        <a-setting-list-item paddings="small">
+                            <template #title>{{ i18n "pages.xray.dns.enable" }}</template>
+                            <template #description>{{ i18n "pages.xray.dns.enableDesc" }}</template>
+                            <template #control>
+                                <a-switch v-model="enableDNS"></a-switch>
                             </template>
-                        </a-list-item>
+                        </a-setting-list-item>
+                        <template v-if="enableDNS">
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.tag" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.tagDesc" }}</template>
+                                <template #control>
+                                    <a-input type="text" v-model="dnsTag"></a-input>
+                                </template>
+                            </a-setting-list-item>
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.clientIp" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.clientIpDesc" }}</template>
+                                <template #control>
+                                    <a-input type="text" v-model="dnsClientIp"></a-input>
+                                </template>
+                            </a-setting-list-item>
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.strategy" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.strategyDesc" }}</template>
+                                <template #control>
+                                    <a-select v-model="dnsStrategy" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
+                                        <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
+                                            [[ l ]]
+                                        </a-select-option>
+                                    </a-select>
+                                </template>
+                            </a-setting-list-item>
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.disableCache" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.disableCacheDesc" }}</template>
+                                <template #control>
+                                    <a-switch v-model="dnsDisableCache"></a-switch>
+                                </template>
+                            </a-setting-list-item>
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.disableFallback" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.disableFallbackDesc" }}</template>
+                                <template #control>
+                                    <a-switch v-model="dnsDisableFallback"></a-switch>
+                                </template>
+                            </a-setting-list-item>
+                            <a-setting-list-item paddings="small">
+                                <template #title>{{ i18n "pages.xray.dns.disableFallbackIfMatch" }}</template>
+                                <template #description>{{ i18n "pages.xray.dns.disableFallbackIfMatchDesc" }}</template>
+                                <template #control>
+                                    <a-switch v-model="dnsDisableFallbackIfMatch"></a-switch>
+                                </template>
+                            </a-setting-list-item>
+                        </template>
                     </a-collapse-panel>
                     <template v-if="enableDNS">
                         <a-collapse-panel header='DNS'>

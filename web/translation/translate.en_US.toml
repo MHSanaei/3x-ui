@@ -321,7 +321,15 @@
 "muxSett" = "Mux Settings"
 "direct" = "Direct Connection"
 "directDesc" = "Directly establishes connections with domains or IP ranges of a specific country."
-
+"notifications" = "Notifications"
+"certs" = "Certificaties"
+"externalTraffic" = "External Traffic"
+"dateAndTime" = "Date and Time"
+"proxyAndServer" = "Proxy and Server"
+"intervals" = "Intervals"
+"information" = "Information"
+"language" = "Language"
+"telegramBotLanguage" = "Telegram Bot Language"
 
 [pages.xray]
 "title" = "Xray Configs"
@@ -462,7 +470,7 @@
 "poolSize" = "Pool Size"
 
 [pages.settings.security]
-"admin" = "Admin"
+"admin" = "Admin credentials"
 "secret" = "Secret Token"
 "loginSecurity" = "Secure Login"
 "loginSecurityDesc" = "Adds an additional layer of authentication to provide more security."

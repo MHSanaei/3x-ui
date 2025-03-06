@@ -321,7 +321,15 @@
 "muxSett" = "Configurações de Mux"
 "direct" = "Conexão Direta"
 "directDesc" = "Estabelece conexões diretamente com domínios ou intervalos de IP de um país específico."
-
+"notifications" = "Notificações"
+"certs" = "Certificados"
+"externalTraffic" = "Tráfego Externo"
+"dateAndTime" = "Data e Hora"
+"proxyAndServer" = "Proxy e Servidor"
+"intervals" = "Intervalos"
+"information" = "Informação"
+"language" = "Idioma"
+"telegramBotLanguage" = "Idioma do Bot do Telegram"
 
 [pages.xray]
 "title" = "Configurações Xray"
@@ -462,7 +470,7 @@
 "poolSize" = "Tamanho do Pool"
 
 [pages.settings.security]
-"admin" = "Admin"
+"admin" = "Credenciais de administrador"
 "secret" = "Token Secreto"
 "loginSecurity" = "Login Seguro"
 "loginSecurityDesc" = "Adiciona uma camada extra de autenticação para fornecer mais segurança."

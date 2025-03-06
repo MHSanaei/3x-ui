@@ -321,7 +321,15 @@
 "muxSett" = "复用器设置"
 "direct" = "直接连接"
 "directDesc" = "直接与特定国家的域或IP范围建立连接"
-
+"notifications" = "通知"
+"certs" = "证书"
+"externalTraffic" = "外部流量"
+"dateAndTime" = "日期和时间"
+"proxyAndServer" = "代理和服务器"
+"intervals" = "间隔"
+"information" = "信息"
+"language" = "语言"
+"telegramBotLanguage" = "Telegram 机器人语言"
 
 [pages.xray]
 "title" = "Xray 配置"
@@ -462,7 +470,7 @@
 "poolSize" = "池大小"
 
 [pages.settings.security]
-"admin" = "管理员"
+"admin" = "管理员凭据"
 "secret" = "安全令牌"
 "loginSecurity" = "登录安全"
 "loginSecurityDesc" = "添加额外的身份验证以提高安全性"

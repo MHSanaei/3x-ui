@@ -321,7 +321,15 @@
 "muxSett" = "Mux Cài đặt"
 "direct" = "Kết nối trực tiếp"
 "directDesc" = "Trực tiếp thiết lập kết nối với tên miền hoặc dải IP của một quốc gia cụ thể."
-
+"notifications" = "Thông báo"
+"certs" = "Chứng chỉ"
+"externalTraffic" = "Lưu lượng bên ngoài"
+"dateAndTime" = "Ngày và giờ"
+"proxyAndServer" = "Proxy và máy chủ"
+"intervals" = "Khoảng thời gian"
+"information" = "Thông tin"
+"language" = "Ngôn ngữ"
+"telegramBotLanguage" = "Ngôn ngữ của Bot Telegram"
 
 [pages.xray]
 "title" = "Cài đặt Xray"
@@ -462,7 +470,7 @@
 "poolSize" = "Kích thước bể bơi"
 
 [pages.settings.security]
-"admin" = "Quản trị viên"
+"admin" = "Thông tin đăng nhập quản trị viên"
 "secret" = "Mã thông báo bí mật"
 "loginSecurity" = "Bảo mật đăng nhập"
 "loginSecurityDesc" = "Bật bước bảo mật đăng nhập bổ sung cho người dùng"

@@ -108,16 +108,17 @@
               </a-row>
             </a-card>
             <a-tabs default-active-key="1">
-              <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings"}}'>
-                <a-list item-layout="horizontal">
-                  <a-list-item>
-                    <a-row style="padding: 20px">
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.remarkModel"}}'>
-                          <template slot="description">{{ i18n "pages.settings.sampleRemark"}}: <i>#[[ remarkSample ]]</i></template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
+              <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings" }}' style="padding-top: 20px;">
+                <a-collapse>
+                  <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>
+                        {{ i18n "pages.settings.remarkModel"}}
+                      </template>
+                      <template #description>
+                        {{ i18n "pages.settings.sampleRemark"}}: <i>#[[ remarkSample ]]</i>
+                      </template>
+                      <template #control>
                         <a-input-group style="width: 100%;">
                           <a-select style="padding-right: .5rem; min-width: 80%; width: auto;"
                               mode="multiple"
@@ -129,350 +130,523 @@
                             <a-select-option v-for="key in remarkSeparators" :value="key">[[ key ]]</a-select-option>
                           </a-select>
                         </a-input-group>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningIP"}}' desc='{{ i18n "pages.settings.panelListeningIPDesc"}}' v-model="allSetting.webListen"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.panelListeningDomain"}}' desc='{{ i18n "pages.settings.panelListeningDomainDesc"}}' v-model="allSetting.webDomain"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.panelPort"}}' desc='{{ i18n "pages.settings.panelPortDesc"}}' v-model="allSetting.webPort" :min="1" :max="65531"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.publicKeyPath"}}' desc='{{ i18n "pages.settings.publicKeyPathDesc"}}' v-model="allSetting.webCertFile"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.privateKeyPath"}}' desc='{{ i18n "pages.settings.privateKeyPathDesc"}}' v-model="allSetting.webKeyFile"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.panelUrlPath"}}' desc='{{ i18n "pages.settings.panelUrlPathDesc"}}' v-model="allSetting.webBasePath"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.sessionMaxAge" }}' desc='{{ i18n "pages.settings.sessionMaxAgeDesc" }}' v-model="allSetting.sessionMaxAge" :min="60"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.pageSize" }}' desc='{{ i18n "pages.settings.pageSizeDesc" }}' v-model="allSetting.pageSize" :min="0" :step="5"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.expireTimeDiff" }}' desc='{{ i18n "pages.settings.expireTimeDiffDesc" }}' v-model="allSetting.expireDiff" :min="0"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.trafficDiff" }}' desc='{{ i18n "pages.settings.trafficDiffDesc" }}' v-model="allSetting.trafficDiff" :min="0"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.externalTrafficInformEnable"}}' desc='{{ i18n "pages.settings.externalTrafficInformEnableDesc"}}' v-model="allSetting.externalTrafficInformEnable"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.externalTrafficInformURI"}}' desc='{{ i18n "pages.settings.externalTrafficInformURIDesc"}}' v-model="allSetting.externalTrafficInformURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.timeZone"}}' desc='{{ i18n "pages.settings.timeZoneDesc"}}' v-model="allSetting.timeLocation"></setting-list-item>
-                  <a-list-item>
-                    <a-row style="padding: 20px">
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.datepicker"}}'>
-                          <template slot="description">{{ i18n "pages.settings.datepickerDescription"}}</template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
-                        <template>
-                          <a-select style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme" v-model="datepicker">
-                            <a-select-option v-for="item in datepickerList" :value="item.value">
-                              <span v-text="item.name"></span>
-                            </a-select-option>
-                          </a-select>
-                        </template>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                  <a-list-item>
-                    <a-row style="padding: 20px">
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title="Language"></a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
-                        <template>
-                          <a-select ref="selectLang"
-                              v-model="lang"
-                              @change="setLang(lang)"
-                              :dropdown-class-name="themeSwitcher.currentTheme"
-                              style="width: 100%">
-                            <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                              <span role="img" :aria-label="l.name" v-text="l.icon"></span> &nbsp;&nbsp; <span v-text="l.name"></span>
-                            </a-select-option>
-                          </a-select>
-                        </template>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                </a-list>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.panelListeningIP"}}</template>
+                      <template #description>{{ i18n "pages.settings.panelListeningIPDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.webListen"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.panelListeningDomain"}}</template>
+                      <template #description>{{ i18n "pages.settings.panelListeningDomainDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.webDomain"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.panelPort"}}</template>
+                      <template #description>{{ i18n "pages.settings.panelPortDesc"}}</template>
+                      <template #control>
+                        <a-input-number :min="1" :min="65531" v-model="allSetting.webPort" style="width: 100%;"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.panelUrlPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.panelUrlPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.webBasePath"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.sessionMaxAge" }}</template>
+                      <template #description>{{ i18n "pages.settings.sessionMaxAgeDesc" }}</template>
+                      <template #control>
+                        <a-input-number :min="60" v-model="allSetting.sessionMaxAge" style="width: 100%;"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.pageSize" }}</template>
+                      <template #description>{{ i18n "pages.settings.pageSizeDesc" }}</template>
+                      <template #control>
+                        <a-input-number :min="0" step="5" v-model="allSetting.pageSize" style="width: 100%;"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.language"}}</template>
+                      <template #control>
+                        <a-select ref="selectLang"
+                            v-model="lang"
+                            @change="setLang(lang)"
+                            :dropdown-class-name="themeSwitcher.currentTheme"
+                            style="width: 100%">
+                          <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
+                            <span role="img" :aria-label="l.name" v-text="l.icon"></span> &nbsp;&nbsp; <span v-text="l.name"></span>
+                          </a-select-option>
+                        </a-select>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.notifications" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.expireTimeDiff" }}</template>
+                      <template #description>{{ i18n "pages.settings.expireTimeDiffDesc" }}</template>
+                      <template #control>
+                        <a-input-number :min="0" v-model="allSetting.expireDiff" style="width: 100%;"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.trafficDiff" }}</template>
+                      <template #description>{{ i18n "pages.settings.trafficDiffDesc" }}</template>
+                      <template #control>
+                        <a-input-number :min="0" v-model="allSetting.trafficDiff" style="width: 100%;"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.certs" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.publicKeyPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.publicKeyPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.webCertFile"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.privateKeyPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.privateKeyPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.webKeyFile"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.externalTraffic" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.externalTrafficInformEnable"}}</template>
+                      <template #description>{{ i18n "pages.settings.externalTrafficInformEnableDesc"}}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.externalTrafficInformEnable"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.externalTrafficInformURI"}}</template>
+                      <template #description>{{ i18n "pages.settings.externalTrafficInformURIDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" placeholder="(http|https)://domain[:port]/path/" v-model="allSetting.externalTrafficInformURI"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.dateAndTime" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.timeZone"}}</template>
+                      <template #description>{{ i18n "pages.settings.timeZoneDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.timeLocation"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.datepicker"}}</template>
+                      <template #description>{{ i18n "pages.settings.datepickerDescription"}}</template>
+                      <template #control>
+                        <a-select style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme" v-model="datepicker">
+                          <a-select-option v-for="item in datepickerList" :value="item.value">
+                            <span v-text="item.name"></span>
+                          </a-select-option>
+                        </a-select>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                </a-collapse>
               </a-tab-pane>
-              <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings"}}' style="padding-top: 20px;">
+              <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings" }}' style="padding-top: 20px;">
                 <a-collapse>
                   <a-collapse-panel header='{{ i18n "pages.settings.security.admin"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.oldUsername"}}</template>
+                      <template #control>
+                        <a-input autocomplete="username" v-model="user.oldUsername"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.currentPassword"}}</template>
+                      <template #control>
+                        <password-input autocomplete="current-password" v-model="user.oldPassword"></password-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.newUsername"}}</template>
+                      <template #control>
+                        <a-input v-model="user.newUsername"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.newPassword"}}</template>
+                      <template #control>
+                        <password-input autocomplete="new-password" v-model="user.newPassword"></password-input>
+                      </template>
+                    </a-setting-list-item>
                     <a-list-item>
-                      <a-row style="padding: 0 20px; padding-bottom: 10px;">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.oldUsername"}}'></a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <a-input autocomplete="username" v-model="user.oldUsername"></a-input>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.currentPassword"}}'></a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <password-input autocomplete="current-password" v-model="user.oldPassword"></password-input>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.newUsername"}}'></a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <a-input v-model="user.newUsername"></a-input>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.newPassword"}}'></a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <password-input autocomplete="new-password" v-model="user.newPassword"></password-input>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-space direction="horizontal" style="padding: 0 20px; padding-top: 20px;">
+                      <a-space direction="horizontal" style="padding: 0 20px;">
                         <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
                       </a-space>
                     </a-list-item>
                   </a-collapse-panel>
                   <a-collapse-panel header='{{ i18n "pages.settings.security.secret"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.security.loginSecurity" }}</template>
+                      <template #description>{{ i18n "pages.settings.security.loginSecurityDesc" }}</template>
+                      <template #control>
+                        <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                        <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync" @click="getNewSecret"></a-icon>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.security.secretToken" }}</template>
+                      <template #description>{{ i18n "pages.settings.security.secretTokenDesc" }}</template>
+                      <template #control>
+                        <a-textarea type="text" :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+                      </template>
+                    </a-setting-list-item>
                     <a-list-item>
-                      <a-row style="padding: 0 20px; padding-bottom: 10px;">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}'
-                            description='{{ i18n "pages.settings.security.loginSecurityDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                            <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync" @click="getNewSecret"></a-icon>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-row style="padding: 10px 20px">
-                        <a-col :lg="24" :xl="12">
-                          <a-list-item-meta title='{{ i18n "pages.settings.security.secretToken" }}'
-                            description='{{ i18n "pages.settings.security.secretTokenDesc" }}'>
-                          </a-list-item-meta>
-                        </a-col>
-                        <a-col :lg="24" :xl="12">
-                          <template>
-                            <a-textarea type="text" :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
-                          </template>
-                        </a-col>
-                      </a-row>
-                      <a-space direction="horizontal" style="padding: 0 20px; padding-top: 20px;">
+                      <a-space direction="horizontal" style="padding: 0 20px;">
                         <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
                       </a-space>
                     </a-list-item>
                   </a-collapse-panel>
                 </a-collapse>
-                <!--
-                <a-divider>{{ i18n "pages.settings.security.secret"}}</a-divider>
-                <a-form style="padding: 0 20px;">
-                  <a-list-item>
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.security.loginSecurity" }}'
-                          description='{{ i18n "pages.settings.security.loginSecurityDesc" }}'>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
-                        <template>
-                          <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                          <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync" @click="getNewSecret"></a-icon>
-                        </template>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                  
-                  <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">{{ i18n "confirm" }}</a-button>
-                </a-form> -->
               </a-tab-pane>
-              <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings"}}'>
-                <a-list item-layout="horizontal">
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.telegramBotEnable" }}' desc='{{ i18n "pages.settings.telegramBotEnableDesc" }}' v-model="allSetting.tgBotEnable"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramToken"}}' desc='{{ i18n "pages.settings.telegramTokenDesc"}}' v-model="allSetting.tgBotToken"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramChatId"}}' desc='{{ i18n "pages.settings.telegramChatIdDesc"}}' v-model="allSetting.tgBotChatId"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramNotifyTime"}}' desc='{{ i18n "pages.settings.telegramNotifyTimeDesc"}}' v-model="allSetting.tgRunTime"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyBackup" }}' desc='{{ i18n "pages.settings.tgNotifyBackupDesc" }}' v-model="allSetting.tgBotBackup"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.tgNotifyLogin" }}' desc='{{ i18n "pages.settings.tgNotifyLoginDesc" }}' v-model="allSetting.tgBotLoginNotify"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.tgNotifyCpu" }}' desc='{{ i18n "pages.settings.tgNotifyCpuDesc" }}' v-model="allSetting.tgCpu" :min="0" :max="100"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramProxy"}}' desc='{{ i18n "pages.settings.telegramProxyDesc"}}' v-model="allSetting.tgBotProxy" placeholder="socks5://user:pass@host:port"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.telegramAPIServer"}}' desc='{{ i18n "pages.settings.telegramAPIServerDesc"}}' v-model="allSetting.tgBotAPIServer" placeholder="https://api.example.com"></setting-list-item>
-                  <a-list-item>
-                    <a-row style="padding: 20px">
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title="Telegram Bot Language" />
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
-                        <template>
-                          <a-select ref="selectBotLang" v-model="allSetting.tgLang" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                            <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
-                              <span role="img" :aria-label="l.name" v-text="l.icon"></span> &nbsp;&nbsp; <span v-text="l.name"></span>
-                            </a-select-option>
-                          </a-select>
-                        </template>
-                      </a-col>
-                    </a-row>
-                  </a-list-item>
-                </a-list>
+              <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings" }}' style="padding-top: 20px;">
+                <a-collapse>
+                  <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramBotEnable" }}</template>
+                      <template #description>{{ i18n "pages.settings.telegramBotEnableDesc" }}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.tgBotEnable"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramToken"}}</template>
+                      <template #description>{{ i18n "pages.settings.telegramTokenDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.tgBotToken"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramChatId"}}</template>
+                      <template #description>{{ i18n "pages.settings.telegramChatIdDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.tgBotChatId"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramBotLanguage"}}</template>
+                      <template #control>
+                        <a-select ref="selectBotLang" v-model="allSetting.tgLang" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
+                          <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">
+                            <span role="img" :aria-label="l.name" v-text="l.icon"></span> &nbsp;&nbsp; <span v-text="l.name"></span>
+                          </a-select-option>
+                        </a-select>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.notifications" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramNotifyTime"}}</template>
+                      <template #description>{{ i18n "pages.settings.telegramNotifyTimeDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.tgRunTime"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.tgNotifyBackup" }}</template>
+                      <template #description>{{ i18n "pages.settings.tgNotifyBackupDesc" }}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.tgBotBackup"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.tgNotifyLogin" }}</template>
+                      <template #description>{{ i18n "pages.settings.tgNotifyLoginDesc" }}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.tgBotLoginNotify"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.tgNotifyCpu" }}</template>
+                      <template #description>{{ i18n "pages.settings.tgNotifyCpuDesc" }}</template>
+                      <template #control>
+                        <a-input-number :min="0" :min="100" v-model="allSetting.tgCpu"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.proxyAndServer" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramProxy"}}</template>
+                      <template #description>{{ i18n "pages.settings.telegramProxyDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" placeholder="socks5://user:pass@host:port" v-model="allSetting.tgBotProxy"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.telegramAPIServer"}}</template>
+                      <template #description>{{ i18n "pages.settings.telegramAPIServerDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" placeholder="https://api.example.com" v-model="allSetting.tgBotAPIServer"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                </a-collapse>
               </a-tab-pane>
-              <a-tab-pane key="4" tab='{{ i18n "pages.settings.subSettings" }}'>
-                <a-list item-layout="horizontal">
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.subEnable"}}' desc='{{ i18n "pages.settings.subEnableDesc"}}' v-model="allSetting.subEnable"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.subEncrypt"}}' desc='{{ i18n "pages.settings.subEncryptDesc"}}' v-model="allSetting.subEncrypt"></setting-list-item>
-                  <setting-list-item type="switch" title='{{ i18n "pages.settings.subShowInfo"}}' desc='{{ i18n "pages.settings.subShowInfoDesc"}}' v-model="allSetting.subShowInfo"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subListen"}}' desc='{{ i18n "pages.settings.subListenDesc"}}' v-model="allSetting.subListen"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subDomain"}}' desc='{{ i18n "pages.settings.subDomainDesc"}}' v-model="allSetting.subDomain"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.subPort"}}' desc='{{ i18n "pages.settings.subPortDesc"}}' v-model.number="allSetting.subPort" :min="1" :max="65531"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subPath"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subCertPath"}}' desc='{{ i18n "pages.settings.subCertPathDesc"}}' v-model="allSetting.subCertFile"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subKeyPath"}}' desc='{{ i18n "pages.settings.subKeyPathDesc"}}' v-model="allSetting.subKeyFile"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
-                  <setting-list-item type="number" title='{{ i18n "pages.settings.subUpdates"}}' desc='{{ i18n "pages.settings.subUpdatesDesc"}}' v-model="allSetting.subUpdates" :min="1"></setting-list-item>
-                </a-list>
+              <a-tab-pane key="4" tab='{{ i18n "pages.settings.subSettings" }}' style="padding-top: 20px;">
+                <a-collapse>
+                  <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subEnable"}}</template>
+                      <template #description>{{ i18n "pages.settings.subEnableDesc"}}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.subEnable"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subListen"}}</template>
+                      <template #description>{{ i18n "pages.settings.subListenDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subListen"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subDomain"}}</template>
+                      <template #description>{{ i18n "pages.settings.subDomainDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subDomain"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subPort"}}</template>
+                      <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
+                      <template #control>
+                        <a-input-number v-model="allSetting.subPort" :min="1" :min="65531" style="width: 100%;"></a-input-number>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subPath"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subURI"}}</template>
+                      <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" placeholder="(http|https)://domain[:port]/path/" v-model="allSetting.subURI"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.information" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subEncrypt"}}</template>
+                      <template #description>{{ i18n "pages.settings.subEncryptDesc"}}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.subEncrypt"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subShowInfo"}}</template>
+                      <template #description>{{ i18n "pages.settings.subShowInfoDesc"}}</template>
+                      <template #control>
+                        <a-switch v-model="allSetting.subShowInfo"></a-switch>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.certs" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subCertPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.subCertPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subCertFile"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subKeyPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.subKeyPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subKeyFile"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.intervals"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subUpdates"}}</template>
+                      <template #description>{{ i18n "pages.settings.subUpdatesDesc"}}</template>
+                      <template #control>
+                        <a-input-number :min="1" v-model="allSetting.subUpdates" style="width: 100%;"></a-input-number>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                </a-collapse>
               </a-tab-pane>
-              <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }} Json' v-if="allSetting.subEnable">
-                <a-list item-layout="horizontal">
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subPath"}}' desc='{{ i18n "pages.settings.subPathDesc"}}' v-model="allSetting.subJsonPath"></setting-list-item>
-                  <setting-list-item type="text" title='{{ i18n "pages.settings.subURI"}}' desc='{{ i18n "pages.settings.subURIDesc"}}' v-model="allSetting.subJsonURI" placeholder="(http|https)://domain[:port]/path/"></setting-list-item>
-                  <a-list-item style="padding: 20px">
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.fragment"}}'>
-                          <template slot="description">{{ i18n "pages.settings.fragmentDesc"}}</template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
+              <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }} Json' v-if="allSetting.subEnable" style="padding-top: 20px;">
+                <a-collapse>
+                  <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subPath"}}</template>
+                      <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subJsonPath"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subURI"}}</template>
+                      <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" placeholder="(http|https)://domain[:port]/path/" v-model="allSetting.subJsonURI"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.fragment"}}</template>
+                      <template #description>{{ i18n "pages.settings.fragmentDesc"}}</template>
+                      <template #control>
                         <a-switch v-model="fragment"></a-switch>
-                      </a-col>
-                    </a-row>
-                    <a-collapse v-if="fragment" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Packets' v-model="fragmentPackets" placeholder="1-1 | 1-3 | tlshello | ..."></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Length' v-model="fragmentLength" placeholder="100-200"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Interval' v-model="fragmentInterval" placeholder="10-20"></setting-list-item>
-                      </a-collapse-panel>
-                    </a-collapse>
-                  </a-list-item>
-                  <a-list-item style="padding: 20px">
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='Noises'>
-                          <template slot="description">{{ i18n "pages.settings.noisesDesc"}}</template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
+                      </template>
+                    </a-setting-list-item>
+                    <a-list-item v-if="fragment" style="padding: 10px 20px;">
+                      <a-collapse>
+                        <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
+                          <a-setting-list-item paddings="small">
+                            <template #title>Packets</template>
+                            <template #control>
+                              <a-input type="text" v-model="fragmentPackets" placeholder="1-1 | 1-3 | tlshello | ..."></a-input>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>Length</template>
+                            <template #control>
+                              <a-input type="text" v-model="fragmentLength" placeholder="100-200"></a-input>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>Interval</template>
+                            <template #control>
+                              <a-input type="text" v-model="fragmentInterval" placeholder="10-20"></a-input>
+                            </template>
+                          </a-setting-list-item>
+                        </a-collapse-panel>
+                      </a-collapse>
+                    </a-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header="Noises">
+                    <a-setting-list-item paddings="small">
+                      <template #title>Noises</template>
+                      <template #description>{{ i18n "pages.settings.noisesDesc"}}</template>
+                      <template #control>
                         <a-switch v-model="noises"></a-switch>
-                      </a-col>
-                    </a-row>
-                    <a-collapse v-if="noises" style="margin-top: 14px;">
-                      <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise ${index + 1}`">
-                        <a-list-item style="padding: 10px 20px">
-                          <a-row>
-                            <a-col :lg="24" :xl="12">
-                              <a-list-item-meta title='Type'></a-list-item-meta>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
+                      </template>
+                    </a-setting-list-item>
+                    <a-list-item v-if="noises" style="padding: 10px 20px;">
+                      <a-collapse>
+                        <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise №${index + 1}`">
+                          <a-setting-list-item paddings="small">
+                            <template #title>Type</template>
+                            <template #control>
                               <a-select :value="noise.type" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme"
                                 @change="(value) => updateNoiseType(index, value)">
                                 <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p">
                                   [[ p ]] </a-select-option>
                               </a-select>
-                            </a-col>
-                          </a-row>
-                        </a-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Packet' :value="noise.packet"
-                          @input="(value) => updateNoisePacket(index, value)" placeholder="5-10"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="text" title='Delay (ms)' :value="noise.delay"
-                          @input="(value) => updateNoiseDelay(index, value)" placeholder="10-20"></setting-list-item>
-                        <a-button v-if="noisesArray.length > 1" type="danger" @click="removeNoise(index)">Remove</a-button>
-                      </a-collapse-panel>
-                    </a-collapse>
-                    <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
-                  </a-list-item>
-                  <a-list-item style="padding: 20px">
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.mux"}}'>
-                          <template slot="description">{{ i18n "pages.settings.muxDesc"}}</template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>Packet</template>
+                            <template #control>
+                              <a-input type="text" :value="noise.packet" @input="(value) => updateNoisePacket(index, event.target.value)" placeholder="5-10"></a-input>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>Delay (ms)</template>
+                            <template #control>
+                              <a-input type="text" :value="noise.delay" @input="(value) => updateNoiseDelay(index, event.target.value)" placeholder="10-20"></a-input>
+                            </template>
+                          </a-setting-list-item>
+                          <a-space direction="horizontal" style="padding: 10px 20px;">
+                            <a-button v-if="noisesArray.length > 1" type="danger" @click="removeNoise(index)">Remove</a-button>
+                          </a-space>
+                        </a-collapse-panel>
+                      </a-collapse>
+                      <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
+                    </a-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.mux"}}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.mux"}}</template>
+                      <template #description>{{ i18n "pages.settings.muxDesc"}}</template>
+                      <template #control>
                         <a-switch v-model="enableMux"></a-switch>
-                      </a-col>
-                    </a-row>
-                    <a-collapse v-if="enableMux" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.muxSett"}}'>
-                        <setting-list-item style="padding: 10px 20px" type="number" title='Concurrency' v-model="muxConcurrency" :min="-1" :max="1024"></setting-list-item>
-                        <setting-list-item style="padding: 10px 20px" type="number" title='xudp Concurrency' v-model="muxXudpConcurrency" :min="-1" :max="1024"></setting-list-item>
-                        <a-list-item style="padding: 10px 20px">
-                          <a-row>
-                            <a-col :lg="24" :xl="12">
-                              <a-list-item-meta title='xudp UDP 443'></a-list-item-meta>
-                            </a-col>
-                            <a-col :lg="24" :xl="12">
+                      </template>
+                    </a-setting-list-item>
+                    <a-list-item v-if="enableMux" style="padding: 10px 20px;">
+                      <a-collapse>
+                        <a-collapse-panel header='{{ i18n "pages.settings.muxSett"}}'>
+                          <a-setting-list-item paddings="small">
+                            <template #title>Concurrency</template>
+                            <template #control>
+                              <a-input-number v-model="muxConcurrency" :min="-1" :max="1024" style="width: 100%;"></a-input-number>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>xudp Concurrency</template>
+                            <template #control>
+                              <a-input-number v-model="muxXudpConcurrency" :min="-1" :max="1024" style="width: 100%;"></a-input-number>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>xudp UDP 443</template>
+                            <template #control>
                               <a-select v-model="muxXudpProxyUDP443" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
                                 <a-select-option :value="p" :label="p" v-for="p in ['reject', 'allow', 'skip']"> [[ p ]] </a-select-option>
                               </a-select>
-                            </a-col>
-                          </a-row>
-                        </a-list-item>
-                      </a-collapse-panel>
-                    </a-collapse>
-                  </a-list-item>
-                  <a-list-item style="padding: 20px">
-                    <a-row>
-                      <a-col :lg="24" :xl="12">
-                        <a-list-item-meta title='{{ i18n "pages.settings.direct"}}'>
-                          <template slot="description">{{ i18n "pages.settings.directDesc"}}</template>
-                        </a-list-item-meta>
-                      </a-col>
-                      <a-col :lg="24" :xl="12">
+                            </template>
+                          </a-setting-list-item>
+                        </a-collapse-panel>
+                      </a-collapse>
+                    </a-list-item>
+                  </a-collapse-panel>
+                  <a-collapse-panel header='{{ i18n "pages.settings.direct" }}'>
+                    <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.direct"}}</template>
+                      <template #description>{{ i18n "pages.settings.directDesc"}}</template>
+                      <template #control>
                         <a-switch v-model="enableDirect"></a-switch>
-                      </a-col>
-                    </a-row>
-                    <a-collapse v-if="enableDirect" style="margin-top: 14px;">
-                      <a-collapse-panel header='{{ i18n "pages.settings.direct"}}'>
-                        <a-list-item>
-                            <a-row style="padding: 0 20px">
-                                <a-col :lg="24" :xl="12">
-                                    <a-list-item-meta 
-                                        title='{{ i18n "pages.xray.directips" }}'/>
-                                </a-col>
-                                <a-col :lg="24" :xl="12">
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="directIPs"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in directIPsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </a-col>
-                            </a-row>
-                        </a-list-item>
-                        <a-list-item>
-                            <a-row style="padding: 0 20px">
-                                <a-col :lg="24" :xl="12">
-                                    <a-list-item-meta 
-                                        title='{{ i18n "pages.xray.directdomains" }}'/>
-                                </a-col>
-                                <a-col :lg="24" :xl="12">
-                                    <a-select mode="tags" style="width: 100%"
-                                    v-model="directDomains"
-                                    :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="p.value" :label="p.label"
-                                            v-for="p in diretDomainsOptions"> [[ p.label ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </a-col>
-                            </a-row>
-                        </a-list-item>
-                      </a-collapse-panel>
-                    </a-collapse>
-                  </a-list-item>
-                </a-list>
+                      </template>
+                    </a-setting-list-item>
+                    <a-list-item v-if="enableDirect" style="padding: 10px 20px;">
+                      <a-collapse>
+                        <a-collapse-panel header='{{ i18n "pages.settings.direct"}}'>
+                          <a-setting-list-item paddings="small">
+                            <template #title>{{ i18n "pages.xray.directips" }}</template>
+                            <template #control>
+                              <a-select mode="tags" style="width: 100%" v-model="directIPs" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in directIPsOptions">[[ p.label ]]</a-select-option>
+                              </a-select>
+                            </template>
+                          </a-setting-list-item>
+                          <a-setting-list-item paddings="small">
+                            <template #title>{{ i18n "pages.xray.directdomains" }}</template>
+                            <template #control>
+                              <a-select mode="tags" style="width: 100%" v-model="directDomains" :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in diretDomainsOptions">[[ p.label ]]</a-select-option>
+                              </a-select>
+                            </template>
+                          </a-setting-list-item>
+                        </a-collapse-panel>
+                      </a-collapse>
+                    </a-list-item>
+                  </a-collapse-panel>
+                </a-collapse>
               </a-tab-pane>
             </a-tabs>
           </a-space>
