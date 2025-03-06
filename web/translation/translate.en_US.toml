@@ -470,7 +470,7 @@
 "poolSize" = "Pool Size"
 
 [pages.settings.security]
-"admin" = "Admin credentinals"
+"admin" = "Admin credentials"
 "secret" = "Secret Token"
 "loginSecurity" = "Secure Login"
 "loginSecurityDesc" = "Adds an additional layer of authentication to provide more security."
