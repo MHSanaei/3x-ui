@@ -328,6 +328,8 @@
 "proxyAndServer" = "Прокси и сервер"
 "intervals" = "Интервалы"
 "information" = "Информация"
+"language" = "Язык"
+"telegramBotLanguage" = "Язык Telegram-бота"
 
 [pages.xray]
 "title" = "Настройки Xray"

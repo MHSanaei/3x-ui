@@ -328,6 +328,8 @@
 "proxyAndServer" = "پراکسی و سرور"
 "intervals" = "فواصل"
 "information" = "اطلاعات"
+"language" = "زبان"
+"telegramBotLanguage" = "زبان ربات تلگرام"
 
 [pages.xray]
 "title" = "پیکربندی ایکس‌ری"

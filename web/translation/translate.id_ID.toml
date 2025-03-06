@@ -327,6 +327,8 @@
 "proxyAndServer" = "Proxy dan Server"
 "intervals" = "Interval"
 "information" = "Informasi"
+"language" = "Bahasa"
+"telegramBotLanguage" = "Bahasa Bot Telegram"
 
 [pages.xray]
 "title" = "Konfigurasi Xray"

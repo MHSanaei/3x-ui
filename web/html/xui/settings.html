@@ -175,7 +175,7 @@
                       </template>
                     </a-setting-list-item>
                     <a-setting-list-item paddings="small">
-                      <template #title>Language</template>
+                      <template #title>{{ i18n "pages.settings.language"}}</template>
                       <template #control>
                         <a-select ref="selectLang"
                             v-model="lang"
@@ -341,7 +341,7 @@
                       </template>
                     </a-setting-list-item>
                     <a-setting-list-item paddings="small">
-                      <template #title>Telegram Bot Language</template>
+                      <template #title>{{ i18n "pages.settings.telegramBotLanguage"}}</template>
                       <template #control>
                         <a-select ref="selectBotLang" v-model="allSetting.tgLang" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
                           <a-select-option :value="l.value" :label="l.value" v-for="l in supportLangs">

@@ -328,6 +328,8 @@
 "proxyAndServer" = "Proxy và máy chủ"
 "intervals" = "Khoảng thời gian"
 "information" = "Thông tin"
+"language" = "Ngôn ngữ"
+"telegramBotLanguage" = "Ngôn ngữ của Bot Telegram"
 
 [pages.xray]
 "title" = "Cài đặt Xray"

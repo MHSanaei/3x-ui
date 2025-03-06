@@ -328,6 +328,8 @@
 "proxyAndServer" = "代理和服务器"
 "intervals" = "间隔"
 "information" = "信息"
+"language" = "语言"
+"telegramBotLanguage" = "Telegram 机器人语言"
 
 [pages.xray]
 "title" = "Xray 配置"

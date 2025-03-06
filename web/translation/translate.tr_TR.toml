@@ -328,6 +328,8 @@
 "proxyAndServer" = "Proxy ve Sunucu"
 "intervals" = "Aralıklar"
 "information" = "Bilgi"
+"language" = "Dil"
+"telegramBotLanguage" = "Telegram Bot Dili"
 
 [pages.xray]
 "title" = "Xray Yapılandırmaları"

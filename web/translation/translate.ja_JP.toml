@@ -328,6 +328,8 @@
 "proxyAndServer" = "プロキシとサーバー"
 "intervals" = "間隔"
 "information" = "情報"
+"language" = "言語"
+"telegramBotLanguage" = "Telegram Botの言語"
 
 [pages.xray]
 "title" = "Xray 設定"
