@@ -321,7 +321,15 @@
 "muxSett" = "マルチプレクサ設定"
 "direct" = "直接接続"
 "directDesc" = "特定の国のドメインまたはIP範囲に直接接続する"
-
+"notifications" = "通知"
+"certs" = "証明書"
+"externalTraffic" = "外部トラフィック"
+"dateAndTime" = "日付と時刻"
+"proxyAndServer" = "プロキシとサーバー"
+"intervals" = "間隔"
+"information" = "情報"
+"language" = "言語"
+"telegramBotLanguage" = "Telegram Botの言語"
 
 [pages.xray]
 "title" = "Xray 設定"
@@ -462,7 +470,7 @@
 "poolSize" = "プールサイズ"
 
 [pages.settings.security]
-"admin" = "管理者"
+"admin" = "管理者の資格情報"
 "secret" = "セキュリティトークン"
 "loginSecurity" = "ログインセキュリティ"
 "loginSecurityDesc" = "追加の認証を追加してセキュリティを向上させる"

@@ -321,7 +321,15 @@
 "muxSett" = "Налаштування Mux"
 "direct" = "Пряме підключення"
 "directDesc" = "Безпосередньо встановлює з’єднання з доменами або діапазонами IP певної країни."
-
+"notifications" = "Сповіщення"
+"certs" = "Сертифікати"
+"externalTraffic" = "Зовнішній трафік"
+"dateAndTime" = "Дата та час"
+"proxyAndServer" = "Проксі та сервер"
+"intervals" = "Інтервали"
+"information" = "Інформація"
+"language" = "Мова"
+"telegramBotLanguage" = "Мова Telegram-бота"
 
 [pages.xray]
 "title" = "Xray конфігурації"
@@ -462,7 +470,7 @@
 "poolSize" = "Розмір пулу"
 
 [pages.settings.security]
-"admin" = "Адміністратор"
+"admin" = "Облікові дані адміністратора"
 "secret" = "Секретний маркер"
 "loginSecurity" = "Безпечний вхід"
 "loginSecurityDesc" = "Додає додатковий рівень автентифікації для забезпечення більшої безпеки."

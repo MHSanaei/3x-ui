@@ -321,7 +321,15 @@
 "muxSett" = "تنظیمات ماکس"
 "direct" = "اتصال مستقیم"
 "directDesc" = "به طور مستقیم با دامنه ها یا محدوده آی‌پی یک کشور خاص ارتباط برقرار می کند"
-
+"notifications" = "اعلان‌ها"
+"certs" = "گواهی‌ها"
+"externalTraffic" = "ترافیک خارجی"
+"dateAndTime" = "تاریخ و زمان"
+"proxyAndServer" = "پراکسی و سرور"
+"intervals" = "فواصل"
+"information" = "اطلاعات"
+"language" = "زبان"
+"telegramBotLanguage" = "زبان ربات تلگرام"
 
 [pages.xray]
 "title" = "پیکربندی ایکس‌ری"
@@ -462,7 +470,7 @@
 "poolSize" = "اندازه استخر"
 
 [pages.settings.security]
-"admin" = "مدیر"
+"admin" = "اعتبارنامه‌های ادمین"
 "secret" = "توکن مخفی"
 "loginSecurity" = "ورود ایمن"
 "loginSecurityDesc" = "یک لایه اضافی از احراز هویت برای ایجاد امنیت بیشتر اضافه می کند"

@@ -321,7 +321,15 @@
 "muxSett" = "Mux Ayarları"
 "direct" = "Doğrudan Bağlantı"
 "directDesc" = "Belirli bir ülkenin alan adları veya IP aralıkları ile doğrudan bağlantı kurar."
-
+"notifications" = "Bildirimler"
+"certs" = "Sertifikalar"
+"externalTraffic" = "Harici Trafik"
+"dateAndTime" = "Tarih ve Saat"
+"proxyAndServer" = "Proxy ve Sunucu"
+"intervals" = "Aralıklar"
+"information" = "Bilgi"
+"language" = "Dil"
+"telegramBotLanguage" = "Telegram Bot Dili"
 
 [pages.xray]
 "title" = "Xray Yapılandırmaları"
@@ -462,7 +470,7 @@
 "poolSize" = "Havuz Boyutu"
 
 [pages.settings.security]
-"admin" = "Yönetici"
+"admin" = "Yönetici kimlik bilgileri"
 "secret" = "Gizli Anahtar"
 "loginSecurity" = "Güvenli Giriş"
 "loginSecurityDesc" = "Daha fazla güvenlik sağlamak için ek bir kimlik doğrulama katmanı ekler."
