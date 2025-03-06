@@ -14,7 +14,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/valyala/fasthttp v1.59.0
-	github.com/xtls/xray-core v1.8.25-0.20250221075831-be43f66b63d5
+	github.com/xtls/xray-core v1.8.25-0.20250306135015-2cba2c4d59e4
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.23.0
 	google.golang.org/grpc v1.71.0
@@ -82,7 +82,7 @@ require (
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
 	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/net v0.36.0 // indirect
+	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
@@ -93,5 +93,5 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20240320123526-dc6abceb7ff0 // indirect
-	lukechampine.com/blake3 v1.3.0 // indirect
+	lukechampine.com/blake3 v1.4.0 // indirect
 )
