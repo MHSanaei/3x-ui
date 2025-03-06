@@ -102,13 +102,16 @@ func (a *SUBController) subs(c *gin.Context) {
 				c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
 			} else {
 				c.HTML(200, "sub.html", gin.H{
-					"result":   resultSlice,
-					"total":    totalValue,
-					"expire":   expireValue,
-					"upload":   upValue,
-					"download": downValue,
-					"sId":      subId,
-					"subUrl":   currentURL,
+					"result":       resultSlice,
+					"total":        totalValue,
+					"expire":       expireValue,
+					"upload":       upValue,
+					"download":     downValue,
+					"totalByte":    headerMap["total"],
+					"uploadByte":   headerMap["upload"],
+					"downloadByte": headerMap["download"],
+					"sId":          subId,
+					"subUrl":       currentURL,
 				})
 			}
 		} else {
