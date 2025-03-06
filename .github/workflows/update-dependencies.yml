@@ -74,7 +74,7 @@ jobs:
           echo "Updating standard Go dependencies..."
           go list -f '{{if not (or .Main .Indirect)}}{{.Path}}{{end}}' -m all | \
             grep -v 'gvisor.dev/gvisor' | \
-            grep -v 'github.com/mymmrac/telego' | \
+            #grep -v 'github.com/mymmrac/telego' | \
             grep -v 'github.com/xtls/xray-core' | \
             xargs -r go get -u
           
