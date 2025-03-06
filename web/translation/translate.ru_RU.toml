@@ -321,7 +321,13 @@
 "muxSett" = "Mux Настройки"
 "direct" = "Прямая связь"
 "directDesc" = "Устанавливает прямые соединения с доменами или IP-адресами определённой страны."
-
+"notifications" = "Уведомления"
+"certs" = "Сертификаты"
+"externalTraffic" = "Внешний трафик"
+"dateAndTime" = "Дата и время"
+"proxyAndServer" = "Прокси и сервер"
+"intervals" = "Интервалы"
+"information" = "Информация"
 
 [pages.xray]
 "title" = "Настройки Xray"
@@ -462,7 +468,7 @@
 "poolSize" = "Размер пула"
 
 [pages.settings.security]
-"admin" = "Админ"
+"admin" = "Учетные данные администратора"
 "secret" = "Секретный токен"
 "loginSecurity" = "Безопасность входа"
 "loginSecurityDesc" = "Включить дополнительные меры безопасности входа пользователя"
