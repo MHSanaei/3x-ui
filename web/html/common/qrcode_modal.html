@@ -10,7 +10,7 @@
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
           <tr-qr-bg-inner class="qr-bg-sub-inner">
-            <canvas @click="copyToClipboard('qrCode-sub',genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
+            <canvas @click="copyToClipboard(genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
           </tr-qr-bg-inner>
         </tr-qr-bg>
       </tr-qr-box>
@@ -18,7 +18,7 @@
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}} Json</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
           <tr-qr-bg-inner class="qr-bg-sub-inner">
-            <canvas @click="copyToClipboard('qrCode-subJson',genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
+            <canvas @click="copyToClipboard(genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
           </tr-qr-bg-inner>
         </tr-qr-bg>
       </tr-qr-box>
@@ -27,7 +27,7 @@
       <tr-qr-box class="qr-box">
         <a-tag color="green" class="qr-tag"><span>[[ row.remark ]]</span></a-tag>
         <tr-qr-bg class="qr-bg">
-          <canvas @click="copyToClipboard('qrCode-'+index, row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
+          <canvas @click="copyToClipboard(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
         </tr-qr-bg>
       </tr-qr-box>
     </template>
@@ -41,7 +41,6 @@
     dbInbound: new DBInbound(),
     client: null,
     qrcodes: [],
-    clipboard: null,
     visible: false,
     subId: '',
     show: function(title = '', dbInbound, client) {
@@ -79,14 +78,10 @@
       qrModal: qrModal,
     },
     methods: {
-      copyToClipboard(elementId, content) {
-        this.qrModal.clipboard = new ClipboardJS('#' + elementId, {
-          text: () => content,
-        });
-        this.qrModal.clipboard.on('success', () => {
+      copyToClipboard(content) {
+        return copyToClipboard(content).then(() => {
           app.$message.success('{{ i18n "copied" }}')
-          this.qrModal.clipboard.destroy();
-        });
+        })
       },
       setQrCode(elementId, content) {
         new QRious({
