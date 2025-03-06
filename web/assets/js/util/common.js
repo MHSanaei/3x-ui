@@ -64,6 +64,24 @@ function formatSecond(second) {
     }
 }
 
+function copyToClipboard(text) {
+    // !! here old way of copying is used because not everyone can afford https connection
+    return new Promise((resolve) => {
+        const textarea = document.createElement("textarea");
+
+        textarea.value = text;
+
+        document.body.appendChild(textarea);
+
+        textarea.select();
+        document.execCommand("copy");
+
+        document.body.removeChild(textarea);
+
+        resolve(text)
+    })
+}  
+
 function addZero(num) {
     if (num < 10) {
         return "0" + num;

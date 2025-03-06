@@ -7,7 +7,7 @@
             :href="'data:application/text;charset=utf-8,' + encodeURIComponent(txtModal.content)"
             :download="txtModal.fileName">[[ txtModal.fileName ]]
         </a-button>
-            <a-button type="primary" id="copy-btn">{{ i18n "copy" }}</a-button>
+        <a-button type="primary" @click="txtModal.copy(txtModal.content)">{{ i18n "copy" }}</a-button>
     </template>
     <a-input style="overflow-y: auto;" type="textarea" v-model="txtModal.content"
         :autosize="{ minRows: 10, maxRows: 20}"></a-input>
@@ -20,24 +20,18 @@
         content: '',
         fileName: '',
         qrcode: null,
-        clipboard: null,
         visible: false,
         show: function (title = '', content = '', fileName = '') {
             this.title = title;
             this.content = content;
             this.fileName = fileName;
             this.visible = true;
-            textModalApp.$nextTick(() => {
-                if (this.clipboard === null) {
-                    this.clipboard = new ClipboardJS('#copy-btn', {
-                        text: () => this.content,
-                    });
-                    this.clipboard.on('success', () => {
-                        app.$message.success('{{ i18n "copied" }}')
-                        this.close();
-                    });
-                }
-            });
+        },
+        copy: function (content = '') {
+            copyToClipboard(content).then(() => {
+                app.$message.success('{{ i18n "copied" }}')
+                this.close();
+            })
         },
         close: function () {
             this.visible = false;

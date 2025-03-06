@@ -258,7 +258,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="purple">Subscription Link</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" id="copy-sub-link" @click="copyToClipboard('copy-sub-link', infoModal.subLink)"></a-button>
+              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.subLink)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a>
@@ -267,7 +267,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="purple">Json Link</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" id="copy-subJson-link" @click="copyToClipboard('copy-subJson-link', infoModal.subJsonLink)"></a-button>
+              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.subJsonLink)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <a :href="[[ infoModal.subJsonLink ]]" target="_blank">[[ infoModal.subJsonLink ]]</a>
@@ -279,7 +279,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="blue">[[ infoModal.clientSettings.tgId ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" id="copy-tg-link" @click="copyToClipboard('copy-tg-link', infoModal.clientSettings.tgId)"></a-button>
+              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.clientSettings.tgId)"></a-button>
             </a-tooltip>
           </tr-info-title>
         </tr-info-row>
@@ -290,7 +290,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)"></a-button>
+              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -304,7 +304,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, link.link)"></a-button>
+              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -431,7 +431,7 @@
                 <tr-info-title class="tr-info-title">
                   <a-tag color="blue">Config</a-tag>
                   <a-tooltip title='{{ i18n "copy" }}'>
-                    <a-button style="min-width: 24px;" size="small" icon="snippets" :id="'copy-url-link-'+index" @click="copyToClipboard('copy-url-link-'+index, infoModal.links[index])"></a-button>
+                    <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(infoModal.links[index])"></a-button>
                   </a-tooltip>
                 </tr-info-title>
                 <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)" style="border-radius: 1rem; padding: 0.5rem;" class="client-table-odd-row">
@@ -464,7 +464,6 @@
     clientStats: [],
     upStats: 0,
     downStats: 0,
-    clipboard: null,
     links: [],
     index: null,
     isExpired: false,
@@ -533,14 +532,10 @@
       },
     },
     methods: {
-      copyToClipboard(elementId, content) {
-        this.infoModal.clipboard = new ClipboardJS('#' + elementId, {
-          text: () => content,
-        });
-        this.infoModal.clipboard.on('success', () => {
+      copyToClipboard(content) {
+        return copyToClipboard(content).then(() => {
           app.$message.success('{{ i18n "copied" }}')
-          this.infoModal.clipboard.destroy();
-        });
+        })
       },
       statsColor(stats) {
         return usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
