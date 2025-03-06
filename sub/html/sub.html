@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 
 <head>
@@ -8,10 +8,10 @@
     <title>{{ .sId }} - Sub Info</title>
     <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss-with-all-plugins.js"></script>
     <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@33.003/Vazirmatn-Variable-font-face.css"
-          rel="stylesheet" type="text/css"/>
+          rel="stylesheet" type="text/css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
           integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
-          crossorigin="anonymous"/>
+          crossorigin="anonymous" />
     <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"
             integrity="sha256-25ncr0CpJhgbzkUiR3wu/Fkk9sSykRG2qX+upHfJUos=" crossorigin="anonymous"></script>
@@ -20,17 +20,17 @@
 <body class="flex items-center justify-center min-h-screen bg-gray-900 text-white font-[Vazirmatn] mr-4 ml-4">
 <div class="container text-center bg-gray-800 p-8 rounded-lg shadow-lg">
     <h1 class="text-2xl font-bold mb-4">اطلاعات سابسکریپشن</h1>
-    <canvas id="qrcode" class="rounded-md inline mt-2 mb-2"></canvas>
+    <canvas id="qrcode" class="rounded-md inline mt-2 mb-3"></canvas>
     <div class="text-lg mb-2"><i class="fa-regular fa-id-badge"></i> شناسه اشتراک : {{ .sId }}</div>
+    <div class="mb-2"><i class="fa-solid fa-circle-info"></i> وضعیت اشتراک : <span id="status"></span></div>
     <div class="mb-2"><i class=" fa-solid fa-download"></i> دانلود : {{ .download }}</div>
     <div class="mb-2"><i class=" fa-solid fa-upload"></i> آپلود : {{ .upload }}</div>
     <div class="mb-2"><i class="fa-regular fa-calendar"></i> تاریخ پایان : <span id="timestamp"></span></div>
-    <div class="mb-4"><i class="fa-regular fa-star"></i> حجم کلی : {{ .total }}</div>
+    <div class="mb-4"><i class="fa-regular fa-star"></i> حجم کلی : <span id="total"></span></div>
     <div class="bg-gray-700 rounded-lg shadow-lg p-4 font-mono flow-text break-words">
         {{ range .result }}
         <div class="text-gray-400 text-sm">
-            <button onclick="copyToClipboard('{{ . }}')"><i
-                    class="fa-regular fa-copy"></i></button>
+            <button onclick="copyToClipboard('{{ . }}')"><i class="fa-regular fa-copy"></i></button>
             {{ . }}
         </div>
         {{ end }}
@@ -50,7 +50,27 @@
         // Format the Jalali date
         const formattedJalaliDate = `${jalaliDate.jy}/${jalaliDate.jm}/${jalaliDate.jd}`;
         // Display the Jalali date in the HTML
-        humanDateElement.textContent = formattedJalaliDate;
+        if ('{{ .expire }}' === '0') {
+            humanDateElement.textContent = 'بدون انقضا';
+        } else {
+            humanDateElement.textContent = formattedJalaliDate;
+        }
+        // Get the HTML element to display the status.
+        const statusElement = document.getElementById('status');
+        if (timestamp >= Date.now() && '{{ .downloadByte}}' + '{{ .uploadByte }}' <= '{{ .totalByte }}') {
+            statusElement.textContent = 'فعال';
+        } else {
+            if ('{{ .totalByte }}' === '0') {
+                statusElement.textContent = 'نامحدود';
+            } else {
+                statusElement.textContent = 'غیرفعال';
+            }
+        }
+        if ('{{ .totalByte }}' === '0') {
+            document.getElementById('total').textContent = '∞';
+        } else {
+            document.getElementById('total').textContent = '{{ .total }}';
+        }
 
         function copyToClipboard(text) {
             navigator.clipboard.writeText(text);
