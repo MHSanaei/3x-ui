@@ -39,17 +39,6 @@ function cpuCoreFormat(cores) {
     }
 }
 
-function base64(str) {
-    return Base64.encode(str);
-}
-
-function safeBase64(str) {
-    return base64(str)
-        .replace(/\+/g, '-')
-        .replace(/=/g, '')
-        .replace(/\//g, '_');
-}
-
 function formatSecond(second) {
     if (second < 60) {
         return second.toFixed(0) + 's';

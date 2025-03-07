@@ -479,3 +479,20 @@ class Wireguard {
         };
     }
 }
+
+class Base64 {
+    static encode(content = "", safe = false) {
+        if (safe) {
+            return window.btoa(content)
+                .replace(/\+/g, '-')
+                .replace(/=/g, '')
+                .replace(/\//g, '_')
+        }
+
+        return window.btoa(content)
+    }
+
+    static decode(content = "") {
+        return window.atob(content)
+    }
+}

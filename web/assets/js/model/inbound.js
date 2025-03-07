@@ -1302,7 +1302,7 @@ class Inbound extends XrayCommonClass {
             }
         }
 
-        return 'vmess://' + base64(JSON.stringify(obj, null, 2));
+        return 'vmess://' + Base64.encode(JSON.stringify(obj, null, 2));
     }
 
     genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow) {
@@ -1474,7 +1474,7 @@ class Inbound extends XrayCommonClass {
         if (this.isSS2022) password.push(settings.password);
         if (this.isSSMultiUser) password.push(clientPassword);
 
-        let link = `ss://${safeBase64(settings.method + ':' + password.join(':'))}@${address}:${port}`;
+        let link = `ss://${Base64.encode(`${settings.method}:${password.join(':')}`, true)}@${address}:${port}`;
         const url = new URL(link);
         for (const [key, value] of params) {
             url.searchParams.set(key, value)
