@@ -1837,11 +1837,11 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         }
     }
     get _totalGB() {
-        return toFixed(this.totalGB / ONE_GB, 2);
+        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
     }
 
     set _totalGB(gb) {
-        this.totalGB = toFixed(gb * ONE_GB, 0);
+        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 
 };
@@ -1947,11 +1947,11 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         }
     }
     get _totalGB() {
-        return toFixed(this.totalGB / ONE_GB, 2);
+        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
     }
 
     set _totalGB(gb) {
-        this.totalGB = toFixed(gb * ONE_GB, 0);
+        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 };
 Inbound.VLESSSettings.Fallback = class extends XrayCommonClass {
@@ -2099,11 +2099,11 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         }
     }
     get _totalGB() {
-        return toFixed(this.totalGB / ONE_GB, 2);
+        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
     }
 
     set _totalGB(gb) {
-        this.totalGB = toFixed(gb * ONE_GB, 0);
+        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 
 };
@@ -2263,11 +2263,11 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         }
     }
     get _totalGB() {
-        return toFixed(this.totalGB / ONE_GB, 2);
+        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
     }
 
     set _totalGB(gb) {
-        this.totalGB = toFixed(gb * ONE_GB, 0);
+        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 
 };

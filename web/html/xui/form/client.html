@@ -126,10 +126,10 @@
         <a-input-number v-model.number="client._totalGB" :min="0"></a-input-number>
     </a-form-item>
     <a-form-item v-if="isEdit && clientStats" label='{{ i18n "usage" }}'>
-        <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">
-            [[ sizeFormat(clientStats.up) ]] /
-            [[ sizeFormat(clientStats.down) ]]
-            ([[ sizeFormat(clientStats.up + clientStats.down) ]])
+        <a-tag :color="ColorUtils.clientUsageColor(clientStats, app.trafficDiff)">
+            [[ SizeFormatter.sizeFormat(clientStats.up) ]] /
+            [[ SizeFormatter.sizeFormat(clientStats.down) ]]
+            ([[ SizeFormatter.sizeFormat(clientStats.up + clientStats.down) ]])
         </a-tag>
         <a-tooltip>
             <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>

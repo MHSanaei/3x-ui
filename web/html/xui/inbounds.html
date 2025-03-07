@@ -141,11 +141,11 @@
             <a-row>
               <a-col :xs="24" :sm="24" :lg="12">
                 {{ i18n "pages.inbounds.totalDownUp" }}:
-                <a-tag color="green">[[ sizeFormat(total.up) ]] / [[ sizeFormat(total.down) ]]</a-tag>
+                <a-tag color="green">[[ SizeFormatter.sizeFormat(total.up) ]] / [[ SizeFormatter.sizeFormat(total.down) ]]</a-tag>
               </a-col>
               <a-col :xs="24" :sm="24" :lg="12">
                 {{ i18n "pages.inbounds.totalUsage" }}:
-                <a-tag color="green">[[ sizeFormat(total.up + total.down) ]]</a-tag>
+                <a-tag color="green">[[ SizeFormatter.sizeFormat(total.up + total.down) ]]</a-tag>
               </a-col>
               <a-col :xs="24" :sm="24" :lg="12">
                 {{ i18n "pages.inbounds.inboundCount" }}:
@@ -375,19 +375,19 @@
                   <template slot="content">
                     <table cellpadding="2" width="100%">
                       <tr>
-                        <td>↑[[ sizeFormat(dbInbound.up) ]]</td>
-                        <td>↓[[ sizeFormat(dbInbound.down) ]]</td>
+                        <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
+                        <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                       </tr>
                       <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
                         <td>{{ i18n "remained" }}</td>
-                        <td>[[ sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
+                        <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
                       </tr>
                     </table>
                   </template>
-                  <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                    [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
+                  <a-tag :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
+                    [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
                     <template v-if="dbInbound.total > 0">
-                        [[ sizeFormat(dbInbound.total) ]]
+                        [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
                     </template>
                     <template v-else>
                       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -408,7 +408,7 @@
                   <template v-else slot="content">
                     [[ DateUtil.convertToJalalian(moment(dbInbound.expiryTime)) ]]
                   </template>
-                  <a-tag style="min-width: 50px;" :color="usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
+                  <a-tag style="min-width: 50px;" :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
                     [[ remainedDays(dbInbound._expiryTime) ]]
                   </a-tag>
                 </a-popover>
@@ -474,19 +474,19 @@
                             <template slot="content">
                               <table cellpadding="2" width="100%">
                                 <tr>
-                                  <td>↑[[ sizeFormat(dbInbound.up) ]]</td>
-                                  <td>↓[[ sizeFormat(dbInbound.down) ]]</td>
+                                  <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
+                                  <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                                 </tr>
                                 <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
                                   <td>{{ i18n "remained" }}</td>
-                                  <td>[[ sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
+                                  <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
                                 </tr>
                               </table>
                             </template>
-                            <a-tag :color="usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                                [[ sizeFormat(dbInbound.up + dbInbound.down) ]] /
+                            <a-tag :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
+                                [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
                                 <template v-if="dbInbound.total > 0">
-                                    [[ sizeFormat(dbInbound.total) ]]
+                                    [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
                                 </template>
                               <template v-else>
                                 <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -1274,9 +1274,9 @@
                 return remained>0 ? remained : 0;
             },
             clientStatsColor(dbInbound, email) {
-                if (email.length == 0) return clientUsageColor();
+                if (email.length == 0) return ColorUtils.clientUsageColor();
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
-                return clientUsageColor(clientStats, app.trafficDiff)
+                return ColorUtils.clientUsageColor(clientStats, app.trafficDiff)
             },
             statsProgress(dbInbound, email) {
                 if (email.length == 0) return 100;
@@ -1294,17 +1294,17 @@
             },
             remainedDays(expTime){
                 if (expTime == 0) return null;
-                if (expTime < 0) return formatSecond(expTime/-1000);
+                if (expTime < 0) return TimeFormatter.formatSecond(expTime/-1000);
                 now = new Date().getTime();
                 if (expTime < now) return '{{ i18n "depleted" }}';
-                return formatSecond((expTime-now)/1000);
+                return TimeFormatter.formatSecond((expTime-now)/1000);
             },
             statsExpColor(dbInbound, email){
                 if (email.length == 0) return '#7a316f';
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
                 if (!clientStats) return '#7a316f';
-                statsColor = usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
-                expColor = usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
+                statsColor = ColorUtils.usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
+                expColor = ColorUtils.usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
                 switch (true) {
                     case statsColor == "red" || expColor == "red":
                         return "#cf3c3c"; // Red
@@ -1438,7 +1438,7 @@
             }
         },
         watch: {
-            searchKey: debounce(function (newVal) {
+            searchKey: Utils.debounce(function (newVal) {
                 this.searchInbounds(newVal);
             }, 500)
         },
