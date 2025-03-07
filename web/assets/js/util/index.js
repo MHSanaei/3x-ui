@@ -479,3 +479,194 @@ class Wireguard {
         };
     }
 }
+
+class ClipboardManager {
+    static copyText(content = "") {
+        // !! here old way of copying is used because not everyone can afford https connection
+        return new Promise((resolve) => {
+            try {
+                const textarea = window.document.createElement('textarea');
+    
+                textarea.style.fontSize = '12pt';
+                textarea.style.border = '0';
+                textarea.style.padding = '0';
+                textarea.style.margin = '0';
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px';
+                textarea.style.top = `${window.pageYOffset || document.documentElement.scrollTop}px`;
+                textarea.setAttribute('readonly', '');
+                textarea.value = content;
+    
+                window.document.body.appendChild(textarea);
+    
+                textarea.select();
+                window.document.execCommand("copy");
+    
+                window.document.body.removeChild(textarea);
+    
+                resolve(true)
+            } catch {
+                resolve(false)
+            }
+        })
+    }
+}
+
+class Base64 {
+    static encode(content = "", safe = false) {
+        if (safe) {
+            return window.btoa(content)
+                .replace(/\+/g, '-')
+                .replace(/=/g, '')
+                .replace(/\//g, '_')
+        }
+
+        return window.btoa(content)
+    }
+
+    static decode(content = "") {
+        return window.atob(content)
+    }
+}
+
+class SizeFormatter {
+    static ONE_KB = 1024;
+    static ONE_MB = this.ONE_KB * 1024;
+    static ONE_GB = this.ONE_MB * 1024;
+    static ONE_TB = this.ONE_GB * 1024;
+    static ONE_PB = this.ONE_TB * 1024;
+
+    static sizeFormat(size) {
+        if (size <= 0) return "0 B";
+        if (size < this.ONE_KB) return size.toFixed(0) + " B";
+        if (size < this.ONE_MB) return (size / this.ONE_KB).toFixed(2) + " KB";
+        if (size < this.ONE_GB) return (size / this.ONE_MB).toFixed(2) + " MB";
+        if (size < this.ONE_TB) return (size / this.ONE_GB).toFixed(2) + " GB";
+        if (size < this.ONE_PB) return (size / this.ONE_TB).toFixed(2) + " TB";
+        return (size / this.ONE_PB).toFixed(2) + " PB";
+    }
+}
+
+class CPUFormatter {
+    static cpuSpeedFormat(speed) {
+        return speed > 1000 ? (speed / 1000).toFixed(2) + " GHz" : speed.toFixed(2) + " MHz";
+    }
+    
+    static cpuCoreFormat(cores) {
+        return cores === 1 ? "1 Core" : cores + " Cores";
+    }
+}
+
+class TimeFormatter {
+    static formatSecond(second) {
+        if (second < 60) return second.toFixed(0) + 's';
+        if (second < 3600) return (second / 60).toFixed(0) + 'm';
+        if (second < 3600 * 24) return (second / 3600).toFixed(0) + 'h';
+        let day = Math.floor(second / 3600 / 24);
+        let remain = ((second / 3600) - (day * 24)).toFixed(0);
+        return day + 'd' + (remain > 0 ? ' ' + remain + 'h' : '');
+    }
+}
+
+class NumberFormatter {
+    static addZero(num) {
+        return num < 10 ? "0" + num : num;
+    }
+    
+    static toFixed(num, n) {
+        n = Math.pow(10, n);
+        return Math.floor(num * n) / n;
+    }
+}
+
+class Utils {
+    static debounce(fn, delay) {
+        let timeoutID = null;
+        return function () {
+            clearTimeout(timeoutID);
+            let args = arguments;
+            let that = this;
+            timeoutID = setTimeout(() => fn.apply(that, args), delay);
+        };
+    }
+}
+
+class CookieManager {
+    static getCookie(cname) {
+        let name = cname + '=';
+        let ca = document.cookie.split(';');
+        for (let c of ca) {
+            c = c.trim();
+            if (c.indexOf(name) === 0) {
+                return decodeURIComponent(c.substring(name.length, c.length));
+            }
+        }
+        return '';
+    }
+    
+    static setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
+        let expires = 'expires=' + d.toUTCString();
+        document.cookie = cname + '=' + encodeURIComponent(cvalue) + ';' + expires + ';path=/';
+    }
+}
+
+class ColorUtils {
+    static usageColor(data, threshold, total) {
+        switch (true) {
+            case data === null: return "purple";
+            case total < 0: return "green";
+            case total == 0: return "purple";
+            case data < total - threshold: return "green";
+            case data < total: return "orange";
+            default: return "red";
+        }
+    }
+    
+    static clientUsageColor(clientStats, trafficDiff) {
+        switch (true) {
+            case !clientStats || clientStats.total == 0: return "#7a316f";
+            case clientStats.up + clientStats.down < clientStats.total - trafficDiff: return "#008771";
+            case clientStats.up + clientStats.down < clientStats.total: return "#f37b24";
+            default: return "#cf3c3c";
+        }
+    }
+    
+    static userExpiryColor(threshold, client, isDark = false) {
+        if (!client.enable) return isDark ? '#2c3950' : '#bcbcbc';
+        let now = new Date().getTime(), expiry = client.expiryTime;
+        switch (true) {
+            case expiry === null: return "#7a316f";
+            case expiry < 0: return "#008771";
+            case expiry == 0: return "#7a316f";
+            case now < expiry - threshold: return "#008771";
+            case now < expiry: return "#f37b24";
+            default: return "#cf3c3c";
+        }
+    }
+}
+
+class ArrayUtils {
+    static doAllItemsExist(array1, array2) {
+        return array1.every(item => array2.includes(item));
+    }
+}
+
+class URLBuilder {
+    static buildURL({ host, port, isTLS, base, path }) {
+        if (!host || host.length === 0) host = window.location.hostname;
+        if (!port || port.length === 0) port = window.location.port;
+        if (isTLS === undefined) isTLS = window.location.protocol === "https:";
+        
+        const protocol = isTLS ? "https:" : "http:";
+        port = String(port);
+        if (port === "" || (isTLS && port === "443") || (!isTLS && port === "80")) {
+            port = "";
+        } else {
+            port = `:${port}`;
+        }
+        
+        return `${protocol}//${host}${port}${base}${path}`;
+    }
+}

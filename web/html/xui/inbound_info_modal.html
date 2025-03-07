@@ -181,8 +181,8 @@
         <tr v-if="infoModal.clientStats">
           <td>{{ i18n "usage" }}</td>
           <td>
-            <a-tag color="green">[[ sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
-            <a-tag>↑ [[ sizeFormat(infoModal.clientStats.up) ]] / [[ sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
+            <a-tag color="green">[[ SizeFormatter.sizeFormat(infoModal.clientStats.up + infoModal.clientStats.down) ]]</a-tag>
+            <a-tag>↑ [[ SizeFormatter.sizeFormat(infoModal.clientStats.up) ]] / [[ SizeFormatter.sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.clientSettings.comment">
@@ -224,7 +224,7 @@
             <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)"> [[ getRemStats() ]] </a-tag>
           </td>
           <td>
-            <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)"> [[ sizeFormat(infoModal.clientSettings.totalGB) ]] </a-tag>
+            <a-tag v-if="infoModal.clientSettings.totalGB > 0" :color="statsColor(infoModal.clientStats)"> [[ SizeFormatter.sizeFormat(infoModal.clientSettings.totalGB) ]] </a-tag>
             <a-tag v-else color="purple" class="infinite-tag">
               <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                 <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
@@ -233,7 +233,7 @@
           </td>
           <td>
             <template v-if="infoModal.clientSettings.expiryTime > 0">
-              <a-tag :color="usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)"> 
+              <a-tag :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)"> 
                 <template v-if="app.datepicker === 'gregorian'">
                   [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
                 </template>
@@ -258,7 +258,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="purple">Subscription Link</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.subLink)"></a-button>
+              <a-button size="small" icon="snippets" @click="copy(infoModal.subLink)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a>
@@ -267,7 +267,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="purple">Json Link</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.subJsonLink)"></a-button>
+              <a-button size="small" icon="snippets" @click="copy(infoModal.subJsonLink)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <a :href="[[ infoModal.subJsonLink ]]" target="_blank">[[ infoModal.subJsonLink ]]</a>
@@ -279,7 +279,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag color="blue">[[ infoModal.clientSettings.tgId ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button size="small" icon="snippets" @click="copyToClipboard(infoModal.clientSettings.tgId)"></a-button>
+              <a-button size="small" icon="snippets" @click="copy(infoModal.clientSettings.tgId)"></a-button>
             </a-tooltip>
           </tr-info-title>
         </tr-info-row>
@@ -290,7 +290,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(link.link)"></a-button>
+              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -304,7 +304,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(link.link)"></a-button>
+              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -431,7 +431,7 @@
                 <tr-info-title class="tr-info-title">
                   <a-tag color="blue">Config</a-tag>
                   <a-tooltip title='{{ i18n "copy" }}'>
-                    <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copyToClipboard(infoModal.links[index])"></a-button>
+                    <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(infoModal.links[index])"></a-button>
                   </a-tooltip>
                 </tr-info-title>
                 <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)" style="border-radius: 1rem; padding: 0.5rem;" class="client-table-odd-row">
@@ -532,17 +532,19 @@
       },
     },
     methods: {
-      copyToClipboard(content) {
-        return copyToClipboard(content).then(() => {
-          app.$message.success('{{ i18n "copied" }}')
-        })
+      copy(content) {
+        ClipboardManager
+          .copyText(content)
+          .then(() => {
+            app.$message.success('{{ i18n "copied" }}')
+          })
       },
       statsColor(stats) {
-        return usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
+        return ColorUtils.usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
       },
       getRemStats() {
         remained = this.infoModal.clientStats.total - this.infoModal.clientStats.up - this.infoModal.clientStats.down;
-        return remained > 0 ? sizeFormat(remained) : '-';
+        return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
       },
       refreshIPs() {
         this.refreshing = true;

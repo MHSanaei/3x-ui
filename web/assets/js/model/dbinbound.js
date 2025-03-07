@@ -25,11 +25,11 @@ class DBInbound {
     }
 
     get totalGB() {
-        return toFixed(this.total / ONE_GB, 2);
+        return NumberFormatter.toFixed(this.total / SizeFormatter.ONE_GB, 2);
     }
 
     set totalGB(gb) {
-        this.total = toFixed(gb * ONE_GB, 0);
+        this.total = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 
     get isVMess() {
