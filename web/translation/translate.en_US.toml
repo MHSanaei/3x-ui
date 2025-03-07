@@ -61,6 +61,10 @@
 "secAlertPanelURI" = "Panel default URI path is insecure. Please configure a complex URI path."
 "secAlertSubURI" = "Subscription default URI path is insecure. Please configure a complex URI path."
 "secAlertSubJsonURI" = "Subscription JSON default URI path is insecure. Please configure a complex URI path."
+"emptyDnsDesc" = "No added DNS servers."
+"emptyFakeDnsDesc" = "No added Fake DNS servers."
+"emptyBalancersDesc" = "No added balancers."
+"emptyReverseDesc" = "No added reverse proxies."
 
 [menu]
 "dashboard" = "Overview"
