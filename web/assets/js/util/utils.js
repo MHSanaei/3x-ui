@@ -480,6 +480,38 @@ class Wireguard {
     }
 }
 
+class ClipboardManager {
+    static copyText(content = "") {
+        // !! here old way of copying is used because not everyone can afford https connection
+        return new Promise((resolve) => {
+            try {
+                const textarea = window.document.createElement('textarea');
+    
+                textarea.style.fontSize = '12pt';
+                textarea.style.border = '0';
+                textarea.style.padding = '0';
+                textarea.style.margin = '0';
+                textarea.style.position = 'absolute';
+                textarea.style.left = '-9999px';
+                textarea.style.top = `${window.pageYOffset || document.documentElement.scrollTop}px`;
+                textarea.setAttribute('readonly', '');
+                textarea.value = content;
+    
+                window.document.body.appendChild(textarea);
+    
+                textarea.select();
+                window.document.execCommand("copy");
+    
+                window.document.body.removeChild(textarea);
+    
+                resolve(true)
+            } catch {
+                resolve(false)
+            }
+        })
+    }
+}
+
 class Base64 {
     static encode(content = "", safe = false) {
         if (safe) {

@@ -883,7 +883,7 @@
                         this.exportSubs(dbInbound.id);
                         break;
                     case "clipboard":
-                        this.copyToClipboard(dbInbound.id);
+                        this.copy(dbInbound.id);
                         break;
                     case "resetTraffic":
                         this.resetTraffic(dbInbound.id);
@@ -1382,9 +1382,9 @@
                 }
                 txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText.join('\r\n'), 'All-Inbounds');
             },
-            copyToClipboard(dbInboundId) {
-                dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-                txtModal.show('{{ i18n "pages.inbounds.inboundData" }}', JSON.stringify(dbInbound, null, 2));
+            copy(dbInboundId) {
+              dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+              txtModal.show('{{ i18n "pages.inbounds.inboundData" }}', JSON.stringify(dbInbound, null, 2));
             },
             async startDataRefreshLoop() {
                 while (this.isRefreshEnabled) {
