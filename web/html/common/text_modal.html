@@ -28,10 +28,12 @@
             this.visible = true;
         },
         copy: function (content = '') {
-            copyToClipboard(content).then(() => {
-                app.$message.success('{{ i18n "copied" }}')
-                this.close();
-            })
+            ClipboardManager
+                .copyText(content)
+                .then(() => {
+                    app.$message.success('{{ i18n "copied" }}')
+                    this.close();
+                })
         },
         close: function () {
             this.visible = false;
