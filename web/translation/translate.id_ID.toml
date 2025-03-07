@@ -61,6 +61,10 @@
 "secAlertPanelURI" = "Jalur URI default panel tidak aman. Harap konfigurasi jalur URI kompleks."
 "secAlertSubURI" = "Jalur URI default langganan tidak aman. Harap konfigurasi jalur URI kompleks."
 "secAlertSubJsonURI" = "Jalur URI default JSON langganan tidak aman. Harap konfigurasikan jalur URI kompleks."
+"emptyDnsDesc" = "Tidak ada server DNS yang ditambahkan."
+"emptyFakeDnsDesc" = "Tidak ada server Fake DNS yang ditambahkan."
+"emptyBalancersDesc" = "Tidak ada penyeimbang yang ditambahkan."
+"emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
 
 [menu]
 "dashboard" = "Ikhtisar"
