@@ -62,20 +62,20 @@ const supportLangs = [
 ];
 
 function getLang() {
-	let lang = getCookie("lang");
+	let lang = CookieManager.getCookie("lang");
 
 	if (!lang) {
 		if (window.navigator) {
 			lang = window.navigator.language || window.navigator.userLanguage;
 
 			if (isSupportLang(lang)) {
-				setCookie("lang", lang, 150);
+				CookieManager.setCookie("lang", lang, 150);
 			} else {
-				setCookie("lang", "en-US", 150);
+				CookieManager.setCookie("lang", "en-US", 150);
 				window.location.reload();
 			}
 		} else {
-			setCookie("lang", "en-US", 150);
+			CookieManager.setCookie("lang", "en-US", 150);
 			window.location.reload();
 		}
 	}
@@ -88,7 +88,7 @@ function setLang(lang) {
 		lang = "en-US";
 	}
 
-	setCookie("lang", lang, 150);
+	CookieManager.setCookie("lang", lang, 150);
 	window.location.reload();
 }
 

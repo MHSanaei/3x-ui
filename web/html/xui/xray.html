@@ -1177,10 +1177,10 @@
             findOutboundTraffic(o) {
                 for (const otraffic of this.outboundsTraffic) {
                     if (otraffic.tag == o.tag) {
-                        return sizeFormat(otraffic.up) + ' / ' + sizeFormat(otraffic.down);
+                        return SizeFormatter.sizeFormat(otraffic.up) + ' / ' + SizeFormatter.sizeFormat(otraffic.down);
                     }
                 }
-                return sizeFormat(0) + ' / ' + sizeFormat(0);
+                return SizeFormatter.sizeFormat(0) + ' / ' + SizeFormatter.sizeFormat(0);
             },
             findOutboundAddress(o) {
                 serverObj = null;
@@ -1929,7 +1929,7 @@
             },
             torrentSettings: {
                 get: function () {
-                    return doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
+                    return ArrayUtils.doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
                 },
                 set: function (newValue) {
                     if (newValue) {
@@ -1942,7 +1942,7 @@
             familyProtectSettings: {
                 get: function () {
                     if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
-                    return doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
+                    return ArrayUtils.doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
                 },
                 set: function (newValue) {
                     newTemplateSettings = this.templateSettings;

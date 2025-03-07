@@ -65,15 +65,15 @@
                     </tr>
                     <tr>
                         <td>WARP+ Data</td>
-                        <td>[[ sizeFormat(warpModal.warpConfig.account.premium_data) ]]</td>
+                        <td>[[ SizeFormatter.sizeFormat(warpModal.warpConfig.account.premium_data) ]]</td>
                     </tr>
                     <tr class="client-table-odd-row">
                         <td>Quota</td>
-                        <td>[[ sizeFormat(warpModal.warpConfig.account.quota) ]]</td>
+                        <td>[[ SizeFormatter.sizeFormat(warpModal.warpConfig.account.quota) ]]</td>
                     </tr>
                     <tr v-if="!ObjectUtil.isEmpty(warpModal.warpConfig.account.usage)">
                         <td>Usage</td>
-                        <td>[[ sizeFormat(warpModal.warpConfig.account.usage) ]]</td>
+                        <td>[[ SizeFormatter.sizeFormat(warpModal.warpConfig.account.usage) ]]</td>
                     </tr>
                 </template>
             </table>
