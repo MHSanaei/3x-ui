@@ -61,6 +61,10 @@
 "secAlertPanelURI" = "面板默认 URI 路径不安全。请配置复杂的 URI 路径。"
 "secAlertSubURI" = "订阅默认 URI 路径不安全。请配置复杂的 URI 路径。"
 "secAlertSubJsonURI" = "订阅 JSON 默认 URI 路径不安全。请配置复杂的 URI 路径。"
+"emptyDnsDesc" = "未添加DNS服务器。"
+"emptyFakeDnsDesc" = "未添加Fake DNS服务器。"
+"emptyBalancersDesc" = "未添加负载均衡器。"
+"emptyReverseDesc" = "未添加反向代理。"
 
 [menu]
 "dashboard" = "系统状态"

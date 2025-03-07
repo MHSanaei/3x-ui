@@ -338,273 +338,296 @@
                 </a-collapse>
               </a-tab-pane>
               <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
-                <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
-                <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
-                    :row-key="r => r.key"
-                    :data-source="routingRuleData"
-                    :scroll="isMobile ? {} : { x: 1000 }"
-                    :pagination="false"
-                    :indent-size="0" 
-                    :style="isMobile ? 'padding: 5px 0' : 'margin-top: 10px;'"
-                    v-on:onSort="replaceRule">
-                  <template slot="action" slot-scope="text, rule, index">
-                    <table-sort-trigger :item-index="index"></table-sort-trigger>
-                    <span class="ant-table-row-index"> [[ index+1 ]] </span>
-                    <a-dropdown :trigger="['click']">
-                      <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                        <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
-                          <a-icon type="vertical-align-top"></a-icon>
-                          {{ i18n "pages.xray.rules.first"}}
-                        </a-menu-item>
-                        <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
-                          <a-icon type="arrow-up"></a-icon>
-                          {{ i18n "pages.xray.rules.up"}}
-                        </a-menu-item>
-                        <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
-                          <a-icon type="arrow-down"></a-icon>
-                          {{ i18n "pages.xray.rules.down"}}
-                        </a-menu-item>
-                        <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,routingRuleData.length-1)">
-                          <a-icon type="vertical-align-bottom"></a-icon>
-                          {{ i18n "pages.xray.rules.last"}}
-                        </a-menu-item>
-                        <a-menu-item @click="editRule(index)">
-                          <a-icon type="edit"></a-icon>
-                          {{ i18n "edit" }}
-                        </a-menu-item>
-                        <a-menu-item @click="deleteRule(index)">
-                          <span style="color: #FF4D4F">
-                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                          </span>
-                        </a-menu-item>
-                      </a-menu>
-                    </a-dropdown>
-                  </template>
-                  <template slot="inbound" slot-scope="text, rule, index">
-                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                      <template slot="content">
-                        <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
-                        <p v-if="rule.user">User email: [[ rule.user ]]</p>
-                      </template>
-                      [[ [rule.inboundTag,rule.user].join('\n') ]]
-                    </a-popover>
-                  </template>
-                  <template slot="outbound" slot-scope="text, rule, index">
-                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                      <template slot="content">
-                        <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
-                      </template>
-                      [[ rule.outboundTag ]]
-                    </a-popover>
-                  </template>
-                  <template slot="balancer" slot-scope="text, rule, index">
-                    <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                      <template slot="content">
-                        <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
-                      </template>
-                      [[ rule.balancerTag ]]
-                    </a-popover>
-                  </template>
-                  <template slot="info" slot-scope="text, rule, index">
-                    <a-popover placement="bottomRight"
-                        v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
-                        :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
-                      <template slot="content">
-                        <table cellpadding="2" style="max-width: 300px;">
-                          <tr v-if="rule.source">
-                            <td>Source</td>
-                            <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.sourcePort">
-                            <td>Source Port</td>
-                            <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.network">
-                            <td>Network</td>
-                            <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.protocol">
-                            <td>Protocol</td>
-                            <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.attrs">
-                            <td>Attrs</td>
-                            <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.ip">
-                            <td>IP</td>
-                            <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.domain">
-                            <td>Domain</td>
-                            <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.port">
-                            <td>Port</td>
-                            <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
-                          </tr>
-                          <tr v-if="rule.balancerTag">
-                            <td>Balancer Tag</td>
-                            <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
-                          </tr>
-                        </table>
-                      </template>
-                      <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
-                        <a-icon type="info"></a-icon>
-                      </a-button>
-                    </a-popover>
-                  </template>
-                </a-table-sortable>
-              </a-tab-pane>
-              <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' style="padding-top: 20px;" force-render="true">
-                <a-row>
-                  <a-col :xs="12" :sm="12" :lg="12">
-                    <a-button type="primary" icon="plus" @click="addOutbound()" style="margin-bottom: 10px;">
-                      {{ i18n "pages.xray.outbound.addOutbound" }}
-                    </a-button>
-                    <a-button type="primary" icon="cloud" @click="showWarp()" style="margin-bottom: 10px;">WARP</a-button>
-                  </a-col>
-                  <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
-                    <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
-                    <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
-                        title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
-                        :overlay-class-name="themeSwitcher.currentTheme"
-                        ok-text='{{ i18n "reset"}}'
-                        cancel-text='{{ i18n "cancel"}}'>
-                      <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #008771' : 'color: #008771'"></a-icon>
-                      <a-icon type="retweet" style="cursor: pointer;"></a-icon>
-                    </a-popconfirm>
-                  </a-col>
-                </a-row>
-                <a-table :columns="outboundColumns" bordered
-                    :row-key="r => r.key"
-                    :data-source="outboundData"
-                    :scroll="isMobile ? {} : { x: 800 }"
-                    :pagination="false"
-                    :indent-size="0"
-                    :style="isMobile ? 'padding: 5px 5px' : 'margin-right: 1px;'">
-                  <template slot="action" slot-scope="text, outbound, index">
-                    [[ index+1 ]]
-                    <a-dropdown :trigger="['click']">
-                      <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                        <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
-                          <a-icon type="vertical-align-top"></a-icon>
-                          {{ i18n "pages.xray.rules.first"}}
-                        </a-menu-item>
-                        <a-menu-item @click="editOutbound(index)">
-                          <a-icon type="edit"></a-icon>
-                          {{ i18n "edit" }}
-                        </a-menu-item>
-                        <a-menu-item @click="resetOutboundTraffic(index)">
-                          <span>
-                            <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic"}}
-                          </span>
-                        </a-menu-item>
-                        <a-menu-item @click="deleteOutbound(index)">
-                          <span style="color: #FF4D4F">
-                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                          </span>
-                        </a-menu-item>
-                      </a-menu>
-                    </a-dropdown>
-                  </template>
-                  <template slot="address" slot-scope="text, outbound, index">
-                    <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
-                  </template>
-                  <template slot="protocol" slot-scope="text, outbound, index">
-                    <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
-                    <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
-                      <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
-                      <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
-                      <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
+                <a-space direction="vertical" size="middle">
+                    <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
+                    <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
+                        :row-key="r => r.key"
+                        :data-source="routingRuleData"
+                        :scroll="isMobile ? {} : { x: 1000 }"
+                        :pagination="false"
+                        :indent-size="0" 
+                        v-on:onSort="replaceRule">
+                    <template slot="action" slot-scope="text, rule, index">
+                        <table-sort-trigger :item-index="index"></table-sort-trigger>
+                        <span class="ant-table-row-index"> [[ index+1 ]] </span>
+                        <a-dropdown :trigger="['click']">
+                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                            <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
+                            <a-icon type="vertical-align-top"></a-icon>
+                            {{ i18n "pages.xray.rules.first"}}
+                            </a-menu-item>
+                            <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
+                            <a-icon type="arrow-up"></a-icon>
+                            {{ i18n "pages.xray.rules.up"}}
+                            </a-menu-item>
+                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
+                            <a-icon type="arrow-down"></a-icon>
+                            {{ i18n "pages.xray.rules.down"}}
+                            </a-menu-item>
+                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,routingRuleData.length-1)">
+                            <a-icon type="vertical-align-bottom"></a-icon>
+                            {{ i18n "pages.xray.rules.last"}}
+                            </a-menu-item>
+                            <a-menu-item @click="editRule(index)">
+                            <a-icon type="edit"></a-icon>
+                            {{ i18n "edit" }}
+                            </a-menu-item>
+                            <a-menu-item @click="deleteRule(index)">
+                            <span style="color: #FF4D4F">
+                                <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                            </span>
+                            </a-menu-item>
+                        </a-menu>
+                        </a-dropdown>
                     </template>
-                  </template>
-                  <template slot="traffic" slot-scope="text, outbound, index">
-                    <a-tag color="green">[[ findOutboundTraffic(outbound) ]]</a-tag>
-                  </template>
-                </a-table>
+                    <template slot="inbound" slot-scope="text, rule, index">
+                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                        <template slot="content">
+                            <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
+                            <p v-if="rule.user">User email: [[ rule.user ]]</p>
+                        </template>
+                        [[ [rule.inboundTag,rule.user].join('\n') ]]
+                        </a-popover>
+                    </template>
+                    <template slot="outbound" slot-scope="text, rule, index">
+                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                        <template slot="content">
+                            <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
+                        </template>
+                        [[ rule.outboundTag ]]
+                        </a-popover>
+                    </template>
+                    <template slot="balancer" slot-scope="text, rule, index">
+                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                        <template slot="content">
+                            <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
+                        </template>
+                        [[ rule.balancerTag ]]
+                        </a-popover>
+                    </template>
+                    <template slot="info" slot-scope="text, rule, index">
+                        <a-popover placement="bottomRight"
+                            v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
+                            :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+                        <template slot="content">
+                            <table cellpadding="2" style="max-width: 300px;">
+                            <tr v-if="rule.source">
+                                <td>Source</td>
+                                <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.sourcePort">
+                                <td>Source Port</td>
+                                <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.network">
+                                <td>Network</td>
+                                <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.protocol">
+                                <td>Protocol</td>
+                                <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.attrs">
+                                <td>Attrs</td>
+                                <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.ip">
+                                <td>IP</td>
+                                <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.domain">
+                                <td>Domain</td>
+                                <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.port">
+                                <td>Port</td>
+                                <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
+                            </tr>
+                            <tr v-if="rule.balancerTag">
+                                <td>Balancer Tag</td>
+                                <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
+                            </tr>
+                            </table>
+                        </template>
+                        <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
+                            <a-icon type="info"></a-icon>
+                        </a-button>
+                        </a-popover>
+                    </template>
+                    </a-table-sortable>
+                </a-space>
+              </a-tab-pane>
+              <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' force-render="true">
+                <a-space direction="vertical" size="middle">
+                    <a-row>
+                        <a-col :xs="12" :sm="12" :lg="12">
+                          <a-space direction="horizontal" size="small">
+                            <a-button type="primary" icon="plus" @click="addOutbound()">
+                                {{ i18n "pages.xray.outbound.addOutbound" }}
+                              </a-button>
+                            <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
+                          </a-space>
+                        </a-col>
+                        <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
+                          <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
+                          <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
+                              title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
+                              :overlay-class-name="themeSwitcher.currentTheme"
+                              ok-text='{{ i18n "reset"}}'
+                              cancel-text='{{ i18n "cancel"}}'>
+                            <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #008771' : 'color: #008771'"></a-icon>
+                            <a-icon type="retweet" style="cursor: pointer;"></a-icon>
+                          </a-popconfirm>
+                        </a-col>
+                      </a-row>
+                      <a-table :columns="outboundColumns" bordered
+                        :row-key="r => r.key"
+                        :data-source="outboundData"
+                        :scroll="isMobile ? {} : { x: 800 }"
+                        :pagination="false"
+                        :indent-size="0">
+                        <template slot="action" slot-scope="text, outbound, index">
+                          [[ index+1 ]]
+                          <a-dropdown :trigger="['click']">
+                            <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                              <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
+                                <a-icon type="vertical-align-top"></a-icon>
+                                {{ i18n "pages.xray.rules.first"}}
+                              </a-menu-item>
+                              <a-menu-item @click="editOutbound(index)">
+                                <a-icon type="edit"></a-icon>
+                                {{ i18n "edit" }}
+                              </a-menu-item>
+                              <a-menu-item @click="resetOutboundTraffic(index)">
+                                <span>
+                                  <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic"}}
+                                </span>
+                              </a-menu-item>
+                              <a-menu-item @click="deleteOutbound(index)">
+                                <span style="color: #FF4D4F">
+                                  <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                </span>
+                              </a-menu-item>
+                            </a-menu>
+                          </a-dropdown>
+                        </template>
+                        <template slot="address" slot-scope="text, outbound, index">
+                            <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
+                        </template>
+                        <template slot="protocol" slot-scope="text, outbound, index">
+                            <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
+                            <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
+                                <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
+                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
+                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
+                            </template>
+                        </template>
+                        <template slot="traffic" slot-scope="text, outbound, index">
+                            <a-tag color="green">[[ findOutboundTraffic(outbound) ]]</a-tag>
+                        </template>
+                    </a-table>
+                </a-space>
               </a-tab-pane>
               <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
-                <a-button type="primary" icon="plus" @click="addReverse()" style="margin-bottom: 10px;">
-                  {{ i18n "pages.xray.outbound.addReverse" }}
-                </a-button>
-                <a-table :columns="reverseColumns" bordered v-if="reverseData.length>0"
-                    :row-key="r => r.key"
-                    :data-source="reverseData"
-                    :scroll="isMobile ? {} : { x: 200 }"
-                    :pagination="false"
-                    :indent-size="0"
-                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
-                  <template slot="action" slot-scope="text, reverse, index">
-                    [[ index+1 ]]
-                    <a-dropdown :trigger="['click']">
-                      <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                        <a-menu-item @click="editReverse(index)">
-                          <a-icon type="edit"></a-icon>
-                          {{ i18n "edit" }}
-                        </a-menu-item>
-                        <a-menu-item @click="deleteReverse(index)">
-                          <span style="color: #FF4D4F">
-                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                          </span>
-                        </a-menu-item>
-                      </a-menu>
-                    </a-dropdown>
-                  </template>
-                </a-table>
+                <template v-if="reverseData.length > 0">
+                    <a-space direction="vertical" size="middle">
+                        <a-button type="primary" icon="plus" @click="addReverse()">
+                            {{ i18n "pages.xray.outbound.addReverse" }}
+                        </a-button>
+                        <a-table :columns="reverseColumns" bordered
+                            :row-key="r => r.key"
+                            :data-source="reverseData"
+                            :scroll="isMobile ? {} : { x: 200 }"
+                            :pagination="false"
+                            :indent-size="0">
+                            <template slot="action" slot-scope="text, reverse, index">
+                                [[ index+1 ]]
+                                <a-dropdown :trigger="['click']">
+                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                    <a-menu-item @click="editReverse(index)">
+                                    <a-icon type="edit"></a-icon>
+                                    {{ i18n "edit" }}
+                                    </a-menu-item>
+                                    <a-menu-item @click="deleteReverse(index)">
+                                    <span style="color: #FF4D4F">
+                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                    </span>
+                                    </a-menu-item>
+                                </a-menu>
+                                </a-dropdown>
+                            </template>
+                        </a-table>
+                    </a-space>
+                </template>
+                <template v-else>
+                    <a-empty description='{{ i18n "emptyReverseDesc" }}' style="margin: 10px;">
+                        <a-button type="primary" icon="plus" @click="addReverse()" style="margin-top: 10px;">
+                            {{ i18n "pages.xray.outbound.addReverse" }}
+                        </a-button>
+                    </a-empty>
+                </template>
               </a-tab-pane>
               <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
-                <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-bottom: 10px;">
-                  {{ i18n "pages.xray.balancer.addBalancer"}}
-                </a-button>
-                <a-table :columns="balancerColumns" bordered v-if="balancersData.length>0"
-                    :row-key="r => r.key"
-                    :data-source="balancersData"
-                    :scroll="isMobile ? {} : { x: 200 }"
-                    :pagination="false"
-                    :indent-size="0"
-                    :style="isMobile ? 'padding: 5px 0' : 'margin-left: 1px;'">
-                  <template slot="action" slot-scope="text, balancer, index">
-                    [[ index+1 ]]
-                    <a-dropdown :trigger="['click']">
-                      <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                      <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                        <a-menu-item @click="editBalancer(index)">
-                          <a-icon type="edit"></a-icon>
-                          {{ i18n "edit" }}
-                        </a-menu-item>
-                        <a-menu-item @click="deleteBalancer(index)">
-                          <span style="color: #FF4D4F">
-                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                          </span>
-                        </a-menu-item>
-                      </a-menu>
-                    </a-dropdown>
-                  </template>
-                  <template slot="strategy" slot-scope="text, balancer, index">
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
-                    <a-tag style="margin:0;" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
-                  </template>
-                  <template slot="selector" slot-scope="text, balancer, index">
-                    <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
-                  </template>
-                </a-table>
-                <a-radio-group
-                    v-if="observatoryEnable || burstObservatoryEnable"
-                    v-model="obsSettings"
-                    @change="changeObsCode"
-                    button-style="solid"
-                    style="margin: 10px 0;"
-                    :size="isMobile ? 'small' : ''">
-                  <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
-                  <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
-                </a-radio-group>
-                <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
+                <template v-if="balancersData.length > 0">
+                    <a-space direction="vertical" size="middle">
+                        <a-button type="primary" icon="plus" @click="addBalancer()">
+                            {{ i18n "pages.xray.balancer.addBalancer"}}
+                        </a-button>
+                        <a-table :columns="balancerColumns" bordered 
+                            :row-key="r => r.key"
+                            :data-source="balancersData"
+                            :scroll="isMobile ? {} : { x: 200 }"
+                            :pagination="false"
+                            :indent-size="0">
+                            <template slot="action" slot-scope="text, balancer, index">
+                                [[ index+1 ]]
+                                <a-dropdown :trigger="['click']">
+                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                    <a-menu-item @click="editBalancer(index)">
+                                    <a-icon type="edit"></a-icon>
+                                    {{ i18n "edit" }}
+                                    </a-menu-item>
+                                    <a-menu-item @click="deleteBalancer(index)">
+                                    <span style="color: #FF4D4F">
+                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                    </span>
+                                    </a-menu-item>
+                                </a-menu>
+                                </a-dropdown>
+                            </template>
+                            <template slot="strategy" slot-scope="text, balancer, index">
+                                <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
+                                <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                                <a-tag style="margin:0;" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
+                                <a-tag style="margin:0;" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
+                            </template>
+                            <template slot="selector" slot-scope="text, balancer, index">
+                                <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
+                            </template>
+                        </a-table>
+                        <a-radio-group
+                            v-if="observatoryEnable || burstObservatoryEnable"
+                            v-model="obsSettings"
+                            @change="changeObsCode"
+                            button-style="solid"
+                            :size="isMobile ? 'small' : ''">
+                            <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
+                            <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
+                        </a-radio-group>
+                        <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
+                    </a-space>
+                </template>
+                <template v-else>
+                    <a-empty description='{{ i18n "emptyBalancersDesc" }}' style="margin: 10px;">
+                        <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-top: 10px;">
+                            {{ i18n "pages.xray.balancer.addBalancer"}}
+                        </a-button>
+                    </a-empty>
+                </template>
               </a-tab-pane>
             <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
                 <a-collapse>
@@ -667,79 +690,96 @@
                     </a-collapse-panel>
                     <template v-if="enableDNS">
                         <a-collapse-panel header='DNS'>
-                            <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin: 10px;">{{ i18n
-                                "pages.xray.dns.add" }}</a-button>
-                            <a-table :columns="dnsColumns" bordered v-if="dnsServers.length>0" :row-key="r => r.key"
-                                :data-source="dnsServers" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
-                                style="margin: 10px; margin-top: 10px;">
-                                <template slot="action" slot-scope="text,dns,index">
-                                    [[ index+1 ]]
-                                    <a-dropdown :trigger="['click']">
-                                        <a-icon @click="e => e.preventDefault()" type="more"
-                                            style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                            <a-menu-item @click="editDNSServer(index)">
-                                                <a-icon type="edit"></a-icon>
-                                                {{ i18n "edit" }}
-                                            </a-menu-item>
-                                            <a-menu-item @click="deleteDNSServer(index)">
-                                                <span style="color: #FF4D4F">
-                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                </span>
-                                            </a-menu-item>
-                                        </a-menu>
-                                    </a-dropdown>
-                                </template>
-                                <template slot="address" slot-scope="dns,index">
-                                    <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
-                                    <span v-else>[[ dns ]]</span>
-                                </template>
-                                <template slot="domain" slot-scope="dns,index">
-                                    <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
-                                </template>
-                                <template slot="expectIPs" slot-scope="dns,index">
-                                    <span v-if="typeof dns == 'object'">[[ dns.expectIPs.join(",") ]]</span>
-                                </template>
-                            </a-table>
+                            <template v-if="dnsServers.length > 0">
+                                <a-space direction="vertical" size="middle">
+                                    <a-button type="primary" icon="plus" @click="addDNSServer()">{{ i18n
+                                        "pages.xray.dns.add" }}</a-button>
+                                    <a-table :columns="dnsColumns" bordered :row-key="r => r.key"
+                                        :data-source="dnsServers" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
+                                        <template slot="action" slot-scope="text,dns,index">
+                                            [[ index+1 ]]
+                                            <a-dropdown :trigger="['click']">
+                                                <a-icon @click="e => e.preventDefault()" type="more"
+                                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                    <a-menu-item @click="editDNSServer(index)">
+                                                        <a-icon type="edit"></a-icon>
+                                                        {{ i18n "edit" }}
+                                                    </a-menu-item>
+                                                    <a-menu-item @click="deleteDNSServer(index)">
+                                                        <span style="color: #FF4D4F">
+                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                        </span>
+                                                    </a-menu-item>
+                                                </a-menu>
+                                            </a-dropdown>
+                                        </template>
+                                        <template slot="address" slot-scope="dns,index">
+                                            <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
+                                            <span v-else>[[ dns ]]</span>
+                                        </template>
+                                        <template slot="domain" slot-scope="dns,index">
+                                            <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
+                                        </template>
+                                        <template slot="expectIPs" slot-scope="dns,index">
+                                            <span v-if="typeof dns == 'object'">[[ dns.expectIPs.join(",") ]]</span>
+                                        </template>
+                                    </a-table>
+                                </a-space>
+                            </template>
+                            <template v-else>
+                                <a-empty description='{{ i18n "emptyDnsDesc" }}' style="margin: 10px;">
+                                    <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-top: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
+                                </a-empty>
+                            </template>
                         </a-collapse-panel>
-                        <a-collapse-panel header='FakeDNS'>
-                            <a-button type="primary" icon="plus" @click="addFakedns()" style="margin: 10px;">{{ i18n
-                                "pages.xray.fakedns.add" }}</a-button>
-                            <a-table :columns="fakednsColumns" bordered v-if="fakeDns && fakeDns.length>0" :row-key="r => r.key"
-                                :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
-                                style="margin: 10px; margin-top: 10px;">
-                                <template slot="action" slot-scope="text,fakedns,index">
-                                    [[ index+1 ]]
-                                    <a-dropdown :trigger="['click']">
-                                        <a-icon @click="e => e.preventDefault()" type="more"
-                                            style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                            <a-menu-item @click="editFakedns(index)">
-                                                <a-icon type="edit"></a-icon>
-                                                {{ i18n "edit" }}
-                                            </a-menu-item>
-                                            <a-menu-item @click="deleteFakedns(index)">
-                                                <span style="color: #FF4D4F">
-                                                    <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                </span>
-                                            </a-menu-item>
-                                        </a-menu>
-                                    </a-dropdown>
-                                </template>
-                            </a-table>
+                        <a-collapse-panel header='Fake DNS'>
+                            <template v-if="fakeDns && fakeDns.length > 0">
+                                <a-space direction="vertical" size="middle">
+                                    <a-button type="primary" icon="plus" @click="addFakedns()">{{ i18n "pages.xray.fakedns.add" }}</a-button>
+                                    <a-table :columns="fakednsColumns" bordered :row-key="r => r.key"
+                                        :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
+                                        <template slot="action" slot-scope="text,fakedns,index">
+                                            [[ index+1 ]]
+                                            <a-dropdown :trigger="['click']">
+                                                <a-icon @click="e => e.preventDefault()" type="more"
+                                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                                                    <a-menu-item @click="editFakedns(index)">
+                                                        <a-icon type="edit"></a-icon>
+                                                        {{ i18n "edit" }}
+                                                    </a-menu-item>
+                                                    <a-menu-item @click="deleteFakedns(index)">
+                                                        <span style="color: #FF4D4F">
+                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                                                        </span>
+                                                    </a-menu-item>
+                                                </a-menu>
+                                            </a-dropdown>
+                                        </template>
+                                    </a-table>
+                                </a-space>
+                            </template>
+                            <template v-else>
+                                <a-empty description='{{ i18n "emptyFakeDnsDesc" }}' style="margin: 20px;">
+                                    <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-top: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
+                                </a-empty>
+                            </template>
                         </a-collapse-panel>
                     </template>
                 </a-collapse>
             </a-tab-pane>
               <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
-                <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
-                <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
-                  <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
-                  <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
-                  <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
-                  <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
-                </a-radio-group>
-                <textarea style="position:absolute; left: -800px;" id="xraySetting"></textarea>
+                <a-space direction="vertical" size="small">
+                    <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
+                    <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
+                        <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
+                        <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
+                        <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
+                        <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
+                    </a-radio-group>
+                    <textarea style="position:absolute; left: -800px;" id="xraySetting"></textarea>
+                </a-space>
               </a-tab-pane>
             </a-tabs>
           </a-space>

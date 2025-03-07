@@ -61,6 +61,10 @@
 "secAlertPanelURI" = "O caminho URI padrão do painel não é seguro. Configure um caminho URI complexo."
 "secAlertSubURI" = "O caminho URI padrão de inscrição não é seguro. Configure um caminho URI complexo."
 "secAlertSubJsonURI" = "O caminho URI JSON de inscrição padrão não é seguro. Configure um caminho URI complexo."
+"emptyDnsDesc" = "Nenhum servidor DNS adicionado."
+"emptyFakeDnsDesc" = "Nenhum servidor Fake DNS adicionado."
+"emptyBalancersDesc" = "Nenhum balanceador adicionado."
+"emptyReverseDesc" = "Nenhum proxy reverso adicionado."
 
 [menu]
 "dashboard" = "Visão Geral"
