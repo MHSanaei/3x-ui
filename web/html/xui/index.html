@@ -45,11 +45,11 @@
                         <a-progress type="dashboard" status="normal"
                           :stroke-color="status.cpu.color"
                           :percent="status.cpu.percent"></a-progress>
-                        <div><b>CPU:</b> [[ cpuCoreFormat(status.cpuCores) ]] <a-tooltip>
+                        <div><b>CPU:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] <a-tooltip>
                           <a-icon type="area-chart"></a-icon> 
                           <template slot="title">
                             <div><b>Logical Processors:</b> [[ (status.logicalPro) ]]</div>
-                            <div><b>Speed:</b> [[ cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                            <div><b>Speed:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                           </template>
                         </a-tooltip></div>
                       </a-col>
@@ -58,7 +58,7 @@
                           :stroke-color="status.mem.color"
                           :percent="status.mem.percent"></a-progress>
                         <div>
-                          <b>{{ i18n "pages.index.memory"}}:</b> [[ sizeFormat(status.mem.current) ]] / [[ sizeFormat(status.mem.total) ]]
+                          <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
                         </div>
                       </a-col>
                     </a-row>
@@ -70,7 +70,7 @@
                           :stroke-color="status.swap.color"
                           :percent="status.swap.percent"></a-progress>
                         <div>
-                          <b>Swap:</b> [[ sizeFormat(status.swap.current) ]] / [[ sizeFormat(status.swap.total) ]]
+                          <b>Swap:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
                         </div>
                       </a-col>
                       <a-col :span="12" style="text-align: center">
@@ -78,7 +78,7 @@
                           :stroke-color="status.disk.color"
                           :percent="status.disk.percent"></a-progress>
                         <div>
-                          <b>{{ i18n "pages.index.hard"}}:</b> [[ sizeFormat(status.disk.current) ]] / [[ sizeFormat(status.disk.total) ]]
+                          <b>{{ i18n "pages.index.hard"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
                         </div>
                       </a-col>
                     </a-row>
@@ -99,8 +99,8 @@
               <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <b>{{ i18n "pages.index.operationHours" }}:</b>
-                  <a-tag :color="status.xray.color">Xray: [[ formatSecond(status.appStats.uptime) ]]</a-tag>
-                  <a-tag color="green">OS: [[ formatSecond(status.uptime) ]]</a-tag>
+                  <a-tag :color="status.xray.color">Xray: [[ TimeFormatter.formatSecond(status.appStats.uptime) ]]</a-tag>
+                  <a-tag color="green">OS: [[ TimeFormatter.formatSecond(status.uptime) ]]</a-tag>
                 </a-card>
               </a-col>
               <a-col :sm="24" :lg="12">
@@ -145,7 +145,7 @@
               <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <b>{{ i18n "usage"}}:</b>
-                  <a-tag color="green"> RAM: [[ sizeFormat(status.appStats.mem) ]] </a-tag>
+                  <a-tag color="green"> RAM: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
                   <a-tag color="green"> Threads: [[ status.appStats.threads ]] </a-tag>
                 </a-card>
               </a-col>
@@ -207,7 +207,7 @@
                     <a-col :span="12">
                       <a-tag>
                         <a-tooltip>
-                          <a-icon type="arrow-up"></a-icon> Up: [[ sizeFormat(status.netIO.up) ]]/s
+                          <a-icon type="arrow-up"></a-icon> Up: [[ SizeFormatter.sizeFormat(status.netIO.up) ]]/s
                           <template slot="title">
                             {{ i18n "pages.index.upSpeed" }}
                           </template>
@@ -217,7 +217,7 @@
                     <a-col :span="12">
                       <a-tag>
                         <a-tooltip>
-                          <a-icon type="arrow-down"></a-icon> Down: [[ sizeFormat(status.netIO.down) ]]/s
+                          <a-icon type="arrow-down"></a-icon> Down: [[ SizeFormatter.sizeFormat(status.netIO.down) ]]/s
                           <template slot="title">
                             {{ i18n "pages.index.downSpeed" }}
                           </template>
@@ -236,7 +236,7 @@
                           <a-icon type="cloud-upload"></a-icon>
                           <template slot="title">
                             {{ i18n "pages.index.totalSent" }}
-                          </template> Out: [[ sizeFormat(status.netTraffic.sent) ]]
+                          </template> Out: [[ SizeFormatter.sizeFormat(status.netTraffic.sent) ]]
                         </a-tooltip>
                       </a-tag>
                     </a-col>
@@ -246,7 +246,7 @@
                           <a-icon type="cloud-download"></a-icon>
                           <template slot="title">
                             {{ i18n "pages.index.totalReceive" }}
-                          </template> In: [[ sizeFormat(status.netTraffic.recv) ]]
+                          </template> In: [[ SizeFormatter.sizeFormat(status.netTraffic.recv) ]]
                         </a-tooltip>
                       </a-tag>
                     </a-col>
@@ -353,7 +353,7 @@
             if (this.total === 0) {
                 return 0;
             }
-            return toFixed(this.current / this.total * 100, 2);
+            return NumberFormatter.toFixed(this.current / this.total * 100, 2);
         }
 
         get color() {
@@ -396,7 +396,7 @@
             this.logicalPro = data.logicalPro;
             this.cpuSpeedMhz = data.cpuSpeedMhz;
             this.disk = new CurTotal(data.disk.current, data.disk.total);
-            this.loads = data.loads.map(load => toFixed(load, 2));
+            this.loads = data.loads.map(load => NumberFormatter.toFixed(load, 2));
             this.mem = new CurTotal(data.mem.current, data.mem.total);
             this.netIO = data.netIO;
             this.netTraffic = data.netTraffic;
