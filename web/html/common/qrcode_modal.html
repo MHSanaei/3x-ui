@@ -10,7 +10,7 @@
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
           <tr-qr-bg-inner class="qr-bg-sub-inner">
-            <canvas @click="qrModal.copy(genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
+            <canvas @click="copy(genSubLink(qrModal.client.subId))" id="qrCode-sub" class="qr-cv"></canvas>
           </tr-qr-bg-inner>
         </tr-qr-bg>
       </tr-qr-box>
@@ -18,7 +18,7 @@
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}} Json</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
           <tr-qr-bg-inner class="qr-bg-sub-inner">
-            <canvas @click="qrModal.copy(genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
+            <canvas @click="copy(genSubJsonLink(qrModal.client.subId))" id="qrCode-subJson" class="qr-cv"></canvas>
           </tr-qr-bg-inner>
         </tr-qr-bg>
       </tr-qr-box>
@@ -27,7 +27,7 @@
       <tr-qr-box class="qr-box">
         <a-tag color="green" class="qr-tag"><span>[[ row.remark ]]</span></a-tag>
         <tr-qr-bg class="qr-bg">
-          <canvas @click="qrModal.copy(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
+          <canvas @click="copy(row.link)" :id="'qrCode-'+index" class="qr-cv"></canvas>
         </tr-qr-bg>
       </tr-qr-box>
     </template>
