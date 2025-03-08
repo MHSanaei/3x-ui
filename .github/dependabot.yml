@@ -1,14 +1,15 @@
+# Конфигурация Dependabot для автоматизации обновлений зависимостей
 version: 2
 updates:
-  # Обновление Go-зависимостей
+  # 🔹 1. Обновление Go-зависимостей
   - package-ecosystem: "gomod"
-    directory: "/"
+    directory: "/"  # Корень репозитория, где находится go.mod
     schedule:
       interval: "weekly"
       day: "monday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 30  # Увеличенный лимит8
+    open-pull-requests-limit: 5
     reviewers:
       - "civisrom"
     labels:
@@ -18,14 +19,29 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
     ignore:
-      # Оставьте только те зависимости, которые нужно игнорировать
+      # Явное указание версий для игнорирования
       - dependency-name: "gvisor.dev/gvisor"
+        versions: ["*"]
       - dependency-name: "github.com/mymmrac/telego"
+        versions: ["*"]
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
+    # Группировка обновлений
+    groups:
+      minor-patch-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      major-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "major"
     rebase-strategy: "auto"
-    
+          
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"  # Директория с GitHub Actions workflows
@@ -34,7 +50,7 @@ updates:
       day: "wednesday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     reviewers:
       - "civisrom"
     labels:
@@ -57,7 +73,7 @@ updates:
       day: "friday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     reviewers:
       - "civisrom"
     labels:
