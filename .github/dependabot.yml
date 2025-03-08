@@ -2,7 +2,7 @@ version: 2
 updates:
   # 🔹 1. Обновление Go-зависимостей
   - package-ecosystem: "gomod"
-    directory: "/"  # Корень репозитория, где находится go.mod
+    directory: "/"  # Корень репозитория, где находится go.mod111
     schedule:
       interval: "weekly"
       day: "monday"
