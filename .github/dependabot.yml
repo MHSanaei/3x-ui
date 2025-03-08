@@ -31,12 +31,12 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Создаем отдельную группу для критических обновлений
-      security-updates:
+      # Группа для критических обновлений (major)
+      major-updates:
         patterns:
           - "*"
         update-types:
-          - "security"
+          - "major"
           
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
