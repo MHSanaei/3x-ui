@@ -87,3 +87,4 @@ updates:
     #   - dependency-name: "node"
     #     versions: ["13.x", "15.x"]
     rebase-strategy: "auto"
+    dependency-versioning-strategy: "increase"
