@@ -1,15 +1,14 @@
-# Конфигурация Dependabot для автоматизации обновлений зависимостей
 version: 2
 updates:
-  # 🔹 1. Обновление Go-зависимостей
+  # Обновление Go-зависимостей
   - package-ecosystem: "gomod"
-    directory: "/"  # Корень репозитория, где находится go.mod
+    directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 15
+    open-pull-requests-limit: 30  # Увеличенный лимит
     reviewers:
       - "civisrom"
     labels:
@@ -19,29 +18,15 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
     ignore:
-      # Явное указание версий для игнорирования
+      # Оставьте только те зависимости, которые нужно игнорировать
       - dependency-name: "gvisor.dev/gvisor"
-        versions: ["*"]
       - dependency-name: "github.com/mymmrac/telego"
-        versions: ["*"]
     allow:
       - dependency-type: "direct"
       - dependency-type: "indirect"
-    # Группировка обновлений
-    groups:
-      minor-patch-dependencies:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
-      major-updates:
-        patterns:
-          - "*"
-        update-types:
-          - "major"
     rebase-strategy: "auto"
-          
+    dependency-versioning-strategy: "increase"
+    
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"  # Директория с GitHub Actions workflows
@@ -87,4 +72,3 @@ updates:
     #   - dependency-name: "node"
     #     versions: ["13.x", "15.x"]
     rebase-strategy: "auto"
-    dependency-versioning-strategy: "increase"
