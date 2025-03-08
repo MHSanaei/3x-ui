@@ -5,14 +5,13 @@ updates:
     directory: "/"  # Корень репозитория, где находится go.mod
     schedule:
       interval: "weekly"  # Запуск раз в неделю
-      time: "00:00"  # В 00:00 UTC (по умолчанию)
+      time: "00:00"  # В 00:00 UTC
     open-pull-requests-limit: 5  # Не более 5 PR одновременно
     reviewers:
       - "your-github-username"  # Назначаем ревьюера
     labels:
       - "dependencies"
       - "go"
-    versioning-strategy: "increase-if-necessary"  # Обновлять только при необходимости
     commit-message:
       prefix: "chore(deps)"
       include: "scope"  # Указывает, какая зависимость обновлена
