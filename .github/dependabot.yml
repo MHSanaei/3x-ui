@@ -6,6 +6,7 @@ updates:
     schedule:
       interval: "weekly"  # Запуск раз в неделю
       time: "00:00"  # В 00:00 UTC
+      workflow_dispatch:
     open-pull-requests-limit: 5  # Не более 5 PR одновременно
     reviewers:
       - "your-github-username"  # Назначаем ревьюера
