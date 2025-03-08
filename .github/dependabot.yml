@@ -1,3 +1,4 @@
+# Конфигурация Dependabot для автоматизации обновлений зависимостей
 version: 2
 updates:
   # 🔹 1. Обновление Go-зависимостей
@@ -8,7 +9,7 @@ updates:
       day: "monday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 20
+    open-pull-requests-limit: 5
     reviewers:
       - "civisrom"
     labels:
@@ -18,10 +19,15 @@ updates:
       prefix: "chore(deps)"
       include: "scope"
     ignore:
+      # Явное указание версий для игнорирования (можно добавить версии)
       - dependency-name: "gvisor.dev/gvisor"
+        versions: ["*"]
       - dependency-name: "github.com/mymmrac/telego"
+        versions: ["*"]
     allow:
-      - dependency-type: "all"
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+    # Группировка обновлений
     groups:
       minor-patch-dependencies:
         patterns:
@@ -34,16 +40,20 @@ updates:
           - "*"
         update-types:
           - "major"
+    # Настройка безопасности
+    security-updates-only: false
+    versioning-strategy: "auto"
+    rebase-strategy: "auto"
           
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
-    directory: "/"  # Укажите путь, если это необходимо
+    directory: "/"  # Директория с GitHub Actions workflows
     schedule:
       interval: "weekly"
       day: "wednesday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 3
     reviewers:
       - "civisrom"
     labels:
@@ -56,16 +66,19 @@ updates:
       github-actions:
         patterns:
           - "*"
+    # Настройка безопасности
+    security-updates-only: false
+    rebase-strategy: "auto"
           
   # 🔹 3. Обновление Docker-зависимостей
   - package-ecosystem: "docker"
-    directory: "/"  # Укажите путь, если это необходимо
+    directory: "/"  # Директория с Dockerfile
     schedule:
       interval: "weekly"
       day: "friday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     reviewers:
       - "civisrom"
     labels:
@@ -74,3 +87,9 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
+    # Настройка приоритета
+    ignore:
+      # Здесь можно добавить игнорируемые обновления
+    # Настройка безопасности
+    security-updates-only: false
+    rebase-strategy: "auto"
