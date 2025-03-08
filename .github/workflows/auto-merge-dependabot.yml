@@ -1,36 +1,33 @@
-name: Auto-merge Dependabot PRs
+name: Dependabot Auto-merge
 
 on:
   pull_request_target:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
 
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
+    # Только для PR от Dependabot
     if: github.actor == 'dependabot[bot]'
     permissions:
-      pull-requests: write
       contents: write
+      pull-requests: write
     steps:
-      - name: Auto-approve Dependabot PRs
-        uses: hmarr/auto-approve-action@v4
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Wait for tests to succeed
         uses: lewagon/wait-on-check-action@v1.3.4
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-          check-name: 'test' # Имя джоба из вашего test.yml
-          wait-interval: 20
+          check-name: 'test' # Имя job из вашего test.yml
           ref: ${{ github.event.pull_request.head.sha }}
-          
-      - name: Auto-merge Dependabot PRs
+          wait-interval: 20
+          allowed-conclusions: success
+
+      - name: Enable auto-merge
         if: success()
-        uses: pascalgn/automerge-action@v0.16.4
+        run: gh pr merge --auto --squash "$PR_URL"
         env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MERGE_METHOD: "squash"
-          MERGE_LABELS: "dependencies"
-          MERGE_COMMIT_MESSAGE: "pull-request-title"
