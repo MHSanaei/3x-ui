@@ -273,12 +273,14 @@
         @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
       <a-alert type="warning" style="margin-bottom: 12px; width: fit-content"
         message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
-      <template v-for="version, index in versionModal.versions">
-        <a-tag :color="index % 2 == 0 ? 'purple' : 'green'" style="margin-right: 12px; margin-bottom: 12px"
-          @click="switchV2rayVersion(version)">
-          [[ version ]]
-        </a-tag>
-      </template>
+      <a-list bordered style="width: 100%;">
+        <a-list-item class="ant-xray-version-item" v-for="version in versionModal.versions">
+          <a-list-item-meta>
+            <template #title>[[ version ]]</template>
+          </a-list-item-meta>
+          <a-radio :checked="version === `v${status.xray.version}`" @click="switchV2rayVersion(version)"></a-radio>
+        </a-list-item>
+      </a-list>
     </a-modal>
     <a-modal id="log-modal" v-model="logModal.visible"
         :closable="true" @cancel="() => logModal.visible = false"
@@ -614,12 +616,7 @@
                 txtModal.show('config.json', JSON.stringify(msg.obj, null, 2), 'config.json');
             },
             openBackup() {
-                backupModal.show({
-                    title: '{{ i18n "pages.index.backupTitle" }}',
-                    description: '{{ i18n "pages.index.backupDescription" }}',
-                    exportText: '{{ i18n "pages.index.exportDatabase" }}',
-                    importText: '{{ i18n "pages.index.importDatabase" }}',
-                });
+              backupModal.show();
             },
             exportDatabase() {
                 window.location = basePath + 'server/getDb';
