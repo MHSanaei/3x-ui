@@ -75,4 +75,3 @@ updates:
     commit-message:
       prefix: "chore(docker)"
       include: "scope"
-    versioning-strategy: auto
