@@ -8,7 +8,7 @@ updates:
       day: "monday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 15
+    open-pull-requests-limit: 20
     reviewers:
       - "civisrom"
     labels:
