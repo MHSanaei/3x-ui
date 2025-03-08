@@ -5,7 +5,7 @@ updates:
     directory: "/"  # Корень репозитория, где находится go.mod
     schedule:
       interval: "weekly"
-      day: "monday"  # Добавлен день недели для запуска
+      day: "monday"  # Добавлен день недели для запуска1
       time: "00:00"
       timezone: "UTC"  # Добавлена явная временная зона
     open-pull-requests-limit: 5
