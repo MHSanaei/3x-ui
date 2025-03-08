@@ -21,7 +21,24 @@
 {{define "component/setting"}}
 <script>
     Vue.component('a-setting-list-item', {
-        props: ["title", "description", "paddings"],
+        props: {
+            'title': {
+                type: String,
+                required: true,
+            },
+            'description': {
+                type: String,
+                required: false,
+            },
+            'paddings': {
+                type: String,
+                required: false,
+                defaultValue: "default",
+                validator: function (value) {
+                    return ['small', 'default'].includes(value)
+                }
+            }
+        },
         template: `{{ template "component/settingListItem" }}`,
         computed: {
             padding() {
@@ -29,7 +46,7 @@
                     case "small":
                         return "10px 20px !important"
                         break;
-                    default:
+                    case "default":
                         return "20px !important"
                         break;
                 }

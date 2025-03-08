@@ -348,7 +348,7 @@
                         :indent-size="0" 
                         v-on:onSort="replaceRule">
                     <template slot="action" slot-scope="text, rule, index">
-                        <table-sort-trigger :item-index="index"></table-sort-trigger>
+                        <a-table-sort-trigger :item-index="index"></a-table-sort-trigger>
                         <span class="ant-table-row-index"> [[ index+1 ]] </span>
                         <a-dropdown :trigger="['click']">
                         <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>

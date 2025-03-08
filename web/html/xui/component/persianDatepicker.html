@@ -2,10 +2,10 @@
 <template>
     <div>
         <a-input :value="value" type="text" v-model="date" data-jdp class="persian-datepicker"
-                 @input="$emit('input', convertToGregorian($event.target.value)); jalaliDatepicker.hide();"
-                 :placeholder="placeholder">
+            @input="$emit('input', convertToGregorian($event.target.value)); jalaliDatepicker.hide();"
+            :placeholder="placeholder">
             <template #addonAfter>
-                <a-icon type="calendar" style="font-size: 14px; opacity: 0.5;"/>
+                <a-icon type="calendar" style="font-size: 14px; opacity: 0.5;" />
             </template>
         </a-input>
     </div>
@@ -13,15 +13,27 @@
 {{end}}
 
 {{define "component/persianDatepicker"}}
-<link rel="stylesheet" href="{{ .base_path }}assets/persian-datepicker/persian-datepicker.min.css?{{ .cur_ver }}"/>
+<link rel="stylesheet" href="{{ .base_path }}assets/persian-datepicker/persian-datepicker.min.css?{{ .cur_ver }}" />
 <script src="{{ .base_path }}assets/moment/moment-jalali.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/persian-datepicker/persian-datepicker.min.js?{{ .cur_ver }}"></script>
 <script>
-
     const persianDatepicker = {};
 
-    Vue.component('persian-datepicker', {
-        props: ['placeholder', 'format', 'value'],
+    Vue.component('a-persian-datepicker', {
+        props: {
+            'format': {
+                type: undefined,
+                required: false,
+            },
+            'value': {
+                type: String,
+                required: false,
+            },
+            'placeholder': {
+                type: String,
+                required: false,
+            },
+        },
         template: `{{template "component/persianDatepickerTemplate"}}`,
         data() {
             return {

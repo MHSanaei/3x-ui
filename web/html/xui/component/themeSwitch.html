@@ -6,9 +6,13 @@
         <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
         <span>Theme</span>
       </span>
-      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> Dark <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> Dark
+        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme"
+          @change="themeSwitcher.toggleTheme()"></a-switch>
       </a-menu-item>
-      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOffUltra()"> Ultra <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch"
+        @mousedown="themeSwitcher.animationsOffUltra()"> Ultra <a-checkbox style="margin-left: 2px;"
+          :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
       </a-menu-item>
     </a-sub-menu>
   </a-menu>
@@ -17,12 +21,15 @@
 
 {{define "component/themeSwitchTemplateLogin"}}
 <template>
-  <a-menu @mousedown="themeSwitcher.animationsOff()" id="change-theme" :theme="themeSwitcher.currentTheme" mode="inline" selected-keys="">
+  <a-menu @mousedown="themeSwitcher.animationsOff()" id="change-theme" :theme="themeSwitcher.currentTheme" mode="inline"
+    selected-keys="">
     <a-menu-item mode="inline" class="ant-menu-theme-switch">
       <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme"
+        @change="themeSwitcher.toggleTheme()"></a-switch>
       <template v-if="themeSwitcher.isDarkTheme">
-        <a-checkbox style="margin-left: 1rem; vertical-align: middle;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()">Ultra</a-checkbox>
+        <a-checkbox style="margin-left: 1rem; vertical-align: middle;" :checked="themeSwitcher.isUltra"
+          @click="themeSwitcher.toggleUltra()">Ultra</a-checkbox>
       </template>
     </a-menu-item>
   </a-menu>
@@ -83,8 +90,7 @@
     };
   }
   const themeSwitcher = createThemeSwitcher();
-  Vue.component('theme-switch', {
-    props: [],
+  Vue.component('a-theme-switch', {
     template: `{{template "component/themeSwitchTemplate"}}`,
     data: () => ({
       themeSwitcher
@@ -96,8 +102,7 @@
       document.getElementById('message').className = themeSwitcher.currentTheme;
     }
   });
-  Vue.component('theme-switch-login', {
-    props: [],
+  Vue.component('a-theme-switch-login', {
     template: `{{template "component/themeSwitchTemplateLogin"}}`,
     data: () => ({
       themeSwitcher

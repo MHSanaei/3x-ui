@@ -1,9 +1,5 @@
 {{define "component/sortableTableTrigger"}}
-<a-icon type="drag"
-  class="sortable-icon"
-  style="cursor: move;"
-  @mouseup="mouseUpHandler"
-  @mousedown="mouseDownHandler"
+<a-icon type="drag" class="sortable-icon" style="cursor: move;" @mouseup="mouseUpHandler" @mousedown="mouseDownHandler"
   @click="clickHandler" />
 {{end}}
 
@@ -28,7 +24,16 @@
         newElementIndex: null,
       };
     },
-    props: ['data-source', 'customRow'],
+    props: {
+      'data-source': {
+        type: undefined,
+        required: false,
+      },
+      'customRow': {
+        type: undefined,
+        required: false,
+      }
+    },
     inheritAttrs: false,
     provide() {
       const sortable = {}
@@ -44,7 +49,7 @@
         sortable,
       }
     },
-    render: function(createElement) {
+    render: function (createElement) {
       return createElement('a-table', {
         class: {
           'ant-table-is-sorting': this.isDragging(),
@@ -59,7 +64,7 @@
           drop: (e) => this.dropHandler(e),
         },
         scopedSlots: this.$scopedSlots,
-      }, this.$slots.default, )
+      }, this.$slots.default,)
     },
     created() {
       this.$memoSort = {};
@@ -163,9 +168,14 @@
       }
     }
   });
-  Vue.component('table-sort-trigger', {
+  Vue.component('a-table-sort-trigger', {
     template: `{{template "component/sortableTableTrigger"}}`,
-    props: ['item-index'],
+    props: {
+      'item-index': {
+        type: undefined,
+        required: false
+      }
+    },
     inject: ['sortable'],
     methods: {
       mouseDownHandler(e) {
@@ -190,25 +200,31 @@
       display: none;
     }
   }
+
   .ant-table-is-sorting .draggable-row td {
     background-color: #ffffff !important;
   }
+
   .dark .ant-table-is-sorting .draggable-row td {
     background-color: var(--dark-color-surface-100) !important;
   }
+
   .ant-table-is-sorting .dragging td {
     background-color: rgb(232 244 242) !important;
     color: rgba(0, 0, 0, 0.3);
   }
+
   .dark .ant-table-is-sorting .dragging td {
     background-color: var(--dark-color-table-hover) !important;
     color: rgba(255, 255, 255, 0.3);
   }
+
   .ant-table-is-sorting .dragging {
     opacity: 1;
     box-shadow: 1px -2px 2px #008771;
     transition: all 0.2s;
   }
+
   .ant-table-is-sorting .dragging .ant-table-row-index {
     opacity: 0.3;
   }
