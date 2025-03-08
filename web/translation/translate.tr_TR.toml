@@ -628,3 +628,9 @@
 "askToAddUserId" = "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden yapılandırmalarınıza Telegram ChatID'nizi eklemesini isteyin.\r\n\r\nKullanıcı ChatID'niz: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Gelen {{ .Inbound }} için bir Müşteri Seçin"
 "chooseInbound" = "Bir Gelen Seçin"
+
+[tgbot.menu]
+"restart" = "To restart Xray Core"
+"tgChatId" = "Telegram Chat ID"
+"status" = "Bot status"
+"help" = "Get available actions"

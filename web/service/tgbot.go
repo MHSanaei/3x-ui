@@ -20,7 +20,7 @@ import (
 	"x-ui/web/locale"
 	"x-ui/xray"
 
-	"github.com/mymmrac/telego"
+	tg "github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
 	"github.com/valyala/fasthttp"
@@ -28,7 +28,7 @@ import (
 )
 
 var (
-	bot         *telego.Bot
+	bot         *tg.Bot
 	botHandler  *th.BotHandler
 	adminIds    []int64
 	isRunning   bool
@@ -121,6 +121,11 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
+	err = bot.SetMyCommands(t.getMenuCommands())
+	if err != nil {
+		logger.Warning("Failed to set menu commands:", err)
+	}
+
 	// Start receiving Telegram bot messages
 	if !isRunning {
 		logger.Info("Telegram bot receiver started")
@@ -131,40 +136,52 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	return nil
 }
 
-func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*telego.Bot, error) {
+func (t *Tgbot) getMenuCommands() *tg.SetMyCommandsParams {
+	//commands, err := bot.GetMyCommands(nil)
+	commandsParams := tg.SetMyCommandsParams{}
+	commands := []tg.BotCommand{
+		{"help", t.I18nBot("tgbot.menu.help")},
+		{"status", t.I18nBot("tgbot.menu.status")},
+		{"restart", t.I18nBot("tgbot.menu.restart")},
+		{"id", t.I18nBot("tgbot.menu.tgChatId")},
+	}
+	return commandsParams.WithCommands(commands...)
+}
+
+func (t *Tgbot) NewBot(token string, proxyUrl string, apiServerUrl string) (*tg.Bot, error) {
 	if proxyUrl == "" && apiServerUrl == "" {
-		return telego.NewBot(token)
+		return tg.NewBot(token)
 	}
 
 	if proxyUrl != "" {
 		if !strings.HasPrefix(proxyUrl, "socks5://") {
 			logger.Warning("Invalid socks5 URL, using default")
-			return telego.NewBot(token)
+			return tg.NewBot(token)
 		}
 
 		_, err := url.Parse(proxyUrl)
 		if err != nil {
 			logger.Warningf("Can't parse proxy URL, using default instance for tgbot: %v", err)
-			return telego.NewBot(token)
+			return tg.NewBot(token)
 		}
 
-		return telego.NewBot(token, telego.WithFastHTTPClient(&fasthttp.Client{
+		return tg.NewBot(token, tg.WithFastHTTPClient(&fasthttp.Client{
 			Dial: fasthttpproxy.FasthttpSocksDialer(proxyUrl),
 		}))
 	}
 
 	if !strings.HasPrefix(apiServerUrl, "http") {
 		logger.Warning("Invalid http(s) URL, using default")
-		return telego.NewBot(token)
+		return tg.NewBot(token)
 	}
 
 	_, err := url.Parse(apiServerUrl)
 	if err != nil {
 		logger.Warningf("Can't parse API server URL, using default instance for tgbot: %v", err)
-		return telego.NewBot(token)
+		return tg.NewBot(token)
 	}
 
-	return telego.NewBot(token, telego.WithAPIServer(apiServerUrl))
+	return tg.NewBot(token, tg.WithAPIServer(apiServerUrl))
 }
 
 func (t *Tgbot) IsRunning() bool {
@@ -212,7 +229,7 @@ func (t *Tgbot) decodeQuery(query string) (string, error) {
 }
 
 func (t *Tgbot) OnReceive() {
-	params := telego.GetUpdatesParams{
+	params := tg.GetUpdatesParams{
 		Timeout: 10,
 	}
 
@@ -220,19 +237,19 @@ func (t *Tgbot) OnReceive() {
 
 	botHandler, _ = th.NewBotHandler(bot, updates)
 
-	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *tg.Bot, message tg.Message) {
 		t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
 	}, th.TextEqual(t.I18nBot("tgbot.buttons.closeKeyboard")))
 
-	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *tg.Bot, message tg.Message) {
 		t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 	}, th.AnyCommand())
 
-	botHandler.HandleCallbackQuery(func(_ *telego.Bot, query telego.CallbackQuery) {
+	botHandler.HandleCallbackQuery(func(_ *tg.Bot, query tg.CallbackQuery) {
 		t.answerCallback(&query, checkAdmin(query.From.ID))
 	}, th.AnyCallbackQueryWithMessage())
 
-	botHandler.HandleMessage(func(_ *telego.Bot, message telego.Message) {
+	botHandler.HandleMessage(func(_ *tg.Bot, message tg.Message) {
 		if message.UsersShared != nil {
 			if checkAdmin(message.From.ID) {
 				for _, sharedUser := range message.UsersShared.Users {
@@ -258,7 +275,7 @@ func (t *Tgbot) OnReceive() {
 	botHandler.Start()
 }
 
-func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin bool) {
+func (t *Tgbot) answerCommand(message *tg.Message, chatId int64, isAdmin bool) {
 	msg, onlyMessage := "", false
 
 	command, _, commandArgs := tu.ParseCommand(message.Text)
@@ -344,7 +361,7 @@ func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool
 	}
 }
 
-func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
+func (t *Tgbot) answerCallback(callbackQuery *tg.CallbackQuery, isAdmin bool) {
 	chatId := callbackQuery.Message.GetChat().ID
 
 	if isAdmin {
@@ -931,7 +948,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 		),
 	)
 
-	var ReplyMarkup telego.ReplyMarkup
+	var ReplyMarkup tg.ReplyMarkup
 	if isAdmin {
 		ReplyMarkup = numericKeyboard
 	} else {
@@ -940,7 +957,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	t.SendMsgToTgbot(chatId, msg, ReplyMarkup)
 }
 
-func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.ReplyMarkup) {
+func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...tg.ReplyMarkup) {
 	if !isRunning {
 		return
 	}
@@ -973,7 +990,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 		allMessages = append(allMessages, msg)
 	}
 	for n, message := range allMessages {
-		params := telego.SendMessageParams{
+		params := tg.SendMessageParams{
 			ChatID:    tu.ID(chatId),
 			Text:      message,
 			ParseMode: "HTML",
@@ -990,7 +1007,7 @@ func (t *Tgbot) SendMsgToTgbot(chatId int64, msg string, replyMarkup ...telego.R
 	}
 }
 
-func (t *Tgbot) SendMsgToTgbotAdmins(msg string, replyMarkup ...telego.ReplyMarkup) {
+func (t *Tgbot) SendMsgToTgbotAdmins(msg string, replyMarkup ...tg.ReplyMarkup) {
 	if len(replyMarkup) > 0 {
 		for _, adminId := range adminIds {
 			t.SendMsgToTgbot(adminId, msg, replyMarkup[0])
@@ -1167,9 +1184,9 @@ func (t *Tgbot) getInboundUsages() string {
 	return info
 }
 
-func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
+func (t *Tgbot) getInbounds() (*tg.InlineKeyboardMarkup, error) {
 	inbounds, err := t.inboundService.GetAllInbounds()
-	var buttons []telego.InlineKeyboardButton
+	var buttons []tg.InlineKeyboardButton
 
 	if err != nil {
 		logger.Warning("GetAllInbounds run failed:", err)
@@ -1199,14 +1216,14 @@ func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
 	return keyboard, nil
 }
 
-func (t *Tgbot) getInboundClients(id int) (*telego.InlineKeyboardMarkup, error) {
+func (t *Tgbot) getInboundClients(id int) (*tg.InlineKeyboardMarkup, error) {
 	inbound, err := t.inboundService.GetInbound(id)
 	if err != nil {
 		logger.Warning("getIboundClients run failed:", err)
 		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	}
 	clients, err := t.inboundService.GetClients(inbound)
-	var buttons []telego.InlineKeyboardButton
+	var buttons []tg.InlineKeyboardButton
 
 	if err != nil {
 		logger.Warning("GetInboundClients run failed:", err)
@@ -1428,7 +1445,7 @@ func (t *Tgbot) clientTelegramUserInfo(chatId int64, email string, messageID ...
 		t.editMessageTgBot(chatId, messageID[0], output, inlineKeyboard)
 	} else {
 		t.SendMsgToTgbot(chatId, output, inlineKeyboard)
-		requestUser := telego.KeyboardButtonRequestUsers{
+		requestUser := tg.KeyboardButtonRequestUsers{
 			RequestID: int32(traffic.Id),
 			UserIsBot: new(bool),
 		}
@@ -1601,7 +1618,7 @@ func (t *Tgbot) getExhausted(chatId int64) {
 
 	if exhaustedCC > 0 {
 		output += t.I18nBot("tgbot.messages.depleteSoon", "Deplete=="+t.I18nBot("tgbot.clients"))
-		var buttons []telego.InlineKeyboardButton
+		var buttons []tg.InlineKeyboardButton
 		for _, traffic := range exhaustedClients {
 			output += t.clientInfoMsg(&traffic, true, false, false, true, true, false)
 			output += "\r\n"
@@ -1714,7 +1731,7 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 		tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData(t.encodeQuery("onlines_refresh"))))
 
 	if onlinesCount > 0 {
-		var buttons []telego.InlineKeyboardButton
+		var buttons []tg.InlineKeyboardButton
 		for _, online := range onlines {
 			buttons = append(buttons, tu.InlineKeyboardButton(online).WithCallbackData(t.encodeQuery("client_get_usage "+online)))
 		}
@@ -1825,7 +1842,7 @@ func (t *Tgbot) sendBanLogs(chatId int64, dt bool) {
 }
 
 func (t *Tgbot) sendCallbackAnswerTgBot(id string, message string) {
-	params := telego.AnswerCallbackQueryParams{
+	params := tg.AnswerCallbackQueryParams{
 		CallbackQueryID: id,
 		Text:            message,
 	}
@@ -1834,8 +1851,8 @@ func (t *Tgbot) sendCallbackAnswerTgBot(id string, message string) {
 	}
 }
 
-func (t *Tgbot) editMessageCallbackTgBot(chatId int64, messageID int, inlineKeyboard *telego.InlineKeyboardMarkup) {
-	params := telego.EditMessageReplyMarkupParams{
+func (t *Tgbot) editMessageCallbackTgBot(chatId int64, messageID int, inlineKeyboard *tg.InlineKeyboardMarkup) {
+	params := tg.EditMessageReplyMarkupParams{
 		ChatID:      tu.ID(chatId),
 		MessageID:   messageID,
 		ReplyMarkup: inlineKeyboard,
@@ -1845,8 +1862,8 @@ func (t *Tgbot) editMessageCallbackTgBot(chatId int64, messageID int, inlineKeyb
 	}
 }
 
-func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlineKeyboard ...*telego.InlineKeyboardMarkup) {
-	params := telego.EditMessageTextParams{
+func (t *Tgbot) editMessageTgBot(chatId int64, messageID int, text string, inlineKeyboard ...*tg.InlineKeyboardMarkup) {
+	params := tg.EditMessageTextParams{
 		ChatID:    tu.ID(chatId),
 		MessageID: messageID,
 		Text:      text,

@@ -627,3 +627,9 @@
 "askToAddUserId" = "Konfigurasi Anda tidak ditemukan!\r\nSilakan minta admin Anda untuk menggunakan ChatID Telegram Anda dalam konfigurasi Anda.\r\n\r\nChatID Pengguna Anda: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Pilih Klien untuk Inbound {{ .Inbound }}"
 "chooseInbound" = "Pilih Inbound"
+
+[tgbot.menu]
+"restart" = "To restart Xray Core"
+"tgChatId" = "Telegram Chat ID"
+"status" = "Bot status"
+"help" = "Get available actions"

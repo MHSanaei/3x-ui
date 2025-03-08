@@ -628,3 +628,9 @@
 "askToAddUserId" = "Вашу конфігурацію не знайдено!\r\nБудь ласка, попросіть свого адміністратора використовувати ваш ідентифікатор Telegram у вашій конфігурації.\r\n\r\nВаш ідентифікатор користувача: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Виберіть клієнта для Вхідного {{ .Inbound }}"
 "chooseInbound" = "Виберіть Вхідний"
+
+[tgbot.menu]
+"restart" = "To restart Xray Core"
+"tgChatId" = "Telegram Chat ID"
+"status" = "Bot status"
+"help" = "Get available actions"
