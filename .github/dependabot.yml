@@ -8,7 +8,7 @@ updates:
       day: "monday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 15
     reviewers:
       - "civisrom"
     labels:
@@ -43,7 +43,7 @@ updates:
       day: "wednesday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 5
     reviewers:
       - "civisrom"
     labels:
@@ -65,7 +65,7 @@ updates:
       day: "friday"
       time: "00:00"
       timezone: "UTC"
-    open-pull-requests-limit: 2
+    open-pull-requests-limit: 5
     reviewers:
       - "civisrom"
     labels:
