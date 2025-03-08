@@ -1,0 +1,30 @@
+version: 2
+updates:
+  # 🔹 1. Обновление Go-зависимостей
+  - package-ecosystem: "gomod"
+    directory: "/"  # Корень репозитория, где лежит go.mod
+    schedule:
+      interval: "weekly"  # Проверка обновлений раз в неделю (понедельник)
+      time: "00:00"  # В 00:00 UTC
+    open-pull-requests-limit: 5  # Не более 5 PR одновременно
+    ignore:
+      - dependency-name: "gvisor.dev/gvisor"
+      - dependency-name: "github.com/mymmrac/telego"
+      #- dependency-name: "github.com/xtls/xray-core"
+    labels:
+      - "dependencies"
+      - "go"
+    reviewers:
+      - "civisrom"  # Укажи GitHub-юзера для ревью PR
+
+  # 🔹 2. Обновление GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"  # Где хранятся `.github/workflows`
+    schedule:
+      interval: "weekly"  # Раз в неделю
+    open-pull-requests-limit: 3  # Не более 3 PR одновременно
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "civisrom"  # Укажи ревьюера
