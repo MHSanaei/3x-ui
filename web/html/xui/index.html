@@ -27,7 +27,8 @@
   .dark .ant-backup-list-item svg {
     color: var(--dark-color-text-primary);
   }
-  .dark .ant-backup-list {
+  .dark .ant-backup-list, 
+  .dark .ant-xray-version-list {
     border-color: var(--dark-color-stroke);
   }
 </style>
@@ -273,8 +274,8 @@
         @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
       <a-alert type="warning" style="margin-bottom: 12px; width: fit-content"
         message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
-      <a-list bordered style="width: 100%;">
-        <a-list-item class="ant-xray-version-item" v-for="version in versionModal.versions">
+      <a-list class="ant-xray-version-list" bordered style="width: 100%;">
+        <a-list-item class="ant-xray-version-list-item" v-for="version in versionModal.versions">
           <a-list-item-meta>
             <template #title>[[ version ]]</template>
           </a-list-item-meta>
