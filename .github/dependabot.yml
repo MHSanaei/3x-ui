@@ -5,7 +5,7 @@ updates:
     directory: "/"  # Корень репозитория, где находится go.mod
     schedule:
       interval: "weekly"  # Запуск раз в неделю
-      time: "00:00"  # В 00:00 utc
+      time: "00:00"  # В 00:00
     open-pull-requests-limit: 5  # Не более 5 PR одновременно
     reviewers:
       - "your-github-username"  # Назначаем ревьюера
