@@ -515,17 +515,22 @@ class ClipboardManager {
 class Base64 {
     static encode(content = "", safe = false) {
         if (safe) {
-            return window.btoa(content)
+            return Base64.encode(content)
                 .replace(/\+/g, '-')
                 .replace(/=/g, '')
                 .replace(/\//g, '_')
         }
 
-        return window.btoa(content)
+        return window.btoa(
+            String.fromCharCode(...new TextEncoder().encode(content))
+        )
     }
 
     static decode(content = "") {
-        return window.atob(content)
+        return new TextDecoder()
+            .decode(
+                Uint8Array.from(window.atob(content), c => c.charCodeAt(0))
+            )
     }
 }
 
