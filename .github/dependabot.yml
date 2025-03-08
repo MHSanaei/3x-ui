@@ -20,10 +20,8 @@ updates:
     ignore:
       - dependency-name: "gvisor.dev/gvisor"
       - dependency-name: "github.com/mymmrac/telego"
-    # Разрешаем обновление как прямых, так и транзитивных зависимостей
     allow:
       - dependency-type: "all"
-    # Оптимизация группировки зависимостей
     groups:
       minor-patch-dependencies:
         patterns:
@@ -31,7 +29,6 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      # Группа для критических обновлений (major)
       major-updates:
         patterns:
           - "*"
@@ -40,10 +37,11 @@ updates:
           
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: "/"  # Укажите путь, если это необходимо
     schedule:
       interval: "weekly"
       day: "wednesday"
+      time: "00:00"
       timezone: "UTC"
     open-pull-requests-limit: 3
     reviewers:
@@ -61,10 +59,11 @@ updates:
           
   # 🔹 3. Обновление Docker-зависимостей
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/"  # Укажите путь, если это необходимо
     schedule:
       interval: "weekly"
       day: "friday"
+      time: "00:00"
       timezone: "UTC"
     open-pull-requests-limit: 2
     reviewers:
