@@ -1,44 +1,73 @@
 version: 2
 updates:
-  # 🔹 1. Обновление Go-зависимостей (включая Xray-core)
+  # 🔹 1. Обновление Go-зависимостей
   - package-ecosystem: "gomod"
     directory: "/"  # Корень репозитория, где находится go.mod
     schedule:
-      interval: "weekly"  # Запуск раз в неделю
-      time: "00:00"  # В 00:00 tch
-    open-pull-requests-limit: 5  # Не более 5 PR одновременно
+      interval: "weekly"
+      day: "monday"  # Добавлен день недели для запуска
+      time: "00:00"
+      timezone: "UTC"  # Добавлена явная временная зона
+    open-pull-requests-limit: 5
     reviewers:
-      - "civisrom"  # Назначаем ревьюера
+      - "civisrom"
     labels:
       - "dependencies"
       - "go"
     commit-message:
       prefix: "chore(deps)"
-      include: "scope"  # Указывает, какая зависимость обновлена
+      include: "scope"
     ignore:
       - dependency-name: "gvisor.dev/gvisor"
       - dependency-name: "github.com/mymmrac/telego"
     allow:
-      - dependency-type: "direct"  # Обновлять только основные зависимости
-
+      - dependency-type: "direct"
+    groups:
+      minor-patch-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+          
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
-    directory: "/"  # Корень, где лежат workflows
+    directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 3  # Не более 3 PR одновременно
+      day: "wednesday"  # Делаем обновление в другой день для распределения нагрузки
+      timezone: "UTC"
+    open-pull-requests-limit: 3
     reviewers:
       - "civisrom"
     labels:
       - "dependencies"
       - "github-actions"
-
-  # 🔹 3. Обновление Docker-зависимостей (если используешь контейнеры)
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+          
+  # 🔹 3. Обновление Docker-зависимостей
   - package-ecosystem: "docker"
-    directory: "/"  # Корень репозитория (или путь к Dockerfile)
+    directory: "/"
     schedule:
       interval: "weekly"
+      day: "friday"  # Обновление в пятницу
+      timezone: "UTC"
     open-pull-requests-limit: 2
+    reviewers:
+      - "civisrom"
     labels:
       - "dependencies"
       - "docker"
+    commit-message:
+      prefix: "chore(docker)"
+      include: "scope"
+    # Исключение неиспользуемых или проблемных образов
+    # ignore:
+    #   - dependency-name: "node"
+    #     versions: ["13.x", "15.x"]
