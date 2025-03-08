@@ -307,8 +307,6 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		onlyMessage = true
 		if isAdmin {
 			if len(commandArgs) == 0 {
-				msg += t.I18nBot("tgbot.commands.restartUsage")
-			} else if strings.ToLower(commandArgs[0]) == "force" {
 				if t.xrayService.IsXrayRunning() {
 					err := t.xrayService.RestartXray(true)
 					if err != nil {
