@@ -113,9 +113,10 @@
 "config" = "Yapılandırma"
 "backup" = "Yedekle & Geri Yükle"
 "backupTitle" = "Veritabanı Yedekleme & Geri Yükleme"
-"backupDescription" = "Veritabanını geri yüklemeden önce yedek almanız önerilir."
 "exportDatabase" = "Yedekle"
+"exportDatabaseDesc" = "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın."
 "importDatabase" = "Geri Yükle"
+"importDatabaseDesc" = "Cihazınızdan bir .db dosyası seçip yükleyerek veritabanınızı yedekten geri yüklemek için tıklayın."
 
 [pages.inbounds]
 "title" = "Gelenler"

@@ -113,9 +113,10 @@
 "config" = "Cấu hình"
 "backup" = "Sao lưu & Khôi phục"
 "backupTitle" = "Sao lưu & Khôi phục Cơ sở dữ liệu"
-"backupDescription" = "Hãy nhớ sao lưu trước khi nhập cơ sở dữ liệu mới."
-"exportDatabase" = "Tải về Cơ sở dữ liệu"
-"importDatabase" = "Tải lên Cơ sở dữ liệu"
+"exportDatabase" = "Sao lưu"
+"exportDatabaseDesc" = "Nhấp để tải xuống tệp .db chứa bản sao lưu cơ sở dữ liệu hiện tại của bạn vào thiết bị."
+"importDatabase" = "Khôi phục"
+"importDatabaseDesc" = "Nhấp để chọn và tải lên tệp .db từ thiết bị của bạn để khôi phục cơ sở dữ liệu từ bản sao lưu."
 
 [pages.inbounds]
 "title" = "Điểm vào (Inbounds)"

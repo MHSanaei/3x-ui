@@ -113,9 +113,10 @@
 "config" = "設定"
 "backup" = "バックアップと復元"
 "backupTitle" = "データベースのバックアップと復元"
-"backupDescription" = "データベースを復元する前にバックアップすることをお勧めします"
 "exportDatabase" = "バックアップ"
+"exportDatabaseDesc" = "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。"
 "importDatabase" = "復元"
+"importDatabaseDesc" = "クリックして、デバイスから .db ファイルを選択し、アップロードしてバックアップからデータベースを復元します。"
 
 [pages.inbounds]
 "title" = "インバウンド一覧"

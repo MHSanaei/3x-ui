@@ -19,6 +19,17 @@
   .ant-card-dark h2 {
     color: var(--dark-color-text-primary);
   }
+  .ant-backup-list-item {
+    text-align: left;
+    user-select: none;
+    cursor: pointer;
+  }
+  .dark .ant-backup-list-item svg {
+    color: var(--dark-color-text-primary);
+  }
+  .dark .ant-backup-list {
+    border-color: var(--dark-color-stroke);
+  }
 </style>
 
 <body>
@@ -314,20 +325,32 @@
       </a-form>
       <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logModal.formattedLogs"></div>
     </a-modal>
-    <a-modal id="backup-modal" v-model="backupModal.visible" :title="backupModal.title"
-        :closable="true" footer=""
+    <a-modal id="backup-modal" 
+        v-model="backupModal.visible" 
+        title='{{ i18n "pages.index.backupTitle" }}'
+        :closable="true"
+        footer=""
         :class="themeSwitcher.currentTheme">
-      <a-alert type="warning" style="margin-bottom: 10px; width: fit-content"
-        :message="backupModal.description"
-        show-icon>
-      </a-alert>
       <a-space direction="horizontal" style="text-align: center; margin-bottom: 10px;">
-        <a-button type="primary" @click="exportDatabase()">
-            [[ backupModal.exportText ]]
-        </a-button>
-        <a-button type="primary" @click="importDatabase()">
-            [[ backupModal.importText ]]
-        </a-button>
+        <a-list class="ant-backup-list" bordered style="width: 100%;">
+          <a-list-item class="ant-backup-list-item" @click="exportDatabase()">
+            <a-list-item-meta>
+              <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
+              <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
+            </a-list-item-meta>
+            <a-icon type="right" />
+          </a-list-item>
+          <a-list-item class="ant-backup-list-item" @click="importDatabase()">
+            <a-list-item-meta>
+              <template #title>{{ i18n "pages.index.importDatabase" }}</template>
+              <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
+              <templaet #avatar>
+                <a-icon type="import" />
+              </templaet>
+            </a-list-item-meta>
+            <a-icon type="right" />
+          </a-list-item>
+        </a-list>
       </a-space>
     </a-modal>
   </a-layout>
@@ -491,24 +514,11 @@
 
     const backupModal = {
         visible: false,
-        title: '',
-        description: '',
-        exportText: '',
-        importText: '',
-        show({
-            title = '{{ i18n "pages.index.backupTitle" }}',
-            description = '{{ i18n "pages.index.backupDescription" }}',
-            exportText = '{{ i18n "pages.index.exportDatabase" }}',
-            importText = '{{ i18n "pages.index.importDatabase" }}',
-        }) {
-            this.title = title;
-            this.description = description;
-            this.exportText = exportText;
-            this.importText = importText;
-            this.visible = true;
+        show() {
+          this.visible = true;
         },
         hide() {
-            this.visible = false;
+          this.visible = false;
         },
     };
 

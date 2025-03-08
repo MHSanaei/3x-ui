@@ -113,9 +113,10 @@
 "config" = "配置"
 "backup" = "备份和恢复"
 "backupTitle" = "备份和恢复数据库"
-"backupDescription" = "恢复数据库之前建议进行备份"
 "exportDatabase" = "备份"
+"exportDatabaseDesc" = "点击下载包含当前数据库备份的 .db 文件到您的设备。"
 "importDatabase" = "恢复"
+"importDatabaseDesc" = "点击选择并上传设备中的 .db 文件以从备份恢复数据库。"
 
 [pages.inbounds]
 "title" = "入站列表"
