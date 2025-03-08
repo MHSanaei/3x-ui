@@ -670,3 +670,107 @@ class URLBuilder {
         return `${protocol}//${host}${port}${base}${path}`;
     }
 }
+
+class LanguageManager {
+    static supportedLanguages = [
+        {
+            name: "English",
+            value: "en-US",
+            icon: "🇺🇸",
+        },
+        {
+            name: "فارسی",
+            value: "fa-IR",
+            icon: "🇮🇷",
+        },
+        {
+            name: "简体中文",
+            value: "zh-CN",
+            icon: "🇨🇳",
+        },
+        {
+            name: "繁體中文",
+            value: "zh-TW",
+            icon: "🇹🇼",
+        },
+        {
+            name: "日本語",
+            value: "ja-JP",
+            icon: "🇯🇵",
+        },
+        {
+            name: "Русский",
+            value: "ru-RU",
+            icon: "🇷🇺",
+        },
+        {
+            name: "Tiếng Việt",
+            value: "vi-VN",
+            icon: "🇻🇳",
+        },
+        {
+            name: "Español",
+            value: "es-ES",
+            icon: "🇪🇸",
+        },
+        {
+            name: "Indonesian",
+            value: "id-ID",
+            icon: "🇮🇩",
+        },
+        {
+            name: "Український",
+            value: "uk-UA",
+            icon: "🇺🇦",
+        },
+        {
+            name: "Türkçe",
+            value: "tr-TR",
+            icon: "🇹🇷",
+        },
+        {
+            name: "Português",
+            value: "pt-BR",
+            icon: "🇧🇷",
+        }
+    ]
+
+    static getLanguage() {
+        let lang = CookieManager.getCookie("lang");
+    
+        if (!lang) {
+            if (window.navigator) {
+                lang = window.navigator.language || window.navigator.userLanguage;
+    
+                if (LanguageManager.isSupportLanguage(lang)) {
+                    CookieManager.setCookie("lang", lang, 150);
+                } else {
+                    CookieManager.setCookie("lang", "en-US", 150);
+                    window.location.reload();
+                }
+            } else {
+                CookieManager.setCookie("lang", "en-US", 150);
+                window.location.reload();
+            }
+        }
+    
+        return lang;
+    }
+    
+    static setLanguage(language) {
+        if (!LanguageManager.isSupportLanguage(language)) {
+            language = "en-US";
+        }
+    
+        CookieManager.setCookie("lang", language, 150);
+        window.location.reload();
+    }
+    
+    static isSupportLanguage(language) {
+        const languageFilter = LanguageManager.supportedLanguages.filter((lang) => {
+            return lang.value === language
+        })
+    
+        return languageFilter.length > 0;
+    }    
+}
