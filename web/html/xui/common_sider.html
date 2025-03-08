@@ -34,7 +34,7 @@
 
 {{define "commonSider"}}
 <a-layout-sider :theme="themeSwitcher.currentTheme" id="sider" collapsible breakpoint="md">
-  <theme-switch></theme-switch>
+  <a-theme-switch></a-theme-switch>
   <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']" @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
     {{template "menuItems" .}}
   </a-menu>
@@ -43,7 +43,7 @@
   <div class="drawer-handle" @click="siderDrawer.change()" slot="handle">
     <a-icon :type="siderDrawer.visible ? 'close' : 'menu-fold'"></a-icon>
   </div>
-  <theme-switch></theme-switch>
+  <a-theme-switch></a-theme-switch>
   <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="['{{ .request_uri }}']" @click="({key}) => key.startsWith('http') ? window.open(key) : location.href = key">
     {{template "menuItems" .}}
   </a-menu>
