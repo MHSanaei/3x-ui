@@ -25,7 +25,6 @@ updates:
       - dependency-type: "direct"
       - dependency-type: "indirect"
     rebase-strategy: "auto"
-    dependency-versioning-strategy: "increase"
     
   # 🔹 2. Обновление GitHub Actions
   - package-ecosystem: "github-actions"
