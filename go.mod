@@ -14,7 +14,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/valyala/fasthttp v1.59.0
-	github.com/xtls/xray-core v1.8.25-0.20250306135015-2cba2c4d59e4
+	github.com/xtls/xray-core v1.250306.0
 	go.uber.org/atomic v1.11.0
 	golang.org/x/text v0.23.0
 	google.golang.org/grpc v1.71.0
@@ -24,8 +24,8 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.1.1 // indirect
-	github.com/bytedance/sonic v1.12.10 // indirect
-	github.com/bytedance/sonic/loader v0.2.3 // indirect
+	github.com/bytedance/sonic v1.13.1 // indirect
+	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudflare/circl v1.6.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/dgryski/go-metro v0.0.0-20211217172704-adc40b04c140 // indirect
