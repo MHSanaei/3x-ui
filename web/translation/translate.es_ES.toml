@@ -113,9 +113,10 @@
 "config" = "Configuración"
 "backup" = "Copia de Seguridad y Restauración"
 "backupTitle" = "Copia de Seguridad y Restauración de la Base de Datos"
-"backupDescription" = "Recuerda hacer una copia de seguridad antes de importar una nueva base de datos."
-"exportDatabase" = "Descargar Base de Datos"
-"importDatabase" = "Cargar Base de Datos"
+"exportDatabase" = "Copia de seguridad"
+"exportDatabaseDesc" = "Haz clic para descargar un archivo .db que contiene una copia de seguridad de tu base de datos actual en tu dispositivo."
+"importDatabase" = "Restaurar"
+"importDatabaseDesc" = "Haz clic para seleccionar y cargar un archivo .db desde tu dispositivo para restaurar tu base de datos desde una copia de seguridad."
 
 [pages.inbounds]
 "title" = "Entradas"

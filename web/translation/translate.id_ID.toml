@@ -113,9 +113,10 @@
 "config" = "Konfigurasi"
 "backup" = "Cadangan & Pulihkan"
 "backupTitle" = "Cadangan & Pulihkan Database"
-"backupDescription" = "Disarankan untuk membuat cadangan sebelum memulihkan database."
 "exportDatabase" = "Cadangkan"
+"exportDatabaseDesc" = "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda."
 "importDatabase" = "Pulihkan"
+"importDatabaseDesc" = "Klik untuk memilih dan mengunggah file .db dari perangkat Anda untuk memulihkan database dari cadangan."
 
 [pages.inbounds]
 "title" = "Masuk"
