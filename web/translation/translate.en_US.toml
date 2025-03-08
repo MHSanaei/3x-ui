@@ -113,9 +113,10 @@
 "config" = "Config"
 "backup" = "Backup & Restore"
 "backupTitle" = "Database Backup & Restore"
-"backupDescription" = "It is recommended to make a backup before restoring a database."
 "exportDatabase" = "Back Up"
+"exportDatabaseDesc" = "Click to download a .db file containing a backup of your current database to your device."
 "importDatabase" = "Restore"
+"importDatabaseDesc" = "Click to select and upload a .db file from your device to restore your database from a backup."
 
 [pages.inbounds]
 "title" = "Inbounds"
