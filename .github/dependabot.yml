@@ -1,0 +1,44 @@
+version: 2
+updates:
+  # 🔹 1. Обновление Go-зависимостей (включая Xray-core)
+  - package-ecosystem: "gomod"
+    directory: "/"  # Корень репозитория, где находится go.mod
+    schedule:
+      interval: "weekly"  # Запуск раз в неделю
+      time: "00:00"  # В 00:00 tch
+    open-pull-requests-limit: 5  # Не более 5 PR одновременно
+    reviewers:
+      - "your-github-username"  # Назначаем ревьюера
+    labels:
+      - "dependencies"
+      - "go"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"  # Указывает, какая зависимость обновлена
+    ignore:
+      - dependency-name: "gvisor.dev/gvisor"
+      - dependency-name: "github.com/mymmrac/telego"
+    allow:
+      - dependency-type: "direct"  # Обновлять только основные зависимости
+
+  # 🔹 2. Обновление GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"  # Корень, где лежат workflows
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 3  # Не более 3 PR одновременно
+    reviewers:
+      - "your-github-username"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # 🔹 3. Обновление Docker-зависимостей (если используешь контейнеры)
+  - package-ecosystem: "docker"
+    directory: "/"  # Корень репозитория (или путь к Dockerfile)
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 2
+    labels:
+      - "dependencies"
+      - "docker"
