@@ -8,7 +8,7 @@ updates:
       time: "00:00"  # В 00:00 tch
     open-pull-requests-limit: 5  # Не более 5 PR одновременно
     reviewers:
-      - "your-github-username"  # Назначаем ревьюера
+      - "civisrom"  # Назначаем ревьюера
     labels:
       - "dependencies"
       - "go"
@@ -28,7 +28,7 @@ updates:
       interval: "weekly"
     open-pull-requests-limit: 3  # Не более 3 PR одновременно
     reviewers:
-      - "your-github-username"
+      - "civisrom"
     labels:
       - "dependencies"
       - "github-actions"
