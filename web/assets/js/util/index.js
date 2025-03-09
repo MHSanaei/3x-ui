@@ -106,7 +106,7 @@ class RandomUtil {
 
     static randomShortIds() {
         const lengths = [2, 4, 6, 8, 10, 12, 14, 16].sort(() => Math.random() - 0.5);
-        const seq = this.getSeq();
+
         return lengths.map(len => this.randomSeq(len)).join(',');
     }
 
