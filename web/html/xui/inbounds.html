@@ -927,7 +927,7 @@
                     expiryTime: dbInbound.expiryTime,
 
                     listen: '',
-                    port: RandomUtil.randomIntRange(10000, 60000),
+                    port: RandomUtil.randomInteger(10000, 60000),
                     protocol: baseInbound.protocol,
                     settings: Inbound.Settings.getSettings(baseInbound.protocol).toString(),
                     streamSettings: baseInbound.stream.toString(),

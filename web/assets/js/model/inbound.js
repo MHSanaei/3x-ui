@@ -1050,7 +1050,7 @@ class Allocate extends XrayCommonClass {
 
 class Inbound extends XrayCommonClass {
     constructor(
-        port = RandomUtil.randomIntRange(10000, 60000),
+        port = RandomUtil.randomInteger(10000, 60000),
         listen = '',
         protocol = Protocols.VLESS,
         settings = null,
@@ -1226,7 +1226,7 @@ class Inbound extends XrayCommonClass {
     }
 
     reset() {
-        this.port = RandomUtil.randomIntRange(10000, 60000);
+        this.port = RandomUtil.randomInteger(10000, 60000);
         this.listen = '';
         this.protocol = Protocols.VMESS;
         this.settings = Inbound.Settings.getSettings(Protocols.VMESS);
