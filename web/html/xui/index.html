@@ -20,7 +20,7 @@
     color: var(--dark-color-text-primary);
   }
   .ant-backup-list-item {
-    text-align: left;
+    gap: 10px;
     user-select: none;
     cursor: pointer;
   }
@@ -272,7 +272,7 @@
     </a-layout>
     <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}' :closable="true"
         @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
-      <a-alert type="warning" style="margin-bottom: 12px; width: fit-content"
+      <a-alert type="warning" style="margin-bottom: 12px; width: 100%;"
         message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
       <a-list class="ant-xray-version-list" bordered style="width: 100%;">
         <a-list-item class="ant-xray-version-list-item" v-for="version in versionModal.versions">
@@ -334,27 +334,25 @@
         :closable="true"
         footer=""
         :class="themeSwitcher.currentTheme">
-      <a-space direction="horizontal" style="text-align: center; margin-bottom: 10px;">
-        <a-list class="ant-backup-list" bordered style="width: 100%;">
-          <a-list-item class="ant-backup-list-item" @click="exportDatabase()">
-            <a-list-item-meta>
-              <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
-              <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
-            </a-list-item-meta>
-            <a-icon type="right" />
-          </a-list-item>
-          <a-list-item class="ant-backup-list-item" @click="importDatabase()">
-            <a-list-item-meta>
-              <template #title>{{ i18n "pages.index.importDatabase" }}</template>
-              <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
-              <templaet #avatar>
-                <a-icon type="import" />
-              </templaet>
-            </a-list-item-meta>
-            <a-icon type="right" />
-          </a-list-item>
-        </a-list>
-      </a-space>
+      <a-list class="ant-backup-list" bordered style="width: 100%;">
+        <a-list-item class="ant-backup-list-item" @click="exportDatabase()">
+          <a-list-item-meta>
+            <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
+            <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
+          </a-list-item-meta>
+          <a-icon type="right" />
+        </a-list-item>
+        <a-list-item class="ant-backup-list-item" @click="importDatabase()">
+          <a-list-item-meta>
+            <template #title>{{ i18n "pages.index.importDatabase" }}</template>
+            <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
+            <templaet #avatar>
+              <a-icon type="import" />
+            </templaet>
+          </a-list-item-meta>
+          <a-icon type="right" />
+        </a-list-item>
+      </a-list>
     </a-modal>
   </a-layout>
 {{template "js" .}}
