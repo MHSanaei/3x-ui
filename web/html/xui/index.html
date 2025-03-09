@@ -296,37 +296,51 @@
           @click="openLogs()">
         </a-icon>
       </template>
-      <a-form layout="inline">
-        <a-form-item style="margin-right: 0.5rem;">
-          <a-input-group compact>
-            <a-select size="small" v-model="logModal.rows" style="width:70px;"
-                @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="10">10</a-select-option>
-              <a-select-option value="20">20</a-select-option>
-              <a-select-option value="50">50</a-select-option>
-              <a-select-option value="100">100</a-select-option>
-              <a-select-option value="500">500</a-select-option>
-            </a-select>
-            <a-select size="small" v-model="logModal.level" style="width:95px;"
-                @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="debug">Debug</a-select-option>
-              <a-select-option value="info">Info</a-select-option>
-              <a-select-option value="notice">Notice</a-select-option>
-              <a-select-option value="warning">Warning</a-select-option>
-              <a-select-option value="err">Error</a-select-option>
-            </a-select>
-          </a-input-group>
-        </a-form-item>
-        <a-form-item>
-          <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
-        </a-form-item>
-        <a-form-item style="float: right;">
-          <a-button type="primary" icon="download"
-            :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs?.join('\n'))" download="x-ui.log">
-          </a-button>
-        </a-form-item>
-      </a-form>
-      <div class="ant-input" style="height: auto; max-height: 500px; overflow: auto; margin-top: 0.5rem;" v-html="logModal.formattedLogs"></div>
+      <a-space direction="vertical" size="small">
+        <a-form layout="inline">
+            <a-form-item style="margin-right: 0.5rem;">
+              <a-input-group compact>
+                <a-select size="small" v-model="logModal.rows" style="width:70px;" dropdown-class-name="themeSwitcher.currentTheme">
+                  <a-select-option value="10">10</a-select-option>
+                  <a-select-option value="20">20</a-select-option>
+                  <a-select-option value="50">50</a-select-option>
+                  <a-select-option value="100">100</a-select-option>
+                  <a-select-option value="500">500</a-select-option>
+                </a-select>
+                <a-select size="small" v-model="logModal.level" style="width:95px;" :dropdown-class-name="themeSwitcher.currentTheme">
+                  <a-select-option value="debug">Debug</a-select-option>
+                  <a-select-option value="info">Info</a-select-option>
+                  <a-select-option value="warning">Warning</a-select-option>
+                  <a-select-option value="err">Error</a-select-option>
+                </a-select>
+              </a-input-group>
+            </a-form-item>
+            <a-form-item>
+              <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
+            </a-form-item>
+            <a-form-item style="float: right;">
+              <a-button type="primary" icon="download"
+                :href="'data:application/text;charset=utf-8,' + encodeURIComponent(logModal.logs?.join('\n'))" download="x-ui.log">
+              </a-button>
+            </a-form-item>
+        </a-form>
+        <a-list bordered size="small">
+            <a-list-item v-for="log in logModal.logs.filter((log) => log.level === logModal.level).slice(0, logModal.rows)">
+                <a-list-item-meta>
+                    <template #title>
+                        <a-space direction="horizontal" size="small" style="padding: 0;">
+                            <b>[[ log.sender ]]</b>
+                            <a-tag>[[ log.date ]]</a-tag>
+                            <a-tag :color="logModal.tagsColors[log.level]">[[ log.level ]]</a-tag>
+                        </a-space>
+                    </template>
+                    <template #description>
+                        [[ log.message ]]
+                    </template>
+                </a-list-item-meta>
+            </a-list-item>
+        </a-list>
+      </a-space>
     </a-modal>
     <a-modal id="backup-modal" 
         v-model="backupModal.visible" 
@@ -467,46 +481,64 @@
         level: 'info',
         syslog: false,
         loading: false,
+        tagsColors: {
+            "err": "red",
+            "warning": "orange",
+            "info": "blue",
+            "debug": ""
+        },
         show(logs) {
             this.visible = true;
-            this.logs = logs; 
-            this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
+            this.logs = this.getLogs(logs); 
         },
-        formatLogs(logs) {
-            let formattedLogs = '';
-            const levels = ["DEBUG","INFO","NOTICE","WARNING","ERROR"];
-            const levelColors = ["#3c89e8","#008771","#008771","#f37b24","#e04141","#bcbcbc"];
+        getLogs(logs) {
+            if (logs === null) return []
 
-            logs.forEach((log, index) => {
-                let [data, message] = log.split(" - ",2);
-                const parts = data.split(" ")
-                if(index>0) formattedLogs += '<br>';
+            return logs.map((log) => {
+                let message;
+                let level;
+                let date;
+                let sender;
 
-                if (parts.length === 3) {
-                    const d = parts[0];
-                    const t = parts[1];
-                    const level = parts[2];
-                    const levelIndex = levels.indexOf(level,levels) || 5;
-
-                    //formattedLogs += `<span style="color: gray;">${index + 1}.</span>`;
-                    formattedLogs += `<span style="color: ${levelColors[0]};">${d} ${t}</span> `;
-                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${level}</span>`;
+                if (log.includes("XRAY:")) {
+                    sender = "xray"
                 } else {
-                    const levelIndex = levels.indexOf(data,levels) || 5;
-                    formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${data}</span>`;
+                    sender = "3x-ui"
                 }
 
-                if(message){
-                    if(message.startsWith("XRAY:"))
-                        message = "<b>XRAY: </b>" + message.substring(5);
-                    else
-                        message = "<b>X-UI: </b>" + message;
+                if (sender === "xray") {
+                    if (log.toLowerCase().includes("failed")) {
+                        level = "err"
+                    } else if (log.includes("[Warning]")) {
+                        level = "warning"
+                    } else if (log.includes("[Info]")) {
+                        level = "info"
+                    } else {
+                        level = "debug"
+                    }
+                } else {
+                    if (log.includes("ERROR") || log.toLowerCase().includes("failed")) {
+                        level = "err"
+                    } else if (log.includes("DEBUG")) {
+                        level = "debug"
+                    } else if (log.includes("INFO")) {
+                        level = "info"
+                    }
                 }
 
-                formattedLogs += message ? ' - ' + message : '';
-            });
+                // date = ``
+                // message = `${logs.split("—")[1]}`
 
-            return formattedLogs;
+                date = `${log.split(" ")[0]} ${log.split(" ")[1]}`
+                message = `${log.split("——")[1]}`
+
+                return {
+                    message: message,
+                    level: level,
+                    date: date,
+                    sender: sender
+                }
+            }).reverse()
         },
         hide() {
             this.visible = false;
@@ -597,7 +629,7 @@
             },
             async openLogs(){
                 logModal.loading = true;
-                const msg = await HttpUtil.post('server/logs/'+logModal.rows,{level: logModal.level, syslog: logModal.syslog});
+                const msg = await HttpUtil.post('server/logs/'+logModal.rows,{syslog: logModal.syslog});
                 if (!msg.success) {
                     return;
                 }

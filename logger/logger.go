@@ -34,9 +34,9 @@ func InitLogger(level logging.Level) {
 		backend = logging.NewLogBackend(os.Stderr, "", 0)
 	}
 	if ppid > 0 && err != nil {
-		format = logging.MustStringFormatter(`%{time:2006/01/02 15:04:05} %{level} - %{message}`)
+		format = logging.MustStringFormatter(`%{time:2006/01/02 15:04:05} %{level} —— %{message}`)
 	} else {
-		format = logging.MustStringFormatter(`%{level} - %{message}`)
+		format = logging.MustStringFormatter(`%{level} —— %{message}`)
 	}
 
 	backendFormatter := logging.NewBackendFormatter(backend, format)
@@ -115,14 +115,12 @@ func addToBuffer(level string, newLog string) {
 	})
 }
 
-func GetLogs(c int, level string) []string {
+func GetLogs() []string {
 	var output []string
-	logLevel, _ := logging.LogLevel(level)
 
-	for i := len(logBuffer) - 1; i >= 0 && len(output) <= c; i-- {
-		if logBuffer[i].level <= logLevel {
-			output = append(output, fmt.Sprintf("%s %s - %s", logBuffer[i].time, logBuffer[i].level, logBuffer[i].log))
-		}
+	for _, entry := range logBuffer {
+		output = append(output, fmt.Sprintf("%s %s —— %s", entry.time, entry.level, entry.log))
 	}
+	
 	return output
 }
