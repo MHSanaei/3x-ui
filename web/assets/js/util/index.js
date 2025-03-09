@@ -80,59 +80,48 @@ class PromiseUtil {
     }
 }
 
-const seq = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-
 class RandomUtil {
-    static randomIntRange(min, max) {
-        return Math.floor(Math.random() * (max - min) + min);
+    static getSeq({ hasNumbers = true, hasLowercase = true, hasUppercase = true } = {}) {
+        let seq = '';
+        if (hasNumbers) seq += "0123456789";
+        if (hasLowercase) seq += "abcdefghijklmnopqrstuvwxyz";
+        if (hasUppercase) seq += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        return seq;
     }
 
-    static randomInt(n) {
-        return this.randomIntRange(0, n);
+    static randomInteger(min, max) {
+        const range = max - min + 1;
+        const randomBuffer = new Uint32Array(1);
+        window.crypto.getRandomValues(randomBuffer);
+        return Math.floor((randomBuffer[0] / (0xFFFFFFFF + 1)) * range) + min;
     }
 
-    static randomSeq(count) {
-        let str = '';
-        for (let i = 0; i < count; ++i) {
-            str += seq[this.randomInt(62)];
-        }
-        return str;
+    static randomSeq(count, options = {}) {
+        const seq = this.getSeq(options);
+        const seqLength = seq.length;
+        const randomValues = new Uint32Array(count);
+        window.crypto.getRandomValues(randomValues);
+        return Array.from(randomValues, v => seq[v % seqLength]).join('');
     }
 
     static randomShortIds() {
-        const lengths = [2, 4, 6, 8, 10, 12, 14, 16];
-        for (let i = lengths.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [lengths[i], lengths[j]] = [lengths[j], lengths[i]];
-        }
-
-        let shortIds = [];
-        for (let length of lengths) {
-            let shortId = '';
-            for (let i = 0; i < length; i++) {
-                shortId += seq[this.randomInt(16)];
-            }
-            shortIds.push(shortId);
-        }
-        return shortIds.join(',');
+        const lengths = [2, 4, 6, 8, 10, 12, 14, 16].sort(() => Math.random() - 0.5);
+        const seq = this.getSeq();
+        return lengths.map(len => this.randomSeq(len)).join(',');
     }
 
     static randomLowerAndNum(len) {
-        let str = '';
-        for (let i = 0; i < len; ++i) {
-            str += seq[this.randomInt(36)];
-        }
-        return str;
+        return this.randomSeq(len, { hasUppercase: false });
     }
 
     static randomUUID() {
-        return window.crypto.randomUUID()
+        return window.crypto.randomUUID();
     }
 
     static randomShadowsocksPassword() {
-        let array = new Uint8Array(32);
+        const array = new Uint8Array(32);
         window.crypto.getRandomValues(array);
-        return Base64.encode(String.fromCharCode.apply(null, array));
+        return Base64.encode(String.fromCharCode(...array));
     }
 }
 
