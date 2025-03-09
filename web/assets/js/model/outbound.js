@@ -731,7 +731,7 @@ class Outbound extends CommonClass {
         } else if (network === 'ws') {
             stream.ws = new WsStreamSettings(json.path, json.host);
         } else if (network === 'grpc') {
-            stream.grpc = new GrpcStreamSettings(json.path, json.authority, json.type == 'multi');
+            stream.grpc = new GrpcStreamSettings(json.path, json.authority, json.type == 'multi', json.user_agent, json.idle_timeout, json.health_check_timeout, json.permit_without_stream, json.initial_windows_size);
         } else if (network === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(json.path, json.host);
         } else if (network === 'xhttp') {
@@ -774,7 +774,13 @@ class Outbound extends CommonClass {
             stream.grpc = new GrpcStreamSettings(
                 url.searchParams.get('serviceName') ?? '',
                 url.searchParams.get('authority') ?? '',
-                url.searchParams.get('mode') == 'multi');
+                url.searchParams.get('mode') == 'multi',
+                url.searchParams.get('user_agent') ?? '',
+                url.searchParams.get('idle_timeout') ?? '',
+                url.searchParams.get('health_check_timeout') ?? '',
+                url.searchParams.get('permit_without_stream') ?? '',
+                url.searchParams.get('initial_windows_size') ?? '',
+            );
         } else if (type === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(path, host);
         } else if (type === 'xhttp') {
