@@ -418,12 +418,11 @@ func (s *ServerService) UpdateXray(version string) error {
 	return nil
 }
 
-func (s *ServerService) GetLogs(count string, level string, syslog string) []string {
-	c, _ := strconv.Atoi(count)
+func (s *ServerService) GetLogs(syslog string) []string {
 	var lines []string
 
 	if syslog == "true" {
-		cmdArgs := []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count, "-p", level}
+		cmdArgs := []string{"journalctl", "-u", "x-ui", "--no-pager"}
 		// Run the command
 		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 		var out bytes.Buffer
@@ -434,7 +433,7 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		}
 		lines = strings.Split(out.String(), "\n")
 	} else {
-		lines = logger.GetLogs(c, level)
+		lines = logger.GetLogs()
 	}
 
 	return lines

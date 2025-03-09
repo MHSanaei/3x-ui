@@ -83,7 +83,7 @@ class PromiseUtil {
 class RandomUtil {
     static getSeq({ type = "default", hasNumbers = true, hasLowercase = true, hasUppercase = true } = {}) {
         let seq = '';
-        
+
         switch (type) {
             case "hex":
                 seq += "0123456789abcdef";
