@@ -352,6 +352,21 @@
           <a-form-item label='Multi Mode'>
             <a-switch v-model="outbound.stream.grpc.multiMode"></a-switch>
           </a-form-item>
+          <a-form-item label="User Agent">
+            <a-input v-model.trim="outbound.stream.grpc.user_agent"></a-input>
+          </a-form-item>
+          <a-form-item label="Idle Timeout">
+            <a-input-number v-model.number="outbound.stream.grpc.idle_timeout"></a-input-number>
+          </a-form-item>
+          <a-form-item label="Health Check Timeout">
+            <a-input-number v-model.number="outbound.stream.grpc.health_check_timeout"></a-input-number>
+          </a-form-item>
+          <a-form-item label="Permit Without Stream">
+            <a-switch v-model="outbound.stream.grpc.permit_without_stream"></a-switch>
+          </a-form-item>
+          <a-form-item label="Initial Window Size">
+            <a-input-number v-model.number="outbound.stream.grpc.initial_windows_size"></a-input-number>
+          </a-form-item>
         </template>
 
         <!-- httpupgrade -->
