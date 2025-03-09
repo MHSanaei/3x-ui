@@ -251,23 +251,47 @@ class GrpcStreamSettings extends CommonClass {
     constructor(
         serviceName = "",
         authority = "",
-        multiMode = false
+        multiMode = false,
+        userAgent = "",
+        idleTimeout = 60,
+        healthCheckTimeout = 20,
+        permitWithoutStream = false,
+        initialWindowsSize = 0
     ) {
         super();
         this.serviceName = serviceName;
         this.authority = authority;
         this.multiMode = multiMode;
+        this.user_agent = userAgent;
+        this.idle_timeout = idleTimeout;
+        this.health_check_timeout = healthCheckTimeout;
+        this.permit_without_stream = permitWithoutStream;
+        this.initial_windows_size = initialWindowsSize;
     }
 
     static fromJson(json = {}) {
-        return new GrpcStreamSettings(json.serviceName, json.authority, json.multiMode);
+        return new GrpcStreamSettings(
+            json.serviceName,
+            json.authority,
+            json.multiMode,
+            json.user_agent,
+            json.idle_timeout,
+            json.health_check_timeout,
+            json.permit_without_stream,
+            json.initial_windows_size
+        );
     }
 
     toJson() {
         return {
             serviceName: this.serviceName,
             authority: this.authority,
-            multiMode: this.multiMode
+            multiMode: this.multiMode,
+            user_agent: this.user_agent,
+            idle_timeout: this.idle_timeout,
+            health_check_timeout: this.health_check_timeout,
+            permit_without_stream: this.permit_without_stream,
+            initial_windows_size: this.initial_windows_size
         }
     }
 }
