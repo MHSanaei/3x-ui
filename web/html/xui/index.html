@@ -530,9 +530,6 @@
                       }
                   }
 
-                  // date = ``
-                  // message = `${logs.split("—")[1]}`
-
                   date = `${log.split(" ")[0]} ${log.split(" ")[1]}`
                   message = `${log.split("——")[1]}`
 
@@ -546,10 +543,8 @@
               .reduce((result, item) => {
                 const { message } = item;
                 if (seen.hasOwnProperty(message)) {
-                  // Если элемент с таким message уже встречался, увеличим счётчик 'repeat'
                   seen[message].repeat += 1;
                 } else {
-                  // Если элемента с таким message ещё нет, добавляем копию объекта и инициализируем repeat как 0
                   const newItem = { ...item, repeat: 0 };
                   seen[message] = newItem;
                   result.push(newItem);
