@@ -332,6 +332,7 @@
                             <b>[[ log.sender ]]</b>
                             <a-tag>[[ log.date ]]</a-tag>
                             <a-tag :color="logModal.tagsColors[log.level]">[[ log.level ]]</a-tag>
+                            <a-tag v-if="log.repeat">[[ log.repeat ]]</a-tag>
                         </a-space>
                     </template>
                     <template #description>
@@ -492,53 +493,70 @@
             this.logs = this.getLogs(logs); 
         },
         getLogs(logs) {
+            const seen = {}
+
             if (logs === null) return []
 
-            return logs.map((log) => {
-                let message;
-                let level;
-                let date;
-                let sender;
+            return logs
+              .map((log) => {
+                  let message;
+                  let level;
+                  let date;
+                  let sender;
 
-                if (log.includes("XRAY:")) {
-                    sender = "xray"
+                  if (log.includes("XRAY:")) {
+                      sender = "xray"
+                  } else {
+                      sender = "3x-ui"
+                  }
+
+                  if (sender === "xray") {
+                      if (log.toLowerCase().includes("failed")) {
+                          level = "err"
+                      } else if (log.includes("[Warning]")) {
+                          level = "warning"
+                      } else if (log.includes("[Info]")) {
+                          level = "info"
+                      } else {
+                          level = "debug"
+                      }
+                  } else {
+                      if (log.includes("ERROR") || log.toLowerCase().includes("failed")) {
+                          level = "err"
+                      } else if (log.includes("DEBUG")) {
+                          level = "debug"
+                      } else if (log.includes("INFO")) {
+                          level = "info"
+                      }
+                  }
+
+                  // date = ``
+                  // message = `${logs.split("—")[1]}`
+
+                  date = `${log.split(" ")[0]} ${log.split(" ")[1]}`
+                  message = `${log.split("——")[1]}`
+
+                  return {
+                      message: message,
+                      level: level,
+                      date: date,
+                      sender: sender
+                  }
+              })
+              .reduce((result, item) => {
+                const { message } = item;
+                if (seen.hasOwnProperty(message)) {
+                  // Если элемент с таким message уже встречался, увеличим счётчик 'repeat'
+                  seen[message].repeat += 1;
                 } else {
-                    sender = "3x-ui"
+                  // Если элемента с таким message ещё нет, добавляем копию объекта и инициализируем repeat как 0
+                  const newItem = { ...item, repeat: 0 };
+                  seen[message] = newItem;
+                  result.push(newItem);
                 }
-
-                if (sender === "xray") {
-                    if (log.toLowerCase().includes("failed")) {
-                        level = "err"
-                    } else if (log.includes("[Warning]")) {
-                        level = "warning"
-                    } else if (log.includes("[Info]")) {
-                        level = "info"
-                    } else {
-                        level = "debug"
-                    }
-                } else {
-                    if (log.includes("ERROR") || log.toLowerCase().includes("failed")) {
-                        level = "err"
-                    } else if (log.includes("DEBUG")) {
-                        level = "debug"
-                    } else if (log.includes("INFO")) {
-                        level = "info"
-                    }
-                }
-
-                // date = ``
-                // message = `${logs.split("—")[1]}`
-
-                date = `${log.split(" ")[0]} ${log.split(" ")[1]}`
-                message = `${log.split("——")[1]}`
-
-                return {
-                    message: message,
-                    level: level,
-                    date: date,
-                    sender: sender
-                }
-            }).reverse()
+                return result;
+              }, [])
+              .reverse()
         },
         hide() {
             this.visible = false;
