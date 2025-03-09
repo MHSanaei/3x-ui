@@ -420,17 +420,20 @@ class WsStreamSettings extends XrayCommonClass {
 class GrpcStreamSettings extends XrayCommonClass {
     constructor(
         serviceName = "",
-        authority = ""
+        authority = "",
+        multiMode = false,
     ) {
         super();
         this.serviceName = serviceName;
         this.authority = authority;
+        this.multiMode = multiMode;
     }
 
     static fromJson(json = {}) {
         return new GrpcStreamSettings(
             json.serviceName,
             json.authority,
+            json.multiMode
         );
     }
 
@@ -438,6 +441,7 @@ class GrpcStreamSettings extends XrayCommonClass {
         return {
             serviceName: this.serviceName,
             authority: this.authority,
+            multiMode: this.multiMode,
         }
     }
 }
