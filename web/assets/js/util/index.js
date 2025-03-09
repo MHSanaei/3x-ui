@@ -81,11 +81,20 @@ class PromiseUtil {
 }
 
 class RandomUtil {
-    static getSeq({ hasNumbers = true, hasLowercase = true, hasUppercase = true } = {}) {
+    static getSeq({ type = "default", hasNumbers = true, hasLowercase = true, hasUppercase = true } = {}) {
         let seq = '';
-        if (hasNumbers) seq += "0123456789";
-        if (hasLowercase) seq += "abcdefghijklmnopqrstuvwxyz";
-        if (hasUppercase) seq += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        
+        switch (type) {
+            case "hex":
+                seq += "0123456789abcdef";
+                break;
+            default:
+                if (hasNumbers) seq += "0123456789";
+                if (hasLowercase) seq += "abcdefghijklmnopqrstuvwxyz";
+                if (hasUppercase) seq += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+                break;
+        }
+
         return seq;
     }
 
@@ -107,7 +116,7 @@ class RandomUtil {
     static randomShortIds() {
         const lengths = [2, 4, 6, 8, 10, 12, 14, 16].sort(() => Math.random() - 0.5);
 
-        return lengths.map(len => this.randomSeq(len)).join(',');
+        return lengths.map(len => this.randomSeq(len, { type: "hex" })).join(',');
     }
 
     static randomLowerAndNum(len) {
