@@ -139,7 +139,7 @@ class RandomUtil {
     static randomShadowsocksPassword() {
         let array = new Uint8Array(32);
         window.crypto.getRandomValues(array);
-        return btoa(String.fromCharCode.apply(null, array));
+        return Base64.encode(String.fromCharCode.apply(null, array));
     }
 }
 
