@@ -33,31 +33,38 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	}
 
 	regex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6}) \[([^\]]+)\] (.+)$`)
-	messages := strings.Split(message, "\n")
+	messages := strings.SplitSeq(message, "\n")
 
-	for _, msg := range messages {
+	for msg := range messages {
 		matches := regex.FindStringSubmatch(msg)
 
 		if len(matches) > 3 {
 			level := matches[2]
 			msgBody := matches[3]
 
-			// Map the level to the appropriate logger function
-			switch level {
-			case "Debug":
-				logger.Debug("XRAY: " + msgBody)
-			case "Info":
-				logger.Info("XRAY: " + msgBody)
-			case "Warning":
-				logger.Warning("XRAY: " + msgBody)
-			case "Error":
+			if strings.Contains(strings.ToLower(msgBody), "failed") {
 				logger.Error("XRAY: " + msgBody)
-			default:
-				logger.Debug("XRAY: " + msg)
+			} else {
+				switch level {
+				case "Debug":
+					logger.Debug("XRAY: " + msgBody)
+				case "Info":
+					logger.Info("XRAY: " + msgBody)
+				case "Warning":
+					logger.Warning("XRAY: " + msgBody)
+				case "Error":
+					logger.Error("XRAY: " + msgBody)
+				default:
+					logger.Debug("XRAY: " + msg)
+				}
 			}
 			lw.lastLine = ""
 		} else if msg != "" {
-			logger.Debug("XRAY: " + msg)
+			if strings.Contains(strings.ToLower(msg), "failed") {
+				logger.Error("XRAY: " + msg)
+			} else {
+				logger.Debug("XRAY: " + msg)
+			}
 			lw.lastLine = msg
 		}
 	}
