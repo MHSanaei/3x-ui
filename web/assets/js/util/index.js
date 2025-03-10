@@ -124,7 +124,18 @@ class RandomUtil {
     }
 
     static randomUUID() {
-        return window.crypto.randomUUID();
+        if (window.location.protocol === "https:") {
+            return window.crypto.randomUUID();
+        } else {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+                .replace(/[xy]/g, function (c) {
+                    const randomValues = new Uint8Array(1);
+                    window.crypto.getRandomValues(randomValues);
+                    let randomValue = randomValues[0] % 16;
+                    let calculatedValue = (c === 'x') ? randomValue : (randomValue & 0x3 | 0x8);
+                    return calculatedValue.toString(16);
+                });
+        }
     }
 
     static randomShadowsocksPassword() {
