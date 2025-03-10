@@ -32,7 +32,7 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 		return len(m), nil
 	}
 
-	regex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) \[([^\]]+)\] (.+)$`)
+	regex := regexp.MustCompile(`^(\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}\.\d{6}) \[([^\]]+)\] (.+)$`)
 	messages := strings.Split(message, "\n")
 
 	for _, msg := range messages {
