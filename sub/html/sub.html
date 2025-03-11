@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="renderer" content="webkit">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .sId }} - Sub Info</title>
+    <script src="https://unpkg.com/tailwindcss-cdn@3.4.10/tailwindcss-with-all-plugins.js"></script>
+    <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@33.003/Vazirmatn-Variable-font-face.css"
+          rel="stylesheet" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css"
+          integrity="sha512-xh6O/CkQoPOWDdYTDqeRdPCVd1SpvCA9XXcUnZS2FmJNp1coAFzvtCN9BmamE+4aHK8yyUHUSCcJHgXloTyT2A=="
+          crossorigin="anonymous" />
+    <script src="https://cdn.jsdelivr.net/npm/jalaali-js/dist/jalaali.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"
+            integrity="sha256-25ncr0CpJhgbzkUiR3wu/Fkk9sSykRG2qX+upHfJUos=" crossorigin="anonymous"></script>
+</head>
+
+<body class="flex items-center justify-center min-h-screen bg-gray-900 text-white font-[Vazirmatn] mr-4 ml-4">
+<div class="container text-center max-w-screen-sm">
+    <div class="shadow-lg bg-gray-800 rounded-xl p-5 mt-3">
+        <h1 class="text-2xl font-bold">پنل کاربری اشتراک</h1>
+    </div>
+    <div class="shadow-lg bg-gray-800 rounded-xl p-5 mt-3">
+        <table class="table-auto w-full">
+            <tr>
+                <td class="w-1/3 content-center"><i
+                        class="bg-gray-900 mx-2 p-5 w-20 h-20 rounded-full text-4xl text-white fa fa-user"></i></td>
+                <td class="w-2/3 content-center">
+                    <center>
+                        <h3 class="text-xl font-bold leading-10">سلام {{ .sId }} عزیز</h3>
+                        <p>اشتراک شما <span class="bg-gray-700 px-2 m-1 rounded-lg"><span id="status"></span></span>
+                            می باشد</p>
+                    </center>
+                </td>
+            </tr>
+        </table>
+
+    </div>
+    <div class="shadow-lg bg-gray-800 rounded-xl p-5 mt-3 leading-8">
+        از <span class="text-lime-500"><span id="total"></span></span> حجمی که خریداری کرده اید <span
+            class="text-cyan-400	">{{ .download }} دانلود</span> و <span class="text-yellow-300">{{ .upload }}
+                آپلود</span> داشتید!<br>
+        حجم باقی مانده از سرویس شما <span class="text-pink-500" id="remaining"></span> و تا تاریخ <span
+            class="bg-gray-700 px-2 m-1 rounded-lg"><span id="timestamp"></span></span> معتبر می باشد
+    </div>
+    <div class="shadow-lg bg-gray-800 rounded-xl p-5 mt-3">
+        از طریق هر یک از روش های زیر میتوانید به اشتراکتان متصل شوید
+    </div>
+    <div class="shadow-lg bg-gray-800 rounded-xl p-5 mt-3">
+        <canvas id="qrcode" class="rounded-lg inline mt-2 mb-3"></canvas>
+    </div>
+    <div class="bg-gray-700 rounded-xl shadow-lg p-4 font-mono flow-text break-words  mt-3">
+        {{ range .result }}
+        <div class="text-gray-400 text-sm">
+            <button onclick="copyToClipboard('{{ . }}')" class="bg-gray-500 px-2 py-1 m-1 rounded-lg text-white"><i
+                    class="fa-regular fa-copy"></i> کپی</button>
+            {{ . }}
+        </div>
+        {{ end }}
+    </div>
+    <script>
+        // Get the HTML element to display the timestamp.
+        const humanDateElement = document.getElementById('timestamp');
+        // Convert timestamp to a human-readable date
+        const timestamp = parseInt("{{ .expire }}", 10) * 1000; // Parse and convert to milliseconds
+        const date = new Date(timestamp);
+        // Extract the Gregorian year, month, and day
+        const gregorianYear = date.getFullYear();
+        const gregorianMonth = date.getMonth() + 1; // Months are 0-indexed
+        const gregorianDay = date.getDate();
+        // Convert Gregorian to Jalali
+        const jalaliDate = jalaali.toJalaali(gregorianYear, gregorianMonth, gregorianDay);
+        // Format the Jalali date
+        const formattedJalaliDate = `${jalaliDate.jy}/${jalaliDate.jm}/${jalaliDate.jd}`;
+        // Display the Jalali date in the HTML
+        if ('{{ .expire }}' === '0') {
+            humanDateElement.textContent = 'ابد و یک روز';
+        } else {
+            humanDateElement.textContent = formattedJalaliDate;
+        }
+        // Get the HTML element to display the status.
+        const statusElement = document.getElementById('status');
+        if (timestamp >= Date.now() && parseInt('{{ .downloadByte}}') + parseInt('{{ .uploadByte }}') <= parseInt('{{ .totalByte }}')) {
+            statusElement.textContent = 'فعال';
+        } else {
+            statusElement.textContent = 'غیرفعال';
+        }
+        if ('{{ .totalByte }}' === '0') {
+            document.getElementById('total').textContent = '∞';
+            statusElement.textContent = 'نامحدود';
+            document.getElementById('remaining').textContent = '∞';
+        } else {
+            document.getElementById('total').textContent = '{{ .total }}';
+            document.getElementById('remaining').textContent = formatBytes(parseInt('{{ .totalByte }}') - (parseInt('{{ .downloadByte}}') + parseInt('{{ .uploadByte }}')));
+        }
+        // Remaining Traffic Calculation
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+            const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
+            const result = (Math.abs(bytes) / Math.pow(k, i)).toFixed(decimals);
+            return parseFloat(result) * Math.sign(bytes) + ' ' + sizes[i];
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+        }
+
+        (function () {
+            var qr = new QRious({
+                element: document.getElementById('qrcode'),
+                value: '{{ .subUrl }}',
+                size: 250
+            });
+        })();
+    </script>
+    <div class="mt-4 flex justify-center gap-4">
+        <button class="flex items-center gap-2 px-3 py-3 bg-zinc-900 text-white rounded-xl hover:bg-zinc-600"
+                onclick="window.location.href='v2box://install-sub?url={{ .subUrl }}&name={{ .sId }}';">
+            <span>افزودن به V2Box</span>
+        </button>
+        <button class="flex items-center gap-2 px-3 py-3 bg-violet-900 text-white rounded-xl hover:bg-violet-600"
+                onclick="window.location.href='streisand://import/{{ .subUrl }}';">
+            <span>افزودن به Streisand</span>
+        </button>
+        <button class="flex items-center gap-2 px-3 py-3 bg-gray-100 text-black rounded-xl hover:bg-gray-500"
+                onclick="window.location.href='v2rayng://install-config?url={{ .subUrl }}';">
+            <span>افزودن به V2RayNG</span>
+        </button>
+    </div>
+    <div class="mt-6 text-sm text-gray-400">طراحی با <i class="text-red-500	fa fa-heart"></i> توسط <a
+            href="https://github.com/aghayecoder/tx-ui">تی
+        ایکس</a>
+    </div>
+</div>
+</div>
+</body>
+
+</html>
