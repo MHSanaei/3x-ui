@@ -26,7 +26,7 @@ const (
 )
 
 func initModels() error {
-	models := []interface{}{
+	models := []any{
 		&model.User{},
 		&model.Inbound{},
 		&model.OutboundTraffics{},

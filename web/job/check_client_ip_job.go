@@ -11,6 +11,7 @@ import (
 	"sort"
 	"time"
 
+	"slices"
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -193,13 +194,7 @@ func (j *CheckClientIpJob) checkError(e error) {
 }
 
 func (j *CheckClientIpJob) contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains(s, str)
 }
 
 func (j *CheckClientIpJob) getInboundClientIps(clientEmail string) (*model.InboundClientIps, error) {

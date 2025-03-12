@@ -89,7 +89,7 @@ func (s *OutboundService) ResetOutboundTraffic(tag string) error {
 
 	result := db.Model(model.OutboundTraffics{}).
 		Where(whereText, tag).
-		Updates(map[string]interface{}{"up": 0, "down": 0, "total": 0})
+		Updates(map[string]any{"up": 0, "down": 0, "total": 0})
 
 	err := result.Error
 	if err != nil {

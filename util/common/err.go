@@ -7,17 +7,17 @@ import (
 	"x-ui/logger"
 )
 
-func NewErrorf(format string, a ...interface{}) error {
+func NewErrorf(format string, a ...any) error {
 	msg := fmt.Sprintf(format, a...)
 	return errors.New(msg)
 }
 
-func NewError(a ...interface{}) error {
+func NewError(a ...any) error {
 	msg := fmt.Sprintln(a...)
 	return errors.New(msg)
 }
 
-func Recover(msg string) interface{} {
+func Recover(msg string) any {
 	panicErr := recover()
 	if panicErr != nil {
 		if msg != "" {

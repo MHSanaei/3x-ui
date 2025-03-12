@@ -64,7 +64,7 @@ func GetAccessLogPath() (string, error) {
 		return "", err
 	}
 
-	jsonConfig := map[string]interface{}{}
+	jsonConfig := map[string]any{}
 	err = json.Unmarshal([]byte(config), &jsonConfig)
 	if err != nil {
 		logger.Warningf("Failed to parse JSON configuration: %s", err)
@@ -72,7 +72,7 @@ func GetAccessLogPath() (string, error) {
 	}
 
 	if jsonConfig["log"] != nil {
-		jsonLog := jsonConfig["log"].(map[string]interface{})
+		jsonLog := jsonConfig["log"].(map[string]any)
 		if jsonLog["access"] != nil {
 			accessLogPath := jsonLog["access"].(string)
 			return accessLogPath, nil

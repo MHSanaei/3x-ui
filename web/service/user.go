@@ -46,7 +46,7 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 	db := database.GetDB()
 	return db.Model(model.User{}).
 		Where("id = ?", id).
-		Updates(map[string]interface{}{"username": username, "password": password}).
+		Updates(map[string]any{"username": username, "password": password}).
 		Error
 }
 

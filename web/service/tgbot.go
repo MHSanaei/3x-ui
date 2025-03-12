@@ -20,6 +20,8 @@ import (
 	"x-ui/web/locale"
 	"x-ui/xray"
 
+	"slices"
+
 	"github.com/mymmrac/telego"
 	th "github.com/mymmrac/telego/telegohandler"
 	tu "github.com/mymmrac/telego/telegoutil"
@@ -894,12 +896,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 }
 
 func checkAdmin(tgId int64) bool {
-	for _, adminId := range adminIds {
-		if adminId == tgId {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(adminIds, tgId)
 }
 
 func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
@@ -1692,12 +1689,7 @@ func (t *Tgbot) notifyExhausted() {
 }
 
 func int64Contains(slice []int64, item int64) bool {
-	for _, s := range slice {
-		if s == item {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, item)
 }
 
 func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {

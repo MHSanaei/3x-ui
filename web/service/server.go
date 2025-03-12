@@ -450,7 +450,7 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
-func (s *ServerService) GetConfigJson() (interface{}, error) {
+func (s *ServerService) GetConfigJson() (any, error) {
 	config, err := s.xrayService.GetXrayConfig()
 	if err != nil {
 		return nil, err
@@ -460,7 +460,7 @@ func (s *ServerService) GetConfigJson() (interface{}, error) {
 		return nil, err
 	}
 
-	var jsonData interface{}
+	var jsonData any
 	err = json.Unmarshal(contents, &jsonData)
 	if err != nil {
 		return nil, err
@@ -591,7 +591,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	return nil
 }
 
-func (s *ServerService) GetNewX25519Cert() (interface{}, error) {
+func (s *ServerService) GetNewX25519Cert() (any, error) {
 	// Run the command
 	cmd := exec.Command(xray.GetBinaryPath(), "x25519")
 	var out bytes.Buffer
@@ -609,7 +609,7 @@ func (s *ServerService) GetNewX25519Cert() (interface{}, error) {
 	privateKey := strings.TrimSpace(privateKeyLine[1])
 	publicKey := strings.TrimSpace(publicKeyLine[1])
 
-	keyPair := map[string]interface{}{
+	keyPair := map[string]any{
 		"privateKey": privateKey,
 		"publicKey":  publicKey,
 	}
