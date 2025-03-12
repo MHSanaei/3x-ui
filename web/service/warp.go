@@ -56,8 +56,7 @@ func (s *WarpService) GetWarpConfig() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	buffer := bytes.NewBuffer(make([]byte, 8192))
-	buffer.Reset()
+	buffer := &bytes.Buffer{}
 	_, err = buffer.ReadFrom(resp.Body)
 	if err != nil {
 		return "", err
@@ -87,14 +86,13 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 		return "", err
 	}
 	defer resp.Body.Close()
-	buffer := bytes.NewBuffer(make([]byte, 8192))
-	buffer.Reset()
+	buffer := &bytes.Buffer{}
 	_, err = buffer.ReadFrom(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var rspData map[string]interface{}
+	var rspData map[string]any
 	err = json.Unmarshal(buffer.Bytes(), &rspData)
 	if err != nil {
 		return "", err
@@ -102,7 +100,7 @@ func (s *WarpService) RegWarp(secretKey string, publicKey string) (string, error
 
 	deviceId := rspData["id"].(string)
 	token := rspData["token"].(string)
-	license, ok := rspData["account"].(map[string]interface{})["license"].(string)
+	license, ok := rspData["account"].(map[string]any)["license"].(string)
 	if !ok {
 		logger.Debug("Error accessing license value.")
 		return "", err
@@ -144,21 +142,20 @@ func (s *WarpService) SetWarpLicense(license string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	buffer := bytes.NewBuffer(make([]byte, 8192))
-	buffer.Reset()
+	buffer := &bytes.Buffer{}
 	_, err = buffer.ReadFrom(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	var response map[string]interface{}
+	var response map[string]any
 	err = json.Unmarshal(buffer.Bytes(), &response)
 	if err != nil {
 		return "", err
 	}
 	if response["success"] == false {
-		errorArr, _ := response["errors"].([]interface{})
-		errorObj := errorArr[0].(map[string]interface{})
+		errorArr, _ := response["errors"].([]any)
+		errorObj := errorArr[0].(map[string]any)
 		return "", common.NewError(errorObj["code"], errorObj["message"])
 	}
 

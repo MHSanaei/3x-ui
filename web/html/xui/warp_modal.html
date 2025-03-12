@@ -176,10 +176,10 @@
             },
             async register() {
                 warpModal.loading(true);
-                keys = Wireguard.generateKeypair();
+                const keys = Wireguard.generateKeypair();
                 const msg = await HttpUtil.post('/panel/xray/warp/reg', keys);
                 if (msg.success) {
-                    resp = JSON.parse(msg.obj);
+                    const resp = JSON.parse(msg.obj);
                     warpModal.warpData = resp.data;
                     warpModal.warpConfig = resp.config;
                     this.collectConfig();
