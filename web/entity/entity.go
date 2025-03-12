@@ -10,9 +10,9 @@ import (
 )
 
 type Msg struct {
-	Success bool        `json:"success"`
-	Msg     string      `json:"msg"`
-	Obj     interface{} `json:"obj"`
+	Success bool   `json:"success"`
+	Msg     string `json:"msg"`
+	Obj     any    `json:"obj"`
 }
 
 type AllSetting struct {

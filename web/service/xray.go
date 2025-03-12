@@ -56,7 +56,7 @@ func (s *XrayService) GetXrayVersion() string {
 	return p.GetVersion()
 }
 
-func RemoveIndex(s []interface{}, index int) []interface{} {
+func RemoveIndex(s []any, index int) []any {
 	return append(s[:index], s[index+1:]...)
 }
 
@@ -83,16 +83,16 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			continue
 		}
 		// get settings clients
-		settings := map[string]interface{}{}
+		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)
-		clients, ok := settings["clients"].([]interface{})
+		clients, ok := settings["clients"].([]any)
 		if ok {
 			// check users active or not
 			clientStats := inbound.ClientStats
 			for _, clientTraffic := range clientStats {
 				indexDecrease := 0
 				for index, client := range clients {
-					c := client.(map[string]interface{})
+					c := client.(map[string]any)
 					if c["email"] == clientTraffic.Email {
 						if !clientTraffic.Enable {
 							clients = RemoveIndex(clients, index-indexDecrease)
@@ -104,9 +104,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			}
 
 			// clear client config for additional parameters
-			var final_clients []interface{}
+			var final_clients []any
 			for _, client := range clients {
-				c := client.(map[string]interface{})
+				c := client.(map[string]any)
 				if c["enable"] != nil {
 					if enable, ok := c["enable"].(bool); ok && !enable {
 						continue
@@ -120,7 +120,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 						c["flow"] = "xtls-rprx-vision"
 					}
 				}
-				final_clients = append(final_clients, interface{}(c))
+				final_clients = append(final_clients, any(c))
 			}
 
 			settings["clients"] = final_clients
@@ -134,12 +134,12 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 
 		if len(inbound.StreamSettings) > 0 {
 			// Unmarshal stream JSON
-			var stream map[string]interface{}
+			var stream map[string]any
 			json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 
 			// Remove the "settings" field under "tlsSettings" and "realitySettings"
-			tlsSettings, ok1 := stream["tlsSettings"].(map[string]interface{})
-			realitySettings, ok2 := stream["realitySettings"].(map[string]interface{})
+			tlsSettings, ok1 := stream["tlsSettings"].(map[string]any)
+			realitySettings, ok2 := stream["realitySettings"].(map[string]any)
 			if ok1 || ok2 {
 				if ok1 {
 					delete(tlsSettings, "settings")

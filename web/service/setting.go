@@ -74,8 +74,8 @@ var defaultValueMap = map[string]string{
 
 type SettingService struct{}
 
-func (s *SettingService) GetDefaultJsonConfig() (interface{}, error) {
-	var jsonData interface{}
+func (s *SettingService) GetDefaultJsonConfig() (any, error) {
+	var jsonData any
 	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
 	if err != nil {
 		return nil, err
@@ -543,8 +543,8 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	return common.Combine(errs...)
 }
 
-func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
-	var jsonData interface{}
+func (s *SettingService) GetDefaultXrayConfig() (any, error) {
+	var jsonData any
 	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
 	if err != nil {
 		return nil, err
@@ -552,24 +552,24 @@ func (s *SettingService) GetDefaultXrayConfig() (interface{}, error) {
 	return jsonData, nil
 }
 
-func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
-	type settingFunc func() (interface{}, error)
+func (s *SettingService) GetDefaultSettings(host string) (any, error) {
+	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
-		"expireDiff":    func() (interface{}, error) { return s.GetExpireDiff() },
-		"trafficDiff":   func() (interface{}, error) { return s.GetTrafficDiff() },
-		"pageSize":      func() (interface{}, error) { return s.GetPageSize() },
-		"defaultCert":   func() (interface{}, error) { return s.GetCertFile() },
-		"defaultKey":    func() (interface{}, error) { return s.GetKeyFile() },
-		"tgBotEnable":   func() (interface{}, error) { return s.GetTgbotEnabled() },
-		"subEnable":     func() (interface{}, error) { return s.GetSubEnable() },
-		"subURI":        func() (interface{}, error) { return s.GetSubURI() },
-		"subJsonURI":    func() (interface{}, error) { return s.GetSubJsonURI() },
-		"remarkModel":   func() (interface{}, error) { return s.GetRemarkModel() },
-		"datepicker":    func() (interface{}, error) { return s.GetDatepicker() },
-		"ipLimitEnable": func() (interface{}, error) { return s.GetIpLimitEnable() },
+		"expireDiff":    func() (any, error) { return s.GetExpireDiff() },
+		"trafficDiff":   func() (any, error) { return s.GetTrafficDiff() },
+		"pageSize":      func() (any, error) { return s.GetPageSize() },
+		"defaultCert":   func() (any, error) { return s.GetCertFile() },
+		"defaultKey":    func() (any, error) { return s.GetKeyFile() },
+		"tgBotEnable":   func() (any, error) { return s.GetTgbotEnabled() },
+		"subEnable":     func() (any, error) { return s.GetSubEnable() },
+		"subURI":        func() (any, error) { return s.GetSubURI() },
+		"subJsonURI":    func() (any, error) { return s.GetSubJsonURI() },
+		"remarkModel":   func() (any, error) { return s.GetRemarkModel() },
+		"datepicker":    func() (any, error) { return s.GetDatepicker() },
+		"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
 	}
 
-	result := make(map[string]interface{})
+	result := make(map[string]any)
 
 	for key, fn := range settings {
 		value, err := fn()

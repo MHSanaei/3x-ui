@@ -92,7 +92,7 @@ func (x *XrayAPI) DelInbound(tag string) error {
 	return err
 }
 
-func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]interface{}) error {
+func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
 	var account *serial.TypedMessage
 	switch Protocol {
 	case "vmess":
