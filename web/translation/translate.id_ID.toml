@@ -292,6 +292,8 @@
 "subSettings" = "Langganan"
 "subEnable" = "Aktifkan Layanan Langganan"
 "subEnableDesc" = "Mengaktifkan layanan langganan."
+"subTitle" = "Judul Langganan"
+"subTitleDesc" = "Judul yang ditampilkan di klien VPN"
 "subListen" = "IP Pendengar"
 "subListenDesc" = "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)"
 "subPort" = "Port Pendengar"

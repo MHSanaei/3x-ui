@@ -292,6 +292,8 @@
 "subSettings" = "Assinatura"
 "subEnable" = "Ativar Serviço de Assinatura"
 "subEnableDesc" = "Ativa o serviço de assinatura."
+"subTitle" = "Título da Assinatura"
+"subTitleDesc" = "Título exibido no cliente VPN"
 "subListen" = "IP de Escuta"
 "subListenDesc" = "O endereço IP para o serviço de assinatura. (deixe em branco para escutar em todos os IPs)"
 "subPort" = "Porta de Escuta"

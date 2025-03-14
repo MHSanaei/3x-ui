@@ -292,6 +292,8 @@
 "subSettings" = "Abonelik"
 "subEnable" = "Abonelik Hizmetini Etkinleştir"
 "subEnableDesc" = "Abonelik hizmetini etkinleştirir."
+"subTitle" = "Abonelik Başlığı"
+"subTitleDesc" = "VPN istemcisinde gösterilen başlık"
 "subListen" = "Dinleme IP"
 "subListenDesc" = "Abonelik hizmeti için IP adresi. (tüm IP'leri dinlemek için boş bırakın)"
 "subPort" = "Dinleme Portu"

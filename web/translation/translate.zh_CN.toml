@@ -292,6 +292,8 @@
 "subSettings" = "订阅设置"
 "subEnable" = "启用订阅服务"
 "subEnableDesc" = "启用订阅服务功能"
+"subTitle" = "订阅标题"
+"subTitleDesc" = "在VPN客户端中显示的标题"
 "subListen" = "监听 IP"
 "subListenDesc" = "订阅服务监听的 IP 地址（留空表示监听所有 IP）"
 "subPort" = "监听端口"
