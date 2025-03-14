@@ -572,6 +572,16 @@
 "yes" = "✅ Yes"
 "no" = "❌ No"
 
+"received_id" = "🔑📥 Received ID: {{ .ClientId }}"
+"received_email" = "📧📥 Received Email: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Received Comment: {{ .ClientComment }}"
+"id_prompt" = "🔑 Default ID: {{ .ClientId }}\n\nEnter your id."
+"email_prompt" = "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."
+"comment_prompt" = "💬 Default Comment: {{ .ClientComment }}\n\nEnter your Comment."
+"inbound_client_data" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"client_data" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"cancel" = "❌ Process Canceled! \n\nYou can /start again anytime. 🔄"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
 "cancel" = "❌ Cancel"
@@ -605,6 +615,12 @@
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
 "allClients" = "All Clients"
+
+"addClient" = "Add Client"
+"submitEnable" = "Submit As Enable ✅"
+"submitDisable" = "Submit As Disable 🚫"
+"use_default" = "🏷️ Use default"
+"change_default" = "🔄⚙️ Change Default"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"

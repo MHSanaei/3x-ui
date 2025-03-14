@@ -572,6 +572,16 @@
 "yes" = "✅ Evet"
 "no" = "❌ Hayır"
 
+"received_id" = "🔑📥 Alınan ID: {{ .ClientId }}"
+"received_email" = "📧📥 Alınan E-posta: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Alınan Yorum: {{ .ClientComment }}"
+"id_prompt" = "🔑 Varsayılan ID: {{ .ClientId }}\n\nID'nizi girin."
+"email_prompt" = "📧 Varsayılan E-posta: {{ .ClientEmail }}\n\nE-posta adresinizi girin."
+"comment_prompt" = "💬 Varsayılan Yorum: {{ .ClientComment }}\n\nYorumunuzu girin."
+"inbound_client_data" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteri girişine ekleyebilirsiniz!"
+"client_data" = "🔑 ID: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteri girişine ekleyebilirsiniz!"
+"cancel" = "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start komutunu tekrar verebilirsiniz. 🔄"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Klavyeyi Kapat"
 "cancel" = "❌ İptal"
@@ -605,6 +615,12 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
+
+"addClient" = "Müşteri Ekle"
+"submitEnable" = "Etkin Olarak Gönder ✅"
+"submitDisable" = "Devre Dışı Olarak Gönder 🚫"
+"use_default" = "🏷️ Varsayılanı Kullan"
+"change_default" = "🔄⚙️ Varsayılanı Değiştir"
 
 [tgbot.answers]
 "successfulOperation" = "✅ İşlem başarılı!"

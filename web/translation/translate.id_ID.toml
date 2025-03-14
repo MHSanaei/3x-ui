@@ -571,6 +571,17 @@
 "yes" = "✅ Ya"
 "no" = "❌ Tidak"
 
+
+"received_id" = "🔑📥 ID diterima: {{ .ClientId }}"
+"received_email" = "📧📥 Email diterima: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Komentar diterima: {{ .ClientComment }}"
+"id_prompt" = "🔑 ID default: {{ .ClientId }}\n\nMasukkan ID Anda."
+"email_prompt" = "📧 Email default: {{ .ClientEmail }}\n\nMasukkan email Anda."
+"comment_prompt" = "💬 Komentar default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
+"inbound_client_data" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke inbound!"
+"client_data" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke inbound!"
+"cancel" = "❌ Proses dibatalkan! \n\nAnda bisa /start lagi kapan saja. 🔄"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Tutup Papan Ketik"
 "cancel" = "❌ Batal"
@@ -604,6 +615,12 @@
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
 "allClients" = "Semua Klien"
+
+"addClient" = "Tambah Klien"
+"submitEnable" = "Kirim Sebagai Aktif ✅"
+"submitDisable" = "Kirim Sebagai Nonaktif 🚫"
+"use_default" = "🏷️ Gunakan Default"
+"change_default" = "🔄⚙️ Ubah Default"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"

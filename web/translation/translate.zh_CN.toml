@@ -572,6 +572,16 @@
 "yes" = "✅ 是的"
 "no" = "❌ 没有"
 
+"received_id" = "🔑📥 接收到的ID: {{ .ClientId }}"
+"received_email" = "📧📥 接收到的邮件: {{ .ClientEmail }}"
+"received_comment" = "💬📥 接收到的评论: {{ .ClientComment }}"
+"id_prompt" = "🔑 默认ID: {{ .ClientId }}\n\n请输入您的ID。"
+"email_prompt" = "📧 默认邮件: {{ .ClientEmail }}\n\n请输入您的邮箱。"
+"comment_prompt" = "💬 默认评论: {{ .ClientComment }}\n\n请输入您的评论。"
+"inbound_client_data" = "🔄 入站数据: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n现在您可以将客户添加到入站！"
+"client_data" = "🔑 ID: {{ .ClientId }}\n📧 邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n现在您可以将客户添加到入站！"
+"cancel" = "❌ 过程已取消！ \n\n您可以随时 /start 重新开始。 🔄"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ 关闭键盘"
 "cancel" = "❌ 取消"
@@ -605,6 +615,12 @@
 "limitTraffic" = "🚧 流量限制"
 "getBanLogs" = "禁止日志"
 "allClients" = "所有客户"
+
+"addClient" = "添加客户"
+"submitEnable" = "提交为启用 ✅"
+"submitDisable" = "提交为禁用 🚫"
+"use_default" = "🏷️ 使用默认"
+"change_default" = "🔄⚙️ 更改默认"
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

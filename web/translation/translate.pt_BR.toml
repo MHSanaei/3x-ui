@@ -572,6 +572,16 @@
 "yes" = "✅ Sim"
 "no" = "❌ Não"
 
+"received_id" = "🔑📥 ID recebido: {{ .ClientId }}"
+"received_email" = "📧📥 E-mail recebido: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Comentário recebido: {{ .ClientComment }}"
+"id_prompt" = "🔑 ID padrão: {{ .ClientId }}\n\nDigite seu ID."
+"email_prompt" = "📧 E-mail padrão: {{ .ClientEmail }}\n\nDigite seu e-mail."
+"comment_prompt" = "💬 Comentário padrão: {{ .ClientComment }}\n\nDigite seu comentário."
+"inbound_client_data" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nVocê pode adicionar o cliente à entrada agora!"
+"client_data" = "🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nVocê pode adicionar o cliente à entrada agora!"
+"cancel" = "❌ Processo cancelado! \n\nVocê pode /start novamente a qualquer momento. 🔄"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Fechar teclado"
 "cancel" = "❌ Cancelar"
@@ -605,6 +615,12 @@
 "limitTraffic" = "🚧 Limite de tráfego"
 "getBanLogs" = "Obter logs de banimento"
 "allClients" = "Todos os clientes"
+
+"addClient" = "Adicionar Cliente"
+"submitEnable" = "Enviar como Ativado ✅"
+"submitDisable" = "Enviar como Desativado 🚫"
+"use_default" = "🏷️ Usar padrão"
+"change_default" = "🔄⚙️ Alterar Padrão"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operação bem-sucedida!"
