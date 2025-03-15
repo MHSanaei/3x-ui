@@ -410,6 +410,13 @@
                       </template>
                     </a-setting-list-item>
                     <a-setting-list-item paddings="small">
+                      <template #title>{{ i18n "pages.settings.subTitle"}}</template>
+                      <template #description>{{ i18n "pages.settings.subTitleDesc"}}</template>
+                      <template #control>
+                        <a-input type="text" v-model="allSetting.subTitle"></a-input>
+                      </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
                       <template #title>{{ i18n "pages.settings.subListen"}}</template>
                       <template #description>{{ i18n "pages.settings.subListenDesc"}}</template>
                       <template #control>

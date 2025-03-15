@@ -662,6 +662,7 @@
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             subSettings: {
                 enable : false,
+                subTitle : '',
                 subURI : '',
                 subJsonURI : '',
             },
@@ -711,6 +712,7 @@
                     this.tgBotEnable = tgBotEnable;
                     this.subSettings = {
                         enable : subEnable,
+                        subTitle : subTitle,
                         subURI: subURI,
                         subJsonURI: subJsonURI
                     };

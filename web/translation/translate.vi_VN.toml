@@ -292,6 +292,8 @@
 "subSettings" = "Gói đăng ký"
 "subEnable" = "Bật dịch vụ"
 "subEnableDesc" = "Tính năng gói đăng ký với cấu hình riêng"
+"subTitle" = "Tiêu đề Đăng ký"
+"subTitleDesc" = "Tiêu đề hiển thị trong ứng dụng VPN"
 "subListen" = "Listening IP"
 "subListenDesc" = "Mặc định để trống để nghe tất cả các IP"
 "subPort" = "Cổng gói đăng ký"

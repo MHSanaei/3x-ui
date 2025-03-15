@@ -292,6 +292,8 @@
 "subSettings" = "Subscription"
 "subEnable" = "Enable Subscription Service"
 "subEnableDesc" = "Enables the subscription service."
+"subTitle" = "Subscription Title"
+ "subTitleDesc" = "Title shown in VPN client"
 "subListen" = "Listen IP"
 "subListenDesc" = "The IP address for the subscription service. (leave blank to listen on all IPs)"
 "subPort" = "Listen Port"
