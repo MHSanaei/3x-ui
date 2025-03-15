@@ -115,7 +115,7 @@
 "dontRefresh" = "Đang tiến hành cài đặt, vui lòng không làm mới trang này."
 "logs" = "Nhật ký"
 "config" = "Cấu hình"
-"backup" = "Sao lưu & Khôi phục"
+"backup" = "Sao lưu"
 "backupTitle" = "Sao lưu & Khôi phục Cơ sở dữ liệu"
 "exportDatabase" = "Sao lưu"
 "exportDatabaseDesc" = "Nhấp để tải xuống tệp .db chứa bản sao lưu cơ sở dữ liệu hiện tại của bạn vào thiết bị."

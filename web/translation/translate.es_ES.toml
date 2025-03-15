@@ -115,7 +115,7 @@
 "dontRefresh" = "La instalación está en progreso, por favor no actualices esta página."
 "logs" = "Registros"
 "config" = "Configuración"
-"backup" = "Copia de Seguridad y Restauración"
+"backup" = "Сopia de Seguridad"
 "backupTitle" = "Copia de Seguridad y Restauración de la Base de Datos"
 "exportDatabase" = "Copia de seguridad"
 "exportDatabaseDesc" = "Haz clic para descargar un archivo .db que contiene una copia de seguridad de tu base de datos actual en tu dispositivo."

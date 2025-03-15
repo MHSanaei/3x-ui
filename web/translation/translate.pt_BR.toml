@@ -115,7 +115,7 @@
 "dontRefresh" = "Instalação em andamento, por favor não atualize a página"
 "logs" = "Logs"
 "config" = "Configuração"
-"backup" = "Backup e Restauração"
+"backup" = "Backup"
 "backupTitle" = "Backup e Restauração do Banco de Dados"
 "exportDatabase" = "Backup"
 "exportDatabaseDesc" = "Clique para baixar um arquivo .db contendo um backup do seu banco de dados atual para o seu dispositivo."

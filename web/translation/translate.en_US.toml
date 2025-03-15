@@ -113,7 +113,7 @@
 "dontRefresh" = "Installation is in progress, please do not refresh this page"
 "logs" = "Logs"
 "config" = "Config"
-"backup" = "Backup & Restore"
+"backup" = "Backup"
 "backupTitle" = "Database Backup & Restore"
 "exportDatabase" = "Back Up"
 "exportDatabaseDesc" = "Click to download a .db file containing a backup of your current database to your device."

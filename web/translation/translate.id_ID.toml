@@ -115,7 +115,7 @@
 "dontRefresh" = "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini"
 "logs" = "Log"
 "config" = "Konfigurasi"
-"backup" = "Cadangan & Pulihkan"
+"backup" = "Cadangan"
 "backupTitle" = "Cadangan & Pulihkan Database"
 "exportDatabase" = "Cadangkan"
 "exportDatabaseDesc" = "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda."

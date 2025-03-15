@@ -115,7 +115,7 @@
 "dontRefresh" = "Kurulum devam ediyor, lütfen bu sayfayı yenilemeyin"
 "logs" = "Günlükler"
 "config" = "Yapılandırma"
-"backup" = "Yedekle & Geri Yükle"
+"backup" = "Yedek"
 "backupTitle" = "Veritabanı Yedekleme & Geri Yükleme"
 "exportDatabase" = "Yedekle"
 "exportDatabaseDesc" = "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın."

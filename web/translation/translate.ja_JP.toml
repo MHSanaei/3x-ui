@@ -115,7 +115,7 @@
 "dontRefresh" = "インストール中、このページをリロードしないでください"
 "logs" = "ログ"
 "config" = "設定"
-"backup" = "バックアップと復元"
+"backup" = "バックアップ"
 "backupTitle" = "データベースのバックアップと復元"
 "exportDatabase" = "バックアップ"
 "exportDatabaseDesc" = "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。"
