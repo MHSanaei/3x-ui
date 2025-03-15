@@ -13,6 +13,9 @@
       margin-inline: 0.3rem;
     }
   }
+  .ant-statistic-content {
+    font-size: 18px;
+  }
   .ant-col-sm-24 {
     margin-top: 10px;
   }
@@ -121,18 +124,6 @@
             <template v-else>
               <a-row>
                 <a-col :sm="24" :lg="12">
-                  <a-card title='3X-UI' hoverable>
-                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                    <a rel="noopener" href="https://t.me/XrayUI" target="_blank"><a-tag color="green">@XrayUI</a-tag></a>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.operationHours" }}' hoverable>
-                    <a-tag :color="status.xray.color">Xray: [[ TimeFormatter.formatSecond(status.appStats.uptime) ]]</a-tag>
-                    <a-tag color="green">OS: [[ TimeFormatter.formatSecond(status.uptime) ]]</a-tag>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.xrayStatus" }}' hoverable>
                     <template #extra>
                       <a-badge :text="status.xray.state" :color="status.xray.color" style="text-transform: capitalize;"/>
@@ -181,6 +172,18 @@
                   </a-card>
                 </a-col>
                 <a-col :sm="24" :lg="12">
+                  <a-card title='3X-UI' hoverable>
+                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
+                    <a rel="noopener" href="https://t.me/XrayUI" target="_blank"><a-tag color="green">@XrayUI</a-tag></a>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
+                  <a-card title='{{ i18n "pages.index.operationHours" }}' hoverable>
+                    <a-tag :color="status.xray.color">Xray: [[ TimeFormatter.formatSecond(status.appStats.uptime) ]]</a-tag>
+                    <a-tag color="green">OS: [[ TimeFormatter.formatSecond(status.uptime) ]]</a-tag>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.systemLoad" }}' hoverable>
                     <a-tag color="green">
                       <a-tooltip>
@@ -196,54 +199,6 @@
                   <a-card title='{{ i18n "usage"}}' hoverable>
                     <a-tag color="green"> RAM: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
                     <a-tag color="green"> Threads: [[ status.appStats.threads ]] </a-tag>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
-                    <template #extra>
-                      <a-tooltip>
-                        <template #title>
-                          {{ i18n "pages.index.toggleIpVisibility" }}
-                        </template>
-                        <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
-                      </a-tooltip>
-                    </template>
-                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
-                      <a-col :span="12">
-                        <a-statistic title="IPv4" :value="status.publicIP.ipv4">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-statistic>
-                      </a-col>
-                      <a-col :span="12">
-                        <a-statistic title="IPv6" :value="status.publicIP.ipv6">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
-                    <a-row>
-                      <a-col :span="12">
-                        <a-statistic title="TCP" :value="status.tcpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-statistic>
-                      </a-col>
-                      <a-col :span="12">
-                        <a-statistic title="UDP" :value="status.udpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-statistic>
-                      </a-col>
-                    </a-row>
                   </a-card>
                 </a-col>
                 <a-col :sm="24" :lg="12">
@@ -286,6 +241,54 @@
                         <a-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
                           <template #prefix>
                             <a-icon type="cloud-download" />
+                          </template>
+                        </a-statistic>
+                      </a-col>
+                    </a-row>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
+                  <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
+                    <template #extra>
+                      <a-tooltip>
+                        <template #title>
+                          {{ i18n "pages.index.toggleIpVisibility" }}
+                        </template>
+                        <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
+                      </a-tooltip>
+                    </template>
+                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
+                      <a-col :xs="24" :xxl="12">
+                        <a-statistic title="IPv4" :value="status.publicIP.ipv4">
+                          <template #prefix>
+                            <a-icon type="global" />
+                          </template>
+                        </a-statistic>
+                      </a-col>
+                      <a-col :xs="24" :xxl="12">
+                        <a-statistic title="IPv6" :value="status.publicIP.ipv6">
+                          <template #prefix>
+                            <a-icon type="global" />
+                          </template>
+                        </a-statistic>
+                      </a-col>
+                    </a-row>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
+                  <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
+                    <a-row>
+                      <a-col :span="12">
+                        <a-statistic title="TCP" :value="status.tcpCount">
+                          <template #prefix>
+                            <a-icon type="swap" />
+                          </template>
+                        </a-statistic>
+                      </a-col>
+                      <a-col :span="12">
+                        <a-statistic title="UDP" :value="status.udpCount">
+                          <template #prefix>
+                            <a-icon type="swap" />
                           </template>
                         </a-statistic>
                       </a-col>
@@ -566,7 +569,7 @@
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
-            showIp: false,
+            showIp: true,
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
