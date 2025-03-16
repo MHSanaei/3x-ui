@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/big"
@@ -51,7 +52,12 @@ var (
 	client_TgID       string 
 	client_SubID      string
 	client_Comment    string 
-	client_Reset      int    
+	client_Reset      int 
+	client_security   string
+	client_ShPassword   string
+	client_TrPassword   string
+	client_method	  string
+
 )
 
 
@@ -423,6 +429,17 @@ func (t *Tgbot) randomLowerAndNum(length int) string {
 	}
 	return string(bytes)
 }
+
+
+func (t *Tgbot) randomShadowSocksPassword() string {
+	array := make([]byte, 32)
+	_, err := rand.Read(array)
+	if err != nil {
+		return t.randomLowerAndNum(32)
+	}
+	return base64.StdEncoding.EncodeToString(array)
+}
+
 
 func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool) {
 	chatId := callbackQuery.Message.GetChat().ID
@@ -931,6 +948,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				client_SubID = t.randomLowerAndNum(16)
 				client_Comment = "" 
 				client_Reset = 0 
+				client_security="auto"
+				client_ShPassword=t.randomShadowSocksPassword()
+				client_TrPassword=t.randomLowerAndNum(10)
+				client_method=""
 
 				inboundId := dataArray[1]
 				inboundIdInt, err := strconv.Atoi(inboundId)
@@ -1014,6 +1035,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		client_SubID = t.randomLowerAndNum(16)
 		client_Comment = "" 
 		client_Reset = 0 
+		client_ShPassword=t.randomShadowSocksPassword()
+		client_TrPassword=t.randomLowerAndNum(10)
+		client_method=""
 
 		inbounds, err := t.getInboundsAddClient()
 		if err != nil {
@@ -1389,7 +1413,7 @@ func (t *Tgbot) getInboundUsages() string {
 	}
 	return info
 }
-func (t *Tgbot) getInboundsKeyboard(action string) (*telego.InlineKeyboardMarkup, error) {
+func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
 	inbounds, err := t.inboundService.GetAllInbounds()
 	if err != nil {
 		logger.Warning("GetAllInbounds run failed:", err)
@@ -1407,11 +1431,11 @@ func (t *Tgbot) getInboundsKeyboard(action string) (*telego.InlineKeyboardMarkup
 		if inbound.Enable {
 			status = "✅"
 		}
-		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", action, inbound.Id))
+		callbackData := t.encodeQuery(fmt.Sprintf("%s %d","get_clients", inbound.Id))
 		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
 	}
 
-	cols := 3
+	cols := 1
 	if len(buttons) >= 6 {
 		cols = 2
 	}
@@ -1420,12 +1444,46 @@ func (t *Tgbot) getInboundsKeyboard(action string) (*telego.InlineKeyboardMarkup
 	return keyboard, nil
 }
 
-func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
-	return t.getInboundsKeyboard("get_clients")
-}
-
 func (t *Tgbot) getInboundsAddClient() (*telego.InlineKeyboardMarkup, error) {
-	return t.getInboundsKeyboard("add_client_to")
+	inbounds, err := t.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("GetAllInbounds run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	if len(inbounds) == 0 {
+		logger.Warning("No inbounds found")
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	excludedProtocols := map[model.Protocol]bool{
+        model.DOKODEMO: true,
+        model.Socks:    true,
+        model.WireGuard: true,
+        model.HTTP:     true,
+    }
+
+	var buttons []telego.InlineKeyboardButton
+	for _, inbound := range inbounds {
+		if excludedProtocols[inbound.Protocol] {
+			continue
+		}
+
+		status := "❌"
+		if inbound.Enable {
+			status = "✅"
+		}
+		callbackData := t.encodeQuery(fmt.Sprintf("%s %d","add_client_to", inbound.Id))
+		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
+	}
+
+	cols := 1
+	if len(buttons) >= 6 {
+		cols = 2
+	}
+
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+	return keyboard, nil
 }
 
 func (t *Tgbot) getInboundClients(id int) (*telego.InlineKeyboardMarkup, error) {
