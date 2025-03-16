@@ -581,6 +581,8 @@
 "inbound_client_data" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteri girişine ekleyebilirsiniz!"
 "client_data" = "🔑 ID: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteri girişine ekleyebilirsiniz!"
 "cancel" = "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start komutunu tekrar verebilirsiniz. 🔄"
+"error_add_client" = "⚠️ Hata:\n\n {{ .error }}"
+"success_add_client" = "🏆 Başarılı! Şimdi 'All Clients' düğmesini kullanarak düzenleyebilirsiniz."
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Klavyeyi Kapat"

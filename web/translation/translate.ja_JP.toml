@@ -581,6 +581,8 @@
 "inbound_client_data" = "🔄 受信データ: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 メール: {{ .ClientEmail }}\n💬 コメント: {{ .ClientComment }}\n\nクライアントを受信リストに追加できます！"
 "client_data" = "🔑 ID: {{ .ClientId }}\n📧 メール: {{ .ClientEmail }}\n💬 コメント: {{ .ClientComment }}\n\nクライアントを受信リストに追加できます！"
 "cancel" = "❌ 処理がキャンセルされました！ \n\nいつでも/startでやり直せます。 🔄"
+"error_add_client" = "⚠️ エラー:\n\n {{ .error }}"
+"success_add_client" = "🏆 成功！「All Clients」ボタンを使って変更できます。"
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ キーボードを閉じる"

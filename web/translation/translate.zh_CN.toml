@@ -581,6 +581,8 @@
 "inbound_client_data" = "🔄 入站数据: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n现在您可以将客户添加到入站！"
 "client_data" = "🔑 ID: {{ .ClientId }}\n📧 邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n现在您可以将客户添加到入站！"
 "cancel" = "❌ 过程已取消！ \n\n您可以随时 /start 重新开始。 🔄"
+"error_add_client" = "⚠️ 错误:\n\n {{ .error }}"
+"success_add_client" = "🏆 成功！现在您可以使用“All Clients”按钮进行修改。"
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ 关闭键盘"

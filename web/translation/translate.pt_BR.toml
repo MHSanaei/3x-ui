@@ -581,6 +581,8 @@
 "inbound_client_data" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nVocê pode adicionar o cliente à entrada agora!"
 "client_data" = "🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nVocê pode adicionar o cliente à entrada agora!"
 "cancel" = "❌ Processo cancelado! \n\nVocê pode /start novamente a qualquer momento. 🔄"
+"error_add_client" = "⚠️ Erro:\n\n {{ .error }}"
+"success_add_client" = "🏆 Sucesso! Agora você pode modificá-lo usando o botão 'All Clients'."
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Fechar teclado"

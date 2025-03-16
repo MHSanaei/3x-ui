@@ -2,10 +2,10 @@ package service
 
 import (
 	"crypto/rand"
-	"math/big"
 	"embed"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"net/url"
 	"os"
@@ -919,6 +919,19 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clients)
 			case "add_client_to":
+				// assign default values to clients variables
+				client_Id =  uuid.New().String() 
+				client_Flow = ""
+				client_Email = t.randomLowerAndNum(8) 
+				client_LimitIP = 0
+				client_TotalGB = 0
+				client_ExpiryTime = 0
+				client_Enable = true 
+				client_TgID = ""
+				client_SubID = t.randomLowerAndNum(16)
+				client_Comment = "" 
+				client_Reset = 0 
+
 				inboundId := dataArray[1]
 				inboundIdInt, err := strconv.Atoi(inboundId)
 				if err != nil {
@@ -990,17 +1003,17 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.commands.helpAdminCommands"))
 	case "add_client":
 		// assign default values to clients variables
-		client_Id =  uuid.New().String() // button
+		client_Id =  uuid.New().String() 
 		client_Flow = ""
-		client_Email = t.randomLowerAndNum(8) // button
+		client_Email = t.randomLowerAndNum(8) 
 		client_LimitIP = 0
 		client_TotalGB = 0
 		client_ExpiryTime = 0
-		client_Enable = true // button
+		client_Enable = true 
 		client_TgID = ""
 		client_SubID = t.randomLowerAndNum(16)
-		client_Comment = "" // button
-		client_Reset = 0 // button
+		client_Comment = "" 
+		client_Reset = 0 
 
 		inbounds, err := t.getInboundsAddClient()
 		if err != nil {
@@ -1054,7 +1067,52 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_cancel":
 		delete(userStates, chatId)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.cancel"), tu.ReplyKeyboardRemove())
+	case "add_client_submit_enable":
+		inboundService := &InboundService{} 
+		_, err := inboundService.SubmitAddClient()
+		if err != nil {
+			errorMessage := fmt.Sprintf("%v", err)
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.success_add_client"), tu.ReplyKeyboardRemove())
+		}
+	case "add_client_submit_disable":
+		client_Enable = false
+		inboundService := &InboundService{} 
+		_, err := inboundService.SubmitAddClient()
+		if err != nil {
+			errorMessage := fmt.Sprintf("%v", err)
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.success_add_client"), tu.ReplyKeyboardRemove())
+		}
 	}
+}
+
+
+func (s *InboundService) SubmitAddClient() (bool, error) {
+	jsonString := fmt.Sprintf(`{"clients": [{
+  "id": "%s",
+  "flow": "%s",
+  "email": "%s",
+  "limitIp": %d,
+  "totalGB": %d,
+  "expiryTime": %d,
+  "enable": %t,
+  "tgId": "%s",
+  "subId": "%s",
+  "comment": "%s",
+  "reset": %d
+}]}`, client_Id, client_Flow, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+
+
+	newInbound := &model.Inbound{
+		Id:       receiver_inbound_ID,
+		Settings: jsonString, 
+	}
+
+
+	return s.AddInboundClient(newInbound)
 }
 
 func checkAdmin(tgId int64) bool {
