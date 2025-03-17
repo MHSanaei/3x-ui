@@ -431,6 +431,7 @@
 "type" = "Tipo"
 "bridge" = "Ponte"
 "portal" = "Portal"
+"link" = "Link"
 "intercon" = "Interconexão"
 "settings" = "Configurações"
 "accountInfo" = "Informações da Conta"
