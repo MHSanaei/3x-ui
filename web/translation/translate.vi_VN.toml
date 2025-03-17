@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Không có proxy ngược nào được thêm."
 
 [menu]
+"theme" = "Chủ đề"
+"dark" = "Tối"
+"ultraDark" = "Siêu tối"
 "dashboard" = "Trạng thái hệ thống"
 "inbounds" = "Đầu vào khách hàng"
 "settings" = "Cài đặt bảng điều khiển"

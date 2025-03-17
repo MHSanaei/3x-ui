@@ -4,15 +4,15 @@
     <a-sub-menu>
       <span slot="title">
         <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-        <span>Theme</span>
+        <span>{{ i18n "menu.theme" }}</span>
       </span>
-      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> Dark
-        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme"
-          @change="themeSwitcher.toggleTheme()"></a-switch>
+      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> 
+        <span>{{ i18n "menu.dark" }}</span>
+        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
       </a-menu-item>
-      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch"
-        @mousedown="themeSwitcher.animationsOffUltra()"> Ultra <a-checkbox style="margin-left: 2px;"
-          :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOffUltra()"> 
+        <span>{{ i18n "menu.ultraDark" }}</span>
+        <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
       </a-menu-item>
     </a-sub-menu>
   </a-menu>
@@ -36,7 +36,7 @@
 </template>
 {{end}}
 
-{{define "component/themeSwitcher"}}
+{{define "component/aThemeSwitch"}}
 <script>
   function createThemeSwitcher() {
     const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
