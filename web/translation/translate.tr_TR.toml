@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Eklenmiş ters proxy yok."
 
 [menu]
+"theme" = "Tema"
+"dark" = "Koyu"
+"ultraDark" = "Ultra Koyu"
 "dashboard" = "Genel Bakış"
 "inbounds" = "Gelenler"
 "settings" = "Panel Ayarları"

@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "追加されたリバースプロキシはありません。"
 
 [menu]
+"theme" = "テーマ"
+"dark" = "ダーク"
+"ultraDark" = "ウルトラダーク"
 "dashboard" = "ダッシュボード"
 "inbounds" = "インバウンド一覧"
 "settings" = "パネル設定"
