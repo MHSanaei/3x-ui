@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "未添加反向代理。"
 
 [menu]
+"theme" = "主題"
+"dark" = "深色"
+"ultraDark" = "超深色"
 "dashboard" = "系統狀態"
 "inbounds" = "入站列表"
 "settings" = "面板設定"

@@ -27,8 +27,6 @@
   .dark .ant-backup-list-item svg,
   .dark .ant-card-actions>li>*,
   .dark .ant-badge-status-text,
-  .dark .ant-statistic-title,
-  .dark .ant-statistic-content,
   .dark .ant-card-extra {
     color: var(--dark-color-text-primary) !important;
   }
@@ -43,12 +41,6 @@
   }
   .ant-card-actions {
     background: transparent !important;
-  }
-  .ant-statistic-content-prefix {
-    font-size: 20px;
-  }
-  .ant-statistic-content-value {
-    font-size: 18px;
   }
   .ip-hidden {
     filter: blur(10px);
@@ -123,14 +115,22 @@
           </transition>
           <transition name="list" appear>
             <template v-if="!status.isLoaded">
-              <a-card hoverable style="text-align: center; padding: 30px 0; margin-top: 10px;">
+              <div style="text-align: center; padding: 30px 0; margin-top: 10px;">
                 <a-spin size="large"></a-spin>
-              </a-card>
+              </div>
             </template>
             <template v-else>
               <a-row>
                 <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.xrayStatus" }}' hoverable>
+                  <a-card hoverable>
+                    <template #title>
+                      <a-space direction="horizontal">
+                        <span>{{ i18n "pages.index.xrayStatus" }}</span>
+                        <a-tag v-if="isMobile && status.xray.version != 'Unknown'" color="green">
+                          v[[ status.xray.version ]]
+                        </a-tag>
+                      </a-space>
+                    </template>
                     <template #extra>
                       <template v-if="status.xray.state != State.Error">
                         <a-badge :text="status.xray.state" :color="status.xray.color" style="text-transform: capitalize;"/>
@@ -150,15 +150,17 @@
                     <template #actions>
                       <a-space direction="horizontal" @click="stopXrayService" style="justify-content: center;">
                         <a-icon type="poweroff"></a-icon>
-                        <span>{{ i18n "pages.index.stopXray" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.stopXray" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="restartXrayService" style="justify-content: center;">
                         <a-icon type="reload"></a-icon>
-                        <span>{{ i18n "pages.index.restartXray" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openSelectV2rayVersion" style="justify-content: center;">
                         <a-icon type="tool"></a-icon>
-                        <span>v[[ status.xray.version ]]</span>
+                        <span v-if="!isMobile">
+                          [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n "pages.index.xraySwitch" }}' ]]
+                        </span>
                       </a-space>
                     </template>
                   </a-card>
@@ -168,15 +170,15 @@
                     <template #actions>
                       <a-space direction="horizontal" @click="openLogs()" style="justify-content: center;">
                         <a-icon type="bars"></a-icon>
-                        <span>{{ i18n "pages.index.logs" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openConfig" style="justify-content: center;">
                         <a-icon type="control"></a-icon>
-                        <span>{{ i18n "pages.index.config" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.config" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openBackup" style="justify-content: center;">
                         <a-icon type="cloud-server"></a-icon>
-                        <span>{{ i18n "pages.index.backup" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.backup" }}</span>
                       </a-space>
                     </template>
                   </a-card>
@@ -223,18 +225,18 @@
                     </template>
                     <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title="IPv4" :value="status.publicIP.ipv4">
+                        <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
                           <template #prefix>
                             <a-icon type="global" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title="IPv6" :value="status.publicIP.ipv6">
+                        <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
                           <template #prefix>
                             <a-icon type="global" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                     </a-row>
                   </a-card>
@@ -243,18 +245,18 @@
                   <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
                     <a-row>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title="TCP" :value="status.tcpCount">
+                        <a-custom-statistic title="TCP" :value="status.tcpCount">
                           <template #prefix>
                             <a-icon type="swap" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title="UDP" :value="status.udpCount">
+                        <a-custom-statistic title="UDP" :value="status.udpCount">
                           <template #prefix>
                             <a-icon type="swap" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                     </a-row>
                   </a-card>
@@ -263,24 +265,24 @@
                   <a-card title='{{ i18n "pages.index.overallSpeed" }}' hoverable>
                     <a-row>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
+                        <a-custom-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
                           <template #prefix>
                             <a-icon type="arrow-up" />
                           </template>
                           <template #suffix>
                             /s
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title='{{ i18n "pages.index.download" }}' :value="SizeFormatter.sizeFormat(status.netIO.down)">
+                        <a-custom-statistic title='{{ i18n "pages.index.download" }}' :value="SizeFormatter.sizeFormat(status.netIO.down)">
                           <template #prefix>
                             <a-icon type="arrow-down" />
                           </template>
                           <template #suffix>
                             /s
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                     </a-row>
                   </a-card>
@@ -289,18 +291,18 @@
                   <a-card title='{{ i18n "pages.index.totalData" }}' hoverable>
                     <a-row>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
+                        <a-custom-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
                           <template #prefix>
                             <a-icon type="cloud-upload" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                       <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
+                        <a-custom-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
                           <template #prefix>
                             <a-icon type="cloud-download" />
                           </template>
-                        </a-statistic>
+                        </a-custom-statistic>
                       </a-col>
                     </a-row>
                   </a-card>
@@ -397,7 +399,8 @@
     </a-modal>
   </a-layout>
 {{template "js" .}}
-{{template "component/themeSwitcher" .}}
+{{template "component/aThemeSwitch" .}}
+{{template "component/aCustomStatistic" .}}
 {{template "textModal"}}
 <script>
     const State = {

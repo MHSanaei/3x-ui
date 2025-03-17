@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "هیچ پروکسی معکوس اضافه نشده است."
 
 [menu]
+"theme" = "تم"
+"dark" = "تیره"
+"ultraDark" = "فوق تیره"
 "dashboard" = "نمای کلی"
 "inbounds" = "ورودی‌ها"
 "settings" = "تنظیمات پنل"

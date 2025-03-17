@@ -663,9 +663,9 @@
   </a-layout>
 {{template "js" .}}
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
-{{template "component/themeSwitcher" .}}
-{{template "component/password" .}}
-{{template "component/setting"}}
+{{template "component/aThemeSwitch" .}}
+{{template "component/aPasswordInput" .}}
+{{template "component/aSettingListItem" .}}
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
