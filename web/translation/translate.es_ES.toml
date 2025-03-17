@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "No hay proxies inversos añadidos."
 
 [menu]
+"theme" = "Tema"
+"dark" = "Oscuro"
+"ultraDark" = "Ultra Oscuro"
 "dashboard" = "Estado del Sistema"
 "inbounds" = "Entradas"
 "settings" = "Configuraciones"

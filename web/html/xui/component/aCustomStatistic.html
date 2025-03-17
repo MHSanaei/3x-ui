@@ -1,0 +1,55 @@
+{{define "component/customStatistic"}}
+<template>
+    <a-statistic :title="title" :value="value">
+        <template #prefix>
+            <slot name="prefix"></slot>
+        </template>
+        <template #suffix>
+            <slot name="suffix"></slot>
+        </template>
+    </a-statistic>
+</template>
+{{end}}
+
+{{define "component/aCustomStatistic"}}
+<style>
+    .dark .ant-statistic-title,
+    .dark .ant-statistic-content {
+        color: var(--dark-color-text-primary) !important
+    }
+
+    .dark .ant-statistic-title {
+        user-select: none;
+        opacity: 0.55;
+    }
+    
+    .ant-statistic-title {
+        margin-bottom: 0 !important;
+    }
+
+    .ant-statistic-content-prefix {
+        margin-right: 6px !important;
+    }
+
+    .ant-statistic-content-prefix,
+    .ant-statistic-content-value {
+        font-size: 1.05rem;
+    }
+</style>
+
+<script>
+  Vue.component('a-custom-statistic', {
+    props: {
+      'title': {
+        type: String,
+        required: false,
+      },
+      'value': {
+        type: String,
+        required: false
+      }
+    },
+    template: `{{template "component/customStatistic"}}`,
+  });
+</script>
+{{end}}

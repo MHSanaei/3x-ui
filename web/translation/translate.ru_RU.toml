@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Нет добавленных обратных прокси."
 
 [menu]
+"theme" = "Тема"
+"dark" = "Темная"
+"ultraDark" = "Ультра темная"
 "dashboard" = "Статус системы"
 "inbounds" = "Подключения"
 "settings" = "Настройки панели"

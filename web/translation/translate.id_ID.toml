@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
 
 [menu]
+"theme" = "Tema"
+"dark" = "Gelap"
+"ultraDark" = "Sangat Gelap"
 "dashboard" = "Ikhtisar"
 "inbounds" = "Masuk"
 "settings" = "Pengaturan Panel"

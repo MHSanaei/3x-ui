@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Nenhum proxy reverso adicionado."
 
 [menu]
+"theme" = "Tema"
+"dark" = "Escuro"
+"ultraDark" = "Ultra Escuro"
 "dashboard" = "Visão Geral"
 "inbounds" = "Inbounds"
 "settings" = "Panel Settings"

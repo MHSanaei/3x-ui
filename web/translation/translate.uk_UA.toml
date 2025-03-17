@@ -67,6 +67,9 @@
 "emptyReverseDesc" = "Немає доданих зворотних проксі."
 
 [menu]
+"theme" = "Тема"
+"dark" = "Темна"
+"ultraDark" = "Ультра темна"
 "dashboard" = "Огляд"
 "inbounds" = "Вхідні"
 "settings" = "Параметри панелі"
