@@ -280,6 +280,28 @@ func (t *Tgbot) OnReceive() {
 					),
 				)
 				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+client_Email), cancel_btn_markup)
+			case "awaiting_password_tr":
+				client_TrPassword = message.Text
+				userStates[message.Chat.ID] = "awaiting_email" 
+				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.received_password", "ClientPass=="+client_TrPassword), tu.ReplyKeyboardRemove())
+				cancel_btn_markup := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("default_client_email"),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
+					),
+				)
+				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+client_Email), cancel_btn_markup)
+			case "awaiting_password_sh":
+				client_ShPassword = message.Text
+				userStates[message.Chat.ID] = "awaiting_email" 
+				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.received_password", "ClientPass=="+client_ShPassword), tu.ReplyKeyboardRemove())
+				cancel_btn_markup := tu.InlineKeyboard(
+					tu.InlineKeyboardRow(
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("default_client_email"),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
+					),
+				)
+				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.email_prompt", "ClientEmail=="+client_Email), cancel_btn_markup)
 			case "awaiting_email":
 				client_Email = message.Text
 				userStates[message.Chat.ID] = "awaiting_comment" 
@@ -294,7 +316,7 @@ func (t *Tgbot) OnReceive() {
 			case "awaiting_comment":
 				client_Comment = message.Text
 				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.received_comment", "ClientComment=="+client_Comment), tu.ReplyKeyboardRemove())
-				message_text := t.I18nBot("tgbot.messages.client_data", "ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+				message_text, _ := t.BuildClientDataMessage()
 
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
@@ -966,9 +988,9 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				
-				message, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 				
-				t.addClient(chatId, message)
+				t.addClient(chatId, message_text)
 			}
 			return
 		} else {
@@ -1048,15 +1070,20 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.addClient"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 	case "add_client_ch_default":
+		var prompt_state string
+		var prompt_message string
+
+
+		prompt_state ,prompt_message, _ = t.BuildClientChDefaultResponse()
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("default_client_id"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("default_client_id_pass"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
 			),
 		)
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.id_prompt", "ClientId=="+client_Id),cancel_btn_markup)
-		userStates[chatId] = "awaiting_id"
-	case "default_client_id":
+		t.SendMsgToTgbot(chatId, prompt_message,cancel_btn_markup)
+		userStates[chatId] = prompt_state
+	case "default_client_id_pass":
 		cancel_btn_markup := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.use_default")).WithCallbackData("default_client_email"),
@@ -1075,7 +1102,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+client_Comment),inlineKeyboard)
 		userStates[chatId] = "awaiting_comment"
 	case "default_client_comment":
-		message_text := t.I18nBot("tgbot.messages.client_data", "ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+		message_text, _ := t.BuildClientDataMessage()
 
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1112,20 +1139,73 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	}
 }
 
+
+func (t *Tgbot) BuildClientChDefaultResponse() (string,string,error) {
+
+	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+	if err != nil {
+		logger.Warning("getIboundClients run failed:", err)
+		return "", "",errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	protocol := inbound.Protocol
+
+    switch protocol {
+    case model.VMESS, model.VLESS:
+		prompt := t.I18nBot("tgbot.messages.id_prompt", "ClientId=="+client_Id)
+		return "awaiting_id", prompt,errors.New("unknown protocol")
+	case model.Trojan:
+		prompt := t.I18nBot("tgbot.messages.pass_prompt", "ClientPassword=="+client_TrPassword)
+		return "awaiting_password_tr", prompt,errors.New("unknown protocol")
+    case model.Shadowsocks:
+		prompt := t.I18nBot("tgbot.messages.pass_prompt", "ClientPassword=="+client_ShPassword)
+		return "awaiting_password_sh", prompt,errors.New("unknown protocol")
+    default:
+        return "","", errors.New("unknown protocol")
+    }
+}
+
+
 func (t *Tgbot) BuildInboundClientDataMessage(inbound_remark string ,protocol model.Protocol) (string, error) {
     var message string
 
     switch protocol {
-    case model.VMESS:
+    case model.VMESS, model.VLESS:
         message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
-    case model.VLESS:
-        message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
-
-    case model.Trojan:
+    
+	case model.Trojan:
         message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
 
     case model.Shadowsocks:
         message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+
+    default:
+        return "", errors.New("unknown protocol")
+    }
+
+    return message, nil
+}
+
+func (t *Tgbot) BuildClientDataMessage() (string, error) {
+    var message string
+
+	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+	if err != nil {
+		logger.Warning("getIboundClients run failed:", err)
+		return "", errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+	protocol := inbound.Protocol
+
+
+    switch protocol {
+    case model.VMESS, model.VLESS:
+        message = t.I18nBot("tgbot.messages.client_data_id", "ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+    
+	case model.Trojan:
+        message = t.I18nBot("tgbot.messages.client_data_pass", "ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+
+    case model.Shadowsocks:
+        message = t.I18nBot("tgbot.messages.client_data_pass", "ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
 
     default:
         return "", errors.New("unknown protocol")

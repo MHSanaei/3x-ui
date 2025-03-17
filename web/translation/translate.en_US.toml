@@ -573,17 +573,20 @@
 "no" = "❌ No"
 
 "received_id" = "🔑📥 Received ID: {{ .ClientId }}"
+"received_password" = "🔑📥 Received Password: {{ .ClientPass }}"
 "received_email" = "📧📥 Received Email: {{ .ClientEmail }}"
 "received_comment" = "💬📥 Received Comment: {{ .ClientComment }}"
 "id_prompt" = "🔑 Default ID: {{ .ClientId }}\n\nEnter your id."
+"pass_prompt" = "🔑 Default Password: {{ .ClientPassword }}\n\nEnter your password."
 "email_prompt" = "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."
 "comment_prompt" = "💬 Default Comment: {{ .ClientComment }}\n\nEnter your Comment."
 "inbound_client_data_id" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
 "inbound_client_data_pass" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
-"client_data" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"client_data_pass" = "🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
 "cancel" = "❌ Process Canceled! \n\nYou can /start again anytime. 🔄"
 "error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
-"success_add_client" = "🏆 Success! You can now modify it using the 'All Clients' inline button."
+"success_add_client" = "🏆 Success! \nYou can now modify it using the 'All Clients' inline button."
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
