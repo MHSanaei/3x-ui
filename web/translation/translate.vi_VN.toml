@@ -579,6 +579,23 @@
 "yes" = "✅ Có"
 "no" = "❌ Không"
 
+"received_id" = "🔑📥 ID nhận được: {{ .ClientId }}"
+"received_password" = "🔑📥 Mật khẩu nhận được: {{ .ClientPass }}"
+"received_email" = "📧📥 Email nhận được: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Bình luận nhận được: {{ .ClientComment }}"
+"id_prompt" = "🔑 ID mặc định: {{ .ClientId }}\n\nNhập ID của bạn."
+"pass_prompt" = "🔑 Mật khẩu mặc định: {{ .ClientPassword }}\n\nNhập mật khẩu của bạn."
+"email_prompt" = "📧 Email mặc định: {{ .ClientEmail }}\n\nNhập email của bạn."
+"comment_prompt" = "💬 Bình luận mặc định: {{ .ClientComment }}\n\nNhập bình luận của bạn."
+"inbound_client_data_id" = "🔄 Dữ liệu đến: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào danh sách đến ngay bây giờ!"
+"inbound_client_data_pass" = "🔄 Dữ liệu đến: {{ .InboundRemark }}\n\n🔑 Mật khẩu: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào danh sách đến ngay bây giờ!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào danh sách đến ngay bây giờ!"
+"client_data_pass" = "🔑 Mật khẩu: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào danh sách đến ngay bây giờ!"
+"cancel" = "❌ Quá trình đã bị hủy! \n\nBạn có thể sử dụng /start bất cứ lúc nào. 🔄"
+"error_add_client" = "⚠️ Lỗi:\n\n {{ .error }}"
+"success_add_client" = "🏆 Thành công! \nGiờ đây bạn có thể chỉnh sửa bằng nút 'Tất Cả Khách Hàng'."
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Đóng Bàn Phím"
 "cancel" = "❌ Hủy"
@@ -612,6 +629,11 @@
 "limitTraffic" = "🚧 Giới hạn lưu lượng"
 "getBanLogs" = "Cấm nhật ký"
 "allClients" = "Tất cả Khách hàng"
+
+"addClient" = "Thêm Khách Hàng"
+"submitDisable" = "Gửi Dưới Dạng Tắt ✅"
+"use_default" = "🏷️ Sử dụng mặc định"
+"change_default" = "🔄⚙️ Thay đổi mặc định"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Thành công!"

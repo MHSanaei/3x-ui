@@ -579,6 +579,23 @@
 "yes" = "✅ Evet"
 "no" = "❌ Hayır"
 
+"received_id" = "🔑📥 Alınan Kimlik: {{ .ClientId }}"
+"received_password" = "🔑📥 Alınan Şifre: {{ .ClientPass }}"
+"received_email" = "📧📥 Alınan E-posta: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Alınan Yorum: {{ .ClientComment }}"
+"id_prompt" = "🔑 Varsayılan Kimlik: {{ .ClientId }}\n\nKimliğinizi girin."
+"pass_prompt" = "🔑 Varsayılan Şifre: {{ .ClientPassword }}\n\nŞifrenizi girin."
+"email_prompt" = "📧 Varsayılan E-posta: {{ .ClientEmail }}\n\nE-posta adresinizi girin."
+"comment_prompt" = "💬 Varsayılan Yorum: {{ .ClientComment }}\n\nYorumunuzu girin."
+"inbound_client_data_id" = "🔄 Gelen: {{ .InboundRemark }}\n\n🔑 Kimlik: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık müşteriyi gelen kutusuna ekleyebilirsiniz!"
+"inbound_client_data_pass" = "🔄 Gelen: {{ .InboundRemark }}\n\n🔑 Şifre: {{ .ClientPass }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık müşteriyi gelen kutusuna ekleyebilirsiniz!"
+"client_data_id" = "🔑 Kimlik: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık müşteriyi gelen kutusuna ekleyebilirsiniz!"
+"client_data_pass" = "🔑 Şifre: {{ .ClientPass }}\n📧 E-posta: {{ .ClientEmail }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık müşteriyi gelen kutusuna ekleyebilirsiniz!"
+"cancel" = "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start kullanabilirsiniz. 🔄"
+"error_add_client" = "⚠️ Hata:\n\n {{ .error }}"
+"success_add_client" = "🏆 Başarılı! \nArtık 'Tüm Müşteriler' düğmesini kullanarak düzenleyebilirsiniz."
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Klavyeyi Kapat"
 "cancel" = "❌ İptal"
@@ -612,6 +629,11 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
+
+"addClient" = "Müşteri Ekle"
+"submitDisable" = "Devre Dışı Olarak Gönder ✅"
+"use_default" = "🏷️ Varsayılanı Kullan"
+"change_default" = "🔄⚙️ Varsayılanı Değiştir"
 
 [tgbot.answers]
 "successfulOperation" = "✅ İşlem başarılı!"

@@ -579,6 +579,23 @@
 "yes" = "✅ 是的"
 "no" = "❌ 没有"
 
+"received_id" = "🔑📥 接收到的ID: {{ .ClientId }}"
+"received_password" = "🔑📥 接收到的密码: {{ .ClientPass }}"
+"received_email" = "📧📥 接收到的电子邮件: {{ .ClientEmail }}"
+"received_comment" = "💬📥 接收到的评论: {{ .ClientComment }}"
+"id_prompt" = "🔑 默认ID: {{ .ClientId }}\n\n请输入您的ID。"
+"pass_prompt" = "🔑 默认密码: {{ .ClientPassword }}\n\n请输入您的密码。"
+"email_prompt" = "📧 默认电子邮件: {{ .ClientEmail }}\n\n请输入您的电子邮件。"
+"comment_prompt" = "💬 默认评论: {{ .ClientComment }}\n\n请输入您的评论。"
+"inbound_client_data_id" = "🔄 传入数据: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 电子邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到传入列表！"
+"inbound_client_data_pass" = "🔄 传入数据: {{ .InboundRemark }}\n\n🔑 密码: {{ .ClientPass }}\n📧 电子邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到传入列表！"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 电子邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到传入列表！"
+"client_data_pass" = "🔑 密码: {{ .ClientPass }}\n📧 电子邮件: {{ .ClientEmail }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到传入列表！"
+"cancel" = "❌ 过程已取消！\n\n您可以随时使用 /start。 🔄"
+"error_add_client" = "⚠️ 错误:\n\n {{ .error }}"
+"success_add_client" = "🏆 成功！\n您现在可以使用'所有客户'按钮进行修改。"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ 关闭键盘"
 "cancel" = "❌ 取消"
@@ -612,6 +629,11 @@
 "limitTraffic" = "🚧 流量限制"
 "getBanLogs" = "禁止日志"
 "allClients" = "所有客户"
+
+"addClient" = "添加客户"
+"submitDisable" = "提交为禁用 ✅"
+"use_default" = "🏷️ 使用默认"
+"change_default" = "🔄⚙️ 更改默认"
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

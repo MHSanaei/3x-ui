@@ -578,6 +578,24 @@
 "yes" = "✅ Ya"
 "no" = "❌ Tidak"
 
+
+"received_id" = "🔑📥 ID yang diterima: {{ .ClientId }}"
+"received_password" = "🔑📥 Kata sandi yang diterima: {{ .ClientPass }}"
+"received_email" = "📧📥 Email yang diterima: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Komentar yang diterima: {{ .ClientComment }}"
+"id_prompt" = "🔑 ID Default: {{ .ClientId }}\n\nMasukkan ID Anda."
+"pass_prompt" = "🔑 Kata Sandi Default: {{ .ClientPassword }}\n\nMasukkan kata sandi Anda."
+"email_prompt" = "📧 Email Default: {{ .ClientEmail }}\n\nMasukkan email Anda."
+"comment_prompt" = "💬 Komentar Default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
+"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
+"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
+"client_data_pass" = "🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
+"cancel" = "❌ Proses Dibatalkan! \n\nAnda dapat memulai lagi kapan saja dengan /start. 🔄"
+"error_add_client" = "⚠️ Kesalahan:\n\n {{ .error }}"
+"success_add_client" = "🏆 Berhasil! \nSekarang Anda dapat mengeditnya menggunakan tombol 'Semua Klien'."
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Tutup Papan Ketik"
 "cancel" = "❌ Batal"
@@ -611,6 +629,11 @@
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
 "allClients" = "Semua Klien"
+
+"addClient" = "Tambah Klien"
+"submitDisable" = "Kirim Sebagai Nonaktif ✅"
+"use_default" = "🏷️ Gunakan Default"
+"change_default" = "🔄⚙️ Ubah Default"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"

@@ -579,6 +579,23 @@
 "yes" = "✅ Sim"
 "no" = "❌ Não"
 
+"received_id" = "🔑📥 ID recebido: {{ .ClientId }}"
+"received_password" = "🔑📥 Senha recebida: {{ .ClientPass }}"
+"received_email" = "📧📥 E-mail recebido: {{ .ClientEmail }}"
+"received_comment" = "💬📥 Comentário recebido: {{ .ClientComment }}"
+"id_prompt" = "🔑 ID padrão: {{ .ClientId }}\n\nDigite seu ID."
+"pass_prompt" = "🔑 Senha padrão: {{ .ClientPassword }}\n\nDigite sua senha."
+"email_prompt" = "📧 E-mail padrão: {{ .ClientEmail }}\n\nDigite seu e-mail."
+"comment_prompt" = "💬 Comentário padrão: {{ .ClientComment }}\n\nDigite seu comentário."
+"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Senha: {{ .ClientPass }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"client_data_pass" = "🔑 Senha: {{ .ClientPass }}\n📧 E-mail: {{ .ClientEmail }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"cancel" = "❌ Processo cancelado! \n\nVocê pode usar /start a qualquer momento. 🔄"
+"error_add_client" = "⚠️ Erro:\n\n {{ .error }}"
+"success_add_client" = "🏆 Sucesso! \nAgora você pode editá-lo usando o botão 'Todos os Clientes'."
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Fechar teclado"
 "cancel" = "❌ Cancelar"
@@ -612,6 +629,11 @@
 "limitTraffic" = "🚧 Limite de tráfego"
 "getBanLogs" = "Obter logs de banimento"
 "allClients" = "Todos os clientes"
+
+"addClient" = "Adicionar Cliente"
+"submitDisable" = "Enviar como Desativado ✅"
+"use_default" = "🏷️ Usar padrão"
+"change_default" = "🔄⚙️ Alterar Padrão"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operação bem-sucedida!"
