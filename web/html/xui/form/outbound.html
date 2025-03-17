@@ -506,12 +506,12 @@
     </a-form>
   </a-tab-pane>
   <a-tab-pane key="2" tab="JSON" force-render="true">
-    <a-form-item style="margin: 10px 0"> Link: <a-input v-model.trim="outModal.link" style="width: 300px; margin-right: 5px;" placeholder="vmess:// vless:// trojan:// ss://"></a-input>
-      <a-button @click="convertLink" type="primary">
-        <a-icon type="form"></a-icon>
-      </a-button>
-    </a-form-item>
-    <textarea style="position:absolute; left: -800px;" id="outboundJson"></textarea>
+    <a-space direction="vertical" :size="10" style="margin-top: 10px;">
+      <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}' v-model.trim="outModal.link" placeholder="vmess:// vless:// trojan:// ss://">
+        <a-icon slot="addonAfter" type="form" @click="convertLink"></a-icon>
+      </a-input>
+      <textarea style="position:absolute; left: -800px;" id="outboundJson"></textarea>
+    </a-space>
   </a-tab-pane>
 </a-tabs>
 {{end}}

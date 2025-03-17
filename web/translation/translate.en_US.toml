@@ -429,6 +429,7 @@
 "type" = "Type"
 "bridge" = "Bridge"
 "portal" = "Portal"
+"link" = "Link"
 "intercon" = "Interconnection"
 "settings" = "Settings"
 "accountInfo" = "Account Information"

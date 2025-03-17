@@ -431,6 +431,7 @@
 "type" = "Tür"
 "bridge" = "Köprü"
 "portal" = "Portal"
+"link" = "Bağlantı"
 "intercon" = "Bağlantı"
 "settings" = "Ayarlar"
 "accountInfo" = "Hesap Bilgileri"
