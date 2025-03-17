@@ -122,7 +122,13 @@
             <template v-else>
               <a-row>
                 <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.xrayStatus" }}' hoverable>
+                  <a-card hoverable>
+                    <template #title>
+                      <a-space direction="horizontal">
+                        <span>{{ i18n "pages.index.xrayStatus" }}</span>
+                        <a-tag v-if="isMobile" color="green">v[[ status.xray.version ]]</a-tag>
+                      </a-space>
+                    </template>
                     <template #extra>
                       <template v-if="status.xray.state != State.Error">
                         <a-badge :text="status.xray.state" :color="status.xray.color" style="text-transform: capitalize;"/>
@@ -142,15 +148,15 @@
                     <template #actions>
                       <a-space direction="horizontal" @click="stopXrayService" style="justify-content: center;">
                         <a-icon type="poweroff"></a-icon>
-                        <span>{{ i18n "pages.index.stopXray" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.stopXray" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="restartXrayService" style="justify-content: center;">
                         <a-icon type="reload"></a-icon>
-                        <span>{{ i18n "pages.index.restartXray" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openSelectV2rayVersion" style="justify-content: center;">
                         <a-icon type="tool"></a-icon>
-                        <span>v[[ status.xray.version ]]</span>
+                        <span v-if="!isMobile">v[[ status.xray.version ]]</span>
                       </a-space>
                     </template>
                   </a-card>
@@ -160,15 +166,15 @@
                     <template #actions>
                       <a-space direction="horizontal" @click="openLogs()" style="justify-content: center;">
                         <a-icon type="bars"></a-icon>
-                        <span>{{ i18n "pages.index.logs" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openConfig" style="justify-content: center;">
                         <a-icon type="control"></a-icon>
-                        <span>{{ i18n "pages.index.config" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.config" }}</span>
                       </a-space>
                       <a-space direction="horizontal" @click="openBackup" style="justify-content: center;">
                         <a-icon type="cloud-server"></a-icon>
-                        <span>{{ i18n "pages.index.backup" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.backup" }}</span>
                       </a-space>
                     </template>
                   </a-card>
