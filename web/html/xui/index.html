@@ -115,9 +115,9 @@
           </transition>
           <transition name="list" appear>
             <template v-if="!status.isLoaded">
-              <a-card hoverable style="text-align: center; padding: 30px 0; margin-top: 10px;">
+              <div style="text-align: center; padding: 30px 0; margin-top: 10px;">
                 <a-spin size="large"></a-spin>
-              </a-card>
+              </div>
             </template>
             <template v-else>
               <a-row>
