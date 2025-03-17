@@ -126,7 +126,9 @@
                     <template #title>
                       <a-space direction="horizontal">
                         <span>{{ i18n "pages.index.xrayStatus" }}</span>
-                        <a-tag v-if="isMobile" color="green">v[[ status.xray.version ]]</a-tag>
+                        <a-tag v-if="isMobile && status.xray.version != 'Unknown'" color="green">
+                          v[[ status.xray.version ]]
+                        </a-tag>
                       </a-space>
                     </template>
                     <template #extra>
@@ -156,7 +158,9 @@
                       </a-space>
                       <a-space direction="horizontal" @click="openSelectV2rayVersion" style="justify-content: center;">
                         <a-icon type="tool"></a-icon>
-                        <span v-if="!isMobile">v[[ status.xray.version ]]</span>
+                        <span v-if="!isMobile">
+                          [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n "pages.index.xraySwitch" }}' ]]
+                        </span>
                       </a-space>
                     </template>
                   </a-card>
