@@ -53,10 +53,10 @@ var (
 	client_SubID      string
 	client_Comment    string 
 	client_Reset      int 
-	client_security   string
+	client_Security   string
 	client_ShPassword   string
 	client_TrPassword   string
-	client_method	  string
+	client_Method	  string
 
 )
 
@@ -948,10 +948,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				client_SubID = t.randomLowerAndNum(16)
 				client_Comment = "" 
 				client_Reset = 0 
-				client_security="auto"
+				client_Security="auto"
 				client_ShPassword=t.randomShadowSocksPassword()
 				client_TrPassword=t.randomLowerAndNum(10)
-				client_method=""
+				client_Method=""
 
 				inboundId := dataArray[1]
 				inboundIdInt, err := strconv.Atoi(inboundId)
@@ -966,7 +966,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				
-				message := t.I18nBot("tgbot.messages.inbound_client_data", "InboundRemark=="+inbound.Remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+				message, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 				
 				t.addClient(chatId, message)
 			}
@@ -1035,9 +1035,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		client_SubID = t.randomLowerAndNum(16)
 		client_Comment = "" 
 		client_Reset = 0 
+		client_Security="auto"
 		client_ShPassword=t.randomShadowSocksPassword()
 		client_TrPassword=t.randomLowerAndNum(10)
-		client_method=""
+		client_Method=""
 
 		inbounds, err := t.getInboundsAddClient()
 		if err != nil {
@@ -1092,8 +1093,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		delete(userStates, chatId)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.cancel"), tu.ReplyKeyboardRemove())
 	case "add_client_submit_enable":
-		inboundService := &InboundService{} 
-		_, err := inboundService.SubmitAddClient()
+		_, err := t.SubmitAddClient()
 		if err != nil {
 			errorMessage := fmt.Sprintf("%v", err)
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
@@ -1102,8 +1102,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	case "add_client_submit_disable":
 		client_Enable = false
-		inboundService := &InboundService{} 
-		_, err := inboundService.SubmitAddClient()
+		_, err := t.SubmitAddClient()
 		if err != nil {
 			errorMessage := fmt.Sprintf("%v", err)
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
@@ -1113,22 +1112,121 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	}
 }
 
+func (t *Tgbot) BuildInboundClientDataMessage(inbound_remark string ,protocol model.Protocol) (string, error) {
+    var message string
 
-func (s *InboundService) SubmitAddClient() (bool, error) {
-	jsonString := fmt.Sprintf(`{"clients": [{
-  "id": "%s",
-  "flow": "%s",
-  "email": "%s",
-  "limitIp": %d,
-  "totalGB": %d,
-  "expiryTime": %d,
-  "enable": %t,
-  "tgId": "%s",
-  "subId": "%s",
-  "comment": "%s",
-  "reset": %d
-}]}`, client_Id, client_Flow, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+    switch protocol {
+    case model.VMESS:
+        message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+    case model.VLESS:
+        message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
 
+    case model.Trojan:
+        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+
+    case model.Shadowsocks:
+        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+
+    default:
+        return "", errors.New("unknown protocol")
+    }
+
+    return message, nil
+}
+
+
+
+func (t *Tgbot) BuildJSONForProtocol(protocol model.Protocol) (string, error) {
+    var jsonString string
+
+    switch protocol {
+    case model.VMESS:
+        jsonString = fmt.Sprintf(`{
+            "clients": [{
+                "id": "%s",
+                "security": "%s",
+                "email": "%s",
+                "limitIp": %d,
+                "totalGB": %d,
+                "expiryTime": %d,
+                "enable": %t,
+                "tgId": "%s",
+                "subId": "%s",
+                "comment": "%s",
+                "reset": %d
+            }]
+        }`, client_Id, client_Security, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+
+    case model.VLESS:
+        jsonString = fmt.Sprintf(`{
+            "clients": [{
+                "id": "%s",
+                "flow": "%s",
+                "email": "%s",
+                "limitIp": %d,
+                "totalGB": %d,
+                "expiryTime": %d,
+                "enable": %t,
+                "tgId": "%s",
+                "subId": "%s",
+                "comment": "%s",
+                "reset": %d
+            }]
+        }`, client_Id, client_Flow, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+
+    case model.Trojan:
+        jsonString = fmt.Sprintf(`{
+            "clients": [{
+                "password": "%s",
+                "email": "%s",
+                "limitIp": %d,
+                "totalGB": %d,
+                "expiryTime": %d,
+                "enable": %t,
+                "tgId": "%s",
+                "subId": "%s",
+                "comment": "%s",
+                "reset": %d
+            }]
+        }`, client_TrPassword, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+
+    case model.Shadowsocks:
+        jsonString = fmt.Sprintf(`{
+            "clients": [{
+                "method": "%s",
+                "password": "%s",
+                "email": "%s",
+                "limitIp": %d,
+                "totalGB": %d,
+                "expiryTime": %d,
+                "enable": %t,
+                "tgId": "%s",
+                "subId": "%s",
+                "comment": "%s",
+                "reset": %d
+            }]
+        }`, client_Method, client_ShPassword, client_Email, client_LimitIP, client_TotalGB, client_ExpiryTime, client_Enable, client_TgID, client_SubID, client_Comment, client_Reset)
+
+    default:
+        return "", errors.New("unknown protocol")
+    }
+
+    return jsonString, nil
+}
+
+
+func (t *Tgbot) SubmitAddClient() (bool, error) {
+
+
+	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+	if err != nil {
+		logger.Warning("getIboundClients run failed:", err)
+		return false, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	
+
+	jsonString, err := t.BuildJSONForProtocol(inbound.Protocol)
 
 	newInbound := &model.Inbound{
 		Id:       receiver_inbound_ID,
@@ -1136,7 +1234,7 @@ func (s *InboundService) SubmitAddClient() (bool, error) {
 	}
 
 
-	return s.AddInboundClient(newInbound)
+	return t.inboundService.AddInboundClient(newInbound)
 }
 
 func checkAdmin(tgId int64) bool {
