@@ -624,8 +624,7 @@
 "allClients" = "Tất cả Khách hàng"
 
 "addClient" = "Thêm Khách Hàng"
-"submitEnable" = "Gửi Dưới Dạng Bật ✅"
-"submitDisable" = "Gửi Dưới Dạng Tắt 🚫"
+"submitDisable" = "Gửi Dưới Dạng Tắt ✅"
 "use_default" = "🏷️ Sử dụng mặc định"
 "change_default" = "🔄⚙️ Thay đổi mặc định"
 

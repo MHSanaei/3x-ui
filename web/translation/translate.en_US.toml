@@ -623,8 +623,7 @@
 "allClients" = "All Clients"
 
 "addClient" = "Add Client"
-"submitEnable" = "Submit As Enable ✅"
-"submitDisable" = "Submit As Disable 🚫"
+"submitDisable" = "Submit As Disable ✅"
 "use_default" = "🏷️ Use default"
 "change_default" = "🔄⚙️ Change Default"
 

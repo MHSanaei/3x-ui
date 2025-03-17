@@ -624,8 +624,7 @@
 "allClients" = "Semua Klien"
 
 "addClient" = "Tambah Klien"
-"submitEnable" = "Kirim Sebagai Aktif ✅"
-"submitDisable" = "Kirim Sebagai Nonaktif 🚫"
+"submitDisable" = "Kirim Sebagai Nonaktif ✅"
 "use_default" = "🏷️ Gunakan Default"
 "change_default" = "🔄⚙️ Ubah Default"
 

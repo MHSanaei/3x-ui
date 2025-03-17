@@ -624,8 +624,7 @@
 "allClients" = "Tüm Müşteriler"
 
 "addClient" = "Müşteri Ekle"
-"submitEnable" = "Etkin Olarak Gönder ✅"
-"submitDisable" = "Devre Dışı Olarak Gönder 🚫"
+"submitDisable" = "Devre Dışı Olarak Gönder ✅"
 "use_default" = "🏷️ Varsayılanı Kullan"
 "change_default" = "🔄⚙️ Varsayılanı Değiştir"
 

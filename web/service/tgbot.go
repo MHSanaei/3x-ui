@@ -320,11 +320,8 @@ func (t *Tgbot) OnReceive() {
 
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitEnable")).WithCallbackData("add_client_submit_enable"),
-						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
-					),
-					tu.InlineKeyboardRow(
 						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
+						tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
 					),
 				)
 				t.SendMsgToTgbot(message.Chat.ID, message_text, inlineKeyboard)
@@ -1106,10 +1103,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitEnable")).WithCallbackData("add_client_submit_enable"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
-			),
-			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
 			),
 		)
@@ -1119,14 +1113,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_cancel":
 		delete(userStates, chatId)
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.cancel"), tu.ReplyKeyboardRemove())
-	case "add_client_submit_enable":
-		_, err := t.SubmitAddClient()
-		if err != nil {
-			errorMessage := fmt.Sprintf("%v", err)
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.error_add_client", "error=="+errorMessage), tu.ReplyKeyboardRemove())
-		} else {
-			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.success_add_client"), tu.ReplyKeyboardRemove())
-		}
 	case "add_client_submit_disable":
 		client_Enable = false
 		_, err := t.SubmitAddClient()
@@ -1962,10 +1948,7 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_default")).WithCallbackData("add_client_ch_default"),
 		),
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitEnable")).WithCallbackData("add_client_submit_enable"),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
-		),
-		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
 		),
 	)

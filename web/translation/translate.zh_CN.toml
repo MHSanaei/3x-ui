@@ -624,8 +624,7 @@
 "allClients" = "所有客户"
 
 "addClient" = "添加客户"
-"submitEnable" = "提交为启用 ✅"
-"submitDisable" = "提交为禁用 🚫"
+"submitDisable" = "提交为禁用 ✅"
 "use_default" = "🏷️ 使用默认"
 "change_default" = "🔄⚙️ 更改默认"
 

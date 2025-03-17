@@ -624,8 +624,7 @@
 "allClients" = "所有客戶"
 
 "addClient" = "新增客戶"
-"submitEnable" = "提交為啟用 ✅"
-"submitDisable" = "提交為停用 🚫"
+"submitDisable" = "提交為停用 ✅"
 "use_default" = "🏷️ 使用預設"
 "change_default" = "🔄⚙️ 更改預設"
 
