@@ -142,6 +142,8 @@
 "resetTraffic" = "Сбросить трафик"
 "addInbound" = "Добавить подключение"
 "generalActions" = "Общие действия"
+"autoRefresh" = "Автообновление"
+"autoRefreshInterval" = "Интервал"
 "create" = "Создать"
 "update" = "Обновить"
 "modifyInbound" = "Изменить подключение"
