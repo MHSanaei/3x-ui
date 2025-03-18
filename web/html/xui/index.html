@@ -21,17 +21,23 @@
   }
   .ant-backup-list-item {
     gap: 10px;
-    user-select: none;
-    cursor: pointer;
   }
   .dark .ant-backup-list-item svg,
-  .dark .ant-card-actions>li>*,
   .dark .ant-badge-status-text,
+  .dark .ant-statistic-content,
   .dark .ant-card-extra {
-    color: var(--dark-color-text-primary) !important;
+    color: var(--dark-color-text-primary);
   }
-  .dark .ant-card-actions>li>*:hover {
-    color: var(--color-primary-100) !important;
+  .dark .ant-statistic-title,
+  .dark .ant-card-actions>li {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .dark .ant-radio-inner {
+    background-color: var(--dark-color-surface-100);
+    border-color: var(--dark-color-surface-600);
+  }
+  .dark .ant-radio-checked .ant-radio-inner {
+    border-color: var(--color-primary-100);
   }
   .dark .ant-backup-list, 
   .dark .ant-xray-version-list,
@@ -40,10 +46,34 @@
     border-color: var(--dark-color-stroke);
   }
   .ant-card-actions {
-    background: transparent !important;
+    background: transparent;
+  }
+  .ant-statistic-content {
+    font-size: 16px;
   }
   .ip-hidden {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
     filter: blur(10px);
+  }
+  .running-animation .ant-badge-status-dot {
+    animation: runningAnimation 1.2s linear infinite;
+  }
+  .running-animation .ant-badge-status-processing:after {
+    border-color: var(--color-primary-100);
+  }
+  @keyframes runningAnimation {
+    0%,
+    50%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    10% {
+      transform: scale(1.5);
+      opacity: .2;
+    }
   }
 </style>
 
@@ -61,66 +91,64 @@
               show-icon closable>
             </a-alert>
           </transition>
-          <transition v-if="status.isLoaded" name="list" appear>
-            <a-row>
-              <a-card hoverable>
-                <a-row>
-                  <a-col :sm="24" :md="12">
-                    <a-row>
-                      <a-col :span="12" style="text-align: center">
-                        <a-progress type="dashboard" status="normal"
-                          :stroke-color="status.cpu.color"
-                          :percent="status.cpu.percent"></a-progress>
-                        <div><b>CPU:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] <a-tooltip>
-                          <a-icon type="area-chart"></a-icon> 
-                          <template slot="title">
-                            <div><b>Logical Processors:</b> [[ (status.logicalPro) ]]</div>
-                            <div><b>Speed:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
-                          </template>
-                        </a-tooltip></div>
-                      </a-col>
-                      <a-col :span="12" style="text-align: center">
-                        <a-progress type="dashboard" status="normal"
-                          :stroke-color="status.mem.color"
-                          :percent="status.mem.percent"></a-progress>
-                        <div>
-                          <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
-                        </div>
-                      </a-col>
-                    </a-row>
-                  </a-col>
-                  <a-col :sm="24" :md="12">
-                    <a-row>
-                      <a-col :span="12" style="text-align: center">
-                        <a-progress type="dashboard" status="normal"
-                          :stroke-color="status.swap.color"
-                          :percent="status.swap.percent"></a-progress>
-                        <div>
-                          <b>Swap:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
-                        </div>
-                      </a-col>
-                      <a-col :span="12" style="text-align: center">
-                        <a-progress type="dashboard" status="normal"
-                          :stroke-color="status.disk.color"
-                          :percent="status.disk.percent"></a-progress>
-                        <div>
-                          <b>{{ i18n "pages.index.hard"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
-                        </div>
-                      </a-col>
-                    </a-row>
-                  </a-col>
-                </a-row>
-              </a-card>
-            </a-row>
-          </transition>
           <transition name="list" appear>
-            <template v-if="!status.isLoaded">
-              <div style="text-align: center; padding: 30px 0; margin-top: 10px;">
-                <a-spin size="large"></a-spin>
-              </div>
-            </template>
-            <template v-else>
-              <a-row>
+            <template>
+              <a-row v-if="!status.isLoaded">
+                <a-card hoverable style="text-align: center; padding: 30px 0; margin-top: 10px; background: transparent;">
+                  <a-spin tip="Loading..."></a-spin>
+                </a-card>
+              </a-row>
+              <a-row v-else>
+                <a-row>
+                  <a-card hoverable>
+                    <a-row>
+                      <a-col :sm="24" :md="12">
+                        <a-row>
+                          <a-col :span="12" style="text-align: center">
+                            <a-progress type="dashboard" status="normal"
+                              :stroke-color="status.cpu.color"
+                              :percent="status.cpu.percent"></a-progress>
+                            <div><b>CPU:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] <a-tooltip>
+                              <a-icon type="area-chart"></a-icon> 
+                              <template slot="title">
+                                <div><b>Logical Processors:</b> [[ (status.logicalPro) ]]</div>
+                                <div><b>Speed:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                              </template>
+                            </a-tooltip></div>
+                          </a-col>
+                          <a-col :span="12" style="text-align: center">
+                            <a-progress type="dashboard" status="normal"
+                              :stroke-color="status.mem.color"
+                              :percent="status.mem.percent"></a-progress>
+                            <div>
+                              <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
+                            </div>
+                          </a-col>
+                        </a-row>
+                      </a-col>
+                      <a-col :sm="24" :md="12">
+                        <a-row>
+                          <a-col :span="12" style="text-align: center">
+                            <a-progress type="dashboard" status="normal"
+                              :stroke-color="status.swap.color"
+                              :percent="status.swap.percent"></a-progress>
+                            <div>
+                              <b>Swap:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
+                            </div>
+                          </a-col>
+                          <a-col :span="12" style="text-align: center">
+                            <a-progress type="dashboard" status="normal"
+                              :stroke-color="status.disk.color"
+                              :percent="status.disk.percent"></a-progress>
+                            <div>
+                              <b>{{ i18n "pages.index.hard"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
+                            </div>
+                          </a-col>
+                        </a-row>
+                      </a-col>
+                    </a-row>
+                  </a-card>
+                </a-row>
                 <a-col :sm="24" :lg="12">
                   <a-card hoverable>
                     <template #title>
@@ -133,7 +161,7 @@
                     </template>
                     <template #extra>
                       <template v-if="status.xray.state != State.Error">
-                        <a-badge :text="status.xray.state" :color="status.xray.color" style="text-transform: capitalize;"/>
+                        <a-badge status="processing" class="running-animation" :text="status.xray.state" :color="status.xray.color" style="text-transform: capitalize;"/>
                       </template>
                       <template v-else>
                         <a-popover :overlay-class-name="themeSwitcher.currentTheme">
@@ -214,57 +242,9 @@
                   </a-card>
                 </a-col>
                 <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
-                    <template #extra>
-                      <a-tooltip>
-                        <template #title>
-                          {{ i18n "pages.index.toggleIpVisibility" }}
-                        </template>
-                        <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
-                      </a-tooltip>
-                    </template>
-                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
-                    <a-row>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic title="TCP" :value="status.tcpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic title="UDP" :value="status.udpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.overallSpeed" }}' hoverable>
                     <a-row>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
                           <template #prefix>
                             <a-icon type="arrow-up" />
@@ -274,7 +254,7 @@
                           </template>
                         </a-custom-statistic>
                       </a-col>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.download" }}' :value="SizeFormatter.sizeFormat(status.netIO.down)">
                           <template #prefix>
                             <a-icon type="arrow-down" />
@@ -290,17 +270,65 @@
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.totalData" }}' hoverable>
                     <a-row>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
                           <template #prefix>
                             <a-icon type="cloud-upload" />
                           </template>
                         </a-custom-statistic>
                       </a-col>
-                      <a-col :lg="12" :sm="24" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
                           <template #prefix>
                             <a-icon type="cloud-download" />
+                          </template>
+                        </a-custom-statistic>
+                      </a-col>
+                    </a-row>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
+                  <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
+                    <template #extra>
+                      <a-tooltip>
+                        <template #title>
+                          {{ i18n "pages.index.toggleIpVisibility" }}
+                        </template>
+                        <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
+                      </a-tooltip>
+                    </template>
+                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
+                      <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                        <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
+                          <template #prefix>
+                            <a-icon type="global" />
+                          </template>
+                        </a-custom-statistic>
+                      </a-col>
+                      <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                        <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
+                          <template #prefix>
+                            <a-icon type="global" />
+                          </template>
+                        </a-custom-statistic>
+                      </a-col>
+                    </a-row>
+                  </a-card>
+                </a-col>
+                <a-col :sm="24" :lg="12">
+                  <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
+                    <a-row>
+                      <a-col :span="12">
+                        <a-custom-statistic title="TCP" :value="status.tcpCount">
+                          <template #prefix>
+                            <a-icon type="swap" />
+                          </template>
+                        </a-custom-statistic>
+                      </a-col>
+                      <a-col :span="12">
+                        <a-custom-statistic title="UDP" :value="status.udpCount">
+                          <template #prefix>
+                            <a-icon type="swap" />
                           </template>
                         </a-custom-statistic>
                       </a-col>
@@ -318,10 +346,8 @@
       <a-alert type="warning" style="margin-bottom: 12px; width: 100%;"
         message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
       <a-list class="ant-xray-version-list" bordered style="width: 100%;">
-        <a-list-item class="ant-xray-version-list-item" v-for="version in versionModal.versions">
-          <a-list-item-meta>
-            <template #title>[[ version ]]</template>
-          </a-list-item-meta>
+        <a-list-item class="ant-xray-version-list-item" v-for="version, index in versionModal.versions">
+          <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ version ]]</a-tag>
           <a-radio :class="themeSwitcher.currentTheme" :checked="version === `v${status.xray.version}`" @click="switchV2rayVersion(version)"></a-radio>
         </a-list-item>
       </a-list>
@@ -378,22 +404,19 @@
         footer=""
         :class="themeSwitcher.currentTheme">
       <a-list class="ant-backup-list" bordered style="width: 100%;">
-        <a-list-item class="ant-backup-list-item" @click="exportDatabase()">
+        <a-list-item class="ant-backup-list-item">
           <a-list-item-meta>
             <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
             <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
           </a-list-item-meta>
-          <a-icon type="right" />
+          <a-button @click="exportDatabase()" type="primary" icon="download"/>
         </a-list-item>
-        <a-list-item class="ant-backup-list-item" @click="importDatabase()">
+        <a-list-item class="ant-backup-list-item">
           <a-list-item-meta>
             <template #title>{{ i18n "pages.index.importDatabase" }}</template>
             <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
-            <templaet #avatar>
-              <a-icon type="import" />
-            </templaet>
           </a-list-item-meta>
-          <a-icon type="right" />
+          <a-button @click="importDatabase()" type="primary" icon="upload" />
         </a-list-item>
       </a-list>
     </a-modal>
