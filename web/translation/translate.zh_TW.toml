@@ -142,6 +142,8 @@
 "resetTraffic" = "重置流量"
 "addInbound" = "新增入站"
 "generalActions" = "通用操作"
+"autoRefresh" = "自動刷新"
+"autoRefreshInterval" = "間隔"
 "create" = "新增"
 "update" = "修改"
 "modifyInbound" = "修改入站"

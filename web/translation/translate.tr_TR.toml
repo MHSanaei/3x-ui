@@ -142,6 +142,8 @@
 "resetTraffic" = "Trafiği Sıfırla"
 "addInbound" = "Gelen Ekle"
 "generalActions" = "Genel Eylemler"
+"autoRefresh" = "Otomatik yenileme"
+"autoRefreshInterval" = "Aralık"
 "create" = "Oluştur"
 "update" = "Güncelle"
 "modifyInbound" = "Geleni Düzenle"

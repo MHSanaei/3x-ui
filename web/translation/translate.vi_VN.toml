@@ -142,6 +142,8 @@
 "resetTraffic" = "Đặt lại lưu lượng"
 "addInbound" = "Thêm điểm vào"
 "generalActions" = "Hành động chung"
+"autoRefresh" = "Tự động làm mới"
+"autoRefreshInterval" = "Khoảng thời gian"
 "create" = "Tạo mới"
 "update" = "Cập nhật"
 "modifyInbound" = "Chỉnh sửa điểm vào (Inbound)"
