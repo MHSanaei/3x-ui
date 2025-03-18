@@ -24,11 +24,9 @@
   }
   .dark .ant-backup-list-item svg,
   .dark .ant-badge-status-text,
-  .dark .ant-statistic-content,
   .dark .ant-card-extra {
     color: var(--dark-color-text-primary);
   }
-  .dark .ant-statistic-title,
   .dark .ant-card-actions>li {
     color: rgba(255, 255, 255, 0.55);
   }
@@ -47,9 +45,6 @@
   }
   .ant-card-actions {
     background: transparent;
-  }
-  .ant-statistic-content {
-    font-size: 16px;
   }
   .ip-hidden {
     -webkit-user-select: none;
@@ -299,16 +294,16 @@
                     </template>
                     <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
                       <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic :value="status.publicIP.ipv4">
+                        <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
                           <template #prefix>
-                            IPv4:
+                            <a-icon type="global" />
                           </template>
                         </a-custom-statistic>
                       </a-col>
                       <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
-                        <a-custom-statistic :value="status.publicIP.ipv6">
+                        <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
                           <template #prefix>
-                            IPv6:
+                            <a-icon type="global" />
                           </template>
                         </a-custom-statistic>
                       </a-col>

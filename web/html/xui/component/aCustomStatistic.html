@@ -12,6 +12,18 @@
 {{end}}
 
 {{define "component/aCustomStatistic"}}
+<style>
+  .dark .ant-statistic-content {
+    color: var(--dark-color-text-primary)
+  }
+  .dark .ant-statistic-title {
+    color: rgba(255, 255, 255, 0.55)
+  }
+  .ant-statistic-content {
+    font-size: 16px;
+  }
+</style>
+
 <script>
   Vue.component('a-custom-statistic', {
     props: {
