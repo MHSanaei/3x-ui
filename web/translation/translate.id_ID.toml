@@ -142,6 +142,8 @@
 "resetTraffic" = "Reset Traffic"
 "addInbound" = "Tambahkan Masuk"
 "generalActions" = "Tindakan Umum"
+"autoRefresh" = "Pembaruan otomatis"
+"autoRefreshInterval" = "Interval"
 "create" = "Buat"
 "update" = "Perbarui"
 "modifyInbound" = "Ubah Masuk"

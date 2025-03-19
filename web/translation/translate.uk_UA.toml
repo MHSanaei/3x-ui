@@ -142,6 +142,8 @@
 "resetTraffic" = "Скинути трафік"
 "addInbound" = "Додати вхідний"
 "generalActions" = "Загальні дії"
+"autoRefresh" = "Автооновлення"
+"autoRefreshInterval" = "Інтервал"
 "create" = "Створити"
 "update" = "Оновити"
 "modifyInbound" = "Змінити вхідний"

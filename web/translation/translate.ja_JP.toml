@@ -142,6 +142,8 @@
 "resetTraffic" = "トラフィックリセット"
 "addInbound" = "インバウンド追加"
 "generalActions" = "一般操作"
+"autoRefresh" = "自動更新"
+"autoRefreshInterval" = "間隔"
 "create" = "追加"
 "update" = "更新"
 "modifyInbound" = "インバウンド修正"

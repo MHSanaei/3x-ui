@@ -142,6 +142,8 @@
 "resetTraffic" = "ریست ترافیک"
 "addInbound" = "افزودن ورودی"
 "generalActions" = "عملیات کلی"
+"autoRefresh" = "تازه‌سازی خودکار"
+"autoRefreshInterval" = "فاصله"
 "create" = "افزودن"
 "update" = "ویرایش"
 "modifyInbound" = "ویرایش ورودی"

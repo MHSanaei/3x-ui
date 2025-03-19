@@ -142,6 +142,8 @@
 "resetTraffic" = "Restablecer Tráfico"
 "addInbound" = "Agregar Entrada"
 "generalActions" = "Acciones Generales"
+"autoRefresh" = "Auto-actualizar"
+"autoRefreshInterval" = "Intervalo"
 "create" = "Crear"
 "update" = "Actualizar"
 "modifyInbound" = "Modificar Entrada"
