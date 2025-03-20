@@ -246,7 +246,7 @@ location /sub {
 ## سیستم‌عامل‌های توصیه شده
 
 - Ubuntu 22.04+
-- Debian 11+
+- Debian 12+
 - CentOS 8+
 - OpenEuler 22.03+
 - Fedora 36+
