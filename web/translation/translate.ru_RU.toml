@@ -424,8 +424,8 @@
 "useComma" = "Элементы, разделённые запятыми"
 
 [pages.xray.outbound]
-"addOutbound" = "Новое исходящее соединение"
-"addReverse" = "Новый обратный прокси"
+"addOutbound" = "Создать исходящее соединение"
+"addReverse" = "Создать обратный прокси"
 "editOutbound" = "Изменить исходящее соединение"
 "editReverse" = "Редактировать обратное прокси"
 "tag" = "Тег"
@@ -444,7 +444,7 @@
 "sendThrough" = "Отправить через"
 
 [pages.xray.balancer]
-"addBalancer" = "Новый балансировщик"
+"addBalancer" = "Создать балансировщик"
 "editBalancer" = "Редактировать балансировщик"
 "balancerStrategy" = "Стратегия"
 "balancerSelectors" = "Селекторы"
@@ -475,13 +475,13 @@
 "disableFallbackIfMatchDesc" = "Отключает резервные DNS-запросы при совпадении списка доменов DNS-сервера"
 "strategy" = "Стратегия запроса"
 "strategyDesc" = "Общая стратегия разрешения доменных имен"
-"add" = "Новый сервер"
+"add" = "Создать DNS"
 "edit" = "Редактировать сервер"
 "domains" = "Домены"
 "expectIPs" = "Ожидаемые IP"
 
 [pages.xray.fakedns]
-"add" = "Новый Fake DNS"
+"add" = "Создать Fake DNS"
 "edit" = "Редактировать Fake DNS"
 "ipPool" = "Подсеть пула IP"
 "poolSize" = "Размер пула"
