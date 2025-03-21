@@ -281,9 +281,9 @@ func (t *Tgbot) OnReceive() {
 						),
 					)
 
-					t.SendMsgToTgbot(message.Chat.ID, "invalid input", cancel_btn_markup)
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 				} else {
-					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, "ok id", 3, tu.ReplyKeyboardRemove())
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_id"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
 				}
 			case "awaiting_password_tr":
@@ -297,9 +297,9 @@ func (t *Tgbot) OnReceive() {
 						),
 					)
 
-					t.SendMsgToTgbot(message.Chat.ID, "invalid input", cancel_btn_markup)
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 				} else {
-					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, "ok pass tr", 3, tu.ReplyKeyboardRemove())
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
 				}
 			case "awaiting_password_sh":
@@ -313,9 +313,9 @@ func (t *Tgbot) OnReceive() {
 						),
 					)
 
-					t.SendMsgToTgbot(message.Chat.ID, "invalid input", cancel_btn_markup)
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 				} else {
-					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, "ok pass sh", 3, tu.ReplyKeyboardRemove())
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
 				}
 			case "awaiting_email":
@@ -329,14 +329,14 @@ func (t *Tgbot) OnReceive() {
 						),
 					)
 
-					t.SendMsgToTgbot(message.Chat.ID, "invalid input", cancel_btn_markup)
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.messages.incorrect_input"), cancel_btn_markup)
 				} else {
-					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, "ok email", 3, tu.ReplyKeyboardRemove())
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_email"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
 				}
 			case "awaiting_comment":
 				client_Comment = strings.TrimSpace(message.Text)
-				t.SendMsgToTgbotDeleteAfter(message.Chat.ID, "ok comment", 3, tu.ReplyKeyboardRemove())
+				t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_comment"), 3, tu.ReplyKeyboardRemove())
 				delete(userStates, message.Chat.ID)
 			}
 
@@ -1139,7 +1139,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_ch_default_exp":
 		userStates[chatId] = "awaiting_id"
 	case "add_client_default_info":
-		t.SendMsgToTgbotDeleteAfter(chatId, "ok", 5, tu.ReplyKeyboardRemove())
+		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
 		delete(userStates, chatId)
 	case "add_client_cancel":
 		delete(userStates, chatId)
@@ -1957,18 +1957,18 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
     case model.VMESS, model.VLESS:
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Refresh").WithCallbackData("add_client_refresh"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
 			),			
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Email").WithCallbackData("add_client_ch_default_email"),
-				tu.InlineKeyboardButton("Id").WithCallbackData("add_client_ch_default_id"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_id")).WithCallbackData("add_client_ch_default_id"),
 			),			
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData("add_client_ch_default_traffic"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData("add_client_ch_default_exp"),
 			),			
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Comment").WithCallbackData("add_client_ch_default_comment"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_comment")).WithCallbackData("add_client_ch_default_comment"),
 			),
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
@@ -1983,18 +1983,18 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 	case model.Trojan:
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Refresh").WithCallbackData("add_client_refresh"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
 			),
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Email").WithCallbackData("add_client_ch_default_email"),
-				tu.InlineKeyboardButton("pass trojan").WithCallbackData("add_client_ch_default_pass_tr"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_password")).WithCallbackData("add_client_ch_default_pass_tr"),
 			),			
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData("add_client_ch_default_traffic"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData("add_client_ch_default_exp"),
 			),			
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Comment").WithCallbackData("add_client_ch_default_comment"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_comment")).WithCallbackData("add_client_ch_default_comment"),
 			),
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
@@ -2010,18 +2010,18 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 	case model.Shadowsocks:
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Refresh").WithCallbackData("add_client_refresh"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
 			),
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Email").WithCallbackData("add_client_ch_default_email"),
-				tu.InlineKeyboardButton("pass sh").WithCallbackData("add_client_ch_default_pass_sh"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_password")).WithCallbackData("add_client_ch_default_pass_sh"),
 			),			
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData("add_client_ch_default_traffic"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData("add_client_ch_default_exp"),
 			),			
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton("Comment").WithCallbackData("add_client_ch_default_comment"),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_comment")).WithCallbackData("add_client_ch_default_comment"),
 			),
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),

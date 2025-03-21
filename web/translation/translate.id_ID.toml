@@ -583,22 +583,22 @@
 "yes" = "✅ Ya"
 "no" = "❌ Tidak"
 
-
-"received_id" = "🔑📥 ID yang diterima: {{ .ClientId }}"
-"received_password" = "🔑📥 Kata sandi yang diterima: {{ .ClientPass }}"
-"received_email" = "📧📥 Email yang diterima: {{ .ClientEmail }}"
-"received_comment" = "💬📥 Komentar yang diterima: {{ .ClientComment }}"
-"id_prompt" = "🔑 ID Default: {{ .ClientId }}\n\nMasukkan ID Anda."
-"pass_prompt" = "🔑 Kata Sandi Default: {{ .ClientPassword }}\n\nMasukkan kata sandi Anda."
-"email_prompt" = "📧 Email Default: {{ .ClientEmail }}\n\nMasukkan email Anda."
-"comment_prompt" = "💬 Komentar Default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
-"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
-"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
-"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
-"client_data_pass" = "🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nAnda dapat menambahkan klien ke inbound sekarang!"
-"cancel" = "❌ Proses Dibatalkan! \n\nAnda dapat memulai lagi kapan saja dengan /start. 🔄"
+"received_id" = "🔑📥 ID diperbarui. Tekan refresh untuk melihat perubahan."
+"received_password" = "🔑📥 Kata sandi diperbarui. Tekan refresh untuk melihat perubahan."
+"received_email" = "📧📥 Email diperbarui. Tekan refresh untuk melihat perubahan."
+"received_comment" = "💬📥 Komentar diperbarui. Tekan refresh untuk melihat perubahan."
+"id_prompt" = "🔑 ID default: {{ .ClientId }}\n\nMasukkan ID Anda."
+"pass_prompt" = "🔑 Kata sandi default: {{ .ClientPassword }}\n\nMasukkan kata sandi Anda."
+"email_prompt" = "📧 Email default: {{ .ClientEmail }}\n\nMasukkan email Anda."
+"comment_prompt" = "💬 Komentar default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
+"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda dapat menambahkan klien ke inbound!"
+"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda dapat menambahkan klien ke inbound!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda dapat menambahkan klien ke inbound!"
+"client_data_pass" = "🔑 Kata sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda dapat menambahkan klien ke inbound!"
+"cancel" = "❌ Proses dibatalkan! \n\nAnda dapat /start kapan saja. 🔄"
 "error_add_client" = "⚠️ Kesalahan:\n\n {{ .error }}"
-"success_add_client" = "🏆 Berhasil! \nSekarang Anda dapat mengeditnya menggunakan tombol 'Semua Klien'."
+"using_default_value" = "Baik, saya akan tetap dengan nilai default. 😊"
+"incorrect_input" = "Input Anda tidak valid.\nFrasa harus berurutan tanpa spasi.\nContoh yang benar: aaaaaa\nContoh yang salah: aaa aaa 🚫"
 
 
 [tgbot.buttons]
@@ -637,8 +637,12 @@
 
 "addClient" = "Tambah Klien"
 "submitDisable" = "Kirim Sebagai Nonaktif ✅"
-"use_default" = "🏷️ Gunakan Default"
-"change_default" = "🔄⚙️ Ubah Default"
+"use_default" = "🏷️ Gunakan default"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Kata Sandi"
+"change_email" = "⚙️📧 Email"
+"change_comment" = "⚙️💬 Komentar"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"

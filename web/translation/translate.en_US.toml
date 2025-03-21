@@ -582,10 +582,10 @@
 "yes" = "✅ Yes"
 "no" = "❌ No"
 
-"received_id" = "🔑📥 Received ID: {{ .ClientId }}"
-"received_password" = "🔑📥 Received Password: {{ .ClientPass }}"
-"received_email" = "📧📥 Received Email: {{ .ClientEmail }}"
-"received_comment" = "💬📥 Received Comment: {{ .ClientComment }}"
+"received_id" = "🔑📥 ID updated. Press refresh to see changes."
+"received_password" = "🔑📥 Password updated. Press refresh to see changes."
+"received_email" = "📧📥 Email updated. Press refresh to see changes."
+"received_comment" = "💬📥 Comment updated. Press refresh to see changes."
 "id_prompt" = "🔑 Default ID: {{ .ClientId }}\n\nEnter your id."
 "pass_prompt" = "🔑 Default Password: {{ .ClientPassword }}\n\nEnter your password."
 "email_prompt" = "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."
@@ -596,7 +596,8 @@
 "client_data_pass" = "🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
 "cancel" = "❌ Process Canceled! \n\nYou can /start again anytime. 🔄"
 "error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
-"success_add_client" = "🏆 Success! \nYou can now modify it using the 'All Clients' inline button."
+"using_default_value"  = "Okay, I'll stick with the default value. 😊"
+"incorrect_input" ="Your input is not valid.\nThe phrases should be continuous without spaces.\nCorrect example: aaaaaa\nIncorrect example: aaa aaa 🚫"
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
@@ -635,7 +636,10 @@
 "addClient" = "Add Client"
 "submitDisable" = "Submit As Disable ✅"
 "use_default" = "🏷️ Use default"
-"change_default" = "🔄⚙️ Change Default"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Password"
+"change_email" = "⚙️📧 Email"
+"change_comment" = "⚙️💬 Comment"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"

@@ -584,21 +584,22 @@
 "yes" = "✅ 是的"
 "no" = "❌ 沒有"
 
-"received_id" = "🔑📥 接收到的 ID: {{ .ClientId }}"
-"received_password" = "🔑📥 接收到的密碼: {{ .ClientPass }}"
-"received_email" = "📧📥 接收到的電子郵件: {{ .ClientEmail }}"
-"received_comment" = "💬📥 接收到的評論: {{ .ClientComment }}"
+"received_id" = "🔑📥 ID 已更新。請按刷新查看變更。"
+"received_password" = "🔑📥 密碼已更新。請按刷新查看變更。"
+"received_email" = "📧📥 電子郵件已更新。請按刷新查看變更。"
+"received_comment" = "💬📥 評論已更新。請按刷新查看變更。"
 "id_prompt" = "🔑 預設 ID: {{ .ClientId }}\n\n請輸入您的 ID。"
 "pass_prompt" = "🔑 預設密碼: {{ .ClientPassword }}\n\n請輸入您的密碼。"
 "email_prompt" = "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。"
 "comment_prompt" = "💬 預設評論: {{ .ClientComment }}\n\n請輸入您的評論。"
-"inbound_client_data_id" = "🔄 傳入數據: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶添加到傳入列表！"
-"inbound_client_data_pass" = "🔄 傳入數據: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶添加到傳入列表！"
-"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶添加到傳入列表！"
-"client_data_pass" = "🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶添加到傳入列表！"
-"cancel" = "❌ 過程已取消！\n\n您可以隨時使用 /start。 🔄"
+"inbound_client_data_id" = "🔄 進來資料: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
+"inbound_client_data_pass" = "🔄 進來資料: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
+"client_data_pass" = "🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
+"cancel" = "❌ 處理已取消！ \n\n您可以隨時重新開始 /start。 🔄"
 "error_add_client" = "⚠️ 錯誤:\n\n {{ .error }}"
-"success_add_client" = "🏆 成功！\n您現在可以使用'所有客戶'按鈕進行修改。"
+"using_default_value" = "好的，我會使用預設值。😊"
+"incorrect_input" = "您的輸入無效。\n短語應該連貫而不應有空格。\n正確範例: aaaaaa\n錯誤範例: aaa aaa 🚫"
 
 
 [tgbot.buttons]
@@ -638,7 +639,11 @@
 "addClient" = "新增客戶"
 "submitDisable" = "提交為停用 ✅"
 "use_default" = "🏷️ 使用預設"
-"change_default" = "🔄⚙️ 更改預設"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 密碼"
+"change_email" = "⚙️📧 電子郵件"
+"change_comment" = "⚙️💬 評論"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

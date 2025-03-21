@@ -584,21 +584,22 @@
 "yes" = "✅ Так"
 "no" = "❌ Ні"
 
-"received_id" = "🔑📥 Отриманий ID: {{ .ClientId }}"
-"received_password" = "🔑📥 Отриманий пароль: {{ .ClientPass }}"
-"received_email" = "📧📥 Отриманий email: {{ .ClientEmail }}"
-"received_comment" = "💬📥 Отриманий коментар: {{ .ClientComment }}"
-"id_prompt" = "🔑 Стандартний ID: {{ .ClientId }}\n\nВведіть ваш ID."
-"pass_prompt" = "🔑 Стандартний пароль: {{ .ClientPassword }}\n\nВведіть ваш пароль."
-"email_prompt" = "📧 Стандартний email: {{ .ClientEmail }}\n\nВведіть ваш email."
-"comment_prompt" = "💬 Стандартний коментар: {{ .ClientComment }}\n\nВведіть ваш коментар."
-"inbound_client_data_id" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
-"inbound_client_data_pass" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
-"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
-"client_data_pass" = "🔑 Пароль: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
-"cancel" = "❌ Процес скасовано! \n\nВи можете використати /start у будь-який час. 🔄"
+"received_id" = "🔑📥 ID оновлено. Натисніть оновити, щоб побачити зміни."
+"received_password" = "🔑📥 Пароль оновлено. Натисніть оновити, щоб побачити зміни."
+"received_email" = "📧📥 Електронну пошту оновлено. Натисніть оновити, щоб побачити зміни."
+"received_comment" = "💬📥 Коментар оновлено. Натисніть оновити, щоб побачити зміни."
+"id_prompt" = "🔑 ID за замовчуванням: {{ .ClientId }}\n\nВведіть свій ID."
+"pass_prompt" = "🔑 Пароль за замовчуванням: {{ .ClientPassword }}\n\nВведіть свій пароль."
+"email_prompt" = "📧 Електронна пошта за замовчуванням: {{ .ClientEmail }}\n\nВведіть свою електронну пошту."
+"comment_prompt" = "💬 Коментар за замовчуванням: {{ .ClientComment }}\n\nВведіть свій коментар."
+"inbound_client_data_id" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Електронна пошта: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"inbound_client_data_pass" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Електронна пошта: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Електронна пошта: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"client_data_pass" = "🔑 Пароль: {{ .ClientPass }}\n📧 Електронна пошта: {{ .ClientEmail }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"cancel" = "❌ Процес скасовано! \n\nВи можете /start знову в будь-який час. 🔄"
 "error_add_client" = "⚠️ Помилка:\n\n {{ .error }}"
-"success_add_client" = "🏆 Успіх! \nТепер ви можете редагувати його за допомогою кнопки 'Усі клієнти'."
+"using_default_value" = "Добре, я залишу значення за замовчуванням. 😊"
+"incorrect_input" = "Ваш ввід недійсний.\nФрази повинні йти без пробілів.\nПравильний приклад: aaaaaa\nНеправильний приклад: aaa aaa 🚫"
 
 
 [tgbot.buttons]
@@ -636,9 +637,13 @@
 "allClients" = "Всі Клієнти"
 
 "addClient" = "Додати клієнта"
-"submitDisable" = "Надіслати як вимкнено ✅"
-"use_default" = "🏷️ Використати за замовчуванням"
-"change_default" = "🔄⚙️ Змінити за замовчуванням"
+"submitDisable" = "Надіслати як вимкнене ✅"
+"use_default" = "🏷️ Використовувати за замовчуванням"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Пароль"
+"change_email" = "⚙️📧 Електронна пошта"
+"change_comment" = "⚙️💬 Коментар"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Операція успішна!"

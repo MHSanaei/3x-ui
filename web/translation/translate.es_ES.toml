@@ -584,21 +584,22 @@
 "yes" = "✅ Sí"
 "no" = "❌ No"
 
-"received_id" = "🔑📥 ID recibido: {{ .ClientId }}"
-"received_password" = "🔑📥 Contraseña recibida: {{ .ClientPass }}"
-"received_email" = "📧📥 Correo electrónico recibido: {{ .ClientEmail }}"
-"received_comment" = "💬📥 Comentario recibido: {{ .ClientComment }}"
+"received_id" = "🔑📥 ID actualizada. Pulsa refrescar para ver los cambios."
+"received_password" = "🔑📥 Contraseña actualizada. Pulsa refrescar para ver los cambios."
+"received_email" = "📧📥 Correo electrónico actualizado. Pulsa refrescar para ver los cambios."
+"received_comment" = "💬📥 Comentario actualizado. Pulsa refrescar para ver los cambios."
 "id_prompt" = "🔑 ID predeterminado: {{ .ClientId }}\n\nIntroduce tu ID."
 "pass_prompt" = "🔑 Contraseña predeterminada: {{ .ClientPassword }}\n\nIntroduce tu contraseña."
 "email_prompt" = "📧 Correo electrónico predeterminado: {{ .ClientEmail }}\n\nIntroduce tu correo electrónico."
 "comment_prompt" = "💬 Comentario predeterminado: {{ .ClientComment }}\n\nIntroduce tu comentario."
-"inbound_client_data_id" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a inbound!"
-"inbound_client_data_pass" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 Contraseña: {{ .ClientPass }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a inbound!"
-"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a inbound!"
-"client_data_pass" = "🔑 Contraseña: {{ .ClientPass }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a inbound!"
-"cancel" = "❌ ¡Proceso cancelado! \n\nPuedes usar /start en cualquier momento. 🔄"
+"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Puedes añadir el cliente a la entrada ahora!"
+"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Contraseña: {{ .ClientPass }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Puedes añadir el cliente a la entrada ahora!"
+"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Puedes añadir el cliente a la entrada ahora!"
+"client_data_pass" = "🔑 Contraseña: {{ .ClientPass }}\n📧 Correo electrónico: {{ .ClientEmail }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Puedes añadir el cliente a la entrada ahora!"
+"cancel" = "❌ ¡Proceso cancelado! \n\nPuedes /start nuevamente en cualquier momento. 🔄"
 "error_add_client" = "⚠️ Error:\n\n {{ .error }}"
-"success_add_client" = "🏆 ¡Éxito! \nAhora puedes modificarlo usando el botón en línea 'Todos los Clientes'."
+"using_default_value" = "Está bien, usaré el valor predeterminado. 😊"
+"incorrect_input" = "Tu entrada no es válida.\nLas frases deben ser continuas sin espacios.\nEjemplo correcto: aaaaaa\nEjemplo incorrecto: aaa aaa 🚫"
 
 
 [tgbot.buttons]
@@ -637,8 +638,12 @@
 
 "addClient" = "Añadir Cliente"
 "submitDisable" = "Enviar como Deshabilitado ✅"
-"use_default" = "🏷️ Usar por defecto"
-"change_default" = "🔄⚙️ Cambiar por defecto"
+"use_default" = "🏷️ Usar predeterminado"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Contraseña"
+"change_email" = "⚙️📧 Correo electrónico"
+"change_comment" = "⚙️💬 Comentario"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ ¡Exitosa!"
