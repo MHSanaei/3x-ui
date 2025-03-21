@@ -255,7 +255,7 @@ location /sub {
 - Manjaro
 - Armbian
 - AlmaLinux 8.0+
-- Rocky Linux 8+
+- Rocky Linux 9.5+
 - Oracle Linux 8+
 - OpenSUSE Tubleweed
 - Amazon Linux 2023
