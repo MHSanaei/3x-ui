@@ -73,7 +73,7 @@ const (
 	EmptyTelegramUserID             = int64(0)
 )
 
-const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 
 type Tgbot struct {
 	inboundService InboundService
@@ -453,6 +453,7 @@ func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool
 
 
 func (t *Tgbot) randomLowerAndNum(length int) string {
+	charset := "abcdefghijklmnopqrstuvwxyz0123456789"
 	bytes := make([]byte, length)
 	for i := range bytes {
 		randomIndex, _ := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
