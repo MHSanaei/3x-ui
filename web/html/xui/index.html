@@ -601,7 +601,7 @@
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
             showIp: false,
-            isMobile: window.innerWidth <= 768
+            isMobile: DeviceUtils.isMobile()
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {

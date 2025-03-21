@@ -709,7 +709,7 @@
             showAlert: false,
             ipLimitEnable: false,
             pageSize: 50,
-            isMobile: window.innerWidth <= 768,
+            isMobile: DeviceUtils.isMobile(),
         },
         methods: {
             loading(spinning = true) {
@@ -1473,7 +1473,7 @@
                 return false
             },
             onResize() {
-                this.isMobile = window.innerWidth <= 768;
+              this.isMobile = DeviceUtils.isMobile();
             }
         },
         watch: {
