@@ -781,3 +781,9 @@ class LanguageManager {
         return languageFilter.length > 0;
     }    
 }
+
+class DeviceUtils {
+    static isMobile() {
+        return window.innerWidth <= 768;
+    }
+}
