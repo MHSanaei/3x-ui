@@ -583,6 +583,22 @@
 "yes" = "✅ Ya"
 "no" = "❌ Tidak"
 
+"received_id" = "🔑📥 ID diperbarui. Tekan segarkan untuk melihat perubahan."
+"received_password" = "🔑📥 Kata sandi diperbarui. Tekan segarkan untuk melihat perubahan."
+"received_email" = "📧📥 Email diperbarui. Tekan segarkan untuk melihat perubahan."
+"received_comment" = "💬📥 Komentar diperbarui. Tekan segarkan untuk melihat perubahan."
+"id_prompt" = "🔑 ID Default: {{ .ClientId }}\n\nMasukkan ID Anda."
+"pass_prompt" = "🔑 Kata Sandi Default: {{ .ClientPassword }}\n\nMasukkan kata sandi Anda."
+"email_prompt" = "📧 Email Default: {{ .ClientEmail }}\n\nMasukkan email Anda."
+"comment_prompt" = "💬 Komentar Default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
+"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu Lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke masuk!"
+"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu Lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke masuk!"
+"cancel" = "❌ Proses Dibatalkan! \n\nAnda dapat /start lagi kapan saja. 🔄"
+"error_add_client"  = "⚠️ Kesalahan:\n\n {{ .error }}"
+"using_default_value"  = "Oke, saya akan tetap menggunakan nilai default. 😊"
+"incorrect_input" ="Masukan Anda tidak valid.\nFrasa harus berlanjut tanpa spasi.\nContoh benar: aaaaaa\nContoh salah: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Tutup Papan Ketik"
 "cancel" = "❌ Batal"
@@ -616,6 +632,15 @@
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
 "allClients" = "Semua Klien"
+
+"addClient" = "Tambah Klien"
+"submitDisable" = "Kirim Sebagai Nonaktif ✅"
+"use_default" = "🏷️ Gunakan default"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Kata Sandi"
+"change_email" = "⚙️📧 Email"
+"change_comment" = "⚙️💬 Komentar"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"

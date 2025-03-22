@@ -584,6 +584,22 @@
 "yes" = "✅ Sí"
 "no" = "❌ No"
 
+"received_id" = "🔑📥 ID actualizado. Presiona actualizar para ver los cambios."
+"received_password" = "🔑📥 Contraseña actualizada. Presiona actualizar para ver los cambios."
+"received_email" = "📧📥 Correo electrónico actualizado. Presiona actualizar para ver los cambios."
+"received_comment" = "💬📥 Comentario actualizado. Presiona actualizar para ver los cambios."
+"id_prompt" = "🔑 ID predeterminado: {{ .ClientId }}\n\nIntroduce tu ID."
+"pass_prompt" = "🔑 Contraseña predeterminada: {{ .ClientPassword }}\n\nIntroduce tu contraseña."
+"email_prompt" = "📧 Correo electrónico predeterminado: {{ .ClientEmail }}\n\nIntroduce tu correo electrónico."
+"comment_prompt" = "💬 Comentario predeterminado: {{ .ClientComment }}\n\nIntroduce tu comentario."
+"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de vencimiento: {{ .ClientExp }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
+"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Contraseña: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de vencimiento: {{ .ClientExp }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
+"cancel" = "❌ ¡Proceso cancelado! \n\nPuedes /start de nuevo en cualquier momento. 🔄"
+"error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
+"using_default_value"  = "Está bien, me quedaré con el valor predeterminado. 😊"
+"incorrect_input" ="Tu entrada no es válida.\nLas frases deben ser continuas sin espacios.\nEjemplo correcto: aaaaaa\nEjemplo incorrecto: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Cerrar Teclado"
 "cancel" = "❌ Cancelar"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Límite de tráfico"
 "getBanLogs" = "Registros de prohibición"
 "allClients" = "Todos los Clientes"
+
+"addClient" = "Añadir Cliente"
+"submitDisable" = "Enviar como Deshabilitado ✅"
+"use_default" = "🏷️ Usar predeterminado"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Contraseña"
+"change_email" = "⚙️📧 Correo electrónico"
+"change_comment" = "⚙️💬 Comentario"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ ¡Exitosa!"

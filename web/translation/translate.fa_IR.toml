@@ -584,6 +584,22 @@
 "yes" = "✅ بله"
 "no" = "❌ خیر"
 
+"received_id" = "🔑📥 شناسه به‌روزرسانی شد. برای مشاهده تغییرات، دکمه تازه‌سازی را فشار دهید."
+"received_password" = "🔑📥 رمز عبور به‌روزرسانی شد. برای مشاهده تغییرات، دکمه تازه‌سازی را فشار دهید."
+"received_email" = "📧📥 ایمیل به‌روزرسانی شد. برای مشاهده تغییرات، دکمه تازه‌سازی را فشار دهید."
+"received_comment" = "💬📥 نظر به‌روزرسانی شد. برای مشاهده تغییرات، دکمه تازه‌سازی را فشار دهید."
+"id_prompt" = "🔑 شناسه پیش‌فرض: {{ .ClientId }}\n\nشناسه خود را وارد کنید."
+"pass_prompt" = "🔑 رمز عبور پیش‌فرض: {{ .ClientPassword }}\n\nرمز عبور خود را وارد کنید."
+"email_prompt" = "📧 ایمیل پیش‌فرض: {{ .ClientEmail }}\n\nایمیل خود را وارد کنید."
+"comment_prompt" = "💬 نظر پیش‌فرض: {{ .ClientComment }}\n\nنظر خود را وارد کنید."
+"inbound_client_data_id" = "🔄 ورودی: {{ .InboundRemark }}\n\n🔑 شناسه: {{ .ClientId }}\n📧 ایمیل: {{ .ClientEmail }}\n📊 ترافیک: {{ .ClientTraffic }}\n📅 تاریخ انقضا: {{ .ClientExp }}\n💬 نظر: {{ .ClientComment }}\n\nحالا می‌توانید مشتری را به ورودی اضافه کنید!"
+"inbound_client_data_pass" = "🔄 ورودی: {{ .InboundRemark }}\n\n🔑 رمز عبور: {{ .ClientPass }}\n📧 ایمیل: {{ .ClientEmail }}\n📊 ترافیک: {{ .ClientTraffic }}\n📅 تاریخ انقضا: {{ .ClientExp }}\n💬 نظر: {{ .ClientComment }}\n\nحالا می‌توانید مشتری را به ورودی اضافه کنید!"
+"cancel" = "❌ فرآیند لغو شد! \n\nمی‌توانید هر زمان که خواستید /start را دوباره اجرا کنید. 🔄"
+"error_add_client"  = "⚠️ خطا:\n\n {{ .error }}"
+"using_default_value"  = "باشه، از مقدار پیش‌فرض استفاده می‌کنم. 😊"
+"incorrect_input" ="ورودی شما معتبر نیست.\nعبارت‌ها باید بدون فاصله باشند.\nمثال صحیح: aaaaaa\nمثال نادرست: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ بستن کیبورد"
 "cancel" = "❌ لغو"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 محدودیت ترافیک"
 "getBanLogs" = "گزارش های بلوک را دریافت کنید"
 "allClients" = "همه مشتریان"
+
+"addClient" = "اضافه کردن مشتری"
+"submitDisable" = "ارسال به عنوان غیرفعال ✅"
+"use_default" = "🏷️ استفاده از پیش‌فرض"
+"change_id" = "⚙️🔑 شناسه"
+"change_password" = "⚙️🔑 رمز عبور"
+"change_email" = "⚙️📧 ایمیل"
+"change_comment" = "⚙️💬 نظر"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ انجام شد!"

@@ -582,6 +582,21 @@
 "yes" = "✅ Yes"
 "no" = "❌ No"
 
+"received_id" = "🔑📥 ID updated. Press refresh to see changes."
+"received_password" = "🔑📥 Password updated. Press refresh to see changes."
+"received_email" = "📧📥 Email updated. Press refresh to see changes."
+"received_comment" = "💬📥 Comment updated. Press refresh to see changes."
+"id_prompt" = "🔑 Default ID: {{ .ClientId }}\n\nEnter your id."
+"pass_prompt" = "🔑 Default Password: {{ .ClientPassword }}\n\nEnter your password."
+"email_prompt" = "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."
+"comment_prompt" = "💬 Default Comment: {{ .ClientComment }}\n\nEnter your Comment."
+"inbound_client_data_id" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"inbound_client_data_pass" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"cancel" = "❌ Process Canceled! \n\nYou can /start again anytime. 🔄"
+"error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
+"using_default_value"  = "Okay, I'll stick with the default value. 😊"
+"incorrect_input" ="Your input is not valid.\nThe phrases should be continuous without spaces.\nCorrect example: aaaaaa\nIncorrect example: aaa aaa 🚫"
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
 "cancel" = "❌ Cancel"
@@ -615,6 +630,14 @@
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
 "allClients" = "All Clients"
+
+"addClient" = "Add Client"
+"submitDisable" = "Submit As Disable ✅"
+"use_default" = "🏷️ Use default"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Password"
+"change_email" = "⚙️📧 Email"
+"change_comment" = "⚙️💬 Comment"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"

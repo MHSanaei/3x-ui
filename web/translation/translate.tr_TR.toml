@@ -584,6 +584,22 @@
 "yes" = "✅ Evet"
 "no" = "❌ Hayır"
 
+"received_id" = "🔑📥 Kimlik güncellendi. Değişiklikleri görmek için yenileye basın."
+"received_password" = "🔑📥 Şifre güncellendi. Değişiklikleri görmek için yenileye basın."
+"received_email" = "📧📥 E-posta güncellendi. Değişiklikleri görmek için yenileye basın."
+"received_comment" = "💬📥 Yorum güncellendi. Değişiklikleri görmek için yenileye basın."
+"id_prompt" = "🔑 Varsayılan Kimlik: {{ .ClientId }}\n\nKimliğinizi girin."
+"pass_prompt" = "🔑 Varsayılan Şifre: {{ .ClientPassword }}\n\nŞifrenizi girin."
+"email_prompt" = "📧 Varsayılan E-posta: {{ .ClientEmail }}\n\nE-postanızı girin."
+"comment_prompt" = "💬 Varsayılan Yorum: {{ .ClientComment }}\n\nYorumunuzu girin."
+"inbound_client_data_id" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n📊 Trafik: {{ .ClientTraffic }}\n📅 Son Kullanım Tarihi: {{ .ClientExp }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteriyi girişe ekleyebilirsiniz!"
+"inbound_client_data_pass" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 Şifre: {{ .ClientPass }}\n📧 E-posta: {{ .ClientEmail }}\n📊 Trafik: {{ .ClientTraffic }}\n📅 Son Kullanım Tarihi: {{ .ClientExp }}\n💬 Yorum: {{ .ClientComment }}\n\nŞimdi müşteriyi girişe ekleyebilirsiniz!"
+"cancel" = "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start ile yeniden başlayabilirsiniz. 🔄"
+"error_add_client"  = "⚠️ Hata:\n\n {{ .error }}"
+"using_default_value"  = "Tamam, varsayılan değeri kullanacağım. 😊"
+"incorrect_input" ="Girdiğiniz değer geçerli değil.\nKelime öbekleri boşluk olmadan devam etmelidir.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Klavyeyi Kapat"
 "cancel" = "❌ İptal"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
+
+"addClient" = "Müşteri Ekle"
+"submitDisable" = "Devre Dışı Olarak Gönder ✅"
+"use_default" = "🏷️ Varsayılanı Kullan"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Şifre"
+"change_email" = "⚙️📧 E-posta"
+"change_comment" = "⚙️💬 Yorum"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ İşlem başarılı!"

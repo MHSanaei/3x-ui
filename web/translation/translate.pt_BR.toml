@@ -584,6 +584,22 @@
 "yes" = "✅ Sim"
 "no" = "❌ Não"
 
+"received_id" = "🔑📥 ID atualizado. Pressione atualizar para ver as mudanças."
+"received_password" = "🔑📥 Senha atualizada. Pressione atualizar para ver as mudanças."
+"received_email" = "📧📥 E-mail atualizado. Pressione atualizar para ver as mudanças."
+"received_comment" = "💬📥 Comentário atualizado. Pressione atualizar para ver as mudanças."
+"id_prompt" = "🔑 ID Padrão: {{ .ClientId }}\n\nDigite seu ID."
+"pass_prompt" = "🔑 Senha Padrão: {{ .ClientPassword }}\n\nDigite sua senha."
+"email_prompt" = "📧 E-mail Padrão: {{ .ClientEmail }}\n\nDigite seu e-mail."
+"comment_prompt" = "💬 Comentário Padrão: {{ .ClientComment }}\n\nDigite seu comentário."
+"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfego: {{ .ClientTraffic }}\n📅 Data de expiração: {{ .ClientExp }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Senha: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfego: {{ .ClientTraffic }}\n📅 Data de expiração: {{ .ClientExp }}\n💬 Comentário: {{ .ClientComment }}\n\nAgora você pode adicionar o cliente à entrada!"
+"cancel" = "❌ Processo Cancelado! \n\nVocê pode iniciar novamente a qualquer momento com /start. 🔄"
+"error_add_client"  = "⚠️ Erro:\n\n {{ .error }}"
+"using_default_value"  = "Tudo bem, vou manter o valor padrão. 😊"
+"incorrect_input" ="Sua entrada não é válida.\nAs frases devem ser contínuas, sem espaços.\nExemplo correto: aaaaaa\nExemplo incorreto: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Fechar teclado"
 "cancel" = "❌ Cancelar"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Limite de tráfego"
 "getBanLogs" = "Obter logs de banimento"
 "allClients" = "Todos os clientes"
+
+"addClient" = "Adicionar Cliente"
+"submitDisable" = "Enviar como Desativado ✅"
+"use_default" = "🏷️ Usar padrão"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Senha"
+"change_email" = "⚙️📧 E-mail"
+"change_comment" = "⚙️💬 Comentário"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operação bem-sucedida!"
