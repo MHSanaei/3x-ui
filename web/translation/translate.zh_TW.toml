@@ -592,14 +592,12 @@
 "pass_prompt" = "🔑 預設密碼: {{ .ClientPassword }}\n\n請輸入您的密碼。"
 "email_prompt" = "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。"
 "comment_prompt" = "💬 預設評論: {{ .ClientComment }}\n\n請輸入您的評論。"
-"inbound_client_data_id" = "🔄 進來資料: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
-"inbound_client_data_pass" = "🔄 進來資料: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
-"client_data_id" = "🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
-"client_data_pass" = "🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n💬 評論: {{ .ClientComment }}\n\n現在您可以將客戶添加到進來資料中！"
-"cancel" = "❌ 處理已取消！ \n\n您可以隨時重新開始 /start。 🔄"
-"error_add_client" = "⚠️ 錯誤:\n\n {{ .error }}"
-"using_default_value" = "好的，我會使用預設值。😊"
-"incorrect_input" = "您的輸入無效。\n短語應該連貫而不應有空格。\n正確範例: aaaaaa\n錯誤範例: aaa aaa 🚫"
+"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
+"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
+"cancel" = "❌ 程序已取消！\n\n您可以隨時使用 /start 重新開始。 🔄"
+"error_add_client"  = "⚠️ 錯誤:\n\n {{ .error }}"
+"using_default_value"  = "好的，我會使用預設值。 😊"
+"incorrect_input" ="您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫"
 
 
 [tgbot.buttons]

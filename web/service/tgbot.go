@@ -636,6 +636,80 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
+			case "add_client_limit_traffic_c":
+				limitTraffic, _ := strconv.Atoi(dataArray[1])
+				client_TotalGB = int64(limitTraffic) * 1024 * 1024 * 1024
+				messageId := callbackQuery.Message.GetMessageID()
+				inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+
+				t.addClient(chatId,message_text,messageId)
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+			case "add_client_limit_traffic_in":
+				if len(dataArray) >= 2 {
+					oldInputNumber, err := strconv.Atoi(dataArray[1])
+					inputNumber := oldInputNumber
+					if err == nil {
+						if len(dataArray) == 3 {
+							num, err := strconv.Atoi(dataArray[2])
+							if err == nil {
+								if num == -2 {
+									inputNumber = 0
+								} else if num == -1 {
+									if inputNumber > 0 {
+										inputNumber = (inputNumber / 10)
+									}
+								} else {
+									inputNumber = (inputNumber * 10) + num
+								}
+							}
+							if inputNumber == oldInputNumber {
+								t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
+								return
+							}
+							if inputNumber >= 999999 {
+								t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+								return
+							}
+						}
+						inlineKeyboard := tu.InlineKeyboard(
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("add_client_default_traffic")),
+							),
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmNumberAdd", "Num=="+strconv.Itoa(inputNumber))).WithCallbackData(t.encodeQuery("add_client_limit_traffic_c "+strconv.Itoa(inputNumber))),
+							),
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton("1").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 1")),
+								tu.InlineKeyboardButton("2").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 2")),
+								tu.InlineKeyboardButton("3").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 3")),
+							),
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton("4").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 4")),
+								tu.InlineKeyboardButton("5").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 5")),
+								tu.InlineKeyboardButton("6").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 6")),
+							),
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton("7").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 7")),
+								tu.InlineKeyboardButton("8").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 8")),
+								tu.InlineKeyboardButton("9").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 9")),
+							),
+							tu.InlineKeyboardRow(
+								tu.InlineKeyboardButton("🔄").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" -2")),
+								tu.InlineKeyboardButton("0").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" 0")),
+								tu.InlineKeyboardButton("⬅️").WithCallbackData(t.encodeQuery("add_client_limit_traffic_in "+strconv.Itoa(inputNumber)+" -1")),
+							),
+						)
+						t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
+						return
+					}
+				}
+				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
+				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "reset_exp":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
@@ -1136,7 +1210,36 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		prompt_message := t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+client_Comment)
     	t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
 	case "add_client_ch_default_traffic":
-		userStates[chatId] = "awaiting_id"
+		inlineKeyboard := tu.InlineKeyboard(
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("add_client_default_traffic")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.unlimited")).WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 0")),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.custom")).WithCallbackData(t.encodeQuery("add_client_limit_traffic_in 0")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("1 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 1")),
+				tu.InlineKeyboardButton("5 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 5")),
+				tu.InlineKeyboardButton("10 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 10")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("20 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 20")),
+				tu.InlineKeyboardButton("30 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 30")),
+				tu.InlineKeyboardButton("40 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 40")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("50 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 50")),
+				tu.InlineKeyboardButton("60 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 60")),
+				tu.InlineKeyboardButton("80 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 80")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton("100 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 100")),
+				tu.InlineKeyboardButton("150 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 150")),
+				tu.InlineKeyboardButton("200 GB").WithCallbackData(t.encodeQuery("add_client_limit_traffic_c 200")),
+			),
+		)
+		t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
 	case "add_client_ch_default_exp":
 		userStates[chatId] = "awaiting_id"
 	case "add_client_default_info":
@@ -1145,6 +1248,16 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 	case "add_client_cancel":
 		delete(userStates, chatId)
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 5, tu.ReplyKeyboardRemove())
+	case "add_client_default_traffic":
+		messageId := callbackQuery.Message.GetMessageID()
+		inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
+		if err != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+			return
+		}
+		message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+		t.addClient(chatId,message_text,messageId)
+		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="+client_Email))
 	case "add_client_submit_disable":
 		client_Enable = false
 		_, err := t.SubmitAddClient()
@@ -1163,41 +1276,13 @@ func (t *Tgbot) BuildInboundClientDataMessage(inbound_remark string ,protocol mo
 
     switch protocol {
     case model.VMESS, model.VLESS:
-        message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+        message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark,"ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientTraffic=="+common.FormatTraffic(client_TotalGB),"ClientComment=="+client_Comment)
     
 	case model.Trojan:
-        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientTraffic=="+common.FormatTraffic(client_TotalGB),"ClientComment=="+client_Comment)
 
     case model.Shadowsocks:
-        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
-
-    default:
-        return "", errors.New("unknown protocol")
-    }
-
-    return message, nil
-}
-
-func (t *Tgbot) BuildClientDataMessage() (string, error) {
-    var message string
-
-	inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
-	if err != nil {
-		logger.Warning("getIboundClients run failed:", err)
-		return "", errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
-	}
-	protocol := inbound.Protocol
-
-
-    switch protocol {
-    case model.VMESS, model.VLESS:
-        message = t.I18nBot("tgbot.messages.client_data_id", "ClientId=="+client_Id,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
-    
-	case model.Trojan:
-        message = t.I18nBot("tgbot.messages.client_data_pass", "ClientPass=="+client_TrPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
-
-    case model.Shadowsocks:
-        message = t.I18nBot("tgbot.messages.client_data_pass", "ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientComment=="+client_Comment)
+        message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark,"ClientPass=="+client_ShPassword,"ClientEmail=="+client_Email,"ClientTraffic=="+common.FormatTraffic(client_TotalGB),"ClientComment=="+client_Comment)
 
     default:
         return "", errors.New("unknown protocol")
