@@ -133,7 +133,7 @@
 
 <body>
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-  {{ template "commonSider" . }}
+  <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
       <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
@@ -584,6 +584,7 @@
 <script src="{{ .base_path }}assets/uri/URI.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/inbound.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
+{{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
 {{template "component/aPersianDatepicker" .}}
@@ -678,7 +679,6 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
             themeSwitcher,
             persianDatepicker,
             spinning: false,

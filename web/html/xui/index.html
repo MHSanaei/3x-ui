@@ -74,7 +74,7 @@
 
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    {{ template "commonSider" . }}
+    <a-sidebar></a-sidebar>
     <a-layout id="content-layout">
       <a-layout-content>
         <a-spin :spinning="spinning" :delay="200" :tip="loadingTip">
@@ -417,6 +417,7 @@
     </a-modal>
   </a-layout>
 {{template "js" .}}
+{{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
 {{template "modals/textModal"}}
@@ -591,7 +592,6 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
             themeSwitcher,
             status: new Status(),
             versionModal,
