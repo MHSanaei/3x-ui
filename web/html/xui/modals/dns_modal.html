@@ -1,4 +1,4 @@
-{{define "dnsModal"}}
+{{define "modals/dnsModal"}}
 <a-modal id="dns-modal" v-model="dnsModal.visible" :title="dnsModal.title" @ok="dnsModal.ok" :closable="true"
   :mask-closable="false" :ok-text="dnsModal.okText" cancel-text='{{ i18n "close" }}'
   :class="themeSwitcher.currentTheme">

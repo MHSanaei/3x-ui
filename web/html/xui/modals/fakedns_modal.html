@@ -1,4 +1,4 @@
-{{define "fakednsModal"}}
+{{define "modals/fakednsModal"}}
 <a-modal id="fakedns-modal" v-model="fakednsModal.visible" :title="fakednsModal.title" @ok="fakednsModal.ok"
          :closable="true" :mask-closable="false"
          :ok-text="fakednsModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">

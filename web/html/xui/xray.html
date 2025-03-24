@@ -133,13 +133,13 @@
 {{template "component/aThemeSwitch" .}}
 {{template "component/aTableSortable" .}}
 {{template "component/aSettingListItem" .}}
-{{template "ruleModal"}}
-{{template "outModal"}}
-{{template "reverseModal"}}
-{{template "balancerModal"}}
-{{template "dnsModal"}}
-{{template "fakednsModal"}}
-{{template "warpModal"}}
+{{template "modals/ruleModal"}}
+{{template "modals/outModal"}}
+{{template "modals/reverseModal"}}
+{{template "modals/balancerModal"}}
+{{template "modals/dnsModal"}}
+{{template "modals/fakednsModal"}}
+{{template "modals/warpModal"}}
 <script>
         const rulesColumns = [
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
