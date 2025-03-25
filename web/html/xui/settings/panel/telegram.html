@@ -1,6 +1,6 @@
 {{define "settings/panel/telegram"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.telegramBotEnable" }}</template>
             <template #description>{{ i18n "pages.settings.telegramBotEnableDesc" }}</template>
@@ -35,7 +35,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.notifications" }}'>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.notifications" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.telegramNotifyTime"}}</template>
             <template #description>{{ i18n "pages.settings.telegramNotifyTimeDesc"}}</template>
@@ -65,7 +65,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.proxyAndServer" }}'>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.proxyAndServer" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.telegramProxy"}}</template>
             <template #description>{{ i18n "pages.settings.telegramProxyDesc"}}</template>
