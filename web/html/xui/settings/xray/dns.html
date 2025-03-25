@@ -1,6 +1,6 @@
 {{define "settings/xray/dns"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.xray.dns.enable" }}</template>
             <template #description>{{ i18n "pages.xray.dns.enableDesc" }}</template>
@@ -59,7 +59,7 @@
         </template>
     </a-collapse-panel>
     <template v-if="enableDNS">
-        <a-collapse-panel header='DNS'>
+        <a-collapse-panel key="2" header='DNS'>
             <template v-if="dnsServers.length > 0">
                 <a-space direction="vertical" size="middle">
                     <a-button type="primary" icon="plus" @click="addDNSServer()">
@@ -107,7 +107,7 @@
                 </a-empty>
             </template>
         </a-collapse-panel>
-        <a-collapse-panel header='Fake DNS'>
+        <a-collapse-panel key="3" header='Fake DNS'>
             <template v-if="fakeDns && fakeDns.length > 0">
                 <a-space direction="vertical" size="middle">
                     <a-button type="primary" icon="plus" @click="addFakedns()">{{ i18n "pages.xray.fakedns.add"

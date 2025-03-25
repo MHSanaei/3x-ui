@@ -1,6 +1,6 @@
 {{define "settings/panel/general"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>
                 {{ i18n "pages.settings.remarkModel"}}
@@ -76,7 +76,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.notifications" }}'>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.notifications" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.expireTimeDiff" }}</template>
             <template #description>{{ i18n "pages.settings.expireTimeDiffDesc" }}</template>
@@ -92,7 +92,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.certs" }}'>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.certs" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.publicKeyPath"}}</template>
             <template #description>{{ i18n "pages.settings.publicKeyPathDesc"}}</template>
@@ -108,7 +108,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.externalTraffic" }}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.externalTraffic" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.externalTrafficInformEnable"}}</template>
             <template #description>{{ i18n "pages.settings.externalTrafficInformEnableDesc"}}</template>
@@ -125,7 +125,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.dateAndTime" }}'>
+    <a-collapse-panel key="5" header='{{ i18n "pages.settings.dateAndTime" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.timeZone"}}</template>
             <template #description>{{ i18n "pages.settings.timeZoneDesc"}}</template>

@@ -1,6 +1,6 @@
 {{define "settings/panel/subscription/general"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subEnable"}}</template>
             <template #description>{{ i18n "pages.settings.subEnableDesc"}}</template>
@@ -53,7 +53,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.information" }}'>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.information" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subEncrypt"}}</template>
             <template #description>{{ i18n "pages.settings.subEncryptDesc"}}</template>
@@ -69,7 +69,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.certs" }}'>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.certs" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subCertPath"}}</template>
             <template #description>{{ i18n "pages.settings.subCertPathDesc"}}</template>
@@ -85,7 +85,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.intervals"}}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.intervals"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subUpdates"}}</template>
             <template #description>{{ i18n "pages.settings.subUpdatesDesc"}}</template>

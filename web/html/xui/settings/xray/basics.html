@@ -1,6 +1,6 @@
 {{define "settings/xray/basics"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" style="text-align: center;">
                 <template slot="message">
@@ -34,7 +34,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.xray.statistics" }}'>
+    <a-collapse-panel key="2" header='{{ i18n "pages.xray.statistics" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.xray.statsInboundUplink" }}</template>
             <template #description>{{ i18n "pages.xray.statsInboundUplinkDesc" }}</template>
@@ -64,7 +64,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
+    <a-collapse-panel key="3" header='{{ i18n "pages.xray.logConfigs" }}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" style="text-align: center;">
                 <template slot="message">
@@ -135,7 +135,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.xray.blockConfigs"}}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" style="text-align: center;">
                 <template slot="message">
@@ -159,7 +159,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.xray.basicRouting"}}'>
+    <a-collapse-panel key="5" header='{{ i18n "pages.xray.basicRouting"}}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" style="text-align: center;">
                 <template slot="message">
@@ -264,7 +264,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
+    <a-collapse-panel key="6" header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
         <a-space direction="horizontal" style="padding: 0 20px">
             <a-button type="danger" @click="resetXrayConfigToDefault">
                 <span>{{ i18n "pages.settings.resetDefaultConfig" }}</span>

@@ -1,6 +1,6 @@
 {{define "settings/panel/subscription/json"}}
-<a-collapse>
-    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subPath"}}</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
@@ -17,7 +17,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.fragment"}}'>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.fragment"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.fragment"}}</template>
             <template #description>{{ i18n "pages.settings.fragmentDesc"}}</template>
@@ -51,7 +51,7 @@
             </a-collapse>
         </a-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header="Noises">
+    <a-collapse-panel key="3" header="Noises">
         <a-setting-list-item paddings="small">
             <template #title>Noises</template>
             <template #description>{{ i18n "pages.settings.noisesDesc"}}</template>
@@ -99,7 +99,7 @@
             <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
         </a-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.mux"}}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.mux"}}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.mux"}}</template>
             <template #description>{{ i18n "pages.settings.muxDesc"}}</template>
@@ -139,7 +139,7 @@
             </a-collapse>
         </a-list-item>
     </a-collapse-panel>
-    <a-collapse-panel header='{{ i18n "pages.settings.direct" }}'>
+    <a-collapse-panel key="5" header='{{ i18n "pages.settings.direct" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.direct"}}</template>
             <template #description>{{ i18n "pages.settings.directDesc"}}</template>
