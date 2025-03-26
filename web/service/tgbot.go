@@ -271,6 +271,12 @@ func (t *Tgbot) OnReceive() {
 		if userState, exists := userStates[message.Chat.ID]; exists {
 			switch userState {
 			case "awaiting_id":
+				if client_Id == strings.TrimSpace(message.Text) {
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+
 				client_Id = strings.TrimSpace(message.Text)
 				if t.isSingleWord(client_Id) {
 					userStates[message.Chat.ID] = "awaiting_id"
@@ -285,8 +291,17 @@ func (t *Tgbot) OnReceive() {
 				} else {
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_id"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
+					inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
+					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+					t.addClient(message.Chat.ID, message_text)
 				}
 			case "awaiting_password_tr":
+				if client_TrPassword == strings.TrimSpace(message.Text) {
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+
 				client_TrPassword = strings.TrimSpace(message.Text)
 				if t.isSingleWord(client_TrPassword) {
 					userStates[message.Chat.ID] = "awaiting_password_tr"
@@ -301,8 +316,17 @@ func (t *Tgbot) OnReceive() {
 				} else {
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
+					inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
+					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+					t.addClient(message.Chat.ID, message_text)
 				}
 			case "awaiting_password_sh":
+				if client_ShPassword == strings.TrimSpace(message.Text) {
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+
 				client_ShPassword = strings.TrimSpace(message.Text)
 				if t.isSingleWord(client_ShPassword) {
 					userStates[message.Chat.ID] = "awaiting_password_sh"
@@ -317,8 +341,17 @@ func (t *Tgbot) OnReceive() {
 				} else {
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_password"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
+					inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
+					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+					t.addClient(message.Chat.ID, message_text)
 				}
 			case "awaiting_email":
+				if client_Email == strings.TrimSpace(message.Text) {
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+
 				client_Email = strings.TrimSpace(message.Text)
 				if t.isSingleWord(client_Email) {
 					userStates[message.Chat.ID] = "awaiting_email"
@@ -333,11 +366,23 @@ func (t *Tgbot) OnReceive() {
 				} else {
 					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_email"), 3, tu.ReplyKeyboardRemove())
 					delete(userStates, message.Chat.ID)
+					inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
+					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+					t.addClient(message.Chat.ID, message_text)
 				}
 			case "awaiting_comment":
+				if client_Comment == strings.TrimSpace(message.Text) {
+					t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+
 				client_Comment = strings.TrimSpace(message.Text)
 				t.SendMsgToTgbotDeleteAfter(message.Chat.ID, t.I18nBot("tgbot.messages.received_comment"), 3, tu.ReplyKeyboardRemove())
 				delete(userStates, message.Chat.ID)
+				inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
+					message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+					t.addClient(message.Chat.ID, message_text)
 			}
 
 		} else {
@@ -1235,17 +1280,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.addClient"))
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
-	case "add_client_refresh":
-		messageId := callbackQuery.Message.GetMessageID()
-		inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
-		if err != nil {
-			t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
-			return
-		}
-		message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
-
-		t.addClient(chatId,message_text,messageId)
-		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.clientRefreshSuccess", "Email=="+client_Email))
 	case "add_client_ch_default_email":
 		userStates[chatId] = "awaiting_email"
 		cancel_btn_markup := tu.InlineKeyboard(
@@ -2170,10 +2204,7 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 
     switch protocol {
     case model.VMESS, model.VLESS:
-		inlineKeyboard := tu.InlineKeyboard(
-			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
-			),			
+		inlineKeyboard := tu.InlineKeyboard(		
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_id")).WithCallbackData("add_client_ch_default_id"),
@@ -2181,10 +2212,10 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData("add_client_ch_default_traffic"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData("add_client_ch_default_exp"),
-			),			
+			),	
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_comment")).WithCallbackData("add_client_ch_default_comment"),
-			),
+			),		
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
@@ -2197,9 +2228,6 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 		}
 	case model.Trojan:
 		inlineKeyboard := tu.InlineKeyboard(
-			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
-			),
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_password")).WithCallbackData("add_client_ch_default_pass_tr"),
@@ -2225,19 +2253,16 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 	case model.Shadowsocks:
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
-				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.refresh")).WithCallbackData("add_client_refresh"),
-			),
-			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_email")).WithCallbackData("add_client_ch_default_email"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_password")).WithCallbackData("add_client_ch_default_pass_sh"),
-			),			
+			),		
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.limitTraffic")).WithCallbackData("add_client_ch_default_traffic"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.resetExpire")).WithCallbackData("add_client_ch_default_exp"),
-			),			
+			),	
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.change_comment")).WithCallbackData("add_client_ch_default_comment"),
-			),
+			),			
 			tu.InlineKeyboardRow(
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.submitDisable")).WithCallbackData("add_client_submit_disable"),
 				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData("add_client_cancel"),
