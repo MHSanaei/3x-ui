@@ -1,4 +1,4 @@
-{{define "reverseModal"}}
+{{define "modals/reverseModal"}}
 <a-modal id="reverse-modal" v-model="reverseModal.visible" :title="reverseModal.title" @ok="reverseModal.ok"
          :confirm-loading="reverseModal.confirmLoading" :closable="true" :mask-closable="false"
          :ok-text="reverseModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">

@@ -6,7 +6,6 @@
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 
-<script src="{{ .base_path }}assets/base64/base64.min.js"></script>
 <script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
@@ -40,27 +39,13 @@
   .ant-list-item {
     display: block;
   }
-  .collapse-title {
-    color: inherit;
-    font-weight: bold;
-    font-size: 18px;
-    padding: 10px 20px;
-    border-bottom: 2px solid;
-  }
-  .collapse-title>i {
-    color: inherit;
-    font-size: 24px;
-  }
-  .ant-collapse-content-box>li {
-    padding: 12px 0 0 !important;
-  }
   .ant-list-item>li {
     padding: 10px 20px !important;
   }
 </style>
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    {{ template "commonSider" . }}
+    <a-sidebar></a-sidebar>
     <a-layout id="content-layout">
       <a-layout-content>
         <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
@@ -104,682 +89,25 @@
                 @change="(activeKey) => { this.changePage(activeKey); }"
                 :class="themeSwitcher.currentTheme">
               <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.xray.basicTemplate"}}' style="padding-top: 20px;">
-                <a-collapse>
-                  <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.generalConfigsDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.FreedomStrategy" }}</template>
-                        <template #description>{{ i18n "pages.xray.FreedomStrategyDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="freedomStrategy" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                              <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.RoutingStrategy" }}</template>
-                        <template #description>{{ i18n "pages.xray.RoutingStrategyDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                <a-select-option v-for="s in routingDomainStrategies" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.statistics" }}'>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.statsInboundUplink" }}</template>
-                        <template #description>{{ i18n "pages.xray.statsInboundUplinkDesc" }}</template>
-                        <template #control>
-                            <a-switch v-model="statsInboundUplink"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.statsInboundDownlink" }}</template>
-                        <template #description>{{ i18n "pages.xray.statsInboundDownlinkDesc" }}</template>
-                        <template #control>
-                            <a-switch v-model="statsInboundDownlink"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.statsOutboundUplink" }}</template>
-                        <template #description>{{ i18n "pages.xray.statsOutboundUplinkDesc" }}</template>
-                        <template #control>
-                            <a-switch v-model="statsOutboundUplink"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.statsOutboundDownlink" }}</template>
-                        <template #description>{{ i18n "pages.xray.statsOutboundDownlinkDesc" }}</template>
-                        <template #control>
-                            <a-switch v-model="statsOutboundDownlink"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.logConfigs" }}'>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.logConfigsDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.logLevel" }}</template>
-                        <template #description>{{ i18n "pages.xray.logLevelDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="logLevel" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                <a-select-option v-for="s in log.loglevel" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.accessLog" }}</template>
-                        <template #description>{{ i18n "pages.xray.accessLogDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                <a-select-option value=''>Empty</a-select-option>
-                                <a-select-option v-for="s in log.access" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.errorLog" }}</template>
-                        <template #description>{{ i18n "pages.xray.errorLogDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                <a-select-option value=''>Empty</a-select-option>
-                                <a-select-option v-for="s in log.error" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.maskAddress" }}</template>
-                        <template #description>{{ i18n "pages.xray.maskAddressDesc" }}</template>
-                        <template #control>
-                            <a-select v-model="maskAddressLog" :dropdown-class-name="themeSwitcher.currentTheme" style="width: 100%">
-                                <a-select-option value=''>Empty</a-select-option>
-                                <a-select-option v-for="s in log.maskAddress" :value="s">[[ s ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.dnsLog"}}</template>
-                        <template #description>{{ i18n "pages.xray.dnsLogDesc"}}</template>
-                        <template #control>
-                            <a-switch v-model="dnslog"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.blockConfigs"}}'>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.blockConfigsDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.Torrent"}}</template>
-                        <template #description>{{ i18n "pages.xray.TorrentDesc"}}</template>
-                        <template #control>
-                            <a-switch v-model="torrentSettings"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.Family"}}</template>
-                        <template #description>{{ i18n "pages.xray.FamilyDesc"}}</template>
-                        <template #control>
-                            <a-switch v-model="familyProtectSettings"></a-switch>
-                        </template>
-                    </a-setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.xray.basicRouting"}}'>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.blockConnectionsConfigsDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.blockips" }}</template>
-                        <template #control>
-                            <a-select mode="tags" v-model="blockedIPs" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">[[ p.label ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.blockdomains" }}</template>
-                        <template #control>
-                            <a-select mode="tags" v-model="blockedDomains" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.BlockDomainsOptions">[[ p.label ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.directConnectionsConfigsDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.directips" }}</template>
-                        <template #control>
-                            <a-select mode="tags" style="width: 100%" v-model="directIPs" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">[[ p.label ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.directdomains" }}</template>
-                        <template #control>
-                            <a-select mode="tags" style="width: 100%" v-model="directDomains" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.DomainsOptions">[[ p.label ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.ipv4RoutingDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.ipv4Routing" }}</template>
-                        <template #control>
-                            <a-select mode="tags" style="width: 100%" v-model="ipv4Domains" :dropdown-class-name="themeSwitcher.currentTheme">
-                                <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">[[ p.label ]]</a-select-option>
-                            </a-select>
-                        </template>
-                    </a-setting-list-item>
-                    <a-row :xs="24" :sm="24" :lg="12">
-                      <a-alert type="warning" style="text-align: center; margin-top: 20px;">
-                        <template slot="message">
-                          <a-icon type="exclamation-circle" theme="filled" style="color: #FFA031"></a-icon>
-                          {{ i18n "pages.xray.warpRoutingDesc" }}
-                        </template>
-                      </a-alert>
-                    </a-row>
-                    <a-setting-list-item paddings="small">
-                        <template #title>{{ i18n "pages.xray.warpRouting" }}</template>
-                        <template #control>
-                            <template v-if="WarpExist">
-                                <a-select mode="tags" style="width: 100%" v-model="warpDomains" :dropdown-class-name="themeSwitcher.currentTheme">
-                                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">[[ p.label ]]</a-select-option>
-                                </a-select>
-                            </template>
-                            <template v-else>
-                                <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
-                            </template>
-                        </template>
-                    </a-setting-list-item>
-                  </a-collapse-panel>
-                  <a-collapse-panel header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
-                    <a-space direction="horizontal" style="padding: 0 20px">
-                      <a-button type="danger" @click="resetXrayConfigToDefault">{{ i18n "pages.settings.resetDefaultConfig" }}</a-button>
-                    </a-space>
-                  </a-collapse-panel>
-                </a-collapse>
+                {{ template "settings/xray/basics" . }}
               </a-tab-pane>
               <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
-                <a-space direction="vertical" size="middle">
-                    <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
-                    <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered
-                        :row-key="r => r.key"
-                        :data-source="routingRuleData"
-                        :scroll="isMobile ? {} : { x: 1000 }"
-                        :pagination="false"
-                        :indent-size="0" 
-                        v-on:onSort="replaceRule">
-                    <template slot="action" slot-scope="text, rule, index">
-                        <a-table-sort-trigger :item-index="index"></a-table-sort-trigger>
-                        <span class="ant-table-row-index"> [[ index+1 ]] </span>
-                        <a-dropdown :trigger="['click']">
-                        <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                        <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                            <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
-                            <a-icon type="vertical-align-top"></a-icon>
-                            {{ i18n "pages.xray.rules.first"}}
-                            </a-menu-item>
-                            <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
-                            <a-icon type="arrow-up"></a-icon>
-                            {{ i18n "pages.xray.rules.up"}}
-                            </a-menu-item>
-                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
-                            <a-icon type="arrow-down"></a-icon>
-                            {{ i18n "pages.xray.rules.down"}}
-                            </a-menu-item>
-                            <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,routingRuleData.length-1)">
-                            <a-icon type="vertical-align-bottom"></a-icon>
-                            {{ i18n "pages.xray.rules.last"}}
-                            </a-menu-item>
-                            <a-menu-item @click="editRule(index)">
-                            <a-icon type="edit"></a-icon>
-                            {{ i18n "edit" }}
-                            </a-menu-item>
-                            <a-menu-item @click="deleteRule(index)">
-                            <span style="color: #FF4D4F">
-                                <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                            </span>
-                            </a-menu-item>
-                        </a-menu>
-                        </a-dropdown>
-                    </template>
-                    <template slot="inbound" slot-scope="text, rule, index">
-                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                            <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
-                            <p v-if="rule.user">User email: [[ rule.user ]]</p>
-                        </template>
-                        [[ [rule.inboundTag,rule.user].join('\n') ]]
-                        </a-popover>
-                    </template>
-                    <template slot="outbound" slot-scope="text, rule, index">
-                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                            <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
-                        </template>
-                        [[ rule.outboundTag ]]
-                        </a-popover>
-                    </template>
-                    <template slot="balancer" slot-scope="text, rule, index">
-                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content">
-                            <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
-                        </template>
-                        [[ rule.balancerTag ]]
-                        </a-popover>
-                    </template>
-                    <template slot="info" slot-scope="text, rule, index">
-                        <a-popover placement="bottomRight"
-                            v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
-                            :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
-                        <template slot="content">
-                            <table cellpadding="2" style="max-width: 300px;">
-                            <tr v-if="rule.source">
-                                <td>Source</td>
-                                <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.sourcePort">
-                                <td>Source Port</td>
-                                <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.network">
-                                <td>Network</td>
-                                <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.protocol">
-                                <td>Protocol</td>
-                                <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.attrs">
-                                <td>Attrs</td>
-                                <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.ip">
-                                <td>IP</td>
-                                <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.domain">
-                                <td>Domain</td>
-                                <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.port">
-                                <td>Port</td>
-                                <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
-                            </tr>
-                            <tr v-if="rule.balancerTag">
-                                <td>Balancer Tag</td>
-                                <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
-                            </tr>
-                            </table>
-                        </template>
-                        <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
-                            <a-icon type="info"></a-icon>
-                        </a-button>
-                        </a-popover>
-                    </template>
-                    </a-table-sortable>
-                </a-space>
+                {{ template "settings/xray/routing" . }}
               </a-tab-pane>
               <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' force-render="true">
-                <a-space direction="vertical" size="middle">
-                    <a-row>
-                        <a-col :xs="12" :sm="12" :lg="12">
-                          <a-space direction="horizontal" size="small">
-                            <a-button type="primary" icon="plus" @click="addOutbound()">
-                                {{ i18n "pages.xray.outbound.addOutbound" }}
-                              </a-button>
-                            <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
-                          </a-space>
-                        </a-col>
-                        <a-col :xs="12" :sm="12" :lg="12" style="text-align: right;">
-                          <a-icon type="sync" :spin="refreshing" @click="refreshOutboundTraffic()" style="margin: 0 5px;"></a-icon>
-                          <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
-                              title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
-                              :overlay-class-name="themeSwitcher.currentTheme"
-                              ok-text='{{ i18n "reset"}}'
-                              cancel-text='{{ i18n "cancel"}}'>
-                            <a-icon slot="icon" type="question-circle-o" :style="themeSwitcher.isDarkTheme ? 'color: #008771' : 'color: #008771'"></a-icon>
-                            <a-icon type="retweet" style="cursor: pointer;"></a-icon>
-                          </a-popconfirm>
-                        </a-col>
-                      </a-row>
-                      <a-table :columns="outboundColumns" bordered
-                        :row-key="r => r.key"
-                        :data-source="outboundData"
-                        :scroll="isMobile ? {} : { x: 800 }"
-                        :pagination="false"
-                        :indent-size="0">
-                        <template slot="action" slot-scope="text, outbound, index">
-                          [[ index+1 ]]
-                          <a-dropdown :trigger="['click']">
-                            <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                            <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                              <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
-                                <a-icon type="vertical-align-top"></a-icon>
-                                {{ i18n "pages.xray.rules.first"}}
-                              </a-menu-item>
-                              <a-menu-item @click="editOutbound(index)">
-                                <a-icon type="edit"></a-icon>
-                                {{ i18n "edit" }}
-                              </a-menu-item>
-                              <a-menu-item @click="resetOutboundTraffic(index)">
-                                <span>
-                                  <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic"}}
-                                </span>
-                              </a-menu-item>
-                              <a-menu-item @click="deleteOutbound(index)">
-                                <span style="color: #FF4D4F">
-                                  <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                </span>
-                              </a-menu-item>
-                            </a-menu>
-                          </a-dropdown>
-                        </template>
-                        <template slot="address" slot-scope="text, outbound, index">
-                            <p style="margin: 0 5px;" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
-                        </template>
-                        <template slot="protocol" slot-scope="text, outbound, index">
-                            <a-tag style="margin:0;" color="purple">[[ outbound.protocol ]]</a-tag>
-                            <template v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
-                                <a-tag style="margin:0;" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
-                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
-                                <a-tag style="margin:0;" v-if="outbound.streamSettings.security=='reality'" color="green">reality</a-tag>
-                            </template>
-                        </template>
-                        <template slot="traffic" slot-scope="text, outbound, index">
-                            <a-tag color="green">[[ findOutboundTraffic(outbound) ]]</a-tag>
-                        </template>
-                    </a-table>
-                </a-space>
+                {{ template "settings/xray/outbounds" . }}
               </a-tab-pane>
               <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
-                <template v-if="reverseData.length > 0">
-                    <a-space direction="vertical" size="middle">
-                        <a-button type="primary" icon="plus" @click="addReverse()">
-                            {{ i18n "pages.xray.outbound.addReverse" }}
-                        </a-button>
-                        <a-table :columns="reverseColumns" bordered
-                            :row-key="r => r.key"
-                            :data-source="reverseData"
-                            :scroll="isMobile ? {} : { x: 200 }"
-                            :pagination="false"
-                            :indent-size="0">
-                            <template slot="action" slot-scope="text, reverse, index">
-                                [[ index+1 ]]
-                                <a-dropdown :trigger="['click']">
-                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                    <a-menu-item @click="editReverse(index)">
-                                    <a-icon type="edit"></a-icon>
-                                    {{ i18n "edit" }}
-                                    </a-menu-item>
-                                    <a-menu-item @click="deleteReverse(index)">
-                                    <span style="color: #FF4D4F">
-                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                    </span>
-                                    </a-menu-item>
-                                </a-menu>
-                                </a-dropdown>
-                            </template>
-                        </a-table>
-                    </a-space>
-                </template>
-                <template v-else>
-                    <a-empty description='{{ i18n "emptyReverseDesc" }}' style="margin: 10px;">
-                        <a-button type="primary" icon="plus" @click="addReverse()" style="margin-top: 10px;">
-                            {{ i18n "pages.xray.outbound.addReverse" }}
-                        </a-button>
-                    </a-empty>
-                </template>
+                {{ template "settings/xray/reverse" . }}
               </a-tab-pane>
               <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
-                <template v-if="balancersData.length > 0">
-                    <a-space direction="vertical" size="middle">
-                        <a-button type="primary" icon="plus" @click="addBalancer()">
-                            {{ i18n "pages.xray.balancer.addBalancer"}}
-                        </a-button>
-                        <a-table :columns="balancerColumns" bordered 
-                            :row-key="r => r.key"
-                            :data-source="balancersData"
-                            :scroll="isMobile ? {} : { x: 200 }"
-                            :pagination="false"
-                            :indent-size="0">
-                            <template slot="action" slot-scope="text, balancer, index">
-                                [[ index+1 ]]
-                                <a-dropdown :trigger="['click']">
-                                <a-icon @click="e => e.preventDefault()" type="more" style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                    <a-menu-item @click="editBalancer(index)">
-                                    <a-icon type="edit"></a-icon>
-                                    {{ i18n "edit" }}
-                                    </a-menu-item>
-                                    <a-menu-item @click="deleteBalancer(index)">
-                                    <span style="color: #FF4D4F">
-                                        <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                    </span>
-                                    </a-menu-item>
-                                </a-menu>
-                                </a-dropdown>
-                            </template>
-                            <template slot="strategy" slot-scope="text, balancer, index">
-                                <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
-                                <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
-                                <a-tag style="margin:0;" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
-                                <a-tag style="margin:0;" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
-                            </template>
-                            <template slot="selector" slot-scope="text, balancer, index">
-                                <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
-                            </template>
-                        </a-table>
-                        <a-radio-group
-                            v-if="observatoryEnable || burstObservatoryEnable"
-                            v-model="obsSettings"
-                            @change="changeObsCode"
-                            button-style="solid"
-                            :size="isMobile ? 'small' : ''">
-                            <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
-                            <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
-                        </a-radio-group>
-                        <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
-                    </a-space>
-                </template>
-                <template v-else>
-                    <a-empty description='{{ i18n "emptyBalancersDesc" }}' style="margin: 10px;">
-                        <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-top: 10px;">
-                            {{ i18n "pages.xray.balancer.addBalancer"}}
-                        </a-button>
-                    </a-empty>
-                </template>
+                {{ template "settings/xray/balancers" . }}
               </a-tab-pane>
-            <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
-                <a-collapse>
-                    <a-collapse-panel header='{{ i18n "pages.xray.generalConfigs"}}'>
-                        <a-setting-list-item paddings="small">
-                            <template #title>{{ i18n "pages.xray.dns.enable" }}</template>
-                            <template #description>{{ i18n "pages.xray.dns.enableDesc" }}</template>
-                            <template #control>
-                                <a-switch v-model="enableDNS"></a-switch>
-                            </template>
-                        </a-setting-list-item>
-                        <template v-if="enableDNS">
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.tag" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.tagDesc" }}</template>
-                                <template #control>
-                                    <a-input type="text" v-model="dnsTag"></a-input>
-                                </template>
-                            </a-setting-list-item>
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.clientIp" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.clientIpDesc" }}</template>
-                                <template #control>
-                                    <a-input type="text" v-model="dnsClientIp"></a-input>
-                                </template>
-                            </a-setting-list-item>
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.strategy" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.strategyDesc" }}</template>
-                                <template #control>
-                                    <a-select v-model="dnsStrategy" style="width: 100%" :dropdown-class-name="themeSwitcher.currentTheme">
-                                        <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
-                                            [[ l ]]
-                                        </a-select-option>
-                                    </a-select>
-                                </template>
-                            </a-setting-list-item>
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.disableCache" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.disableCacheDesc" }}</template>
-                                <template #control>
-                                    <a-switch v-model="dnsDisableCache"></a-switch>
-                                </template>
-                            </a-setting-list-item>
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.disableFallback" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.disableFallbackDesc" }}</template>
-                                <template #control>
-                                    <a-switch v-model="dnsDisableFallback"></a-switch>
-                                </template>
-                            </a-setting-list-item>
-                            <a-setting-list-item paddings="small">
-                                <template #title>{{ i18n "pages.xray.dns.disableFallbackIfMatch" }}</template>
-                                <template #description>{{ i18n "pages.xray.dns.disableFallbackIfMatchDesc" }}</template>
-                                <template #control>
-                                    <a-switch v-model="dnsDisableFallbackIfMatch"></a-switch>
-                                </template>
-                            </a-setting-list-item>
-                        </template>
-                    </a-collapse-panel>
-                    <template v-if="enableDNS">
-                        <a-collapse-panel header='DNS'>
-                            <template v-if="dnsServers.length > 0">
-                                <a-space direction="vertical" size="middle">
-                                    <a-button type="primary" icon="plus" @click="addDNSServer()">{{ i18n
-                                        "pages.xray.dns.add" }}</a-button>
-                                    <a-table :columns="dnsColumns" bordered :row-key="r => r.key"
-                                        :data-source="dnsServers" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
-                                        <template slot="action" slot-scope="text,dns,index">
-                                            [[ index+1 ]]
-                                            <a-dropdown :trigger="['click']">
-                                                <a-icon @click="e => e.preventDefault()" type="more"
-                                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                                    <a-menu-item @click="editDNSServer(index)">
-                                                        <a-icon type="edit"></a-icon>
-                                                        {{ i18n "edit" }}
-                                                    </a-menu-item>
-                                                    <a-menu-item @click="deleteDNSServer(index)">
-                                                        <span style="color: #FF4D4F">
-                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                        </span>
-                                                    </a-menu-item>
-                                                </a-menu>
-                                            </a-dropdown>
-                                        </template>
-                                        <template slot="address" slot-scope="dns,index">
-                                            <span v-if="typeof dns == 'object'">[[ dns.address ]]</span>
-                                            <span v-else>[[ dns ]]</span>
-                                        </template>
-                                        <template slot="domain" slot-scope="dns,index">
-                                            <span v-if="typeof dns == 'object'">[[ dns.domains.join(",") ]]</span>
-                                        </template>
-                                        <template slot="expectIPs" slot-scope="dns,index">
-                                            <span v-if="typeof dns == 'object'">[[ dns.expectIPs.join(",") ]]</span>
-                                        </template>
-                                    </a-table>
-                                </a-space>
-                            </template>
-                            <template v-else>
-                                <a-empty description='{{ i18n "emptyDnsDesc" }}' style="margin: 10px;">
-                                    <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-top: 10px;">{{ i18n "pages.xray.dns.add" }}</a-button>
-                                </a-empty>
-                            </template>
-                        </a-collapse-panel>
-                        <a-collapse-panel header='Fake DNS'>
-                            <template v-if="fakeDns && fakeDns.length > 0">
-                                <a-space direction="vertical" size="middle">
-                                    <a-button type="primary" icon="plus" @click="addFakedns()">{{ i18n "pages.xray.fakedns.add" }}</a-button>
-                                    <a-table :columns="fakednsColumns" bordered :row-key="r => r.key"
-                                        :data-source="fakeDns" :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
-                                        <template slot="action" slot-scope="text,fakedns,index">
-                                            [[ index+1 ]]
-                                            <a-dropdown :trigger="['click']">
-                                                <a-icon @click="e => e.preventDefault()" type="more"
-                                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
-                                                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                                                    <a-menu-item @click="editFakedns(index)">
-                                                        <a-icon type="edit"></a-icon>
-                                                        {{ i18n "edit" }}
-                                                    </a-menu-item>
-                                                    <a-menu-item @click="deleteFakedns(index)">
-                                                        <span style="color: #FF4D4F">
-                                                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                                                        </span>
-                                                    </a-menu-item>
-                                                </a-menu>
-                                            </a-dropdown>
-                                        </template>
-                                    </a-table>
-                                </a-space>
-                            </template>
-                            <template v-else>
-                                <a-empty description='{{ i18n "emptyFakeDnsDesc" }}' style="margin: 20px;">
-                                    <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-top: 10px;">{{ i18n "pages.xray.fakedns.add" }}</a-button>
-                                </a-empty>
-                            </template>
-                        </a-collapse-panel>
-                    </template>
-                </a-collapse>
-            </a-tab-pane>
+              <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
+                {{ template "settings/xray/dns" . }}
+              </a-tab-pane>
               <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
-                <a-space direction="vertical" size="small">
-                    <a-list-item-meta title='{{ i18n "pages.xray.Template"}}' description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
-                    <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" style="margin: 10px 0;" :size="isMobile ? 'small' : ''">
-                        <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
-                        <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
-                        <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
-                        <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
-                    </a-radio-group>
-                    <textarea style="position:absolute; left: -800px;" id="xraySetting"></textarea>
-                </a-space>
+                {{ template "settings/xray/advanced" . }}
               </a-tab-pane>
             </a-tabs>
           </a-space>
@@ -788,16 +116,17 @@
     </a-layout>
   </a-layout>
 {{template "js" .}}
+{{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aTableSortable" .}}
 {{template "component/aSettingListItem" .}}
-{{template "ruleModal"}}
-{{template "outModal"}}
-{{template "reverseModal"}}
-{{template "balancerModal"}}
-{{template "dnsModal"}}
-{{template "fakednsModal"}}
-{{template "warpModal"}}
+{{template "modals/ruleModal"}}
+{{template "modals/outModal"}}
+{{template "modals/reverseModal"}}
+{{template "modals/balancerModal"}}
+{{template "modals/dnsModal"}}
+{{template "modals/fakednsModal"}}
+{{template "modals/warpModal"}}
 <script>
         const rulesColumns = [
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
@@ -865,7 +194,6 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
             themeSwitcher,
             isDarkTheme: themeSwitcher.isDarkTheme,
             spinning: false,
@@ -877,7 +205,7 @@
             refreshing: false,
             restartResult: '',
             showAlert: false,
-            isMobile: window.innerWidth <= 768,
+            isMobile: DeviceUtils.isMobile(),
             advSettings: 'xraySetting',
             obsSettings: '',
             cm: null,
