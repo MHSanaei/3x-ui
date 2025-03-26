@@ -1,4 +1,4 @@
-{{define "outModal"}}
+{{define "modals/outModal"}}
 <a-modal id="out-modal" v-model="outModal.visible" :title="outModal.title" @ok="outModal.ok"
          :confirm-loading="outModal.confirmLoading" :closable="true" :mask-closable="false"
          :ok-button-props="{ props: { disabled: !outModal.isValid } }" style="overflow: hidden;"

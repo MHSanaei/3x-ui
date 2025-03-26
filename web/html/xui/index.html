@@ -22,6 +22,11 @@
   .ant-backup-list-item {
     gap: 10px;
   }
+  .ant-xray-version-list-item {
+    --padding: 12px;
+    padding: var(--padding) !important;
+    gap: var(--padding);
+  }
   .dark .ant-backup-list-item svg,
   .dark .ant-badge-status-text,
   .dark .ant-card-extra {
@@ -74,7 +79,7 @@
 
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    {{ template "commonSider" . }}
+    <a-sidebar></a-sidebar>
     <a-layout id="content-layout">
       <a-layout-content>
         <a-spin :spinning="spinning" :delay="200" :tip="loadingTip">
@@ -417,9 +422,10 @@
     </a-modal>
   </a-layout>
 {{template "js" .}}
+{{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
-{{template "textModal"}}
+{{template "modals/textModal"}}
 <script>
     const State = {
       Running: "running",
@@ -591,7 +597,6 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
             themeSwitcher,
             status: new Status(),
             versionModal,
@@ -601,7 +606,7 @@
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
             showIp: false,
-            isMobile: window.innerWidth <= 768
+            isMobile: DeviceUtils.isMobile()
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {

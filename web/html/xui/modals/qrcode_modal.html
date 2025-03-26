@@ -1,6 +1,6 @@
-{{define "qrcodeModal"}}
+{{define "modals/qrcodeModal"}}
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
-    :dialog-style="isMobileQr ? { top: '18px' } : {}"
+    :dialog-style="DeviceUtils.isMobile() ? { top: '18px' } : {}"
     :closable="true"
     :class="themeSwitcher.currentTheme"
     :footer="null" width="fit-content">
@@ -35,7 +35,6 @@
 </a-modal>
 
 <script>
-  const isMobileQr = window.innerWidth <= 768;
   const qrModal = {
     title: '',
     dbInbound: new DBInbound(),

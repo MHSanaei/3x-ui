@@ -133,7 +133,7 @@
 
 <body>
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-  {{ template "commonSider" . }}
+  <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
       <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
@@ -568,7 +568,7 @@
                     :data-source="getInboundClients(record)"
                     :pagination=pagination(getInboundClients(record))
                     :style="isMobile ? 'margin: -10px 2px -11px;' : 'margin: -10px 22px -11px;'">
-                    {{template "client_table"}}
+                    {{template "component/aClientTable"}}
                   </a-table>
                 </template>
               </a-table>
@@ -584,6 +584,7 @@
 <script src="{{ .base_path }}assets/uri/URI.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/inbound.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
+{{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
 {{template "component/aPersianDatepicker" .}}
@@ -678,7 +679,6 @@
         delimiters: ['[[', ']]'],
         el: '#app',
         data: {
-            siderDrawer,
             themeSwitcher,
             persianDatepicker,
             spinning: false,
@@ -709,7 +709,7 @@
             showAlert: false,
             ipLimitEnable: false,
             pageSize: 50,
-            isMobile: window.innerWidth <= 768,
+            isMobile: DeviceUtils.isMobile(),
         },
         methods: {
             loading(spinning = true) {
@@ -1473,7 +1473,7 @@
                 return false
             },
             onResize() {
-                this.isMobile = window.innerWidth <= 768;
+              this.isMobile = DeviceUtils.isMobile();
             }
         },
         watch: {
@@ -1524,12 +1524,12 @@
     });
 </script>
 
-{{template "inboundModal"}}
-{{template "promptModal"}}
-{{template "qrcodeModal"}}
-{{template "textModal"}}
-{{template "inboundInfoModal"}}
-{{template "clientsModal"}}
-{{template "clientsBulkModal"}}
+{{template "modals/inboundModal"}}
+{{template "modals/promptModal"}}
+{{template "modals/qrcodeModal"}}
+{{template "modals/textModal"}}
+{{template "modals/inboundInfoModal"}}
+{{template "modals/clientsModal"}}
+{{template "modals/clientsBulkModal"}}
 </body>
 </html>
