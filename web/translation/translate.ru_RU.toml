@@ -584,6 +584,22 @@
 "yes" = "✅ Да"
 "no" = "❌ Нет"
 
+"received_id" = "🔑📥 ID обновлён."
+"received_password" = "🔑📥 Пароль обновлён."
+"received_email" = "📧📥 Электронная почта обновлена."
+"received_comment" = "💬📥 Комментарий обновлён."
+"id_prompt" = "🔑 Стандартный ID: {{ .ClientId }}\n\nВведите ваш ID."
+"pass_prompt" = "🔑 Стандартный пароль: {{ .ClientPassword }}\n\nВведите ваш пароль."
+"email_prompt" = "📧 Стандартный email: {{ .ClientEmail }}\n\nВведите ваш email."
+"comment_prompt" = "💬 Стандартный комментарий: {{ .ClientComment }}\n\nВведите ваш комментарий."
+"inbound_client_data_id" = "🔄 Входящие: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата истечения: {{ .ClientExp }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящие!"
+"inbound_client_data_pass" = "🔄 Входящие: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата истечения: {{ .ClientExp }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящие!"
+"cancel" = "❌ Процесс отменён! \n\nВы можете снова начать с /start в любое время. 🔄"
+"error_add_client"  = "⚠️ Ошибка:\n\n {{ .error }}"
+"using_default_value"  = "Хорошо, оставлю значение по умолчанию. 😊"
+"incorrect_input" ="Ваш ввод недействителен.\nФразы должны быть непрерывными без пробелов.\nПравильный пример: aaaaaa\nНеправильный пример: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Закрыть клавиатуру"
 "cancel" = "❌ Отмена"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Лимит трафика"
 "getBanLogs" = "Журнал блокировок"
 "allClients" = "Все клиенты"
+
+"addClient" = "Добавить клиента"
+"submitDisable" = "Отправить как отключенный ✅"
+"use_default" = "🏷️ Использовать по умолчанию"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Пароль"
+"change_email" = "⚙️📧 Электронная почта"
+"change_comment" = "⚙️💬 Комментарий"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Успешно!"

@@ -584,6 +584,22 @@
 "yes" = "✅ Так"
 "no" = "❌ Ні"
 
+"received_id" = "🔑📥 ID оновлено."
+"received_password" = "🔑📥 Пароль оновлено."
+"received_email" = "📧📥 Електронна пошта оновлена."
+"received_comment" = "💬📥 Коментар оновлено."
+"id_prompt" = "🔑 Стандартний ID: {{ .ClientId }}\n\nВведіть ваш ID."
+"pass_prompt" = "🔑 Стандартний пароль: {{ .ClientPassword }}\n\nВведіть ваш пароль."
+"email_prompt" = "📧 Стандартний email: {{ .ClientEmail }}\n\nВведіть ваш email."
+"comment_prompt" = "💬 Стандартний коментар: {{ .ClientComment }}\n\nВведіть ваш коментар."
+"inbound_client_data_id" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафік: {{ .ClientTraffic }}\n📅 Термін придатності: {{ .ClientExp }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"inbound_client_data_pass" = "🔄 Вхідні: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафік: {{ .ClientTraffic }}\n📅 Термін придатності: {{ .ClientExp }}\n💬 Коментар: {{ .ClientComment }}\n\nТепер ви можете додати клієнта до вхідних!"
+"cancel" = "❌ Процес скасовано! \n\nВи можете знову розпочати, використовуючи /start у будь-який час. 🔄"
+"error_add_client"  = "⚠️ Помилка:\n\n {{ .error }}"
+"using_default_value"  = "Гаразд, залишу значення за замовчуванням. 😊"
+"incorrect_input" ="Ваш ввід невірний.\nФрази повинні бути без пробілів.\nПравильний приклад: aaaaaa\nНеправильний приклад: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Закрити клавіатуру"
 "cancel" = "❌ Скасувати"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Ліміт трафіку"
 "getBanLogs" = "Отримати журнали заборон"
 "allClients" = "Всі Клієнти"
+
+"addClient" = "Додати клієнта"
+"submitDisable" = "Надіслати як вимкнене ✅"
+"use_default" = "🏷️ Використовувати за замовчуванням"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Пароль"
+"change_email" = "⚙️📧 Електронна пошта"
+"change_comment" = "⚙️💬 Коментар"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Операція успішна!"

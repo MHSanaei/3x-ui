@@ -584,6 +584,22 @@
 "yes" = "✅ Có"
 "no" = "❌ Không"
 
+"received_id" = "🔑📥 ID đã được cập nhật."
+"received_password" = "🔑📥 Mật khẩu đã được cập nhật."
+"received_email" = "📧📥 Email đã được cập nhật."
+"received_comment" = "💬📥 Bình luận đã được cập nhật."
+"id_prompt" = "🔑 ID mặc định: {{ .ClientId }}\n\nVui lòng nhập ID của bạn."
+"pass_prompt" = "🔑 Mật khẩu mặc định: {{ .ClientPassword }}\n\nVui lòng nhập mật khẩu của bạn."
+"email_prompt" = "📧 Email mặc định: {{ .ClientEmail }}\n\nVui lòng nhập email của bạn."
+"comment_prompt" = "💬 Bình luận mặc định: {{ .ClientComment }}\n\nVui lòng nhập bình luận của bạn."
+"inbound_client_data_id" = "🔄 Vào: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Lưu lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào vào ngay bây giờ!"
+"inbound_client_data_pass" = "🔄 Vào: {{ .InboundRemark }}\n\n🔑 Mật khẩu: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Lưu lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào vào ngay bây giờ!"
+"cancel" = "❌ Quá trình đã bị hủy! \n\nBạn có thể bắt đầu lại bất cứ lúc nào bằng cách nhập /start. 🔄"
+"error_add_client"  = "⚠️ Lỗi:\n\n {{ .error }}"
+"using_default_value"  = "Được rồi, tôi sẽ sử dụng giá trị mặc định. 😊"
+"incorrect_input" ="Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Đóng Bàn Phím"
 "cancel" = "❌ Hủy"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 Giới hạn lưu lượng"
 "getBanLogs" = "Cấm nhật ký"
 "allClients" = "Tất cả Khách hàng"
+
+"addClient" = "Thêm Khách Hàng"
+"submitDisable" = "Gửi Dưới Dạng Tắt ✅"
+"use_default" = "🏷️ Sử dụng mặc định"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 Mật khẩu"
+"change_email" = "⚙️📧 Email"
+"change_comment" = "⚙️💬 Bình luận"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ Thành công!"

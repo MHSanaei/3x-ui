@@ -584,6 +584,22 @@
 "yes" = "✅ 是的"
 "no" = "❌ 沒有"
 
+"received_id" = "🔑📥 ID 已更新。"
+"received_password" = "🔑📥 密碼已更新。"
+"received_email" = "📧📥 電子郵件已更新。"
+"received_comment" = "💬📥 評論已更新。"
+"id_prompt" = "🔑 預設 ID: {{ .ClientId }}\n\n請輸入您的 ID。"
+"pass_prompt" = "🔑 預設密碼: {{ .ClientPassword }}\n\n請輸入您的密碼。"
+"email_prompt" = "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。"
+"comment_prompt" = "💬 預設評論: {{ .ClientComment }}\n\n請輸入您的評論。"
+"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
+"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
+"cancel" = "❌ 程序已取消！\n\n您可以隨時使用 /start 重新開始。 🔄"
+"error_add_client"  = "⚠️ 錯誤:\n\n {{ .error }}"
+"using_default_value"  = "好的，我會使用預設值。 😊"
+"incorrect_input" ="您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫"
+
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ 關閉鍵盤"
 "cancel" = "❌ 取消"
@@ -617,6 +633,15 @@
 "limitTraffic" = "🚧 流量限制"
 "getBanLogs" = "禁止日誌"
 "allClients" = "所有客戶"
+
+"addClient" = "新增客戶"
+"submitDisable" = "提交為停用 ✅"
+"use_default" = "🏷️ 使用預設"
+"change_id" = "⚙️🔑 ID"
+"change_password" = "⚙️🔑 密碼"
+"change_email" = "⚙️📧 電子郵件"
+"change_comment" = "⚙️💬 評論"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"
