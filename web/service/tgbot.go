@@ -1384,11 +1384,13 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		)
 		t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
 	case "add_client_default_info":
+		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.using_default_value"), 3, tu.ReplyKeyboardRemove())
 		delete(userStates, chatId)
 	case "add_client_cancel":
 		delete(userStates, chatId)
-		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 5, tu.ReplyKeyboardRemove())
+		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 3, tu.ReplyKeyboardRemove())
 	case "add_client_default_traffic_exp":
 		messageId := callbackQuery.Message.GetMessageID()
 		inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
@@ -2248,8 +2250,7 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 			t.editMessageTgBot(chatId, messageID[0], msg, inlineKeyboard)
 		} else {
 			t.SendMsgToTgbot(chatId, msg, inlineKeyboard)
-		}
-		
+		}	
 	case model.Shadowsocks:
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
