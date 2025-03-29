@@ -1,91 +1,39 @@
-# Ignore IDE and editor-specific files
+# Ignore editor and IDE settings
 .idea/
 .vscode/
-*.sublime-workspace
-*.sublime-project
-
-# Ignore system files
-.DS_Store
-Thumbs.db
-
-# Ignore dependency directories
-node_modules/
-vendor/
+.cache/
+.sync*
 
 # Ignore log files
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Ignore build directories
-dist/
-build/
-tmp/
-
-# Ignore backup files
-*.bak
-*.old
-*.swp
-
-# Ignore generated files
-*.min.js
-*.min.css
-*.map
-
-# Ignore temporary files
-*.tmp
-*.temp
-*.swp
-*.swo
-
-# Ignore configuration files
-.env
-.env.local
-.env.development
-.env.test
-.env.production
-
-# Ignore coverage reports
-coverage/
-*.lcov
-
-# Ignore package manager lock files
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
-
-# Ignore OS-specific files
-*.DS_Store
-*.AppleDouble
-*.LSOverride
-Icon?
-._*
-.Spotlight-V100
-.Trashes
-*/.nfs*
-
-# Ignore Python files
-__pycache__/
-*.py[cod]
-*.so
-
-# Ignore Go files
-*.exe
-*.dll
-*.so
-*.dylib
-*.test
-
-# Ignore other files
-.cache
-.sync*
-*.tar.gz
 access.log
 error.log
-main
+
+# Ignore temporary files
+tmp/
+*.tar.gz
+
+# Ignore build and distribution directories
 backup/
 bin/
+dist/
 release/
-release.sh
-x-ui
+node_modules/
+
+# Ignore compiled binaries
+main
+
+# Ignore script and executable files
+/release.sh
+/x-ui
+
+# Ignore OS specific files
+.DS_Store
+Thumbs.db
+
+# Ignore Go specific files
+*.exe
+*.exe~
+
+# Ignore Docker specific files
+docker-compose.override.yml
