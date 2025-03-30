@@ -45,27 +45,27 @@
             return {
                 tabs: [
                     {
-                        key: '/panel/',
+                        key: 'panel/',
                         icon: 'dashboard',
                         title: '{{ i18n "menu.dashboard"}}'
                     },
                     {
-                        key: '/panel/inbounds',
+                        key: 'panel/inbounds',
                         icon: 'user',
                         title: '{{ i18n "menu.inbounds"}}'
                     },
                     {
-                        key: '/panel/settings',
+                        key: 'panel/settings',
                         icon: 'setting',
                         title: '{{ i18n "menu.settings"}}'
                     },
                     {
-                        key: '/panel/xray',
+                        key: 'panel/xray',
                         icon: 'tool',
                         title: '{{ i18n "menu.xray"}}'
                     },
                     {
-                        key: '/logout/',
+                        key: 'logout/',
                         icon: 'logout',
                         title: '{{ i18n "menu.logout"}}'
                     },
@@ -79,7 +79,9 @@
         },
         methods: {
             openLink(key) {
-                return key.startsWith('http') ? window.open(key) : location.href = key
+                return key.startsWith('http') ? 
+                    window.open(`{{ .base_path }}${key}`) : 
+                    location.href = `{{ .base_path }}${key}`
             },
             closeDrawer() {
                 this.visible = false;
