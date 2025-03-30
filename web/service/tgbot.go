@@ -468,4 +468,21 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
     }
 
     if msg != "" {
-        t.sendResponse(chatId
+        t.sendResponse(chatId, msg, onlyMessage, isAdmin)
+    }
+}
+
+// Helper function to send the message based on onlyMessage flag.
+func (t *Tgbot) sendResponse(chatId int64, msg string, onlyMessage, isAdmin bool) {
+    if onlyMessage {
+        t.SendMsgToTgbot(chatId, msg)
+    } else {
+        t.SendAnswer(chatId, msg, isAdmin)
+    }
+}
+
+func (t *Tgbot) randomLowerAndNum(length int) string {
+    charset := "abcdefghijklmnopqrstuvwxyz0123456789"
+    bytes := make([]byte, length)
+    for i := range bytes {
+        randomIndex
