@@ -435,14 +435,6 @@
     }
   }
 
-  .ant-menu-item .anticon {
-    margin-right: 4px;
-  }
-
-  .ant-menu-inline .ant-menu-item {
-    padding: 0 16px !important;
-  }
-
   .setting-section {
     position: absolute;
     top: 0;
@@ -478,14 +470,15 @@
         <div class="setting-section">
           <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
             <template slot="content">
-              <a-space direction="vertical">
+              <a-space direction="vertical" :size="10">
+                <a-theme-switch-login></a-theme-switch-login>
+                <span>{{ i18n "pages.settings.language" }}</span>
                 <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
                   <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
                     <span role="img" aria-label="l.name" v-text="l.icon"></span>
                     &nbsp;&nbsp;<span v-text="l.name"></span>
                   </a-select-option>
                 </a-select>
-                <a-theme-switch-login></a-theme-switch-login>
               </a-space>
             </template>
             <a-button shape="circle" icon="setting"></a-button>
