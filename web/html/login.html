@@ -518,7 +518,7 @@
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
-                        <div style="height: 50px;" class="wave-btn-bg wave-btn-bg-cl"
+                        <div :style="{ height: '50px', marginTop: '16px' }" class="wave-btn-bg wave-btn-bg-cl"
                           :style="loading ? { width: '52px' } : { display: 'inline-block' }">
                           <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login"
                             :icon="loading ? 'poweroff' : undefined">
