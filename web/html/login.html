@@ -500,13 +500,13 @@
               <a-col span="24">
                 <a-form>
                   <a-space direction="vertical" size="middle">
-                    <a-form-item name="xui-login-username">
+                    <a-form-item>
                       <a-input autocomplete="username" name="username" v-model.trim="user.username"
                         placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
                         <a-icon slot="prefix" type="user" style="font-size: 16px;"></a-icon>
                       </a-input>
                     </a-form-item>
-                    <a-form-item name="xui-login-password">
+                    <a-form-item>
                       <a-password-input autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
                         placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
                       </a-password-input>
