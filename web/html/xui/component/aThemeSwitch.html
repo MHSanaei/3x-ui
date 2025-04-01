@@ -6,13 +6,16 @@
         <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
         <span>{{ i18n "menu.theme" }}</span>
       </span>
-      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()"> 
+      <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()">
         <span>{{ i18n "menu.dark" }}</span>
-        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme"
+          @change="themeSwitcher.toggleTheme()"></a-switch>
       </a-menu-item>
-      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOffUltra()"> 
+      <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch"
+        @mousedown="themeSwitcher.animationsOffUltra()">
         <span>{{ i18n "menu.ultraDark" }}</span>
-        <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+        <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra"
+          @click="themeSwitcher.toggleUltra()"></a-checkbox>
       </a-menu-item>
     </a-sub-menu>
   </a-menu>
@@ -21,18 +24,16 @@
 
 {{define "component/themeSwitchTemplateLogin"}}
 <template>
-  <a-menu @mousedown="themeSwitcher.animationsOff()" id="change-theme" :theme="themeSwitcher.currentTheme" mode="inline"
-    selected-keys="">
-    <a-menu-item mode="inline" class="ant-menu-theme-switch">
-      <a-icon type="bulb" :theme="themeSwitcher.isDarkTheme ? 'filled' : 'outlined'"></a-icon>
-      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme"
-        @change="themeSwitcher.toggleTheme()"></a-switch>
-      <template v-if="themeSwitcher.isDarkTheme">
-        <a-checkbox style="margin-left: 1rem; vertical-align: middle;" :checked="themeSwitcher.isUltra"
-          @click="themeSwitcher.toggleUltra()">Ultra</a-checkbox>
-      </template>
-    </a-menu-item>
-  </a-menu>
+  <a-space direction="vertical" :size="10" :style="{ width: '100%' }">
+    <a-space direction="horizontal" size="small">
+      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <span>{{ i18n "menu.dark" }}</span>
+    </a-space>
+    <a-space v-if="themeSwitcher.isDarkTheme" direction="horizontal" size="small">
+      <a-checkbox :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      <span>{{ i18n "menu.ultraDark" }}</span>
+    </a-space>
+  </a-space>
 </template>
 {{end}}
 
