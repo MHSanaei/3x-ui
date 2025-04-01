@@ -488,12 +488,12 @@
           <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
             <a-row type="flex" justify="center">
               <a-col style="width: 100%;">
-                <h1 class="title headline zoom">
+                <h2 class="title headline zoom">
                   <span class="words-wrapper">
                     <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
                     <b>{{ i18n "pages.login.title" }}</b>
                   </span>
-                </h1>
+                </h2>
               </a-col>
             </a-row>
             <a-row type="flex" justify="center">
@@ -557,43 +557,6 @@
       async mounted() {
         this.lang = LanguageManager.getLanguage();
         this.secretEnable = await this.getSecretStatus();
-
-        document.addEventListener("DOMContentLoaded", function () {
-          var animationDelay = 2000;
-          initHeadline();
-
-          function initHeadline() {
-            animateHeadline(document.querySelectorAll('.headline'));
-          }
-
-          function animateHeadline(headlines) {
-            var duration = animationDelay;
-            headlines.forEach(function (headline) {
-              setTimeout(function () {
-                hideWord(headline.querySelector('.is-visible'));
-              }, duration);
-            });
-          }
-
-          function hideWord(word) {
-            var nextWord = takeNext(word);
-            switchWord(word, nextWord);
-            setTimeout(function () {
-              hideWord(nextWord);
-            }, animationDelay);
-          }
-
-          function takeNext(word) {
-            return (word.nextElementSibling) ? word.nextElementSibling : word.parentElement.firstElementChild;
-          }
-
-          function switchWord(oldWord, newWord) {
-            oldWord.classList.remove('is-visible');
-            oldWord.classList.add('is-hidden');
-            newWord.classList.remove('is-hidden');
-            newWord.classList.add('is-visible');
-          }
-        });
       },
       methods: {
         async login() {
@@ -615,7 +578,43 @@
         },
       },
     });
+
+    document.addEventListener("DOMContentLoaded", function () {
+      var animationDelay = 2000;
+      initHeadline();
+
+      function initHeadline() {
+        animateHeadline(document.querySelectorAll('.headline'));
+      }
+
+      function animateHeadline(headlines) {
+        var duration = animationDelay;
+        headlines.forEach(function (headline) {
+          setTimeout(function () {
+            hideWord(headline.querySelector('.is-visible'));
+          }, duration);
+        });
+      }
+
+      function hideWord(word) {
+        var nextWord = takeNext(word);
+        switchWord(word, nextWord);
+        setTimeout(function () {
+          hideWord(nextWord);
+        }, animationDelay);
+      }
+
+      function takeNext(word) {
+        return word.nextElementSibling ? word.nextElementSibling : word.parentElement.firstElementChild;
+      }
+
+      function switchWord(oldWord, newWord) {
+        oldWord.classList.remove('is-visible');
+        oldWord.classList.add('is-hidden');
+        newWord.classList.remove('is-hidden');
+        newWord.classList.add('is-visible');
+      }
+    });
   </script>
 </body>
-
 </html>
