@@ -243,7 +243,7 @@
                 </a-col>
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.overallSpeed" }}' hoverable>
-                    <a-row>
+                    <a-row :gutter="isMobile ? [8,8] : 0">
                       <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
                           <template #prefix>
@@ -269,7 +269,7 @@
                 </a-col>
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.totalData" }}' hoverable>
-                    <a-row>
+                    <a-row :gutter="isMobile ? [8,8] : 0">
                       <a-col :span="12">
                         <a-custom-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
                           <template #prefix>
@@ -297,15 +297,15 @@
                         <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
                       </a-tooltip>
                     </template>
-                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'">
-                      <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'" :gutter="isMobile ? [8,8] : 0">
+                      <a-col :span="isMobile ? 24 : 12">
                         <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
                           <template #prefix>
                             <a-icon type="global" />
                           </template>
                         </a-custom-statistic>
                       </a-col>
-                      <a-col :xs="24" :xxl="12" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <a-col :span="isMobile ? 24 : 12">
                         <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
                           <template #prefix>
                             <a-icon type="global" />
@@ -317,7 +317,7 @@
                 </a-col>
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
-                    <a-row>
+                    <a-row :gutter="isMobile ? [8,8] : 0">
                       <a-col :span="12">
                         <a-custom-statistic title="TCP" :value="status.tcpCount">
                           <template #prefix>
