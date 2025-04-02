@@ -1,6 +1,6 @@
 {{define "form/outbound"}}
 <!-- base -->
-<a-tabs :active-key="outModal.activeKey" style="padding: 0; background-color: transparent;" @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
+<a-tabs :active-key="outModal.activeKey" :style="{ padding: '0', backgroundColor: 'transparent' }" @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
   <a-tab-pane key="1" tab="Form">
     <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
       <a-form-item label='{{ i18n "protocol" }}'>
@@ -60,9 +60,9 @@
         <!-- Noise Configurations -->
           <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false" :label-col="{ md: {span:8} }"
             :wrapper-col="{ md: {span:14} }">
-            <a-divider style="margin:0;"> Noise [[ index + 1 ]]
+            <a-divider :style="{ margin: '0' }"> Noise [[ index + 1 ]]
               <a-icon v-if="outbound.settings.noises.length > 1" type="delete" @click="() => outbound.settings.delNoise(index)"
-                style="color: rgb(255, 77, 79); cursor: pointer;"></a-icon>
+                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
             </a-divider>
             <a-form-item label='Type'>
               <a-select v-model="noise.type" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -164,7 +164,7 @@
           <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addPeer()"></a-button>
         </a-form-item>
         <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-          <a-divider style="margin:0;"> Peer [[ index + 1 ]] <a-icon v-if="outbound.settings.peers.length>1" type="delete" @click="() => outbound.settings.delPeer(index)" style="color: rgb(255, 77, 79);cursor: pointer;"></a-icon>
+          <a-divider :style="{ margin: '0' }"> Peer [[ index + 1 ]] <a-icon v-if="outbound.settings.peers.length>1" type="delete" @click="() => outbound.settings.delPeer(index)" :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
           </a-divider>
           <a-form-item label='{{ i18n "pages.xray.wireguard.endpoint" }}'>
             <a-input v-model.trim="peer.endpoint"></a-input>
@@ -180,7 +180,7 @@
               {{ i18n "pages.xray.wireguard.allowedIPs" }}
               <a-button icon="plus" type="primary" size="small" @click="peer.allowedIPs.push('')"></a-button>
             </template>
-            <template v-for="(aip, index) in peer.allowedIPs" style="margin-bottom: 10px;">
+            <template v-for="(aip, index) in peer.allowedIPs" :style="{ marginBottom: '10px' }">
               <a-input v-model.trim="peer.allowedIPs[index]">
                 <a-button icon="minus" v-if="peer.allowedIPs.length>1" slot="addonAfter" size="small" @click="peer.allowedIPs.splice(index, 1)"></a-button>
               </a-input>
@@ -444,10 +444,10 @@
             </a-select>
           </a-form-item>
           <a-form-item label="Short ID">
-            <a-input v-model.trim="outbound.stream.reality.shortId" style="width:250px"></a-input>
+            <a-input v-model.trim="outbound.stream.reality.shortId" :style="{ width: '250px' }"></a-input>
           </a-form-item>
           <a-form-item label="SpiderX">
-            <a-input v-model.trim="outbound.stream.reality.spiderX" style="width:250px"></a-input>
+            <a-input v-model.trim="outbound.stream.reality.spiderX" :style="{ width: '250px' }"></a-input>
           </a-form-item>
           <a-form-item label="Public Key">
             <a-input v-model.trim="outbound.stream.reality.publicKey"></a-input>
@@ -506,11 +506,11 @@
     </a-form>
   </a-tab-pane>
   <a-tab-pane key="2" tab="JSON" force-render="true">
-    <a-space direction="vertical" :size="10" style="margin-top: 10px;">
+    <a-space direction="vertical" :size="10" :style="{ marginTop: '10px' }">
       <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}' v-model.trim="outModal.link" placeholder="vmess:// vless:// trojan:// ss://">
         <a-icon slot="addonAfter" type="form" @click="convertLink"></a-icon>
       </a-input>
-      <textarea style="position:absolute; left: -800px;" id="outboundJson"></textarea>
+      <textarea :style="{ position: 'absolute', left: '-800px' }" id="outboundJson"></textarea>
     </a-space>
   </a-tab-pane>
 </a-tabs>

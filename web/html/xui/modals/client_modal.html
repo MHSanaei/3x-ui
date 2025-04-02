@@ -4,7 +4,7 @@
          :class="themeSwitcher.currentTheme"
          :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
     <template v-if="isEdit">
-        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" style="margin-bottom: 10px;display: block;text-align: center;">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" :style="{ marginBottom: '10px', display: 'block', textAlign: 'center' }">Account is (Expired|Traffic Ended) And Disabled</a-tag>
     </template>
     {{template "form/client"}}
 </a-modal>

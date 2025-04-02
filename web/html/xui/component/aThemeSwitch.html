@@ -8,13 +8,13 @@
       </span>
       <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()">
         <span>{{ i18n "menu.dark" }}</span>
-        <a-switch style="margin-left: 2px;" size="small" :default-checked="themeSwitcher.isDarkTheme"
+        <a-switch :style="{ marginLeft: '2px' }" size="small" :default-checked="themeSwitcher.isDarkTheme"
           @change="themeSwitcher.toggleTheme()"></a-switch>
       </a-menu-item>
       <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch"
         @mousedown="themeSwitcher.animationsOffUltra()">
         <span>{{ i18n "menu.ultraDark" }}</span>
-        <a-checkbox style="margin-left: 2px;" :checked="themeSwitcher.isUltra"
+        <a-checkbox :style="{ marginLeft: '2px' }" :checked="themeSwitcher.isUltra"
           @click="themeSwitcher.toggleUltra()"></a-checkbox>
       </a-menu-item>
     </a-sub-menu>

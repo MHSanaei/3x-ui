@@ -107,7 +107,7 @@
         <a-tag v-else color="orange">{{ i18n "none" }}</a-tag>
       </template>
     </template>
-    <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">
+    <table v-if="dbInbound.isSS" :style="{ marginBottom: '10px', width: '100%' }">
       <tr>
         <td>{{ i18n "encryption" }}</td>
         <td>
@@ -131,7 +131,7 @@
     </table>
     <template v-if="infoModal.clientSettings">
       <a-divider>{{ i18n "pages.inbounds.client" }}</a-divider>
-      <table style="margin-bottom: 10px;">
+      <table :style="{ marginBottom: '10px' }">
         <tr>
           <td>{{ i18n "pages.inbounds.email" }}</td>
           <td v-if="infoModal.clientSettings.email">
@@ -203,7 +203,7 @@
           <td>{{ i18n "pages.inbounds.IPLimitlog" }}</td>
           <td>
             <a-tag>[[ infoModal.clientIps ]]</a-tag>
-            <a-icon type="sync" :spin="refreshing" @click="refreshIPs" style="margin: 0 5px;"></a-icon>
+            <a-icon type="sync" :spin="refreshing" @click="refreshIPs" :style="{ margin: '0 5px' }"></a-icon>
             <a-tooltip :title="[[ dbInbound.address ]]">
               <template slot="title">
                 <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
@@ -213,7 +213,7 @@
           </td>
         </tr>
       </table>
-      <table style="display: inline-table; margin-block: 10px; width: 100%; text-align: center;">
+      <table :style="{ display: 'inline-table', marginBlock: '10px', width: '100%', textAlign: 'center' }">
         <tr>
           <th>{{ i18n "remained" }}</th>
           <th>{{ i18n "pages.inbounds.totalFlow" }}</th>
@@ -290,7 +290,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(link.link)"></a-button>
+              <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -304,7 +304,7 @@
           <tr-info-title class="tr-info-title">
             <a-tag class="tr-info-tag" color="green">[[ link.remark ]]</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
-              <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(link.link)"></a-button>
+              <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(link.link)"></a-button>
             </a-tooltip>
           </tr-info-title>
           <code>[[ link.link ]]</code>
@@ -431,10 +431,10 @@
                 <tr-info-title class="tr-info-title">
                   <a-tag color="blue">Config</a-tag>
                   <a-tooltip title='{{ i18n "copy" }}'>
-                    <a-button style="min-width: 24px;" size="small" icon="snippets" @click="copy(infoModal.links[index])"></a-button>
+                    <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(infoModal.links[index])"></a-button>
                   </a-tooltip>
                 </tr-info-title>
-                <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)" style="border-radius: 1rem; padding: 0.5rem;" class="client-table-odd-row">
+                <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)" :style="{ borderRadius: '1rem', padding: '0.5rem' }" class="client-table-odd-row">
                 </div>
               </tr-info-row>
             </td>

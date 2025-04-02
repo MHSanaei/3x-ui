@@ -1,7 +1,7 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
 <a-form v-if="inbound.canEnableTls()" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-  <a-divider style="margin:3px 0;"></a-divider>
+  <a-divider :style="{ margin: '3px 0' }"></a-divider>
   <a-form-item label='{{ i18n "security" }}'>
     <a-radio-group v-model="inbound.stream.security" button-style="solid">
       <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
@@ -23,18 +23,18 @@
     </a-form-item>
     <a-form-item label="Min/Max Version">
       <a-input-group compact>
-        <a-select v-model="inbound.stream.tls.minVersion" style="width: 50%"
+        <a-select v-model="inbound.stream.tls.minVersion" :style="{ width: '50%' }"
           :dropdown-class-name="themeSwitcher.currentTheme">
           <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
-        <a-select v-model="inbound.stream.tls.maxVersion" style="width: 50%"
+        <a-select v-model="inbound.stream.tls.maxVersion" :style="{ width: '50%' }"
           :dropdown-class-name="themeSwitcher.currentTheme">
           <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
       </a-input-group>
     </a-form-item>
     <a-form-item label="uTLS">
-      <a-select v-model="inbound.stream.tls.settings.fingerprint" style="width: 100%"
+      <a-select v-model="inbound.stream.tls.settings.fingerprint" :style="{ width: '100%' }"
         :dropdown-class-name="themeSwitcher.currentTheme">
         <a-select-option value=''>None</a-select-option>
         <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
@@ -67,9 +67,9 @@
           <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
         </a-radio-group>
         <a-button icon="plus" v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()"
-          style="margin-left: 10px"></a-button>
+          :style="{ marginLeft: '10px' }"></a-button>
         <a-button icon="minus" v-if="inbound.stream.tls.certs.length>1" type="primary" size="small"
-          @click="inbound.stream.tls.removeCert(index)" style="margin-left: 10px"></a-button>
+          @click="inbound.stream.tls.removeCert(index)" :style="{ marginLeft: '10px' }"></a-button>
       </a-form-item>
       <template v-if="cert.useFile">
         <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
@@ -98,7 +98,7 @@
         <a-switch v-model="cert.oneTimeLoading"></a-switch>
       </a-form-item>
       <a-form-item label='Usage Option'>
-        <a-select v-model="cert.usage" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select v-model="cert.usage" :style="{ width: '50%' }" :dropdown-class-name="themeSwitcher.currentTheme">
           <a-select-option v-for="key in USAGE_OPTION" :value="key">[[ key ]]</a-select-option>
         </a-select>
       </a-form-item>

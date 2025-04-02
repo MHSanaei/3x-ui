@@ -27,7 +27,7 @@
 
   <!-- trojan fallbacks -->
   <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-divider style="margin:0;"> Fallback [[ index + 1 ]] <a-icon type="delete" @click="() => inbound.settings.delFallback(index)" style="color: rgb(255, 77, 79);cursor: pointer;"></a-icon>
+    <a-divider :style="{ margin: '0' }"> Fallback [[ index + 1 ]] <a-icon type="delete" @click="() => inbound.settings.delFallback(index)" :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
     </a-divider>
     <a-form-item label='SNI'>
       <a-input v-model="fallback.name"></a-input>

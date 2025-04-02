@@ -50,7 +50,7 @@
       <a-layout-content>
         <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
           <transition name="list" appear>
-            <a-alert type="error" v-if="showAlert" style="margin-bottom: 10px"
+            <a-alert type="error" v-if="showAlert" :style="{ marginBottom: '10px' }"
               message='{{ i18n "secAlertTitle" }}'
               color="red"
               description='{{ i18n "secAlertSsl" }}'
@@ -58,17 +58,17 @@
             </a-alert>
           </transition>
           <a-space direction="vertical">
-            <a-card hoverable style="margin-bottom: .5rem;">
-              <a-row style="display: flex; flex-wrap: wrap; align-items: center;">
-                <a-col :xs="24" :sm="10" style="padding: 4px;">
+            <a-card hoverable :style="{ marginBottom: '.5rem' }">
+              <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
+                <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
                   <a-space direction="horizontal">
                     <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
                     <a-popover v-if="restartResult"
                         :overlay-class-name="themeSwitcher.currentTheme">
-                      <span slot="title" style="font-size: 12pt">Error in running xray-core</span>
+                      <span slot="title" :style="{ fontSize: '12pt' }">Error in running xray-core</span>
                       <template slot="content">
-                        <p style="max-width: 400px" v-for="line in restartResult.split('\n')">[[ line ]]</p>
+                        <p :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</p>
                       </template>
                       <a-icon type="question-circle"></a-icon>
                     </a-popover>
@@ -78,7 +78,7 @@
                   <template>
                     <div>
                       <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200"></a-back-top>
-                      <a-alert type="warning" style="float: right; width: fit-content" message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
+                      <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }" message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
                       </a-alert>
                     </div>
                   </template>
@@ -88,25 +88,25 @@
             <a-tabs class="ant-card-dark-box-nohover" default-active-key="1"
                 @change="(activeKey) => { this.changePage(activeKey); }"
                 :class="themeSwitcher.currentTheme">
-              <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.xray.basicTemplate"}}' style="padding-top: 20px;">
+              <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.xray.basicTemplate"}}' :style="{ paddingTop: '20px' }">
                 {{ template "settings/xray/basics" . }}
               </a-tab-pane>
-              <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' style="padding-top: 20px;">
+              <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' :style="{ paddingTop: '20px' }">
                 {{ template "settings/xray/routing" . }}
               </a-tab-pane>
               <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' force-render="true">
                 {{ template "settings/xray/outbounds" . }}
               </a-tab-pane>
-              <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' style="padding-top: 20px;" force-render="true">
+              <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' :style="{ paddingTop: '20px' }" force-render="true">
                 {{ template "settings/xray/reverse" . }}
               </a-tab-pane>
-              <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' style="padding-top: 20px;" force-render="true">
+              <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' :style="{ paddingTop: '20px' }" force-render="true">
                 {{ template "settings/xray/balancers" . }}
               </a-tab-pane>
-              <a-tab-pane key="tpl-dns" tab='DNS' style="padding-top: 20px;" force-render="true">
+              <a-tab-pane key="tpl-dns" tab='DNS' :style="{ paddingTop: '20px' }" force-render="true">
                 {{ template "settings/xray/dns" . }}
               </a-tab-pane>
-              <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' style="padding-top: 20px;" force-render="true">
+              <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' :style="{ paddingTop: '20px' }" force-render="true">
                 {{ template "settings/xray/advanced" . }}
               </a-tab-pane>
             </a-tabs>

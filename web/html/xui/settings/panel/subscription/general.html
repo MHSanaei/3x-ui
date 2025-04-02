@@ -34,7 +34,7 @@
             <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
             <template #control>
                 <a-input-number v-model="allSetting.subPort" :min="1" :min="65531"
-                    style="width: 100%;"></a-input-number>
+                    :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -90,7 +90,7 @@
             <template #title>{{ i18n "pages.settings.subUpdates"}}</template>
             <template #description>{{ i18n "pages.settings.subUpdatesDesc"}}</template>
             <template #control>
-                <a-input-number :min="1" v-model="allSetting.subUpdates" style="width: 100%;"></a-input-number>
+                <a-input-number :min="1" v-model="allSetting.subUpdates" :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>

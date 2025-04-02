@@ -1,5 +1,5 @@
 {{define "component/sortableTableTrigger"}}
-<a-icon type="drag" class="sortable-icon" style="cursor: move;" @mouseup="mouseUpHandler" @mousedown="mouseDownHandler"
+<a-icon type="drag" class="sortable-icon" :style="{ cursor: 'move' }" @mouseup="mouseUpHandler" @mousedown="mouseDownHandler"
   @click="clickHandler" />
 {{end}}
 

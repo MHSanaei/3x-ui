@@ -25,7 +25,7 @@
                 <a-switch v-model="fragment"></a-switch>
             </template>
         </a-setting-list-item>
-        <a-list-item v-if="fragment" style="padding: 10px 20px;">
+        <a-list-item v-if="fragment" :style="{ padding: '10px 20px' }">
             <a-collapse>
                 <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
                     <a-setting-list-item paddings="small">
@@ -59,13 +59,13 @@
                 <a-switch v-model="noises"></a-switch>
             </template>
         </a-setting-list-item>
-        <a-list-item v-if="noises" style="padding: 10px 20px;">
+        <a-list-item v-if="noises" :style="{ padding: '10px 20px' }">
             <a-collapse>
                 <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise №${index + 1}`">
                     <a-setting-list-item paddings="small">
                         <template #title>Type</template>
                         <template #control>
-                            <a-select :value="noise.type" style="width: 100%"
+                            <a-select :value="noise.type" :style="{ width: '100%' }"
                                 :dropdown-class-name="themeSwitcher.currentTheme"
                                 @change="(value) => updateNoiseType(index, value)">
                                 <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p">
@@ -90,13 +90,13 @@
                                 placeholder="10-20"></a-input>
                         </template>
                     </a-setting-list-item>
-                    <a-space direction="horizontal" style="padding: 10px 20px;">
+                    <a-space direction="horizontal" :style="{ padding: '10px 20px' }">
                         <a-button v-if="noisesArray.length > 1" type="danger"
                             @click="removeNoise(index)">Remove</a-button>
                     </a-space>
                 </a-collapse-panel>
             </a-collapse>
-            <a-button v-if="noises" type="primary" @click="addNoise" style="margin-top: 10px">Add Noise</a-button>
+            <a-button v-if="noises" type="primary" @click="addNoise" :style="{ marginTop: '10px' }">Add Noise</a-button>
         </a-list-item>
     </a-collapse-panel>
     <a-collapse-panel key="4" header='{{ i18n "pages.settings.mux"}}'>
@@ -107,27 +107,27 @@
                 <a-switch v-model="enableMux"></a-switch>
             </template>
         </a-setting-list-item>
-        <a-list-item v-if="enableMux" style="padding: 10px 20px;">
+        <a-list-item v-if="enableMux" :style="{ padding: '10px 20px' }">
             <a-collapse>
                 <a-collapse-panel header='{{ i18n "pages.settings.muxSett"}}'>
                     <a-setting-list-item paddings="small">
                         <template #title>Concurrency</template>
                         <template #control>
                             <a-input-number v-model="muxConcurrency" :min="-1" :max="1024"
-                                style="width: 100%;"></a-input-number>
+                                :style="{ width: '100%' }"></a-input-number>
                         </template>
                     </a-setting-list-item>
                     <a-setting-list-item paddings="small">
                         <template #title>xudp Concurrency</template>
                         <template #control>
                             <a-input-number v-model="muxXudpConcurrency" :min="-1" :max="1024"
-                                style="width: 100%;"></a-input-number>
+                                :style="{ width: '100%' }"></a-input-number>
                         </template>
                     </a-setting-list-item>
                     <a-setting-list-item paddings="small">
                         <template #title>xudp UDP 443</template>
                         <template #control>
-                            <a-select v-model="muxXudpProxyUDP443" style="width: 100%"
+                            <a-select v-model="muxXudpProxyUDP443" :style="{ width: '100%' }"
                                 :dropdown-class-name="themeSwitcher.currentTheme">
                                 <a-select-option :value="p" :label="p" v-for="p in ['reject', 'allow', 'skip']">
                                     <span>[[ p ]]</span>
@@ -147,13 +147,13 @@
                 <a-switch v-model="enableDirect"></a-switch>
             </template>
         </a-setting-list-item>
-        <a-list-item v-if="enableDirect" style="padding: 10px 20px;">
+        <a-list-item v-if="enableDirect" :style="{ padding: '10px 20px' }">
             <a-collapse>
                 <a-collapse-panel header='{{ i18n "pages.settings.direct"}}'>
                     <a-setting-list-item paddings="small">
                         <template #title>{{ i18n "pages.xray.directips" }}</template>
                         <template #control>
-                            <a-select mode="tags" style="width: 100%" v-model="directIPs"
+                            <a-select mode="tags" :style="{ width: '100%' }" v-model="directIPs"
                                 :dropdown-class-name="themeSwitcher.currentTheme">
                                 <a-select-option :value="p.value" :label="p.label" v-for="p in directIPsOptions">
                                     <span>[[ p.label ]]</span>
@@ -164,7 +164,7 @@
                     <a-setting-list-item paddings="small">
                         <template #title>{{ i18n "pages.xray.directdomains" }}</template>
                         <template #control>
-                            <a-select mode="tags" style="width: 100%" v-model="directDomains"
+                            <a-select mode="tags" :style="{ width: '100%' }" v-model="directDomains"
                                 :dropdown-class-name="themeSwitcher.currentTheme">
                                 <a-select-option :value="p.value" :label="p.label" v-for="p in diretDomainsOptions">
                                     <span>[[ p.label ]]</span>

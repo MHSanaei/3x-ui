@@ -9,7 +9,7 @@
             <span class="ant-table-row-index"> [[ index+1 ]] </span>
             <a-dropdown :trigger="['click']">
                 <a-icon @click="e => e.preventDefault()" type="more"
-                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                    :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
                 <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                     <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
                         <a-icon type="vertical-align-top"></a-icon>
@@ -33,7 +33,7 @@
                         {{ i18n "edit" }}
                     </a-menu-item>
                     <a-menu-item @click="deleteRule(index)">
-                        <span style="color: #FF4D4F">
+                        <span :style="{ color: '#FF4D4F' }">
                             <a-icon type="delete"></a-icon> {{ i18n "delete"}}
                         </span>
                     </a-menu-item>
@@ -70,7 +70,7 @@
                 v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
                 :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
                 <template slot="content">
-                    <table cellpadding="2" style="max-width: 300px;">
+                    <table cellpadding="2" :style="{ maxWidth: '300px' }">
                         <tr v-if="rule.source">
                             <td>Source</td>
                             <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
@@ -109,7 +109,7 @@
                         </tr>
                     </table>
                 </template>
-                <a-button shape="round" size="small" style="font-size: 14px; padding: 0 10px;">
+                <a-button shape="round" size="small" :style="{ fontSize: '14px', padding: '0 10px' }">
                     <a-icon type="info"></a-icon>
                 </a-button>
             </a-popover>

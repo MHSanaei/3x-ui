@@ -26,7 +26,7 @@
             </template>
         </a-setting-list-item>
         <a-list-item>
-            <a-space direction="horizontal" style="padding: 0 20px;">
+            <a-space direction="horizontal" :style="{ padding: '0 20px' }">
                 <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
             </a-space>
         </a-list-item>
@@ -37,7 +37,7 @@
             <template #description>{{ i18n "pages.settings.security.loginSecurityDesc" }}</template>
             <template #control>
                 <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
-                <a-icon style="margin-left: 1rem;" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync"
+                <a-icon :style="{ marginLeft: '1rem' }" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync"
                     @click="getNewSecret"></a-icon>
             </template>
         </a-setting-list-item>
@@ -49,7 +49,7 @@
             </template>
         </a-setting-list-item>
         <a-list-item>
-            <a-space direction="horizontal" style="padding: 0 20px;">
+            <a-space direction="horizontal" :style="{ padding: '0 20px' }">
                 <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">
                     <span>{{ i18n "confirm"}}</span>
                 </a-button>

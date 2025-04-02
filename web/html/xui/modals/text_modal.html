@@ -9,7 +9,7 @@
         </a-button>
         <a-button type="primary" @click="txtModal.copy(txtModal.content)">{{ i18n "copy" }}</a-button>
     </template>
-    <a-input style="overflow-y: auto;" type="textarea" v-model="txtModal.content"
+    <a-input :style="{ overflowY: 'auto' }" type="textarea" v-model="txtModal.content"
         :autosize="{ minRows: 10, maxRows: 20}"></a-input>
 </a-modal>
 

@@ -27,7 +27,7 @@
                 <template #title>{{ i18n "pages.xray.dns.strategy" }}</template>
                 <template #description>{{ i18n "pages.xray.dns.strategyDesc" }}</template>
                 <template #control>
-                    <a-select v-model="dnsStrategy" style="width: 100%"
+                    <a-select v-model="dnsStrategy" :style="{ width: '100%' }"
                         :dropdown-class-name="themeSwitcher.currentTheme">
                         <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
                             <span>[[ l ]]</span>
@@ -71,14 +71,14 @@
                             <span>[[ index+1 ]]</span>
                             <a-dropdown :trigger="['click']">
                                 <a-icon @click="e => e.preventDefault()" type="more"
-                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                    :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
                                 <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                                     <a-menu-item @click="editDNSServer(index)">
                                         <a-icon type="edit"></a-icon>
                                         <span>{{ i18n "edit" }}</span>
                                     </a-menu-item>
                                     <a-menu-item @click="deleteDNSServer(index)">
-                                        <span style="color: #FF4D4F">
+                                        <span :style="{ color: '#FF4D4F' }">
                                             <a-icon type="delete"></a-icon>
                                             <span>{{ i18n "delete"}}</span>
                                         </span>
@@ -100,8 +100,8 @@
                 </a-space>
             </template>
             <template v-else>
-                <a-empty description='{{ i18n "emptyDnsDesc" }}' style="margin: 10px;">
-                    <a-button type="primary" icon="plus" @click="addDNSServer()" style="margin-top: 10px;">
+                <a-empty description='{{ i18n "emptyDnsDesc" }}' :style="{ margin: '10px' }">
+                    <a-button type="primary" icon="plus" @click="addDNSServer()" :style="{ marginTop: '10px' }">
                         <span>{{ i18n "pages.xray.dns.add" }}</span>
                     </a-button>
                 </a-empty>
@@ -118,14 +118,14 @@
                             <span>[[ index+1 ]]</span>
                             <a-dropdown :trigger="['click']">
                                 <a-icon @click="e => e.preventDefault()" type="more"
-                                    style="font-size: 16px; text-decoration: bold;"></a-icon>
+                                    :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
                                 <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                                     <a-menu-item @click="editFakedns(index)">
                                         <a-icon type="edit"></a-icon>
                                         <span>{{ i18n "edit" }}</span>
                                     </a-menu-item>
                                     <a-menu-item @click="deleteFakedns(index)">
-                                        <span style="color: #FF4D4F">
+                                        <span :style="{ color: '#FF4D4F' }">
                                             <a-icon type="delete"></a-icon>
                                             <span>{{ i18n "delete"}}</span>
                                         </span>
@@ -137,8 +137,8 @@
                 </a-space>
             </template>
             <template v-else>
-                <a-empty description='{{ i18n "emptyFakeDnsDesc" }}' style="margin: 20px;">
-                    <a-button type="primary" icon="plus" @click="addFakedns()" style="margin-top: 10px;">
+                <a-empty description='{{ i18n "emptyFakeDnsDesc" }}' :style="{ margin: '20px' }">
+                    <a-button type="primary" icon="plus" @click="addFakedns()" :style="{ marginTop: '10px' }">
                         <span>{{ i18n "pages.xray.fakedns.add" }}</span>
                     </a-button>
                 </a-empty>

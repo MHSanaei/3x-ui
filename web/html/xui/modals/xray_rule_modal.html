@@ -37,14 +37,14 @@
       </a-select>
     </a-form-item>
     <a-form-item label='Attributes'>
-      <a-button icon="plus" size="small" style="margin-left: 10px" @click="ruleModal.rule.attrs.push(['', ''])"></a-button>
+      <a-button icon="plus" size="small" :style="{ marginLeft: '10px' }" @click="ruleModal.rule.attrs.push(['', ''])"></a-button>
     </a-form-item>
     <a-form-item :wrapper-col="{span: 24}">
       <a-input-group compact v-for="(attr,index) in ruleModal.rule.attrs">
-        <a-input style="width: 50%" v-model="attr[0]" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
-          <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+        <a-input :style="{ width: '50%' }" v-model="attr[0]" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+          <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
         </a-input>
-        <a-input style="width: 50%" v-model="attr[1]" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+        <a-input :style="{ width: '50%' }" v-model="attr[1]" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
           <a-button icon="minus" slot="addonAfter" size="small" @click="ruleModal.rule.attrs.splice(index,1)"></a-button>
         </a-input>
       </a-input-group>

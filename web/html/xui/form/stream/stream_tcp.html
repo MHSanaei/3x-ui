@@ -11,7 +11,7 @@
 
 <a-form v-if="inbound.stream.tcp.type === 'http'" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
   <!-- tcp request -->
-  <a-divider style="margin:0;">{{ i18n "pages.inbounds.stream.general.request" }}</a-divider>
+  <a-divider :style="{ margin: '0' }">{{ i18n "pages.inbounds.stream.general.request" }}</a-divider>
   <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.version" }}'>
     <a-input v-model.trim="inbound.stream.tcp.request.version"></a-input>
   </a-form-item>
@@ -33,17 +33,17 @@
   </a-form-item>
   <a-form-item :wrapper-col="{span:24}">
     <a-input-group compact v-for="(header, index) in inbound.stream.tcp.request.headers">
-      <a-input style="width: 50%" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
-        <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+        <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
       </a-input>
-      <a-input style="width: 50%" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
         <a-button icon="minus" slot="addonAfter" size="small" @click="inbound.stream.tcp.request.removeHeader(index)"></a-button>
       </a-input>
     </a-input-group>
   </a-form-item>
 
   <!-- tcp response -->
-  <a-divider style="margin:0;">{{ i18n "pages.inbounds.stream.general.response" }}</a-divider>
+  <a-divider :style="{ margin: '0' }">{{ i18n "pages.inbounds.stream.general.response" }}</a-divider>
   <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.version" }}'>
     <a-input v-model.trim="inbound.stream.tcp.response.version"></a-input>
   </a-form-item>
@@ -58,10 +58,10 @@
   </a-form-item>
   <a-form-item :wrapper-col="{span:24}">
     <a-input-group compact v-for="(header, index) in inbound.stream.tcp.response.headers">
-      <a-input style="width: 50%" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
-        <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+        <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
       </a-input>
-      <a-input style="width: 50%" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
         <template slot="addonAfter">
           <a-button icon="minus" size="small" @click="inbound.stream.tcp.response.removeHeader(index)"></a-button>
         </template>

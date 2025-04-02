@@ -1,5 +1,5 @@
 {{define "form/streamSockopt"}}
-<a-divider style="margin:5px 0 0;"></a-divider>
+<a-divider :style="{ margin: '5px 0 0' }"></a-divider>
 <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label="Sockopt">
         <a-switch v-model="inbound.stream.sockoptSwitch"></a-switch>
@@ -39,17 +39,17 @@
             <a-switch v-model.trim="inbound.stream.sockopt.V6Only"></a-switch>
         </a-form-item>
         <a-form-item label='Domain Strategy'>
-            <a-select v-model="inbound.stream.sockopt.domainStrategy" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="inbound.stream.sockopt.domainStrategy" :style="{ width: '50%' }" :dropdown-class-name="themeSwitcher.currentTheme">
               <a-select-option v-for="key in DOMAIN_STRATEGY_OPTION" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label='TCP Congestion'>
-            <a-select v-model="inbound.stream.sockopt.tcpcongestion" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="inbound.stream.sockopt.tcpcongestion" :style="{ width: '50%' }" :dropdown-class-name="themeSwitcher.currentTheme">
               <a-select-option v-for="key in TCP_CONGESTION_OPTION" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
         <a-form-item label="TProxy">
-            <a-select v-model="inbound.stream.sockopt.tproxy" style="width: 50%" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="inbound.stream.sockopt.tproxy" :style="{ width: '50%' }" :dropdown-class-name="themeSwitcher.currentTheme">
                 <a-select-option value="off">Off</a-select-option>
                 <a-select-option value="redirect">Redirect</a-select-option>
                 <a-select-option value="tproxy">TProxy</a-select-option>

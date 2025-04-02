@@ -10,14 +10,14 @@
                 <span>[[ index+1 ]]</span>
                 <a-dropdown :trigger="['click']">
                     <a-icon @click="e => e.preventDefault()" type="more"
-                        style="font-size: 16px; text-decoration: bold;"></a-icon>
+                        :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
                     <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
                         <a-menu-item @click="editBalancer(index)">
                             <a-icon type="edit"></a-icon>
                             <span>{{ i18n "edit" }}</span>
                         </a-menu-item>
                         <a-menu-item @click="deleteBalancer(index)">
-                            <span style="color: #FF4D4F">
+                            <span :style="{ color: '#FF4D4F' }">
                                 <a-icon type="delete"></a-icon> 
                                 <span>{{ i18n "delete"}}</span>
                             </span>
@@ -26,13 +26,13 @@
                 </a-dropdown>
             </template>
             <template slot="strategy" slot-scope="text, balancer, index">
-                <a-tag style="margin:0;" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
-                <a-tag style="margin:0;" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
-                <a-tag style="margin:0;" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
-                <a-tag style="margin:0;" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
             </template>
             <template slot="selector" slot-scope="text, balancer, index">
-                <a-tag class="info-large-tag" style="margin:1;" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
+                <a-tag class="info-large-tag" :style="{ margin: '1' }" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
             </template>
         </a-table>
         <a-radio-group v-if="observatoryEnable || burstObservatoryEnable" v-model="obsSettings" @change="changeObsCode"
@@ -40,12 +40,12 @@
             <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
             <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
         </a-radio-group>
-        <textarea style="position:absolute; left: -800px;" id="obsSetting"></textarea>
+        <textarea :style="{ position: 'absolute', left: '-800px' }" id="obsSetting"></textarea>
     </a-space>
 </template>
 <template v-else>
-    <a-empty description='{{ i18n "emptyBalancersDesc" }}' style="margin: 10px;">
-        <a-button type="primary" icon="plus" @click="addBalancer()" style="margin-top: 10px;">
+    <a-empty description='{{ i18n "emptyBalancersDesc" }}' :style="{ margin: '10px' }">
+        <a-button type="primary" icon="plus" @click="addBalancer()" :style="{ marginTop: '10px' }">
             <span>{{ i18n "pages.xray.balancer.addBalancer"}}</span>
         </a-button>
     </a-empty>
