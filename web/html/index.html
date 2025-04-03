@@ -596,6 +596,7 @@
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
+        mixins: [MediaQueryMixin],
         data: {
             themeSwitcher,
             status: new Status(),
@@ -605,8 +606,7 @@
             spinning: false,
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
-            showIp: false,
-            isMobile: DeviceUtils.isMobile()
+            showIp: false
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {

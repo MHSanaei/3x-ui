@@ -678,6 +678,7 @@
     const app = new Vue({
         delimiters: ['[[', ']]'],
         el: '#app',
+        mixins: [MediaQueryMixin],
         data: {
             themeSwitcher,
             persianDatepicker,
@@ -709,7 +710,6 @@
             showAlert: false,
             ipLimitEnable: false,
             pageSize: 50,
-            isMobile: DeviceUtils.isMobile(),
         },
         methods: {
             loading(spinning = true) {
@@ -1471,9 +1471,6 @@
                     return p;
                 }
                 return false
-            },
-            onResize() {
-              this.isMobile = DeviceUtils.isMobile();
             }
         },
         watch: {
@@ -1485,8 +1482,6 @@
             if (window.location.protocol !== "https:") {
                 this.showAlert = true;
             }
-            window.addEventListener('resize', this.onResize);
-            this.onResize();
             this.loading();
             this.getDefaultSettings();
             if (this.isRefreshEnabled) {

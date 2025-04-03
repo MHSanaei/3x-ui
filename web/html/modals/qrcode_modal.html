@@ -1,6 +1,6 @@
 {{define "modals/qrcodeModal"}}
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :title="qrModal.title"
-    :dialog-style="DeviceUtils.isMobile() ? { top: '18px' } : {}"
+    :dialog-style="isMobile ? { top: '18px' } : {}"
     :closable="true"
     :class="themeSwitcher.currentTheme"
     :footer="null" width="fit-content">
@@ -73,6 +73,7 @@
   const qrModalApp = new Vue({
     delimiters: ['[[', ']]'],
     el: '#qrcode-modal',
+    mixins: [MediaQueryMixin],
     data: {
       qrModal: qrModal,
     },
