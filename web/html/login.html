@@ -507,14 +507,16 @@
                       </a-input>
                     </a-form-item>
                     <a-form-item>
-                      <a-password-input autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
+                      <a-input-password autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
                         placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                      </a-password-input>
+                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '16px' }"></a-icon>
+                      </a-input-password>
                     </a-form-item>
                     <a-form-item v-if="secretEnable">
-                      <a-password-input autocomplete="secret" name="secret" icon="key" v-model.trim="user.loginSecret"
+                      <a-input-password autocomplete="secret" name="secret" icon="lock" v-model.trim="user.loginSecret"
                         placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
-                      </a-password-input>
+                        <a-icon slot="prefix" type="key" :style="{ fontSize: '16px' }"></a-icon>
+                      </a-input-password>
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
@@ -538,7 +540,6 @@
   </a-layout>
   {{template "js" .}}
   {{template "component/aThemeSwitch" .}}
-  {{template "component/aPasswordInput" .}}
   <script>
     const app = new Vue({
       delimiters: ['[[', ']]'],

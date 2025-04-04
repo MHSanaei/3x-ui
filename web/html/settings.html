@@ -53,6 +53,9 @@
     color: inherit;
     font-size: 24px;
   }
+  .dark .ant-input-password-icon {
+    color: var(--dark-color-text-primary);
+  }
 </style>
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
@@ -119,7 +122,6 @@
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
-{{template "component/aPasswordInput" .}}
 {{template "component/aSettingListItem" .}}
 <script>
   const app = new Vue({

@@ -10,7 +10,7 @@
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.currentPassword"}}</template>
             <template #control>
-                <a-password-input autocomplete="current-password" v-model="user.oldPassword"></a-password-input>
+                <a-input-password autocomplete="current-password" v-model="user.oldPassword"></a-input-password>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -22,7 +22,7 @@
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.newPassword"}}</template>
             <template #control>
-                <a-password-input autocomplete="new-password" v-model="user.newPassword"></a-password-input>
+                <a-input-password autocomplete="new-password" v-model="user.newPassword"></a-input-password>
             </template>
         </a-setting-list-item>
         <a-list-item>
