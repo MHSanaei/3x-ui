@@ -66,9 +66,9 @@
                     <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
                     <a-popover v-if="restartResult"
                         :overlay-class-name="themeSwitcher.currentTheme">
-                      <span slot="title" :style="{ fontSize: '12pt' }">Error in running xray-core</span>
+                      <span slot="title">{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
                       <template slot="content">
-                        <p :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</p>
+                        <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</span>
                       </template>
                       <a-icon type="question-circle"></a-icon>
                     </a-popover>

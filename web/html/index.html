@@ -95,7 +95,7 @@
             <template>
               <a-row v-if="!status.isLoaded">
                 <a-card hoverable :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent' }">
-                  <a-spin tip="Loading..."></a-spin>
+                  <a-spin tip='{{ i18n "loading" }}'></a-spin>
                 </a-card>
               </a-row>
               <a-row v-else>
@@ -108,20 +108,31 @@
                             <a-progress type="dashboard" status="normal"
                               :stroke-color="status.cpu.color"
                               :percent="status.cpu.percent"></a-progress>
-                            <div><b>CPU:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] <a-tooltip>
-                              <a-icon type="area-chart"></a-icon> 
-                              <template slot="title">
-                                <div><b>Logical Processors:</b> [[ (status.logicalPro) ]]</div>
-                                <div><b>Speed:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
-                              </template>
-                            </a-tooltip></div>
+                            <div>
+                              <span>{{ i18n "pages.index.cpu" }}</span> 
+                              <a-tooltip>
+                                <a-icon type="area-chart"></a-icon> 
+                                <template slot="title">
+                                  <div><b>{{ i18n "pages.index.cpuCores" }}:</b> [[ (status.cpuCores) ]]</div>
+                                  <div><b>{{ i18n "pages.index.logicalProcessors" }}:</b> [[ (status.logicalPro) ]]</div>
+                                  <div><b>{{ i18n "pages.index.frequency" }}:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                                </template>
+                              </a-tooltip>
+                            </div>
                           </a-col>
                           <a-col :span="12" :style="{ textAlign: 'center' }">
                             <a-progress type="dashboard" status="normal"
                               :stroke-color="status.mem.color"
                               :percent="status.mem.percent"></a-progress>
                             <div>
-                              <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
+                              <span>{{ i18n "pages.index.memory" }}</span>
+                              <a-tooltip>
+                                <a-icon type="area-chart"></a-icon> 
+                                <template slot="title">
+                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]]</div>
+                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.mem.total) ]]</div>
+                                </template>
+                              </a-tooltip>
                             </div>
                           </a-col>
                         </a-row>
@@ -133,7 +144,14 @@
                               :stroke-color="status.swap.color"
                               :percent="status.swap.percent"></a-progress>
                             <div>
-                              <b>Swap:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
+                              <span>{{ i18n "pages.index.swap" }}</span>
+                              <a-tooltip>
+                                <a-icon type="area-chart"></a-icon> 
+                                <template slot="title">
+                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]]</div>
+                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.total) ]]</div>
+                                </template>
+                              </a-tooltip>
                             </div>
                           </a-col>
                           <a-col :span="12" :style="{ textAlign: 'center' }">
@@ -141,7 +159,14 @@
                               :stroke-color="status.disk.color"
                               :percent="status.disk.percent"></a-progress>
                             <div>
-                              <b>{{ i18n "pages.index.hard"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
+                              <span>{{ i18n "pages.index.storage" }}</span>
+                              <a-tooltip>
+                                <a-icon type="area-chart"></a-icon> 
+                                <template slot="title">
+                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]]</div>
+                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.disk.total) ]]</div>
+                                </template>
+                              </a-tooltip>
                             </div>
                           </a-col>
                         </a-row>
@@ -160,18 +185,25 @@
                       </a-space>
                     </template>
                     <template #extra>
-                      <template v-if="status.xray.state != State.Error">
-                        <a-badge status="processing" class="running-animation" :text="status.xray.state" :color="status.xray.color" :style="{ textTransform: 'capitalize' }"/>
+                      <template v-if="status.xray.state != 'error'">
+                        <a-badge status="processing" class="running-animation" :text="status.xray.stateMsg" :color="status.xray.color"/>
                       </template>
                       <template v-else>
                         <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                          <span slot="title" :style="{ fontSize: '12pt' }">An error occurred while running Xray
-                            <a-tag color="purple" :style="{ cursor: 'pointer', float: 'right' }" @click="openLogs()">{{ i18n "pages.index.logs" }}</a-tag>
+                          <span slot="title">
+                            <a-row type="flex" align="middle" justify="space-between">
+                              <a-col>
+                                <span>{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
+                              </a-col>
+                              <a-col>
+                                <a-icon type="bars" :style="{ cursor: 'pointer', float: 'right' }" @click="openLogs()"></a-tag>
+                              </a-col>
+                            </a-row>
                           </span>
                           <template slot="content">
-                            <p :style="{ maxWidth: '400px' }" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</p>
+                            <span :style="{ maxWidth: '400px' }" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
                           </template>
-                          <a-badge :text="status.xray.state" :color="status.xray.color" :style="{ textTransform: 'capitalize' }"/>
+                          <a-badge :text="status.xray.stateMsg" :color="status.xray.color"/>
                         </a-popover>
                       </template>
                     </template>
@@ -237,8 +269,8 @@
                 </a-col>
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "usage"}}' hoverable>
-                    <a-tag color="green"> RAM: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
-                    <a-tag color="green"> Threads: [[ status.appStats.threads ]] </a-tag>
+                    <a-tag color="green"> {{ i18n "pages.index.memory" }}: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
+                    <a-tag color="green"> {{ i18n "pages.index.threads" }}: [[ status.appStats.threads ]] </a-tag>
                   </a-card>
                 </a-col>
                 <a-col :sm="24" :lg="12">
@@ -427,13 +459,6 @@
 {{template "component/aCustomStatistic" .}}
 {{template "modals/textModal"}}
 <script>
-    const State = {
-      Running: "running",
-      Stop: "stop",
-      Error: "error",
-    }
-    Object.freeze(State);
-
     class CurTotal {
 
         constructor(current, total) {
@@ -478,7 +503,8 @@
             this.uptime = 0;
             this.appUptime = 0;
             this.appStats = {threads: 0, mem: 0, uptime: 0};
-            this.xray = { state: State.Stop, errorMsg: "", version: "", color: "" };
+
+            this.xray = { state: 'stop', stateMsg: "", errorMsg: "", version: "", color: "" };
 
             if (data == null) {
               return;
@@ -503,17 +529,22 @@
             this.appStats = data.appStats;
             this.xray = data.xray;
             switch (this.xray.state) {
-                case State.Running:
+                case 'running':
                     this.xray.color = "green";
+                    this.xray.stateMsg = '{{ i18n "pages.index.xrayStatusRunning" }}';
                     break;
-                case State.Stop:
+                case 'stop':
                     this.xray.color = "orange";
+                    this.xray.stateMsg = '{{ i18n "pages.index.xrayStatusStop" }}';
                     break;
-                case State.Error:
+                case 'error':
                     this.xray.color = "red";
+                    this.xray.stateMsg ='{{ i18n "pages.index.xrayStatusError" }}';
                     break;
                 default:
                     this.xray.color = "gray";
+                    this.xray.stateMsg = '{{ i18n "pages.index.xrayStatusUnknown" }}';
+                    break;
             }
         }
     }
