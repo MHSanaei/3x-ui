@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "系统状态"
 "cpu" = "CPU"
-"cpuCores" = "核心"
 "logicalProcessors" = "逻辑处理器"
 "frequency" = "频率"
 "swap" = "交换分区"
 "storage" = "存储"
-"storageUsed" = "已用"  
-"storageTotal" = "总计"  
 "memory" = "内存"
 "threads" = "线程"
 "xrayStatus" = "Xray"

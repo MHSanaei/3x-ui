@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Статус системы"
 "cpu" = "ЦП"
-"cpuCores" = "Ядра"  
 "logicalProcessors" = "Логические процессоры"
 "frequency" = "Частота"
 "swap" = "Файл подкачки"
 "storage" = "Хранилище"
-"storageUsed" = "Использовано"
-"storageTotal" = "Всего"
 "memory" = "ОЗУ"
 "threads" = "Потоки"
 "xrayStatus" = "Xray"

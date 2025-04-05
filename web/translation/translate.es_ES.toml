@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Estado del Sistema"
 "cpu" = "CPU"
-"cpuCores" = "Núcleos"  
 "logicalProcessors" = "Procesadores lógicos"
 "frequency" = "Frecuencia"
 "swap" = "Intercambio"
 "storage" = "Almacenamiento"
-"storageUsed" = "Usado"
-"storageTotal" = "Total"
 "memory" = "RAM"
 "threads" = "Hilos"
 "xrayStatus" = "Xray"

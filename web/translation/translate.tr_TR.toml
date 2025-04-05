@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Genel Bakış"
 "cpu" = "İşlemci"
-"cpuCores" = "Çekirdekler"
 "logicalProcessors" = "Mantıksal işlemciler"
 "frequency" = "Frekans"
 "swap" = "Takas"
 "storage" = "Depolama"
-"storageUsed" = "Kullanılan"
-"storageTotal" = "Toplam"  
 "memory" = "RAM"
 "threads" = "İş parçacıkları"
 "xrayStatus" = "Xray"

@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Trạng thái hệ thống"
 "cpu" = "CPU"
-"cpuCores" = "Nhân"
 "logicalProcessors" = "Bộ xử lý logic"
 "frequency" = "Tần số"
 "swap" = "Swap"
 "storage" = "Lưu trữ"
-"storageUsed" = "Đã dùng"
-"storageTotal" = "Tổng"
 "memory" = "RAM"
 "threads" = "Luồng"
 "xrayStatus" = "Xray"

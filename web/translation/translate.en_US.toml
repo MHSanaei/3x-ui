@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Overview"
 "cpu" = "CPU"
-"cpuCores" = "Cores"
 "logicalProcessors" = "Logical Processors"
 "frequency" = "Frequency"
 "swap" = "Swap"
 "storage" = "Storage"
-"storageUsed" = "Used"
-"storageTotal" = "Total"
 "memory" = "RAM"
 "threads" = "Threads"
 "xrayStatus" = "Xray"

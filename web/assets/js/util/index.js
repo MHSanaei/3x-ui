@@ -558,6 +558,10 @@ class CPUFormatter {
     static cpuSpeedFormat(speed) {
         return speed > 1000 ? (speed / 1000).toFixed(2) + " GHz" : speed.toFixed(2) + " MHz";
     }
+
+    static cpuCoreFormat(cores) {
+        return cores === 1 ? "1 Core" : cores + " Cores";
+    }
 }
 
 class TimeFormatter {

@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "系統狀態"
 "cpu" = "CPU"
-"cpuCores" = "核心"
 "logicalProcessors" = "邏輯處理器"
 "frequency" = "頻率"
 "swap" = "交換空間"
 "storage" = "儲存"
-"storageUsed" = "已使用"
-"storageTotal" = "總計"
 "memory" = "記憶體"
 "threads" = "執行緒"
 "xrayStatus" = "Xray"

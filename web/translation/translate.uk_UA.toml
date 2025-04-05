@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "Огляд"
 "cpu" = "ЦП"
-"cpuCores" = "Ядра"
 "logicalProcessors" = "Логічні процесори"
 "frequency" = "Частота"
 "swap" = "Своп"
 "storage" = "Сховище"
-"storageUsed" = "Використано"
-"storageTotal" = "Всього"
 "memory" = "ОЗП"
 "threads" = "Потоки"
 "xrayStatus" = "Xray"

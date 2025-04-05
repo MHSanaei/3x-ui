@@ -91,14 +91,11 @@
 
 [pages.index]
 "title" = "Ikhtisar"
-"cpu" = "CPU"
-"cpuCores" = "Inti"    
+"cpu" = "CPU" 
 "logicalProcessors" = "Prosesor logis"
 "frequency" = "Frekuensi"
 "swap" = "Swap"
 "storage" = "Penyimpanan"
-"storageUsed" = "Digunakan"
-"storageTotal" = "Total"
 "memory" = "RAM"
 "threads" = "Thread"
 "xrayStatus" = "Xray"

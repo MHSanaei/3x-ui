@@ -109,11 +109,10 @@
                               :stroke-color="status.cpu.color"
                               :percent="status.cpu.percent"></a-progress>
                             <div>
-                              <span>{{ i18n "pages.index.cpu" }}</span> 
+                              <b>{{ i18n "pages.index.cpu" }}:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] 
                               <a-tooltip>
                                 <a-icon type="area-chart"></a-icon> 
                                 <template slot="title">
-                                  <div><b>{{ i18n "pages.index.cpuCores" }}:</b> [[ (status.cpuCores) ]]</div>
                                   <div><b>{{ i18n "pages.index.logicalProcessors" }}:</b> [[ (status.logicalPro) ]]</div>
                                   <div><b>{{ i18n "pages.index.frequency" }}:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                                 </template>
@@ -125,14 +124,7 @@
                               :stroke-color="status.mem.color"
                               :percent="status.mem.percent"></a-progress>
                             <div>
-                              <span>{{ i18n "pages.index.memory" }}</span>
-                              <a-tooltip>
-                                <a-icon type="area-chart"></a-icon> 
-                                <template slot="title">
-                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]]</div>
-                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.mem.total) ]]</div>
-                                </template>
-                              </a-tooltip>
+                              <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
                             </div>
                           </a-col>
                         </a-row>
@@ -144,14 +136,7 @@
                               :stroke-color="status.swap.color"
                               :percent="status.swap.percent"></a-progress>
                             <div>
-                              <span>{{ i18n "pages.index.swap" }}</span>
-                              <a-tooltip>
-                                <a-icon type="area-chart"></a-icon> 
-                                <template slot="title">
-                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]]</div>
-                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.total) ]]</div>
-                                </template>
-                              </a-tooltip>
+                              <b>{{ i18n "pages.index.swap" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
                             </div>
                           </a-col>
                           <a-col :span="12" :style="{ textAlign: 'center' }">
@@ -159,14 +144,7 @@
                               :stroke-color="status.disk.color"
                               :percent="status.disk.percent"></a-progress>
                             <div>
-                              <span>{{ i18n "pages.index.storage" }}</span>
-                              <a-tooltip>
-                                <a-icon type="area-chart"></a-icon> 
-                                <template slot="title">
-                                  <div><b>{{ i18n "pages.index.storageUsed" }}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]]</div>
-                                  <div><b>{{ i18n "pages.index.storageTotal" }}:</b> [[ SizeFormatter.sizeFormat(status.disk.total) ]]</div>
-                                </template>
-                              </a-tooltip>
+                              <b>{{ i18n "pages.index.storage"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
                             </div>
                           </a-col>
                         </a-row>

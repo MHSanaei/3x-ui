@@ -91,14 +91,11 @@
 
 [pages.index]
 "title" = "Visão Geral"
-"cpu" = "CPU"
-"cpuCores" = "Núcleos"    
+"cpu" = "CPU" 
 "logicalProcessors" = "Processadores lógicos"
 "frequency" = "Frequência"
 "swap" = "Swap"
 "storage" = "Armazenamento"
-"storageUsed" = "Usado"
-"storageTotal" = "Total"
 "memory" = "RAM"
 "threads" = "Threads"
 "xrayStatus" = "Xray"

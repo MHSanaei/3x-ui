@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "システムステータス"
 "cpu" = "CPU"
-"cpuCores" = "コア"    
 "logicalProcessors" = "論理プロセッサ"
 "frequency" = "周波数"
 "swap" = "スワップ"
 "storage" = "ストレージ"
-"storageUsed" = "使用済み"
-"storageTotal" = "合計"
 "memory" = "RAM"
 "threads" = "スレッド"
 "xrayStatus" = "Xray"

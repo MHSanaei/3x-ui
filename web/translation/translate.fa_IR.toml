@@ -92,13 +92,10 @@
 [pages.index]
 "title" = "نمای کلی"
 "cpu" = "پردازنده"
-"cpuCores" = "هسته‌ها"  
 "logicalProcessors" = "پردازنده‌های منطقی"
 "frequency" = "فرکانس"
 "swap" = "سواپ"
 "storage" = "ذخیره‌سازی"
-"storageUsed" = "استفاده شده"
-"storageTotal" = "کل"
 "memory" = "حافظه رم"
 "threads" = "رشته‌ها"
 "xrayStatus" = "ایکس‌ری"
