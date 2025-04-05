@@ -1,0 +1,49 @@
+{{define "component/settingListItem"}}
+<a-list-item :style="{ padding: padding }">
+    <a-row :gutter="[8,16]">
+        <a-col :lg="24" :xl="12">
+            <a-list-item-meta>
+                <template #title>
+                    <slot name="title"></slot>
+                </template>
+                <template #description>
+                    <slot name="description"></slot>
+                </template>
+            </a-list-item-meta>
+        </a-col>
+        <a-col :lg="24" :xl="12">
+            <slot name="control"></slot>
+        </a-col>
+    </a-row>
+</a-list-item>
+{{end}}
+
+{{define "component/aSettingListItem"}}
+<script>
+    Vue.component('a-setting-list-item', {
+        props: {
+            'paddings': {
+                type: String,
+                required: false,
+                defaultValue: "default",
+                validator: function (value) {
+                    return ['small', 'default'].includes(value)
+                }
+            }
+        },
+        template: `{{ template "component/settingListItem" }}`,
+        computed: {
+            padding() {
+                switch (this.paddings) {
+                    case "small":
+                        return "10px 20px !important"
+                        break;
+                    case "default":
+                        return "20px !important"
+                        break;
+                }
+            }
+        }
+    })
+</script>
+{{end}}

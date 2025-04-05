@@ -1,0 +1,72 @@
+{{define "component/persianDatepickerTemplate"}}
+<template>
+    <div>
+        <a-input :value="value" type="text" v-model="date" data-jdp class="persian-datepicker"
+            @input="$emit('input', convertToGregorian($event.target.value)); jalaliDatepicker.hide();"
+            :placeholder="placeholder">
+            <template #addonAfter>
+                <a-icon type="calendar" :style="{ fontSize: '14px', opacity: '0.5' }" />
+            </template>
+        </a-input>
+    </div>
+</template>
+{{end}}
+
+{{define "component/aPersianDatepicker"}}
+<link rel="stylesheet" href="{{ .base_path }}assets/persian-datepicker/persian-datepicker.min.css?{{ .cur_ver }}" />
+<script src="{{ .base_path }}assets/moment/moment-jalali.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/persian-datepicker/persian-datepicker.min.js?{{ .cur_ver }}"></script>
+<script>
+    const persianDatepicker = {};
+
+    Vue.component('a-persian-datepicker', {
+        props: {
+            'format': {
+                type: undefined,
+                required: false,
+            },
+            'value': {
+                type: String,
+                required: false,
+            },
+            'placeholder': {
+                type: String,
+                required: false,
+            },
+        },
+        template: `{{template "component/persianDatepickerTemplate"}}`,
+        data() {
+            return {
+                date: '',
+                persianDatepicker,
+            };
+        },
+        watch: {
+            value: function (date) {
+                this.date = this.convertToJalalian(date)
+            }
+        },
+        mounted() {
+            this.date = this.convertToJalalian(this.value)
+            this.listenToDatepicker()
+        },
+        methods: {
+            convertToGregorian(date) {
+                return date ? moment(moment(date, 'jYYYY/jMM/jDD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss')) : null
+            },
+            convertToJalalian(date) {
+                return date && moment.isMoment(date) ? date.format('jYYYY/jMM/jDD HH:mm:ss') : null
+            },
+            listenToDatepicker() {
+                jalaliDatepicker.startWatch({
+                    time: true,
+                    zIndex: '9999',
+                    hideAfterChange: true,
+                    useDropDownYears: false,
+                    changeMonthRotateYear: true,
+                });
+            },
+        }
+    });
+</script>
+{{end}}

@@ -1,0 +1,275 @@
+{{define "settings/xray/basics"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.generalConfigsDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.FreedomStrategy" }}</template>
+            <template #description>{{ i18n "pages.xray.FreedomStrategyDesc" }}</template>
+            <template #control>
+                <a-select v-model="freedomStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
+                    :style="{ width: '100%' }">
+                    <a-select-option v-for="s in OutboundDomainStrategies" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.RoutingStrategy" }}</template>
+            <template #description>{{ i18n "pages.xray.RoutingStrategyDesc" }}</template>
+            <template #control>
+                <a-select v-model="routingStrategy" :dropdown-class-name="themeSwitcher.currentTheme"
+                    :style="{ width: '100%' }">
+                    <a-select-option v-for="s in routingDomainStrategies" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.xray.statistics" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.statsInboundUplink" }}</template>
+            <template #description>{{ i18n "pages.xray.statsInboundUplinkDesc" }}</template>
+            <template #control>
+                <a-switch v-model="statsInboundUplink"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.statsInboundDownlink" }}</template>
+            <template #description>{{ i18n "pages.xray.statsInboundDownlinkDesc" }}</template>
+            <template #control>
+                <a-switch v-model="statsInboundDownlink"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.statsOutboundUplink" }}</template>
+            <template #description>{{ i18n "pages.xray.statsOutboundUplinkDesc" }}</template>
+            <template #control>
+                <a-switch v-model="statsOutboundUplink"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.statsOutboundDownlink" }}</template>
+            <template #description>{{ i18n "pages.xray.statsOutboundDownlinkDesc" }}</template>
+            <template #control>
+                <a-switch v-model="statsOutboundDownlink"></a-switch>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="3" header='{{ i18n "pages.xray.logConfigs" }}'>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.logConfigsDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.logLevel" }}</template>
+            <template #description>{{ i18n "pages.xray.logLevelDesc" }}</template>
+            <template #control>
+                <a-select v-model="logLevel" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                    <a-select-option v-for="s in log.loglevel" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.accessLog" }}</template>
+            <template #description>{{ i18n "pages.xray.accessLogDesc" }}</template>
+            <template #control>
+                <a-select v-model="accessLog" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                    <a-select-option value=''>
+                        <span>Empty</span>
+                    </a-select-option>
+                    <a-select-option v-for="s in log.access" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.errorLog" }}</template>
+            <template #description>{{ i18n "pages.xray.errorLogDesc" }}</template>
+            <template #control>
+                <a-select v-model="errorLog" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                    <a-select-option value=''>
+                        <span>Empty</span>
+                    </a-select-option>
+                    <a-select-option v-for="s in log.error" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.maskAddress" }}</template>
+            <template #description>{{ i18n "pages.xray.maskAddressDesc" }}</template>
+            <template #control>
+                <a-select v-model="maskAddressLog" :dropdown-class-name="themeSwitcher.currentTheme"
+                    :style="{ width: '100%' }">
+                    <a-select-option value=''>
+                        <span>Empty</span>
+                    </a-select-option>
+                    <a-select-option v-for="s in log.maskAddress" :value="s">
+                        <span>[[ s ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.dnsLog"}}</template>
+            <template #description>{{ i18n "pages.xray.dnsLogDesc"}}</template>
+            <template #control>
+                <a-switch v-model="dnslog"></a-switch>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="4" header='{{ i18n "pages.xray.blockConfigs"}}'>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.blockConfigsDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.Torrent"}}</template>
+            <template #description>{{ i18n "pages.xray.TorrentDesc"}}</template>
+            <template #control>
+                <a-switch v-model="torrentSettings"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.Family"}}</template>
+            <template #description>{{ i18n "pages.xray.FamilyDesc"}}</template>
+            <template #control>
+                <a-switch v-model="familyProtectSettings"></a-switch>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="5" header='{{ i18n "pages.xray.basicRouting"}}'>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.blockConnectionsConfigsDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.blockips" }}</template>
+            <template #control>
+                <a-select mode="tags" v-model="blockedIPs" :style="{ width: '100%' }"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">
+                        <span>[[ p.label ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.blockdomains" }}</template>
+            <template #control>
+                <a-select mode="tags" v-model="blockedDomains" :style="{ width: '100%' }"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.BlockDomainsOptions">
+                        <span>[[ p.label ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center', marginTop: '20px' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.directConnectionsConfigsDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.directips" }}</template>
+            <template #control>
+                <a-select mode="tags" :style="{ width: '100%' }" v-model="directIPs"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.IPsOptions">
+                        <span>[[ p.label ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.directdomains" }}</template>
+            <template #control>
+                <a-select mode="tags" :style="{ width: '100%' }" v-model="directDomains"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.DomainsOptions">
+                        <span>[[ p.label ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center', marginTop: '20px' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    <span>{{ i18n "pages.xray.ipv4RoutingDesc" }}</span>
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.ipv4Routing" }}</template>
+            <template #control>
+                <a-select mode="tags" :style="{ width: '100%' }" v-model="ipv4Domains"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">
+                        <span>[[ p.label ]]</span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        <a-row :xs="24" :sm="24" :lg="12">
+            <a-alert type="warning" :style="{ textAlign: 'center', marginTop: '20px' }">
+                <template slot="message">
+                    <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                    {{ i18n "pages.xray.warpRoutingDesc" }}
+                </template>
+            </a-alert>
+        </a-row>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.warpRouting" }}</template>
+            <template #control>
+                <template v-if="WarpExist">
+                    <a-select mode="tags" :style="{ width: '100%' }" v-model="warpDomains"
+                        :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option :value="p.value" :label="p.label" v-for="p in settingsData.ServicesOptions">
+                            <span>[[ p.label ]]</span>
+                        </a-select-option>
+                    </a-select>
+                </template>
+                <template v-else>
+                    <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
+                </template>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="6" header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
+        <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+            <a-button type="danger" @click="resetXrayConfigToDefault">
+                <span>{{ i18n "pages.settings.resetDefaultConfig" }}</span>
+            </a-button>
+        </a-space>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

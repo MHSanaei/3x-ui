@@ -1,0 +1,50 @@
+{{define "form/trojan"}}
+<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">
+  <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
+    {{template "form/client"}}
+  </a-collapse-panel>
+</a-collapse>
+<a-collapse v-else>
+  <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.trojans.length">
+    <table width="100%">
+      <tr class="client-table-header">
+        <th>{{ i18n "pages.inbounds.email" }}</th>
+        <th>Password</th>
+      </tr>
+      <tr v-for="(client, index) in inbound.settings.trojans" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+        <td>[[ client.email ]]</td>
+        <td>[[ client.password ]]</td>
+      </tr>
+    </table>
+  </a-collapse-panel>
+</a-collapse>
+<template v-if="inbound.isTcp">
+  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="Fallbacks">
+      <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addFallback()"></a-button>
+    </a-form-item>
+  </a-form>
+
+  <!-- trojan fallbacks -->
+  <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-divider :style="{ margin: '0' }"> Fallback [[ index + 1 ]] <a-icon type="delete" @click="() => inbound.settings.delFallback(index)" :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+    </a-divider>
+    <a-form-item label='SNI'>
+      <a-input v-model="fallback.name"></a-input>
+    </a-form-item>
+    <a-form-item label='ALPN'>
+      <a-input v-model="fallback.alpn"></a-input>
+    </a-form-item>
+    <a-form-item label='Path'>
+      <a-input v-model="fallback.path"></a-input>
+    </a-form-item>
+    <a-form-item label='Dest'>
+      <a-input v-model="fallback.dest"></a-input>
+    </a-form-item>
+    <a-form-item label='xVer'>
+      <a-input-number v-model.number="fallback.xver" :min="0" :max="2"></a-input-number>
+    </a-form-item>
+  </a-form>
+  <a-divider style="margin:5px 0;"></a-divider>
+</template>
+{{end}}

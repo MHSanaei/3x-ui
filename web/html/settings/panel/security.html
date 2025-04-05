@@ -1,0 +1,60 @@
+{{define "settings/panel/security"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.settings.security.admin"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.oldUsername"}}</template>
+            <template #control>
+                <a-input autocomplete="username" v-model="user.oldUsername"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.currentPassword"}}</template>
+            <template #control>
+                <a-input-password autocomplete="current-password" v-model="user.oldPassword"></a-input-password>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.newUsername"}}</template>
+            <template #control>
+                <a-input v-model="user.newUsername"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.newPassword"}}</template>
+            <template #control>
+                <a-input-password autocomplete="new-password" v-model="user.newPassword"></a-input-password>
+            </template>
+        </a-setting-list-item>
+        <a-list-item>
+            <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+                <a-button type="primary" @click="updateUser">{{ i18n "confirm" }}</a-button>
+            </a-space>
+        </a-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.security.secret"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.security.loginSecurity" }}</template>
+            <template #description>{{ i18n "pages.settings.security.loginSecurityDesc" }}</template>
+            <template #control>
+                <a-switch @change="toggleToken(allSetting.secretEnable)" v-model="allSetting.secretEnable"></a-switch>
+                <a-icon :style="{ marginLeft: '1rem' }" v-if="allSetting.secretEnable" :spin="this.changeSecret" type="sync"
+                    @click="getNewSecret"></a-icon>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.security.secretToken" }}</template>
+            <template #description>{{ i18n "pages.settings.security.secretTokenDesc" }}</template>
+            <template #control>
+                <a-textarea type="text" :disabled="!allSetting.secretEnable" v-model="user.loginSecret"></a-textarea>
+            </template>
+        </a-setting-list-item>
+        <a-list-item>
+            <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+                <a-button type="primary" :loading="this.changeSecret" @click="updateSecret">
+                    <span>{{ i18n "confirm"}}</span>
+                </a-button>
+            </a-space>
+        </a-list-item>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

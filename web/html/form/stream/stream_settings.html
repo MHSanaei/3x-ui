@@ -1,0 +1,51 @@
+{{define "form/streamSettings"}}
+<!-- select stream network -->
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='{{ i18n "transmission" }}'>
+        <a-select v-model="inbound.stream.network" :style="{ width: '75%' }" @change="streamNetworkChange"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="tcp">TCP (RAW)</a-select-option>
+            <a-select-option value="kcp">mKCP</a-select-option>
+            <a-select-option value="ws">WebSocket</a-select-option>
+            <a-select-option value="grpc">gRPC</a-select-option>
+            <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
+            <a-select-option value="xhttp">XHTTP</a-select-option>
+        </a-select>
+    </a-form-item>
+</a-form>
+
+<!-- tcp -->
+<template v-if="inbound.stream.network === 'tcp'">
+    {{template "form/streamTCP"}}
+</template>
+
+<!-- kcp -->
+<template v-if="inbound.stream.network === 'kcp'">
+    {{template "form/streamKCP"}}
+</template>
+
+<!-- ws -->
+<template v-if="inbound.stream.network === 'ws'">
+    {{template "form/streamWS"}}
+</template>
+
+<!-- grpc -->
+<template v-if="inbound.stream.network === 'grpc'">
+    {{template "form/streamGRPC"}}
+</template>
+
+<!-- httpupgrade -->
+<template v-if="inbound.stream.network === 'httpupgrade'">
+    {{template "form/streamHTTPUpgrade"}}
+</template>
+
+<!-- xhttp -->
+<template v-if="inbound.stream.network === 'xhttp'">
+    {{template "form/streamXHTTP"}}
+</template>
+
+<!-- sockopt -->
+<template>
+    {{template "form/streamSockopt"}}
+</template>
+{{end}}

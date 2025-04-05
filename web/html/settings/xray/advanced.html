@@ -1,0 +1,14 @@
+{{define "settings/xray/advanced"}}
+<a-space direction="vertical" size="small">
+    <a-list-item-meta title='{{ i18n "pages.xray.Template"}}'
+        description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
+    <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" :style="{ margin: '10px 0' }"
+        :size="isMobile ? 'small' : ''">
+        <a-radio-button value="xraySetting">{{ i18n "pages.xray.completeTemplate"}}</a-radio-button>
+        <a-radio-button value="inboundSettings">{{ i18n "pages.xray.Inbounds" }}</a-radio-button>
+        <a-radio-button value="outboundSettings">{{ i18n "pages.xray.Outbounds" }}</a-radio-button>
+        <a-radio-button value="routingRuleSettings">{{ i18n "pages.xray.Routings" }}</a-radio-button>
+    </a-radio-group>
+    <textarea :style="{ position: 'absolute', left: '-800px' }" id="xraySetting"></textarea>
+</a-space>
+{{end}}

@@ -1,0 +1,26 @@
+{{define "form/streamHTTPUpgrade"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <a-form-item label="Proxy Protocol">
+    <a-switch v-model="inbound.stream.httpupgrade.acceptProxyProtocol"></a-switch>
+  </a-form-item>
+  <a-form-item label='{{ i18n "host" }}'>
+    <a-input v-model.trim="inbound.stream.httpupgrade.host"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "path" }}'>
+    <a-input v-model.trim="inbound.stream.httpupgrade.path"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
+    <a-button icon="plus" size="small" @click="inbound.stream.httpupgrade.addHeader('', '')"></a-button>
+  </a-form-item>
+  <a-form-item :wrapper-col="{span:24}">
+    <a-input-group compact v-for="(header, index) in inbound.stream.httpupgrade.headers">
+      <a-input :style="{ width: '50%' }" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name"}}'>
+        <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
+      </a-input>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+        <a-button icon="minus" slot="addonAfter" size="small" @click="inbound.stream.httpupgrade.removeHeader(index)"></a-button>
+      </a-input>
+    </a-input-group>
+  </a-form-item>
+</a-form>
+{{end}}

@@ -1,0 +1,87 @@
+{{define "settings/panel/telegram"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramBotEnable" }}</template>
+            <template #description>{{ i18n "pages.settings.telegramBotEnableDesc" }}</template>
+            <template #control>
+                <a-switch v-model="allSetting.tgBotEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramToken"}}</template>
+            <template #description>{{ i18n "pages.settings.telegramTokenDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.tgBotToken"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramChatId"}}</template>
+            <template #description>{{ i18n "pages.settings.telegramChatIdDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.tgBotChatId"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramBotLanguage"}}</template>
+            <template #control>
+                <a-select ref="selectBotLang" v-model="allSetting.tgLang"
+                    :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                    <a-select-option :value="l.value" :label="l.value" v-for="l in LanguageManager.supportedLanguages">
+                        <span role="img" :aria-label="l.name" v-text="l.icon"></span> &nbsp;&nbsp; <span
+                            v-text="l.name"></span>
+                    </a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.notifications" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramNotifyTime"}}</template>
+            <template #description>{{ i18n "pages.settings.telegramNotifyTimeDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.tgRunTime"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.tgNotifyBackup" }}</template>
+            <template #description>{{ i18n "pages.settings.tgNotifyBackupDesc" }}</template>
+            <template #control>
+                <a-switch v-model="allSetting.tgBotBackup"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.tgNotifyLogin" }}</template>
+            <template #description>{{ i18n "pages.settings.tgNotifyLoginDesc" }}</template>
+            <template #control>
+                <a-switch v-model="allSetting.tgBotLoginNotify"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.tgNotifyCpu" }}</template>
+            <template #description>{{ i18n "pages.settings.tgNotifyCpuDesc" }}</template>
+            <template #control>
+                <a-input-number :min="0" :min="100" v-model="allSetting.tgCpu" :style="{ width: '100%' }"></a-switch>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.proxyAndServer" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramProxy"}}</template>
+            <template #description>{{ i18n "pages.settings.telegramProxyDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder="socks5://user:pass@host:port"
+                    v-model="allSetting.tgBotProxy"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.telegramAPIServer"}}</template>
+            <template #description>{{ i18n "pages.settings.telegramAPIServerDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder="https://api.example.com"
+                    v-model="allSetting.tgBotAPIServer"></a-input>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

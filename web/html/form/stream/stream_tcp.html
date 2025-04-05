@@ -1,0 +1,72 @@
+{{define "form/streamTCP"}}
+<!-- tcp type -->
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <a-form-item label="Proxy Protocol" v-if="inbound.canEnableTls()">
+    <a-switch v-model="inbound.stream.tcp.acceptProxyProtocol"></a-switch>
+  </a-form-item>
+  <a-form-item label='HTTP {{ i18n "camouflage" }}'>
+    <a-switch :checked="inbound.stream.tcp.type === 'http'" @change="checked => inbound.stream.tcp.type = checked ? 'http' : 'none'"></a-switch>
+  </a-form-item>
+</a-form>
+
+<a-form v-if="inbound.stream.tcp.type === 'http'" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <!-- tcp request -->
+  <a-divider :style="{ margin: '0' }">{{ i18n "pages.inbounds.stream.general.request" }}</a-divider>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.version" }}'>
+    <a-input v-model.trim="inbound.stream.tcp.request.version"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.method" }}'>
+    <a-input v-model.trim="inbound.stream.tcp.request.method"></a-input>
+  </a-form-item>
+  <a-form-item>
+    <template slot="label">{{ i18n "pages.inbounds.stream.tcp.path" }}
+      <a-button icon="plus" size="small" @click="inbound.stream.tcp.request.addPath('/')"></a-button>
+    </template>
+    <template v-for="(path, index) in inbound.stream.tcp.request.path">
+      <a-input v-model.trim="inbound.stream.tcp.request.path[index]">
+        <a-button icon="minus" size="small" slot="addonAfter" @click="inbound.stream.tcp.request.removePath(index)" v-if="inbound.stream.tcp.request.path.length>1"></a-button>
+      </a-input>
+    </template>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
+    <a-button icon="plus" size="small" @click="inbound.stream.tcp.request.addHeader('Host', '')"></a-button>
+  </a-form-item>
+  <a-form-item :wrapper-col="{span:24}">
+    <a-input-group compact v-for="(header, index) in inbound.stream.tcp.request.headers">
+      <a-input :style="{ width: '50%' }" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+        <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
+      </a-input>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+        <a-button icon="minus" slot="addonAfter" size="small" @click="inbound.stream.tcp.request.removeHeader(index)"></a-button>
+      </a-input>
+    </a-input-group>
+  </a-form-item>
+
+  <!-- tcp response -->
+  <a-divider :style="{ margin: '0' }">{{ i18n "pages.inbounds.stream.general.response" }}</a-divider>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.version" }}'>
+    <a-input v-model.trim="inbound.stream.tcp.response.version"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.status" }}'>
+    <a-input v-model.trim="inbound.stream.tcp.response.status"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.statusDescription" }}'>
+    <a-input v-model.trim="inbound.stream.tcp.response.reason"></a-input>
+  </a-form-item>
+  <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.responseHeader" }}'>
+    <a-button icon="plus" size="small" @click="inbound.stream.tcp.response.addHeader('Content-Type', 'application/octet-stream')"></a-button>
+  </a-form-item>
+  <a-form-item :wrapper-col="{span:24}">
+    <a-input-group compact v-for="(header, index) in inbound.stream.tcp.response.headers">
+      <a-input :style="{ width: '50%' }" v-model.trim="header.name" placeholder='{{ i18n "pages.inbounds.stream.general.name" }}'>
+        <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
+      </a-input>
+      <a-input :style="{ width: '50%' }" v-model.trim="header.value" placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'>
+        <template slot="addonAfter">
+          <a-button icon="minus" size="small" @click="inbound.stream.tcp.response.removeHeader(index)"></a-button>
+        </template>
+      </a-input>
+    </a-input-group>
+  </a-form-item>
+</a-form>
+{{end}}

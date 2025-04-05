@@ -1,0 +1,180 @@
+{{define "settings/panel/subscription/json"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subPath"}}</template>
+            <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subJsonPath"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subURI"}}</template>
+            <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
+                    v-model="allSetting.subJsonURI"></a-input>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.fragment"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.fragment"}}</template>
+            <template #description>{{ i18n "pages.settings.fragmentDesc"}}</template>
+            <template #control>
+                <a-switch v-model="fragment"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-list-item v-if="fragment" :style="{ padding: '10px 20px' }">
+            <a-collapse>
+                <a-collapse-panel header='{{ i18n "pages.settings.fragmentSett"}}' v-if="fragment">
+                    <a-setting-list-item paddings="small">
+                        <template #title>Packets</template>
+                        <template #control>
+                            <a-input type="text" v-model="fragmentPackets"
+                                placeholder="1-1 | 1-3 | tlshello | ..."></a-input>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>Length</template>
+                        <template #control>
+                            <a-input type="text" v-model="fragmentLength" placeholder="100-200"></a-input>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>Interval</template>
+                        <template #control>
+                            <a-input type="text" v-model="fragmentInterval" placeholder="10-20"></a-input>
+                        </template>
+                    </a-setting-list-item>
+                </a-collapse-panel>
+            </a-collapse>
+        </a-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="3" header="Noises">
+        <a-setting-list-item paddings="small">
+            <template #title>Noises</template>
+            <template #description>{{ i18n "pages.settings.noisesDesc"}}</template>
+            <template #control>
+                <a-switch v-model="noises"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-list-item v-if="noises" :style="{ padding: '10px 20px' }">
+            <a-collapse>
+                <a-collapse-panel v-for="(noise, index) in noisesArray" :key="index" :header="`Noise №${index + 1}`">
+                    <a-setting-list-item paddings="small">
+                        <template #title>Type</template>
+                        <template #control>
+                            <a-select :value="noise.type" :style="{ width: '100%' }"
+                                :dropdown-class-name="themeSwitcher.currentTheme"
+                                @change="(value) => updateNoiseType(index, value)">
+                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p">
+                                    <span>[[ p ]]</span>
+                                </a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>Packet</template>
+                        <template #control>
+                            <a-input type="text" :value="noise.packet"
+                                @input="(value) => updateNoisePacket(index, event.target.value)"
+                                placeholder="5-10"></a-input>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>Delay (ms)</template>
+                        <template #control>
+                            <a-input type="text" :value="noise.delay"
+                                @input="(value) => updateNoiseDelay(index, event.target.value)"
+                                placeholder="10-20"></a-input>
+                        </template>
+                    </a-setting-list-item>
+                    <a-space direction="horizontal" :style="{ padding: '10px 20px' }">
+                        <a-button v-if="noisesArray.length > 1" type="danger"
+                            @click="removeNoise(index)">Remove</a-button>
+                    </a-space>
+                </a-collapse-panel>
+            </a-collapse>
+            <a-button v-if="noises" type="primary" @click="addNoise" :style="{ marginTop: '10px' }">Add Noise</a-button>
+        </a-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.mux"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.mux"}}</template>
+            <template #description>{{ i18n "pages.settings.muxDesc"}}</template>
+            <template #control>
+                <a-switch v-model="enableMux"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-list-item v-if="enableMux" :style="{ padding: '10px 20px' }">
+            <a-collapse>
+                <a-collapse-panel header='{{ i18n "pages.settings.muxSett"}}'>
+                    <a-setting-list-item paddings="small">
+                        <template #title>Concurrency</template>
+                        <template #control>
+                            <a-input-number v-model="muxConcurrency" :min="-1" :max="1024"
+                                :style="{ width: '100%' }"></a-input-number>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>xudp Concurrency</template>
+                        <template #control>
+                            <a-input-number v-model="muxXudpConcurrency" :min="-1" :max="1024"
+                                :style="{ width: '100%' }"></a-input-number>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>xudp UDP 443</template>
+                        <template #control>
+                            <a-select v-model="muxXudpProxyUDP443" :style="{ width: '100%' }"
+                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p" :label="p" v-for="p in ['reject', 'allow', 'skip']">
+                                    <span>[[ p ]]</span>
+                                </a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                </a-collapse-panel>
+            </a-collapse>
+        </a-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="5" header='{{ i18n "pages.settings.direct" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.direct"}}</template>
+            <template #description>{{ i18n "pages.settings.directDesc"}}</template>
+            <template #control>
+                <a-switch v-model="enableDirect"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-list-item v-if="enableDirect" :style="{ padding: '10px 20px' }">
+            <a-collapse>
+                <a-collapse-panel header='{{ i18n "pages.settings.direct"}}'>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.directips" }}</template>
+                        <template #control>
+                            <a-select mode="tags" :style="{ width: '100%' }" v-model="directIPs"
+                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in directIPsOptions">
+                                    <span>[[ p.label ]]</span>
+                                </a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>{{ i18n "pages.xray.directdomains" }}</template>
+                        <template #control>
+                            <a-select mode="tags" :style="{ width: '100%' }" v-model="directDomains"
+                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                <a-select-option :value="p.value" :label="p.label" v-for="p in diretDomainsOptions">
+                                    <span>[[ p.label ]]</span>
+                                </a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
+                </a-collapse-panel>
+            </a-collapse>
+        </a-list-item>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

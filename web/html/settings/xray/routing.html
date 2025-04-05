@@ -1,0 +1,119 @@
+{{define "settings/xray/routing"}}
+<a-space direction="vertical" size="middle">
+    <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
+    <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered :row-key="r => r.key"
+        :data-source="routingRuleData" :scroll="isMobile ? {} : { x: 1000 }" :pagination="false" :indent-size="0"
+        v-on:onSort="replaceRule">
+        <template slot="action" slot-scope="text, rule, index">
+            <a-table-sort-trigger :item-index="index"></a-table-sort-trigger>
+            <span class="ant-table-row-index"> [[ index+1 ]] </span>
+            <a-dropdown :trigger="['click']">
+                <a-icon @click="e => e.preventDefault()" type="more"
+                    :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
+                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                    <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
+                        <a-icon type="vertical-align-top"></a-icon>
+                        {{ i18n "pages.xray.rules.first"}}
+                    </a-menu-item>
+                    <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
+                        <a-icon type="arrow-up"></a-icon>
+                        {{ i18n "pages.xray.rules.up"}}
+                    </a-menu-item>
+                    <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
+                        <a-icon type="arrow-down"></a-icon>
+                        {{ i18n "pages.xray.rules.down"}}
+                    </a-menu-item>
+                    <a-menu-item v-if="index<routingRuleData.length-1"
+                        @click="replaceRule(index,routingRuleData.length-1)">
+                        <a-icon type="vertical-align-bottom"></a-icon>
+                        {{ i18n "pages.xray.rules.last"}}
+                    </a-menu-item>
+                    <a-menu-item @click="editRule(index)">
+                        <a-icon type="edit"></a-icon>
+                        {{ i18n "edit" }}
+                    </a-menu-item>
+                    <a-menu-item @click="deleteRule(index)">
+                        <span :style="{ color: '#FF4D4F' }">
+                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
+                        </span>
+                    </a-menu-item>
+                </a-menu>
+            </a-dropdown>
+        </template>
+        <template slot="inbound" slot-scope="text, rule, index">
+            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="content">
+                    <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
+                    <p v-if="rule.user">User email: [[ rule.user ]]</p>
+                </template>
+                [[ [rule.inboundTag,rule.user].join('\n') ]]
+            </a-popover>
+        </template>
+        <template slot="outbound" slot-scope="text, rule, index">
+            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="content">
+                    <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
+                </template>
+                [[ rule.outboundTag ]]
+            </a-popover>
+        </template>
+        <template slot="balancer" slot-scope="text, rule, index">
+            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="content">
+                    <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
+                </template>
+                [[ rule.balancerTag ]]
+            </a-popover>
+        </template>
+        <template slot="info" slot-scope="text, rule, index">
+            <a-popover placement="bottomRight"
+                v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
+                :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+                <template slot="content">
+                    <table cellpadding="2" :style="{ maxWidth: '300px' }">
+                        <tr v-if="rule.source">
+                            <td>Source</td>
+                            <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.sourcePort">
+                            <td>Source Port</td>
+                            <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.network">
+                            <td>Network</td>
+                            <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.protocol">
+                            <td>Protocol</td>
+                            <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.attrs">
+                            <td>Attrs</td>
+                            <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.ip">
+                            <td>IP</td>
+                            <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.domain">
+                            <td>Domain</td>
+                            <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.port">
+                            <td>Port</td>
+                            <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.balancerTag">
+                            <td>Balancer Tag</td>
+                            <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
+                        </tr>
+                    </table>
+                </template>
+                <a-button shape="round" size="small" :style="{ fontSize: '14px', padding: '0 10px' }">
+                    <a-icon type="info"></a-icon>
+                </a-button>
+            </a-popover>
+        </template>
+    </a-table-sortable>
+</a-space>
+{{end}}

@@ -1,0 +1,26 @@
+{{define "form/http"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+  <table :style="{ width: '100%', textAlign: 'center', margin: '1rem 0' }">
+    <tr>
+      <td width="45%">{{ i18n "username" }}</td>
+      <td width="45%">{{ i18n "password" }}</td>
+      <td>
+        <a-button icon="plus" size="small" @click="inbound.settings.addAccount(new Inbound.HttpSettings.HttpAccount())"></a-button>
+      </td>
+    </tr>
+  </table>
+  <a-input-group compact v-for="(account, index) in inbound.settings.accounts" :style="{ marginBottom: '10px' }">
+    <a-input :style="{ width: '50%' }" v-model.trim="account.user" placeholder='{{ i18n "username" }}'>
+      <template slot="addonBefore" :style="{ margin: '0' }">[[ index+1 ]]</template>
+    </a-input>
+    <a-input :style="{ width: '50%' }" v-model.trim="account.pass" placeholder='{{ i18n "password" }}'>
+      <template slot="addonAfter">
+        <a-button icon="minus" size="small" @click="inbound.settings.delAccount(index)"></a-button>
+      </template>
+    </a-input>
+  </a-input-group>
+  <a-form-item label="Allow Transparent">
+    <a-switch v-model="inbound.settings.allowTransparent" />
+  </a-form-item>
+</a-form>
+{{end}}
