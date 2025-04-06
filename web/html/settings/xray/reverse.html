@@ -1,0 +1,38 @@
+{{define "settings/xray/reverse"}}
+<template v-if="reverseData.length > 0">
+    <a-space direction="vertical" size="middle">
+        <a-button type="primary" icon="plus" @click="addReverse()">
+            <span>{{ i18n "pages.xray.outbound.addReverse" }}</span>
+        </a-button>
+        <a-table :columns="reverseColumns" bordered :row-key="r => r.key" :data-source="reverseData"
+            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
+            <template slot="action" slot-scope="text, reverse, index">
+                <span>[[ index+1 ]]</span>
+                <a-dropdown :trigger="['click']">
+                    <a-icon @click="e => e.preventDefault()" type="more"
+                        :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
+                    <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                        <a-menu-item @click="editReverse(index)">
+                            <a-icon type="edit"></a-icon>
+                            <span>{{ i18n "edit" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="deleteReverse(index)">
+                            <span :style="{ color: '#FF4D4F' }">
+                                <a-icon type="delete"></a-icon> 
+                                <span>{{ i18n "delete"}}</span>
+                            </span>
+                        </a-menu-item>
+                    </a-menu>
+                </a-dropdown>
+            </template>
+        </a-table>
+    </a-space>
+</template>
+<template v-else>
+    <a-empty description='{{ i18n "emptyReverseDesc" }}' :style="{ margin: '10px' }">
+        <a-button type="primary" icon="plus" @click="addReverse()" :style="{ marginTop: '10px' }">
+            {{ i18n "pages.xray.outbound.addReverse" }}
+        </a-button>
+    </a-empty>
+</template>
+{{end}}

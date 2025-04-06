@@ -1,0 +1,53 @@
+{{define "settings/xray/balancers"}}
+<template v-if="balancersData.length > 0">
+    <a-space direction="vertical" size="middle">
+        <a-button type="primary" icon="plus" @click="addBalancer()">
+            <span>{{ i18n "pages.xray.balancer.addBalancer"}}</span>
+        </a-button>
+        <a-table :columns="balancerColumns" bordered :row-key="r => r.key" :data-source="balancersData"
+            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
+            <template slot="action" slot-scope="text, balancer, index">
+                <span>[[ index+1 ]]</span>
+                <a-dropdown :trigger="['click']">
+                    <a-icon @click="e => e.preventDefault()" type="more"
+                        :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
+                    <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                        <a-menu-item @click="editBalancer(index)">
+                            <a-icon type="edit"></a-icon>
+                            <span>{{ i18n "edit" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="deleteBalancer(index)">
+                            <span :style="{ color: '#FF4D4F' }">
+                                <a-icon type="delete"></a-icon> 
+                                <span>{{ i18n "delete"}}</span>
+                            </span>
+                        </a-menu-item>
+                    </a-menu>
+                </a-dropdown>
+            </template>
+            <template slot="strategy" slot-scope="text, balancer, index">
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='random'" color="purple">Random</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='roundRobin'" color="green">Round Robin</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='leastLoad'" color="green">Least Load</a-tag>
+                <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
+            </template>
+            <template slot="selector" slot-scope="text, balancer, index">
+                <a-tag class="info-large-tag" :style="{ margin: '1' }" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
+            </template>
+        </a-table>
+        <a-radio-group v-if="observatoryEnable || burstObservatoryEnable" v-model="obsSettings" @change="changeObsCode"
+            button-style="solid" :size="isMobile ? 'small' : ''">
+            <a-radio-button value="observatory" v-if="observatoryEnable">Observatory</a-radio-button>
+            <a-radio-button value="burstObservatory" v-if="burstObservatoryEnable">Burst Observatory</a-radio-button>
+        </a-radio-group>
+        <textarea :style="{ position: 'absolute', left: '-800px' }" id="obsSetting"></textarea>
+    </a-space>
+</template>
+<template v-else>
+    <a-empty description='{{ i18n "emptyBalancersDesc" }}' :style="{ margin: '10px' }">
+        <a-button type="primary" icon="plus" @click="addBalancer()" :style="{ marginTop: '10px' }">
+            <span>{{ i18n "pages.xray.balancer.addBalancer"}}</span>
+        </a-button>
+    </a-empty>
+</template>
+{{end}}

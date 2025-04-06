@@ -83,7 +83,7 @@ class PromiseUtil {
 class RandomUtil {
     static getSeq({ type = "default", hasNumbers = true, hasLowercase = true, hasUppercase = true } = {}) {
         let seq = '';
-        
+
         switch (type) {
             case "hex":
                 seq += "0123456789abcdef";
@@ -488,7 +488,7 @@ class ClipboardManager {
         return new Promise((resolve) => {
             try {
                 const textarea = window.document.createElement('textarea');
-    
+
                 textarea.style.fontSize = '12pt';
                 textarea.style.border = '0';
                 textarea.style.padding = '0';
@@ -498,14 +498,14 @@ class ClipboardManager {
                 textarea.style.top = `${window.pageYOffset || document.documentElement.scrollTop}px`;
                 textarea.setAttribute('readonly', '');
                 textarea.value = content;
-    
+
                 window.document.body.appendChild(textarea);
-    
+
                 textarea.select();
                 window.document.execCommand("copy");
-    
+
                 window.document.body.removeChild(textarea);
-    
+
                 resolve(true)
             } catch {
                 resolve(false)
@@ -558,7 +558,7 @@ class CPUFormatter {
     static cpuSpeedFormat(speed) {
         return speed > 1000 ? (speed / 1000).toFixed(2) + " GHz" : speed.toFixed(2) + " MHz";
     }
-    
+
     static cpuCoreFormat(cores) {
         return cores === 1 ? "1 Core" : cores + " Cores";
     }
@@ -579,7 +579,7 @@ class NumberFormatter {
     static addZero(num) {
         return num < 10 ? "0" + num : num;
     }
-    
+
     static toFixed(num, n) {
         n = Math.pow(10, n);
         return Math.floor(num * n) / n;
@@ -610,7 +610,7 @@ class CookieManager {
         }
         return '';
     }
-    
+
     static setCookie(cname, cvalue, exdays) {
         const d = new Date();
         d.setTime(d.getTime() + exdays * 24 * 60 * 60 * 1000);
@@ -630,7 +630,7 @@ class ColorUtils {
             default: return "red";
         }
     }
-    
+
     static clientUsageColor(clientStats, trafficDiff) {
         switch (true) {
             case !clientStats || clientStats.total == 0: return "#7a316f";
@@ -639,7 +639,7 @@ class ColorUtils {
             default: return "#cf3c3c";
         }
     }
-    
+
     static userExpiryColor(threshold, client, isDark = false) {
         if (!client.enable) return isDark ? '#2c3950' : '#bcbcbc';
         let now = new Date().getTime(), expiry = client.expiryTime;
@@ -665,7 +665,7 @@ class URLBuilder {
         if (!host || host.length === 0) host = window.location.hostname;
         if (!port || port.length === 0) port = window.location.port;
         if (isTLS === undefined) isTLS = window.location.protocol === "https:";
-        
+
         const protocol = isTLS ? "https:" : "http:";
         port = String(port);
         if (port === "" || (isTLS && port === "443") || (!isTLS && port === "80")) {
@@ -673,7 +673,7 @@ class URLBuilder {
         } else {
             port = `:${port}`;
         }
-        
+
         return `${protocol}//${host}${port}${base}${path}`;
     }
 }
@@ -744,11 +744,11 @@ class LanguageManager {
 
     static getLanguage() {
         let lang = CookieManager.getCookie("lang");
-    
+
         if (!lang) {
             if (window.navigator) {
                 lang = window.navigator.language || window.navigator.userLanguage;
-    
+
                 if (LanguageManager.isSupportLanguage(lang)) {
                     CookieManager.setCookie("lang", lang, 150);
                 } else {
@@ -760,30 +760,43 @@ class LanguageManager {
                 window.location.reload();
             }
         }
-    
+
         return lang;
     }
-    
+
     static setLanguage(language) {
         if (!LanguageManager.isSupportLanguage(language)) {
             language = "en-US";
         }
-    
+
         CookieManager.setCookie("lang", language, 150);
         window.location.reload();
     }
-    
+
     static isSupportLanguage(language) {
         const languageFilter = LanguageManager.supportedLanguages.filter((lang) => {
             return lang.value === language
         })
-    
+
         return languageFilter.length > 0;
-    }    
+    }
 }
 
-class DeviceUtils {
-    static isMobile() {
-        return window.innerWidth <= 768;
-    }
+const MediaQueryMixin = {
+    data() {
+        return {
+            isMobile: window.innerWidth <= 768,
+        };
+    },
+    methods: {
+        updateDeviceType() {
+            this.isMobile = window.innerWidth <= 768;
+        },
+    },
+    mounted() {
+        window.addEventListener('resize', this.updateDeviceType);
+    },
+    beforeDestroy() {
+        window.removeEventListener('resize', this.updateDeviceType);
+    },
 }

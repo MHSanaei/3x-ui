@@ -451,7 +451,7 @@
 <body>
   <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
     <transition name="list" appear>
-      <a-layout-content class="under" style="min-height: 0;">
+      <a-layout-content class="under" :style="{ minHeight: '0' }">
         <div class="waves-header">
           <div class="waves-inner-header"></div>
           <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -484,10 +484,10 @@
             <a-button shape="circle" icon="setting"></a-button>
           </a-popover>
         </div>
-        <a-row type="flex" justify="center" align="middle" style="height: 100%; overflow: auto; overflow-x: hidden;">
-          <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" style="margin: 3rem 0;">
+        <a-row type="flex" justify="center" align="middle" :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
+          <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" :style="{ margin: '3rem 0' }">
             <a-row type="flex" justify="center">
-              <a-col style="width: 100%;">
+              <a-col :style="{ width: '100%' }">
                 <h2 class="title headline zoom">
                   <span class="words-wrapper">
                     <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
@@ -503,18 +503,20 @@
                     <a-form-item>
                       <a-input autocomplete="username" name="username" v-model.trim="user.username"
                         placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
-                        <a-icon slot="prefix" type="user" style="font-size: 16px;"></a-icon>
+                        <a-icon slot="prefix" type="user" :style="{ fontSize: '16px' }"></a-icon>
                       </a-input>
                     </a-form-item>
                     <a-form-item>
-                      <a-password-input autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
+                      <a-input-password autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
                         placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                      </a-password-input>
+                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '16px' }"></a-icon>
+                      </a-input-password>
                     </a-form-item>
                     <a-form-item v-if="secretEnable">
-                      <a-password-input autocomplete="secret" name="secret" icon="key" v-model.trim="user.loginSecret"
+                      <a-input-password autocomplete="secret" name="secret" icon="lock" v-model.trim="user.loginSecret"
                         placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
-                      </a-password-input>
+                        <a-icon slot="prefix" type="key" :style="{ fontSize: '16px' }"></a-icon>
+                      </a-input-password>
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
@@ -538,7 +540,6 @@
   </a-layout>
   {{template "js" .}}
   {{template "component/aThemeSwitch" .}}
-  {{template "component/aPasswordInput" .}}
   <script>
     const app = new Vue({
       delimiters: ['[[', ']]'],
