@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head" .}}
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
+
+<script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
+<script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/lint/lint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/lint/javascript-lint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/hint/javascript-hint.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/foldcode.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/foldgutter.js"></script>
+<script src="{{ .base_path }}assets/codemirror/fold/brace-fold.js"></script>
+<style>
+  @media (min-width: 769px) {
+    .ant-layout-content {
+      margin: 24px 16px;
+    }
+  }
+  @media (max-width: 768px) {
+    .ant-tabs-nav .ant-tabs-tab {
+      margin: 0;
+      padding: 12px .5rem;
+    }
+    .ant-table-thead>tr>th,
+    .ant-table-tbody>tr>td {
+      padding: 10px 0px;
+    }
+  }
+  .ant-tabs-bar {
+    margin: 0;
+  }
+  .ant-list-item {
+    display: block;
+  }
+  .ant-list-item>li {
+    padding: 10px 20px !important;
+  }
+</style>
+<body>
+  <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+    <a-sidebar></a-sidebar>
+    <a-layout id="content-layout">
+      <a-layout-content>
+        <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
+          <transition name="list" appear>
+            <a-alert type="error" v-if="showAlert" :style="{ marginBottom: '10px' }"
+              message='{{ i18n "secAlertTitle" }}'
+              color="red"
+              description='{{ i18n "secAlertSsl" }}'
+              show-icon closable>
+            </a-alert>
+          </transition>
+          <a-space direction="vertical">
+            <a-card hoverable :style="{ marginBottom: '.5rem' }">
+              <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
+                <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
+                  <a-space direction="horizontal">
+                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">{{ i18n "pages.xray.save" }}</a-button>
+                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">{{ i18n "pages.xray.restart" }}</a-button>
+                    <a-popover v-if="restartResult"
+                        :overlay-class-name="themeSwitcher.currentTheme">
+                      <span slot="title">{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
+                      <template slot="content">
+                        <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</span>
+                      </template>
+                      <a-icon type="question-circle"></a-icon>
+                    </a-popover>
+                  </a-space>
+                </a-col>
+                <a-col :xs="24" :sm="14">
+                  <template>
+                    <div>
+                      <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200"></a-back-top>
+                      <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }" message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
+                      </a-alert>
+                    </div>
+                  </template>
+                </a-col>
+              </a-row>
+            </a-card>
+            <a-tabs class="ant-card-dark-box-nohover" default-active-key="1"
+                @change="(activeKey) => { this.changePage(activeKey); }"
+                :class="themeSwitcher.currentTheme">
+              <a-tab-pane key="tpl-basic" tab='{{ i18n "pages.xray.basicTemplate"}}' :style="{ paddingTop: '20px' }">
+                {{ template "settings/xray/basics" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-routing" tab='{{ i18n "pages.xray.Routings"}}' :style="{ paddingTop: '20px' }">
+                {{ template "settings/xray/routing" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-outbound" tab='{{ i18n "pages.xray.Outbounds"}}' force-render="true">
+                {{ template "settings/xray/outbounds" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-reverse" tab='{{ i18n "pages.xray.outbound.reverse"}}' :style="{ paddingTop: '20px' }" force-render="true">
+                {{ template "settings/xray/reverse" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-balancer" tab='{{ i18n "pages.xray.Balancers"}}' :style="{ paddingTop: '20px' }" force-render="true">
+                {{ template "settings/xray/balancers" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-dns" tab='DNS' :style="{ paddingTop: '20px' }" force-render="true">
+                {{ template "settings/xray/dns" . }}
+              </a-tab-pane>
+              <a-tab-pane key="tpl-advanced" tab='{{ i18n "pages.xray.advancedTemplate"}}' :style="{ paddingTop: '20px' }" force-render="true">
+                {{ template "settings/xray/advanced" . }}
+              </a-tab-pane>
+            </a-tabs>
+          </a-space>
+        </a-spin>
+      </a-layout-content>
+    </a-layout>
+  </a-layout>
+{{template "js" .}}
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+{{template "component/aTableSortable" .}}
+{{template "component/aSettingListItem" .}}
+{{template "modals/ruleModal"}}
+{{template "modals/outModal"}}
+{{template "modals/reverseModal"}}
+{{template "modals/balancerModal"}}
+{{template "modals/dnsModal"}}
+{{template "modals/fakednsModal"}}
+{{template "modals/warpModal"}}
+<script>
+        const rulesColumns = [
+        { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.rules.source"}}', children: [
+            { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
+            { title: 'Port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
+        { title: '{{ i18n "pages.inbounds.network"}}', children: [
+            { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
+            { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 15, ellipsis: true },
+            { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 10, ellipsis: true } ]}, 
+        { title: '{{ i18n "pages.xray.rules.dest"}}', children: [
+            { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
+            { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
+            { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
+        { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
+            { title: 'Tag', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
+            { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 17 },
+        { title: '{{ i18n "pages.xray.rules.balancer"}}', dataIndex: 'balancerTag', align: 'center', width: 15 },
+    ];
+
+    const rulesMobileColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.rules.inbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'inbound' } },
+        { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'outbound' } },
+        { title: '{{ i18n "pages.xray.rules.info"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'info' } },
+    ];
+
+    const outboundColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "protocol"}}', align: 'center', width: 50, scopedSlots: { customRender: 'protocol' }  },
+        { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+        { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'center', width: 50, scopedSlots: { customRender: 'traffic' } },
+    ];
+
+    const reverseColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.type"}}', dataIndex: 'type', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.outbound.domain"}}', dataIndex: 'domain', align: 'center', width: 50 },
+    ];
+
+    const balancerColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.balancer.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.balancer.balancerStrategy"}}', align: 'center', width: 50, scopedSlots: { customRender: 'strategy' }},
+        { title: '{{ i18n "pages.xray.balancer.balancerSelectors"}}', align: 'center', width: 100, scopedSlots: { customRender: 'selector' }},
+    ];
+
+    const dnsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
+        { title: '{{ i18n "pages.xray.dns.domains"}}', align: 'center', width: 50, scopedSlots: { customRender: 'domain' } },
+        { title: '{{ i18n "pages.xray.dns.expectIPs"}}', align: 'center', width: 50, scopedSlots: { customRender: 'expectIPs' } },
+    ];
+
+    const fakednsColumns = [
+        { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+        { title: '{{ i18n "pages.xray.fakedns.ipPool"}}', dataIndex: 'ipPool', align: 'center', width: 50 },
+        { title: '{{ i18n "pages.xray.fakedns.poolSize"}}', dataIndex: 'poolSize', align: 'center', width: 50 },
+    ];
+
+    const app = new Vue({
+        delimiters: ['[[', ']]'],
+        mixins: [MediaQueryMixin],
+        el: '#app',
+        data: {
+            themeSwitcher,
+            isDarkTheme: themeSwitcher.isDarkTheme,
+            spinning: false,
+            oldXraySetting: '',
+            xraySetting: '',
+            inboundTags: [],
+            outboundsTraffic: [],
+            saveBtnDisable: true,
+            refreshing: false,
+            restartResult: '',
+            showAlert: false,
+            advSettings: 'xraySetting',
+            obsSettings: '',
+            cm: null,
+            cmOptions: {
+                lineNumbers: true,
+                mode: "application/json",
+                lint: true,
+                styleActiveLine: true,
+                matchBrackets: true,
+                theme: "xq",
+                autoCloseTags: true,
+                lineWrapping: true,
+                indentUnit: 2,
+                indentWithTabs: true,
+                smartIndent: true,
+                tabSize: 2,
+                lineWiseCopyCut: false,
+                foldGutter: true,
+                gutters: [
+                    "CodeMirror-lint-markers",
+                    "CodeMirror-linenumbers",
+                    "CodeMirror-foldgutter",
+                ],
+            },
+            ipv4Settings: {
+                tag: "IPv4",
+                protocol: "freedom",
+                settings: {
+                    domainStrategy: "UseIPv4"
+                }
+            },
+            directSettings: {
+                tag: "direct",
+                protocol: "freedom"
+            },
+            routingDomainStrategies: ["AsIs", "IPIfNonMatch", "IPOnDemand"],
+            log: {
+                loglevel: ["none", "debug", "info", "warning", "error"],
+                access: ["none", "./access.log"],
+                error: ["none", "./error.log"],
+                dnsLog: false,
+                maskAddress: ["quarter", "half", "full"],
+            },
+            settingsData: {
+                protocols: {
+                    bittorrent: ["bittorrent"],
+                },
+                IPsOptions: [
+                    { label: 'Private IPs', value: 'geoip:private' },
+                    { label: '🇮🇷 Iran', value: 'ext:geoip_IR.dat:ir' },
+                    { label: '🇨🇳 China', value: 'geoip:cn' },
+                    { label: '🇷🇺 Russia', value: 'ext:geoip_RU.dat:ru' },
+                    { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
+                    { label: '🇪🇸 Spain', value: 'geoip:es' },
+                    { label: '🇮🇩 Indonesia', value: 'geoip:id' },
+                    { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
+                    { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
+                    { label: '🇧🇷 Brazil', value: 'geoip:br' },
+                ],
+                DomainsOptions: [
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+                ],
+                BlockDomainsOptions: [
+                    { label: 'Ads All', value: 'geosite:category-ads-all' },
+                    { label: 'Ads IR 🇮🇷', value: 'ext:geosite_IR.dat:category-ads-all' },
+                    { label: 'Ads RU 🇷🇺', value: 'ext:geosite_RU.dat:category-ads-all' },
+                    { label: 'Malware 🇮🇷', value: 'ext:geosite_IR.dat:malware' },
+                    { label: 'Phishing 🇮🇷', value: 'ext:geosite_IR.dat:phishing' },
+                    { label: 'Cryptominers 🇮🇷', value: 'ext:geosite_IR.dat:cryptominers' },
+                    { label: '🇮🇷 Iran', value: 'ext:geosite_IR.dat:ir' },
+                    { label: '🇮🇷 .ir', value: 'regexp:.*\\.ir$' },
+                    { label: '🇮🇷 .ایران', value: 'regexp:.*\\.xn--mgba3a4f16a$' },
+                    { label: '🇨🇳 China', value: 'geosite:cn' },
+                    { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
+                    { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
+                    { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
+                    { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
+                    { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
+                    { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
+                ],
+                ServicesOptions: [
+                    { label: 'Apple', value: 'geosite:apple' },
+                    { label: 'Meta', value: 'geosite:meta' },
+                    { label: 'Google', value: 'geosite:google' },
+                    { label: 'OpenAI', value: 'geosite:openai' },
+                    { label: 'Spotify', value: 'geosite:spotify' },
+                    { label: 'Netflix', value: 'geosite:netflix' },
+                    { label: 'Reddit', value: 'geosite:reddit' },
+                    { label: 'Speedtest', value: 'geosite:speedtest' },
+                ],
+                familyProtectDNS: {
+                    "servers": [
+                        "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
+                        "1.0.0.3",
+                        "2606:4700:4700::1113",
+                        "2606:4700:4700::1003"
+                    ],
+                    "queryStrategy": "UseIP"
+                },
+            },
+            defaultObservatory: {
+                subjectSelector: [],
+                probeURL: "http://www.google.com/gen_204",
+                probeInterval: "10m",
+                enableConcurrency: true
+            },
+            defaultBurstObservatory: {
+                subjectSelector: [],
+                pingConfig: {
+                    destination: "http://www.google.com/gen_204",
+                    interval: "30m",
+                    connectivity: "http://connectivitycheck.platform.hicloud.com/generate_204",
+                    timeout: "10s",
+                    sampling: 2
+                }
+            }
+        },
+        methods: {
+            loading(spinning = true) {
+                this.spinning = spinning;
+            },
+            async getOutboundsTraffic() {
+                const msg = await HttpUtil.get("/panel/xray/getOutboundsTraffic");
+                if (msg.success) {
+                    this.outboundsTraffic = msg.obj;
+                }
+            },
+            async getXraySetting() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/xray/");
+                this.loading(false);
+                if (msg.success) {
+                    result = JSON.parse(msg.obj);
+                    xs = JSON.stringify(result.xraySetting, null, 2);
+                    this.oldXraySetting = xs;
+                    this.xraySetting = xs;
+                    this.inboundTags = result.inboundTags;
+                    this.saveBtnDisable = true;
+                }
+            },
+            async updateXraySetting() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/xray/update", {xraySetting : this.xraySetting});
+                this.loading(false);
+                if (msg.success) {
+                    await this.getXraySetting();
+                }
+            },
+            async restartXray() {
+                this.loading(true);
+                const msg = await HttpUtil.post("server/restartXrayService");
+                this.loading(false);
+                if (msg.success) {
+                    await PromiseUtil.sleep(500);
+                    await this.getXrayResult();
+                }
+                this.loading(false);
+            },
+            async getXrayResult() {
+                const msg = await HttpUtil.get("/panel/xray/getXrayResult");
+                if (msg.success) {
+                    this.restartResult=msg.obj;
+                    if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
+                }
+            },
+            async fetchUserSecret() {
+                this.loading(true);
+                const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
+                if (userMessage.success) {
+                    this.user = userMessage.obj;
+                }
+                this.loading(false);
+            },
+            async updateSecret() {
+                this.loading(true);
+                const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
+                if (msg.success) {
+                    this.user = msg.obj;
+                    window.location.replace(basePath + "logout");
+                }
+                this.loading(false);
+                await this.updateXraySetting();
+            },
+            generateRandomString(length) {
+                var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
+                let randomString = "";
+                for (let i = 0; i < length; i++) {
+                    randomString += chars[Math.floor(Math.random() * chars.length)];
+                }
+                return randomString;
+            },
+            async getNewSecret() {
+                this.loading(true);
+                await PromiseUtil.sleep(600);
+                const newSecret = this.generateRandomString(64);
+                this.user.loginSecret = newSecret;
+                document.getElementById("token").textContent = newSecret;
+                this.loading(false);
+            },
+            async toggleToken(value) {
+                if (value) {
+                    await this.getNewSecret();
+                } else {
+                    this.user.loginSecret = "";
+                }
+            },
+            async resetXrayConfigToDefault() {
+                this.loading(true);
+                const msg = await HttpUtil.get("/panel/setting/getDefaultJsonConfig");
+                this.loading(false);
+                if (msg.success) {
+                    this.templateSettings = JSON.parse(JSON.stringify(msg.obj, null, 2));
+                    this.saveBtnDisable = true;
+                }
+            },
+            changePage(pageKey) {
+                if(pageKey == 'tpl-advanced') this.changeCode();
+                if(pageKey == 'tpl-balancer') this.changeObsCode();
+            },
+            syncRulesWithOutbound(tag, setting) {
+                const newTemplateSettings = this.templateSettings;
+                const haveRules = newTemplateSettings.routing.rules.some((r) => r?.outboundTag === tag);
+                const outboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.tag === tag);
+                if (!haveRules && outboundIndex > 0) {
+                    newTemplateSettings.outbounds.splice(outboundIndex);
+                }
+                if (haveRules && outboundIndex < 0) {
+                    newTemplateSettings.outbounds.push(setting);
+                }
+                this.templateSettings = newTemplateSettings;
+            },
+            templateRuleGetter(routeSettings) {
+                const { property, outboundTag } = routeSettings;
+                let result = [];
+                if (this.templateSettings != null) {
+                    this.templateSettings.routing.rules.forEach(
+                        (routingRule) => {
+                            if (
+                                routingRule.hasOwnProperty(property) &&
+                                routingRule.hasOwnProperty("outboundTag") &&
+                                routingRule.outboundTag === outboundTag
+                            ) {
+                                result.push(...routingRule[property]);
+                            }
+                        }
+                    );
+                }
+                return result;
+            },
+            templateRuleSetter(routeSettings) {
+                const { data, property, outboundTag } = routeSettings;
+                const oldTemplateSettings = this.templateSettings;
+                const newTemplateSettings = oldTemplateSettings;
+                currentProperty = this.templateRuleGetter({ outboundTag, property })
+                if (currentProperty.length == 0) {
+                    const propertyRule = {
+                        type: "field",
+                        outboundTag,
+                        [property]: data
+                    };
+                    newTemplateSettings.routing.rules.push(propertyRule);
+                }
+                else {
+                    const newRules = [];
+                    insertedOnce = false;
+                    newTemplateSettings.routing.rules.forEach(
+                        (routingRule) => {
+                            if (
+                                routingRule.hasOwnProperty(property) &&
+                                routingRule.hasOwnProperty("outboundTag") &&
+                                routingRule.outboundTag === outboundTag
+                            ) {
+                                if (!insertedOnce && data.length > 0) {
+                                    insertedOnce = true;
+                                    routingRule[property] = data;
+                                    newRules.push(routingRule);
+                                }
+                            }
+                            else {
+                                newRules.push(routingRule);
+                            }
+                        }
+                    );
+                    newTemplateSettings.routing.rules = newRules;
+                }
+                this.templateSettings = newTemplateSettings;
+            },
+            changeCode() {
+                if(this.cm != null) {
+                    this.cm.toTextArea();
+                }
+                textAreaObj = document.getElementById('xraySetting');
+                textAreaObj.value = this[this.advSettings];
+                this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
+                this.cm.on('change',editor => {
+                    value = editor.getValue();
+                    if (this.isJsonString(value)) {
+                        this[this.advSettings] = value;
+                    }
+                });
+            },
+            changeObsCode() {
+                if(this.cm != null) {
+                    this.cm.toTextArea();
+                }
+                if (this.obsSettings == ''){
+                    this.cm = null;
+                    return
+                }
+                textAreaObj = document.getElementById('obsSetting');
+                textAreaObj.value = this[this.obsSettings];
+                this.cm = CodeMirror.fromTextArea(textAreaObj, this.cmOptions);
+                this.cm.on('change',editor => {
+                    value = editor.getValue();
+                    if(this.isJsonString(value)){
+                        this[this.obsSettings] = value;
+                    }
+                });
+            },
+            isJsonString(str) {
+                try {
+                    JSON.parse(str);
+                } catch (e) {
+                    return false;
+                }
+                return true;
+            },
+            findOutboundTraffic(o) {
+                for (const otraffic of this.outboundsTraffic) {
+                    if (otraffic.tag == o.tag) {
+                        return SizeFormatter.sizeFormat(otraffic.up) + ' / ' + SizeFormatter.sizeFormat(otraffic.down);
+                    }
+                }
+                return SizeFormatter.sizeFormat(0) + ' / ' + SizeFormatter.sizeFormat(0);
+            },
+            findOutboundAddress(o) {
+                serverObj = null;
+                switch(o.protocol){
+                    case Protocols.VMess:
+                    case Protocols.VLESS:
+                        serverObj = o.settings.vnext;
+                        break;
+                    case Protocols.HTTP:
+                    case Protocols.Socks:
+                    case Protocols.Shadowsocks:
+                    case Protocols.Trojan:
+                        serverObj = o.settings.servers;
+                        break;
+                    case Protocols.DNS:
+                        return [o.settings?.address + ':' + o.settings?.port];
+                        case Protocols.Wireguard:
+                        return o.settings.peers.map(peer => peer.endpoint);
+                    default:
+                        return null;
+                }
+                return serverObj ? serverObj.map(obj => obj.address + ':' + obj.port) : null;
+            },
+            addOutbound(){
+                outModal.show({
+                    title: '{{ i18n "pages.xray.outbound.addOutbound"}}',
+                    okText: '{{ i18n "pages.xray.outbound.addOutbound" }}',
+                    confirm: (outbound) => {
+                        outModal.loading();
+                        if(outbound.tag.length > 0){
+                            this.templateSettings.outbounds.push(outbound);
+                            this.outboundSettings = JSON.stringify(this.templateSettings.outbounds);
+                        }
+                        outModal.close();
+                    },
+                    isEdit: false,
+                    tags: this.templateSettings.outbounds.map(obj => obj.tag)
+                });
+            },
+            editOutbound(index){
+                outModal.show({
+                    title: '{{ i18n "pages.xray.outbound.editOutbound"}} ' + (index+1),
+                    outbound: app.templateSettings.outbounds[index],
+                    confirm: (outbound) => {
+                        outModal.loading();
+                        this.templateSettings.outbounds[index] = outbound;
+                        this.outboundSettings = JSON.stringify(this.templateSettings.outbounds);
+                        outModal.close();
+                    },
+                    isEdit: true,
+                    tags: this.outboundData.filter((o) => o.key != index ).map(obj => obj.tag)
+                });
+            },
+            deleteOutbound(index){
+                outbounds = this.templateSettings.outbounds;
+                outbounds.splice(index,1);
+                this.outboundSettings = JSON.stringify(outbounds);
+            },
+            setFirstOutbound(index){
+                outbounds = this.templateSettings.outbounds;
+                outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
+                this.outboundSettings = JSON.stringify(outbounds);
+            },
+            addReverse(){
+                reverseModal.show({
+                    title: '{{ i18n "pages.xray.outbound.addReverse"}}',
+                    okText: '{{ i18n "pages.xray.outbound.addReverse" }}',
+                    confirm: (reverse, rules) => {
+                        reverseModal.loading();
+                        if(reverse.tag.length > 0){
+                            newTemplateSettings = this.templateSettings;
+                            if(newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
+                            if(newTemplateSettings.reverse[reverse.type+'s']  == undefined) newTemplateSettings.reverse[reverse.type+'s'] = [];
+                            newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            this.templateSettings = newTemplateSettings;
+
+                            // Add related rules
+                            this.templateSettings.routing.rules.push(...rules);
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        reverseModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editReverse(index){
+                if(this.reverseData[index].type == "bridge") {
+                    oldRules = this.templateSettings.routing.rules.filter(r => r.inboundTag && r.inboundTag[0] == this.reverseData[index].tag);
+                } else {
+                    oldRules = this.templateSettings.routing.rules.filter(r => r.outboundTag && r.outboundTag == this.reverseData[index].tag);
+                }
+                reverseModal.show({
+                    title: '{{ i18n "pages.xray.outbound.editReverse"}} ' + (index+1),
+                    reverse: this.reverseData[index],
+                    rules: oldRules,
+                    confirm: (reverse, rules) => {
+                        reverseModal.loading();
+                        if(reverse.tag.length > 0){
+                            oldData = this.reverseData[index];
+                            newTemplateSettings = this.templateSettings;
+                            oldReverseIndex = newTemplateSettings.reverse[oldData.type+'s'].findIndex(rs => rs.tag == oldData.tag);
+                            oldRuleIndex0 = oldRules.length>0 ? newTemplateSettings.routing.rules.findIndex(r => JSON.stringify(r) == JSON.stringify(oldRules[0])) : -1;
+                            oldRuleIndex1 = oldRules.length==2 ? newTemplateSettings.routing.rules.findIndex(r => JSON.stringify(r) == JSON.stringify(oldRules[1])) : -1;
+                            if(oldData.type == reverse.type){
+                                newTemplateSettings.reverse[oldData.type + 's'][oldReverseIndex] = { tag: reverse.tag, domain: reverse.domain };
+                            } else {
+                                newTemplateSettings.reverse[oldData.type+'s'].splice(oldReverseIndex,1);
+                                // delete empty object
+                                if(newTemplateSettings.reverse[oldData.type+'s'].length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type+'s');
+                                // add other type of reverse if it is not exist
+                                if(!newTemplateSettings.reverse[reverse.type+'s']) newTemplateSettings.reverse[reverse.type+'s'] = [];
+                                newTemplateSettings.reverse[reverse.type+'s'].push({ tag: reverse.tag, domain: reverse.domain });
+                            }
+                            this.templateSettings = newTemplateSettings;
+
+                            // Adjust Rules
+                            newRules = this.templateSettings.routing.rules;
+                            oldRuleIndex0 != -1 ? newRules[oldRuleIndex0] = rules[0] : newRules.push(rules[0]);
+                            oldRuleIndex1 != -1 ? newRules[oldRuleIndex1] = rules[1] : newRules.push(rules[1]);
+                            this.routingRuleSettings = JSON.stringify(newRules);
+                        }
+                        reverseModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteReverse(index){
+                oldData = this.reverseData[index];
+                newTemplateSettings = this.templateSettings;
+                reverseTypeObj = newTemplateSettings.reverse[oldData.type+'s'];
+                realIndex = reverseTypeObj.findIndex(r => r.tag==oldData.tag && r.domain==oldData.domain);
+                newTemplateSettings.reverse[oldData.type+'s'].splice(realIndex,1);
+
+                // delete empty objects
+                if(reverseTypeObj.length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type+'s');
+                if(Object.keys(newTemplateSettings.reverse).length === 0) Reflect.deleteProperty(newTemplateSettings, 'reverse');
+
+                // delete related routing rules
+                newRules = newTemplateSettings.routing.rules;
+                if(oldData.type == "bridge"){
+                    newRules = newTemplateSettings.routing.rules.filter(r => !( r.inboundTag && r.inboundTag.length == 1 && r.inboundTag[0] == oldData.tag));
+                } else if(oldData.type == "portal"){
+                    newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
+                }
+                newTemplateSettings.routing.rules = newRules;
+
+                this.templateSettings = newTemplateSettings;
+            },
+            async refreshOutboundTraffic() {
+                if (!this.refreshing) {
+                    this.refreshing = true;
+                    await this.getOutboundsTraffic();
+
+                    data = []
+                    if (this.templateSettings != null) {
+                        this.templateSettings.outbounds.forEach((o, index) => {
+                            data.push({'key': index, ...o});
+                        });
+                    }
+
+                    this.outboundData = data;
+                    this.refreshing = false;
+                }
+            },
+            async resetOutboundTraffic(index) {
+                let tag = "-alltags-";
+                if (index >= 0) {
+                    tag = this.outboundData[index].tag ? this.outboundData[index].tag : ""
+                }
+                const msg = await HttpUtil.post("/panel/xray/resetOutboundsTraffic", { tag: tag });
+                if (msg.success) {
+                    await this.refreshOutboundTraffic();
+                }
+            },
+            addBalancer() {
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    okText: '{{ i18n "pages.xray.balancer.addBalancer"}}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: {
+                        tag: '',
+                        strategy: 'random',
+                        selector: [],
+                        fallbackTag: ''
+                    },
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+                        if (newTemplateSettings.routing.balancers == undefined) {
+                            newTemplateSettings.routing.balancers = [];
+                        }
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector,
+                            'fallbackTag': balancer.fallbackTag
+                        };
+                        if (balancer.strategy && balancer.strategy != 'random') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                        }
+                        newTemplateSettings.routing.balancers.push(tmpBalancer);
+                        this.templateSettings = newTemplateSettings;
+                        this.updateObservatorySelectors();
+                        balancerModal.close();
+                        this.changeObsCode();
+                    },
+                    isEdit: false
+                });
+            },
+            editBalancer(index) {
+                const oldTag = this.balancersData[index].tag;
+                balancerModal.show({
+                    title: '{{ i18n "pages.xray.balancer.editBalancer"}}',
+                    okText: '{{ i18n "sure" }}',
+                    balancerTags: this.balancersData.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag),
+                    balancer: this.balancersData[index],
+                    confirm: (balancer) => {
+                        balancerModal.loading();
+                        newTemplateSettings = this.templateSettings;
+
+                        let tmpBalancer = {
+                            'tag': balancer.tag,
+                            'selector': balancer.selector,
+                            'fallbackTag': balancer.fallbackTag
+                        };
+
+                        // Remove old tag
+                        if (newTemplateSettings.observatory){
+                            newTemplateSettings.observatory.subjectSelector = newTemplateSettings.observatory.subjectSelector.filter(s => s != oldTag);
+                        }
+                        if (newTemplateSettings.burstObservatory){
+                            newTemplateSettings.burstObservatory.subjectSelector = newTemplateSettings.burstObservatory.subjectSelector.filter(s => s != oldTag);
+                        }
+
+                        if (balancer.strategy && balancer.strategy != 'random') {
+                            tmpBalancer.strategy = {
+                                'type': balancer.strategy
+                            };
+                        }
+
+                        newTemplateSettings.routing.balancers[index] = tmpBalancer;
+                        // change edited tag if used in rule section
+                        if (oldTag != balancer.tag) {
+                            newTemplateSettings.routing.rules.forEach((rule) => {
+                                if (rule.balancerTag && rule.balancerTag == oldTag) {
+                                    rule.balancerTag = balancer.tag;
+                                }
+                            });
+                        }
+                        this.templateSettings = newTemplateSettings;
+                        this.updateObservatorySelectors();
+                        balancerModal.close();
+                        this.changeObsCode();
+                    },
+                    isEdit: true
+                });
+            },
+            updateObservatorySelectors(){
+                newTemplateSettings = this.templateSettings;
+                const leastPings = this.balancersData.filter((b) => b.strategy == 'leastPing');
+                const leastLoads = this.balancersData.filter((b) =>
+                    b.strategy === 'leastLoad' ||
+                    b.strategy === 'roundRobin' ||
+                    b.strategy === 'random'
+                );
+                if (leastPings.length>0){
+                    if (!newTemplateSettings.observatory)
+                        newTemplateSettings.observatory = this.defaultObservatory;
+                    newTemplateSettings.observatory.subjectSelector = [];
+                    leastPings.forEach((b) => {
+                        b.selector.forEach((s) => {
+                            if (!newTemplateSettings.observatory.subjectSelector.includes(s))
+                                newTemplateSettings.observatory.subjectSelector.push(s);
+                        });
+                    });
+                } else {
+                    delete newTemplateSettings.observatory
+                }
+                if (leastLoads.length>0){
+                    if (!newTemplateSettings.burstObservatory)
+                        newTemplateSettings.burstObservatory = this.defaultBurstObservatory;
+                    newTemplateSettings.burstObservatory.subjectSelector = [];
+                    leastLoads.forEach((b) => {
+                        b.selector.forEach((s) => {
+                            if (!newTemplateSettings.burstObservatory.subjectSelector.includes(s))
+                                newTemplateSettings.burstObservatory.subjectSelector.push(s);
+                        });
+                    });
+                } else {
+                    delete newTemplateSettings.burstObservatory
+                }
+                this.templateSettings = newTemplateSettings;
+                this.changeObsCode();
+            },
+            deleteBalancer(index) {
+                newTemplateSettings = this.templateSettings;
+
+                // Remove from balancers
+                const removedBalancer = this.balancersData.splice(index, 1)[0];
+
+                // Remove from settings
+                let realIndex = newTemplateSettings.routing.balancers.findIndex((b) => b.tag === removedBalancer.tag);
+                newTemplateSettings.routing.balancers.splice(realIndex, 1);
+                
+                // Update balancers property to an empty array if there are no more balancers
+                if (newTemplateSettings.routing.balancers.length === 0) {
+                    delete newTemplateSettings.routing.balancers;
+                }
+                this.templateSettings = newTemplateSettings;
+                this.updateObservatorySelectors();
+                this.obsSettings = '';
+                this.changeObsCode()
+            },
+            addDNSServer(){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.add" }}',
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers.push(dnsServer);
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editDNSServer(index){
+                dnsModal.show({
+                    title: '{{ i18n "pages.xray.dns.edit" }} #' + (index+1),
+                    dnsServer: this.dnsServers[index],
+                    confirm: (dnsServer) => {
+                        dnsServers = this.dnsServers;
+                        dnsServers[index] = dnsServer;
+                        this.dnsServers = dnsServers;
+                        dnsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteDNSServer(index){
+                newDnsServers = this.dnsServers;
+                newDnsServers.splice(index,1);
+                this.dnsServers = newDnsServers;
+            },
+            addFakedns() {
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.add" }}',
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns?? [];
+                        fakeDns.push(item);
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editFakedns(index){
+                fakednsModal.show({
+                    title: '{{ i18n "pages.xray.fakedns.edit" }} #' + (index+1),
+                    fakeDns: this.fakeDns[index],
+                    confirm: (item) => {
+                        fakeDns = this.fakeDns;
+                        fakeDns[index] = item;
+                        this.fakeDns = fakeDns;
+                        fakednsModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            deleteFakedns(index){
+                fakeDns = this.fakeDns;
+                fakeDns.splice(index,1);
+                this.fakeDns = fakeDns;
+            },
+            addRule(){
+                ruleModal.show({
+                    title: '{{ i18n "pages.xray.rules.add"}}',
+                    okText: '{{ i18n "pages.xray.rules.add" }}',
+                    confirm: (rule) => {
+                        ruleModal.loading();
+                        if(JSON.stringify(rule).length > 3){
+                            this.templateSettings.routing.rules.push(rule);
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        ruleModal.close();
+                    },
+                    isEdit: false
+                });
+            },
+            editRule(index){
+                ruleModal.show({
+                    title: '{{ i18n "pages.xray.rules.edit"}} ' + (index+1),
+                    rule: app.templateSettings.routing.rules[index],
+                    confirm: (rule) => {
+                        ruleModal.loading();
+                        if(JSON.stringify(rule).length > 3){
+                            this.templateSettings.routing.rules[index] = rule;
+                            this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
+                        }
+                        ruleModal.close();
+                    },
+                    isEdit: true
+                });
+            },
+            replaceRule(old_index,new_index){
+                rules = this.templateSettings.routing.rules;
+                if (new_index >= rules.length) rules.push(undefined);
+                rules.splice(new_index, 0, rules.splice(old_index, 1)[0]);
+                this.routingRuleSettings = JSON.stringify(rules);
+            },
+            deleteRule(index){
+                rules = this.templateSettings.routing.rules;
+                rules.splice(index,1);
+                this.routingRuleSettings = JSON.stringify(rules);
+            },
+            showWarp(){
+                warpModal.show();
+            }
+        },
+        async mounted() {
+            if (window.location.protocol !== "https:") {
+                this.showAlert = true;
+            }
+            await this.getXraySetting();
+            await this.getXrayResult();
+            await this.getOutboundsTraffic();
+            while (true) {
+                await PromiseUtil.sleep(800);
+                this.saveBtnDisable = this.oldXraySetting === this.xraySetting;
+            }
+        },
+        computed: {
+            templateSettings: {
+                get: function () {
+                    const parsedSettings = this.xraySetting ? JSON.parse(this.xraySetting) : null;
+                    return parsedSettings;
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.xraySetting = JSON.stringify(newValue, null, 2);
+                    }
+                },
+            },
+            inboundSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.inbounds, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.inbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            outboundSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.outbounds, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.outbounds = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            outboundData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null) {
+                        this.templateSettings.outbounds.forEach((o, index) => {
+                            data.push({'key': index, ...o});
+                        });
+                    }
+                    return data;
+                },
+            },
+            reverseData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null && this.templateSettings.reverse != null) {
+                        if(this.templateSettings.reverse.bridges) {
+                            this.templateSettings.reverse.bridges.forEach((o, index) => {
+                                data.push({'key': index, 'type':'bridge', ...o});
+                            });
+                        }
+                        if(this.templateSettings.reverse.portals){
+                            this.templateSettings.reverse.portals.forEach((o, index) => {
+                                data.push({'key': index, 'type':'portal', ...o});
+                            });
+                        }
+                    }
+                    return data;
+                },
+            },
+            routingRuleSettings: {
+                get: function () { return this.templateSettings ? JSON.stringify(this.templateSettings.routing.rules, null, 2) : null; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.routing.rules = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            routingRuleData: {
+                get: function () {
+                    data = [];
+                    if (this.templateSettings != null) {
+                        this.templateSettings.routing.rules.forEach((r, index) => {
+                            data.push({'key': index, ...r});
+                        });
+                        // Make rules readable
+                        data.forEach(r => {
+                            if(r.domain) r.domain = r.domain.join(',')
+                            if(r.ip) r.ip = r.ip.join(',')
+                            if(r.source) r.source = r.source.join(',');
+                            if(r.user) r.user = r.user.join(',')
+                            if(r.inboundTag) r.inboundTag = r.inboundTag.join(',')
+                            if(r.protocol) r.protocol = r.protocol.join(',')
+                            if(r.attrs) r.attrs = JSON.stringify(r.attrs, null, 2)
+                        });
+                    }
+                    return data;
+                }
+            },
+            balancersData: {
+                get: function () {
+                    data = []
+                    if (this.templateSettings != null && this.templateSettings.routing != null && this.templateSettings.routing.balancers != null) {
+                        this.templateSettings.routing.balancers.forEach((o, index) => {
+                            data.push({
+                                'key': index,
+                                'tag': o.tag ? o.tag : "",
+                                'strategy': o.strategy?.type ?? "random",
+                                'selector': o.selector ? o.selector : [],
+                                'fallbackTag': o.fallbackTag?? '',
+                            });
+                        });
+                    }
+                    return data;
+                }
+            },
+            observatory: {
+                get: function () { 
+                    return this.templateSettings?.observatory ? JSON.stringify(this.templateSettings.observatory, null, 2) : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.observatory = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            burstObservatory: {
+                get: function () { 
+                    return this.templateSettings?.burstObservatory ? JSON.stringify(this.templateSettings.burstObservatory, null, 2) : null; 
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.burstObservatory = JSON.parse(newValue);
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            observatoryEnable: function () { return this.templateSettings != null && this.templateSettings.observatory != undefined },
+            burstObservatoryEnable: function () { return this.templateSettings != null && this.templateSettings.burstObservatory != undefined },
+            freedomStrategy: {
+                get: function () {
+                    if (!this.templateSettings) return "AsIs";
+                    freedomOutbound = this.templateSettings.outbounds.find((o) => o.protocol === "freedom" && o.tag == "direct");
+                    if (!freedomOutbound) return "AsIs";
+                    if (!freedomOutbound.settings || !freedomOutbound.settings.domainStrategy) return "AsIs";
+                    return freedomOutbound.settings.domainStrategy;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    freedomOutboundIndex = newTemplateSettings.outbounds.findIndex((o) => o.protocol === "freedom" && o.tag == "direct");
+                    if(freedomOutboundIndex == -1){
+                        newTemplateSettings.outbounds.push({protocol: "freedom", tag: "direct", settings: { "domainStrategy": newValue }});
+                    } else if (!newTemplateSettings.outbounds[freedomOutboundIndex].settings) {
+                        newTemplateSettings.outbounds[freedomOutboundIndex].settings = {"domainStrategy": newValue};
+                    } else {
+                        newTemplateSettings.outbounds[freedomOutboundIndex].settings.domainStrategy = newValue;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            routingStrategy: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.routing || !this.templateSettings.routing.domainStrategy) return "AsIs";
+                    return this.templateSettings.routing.domainStrategy;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.routing.domainStrategy = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            logLevel: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.loglevel) return "warning";
+                    return this.templateSettings.log.loglevel;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.loglevel = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            accessLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.access) return "";
+                    return this.templateSettings.log.access;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.access = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            errorLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.error) return "";
+                    return this.templateSettings.log.error;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.error = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnslog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.dnsLog) return false;
+                    return this.templateSettings.log.dnsLog;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.dnsLog = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsInboundUplink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsInboundUplink) return false;
+                    return this.templateSettings.policy.system.statsInboundUplink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsInboundUplink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsInboundDownlink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsInboundDownlink) return false;
+                    return this.templateSettings.policy.system.statsInboundDownlink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsInboundDownlink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsOutboundUplink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundUplink) return false;
+                    return this.templateSettings.policy.system.statsOutboundUplink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsOutboundUplink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            statsOutboundDownlink: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.policy.system || !this.templateSettings.policy.system.statsOutboundDownlink) return false;
+                    return this.templateSettings.policy.system.statsOutboundDownlink;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.policy.system.statsOutboundDownlink = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            maskAddressLog: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.log || !this.templateSettings.log.maskAddress) return "";
+                    return this.templateSettings.log.maskAddress;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.log.maskAddress = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            blockedIPs: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "ip" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "ip", data: newValue });
+                }
+            },
+            blockedDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "domain", data: newValue });
+                }
+            },
+            blockedProtocols: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "blocked", property: "protocol" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "blocked", property: "protocol", data: newValue });
+                }
+            },
+            directIPs: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "direct", property: "ip" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "direct", property: "ip", data: newValue });
+                    this.syncRulesWithOutbound("direct", this.directSettings);
+                }
+            },
+            directDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "direct", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "direct", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("direct", this.directSettings);
+                }
+            },
+            ipv4Domains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "IPv4", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "IPv4", property: "domain", data: newValue });
+                    this.syncRulesWithOutbound("IPv4", this.ipv4Settings);
+                }
+            },
+            warpDomains: {
+                get: function () {
+                    return this.templateRuleGetter({ outboundTag: "warp", property: "domain" });
+                },
+                set: function (newValue) {
+                    this.templateRuleSetter({ outboundTag: "warp", property: "domain", data: newValue });
+                }
+            },
+            torrentSettings: {
+                get: function () {
+                    return ArrayUtils.doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
+                },
+                set: function (newValue) {
+                    if (newValue) {
+                        this.blockedProtocols = [...this.blockedProtocols, ...this.settingsData.protocols.bittorrent];
+                    } else {
+                        this.blockedProtocols = this.blockedProtocols.filter(data => !this.settingsData.protocols.bittorrent.includes(data));
+                    }
+                },
+            },
+            familyProtectSettings: {
+                get: function () {
+                    if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
+                    return ArrayUtils.doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns = this.settingsData.familyProtectDNS;
+                    } else {
+                        newTemplateSettings.dns.servers = newTemplateSettings.dns?.servers?.filter(data => !this.settingsData.familyProtectDNS.servers.includes(data))
+                    }
+                    this.templateSettings = newTemplateSettings;
+                },
+            },
+            WarpExist: {
+                get: function() {
+                    return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp")>=0  : false;
+                },
+            },
+            enableDNS: {
+                get: function () {
+                    return this.templateSettings ? this.templateSettings.dns != null : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns = { 
+                            servers: [], 
+                            queryStrategy: "UseIP", 
+                            tag: "dns_inbound"
+                        };
+                        newTemplateSettings.fakedns = null; 
+                    } else {
+                        delete newTemplateSettings.dns;
+                        delete newTemplateSettings.fakedns;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsTag: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.tag : "";
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.tag = newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsClientIp: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.clientIp : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.clientIp = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.clientIp;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableCache: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableCache : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableCache = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableCache
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableFallback: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableFallback : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableFallback = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableFallback
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsDisableFallbackIfMatch: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.disableFallbackIfMatch : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.disableFallbackIfMatch = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.disableFallbackIfMatch
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsStrategy: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.queryStrategy : null;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.queryStrategy =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsServers: {
+                get: function () { return this.enableDNS ? this.templateSettings.dns.servers : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    newTemplateSettings.dns.servers =  newValue;
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            fakeDns: {
+                get: function () { return this.templateSettings && this.templateSettings.fakedns ? this.templateSettings.fakedns : []; },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (this.enableDNS) {
+                        newTemplateSettings.fakedns = newValue.length > 0 ? newValue : null;
+                    } else {
+                        delete newTemplateSettings.fakedns;
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            }
+        },
+    });
+</script>
+</body>
+</html>

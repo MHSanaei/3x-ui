@@ -1,0 +1,98 @@
+{{define "settings/panel/subscription/general"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subEnable"}}</template>
+            <template #description>{{ i18n "pages.settings.subEnableDesc"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subTitle"}}</template>
+            <template #description>{{ i18n "pages.settings.subTitleDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subTitle"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subListen"}}</template>
+            <template #description>{{ i18n "pages.settings.subListenDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subListen"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subDomain"}}</template>
+            <template #description>{{ i18n "pages.settings.subDomainDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subDomain"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subPort"}}</template>
+            <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
+            <template #control>
+                <a-input-number v-model="allSetting.subPort" :min="1" :min="65531"
+                    :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subPath"}}</template>
+            <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subPath"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subURI"}}</template>
+            <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
+                    v-model="allSetting.subURI"></a-input>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.information" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subEncrypt"}}</template>
+            <template #description>{{ i18n "pages.settings.subEncryptDesc"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subEncrypt"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subShowInfo"}}</template>
+            <template #description>{{ i18n "pages.settings.subShowInfoDesc"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subShowInfo"></a-switch>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.certs" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subCertPath"}}</template>
+            <template #description>{{ i18n "pages.settings.subCertPathDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subCertFile"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subKeyPath"}}</template>
+            <template #description>{{ i18n "pages.settings.subKeyPathDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subKeyFile"></a-input>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.intervals"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subUpdates"}}</template>
+            <template #description>{{ i18n "pages.settings.subUpdatesDesc"}}</template>
+            <template #control>
+                <a-input-number :min="1" v-model="allSetting.subUpdates" :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}
