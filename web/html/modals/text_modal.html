@@ -5,7 +5,7 @@
         :autosize="{ minRows: 10, maxRows: 20}"></a-input>
     <template slot="footer">
         <a-button v-if="!ObjectUtil.isEmpty(txtModal.fileName)" icon="download"
-            @click="txtModal.download(txtModal.content, txtModal.fileName)">
+            @click="FileManager.downloadTextFile(txtModal.content, txtModal.fileName)">
             <span>[[ txtModal.fileName ]]</span>
         </a-button>
         <a-button type="primary" icon="copy" @click="txtModal.copy(txtModal.content)">
@@ -34,17 +34,6 @@
                     app.$message.success('{{ i18n "copied" }}')
                     this.close();
                 })
-        },
-        download: function (content = '', fileName = '') {
-            let link = document.createElement('a');
-
-            link.download = fileName;
-            link.href = URL.createObjectURL(new Blob([content], { type: 'text/plain' }));
-            link.click();
-
-            URL.revokeObjectURL(link.href);
-
-            link.remove();
         },
         close: function () {
             this.visible = false;
