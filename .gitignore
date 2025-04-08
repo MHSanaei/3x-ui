@@ -6,8 +6,6 @@
 
 # Ignore log files
 *.log
-access.log
-error.log
 
 # Ignore temporary files
 tmp/

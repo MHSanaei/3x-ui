@@ -1,0 +1,103 @@
+{{define "component/sidebar/content"}}
+<template>
+    <div class="ant-sidebar">
+        <a-layout-sider :theme="themeSwitcher.currentTheme" collapsible :collapsed="collapsed"
+            @collapse="(isCollapsed, type) => collapseHandle(isCollapsed, type)" breakpoint="md">
+            <a-theme-switch></a-theme-switch>
+            <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
+                @click="({key}) => openLink(key)">
+                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                    <a-icon :type="tab.icon"></a-icon>
+                    <span v-text="tab.title"></span>
+                </a-menu-item>
+            </a-menu>
+        </a-layout-sider>
+        <a-drawer placement="left" :closable="false" @close="closeDrawer" :visible="visible"
+            :wrap-class-name="themeSwitcher.currentTheme" :wrap-style="{ padding: 0 }" :style="{ height: '100%' }">
+            <div class="drawer-handle" @click="toggleDrawer" slot="handle">
+                <a-icon :type="visible ? 'close' : 'menu-fold'"></a-icon>
+            </div>
+            <a-theme-switch></a-theme-switch>
+            <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
+                @click="({key}) => openLink(key)">
+                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                    <a-icon :type="tab.icon"></a-icon>
+                    <span v-text="tab.title"></span>
+                </a-menu-item>
+            </a-menu>
+        </a-drawer>
+    </div>
+</template>
+{{end}}
+
+{{define "component/aSidebar"}}
+<style>
+    .ant-sidebar>.ant-layout-sider {
+        height: 100%;
+    }
+</style>
+
+<script>
+    const SIDEBAR_COLLAPSED_KEY = "isSidebarCollapsed"
+
+    Vue.component('a-sidebar', {
+        data() {
+            return {
+                tabs: [
+                    {
+                        key: '{{ .base_path }}panel/',
+                        icon: 'dashboard',
+                        title: '{{ i18n "menu.dashboard"}}'
+                    },
+                    {
+                        key: '{{ .base_path }}panel/inbounds',
+                        icon: 'user',
+                        title: '{{ i18n "menu.inbounds"}}'
+                    },
+                    {
+                        key: '{{ .base_path }}panel/settings',
+                        icon: 'setting',
+                        title: '{{ i18n "menu.settings"}}'
+                    },
+                    {
+                        key: '{{ .base_path }}panel/xray',
+                        icon: 'tool',
+                        title: '{{ i18n "menu.xray"}}'
+                    },
+                    {
+                        key: '{{ .base_path }}logout/',
+                        icon: 'logout',
+                        title: '{{ i18n "menu.logout"}}'
+                    },
+                ],
+                activeTab: [
+                    '{{ .request_uri }}'
+                ],
+                visible: false,
+                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
+            }
+        },
+        methods: {
+            openLink(key) {
+                return key.startsWith('http') ? 
+                    window.open(key) : 
+                    location.href = key
+            },
+            closeDrawer() {
+                this.visible = false;
+            },
+            toggleDrawer() {
+                this.visible = !this.visible;
+            },
+            collapseHandle(collapsed, type) {
+                if (type === "clickTrigger") {
+                    localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed);
+
+                    this.collapsed = JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY));
+                }
+            }
+        },
+        template: `{{template "component/sidebar/content"}}`,
+    });
+</script>
+{{end}}
