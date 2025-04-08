@@ -58,12 +58,12 @@ iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
 confirm() {
     if [[ $# > 1 ]]; then
-        echo && read -p "$1 [Default $2]: " temp
+        echo && read -rp "$1 [Default $2]: " temp
         if [[ "${temp}" == "" ]]; then
             temp=$2
         fi
     else
-        read -p "$1 [y/n]: " temp
+        read -rp "$1 [y/n]: " temp
     fi
     if [[ "${temp}" == "y" || "${temp}" == "Y" ]]; then
         return 0
@@ -82,7 +82,7 @@ confirm_restart() {
 }
 
 before_show_menu() {
-    echo && echo -n -e "${yellow}Press enter to return to the main menu: ${plain}" && read temp
+    echo && echo -n -e "${yellow}Press enter to return to the main menu: ${plain}" && read -rp temp
     show_menu
 }
 
@@ -139,7 +139,7 @@ update_menu() {
 
 legacy_version() {
     echo "Enter the panel version (like 2.4.0):"
-    read tag_version
+    read -rp tag_version
 
     if [ -z "$tag_version" ]; then
         echo "Panel version cannot be empty. Exiting."
@@ -271,7 +271,7 @@ check_config() {
 }
 
 set_port() {
-    echo && echo -n -e "Enter port number[1-65535]: " && read port
+    echo && echo -n -e "Enter port number[1-65535]: " && Read -rp port
     if [[ -z "${port}" ]]; then
         LOGD "Cancelled"
         before_show_menu
@@ -375,7 +375,7 @@ show_log() {
     echo -e "${green}\t1.${plain} Debug Log"
     echo -e "${green}\t2.${plain} Clear All logs"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
 
     case "$choice" in
     0)
@@ -435,7 +435,7 @@ bbr_menu() {
     echo -e "${green}\t1.${plain} Enable BBR"
     echo -e "${green}\t2.${plain} Disable BBR"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
     case "$choice" in
     0)
         show_menu
@@ -635,7 +635,7 @@ firewall_menu() {
     echo -e "${green}\t6.${plain} ${red}Disable${plain} Firewall"
     echo -e "${green}\t7.${plain} Firewall Status"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
     case "$choice" in
     0)
         show_menu
@@ -703,7 +703,7 @@ install_firewall() {
 
 open_ports() {
     # Prompt the user to enter the ports they want to open
-    read -p "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
+    read -rp "Enter the ports you want to open (e.g. 80,443,2053 or range 400-500): " ports
 
     # Check if the input is valid
     if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
@@ -751,11 +751,11 @@ delete_ports() {
     echo "Do you want to delete rules by:"
     echo "1) Rule numbers"
     echo "2) Ports"
-    read -p "Enter your choice (1 or 2): " choice
+    read -rp "Enter your choice (1 or 2): " choice
 
     if [[ $choice -eq 1 ]]; then
         # Deleting by rule numbers
-        read -p "Enter the rule numbers you want to delete (1, 2, etc.): " rule_numbers
+        read -rp "Enter the rule numbers you want to delete (1, 2, etc.): " rule_numbers
 
         # Validate the input
         if ! [[ $rule_numbers =~ ^([0-9]+)(,[0-9]+)*$ ]]; then
@@ -774,7 +774,7 @@ delete_ports() {
 
     elif [[ $choice -eq 2 ]]; then
         # Deleting by ports
-        read -p "Enter the ports you want to delete (e.g. 80,443,2053 or range 400-500): " ports
+        read -rp "Enter the ports you want to delete (e.g. 80,443,2053 or range 400-500): " ports
 
         # Validate the input
         if ! [[ $ports =~ ^([0-9]+|[0-9]+-[0-9]+)(,([0-9]+|[0-9]+-[0-9]+))*$ ]]; then
@@ -822,7 +822,7 @@ update_geo() {
     echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
     echo -e "${green}\t3.${plain} runetfreedom (geoip_RU.dat, geosite_RU.dat)"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
 
     cd /usr/local/x-ui/bin
 
@@ -892,7 +892,7 @@ ssl_cert_issue_main() {
     echo -e "${green}\t5.${plain} Set Cert paths for the panel"
     echo -e "${green}\t0.${plain} Back to Main Menu"
 
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
     case "$choice" in
     0)
         show_menu
@@ -908,7 +908,7 @@ ssl_cert_issue_main() {
         else
             echo "Existing domains:"
             echo "$domains"
-            read -p "Please enter a domain from the list to revoke the certificate: " domain
+            read -rp "Please enter a domain from the list to revoke the certificate: " domain
             if echo "$domains" | grep -qw "$domain"; then
                 ~/.acme.sh/acme.sh --revoke -d ${domain}
                 LOGI "Certificate revoked for domain: $domain"
@@ -925,7 +925,7 @@ ssl_cert_issue_main() {
         else
             echo "Existing domains:"
             echo "$domains"
-            read -p "Please enter a domain from the list to renew the SSL certificate: " domain
+            read -rp "Please enter a domain from the list to renew the SSL certificate: " domain
             if echo "$domains" | grep -qw "$domain"; then
                 ~/.acme.sh/acme.sh --renew -d ${domain} --force
                 LOGI "Certificate forcefully renewed for domain: $domain"
@@ -962,7 +962,7 @@ ssl_cert_issue_main() {
         else
             echo "Available domains:"
             echo "$domains"
-            read -p "Please choose a domain to set the panel paths: " domain
+            read -rp "Please choose a domain to set the panel paths: " domain
 
             if echo "$domains" | grep -qw "$domain"; then
                 local webCertFile="/root/cert/${domain}/fullchain.pem"
@@ -1032,7 +1032,7 @@ ssl_cert_issue() {
 
     # get the domain here, and we need to verify it
     local domain=""
-    read -p "Please enter your domain name: " domain
+    read -rp "Please enter your domain name: " domain
     LOGD "Your domain is: ${domain}, checking it..."
 
     # check if there already exists a certificate
@@ -1057,7 +1057,7 @@ ssl_cert_issue() {
 
     # get the port number for the standalone server
     local WebPort=80
-    read -p "Please choose which port to use (default is 80): " WebPort
+    read -rp "Please choose which port to use (default is 80): " WebPort
     if [[ ${WebPort} -gt 65535 || ${WebPort} -lt 1 ]]; then
         LOGE "Your input ${WebPort} is invalid, will use default port 80."
         WebPort=80
@@ -1079,12 +1079,12 @@ ssl_cert_issue() {
 
     LOGI "Default --reloadcmd for ACME is: ${yellow}x-ui restart"
     LOGI "This command will run on every certificate issue and renew."
-    read -p "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
+    read -rp "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
     if [[ "$setReloadcmd" == "y" || "$setReloadcmd" == "Y" ]]; then
         echo -e "\n${green}\t1.${plain} Preset: systemctl reload nginx ; x-ui restart"
         echo -e "${green}\t2.${plain} Input your own command"
         echo -e "${green}\t0.${plain} Keep default reloadcmd"
-        read -p "Choose an option: " choice
+        read -rp "Choose an option: " choice
         case "$choice" in
         1)
             LOGI "Reloadcmd is: systemctl reload nginx ; x-ui restart"
@@ -1092,7 +1092,7 @@ ssl_cert_issue() {
             ;;
         2)  
             LOGD "It's recommended to put x-ui restart at the end, so it won't raise an error if other services fails"
-            read -p "Please enter your reloadcmd (example: systemctl reload nginx ; x-ui restart): " reloadCmd
+            read -rp "Please enter your reloadcmd (example: systemctl reload nginx ; x-ui restart): " reloadCmd
             LOGI "Your reloadcmd is: ${reloadCmd}"
             ;;
         *)
@@ -1128,7 +1128,7 @@ ssl_cert_issue() {
     fi
 
     # Prompt user to set panel paths after successful certificate installation
-    read -p "Would you like to set this certificate for the panel? (y/n): " setPanel
+    read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
     if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
         local webCertFile="/root/cert/${domain}/fullchain.pem"
         local webKeyFile="/root/cert/${domain}/privkey.pem"
@@ -1175,18 +1175,18 @@ ssl_cert_issue_CF() {
         CF_Domain=""
 
         LOGD "Please set a domain name:"
-        read -p "Input your domain here: " CF_Domain
+        read -rp "Input your domain here: " CF_Domain
         LOGD "Your domain name is set to: ${CF_Domain}"
 
         # Set up Cloudflare API details
         CF_GlobalKey=""
         CF_AccountEmail=""
         LOGD "Please set the API key:"
-        read -p "Input your key here: " CF_GlobalKey
+        read -rp "Input your key here: " CF_GlobalKey
         LOGD "Your API key is: ${CF_GlobalKey}"
 
         LOGD "Please set up registered email:"
-        read -p "Input your email here: " CF_AccountEmail
+        read -rp "Input your email here: " CF_AccountEmail
         LOGD "Your registered email address is: ${CF_AccountEmail}"
 
         # Set the default CA to Let's Encrypt
@@ -1224,12 +1224,12 @@ ssl_cert_issue_CF() {
 
         LOGI "Default --reloadcmd for ACME is: ${yellow}x-ui restart"
         LOGI "This command will run on every certificate issue and renew."
-        read -p "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
+        read -rp "Would you like to modify --reloadcmd for ACME? (y/n): " setReloadcmd
         if [[ "$setReloadcmd" == "y" || "$setReloadcmd" == "Y" ]]; then
             echo -e "\n${green}\t1.${plain} Preset: systemctl reload nginx ; x-ui restart"
             echo -e "${green}\t2.${plain} Input your own command"
             echo -e "${green}\t0.${plain} Keep default reloadcmd"
-            read -p "Choose an option: " choice
+            read -rp "Choose an option: " choice
             case "$choice" in
             1)
                 LOGI "Reloadcmd is: systemctl reload nginx ; x-ui restart"
@@ -1237,7 +1237,7 @@ ssl_cert_issue_CF() {
                 ;;
             2)  
                 LOGD "It's recommended to put x-ui restart at the end, so it won't raise an error if other services fails"
-                read -p "Please enter your reloadcmd (example: systemctl reload nginx ; x-ui restart): " reloadCmd
+                read -rp "Please enter your reloadcmd (example: systemctl reload nginx ; x-ui restart): " reloadCmd
                 LOGI "Your reloadcmd is: ${reloadCmd}"
                 ;;
             *)
@@ -1268,7 +1268,7 @@ ssl_cert_issue_CF() {
         fi
 
         # Prompt user to set panel paths after successful certificate installation
-        read -p "Would you like to set this certificate for the panel? (y/n): " setPanel
+        read -rp "Would you like to set this certificate for the panel? (y/n): " setPanel
         if [[ "$setPanel" == "y" || "$setPanel" == "Y" ]]; then
             local webCertFile="${certPath}/fullchain.pem"
             local webKeyFile="${certPath}/privkey.pem"
@@ -1425,7 +1425,7 @@ iplimit_main() {
     echo -e "${green}\t9.${plain} Service Restart"
     echo -e "${green}\t10.${plain} Uninstall Fail2ban and IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " choice
+    read -rp "Choose an option: " choice
     case "$choice" in
     0)
         show_menu
@@ -1586,7 +1586,7 @@ remove_iplimit() {
     echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
     echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
     echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -p "Choose an option: " num
+    read -rp "Choose an option: " num
     case "$num" in
     1)
         rm -f /etc/fail2ban/filter.d/3x-ipl.conf
@@ -1668,7 +1668,7 @@ SSH_port_forwarding() {
     echo -e "${green}1.${plain} Set listen IP"
     echo -e "${green}2.${plain} Clear listen IP"
     echo -e "${green}0.${plain} Back to Main Menu"
-    read -p "Choose an option: " num
+    read -rp "Choose an option: " num
 
     case "$num" in
     1)
@@ -1676,10 +1676,10 @@ SSH_port_forwarding() {
             echo -e "\nNo listenIP configured. Choose an option:"
             echo -e "1. Use default IP (127.0.0.1)"
             echo -e "2. Set a custom IP"
-            read -p "Select an option (1 or 2): " listen_choice
+            read -rp "Select an option (1 or 2): " listen_choice
 
             config_listenIP="127.0.0.1"
-            [[ "$listen_choice" == "2" ]] && read -p "Enter custom IP to listen on: " config_listenIP
+            [[ "$listen_choice" == "2" ]] && read -rp "Enter custom IP to listen on: " config_listenIP
 
             /usr/local/x-ui/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
             echo -e "${green}listen IP has been set to ${config_listenIP}.${plain}"
@@ -1771,7 +1771,7 @@ show_menu() {
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -p "Please enter your selection [0-25]: " num
+    echo && read -rp "Please enter your selection [0-25]: " num
 
     case "${num}" in
     0)
