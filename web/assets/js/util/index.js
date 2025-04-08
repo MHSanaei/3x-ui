@@ -681,6 +681,11 @@ class URLBuilder {
 class LanguageManager {
     static supportedLanguages = [
         {
+            name: "العربية",
+            value: "ar-EG",
+            icon: "🇪🇬",
+        },
+        {
             name: "English",
             value: "en-US",
             icon: "🇺🇸",
