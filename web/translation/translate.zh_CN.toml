@@ -453,6 +453,27 @@
 "outboundStatus" = "出站状态"
 "sendThrough" = "发送通过"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "创建出站"
+"warpModalTitle" = "这是什么？"
+"warpModalDescription" = "创建一个出站连接，加密用户的互联网流量并通过Cloudflare的全球网络进行路由加速，提供安全性和性能提升。"
+"warpGeneralTitle" = "基本信息"
+"warpGeneralTab" = "通用"
+"warpGeneralAccount" = "账户"
+"warpAccessToken" = "访问令牌"
+"warpDeviceId" = "设备ID"
+"warpLicenseKey" = "许可证密钥"
+"warpPrivateKey" = "私钥"
+"warpPlusKey" = "WARP+密钥"
+"warpDeviceName" = "设备名称"
+"warpDeviceModel" = "设备型号"
+"warpDeviceEnabled" = "已启用"
+"warpAccountType" = "账户类型"
+"warpAccountRole" = "角色"
+"warpPlusData" = "WARP+数据"
+"warpQuota" = "配额"
+"warpUsage" = "使用量"
+
 [pages.xray.balancer]
 "addBalancer" = "添加负载均衡"
 "editBalancer" = "编辑负载均衡"

@@ -453,6 +453,27 @@
 "outboundStatus" = "Статус виходу"
 "sendThrough" = "Надіслати через"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Створити вихідний"
+"warpModalTitle" = "Що це?"
+"warpModalDescription" = "Створіть вихідне підключення, яке шифрує інтернет-трафік користувача та прискорює його, маршрутизуючи через глобальну мережу Cloudflare, забезпечуючи безпеку та покращену продуктивність."
+"warpGeneralTitle" = "Загальна інформація"
+"warpGeneralTab" = "Загальне"
+"warpGeneralAccount" = "Акаунт"
+"warpAccessToken" = "Токен доступу"
+"warpDeviceId" = "ID пристрою"
+"warpLicenseKey" = "Ліцензійний ключ"
+"warpPrivateKey" = "Приватний ключ"
+"warpPlusKey" = "Ключ WARP+"
+"warpDeviceName" = "Назва пристрою"
+"warpDeviceModel" = "Модель пристрою"
+"warpDeviceEnabled" = "Активовано"
+"warpAccountType" = "Тип акаунта"
+"warpAccountRole" = "Роль"
+"warpPlusData" = "Дані WARP+"
+"warpQuota" = "Квота"
+"warpUsage" = "Використання"
+
 [pages.xray.balancer]
 "addBalancer" = "Додати балансир"
 "editBalancer" = "Редагувати балансир"

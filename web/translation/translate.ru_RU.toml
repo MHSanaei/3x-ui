@@ -453,6 +453,27 @@
 "outboundStatus" = "Исходящий статус"
 "sendThrough" = "Отправить через"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Создать исходящее подключение"
+"warpModalTitle" = "Что это?"
+"warpModalDescription" = "Создайте исходящее подключение, которое шифрует интернет-трафик пользователя и ускоряет его, маршрутизируя через глобальную сеть Cloudflare, обеспечивая безопасность и повышенную производительность."
+"warpGeneralTitle" = "Общая информация"
+"warpGeneralTab" = "Общее"
+"warpGeneralAccount" = "Аккаунт"
+"warpAccessToken" = "Токен доступа"
+"warpDeviceId" = "ID устройства"
+"warpLicenseKey" = "Лицензионный ключ"
+"warpPrivateKey" = "Приватный ключ"
+"warpPlusKey" = "Ключ WARP+"
+"warpDeviceName" = "Название устройства"
+"warpDeviceModel" = "Модель устройства"
+"warpDeviceEnabled" = "Активирован"
+"warpAccountType" = "Тип аккаунта"
+"warpAccountRole" = "Роль"
+"warpPlusData" = "Данные WARP+"
+"warpQuota" = "Квота"
+"warpUsage" = "Использование"
+
 [pages.xray.balancer]
 "addBalancer" = "Создать балансировщик"
 "editBalancer" = "Редактировать балансировщик"

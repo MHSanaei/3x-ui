@@ -453,6 +453,27 @@
 "outboundStatus" = "وضعیت خروجی"
 "sendThrough" = "ارسال با"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "ایجاد خروجی"
+"warpModalTitle" = "این چیست؟"
+"warpModalDescription" = "یک خروجی ایجاد کنید که ترافیک اینترنت کاربر را رمزگذاری کرده و با مسیریابی از طریق شبکه جهانی Cloudflare آن را سریع‌تر می‌کند، امنیت و عملکرد بهتری را فراهم می‌کند."
+"warpGeneralTitle" = "اطلاعات کلی"
+"warpGeneralTab" = "عمومی"
+"warpGeneralAccount" = "حساب"
+"warpAccessToken" = "توکن دسترسی"
+"warpDeviceId" = "شناسه دستگاه"
+"warpLicenseKey" = "کلید لایسنس"
+"warpPrivateKey" = "کلید خصوصی"
+"warpPlusKey" = "کلید WARP+"
+"warpDeviceName" = "نام دستگاه"
+"warpDeviceModel" = "مدل دستگاه"
+"warpDeviceEnabled" = "فعال است"
+"warpAccountType" = "نوع حساب"
+"warpAccountRole" = "نقش"
+"warpPlusData" = "داده‌های WARP+"
+"warpQuota" = "سهمیه"
+"warpUsage" = "مصرف"
+
 [pages.xray.balancer]
 "addBalancer" = "افزودن بالانسر"
 "editBalancer" = "ویرایش بالانسر"

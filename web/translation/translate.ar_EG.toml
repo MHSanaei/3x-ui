@@ -451,6 +451,27 @@
 "outboundStatus" = "حالة المخرج"
 "sendThrough" = "أرسل من خلال"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "إنشاء صادر"
+"warpModalTitle" = "ما هذا؟"
+"warpModalDescription" = "قم بإنشاء صادِر يقوم بتشفير حركة مرور الإنترنت للمستخدم وتسريعها من خلال توجيهها عبر شبكة Cloudflare العالمية، مما يوفر الأمان وتحسين الأداء."
+"warpGeneralTitle" = "المعلومات العامة"
+"warpGeneralTab" = "عام"
+"warpGeneralAccount" = "الحساب"
+"warpAccessToken" = "رمز الوصول"
+"warpDeviceId" = "معرّف الجهاز"
+"warpLicenseKey" = "مفتاح الترخيص"
+"warpPrivateKey" = "المفتاح الخاص"
+"warpPlusKey" = "مفتاح WARP+"
+"warpDeviceName" = "اسم الجهاز"
+"warpDeviceModel" = "موديل الجهاز"
+"warpDeviceEnabled" = "مفعل"
+"warpAccountType" = "نوع الحساب"
+"warpAccountRole" = "الدور"
+"warpPlusData" = "بيانات WARP+"
+"warpQuota" = "الحصة"
+"warpUsage" = "الاستخدام"
+
 [pages.xray.balancer]
 "addBalancer" = "أضف موازن تحميل"
 "editBalancer" = "عدل موازن التحميل"

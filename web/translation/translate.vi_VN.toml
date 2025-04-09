@@ -453,6 +453,27 @@
 "outboundStatus" = "Trạng thái đầu ra"
 "sendThrough" = "Gửi qua"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Tạo kết nối ra"
+"warpModalTitle" = "Cái gì đây?"
+"warpModalDescription" = "Tạo một kết nối ra mã hóa lưu lượng internet của người dùng và tăng tốc bằng cách định tuyến qua mạng toàn cầu của Cloudflare, cung cấp bảo mật và hiệu suất tốt hơn."
+"warpGeneralTitle" = "Thông tin chung"
+"warpGeneralTab" = "Chung"
+"warpGeneralAccount" = "Tài khoản"
+"warpAccessToken" = "Token truy cập"
+"warpDeviceId" = "ID thiết bị"
+"warpLicenseKey" = "Khóa bản quyền"
+"warpPrivateKey" = "Khóa riêng tư"
+"warpPlusKey" = "Khóa WARP+"
+"warpDeviceName" = "Tên thiết bị"
+"warpDeviceModel" = "Model thiết bị"
+"warpDeviceEnabled" = "Đã bật"
+"warpAccountType" = "Loại tài khoản"
+"warpAccountRole" = "Vai trò"
+"warpPlusData" = "Dữ liệu WARP+"
+"warpQuota" = "Hạn ngạch"
+"warpUsage" = "Lượng dùng"
+
 [pages.xray.balancer]
 "addBalancer" = "Thêm cân bằng"
 "editBalancer" = "Chỉnh sửa cân bằng"

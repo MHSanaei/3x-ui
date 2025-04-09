@@ -453,6 +453,27 @@
 "outboundStatus" = "Status Keluar"
 "sendThrough" = "Kirim Melalui"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Buat outbound"
+"warpModalTitle" = "Apa ini?"
+"warpModalDescription" = "Buat outbound yang mengenkripsi lalu lintas internet pengguna dan mempercepatnya dengan merutekannya melalui jaringan global Cloudflare, memberikan keamanan dan peningkatan kinerja."
+"warpGeneralTitle" = "Informasi Umum"
+"warpGeneralTab" = "Umum"
+"warpGeneralAccount" = "Akun"
+"warpAccessToken" = "Token akses"
+"warpDeviceId" = "ID perangkat"
+"warpLicenseKey" = "Kunci lisensi"
+"warpPrivateKey" = "Kunci pribadi"
+"warpPlusKey" = "Kunci WARP+"
+"warpDeviceName" = "Nama perangkat"
+"warpDeviceModel" = "Model perangkat"
+"warpDeviceEnabled" = "Diaktifkan"
+"warpAccountType" = "Tipe akun"
+"warpAccountRole" = "Peran"
+"warpPlusData" = "Data WARP+"
+"warpQuota" = "Kuota"
+"warpUsage" = "Penggunaan"
+
 [pages.xray.balancer]
 "addBalancer" = "Tambahkan Penyeimbang"
 "editBalancer" = "Sunting Penyeimbang"

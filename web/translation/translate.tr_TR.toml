@@ -453,6 +453,27 @@
 "outboundStatus" = "Giden Durumu"
 "sendThrough" = "Üzerinden Gönder"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Giden oluştur"
+"warpModalTitle" = "Bu nedir?"
+"warpModalDescription" = "Kullanıcının internet trafiğini şifreleyen ve Cloudflare'in küresel ağı üzerinden yönlendirerek hızlandıran bir giden bağlantı oluşturun, böylece güvenlik ve performans artışı sağlayın."
+"warpGeneralTitle" = "Genel Bilgiler"
+"warpGeneralTab" = "Genel"
+"warpGeneralAccount" = "Hesap"
+"warpAccessToken" = "Erişim belirteci"
+"warpDeviceId" = "Cihaz Kimliği"
+"warpLicenseKey" = "Lisans anahtarı"
+"warpPrivateKey" = "Özel anahtar"
+"warpPlusKey" = "WARP+ anahtarı"
+"warpDeviceName" = "Cihaz adı"
+"warpDeviceModel" = "Cihaz modeli"
+"warpDeviceEnabled" = "Etkin mi"
+"warpAccountType" = "Hesap türü"
+"warpAccountRole" = "Rol"
+"warpPlusData" = "WARP+ verisi"
+"warpQuota" = "Kota"
+"warpUsage" = "Kullanım"
+
 [pages.xray.balancer]
 "addBalancer" = "Dengeleyici Ekle"
 "editBalancer" = "Dengeleyiciyi Düzenle"

@@ -453,6 +453,27 @@
 "outboundStatus" = "Status de Saída"
 "sendThrough" = "Enviar Através de"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Criar saída"
+"warpModalTitle" = "O que é?"
+"warpModalDescription" = "Crie uma saída que criptografa o tráfego de internet do usuário e o acelera ao roteá-lo pela rede global da Cloudflare, fornecendo segurança e melhor desempenho."
+"warpGeneralTitle" = "Informações Gerais"
+"warpGeneralTab" = "Geral"
+"warpGeneralAccount" = "Conta"
+"warpAccessToken" = "Token de acesso"
+"warpDeviceId" = "ID do dispositivo"
+"warpLicenseKey" = "Chave de licença"
+"warpPrivateKey" = "Chave privada"
+"warpPlusKey" = "Chave WARP+"
+"warpDeviceName" = "Nome do dispositivo"
+"warpDeviceModel" = "Modelo do dispositivo"
+"warpDeviceEnabled" = "Está ativado"
+"warpAccountType" = "Tipo de conta"
+"warpAccountRole" = "Função"
+"warpPlusData" = "Dados WARP+"
+"warpQuota" = "Cota"
+"warpUsage" = "Uso"
+
 [pages.xray.balancer]
 "addBalancer" = "Adicionar Balanceador"
 "editBalancer" = "Editar Balanceador"

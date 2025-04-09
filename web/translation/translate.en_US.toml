@@ -451,6 +451,27 @@
 "outboundStatus" = "Outbound Status"
 "sendThrough" = "Send Through"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "Create outbound"
+"warpModalTitle" = "What's it?"
+"warpModalDescription" = "Create a outbound that encrypts user internet traffic and speeds it up by routing it through Cloudflare's global network, providing security and improved performance."
+"warpGeneralTitle" = "General Information"
+"warpGeneralTab" = "General"
+"warpGeneralAccount" = "Account"
+"warpAccessToken" = "Access token"
+"warpDeviceId" = "Device ID"
+"warpLicenseKey" = "License key"
+"warpPrivateKey" = "Private key"
+"warpPlusKey" = "WARP+ key"
+"warpDeviceName" = "Device name"
+"warpDeviceModel" = "Device model"
+"warpDeviceEnabled" = "Is enabled"
+"warpAccountType" = "Account type"
+"warpAccountRole" = "Role"
+"warpPlusData" = "WARP+ data"
+"warpQuota" = "Quota"
+"warpUsage" = "Usage"
+
 [pages.xray.balancer]
 "addBalancer" = "Add Balancer"
 "editBalancer" = "Edit Balancer"

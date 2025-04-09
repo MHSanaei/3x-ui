@@ -453,6 +453,27 @@
 "outboundStatus" = "アウトバウンドステータス"
 "sendThrough" = "送信経路"
 
+[pages.xray.warp]
+"warpCreateOutbound" = "アウトバウンドを作成"
+"warpModalTitle" = "何ですか？"
+"warpModalDescription" = "ユーザーのインターネットトラフィックを暗号化し、Cloudflareのグローバルネットワークを経由してルーティングすることで高速化し、セキュリティとパフォーマンスの向上を提供します。"
+"warpGeneralTitle" = "基本情報"
+"warpGeneralTab" = "一般"
+"warpGeneralAccount" = "アカウント"
+"warpAccessToken" = "アクセストークン"
+"warpDeviceId" = "デバイスID"
+"warpLicenseKey" = "ライセンスキー"
+"warpPrivateKey" = "秘密鍵"
+"warpPlusKey" = "WARP+キー"
+"warpDeviceName" = "デバイス名"
+"warpDeviceModel" = "デバイスモデル"
+"warpDeviceEnabled" = "有効"
+"warpAccountType" = "アカウントタイプ"
+"warpAccountRole" = "役割"
+"warpPlusData" = "WARP+データ"
+"warpQuota" = "クォータ"
+"warpUsage" = "使用量"
+
 [pages.xray.balancer]
 "addBalancer" = "負荷分散追加"
 "editBalancer" = "負荷分散編集"
