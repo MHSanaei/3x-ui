@@ -1,0 +1,59 @@
+{{define "component/customDescriptions"}}
+<template>
+    <a-descriptions class="ant-custom-descriptions" bordered :layout="layout" :size="size" :column="column">
+        <slot></slot>
+    </a-descriptions>
+</template>
+{{end}}
+
+{{define "component/aCustomDescriptions"}}
+<style>
+    .dark .ant-custom-descriptions {
+        .ant-descriptions-view,
+        .ant-descriptions-row,
+        .ant-descriptions-item-content,
+        .ant-descriptions-item-label {
+            border-color: var(--dark-color-surface-300);
+            border-right-color: var(--dark-color-surface-300);
+        }
+
+        .ant-descriptions-item-label {
+            background-color: var(--dark-color-surface-200);
+        }
+
+        .ant-descriptions-item-label,
+        .ant-descriptions-item-content {
+            color: var(--dark-color-text-primary);
+        }
+    }
+</style>
+
+<script>
+    Vue.component('a-custom-descriptions', {
+        props: {
+            'layout': {
+                type: String,
+                required: false,
+                defaultValue: "vertical",
+                validator: function (value) {
+                    return ['horizontal', 'vertical'].includes(value)
+                }
+            },
+            'size': {
+                type: String,
+                required: false,
+                defaultValue: "small",
+                validator: function (value) {
+                    return ['small', 'middle'].includes(value)
+                }
+            },
+            'column': {
+                type: Number,
+                required: false,
+                defaultValue: 1,
+            }
+        },
+        template: `{{template "component/customDescriptions"}}`,
+    });
+</script>
+{{end}}
