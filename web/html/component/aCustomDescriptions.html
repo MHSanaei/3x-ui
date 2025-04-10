@@ -1,6 +1,6 @@
 {{define "component/customDescriptions"}}
 <template>
-    <a-descriptions class="ant-custom-descriptions" bordered :layout="layout" :size="size" :column="column">
+    <a-descriptions class="ant-custom-descriptions" :title="title" bordered :layout="layout" :size="size" :column="column">
         <slot></slot>
     </a-descriptions>
 </template>
@@ -22,8 +22,13 @@
         }
 
         .ant-descriptions-item-label,
-        .ant-descriptions-item-content {
+        .ant-descriptions-item-content,
+        .ant-descriptions-title {
             color: var(--dark-color-text-primary);
+        }
+
+        .ant-descriptions-title {
+            margin-bottom: 16px;
         }
     }
 </style>
@@ -38,6 +43,10 @@
                 validator: function (value) {
                     return ['horizontal', 'vertical'].includes(value)
                 }
+            },
+            'title': {
+                type: String,
+                required: false,
             },
             'size': {
                 type: String,
