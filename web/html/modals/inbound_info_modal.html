@@ -1,6 +1,6 @@
 {{define "modals/inboundInfoModal"}}
 <a-modal id="inbound-info-modal" v-model="infoModal.visible" title='{{ i18n "pages.inbounds.details"}}' :closable="true"
-  :mask-closable="true" :footer="null" width="600px" :class="themeSwitcher.currentTheme">
+  :mask-closable="true" :footer="null" width="768px" :class="themeSwitcher.currentTheme">
   <a-space direction='vertical' size="middle">
     <a-custom-descriptions title='{{ i18n "pages.inbounds.info"}}' layout="vertical" size="small" :column="2">
       <a-descriptions-item label='{{ i18n "pages.inbounds.address" }}' :span="2">
@@ -82,7 +82,7 @@
           <span>[[ infoModal.clientSettings.email || '{{ i18n "none" }}' ]]</span>
         </a-descriptions-item>
         <a-descriptions-item v-if="infoModal.clientSettings.id" label='ID' :span="2">
-          <a-tag>[[ infoModal.clientSettings.id ]]</a-tag>
+          <span>[[ infoModal.clientSettings.id ]]</span>
         </a-descriptions-item>
         <a-descriptions-item v-if="dbInbound.isVMess" label='{{ i18n "security" }}' :span="2">
           <a-tag>[[ infoModal.clientSettings.security ]]</a-tag>
@@ -142,7 +142,7 @@
           <span>[[ infoModal.clientSettings.tgId ]]</span>
         </a-descriptions-item>
       </a-custom-descriptions>
-      <a-custom-descriptions title="Usage" layout="vertical" size="small" :column="3">
+      <a-custom-descriptions title='{{ i18n "pages.inbounds.traffic" }}' layout="vertical" size="small" :column="3">
         <a-descriptions-item label='{{ i18n "remained" }}' :span="1">
           <a-tag v-if="infoModal.clientStats && infoModal.clientSettings.totalGB > 0"
             :color="statsColor(infoModal.clientStats)"> [[ getRemStats() ]] </a-tag>
@@ -242,15 +242,15 @@
         </a-custom-descriptions>
       </template>
       <template v-if="inbound.protocol == Protocols.DOKODEMO">
-        <a-custom-descriptions layout="vertical" size="small" :column="2">
-          <a-descriptions-item label='{{ i18n "pages.inbounds.targetAddress" }}' :span="1">
-            <a-tag color="green">[[ inbound.settings.address ]]</a-tag>
+        <a-custom-descriptions title="Dokodemo" layout="vertical" size="small" :column="3">
+          <a-descriptions-item label='{{ i18n "pages.inbounds.targetAddress" }}' :span="3">
+            <span>[[ inbound.settings.address ]]</span>
           </a-descriptions-item>
           <a-descriptions-item label='{{ i18n "pages.inbounds.destinationPort" }}' :span="1">
-            <a-tag color="green">[[ inbound.settings.port ]]</a-tag>
+            <span>[[ inbound.settings.port ]]</span>
           </a-descriptions-item>
           <a-descriptions-item label='{{ i18n "pages.inbounds.network" }}' :span="1">
-            <a-tag color="green">[[ inbound.settings.network ]]</a-tag>
+            <span>[[ inbound.settings.network ]]</span>
           </a-descriptions-item>
           <a-descriptions-item label='FollowRedirect' :span="1">
             <a-switch :checked="inbound.settings.followRedirect" disabled></a-switch>
@@ -258,7 +258,7 @@
         </a-custom-descriptions>
       </template>
       <template v-if="dbInbound.isSocks">
-        <a-custom-descriptions layout="vertical" size="small" :column="3">
+        <a-custom-descriptions title="SOCKS" layout="vertical" size="small" :column="3">
           <a-descriptions-item label='{{ i18n "password" }} Auth' :span="1">
             <a-tag color="green">[[ inbound.settings.auth ]]</a-tag>
           </a-descriptions-item>
@@ -269,7 +269,7 @@
             <span>[[ inbound.settings.ip ]]</span>
           </a-descriptions-item>
         </a-custom-descriptions>
-        <a-custom-descriptions title="Users" v-if="inbound.settings.auth == 'password'" layout="vertical" size="small"
+        <a-custom-descriptions title='{{ i18n "clients" }}' v-if="inbound.settings.auth == 'password'" layout="vertical" size="small"
           :column="3">
           <a-descriptions-item label="#" :span="1">
             <template v-for="account,index in inbound.settings.accounts">
@@ -292,7 +292,7 @@
         </a-custom-descriptions>
       </template>
       <template v-if="dbInbound.isHTTP">
-        <a-custom-descriptions title="Users" layout="vertical" size="small" :column="3">
+        <a-custom-descriptions title='{{ i18n "clients" }}' layout="vertical" size="small" :column="3">
           <a-descriptions-item label="#" :span="1">
             <template v-for="account,index in inbound.settings.accounts">
               <span>[[ index + 1 ]]</span>
