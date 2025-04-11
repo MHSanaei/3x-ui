@@ -15,11 +15,11 @@
         </a-select>
       </a-tooltip>
     </template>
-    <a-input :style="{ width: '35%' }" v-model.trim="row.dest" placeholder='{{ i18n "host" }}'></a-input>
+    <a-input :style="{ width: '30%' }" v-model.trim="row.dest" placeholder='{{ i18n "host" }}'></a-input>
     <a-tooltip title='{{ i18n "pages.inbounds.port" }}'>
       <a-input-number :style="{ width: '15%' }" v-model.number="row.port" min="1" max="65531"></a-input-number>
     </a-tooltip>
-    <a-input :style="{ width: '50%', top: '0' }" v-model.trim="row.remark" placeholder='{{ i18n "remark" }}'>
+    <a-input :style="{ width: '30%', top: '0' }" v-model.trim="row.remark" placeholder='{{ i18n "remark" }}'>
       <template slot="addonAfter">
         <a-button icon="minus" size="small" @click="inbound.stream.externalProxy.splice(index, 1)"></a-button>
       </template>
