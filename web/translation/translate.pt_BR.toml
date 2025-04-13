@@ -645,7 +645,8 @@
 "allClients" = "Todos os clientes"
 
 "addClient" = "Adicionar Cliente"
-"submitDisable" = "Enviar como Desativado ✅"
+"submitDisable" = "Enviar como Desativado ☑️"
+"submitEnable" = "Enviar como Ativado ✅"
 "use_default" = "🏷️ Usar padrão"
 "change_id" = "⚙️🔑 ID"
 "change_password" = "⚙️🔑 Senha"

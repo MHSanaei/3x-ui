@@ -645,12 +645,14 @@
 "allClients" = "Semua Klien"
 
 "addClient" = "Tambah Klien"
-"submitDisable" = "Kirim Sebagai Nonaktif ✅"
-"use_default" = "🏷️ Gunakan default"
+"submitDisable" = "Kirim Sebagai Nonaktif ☑️"
+"submitEnable" = "Kirim Sebagai Aktif ✅"
+"use_default" = "🏷️ Gunakan Default"
 "change_id" = "⚙️🔑 ID"
 "change_password" = "⚙️🔑 Kata Sandi"
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Komentar"
+
 
 
 [tgbot.answers]
