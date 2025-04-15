@@ -140,8 +140,10 @@ class RandomUtil {
 
     static randomShadowsocksPassword() {
         const array = new Uint8Array(32);
+
         window.crypto.getRandomValues(array);
-        return Base64.encode(String.fromCharCode(...array));
+
+        return Base64.alternativeEncode(String.fromCharCode(...array));
     }
 }
 
@@ -528,6 +530,12 @@ class Base64 {
         )
     }
 
+    static alternativeEncode(content) {
+        return window.btoa(
+            content
+        )
+    }
+
     static decode(content = "") {
         return new TextDecoder()
             .decode(
@@ -807,7 +815,7 @@ const MediaQueryMixin = {
 }
 
 class FileManager {
-    static downloadTextFile(content, filename='file.txt', options = { type: "text/plain" }) {
+    static downloadTextFile(content, filename = 'file.txt', options = { type: "text/plain" }) {
         let link = window.document.createElement('a');
 
         link.download = filename;
