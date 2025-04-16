@@ -644,13 +644,15 @@
 "getBanLogs" = "Registros de prohibición"
 "allClients" = "Todos los Clientes"
 
-"addClient" = "Añadir Cliente"
-"submitDisable" = "Enviar como Deshabilitado ✅"
-"use_default" = "🏷️ Usar predeterminado"
+"addClient" = "Añadir cliente"
+"submitDisable" = "Enviar como deshabilitado ☑️"
+"submitEnable" = "Enviar como habilitado ✅"
+"use_default" = "🏷️ Usar por defecto"
 "change_id" = "⚙️🔑 ID"
 "change_password" = "⚙️🔑 Contraseña"
 "change_email" = "⚙️📧 Correo electrónico"
 "change_comment" = "⚙️💬 Comentario"
+
 
 
 [tgbot.answers]

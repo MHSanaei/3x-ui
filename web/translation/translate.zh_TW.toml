@@ -645,8 +645,9 @@
 "allClients" = "所有客戶"
 
 "addClient" = "新增客戶"
-"submitDisable" = "提交為停用 ✅"
-"use_default" = "🏷️ 使用預設"
+"submitDisable" = "以停用方式送出 ☑️"
+"submitEnable" = "以啟用方式送出 ✅"
+"use_default" = "🏷️ 使用預設值"
 "change_id" = "⚙️🔑 ID"
 "change_password" = "⚙️🔑 密碼"
 "change_email" = "⚙️📧 電子郵件"

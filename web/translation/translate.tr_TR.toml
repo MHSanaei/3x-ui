@@ -645,9 +645,10 @@
 "allClients" = "Tüm Müşteriler"
 
 "addClient" = "Müşteri Ekle"
-"submitDisable" = "Devre Dışı Olarak Gönder ✅"
+"submitDisable" = "Devre Dışı Olarak Gönder ☑️"
+"submitEnable" = "Etkin Olarak Gönder ✅"
 "use_default" = "🏷️ Varsayılanı Kullan"
-"change_id" = "⚙️🔑 ID"
+"change_id" = "⚙️🔑 Kimlik"
 "change_password" = "⚙️🔑 Şifre"
 "change_email" = "⚙️📧 E-posta"
 "change_comment" = "⚙️💬 Yorum"
