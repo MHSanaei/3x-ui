@@ -29,6 +29,7 @@
 "copySuccess" = "Copied Successful"
 "sure" = "Sure"
 "encryption" = "Encryption"
+"useIPv4ForHost" = "Use IPv4 for host"
 "transmission" = "Transmission"
 "host" = "Host"
 "path" = "Path"

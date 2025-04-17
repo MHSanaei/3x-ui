@@ -29,6 +29,7 @@
 "copySuccess" = "複製成功"
 "sure" = "確定"
 "encryption" = "加密"
+"useIPv4ForHost" = "使用 IPv4 連接主機"
 "transmission" = "傳輸"
 "host" = "主機"
 "path" = "路徑"
