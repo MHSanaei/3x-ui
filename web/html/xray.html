@@ -131,7 +131,7 @@
 {{template "modals/fakednsModal"}}
 {{template "modals/warpModal"}}
 <script>
-        const rulesColumns = [
+    const rulesColumns = [
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.rules.source"}}', children: [
             { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
@@ -381,47 +381,6 @@
                 if (msg.success) {
                     this.restartResult=msg.obj;
                     if(msg.obj.length > 1) Vue.prototype.$message.error(msg.obj);
-                }
-            },
-            async fetchUserSecret() {
-                this.loading(true);
-                const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
-                if (userMessage.success) {
-                    this.user = userMessage.obj;
-                }
-                this.loading(false);
-            },
-            async updateSecret() {
-                this.loading(true);
-                const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-                if (msg.success) {
-                    this.user = msg.obj;
-                    window.location.replace(basePath + "logout");
-                }
-                this.loading(false);
-                await this.updateXraySetting();
-            },
-            generateRandomString(length) {
-                var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-                let randomString = "";
-                for (let i = 0; i < length; i++) {
-                    randomString += chars[Math.floor(Math.random() * chars.length)];
-                }
-                return randomString;
-            },
-            async getNewSecret() {
-                this.loading(true);
-                await PromiseUtil.sleep(600);
-                const newSecret = this.generateRandomString(64);
-                this.user.loginSecret = newSecret;
-                document.getElementById("token").textContent = newSecret;
-                this.loading(false);
-            },
-            async toggleToken(value) {
-                if (value) {
-                    await this.getNewSecret();
-                } else {
-                    this.user.loginSecret = "";
                 }
             },
             async resetXrayConfigToDefault() {
