@@ -1,13 +1,17 @@
-name: Release 3X-UI
+name: Build and Release 3X-UI
 
 on:
   workflow_dispatch:
+  release:
+    types: [published]
   push:
-    tags:
-      - "v*.*.*"
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   build:
+    permissions:
+      contents: write
     strategy:
       matrix:
         platform:
@@ -27,6 +31,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
+          check-latest: true
 
       - name: Install dependencies
         run: |
@@ -45,7 +50,7 @@ jobs:
             sudo apt install gcc-s390x-linux-gnu
           fi
 
-      - name: Build x-ui
+      - name: Build 3x-ui
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
@@ -134,6 +139,7 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
+        if: github.event_name == 'release' && github.event.action == 'published'
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
