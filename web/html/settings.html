@@ -319,19 +319,11 @@
         this.loading(false);
         await this.updateAllSetting();
       },
-      generateRandomString(length) {
-        var chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
-        let randomString = "";
-        for (let i = 0; i < length; i++) {
-          randomString += chars[Math.floor(Math.random() * chars.length)];
-        }
-        return randomString;
-      },
       async getNewSecret() {
         if (!this.changeSecret) {
           this.changeSecret = true;
           this.user.loginSecret = '';
-          const newSecret = this.generateRandomString(64);
+          const newSecret = RandomUtil.randomSeq(64);
           await PromiseUtil.sleep(1000);
           this.user.loginSecret = newSecret;
           this.changeSecret = false;
