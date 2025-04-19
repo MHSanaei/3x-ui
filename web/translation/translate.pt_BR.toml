@@ -29,6 +29,7 @@
 "copySuccess" = "Copiado com Sucesso"
 "sure" = "Certo"
 "encryption" = "Criptografia"
+"useIPv4ForHost" = "Usar IPv4 para o host"
 "transmission" = "Transmissão"
 "host" = "Servidor"
 "path" = "Caminho"
