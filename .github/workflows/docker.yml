@@ -10,8 +10,6 @@ on:
 
 jobs:
   build:
-    permissions:
-      contents: write
     runs-on: ubuntu-22.04
 
     steps:
