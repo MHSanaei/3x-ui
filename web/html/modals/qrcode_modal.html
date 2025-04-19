@@ -24,7 +24,7 @@
     </template>
     <template v-for="(row, index) in qrModal.qrcodes">
       <tr-qr-box class="qr-box">
-        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <div :style="{ display: 'flex', alignItems: 'center', marginBottom: '8px' }">
           <span>{{ i18n "useIPv4ForHost" }}: </span>
           <button
             type="button"
@@ -32,7 +32,7 @@
             :aria-checked="row.useIPv4"
             :class="['ant-switch', 'ant-switch-small', { 'ant-switch-checked': row.useIPv4 }]"
             @click="toggleIPv4(index)"
-            style="margin-left: 8px;">
+            :style="{ marginLeft: '8px' }">
             <span class="ant-switch-inner"></span>
           </button>
         </div>
