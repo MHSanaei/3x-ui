@@ -1,12 +1,17 @@
-name: Release 3X-UI for Docker
+name: Build and Release 3X-UI for Docker
+
 on:
   workflow_dispatch:
+  release:
+    types: [published]
   push:
-    tags:
-      - "v*.*.*"
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 jobs:
   build:
+    permissions:
+      contents: write
     runs-on: ubuntu-22.04
 
     steps:
