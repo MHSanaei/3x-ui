@@ -29,6 +29,7 @@
 "copySuccess" = "Berhasil Disalin"
 "sure" = "Yakin"
 "encryption" = "Enkripsi"
+"useIPv4ForHost" = "Gunakan IPv4 untuk host"
 "transmission" = "Transmisi"
 "host" = "Host"
 "path" = "Jalur"

@@ -29,6 +29,7 @@
 "copySuccess" = "Скопировано"
 "sure" = "Да"
 "encryption" = "Шифрование"
+"useIPv4ForHost" = "Использовать IPv4 для хоста"
 "transmission" = "Протокол"
 "host" = "Хост"
 "path" = "Путь"

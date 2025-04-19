@@ -29,6 +29,7 @@
 "copySuccess" = "Đã sao chép thành công"
 "sure" = "Chắc chắn"
 "encryption" = "Mã hóa"
+"useIPv4ForHost" = "Sử dụng IPv4 cho máy chủ"
 "transmission" = "Truyền tải"
 "host" = "Máy chủ"
 "path" = "Đường dẫn"

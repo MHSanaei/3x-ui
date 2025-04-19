@@ -29,6 +29,7 @@
 "copySuccess" = "باموفقیت کپی‌شد"
 "sure" = "مطمئن"
 "encryption" = "رمزگذاری"
+"useIPv4ForHost" = "از IPv4 برای میزبان استفاده کنید"
 "transmission" = "راه‌اتصال"
 "host" = "آدرس"
 "path" = "مسیر"

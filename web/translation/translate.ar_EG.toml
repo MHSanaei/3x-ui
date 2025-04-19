@@ -29,6 +29,7 @@
 "copySuccess" = "اتنسخ بنجاح"
 "sure" = "متأكد؟"
 "encryption" = "تشفير"
+"useIPv4ForHost" = "استخدم IPv4 للمضيف"
 "transmission" = "نقل"
 "host" = "المستضيف"
 "path" = "مسار"
