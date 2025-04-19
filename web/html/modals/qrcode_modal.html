@@ -1,26 +1,26 @@
 {{define "modals/qrcodeModal"}}
 <a-modal id="qrcode-modal" v-model="qrModal.visible" :closable="true" :class="themeSwitcher.currentTheme"
   width="fit-content" :dialog-style="isMobile ? { top: '18px' } : {}" :footer="null">
+  <template #title>
+    <a-space direction="horizontal">
+      <span>[[ qrModal.title ]]</span>
+      <a-popover :overlay-class-name="themeSwitcher.currentTheme" trigger="click" placement="bottom">
+        <template slot="content">
+          <a-space direction="vertical">
+            <template v-for="(row, index) in qrModal.qrcodes">
+              <b>[[ row.remark ]]</b>
+              <a-space direction="horizontal">
+                <a-switch size="small" :checked="row.useIPv4" @click="toggleIPv4(index)"></a-switch>
+                <span>{{ i18n "useIPv4ForHost" }}</span>
+              </a-space>
+            </template>
+          </a-space>
+        </template>
+        <a-icon type="setting"></a-icon>
+      </a-popover>
+    </a-space>
+  </template>
   <tr-qr-modal class="qr-modal">
-    <template #title>
-      <a-space direction="horizontal">
-        <span>[[ qrModal.title ]]</span>
-        <a-popover :overlay-class-name="themeSwitcher.currentTheme" trigger="click" placement="bottom">
-          <template slot="content">
-            <a-space direction="vertical">
-              <template v-for="(row, index) in qrModal.qrcodes">
-                <b>[[ row.remark ]]</b>
-                <a-space direction="horizontal">
-                  <a-switch size="small" :checked="row.useIPv4" @click="toggleIPv4(index)"></a-switch>
-                  <span>{{ i18n "useIPv4ForHost" }}</span>
-                </a-space>
-              </template>
-            </a-space>
-          </template>
-          <a-icon type="setting"></a-icon>
-        </a-popover>
-      </a-space>
-    </template>
     <template v-if="app.subSettings.enable && qrModal.subId">
       <tr-qr-box class="qr-box">
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
