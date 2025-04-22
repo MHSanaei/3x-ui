@@ -66,12 +66,12 @@ body:
       required: false
 
   - type: checkboxes
-    id: final-stage
+    id: checklist
     attributes:
-      label: The final stage
+      label: Checklist
       description: Please check all the checkboxes
       options:
-        - label: This bug report is written in English
+        - label: This bug report is written entirely in English.
           required: true
         - label: This bug report is new and no one has reported it before me.
           required: true
