@@ -6,5 +6,8 @@ labels: ["question"]
 body:
   - type: textarea
     id: question
+    attributes:
+      label: Question
+      placeholder: I have a question, ..., how can I solve it?
     validations:
       required: true

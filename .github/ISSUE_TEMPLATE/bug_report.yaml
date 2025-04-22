@@ -26,8 +26,8 @@ body:
       placeholder: |
         1. Open `Inbounds` page
         2. ...
-      validations:
-        required: true
+    validations:
+      required: true
 
   - type: textarea
     id: expected-action
