@@ -35,5 +35,5 @@ body:
       label: Checklist
       description: Please check all the checkboxes
       options:
-        - label: This bug report is written entirely in English.
+        - label: This feature report is written entirely in English.
           required: true
