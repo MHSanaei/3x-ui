@@ -28,3 +28,12 @@ body:
       description: A clear and concise description of any alternative solutions or features you've considered.
     validations:
       required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please check all the checkboxes
+      options:
+        - label: This bug report is written entirely in English.
+          required: true
