@@ -1,0 +1,77 @@
+name: Bug report
+description: Create a report to help us improve
+title: "Bug report"
+labels: ["bug"]
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting a bug! Please fill out the following information.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: My problem is...
+    validations:
+      required: true
+
+  - type: textarea
+    id: how-repeat-problem
+    attributes:
+      label: How to repeat the problem?
+      description: Sequence of actions that allow you to reproduce the bug
+      placeholder: |
+        1. Open `Inbounds` page
+        2. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-action
+    attributes:
+      label: Expected action
+      description: What's going to happen
+      placeholder: Must be...
+    validations:
+      required: false
+
+  - type: textarea
+    id: received-action
+    attributes:
+      label: Received action
+      description: What's really happening
+      placeholder: It's actually happening...
+    validations:
+      required: false
+
+  - type: input
+    id: xui-version
+    attributes:
+      label: 3x-ui Version
+      description: Which version of 3x-ui are you using?
+      placeholder: 2.X.X
+    validations:
+      required: true
+
+  - type: input
+    id: xray-version
+    attributes:
+      label: Xray-core Version
+      description: Which version of Xray-core are you using?
+      placeholder: 2.X.X
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please check all the checkboxes
+      options:
+        - label: This bug report is written entirely in English.
+          required: true
+        - label: This bug report is new and no one has reported it before me.
+          required: true

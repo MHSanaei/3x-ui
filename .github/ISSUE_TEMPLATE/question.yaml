@@ -1,0 +1,22 @@
+name: Question
+description: Describe this issue template's purpose here.
+title: "Question"
+labels: ["question"]
+
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      placeholder: I have a question, ..., how can I solve it?
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      description: Please check all the checkboxes
+      options:
+        - label: This question is written entirely in English.
+          required: true
