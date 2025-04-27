@@ -24,7 +24,7 @@
 
 {{define "component/themeSwitchTemplateLogin"}}
 <template>
-  <a-space direction="vertical" :size="10" :style="{ width: '100%' }">
+  <a-space @mousedown="themeSwitcher.animationsOff()" id="change-theme" direction="vertical" :size="10" :style="{ width: '100%' }">
     <a-space direction="horizontal" size="small">
       <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
       <span>{{ i18n "menu.dark" }}</span>

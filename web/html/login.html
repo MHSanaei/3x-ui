@@ -9,11 +9,11 @@
 
   h1 {
     text-align: center;
-    /*    margin: 20px 0 50px 0;*/
+    /*margin: 20px 0 50px 0;*/
     height: 110px;
   }
 
-  .ant-btn,
+  .ant-form-item-children .ant-btn,
   .ant-input {
     height: 50px;
     border-radius: 30px;
@@ -42,7 +42,8 @@
   }
 
   .title {
-    font-size: 32px;
+    font-size: 2rem;
+    margin-block-end: 2rem;
   }
 
   .title b {
@@ -57,7 +58,7 @@
     animation: charge 0.5s both;
     background-color: #fff;
     border-radius: 2rem;
-    padding: 3rem;
+    padding: 4rem 3rem;
     transition: all 0.3s;
     user-select: none;
     -webkit-user-select: none;
@@ -439,12 +440,11 @@
     position: absolute;
     top: 0;
     right: 0;
-    padding: 24px;
+    padding: 22px;
   }
 
-  .setting-section > .ant-btn {
-    width: 36px;
-    height: 36px;
+  .ant-space-item .ant-switch {
+    margin: 2px 0 4px;
   }
 </style>
 
@@ -467,25 +467,25 @@
             </g>
           </svg>
         </div>
-        <div class="setting-section">
-          <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
-            <template slot="content">
-              <a-space direction="vertical" :size="10">
-                <a-theme-switch-login></a-theme-switch-login>
-                <span>{{ i18n "pages.settings.language" }}</span>
-                <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
-                  <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
-                    <span role="img" aria-label="l.name" v-text="l.icon"></span>
-                    &nbsp;&nbsp;<span v-text="l.name"></span>
-                  </a-select-option>
-                </a-select>
-              </a-space>
-            </template>
-            <a-button shape="circle" icon="setting"></a-button>
-          </a-popover>
-        </div>
         <a-row type="flex" justify="center" align="middle" :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
-          <a-col :xs="22" :sm="20" :md="14" :lg="10" :xl="8" :xxl="6" id="login" :style="{ margin: '3rem 0' }">
+          <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" :style="{ margin: '3rem 0' }">
+            <div class="setting-section">
+              <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
+                <template slot="content">
+                  <a-space direction="vertical" :size="10">
+                    <a-theme-switch-login></a-theme-switch-login>
+                    <span>{{ i18n "pages.settings.language" }}</span>
+                    <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
+                      <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
+                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                        &nbsp;&nbsp;<span v-text="l.name"></span>
+                      </a-select-option>
+                    </a-select>
+                  </a-space>
+                </template>
+                <a-button shape="circle" icon="setting"></a-button>
+              </a-popover>
+            </div>
             <a-row type="flex" justify="center">
               <a-col :style="{ width: '100%' }">
                 <h2 class="title headline zoom">
@@ -503,25 +503,24 @@
                     <a-form-item>
                       <a-input autocomplete="username" name="username" v-model.trim="user.username"
                         placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
-                        <a-icon slot="prefix" type="user" :style="{ fontSize: '16px' }"></a-icon>
+                        <a-icon slot="prefix" type="user" :style="{ fontSize: '1rem' }"></a-icon>
                       </a-input>
                     </a-form-item>
                     <a-form-item>
-                      <a-input-password autocomplete="password" name="password" icon="lock" v-model.trim="user.password"
+                      <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
                         placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '16px' }"></a-icon>
+                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
                       </a-input-password>
                     </a-form-item>
                     <a-form-item v-if="secretEnable">
-                      <a-input-password autocomplete="secret" name="secret" icon="lock" v-model.trim="user.loginSecret"
+                      <a-input-password autocomplete="secret" name="secret" v-model.trim="user.loginSecret"
                         placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
-                        <a-icon slot="prefix" type="key" :style="{ fontSize: '16px' }"></a-icon>
+                        <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
                       </a-input-password>
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
-                        <div :style="{ height: '50px', marginTop: '16px' }" class="wave-btn-bg wave-btn-bg-cl"
-                          :style="loading ? { width: '52px' } : { display: 'inline-block' }">
+                        <div :style="{ height: '50px', marginTop: '1rem', ...loading ? { width: '52px' } : { display: 'inline-block' } }" class="wave-btn-bg wave-btn-bg-cl">
                           <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login"
                             :icon="loading ? 'poweroff' : undefined">
                             [[ loading ? '' : '{{ i18n "login" }}' ]]
