@@ -44,11 +44,11 @@ func getLinesNum(filename string) (int, error) {
 func GetTCPCount() (int, error) {
 	root := HostProc()
 
-	tcp4, err := getLinesNum(fmt.Sprintf("%v/net/tcp", root))
+	tcp4, err := safeGetLinesNum(fmt.Sprintf("%v/net/tcp", root))
 	if err != nil {
 		return 0, err
 	}
-	tcp6, err := getLinesNum(fmt.Sprintf("%v/net/tcp6", root))
+	tcp6, err := safeGetLinesNum(fmt.Sprintf("%v/net/tcp6", root))
 	if err != nil {
 		return 0, err
 	}
@@ -59,14 +59,23 @@ func GetTCPCount() (int, error) {
 func GetUDPCount() (int, error) {
 	root := HostProc()
 
-	udp4, err := getLinesNum(fmt.Sprintf("%v/net/udp", root))
+	udp4, err := safeGetLinesNum(fmt.Sprintf("%v/net/udp", root))
 	if err != nil {
 		return 0, err
 	}
-	udp6, err := getLinesNum(fmt.Sprintf("%v/net/udp6", root))
+	udp6, err := safeGetLinesNum(fmt.Sprintf("%v/net/udp6", root))
 	if err != nil {
 		return 0, err
 	}
 
 	return udp4 + udp6, nil
+}
+
+func safeGetLinesNum(path string) (int, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		return 0, nil
+	} else if err != nil {
+		return 0, err
+	}
+	return getLinesNum(path)
 }
