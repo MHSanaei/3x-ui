@@ -658,6 +658,7 @@
 "change_email" = "⚙️📧 E-posta"
 "change_comment" = "⚙️💬 Yorum"
 "ResetAllTraffics" = "Tüm Trafikleri Sıfırla"
+"SortedTrafficUsageReport" = "Sıralı Trafik Kullanım Raporu"
 
 
 [tgbot.answers]

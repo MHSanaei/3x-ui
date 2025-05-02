@@ -658,7 +658,7 @@
 "change_email" = "⚙️📧 Correo electrónico"
 "change_comment" = "⚙️💬 Comentario"
 "ResetAllTraffics" = "Reiniciar todo el tráfico"
-
+"SortedTrafficUsageReport" = "Informe de uso de tráfico ordenado"
 
 
 [tgbot.answers]

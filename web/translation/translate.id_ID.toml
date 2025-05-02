@@ -658,6 +658,7 @@
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Komentar"
 "ResetAllTraffics" = "Reset Semua Lalu Lintas"
+"SortedTrafficUsageReport" = "Laporan Penggunaan Lalu Lintas yang Terurut"
 
 
 [tgbot.answers]

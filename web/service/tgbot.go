@@ -1456,7 +1456,38 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		}
 	
 		t.SendMsgToTgbot(chatId,t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+	case "get_sorted_traffic_usage_report":
+		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+		emails, err := t.inboundService.getAllEmails()
+		
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
+			return
+		}
+		valid_emails ,extra_emails, err := t.inboundService.GetValidEmails(emails)
 	
+		for _, valid_emails := range valid_emails {
+			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
+			if err != nil {
+				logger.Warning(err)
+				msg := t.I18nBot("tgbot.wentWrong")
+				t.SendMsgToTgbot(chatId, msg)
+				continue
+			}
+			if traffic == nil {
+				msg := t.I18nBot("tgbot.noResult")
+				t.SendMsgToTgbot(chatId, msg)
+				continue
+			}
+
+			output := t.clientInfoMsg(traffic, false, false, false, false, true, false)
+			t.SendMsgToTgbot(chatId, output, tu.ReplyKeyboardRemove())
+			}	
+		for _, extra_emails := range extra_emails {
+			msg :=  fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
+			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+			
+		}
 	}
 }
 
@@ -1609,6 +1640,9 @@ func checkAdmin(tgId int64) bool {
 
 func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	numericKeyboard := tu.InlineKeyboard(
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.SortedTrafficUsageReport")).WithCallbackData(t.encodeQuery("get_sorted_traffic_usage_report")),
+		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(t.encodeQuery("get_usage")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ResetAllTraffics")).WithCallbackData(t.encodeQuery("reset_all_traffics")),

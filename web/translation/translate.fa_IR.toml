@@ -658,6 +658,8 @@
 "change_email" = "⚙️📧 ایمیل"
 "change_comment" = "⚙️💬 نظر"
 "ResetAllTraffics" = "بازنشانی همه ترافیک‌ها"
+"SortedTrafficUsageReport" = "گزارش استفاده از ترافیک مرتب‌شده"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ انجام شد!"

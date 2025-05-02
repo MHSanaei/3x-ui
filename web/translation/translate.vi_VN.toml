@@ -658,6 +658,7 @@
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Bình Luận"
 "ResetAllTraffics" = "Đặt lại tất cả lưu lượng"
+"SortedTrafficUsageReport" = "Báo cáo sử dụng lưu lượng đã sắp xếp"
 
 
 [tgbot.answers]

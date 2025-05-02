@@ -658,6 +658,7 @@
 "change_email" = "⚙️📧 電子郵件"
 "change_comment" = "⚙️💬 評論"
 "ResetAllTraffics" = "重設所有流量"
+"SortedTrafficUsageReport" = "排序過的流量使用報告"
 
 
 [tgbot.answers]

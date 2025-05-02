@@ -612,6 +612,7 @@
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Traffic reset process finished for all clients."
 
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
 "cancel" = "❌ Cancel"
@@ -655,6 +656,7 @@
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Comment"
 "ResetAllTraffics" = "Reset All Traffics"
+"SortedTrafficUsageReport" = "Sorted Traffic Usage Report"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"
