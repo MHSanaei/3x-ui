@@ -1423,6 +1423,39 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.successfulOperation"), tu.ReplyKeyboardRemove())
 		}
+	case "reset_all_traffics_cancel":
+		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
+		t.SendMsgToTgbotDeleteAfter(chatId, t.I18nBot("tgbot.messages.cancel"), 1, tu.ReplyKeyboardRemove())
+	case "reset_all_traffics":
+		inlineKeyboard := tu.InlineKeyboard(
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancelReset")).WithCallbackData(t.encodeQuery("reset_all_traffics_cancel")),
+			),
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmResetTraffic")).WithCallbackData(t.encodeQuery("reset_all_traffics_c")),
+			),
+		)
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.AreYouSure"), inlineKeyboard)
+	case "reset_all_traffics_c":
+		emails, err := t.inboundService.getAllEmails()
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
+			return
+		}
+	
+		for _, email := range emails {
+			err := t.inboundService.ResetClientTrafficByEmail(email)
+			if err == nil {
+				msg := t.I18nBot("tgbot.messages.SuccessResetTraffic", "ClientEmail=="+email)
+				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+			} else {
+				msg := t.I18nBot("tgbot.messages.FailedResetTraffic", "ClientEmail=="+email, "ErrorMessage=="+err.Error())
+				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
+			}
+		}
+	
+		t.SendMsgToTgbot(chatId,t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+	
 	}
 }
 
@@ -1577,6 +1610,7 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 	numericKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.serverUsage")).WithCallbackData(t.encodeQuery("get_usage")),
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.ResetAllTraffics")).WithCallbackData(t.encodeQuery("reset_all_traffics")),
 		),
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.dbBackup")).WithCallbackData(t.encodeQuery("get_backup")),
