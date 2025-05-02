@@ -129,16 +129,13 @@ func InitDB(dbPath string) error {
 	if err := initModels(); err != nil {
 		return err
 	}
-	empty, err := isTableEmpty("users")
-	if empty {
-		if err := initUser(); err != nil {
-			return err
-		}
 
+	isUsersEmpty, err := isTableEmpty("users")
+
+	if err := initUser(); err != nil {
+		return err
 	}
-	return runSeeders(empty)
-
-	// return nil
+	return runSeeders(isUsersEmpty)
 }
 
 func CloseDB() error {
