@@ -6,6 +6,7 @@ import (
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
+	"x-ui/util/crypto"
 
 	"gorm.io/gorm"
 )
@@ -30,7 +31,7 @@ func (s *UserService) CheckUser(username string, password string, secret string)
 
 	user := &model.User{}
 	err := db.Model(model.User{}).
-		Where("username = ? and password = ? and login_secret = ?", username, password, secret).
+		Where("username = ? and password = ? and login_secret = ?", username, crypto.HashSHA256(password), secret).
 		First(user).
 		Error
 	if err == gorm.ErrRecordNotFound {
@@ -46,7 +47,7 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 	db := database.GetDB()
 	return db.Model(model.User{}).
 		Where("id = ?", id).
-		Updates(map[string]any{"username": username, "password": password}).
+		Updates(map[string]any{"username": username, "password": crypto.HashSHA256(password)}).
 		Error
 }
 
@@ -105,12 +106,12 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	err := db.Model(model.User{}).First(user).Error
 	if database.IsNotFound(err) {
 		user.Username = username
-		user.Password = password
+		user.Password = crypto.HashSHA256(password)
 		return db.Model(model.User{}).Create(user).Error
 	} else if err != nil {
 		return err
 	}
 	user.Username = username
-	user.Password = password
+	user.Password = crypto.HashSHA256(password)
 	return db.Save(user).Error
 }

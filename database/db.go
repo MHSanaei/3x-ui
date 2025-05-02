@@ -10,6 +10,7 @@ import (
 
 	"x-ui/config"
 	"x-ui/database/model"
+	"x-ui/util/crypto"
 	"x-ui/xray"
 
 	"gorm.io/driver/sqlite"
@@ -52,7 +53,7 @@ func initUser() error {
 	if empty {
 		user := &model.User{
 			Username:    defaultUsername,
-			Password:    defaultPassword,
+			Password:    crypto.HashSHA256(defaultPassword),
 			LoginSecret: defaultSecret,
 		}
 		return db.Create(user).Error
