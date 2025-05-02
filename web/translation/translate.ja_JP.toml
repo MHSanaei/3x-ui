@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ エラー:\n\n {{ .error }}"
 "using_default_value"  = "わかりました、デフォルト値を使用します。 😊"
 "incorrect_input" ="入力が無効です。\nフレーズはスペースなしで続けて入力してください。\n正しい例: aaaaaa\n間違った例: aaa aaa 🚫"
+"AreYouSure" = "本当にいいですか？🤔"
+"SuccessResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
+"FailedResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ エラー: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 すべてのクライアントのトラフィックリセットが完了しました。"
 
 
 [tgbot.buttons]
@@ -653,6 +657,8 @@
 "change_password" = "⚙️🔑 パスワード"
 "change_email" = "⚙️📧 メールアドレス"
 "change_comment" = "⚙️💬 コメント"
+"ResetAllTraffics" = "すべてのトラフィックをリセット"
+
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

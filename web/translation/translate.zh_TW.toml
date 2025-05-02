@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ 錯誤:\n\n {{ .error }}"
 "using_default_value"  = "好的，我會使用預設值。 😊"
 "incorrect_input" ="您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫"
+"AreYouSure" = "你確定嗎？🤔"
+"SuccessResetTraffic" = "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
+"FailedResetTraffic" = "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ 錯誤: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 所有客戶的流量重置已完成。"
 
 
 [tgbot.buttons]
@@ -653,6 +657,7 @@
 "change_password" = "⚙️🔑 密碼"
 "change_email" = "⚙️📧 電子郵件"
 "change_comment" = "⚙️💬 評論"
+"ResetAllTraffics" = "重設所有流量"
 
 
 [tgbot.answers]

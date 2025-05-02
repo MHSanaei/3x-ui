@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ Erro:\n\n {{ .error }}"
 "using_default_value"  = "Tudo bem, vou manter o valor padrão. 😊"
 "incorrect_input" ="Sua entrada não é válida.\nAs frases devem ser contínuas, sem espaços.\nExemplo correto: aaaaaa\nExemplo incorreto: aaa aaa 🚫"
+"AreYouSure" = "Você tem certeza? 🤔"
+"SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ✅ Sucesso"
+"FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ❌ Falhou \n\n🛠️ Erro: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Processo de redefinição de tráfego concluído para todos os clientes."
 
 
 [tgbot.buttons]
@@ -653,6 +657,7 @@
 "change_password" = "⚙️🔑 Senha"
 "change_email" = "⚙️📧 E-mail"
 "change_comment" = "⚙️💬 Comentário"
+"ResetAllTraffics" = "Redefinir Todo o Tráfego"
 
 
 [tgbot.answers]

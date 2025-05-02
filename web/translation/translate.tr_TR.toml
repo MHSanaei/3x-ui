@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ Hata:\n\n {{ .error }}"
 "using_default_value"  = "Tamam, varsayılan değeri kullanacağım. 😊"
 "incorrect_input" ="Girdiğiniz değer geçerli değil.\nKelime öbekleri boşluk olmadan devam etmelidir.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫"
+"AreYouSure" = "Emin misin? 🤔"
+"SuccessResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı"
+"FailedResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Tüm müşteriler için trafik sıfırlama işlemi tamamlandı."
 
 
 [tgbot.buttons]
@@ -653,6 +657,7 @@
 "change_password" = "⚙️🔑 Şifre"
 "change_email" = "⚙️📧 E-posta"
 "change_comment" = "⚙️💬 Yorum"
+"ResetAllTraffics" = "Tüm Trafikleri Sıfırla"
 
 
 [tgbot.answers]

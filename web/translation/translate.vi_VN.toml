@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ Lỗi:\n\n {{ .error }}"
 "using_default_value"  = "Được rồi, tôi sẽ sử dụng giá trị mặc định. 😊"
 "incorrect_input" ="Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫"
+"AreYouSure" = "Bạn có chắc không? 🤔"
+"SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công"
+"FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng."
 
 
 [tgbot.buttons]
@@ -653,6 +657,7 @@
 "change_password" = "⚙️🔑 Mật Khẩu"
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Bình Luận"
+"ResetAllTraffics" = "Đặt lại tất cả lưu lượng"
 
 
 [tgbot.answers]

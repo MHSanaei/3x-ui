@@ -609,6 +609,10 @@
 "error_add_client"  = "⚠️ Помилка:\n\n {{ .error }}"
 "using_default_value"  = "Гаразд, залишу значення за замовчуванням. 😊"
 "incorrect_input" ="Ваш ввід невірний.\nФрази повинні бути без пробілів.\nПравильний приклад: aaaaaa\nНеправильний приклад: aaa aaa 🚫"
+"AreYouSure" = "Ви впевнені? 🤔"
+"SuccessResetTraffic" = "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успішно"
+"FailedResetTraffic" = "📧 Електронна пошта: {{ .ClientEmail }}\n🏁 Результат: ❌ Невдача \n\n🛠️ Помилка: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Процес скидання трафіку завершено для всіх клієнтів."
 
 
 [tgbot.buttons]
@@ -653,6 +657,7 @@
 "change_password" = "⚙️🔑 Пароль"
 "change_email" = "⚙️📧 Електронна пошта"
 "change_comment" = "⚙️💬 Коментар"
+"ResetAllTraffics" = "Скинути весь трафік"
 
 
 [tgbot.answers]
