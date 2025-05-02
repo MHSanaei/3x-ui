@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"slices"
 
 	"x-ui/config"
 	"x-ui/database/model"
@@ -34,6 +35,7 @@ func initModels() error {
 		&model.Setting{},
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
+		&model.HistoryOfSeeders{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
@@ -58,6 +60,40 @@ func initUser() error {
 		}
 		return db.Create(user).Error
 	}
+	return nil
+}
+
+func runSeeders(isUsersEmpty bool) error {
+	empty, err := isTableEmpty("history_of_seeders")
+	if err != nil {
+		log.Printf("Error checking if users table is empty: %v", err)
+		return err
+	}
+
+	if empty && isUsersEmpty {
+		hashSeeder := &model.HistoryOfSeeders{
+			SeederName: "UserPasswordHash",
+		}
+		return db.Create(hashSeeder).Error
+	} else {
+		var seedersHistory []string
+		db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &seedersHistory)
+
+		if !slices.Contains(seedersHistory, "UserPasswordHash") && !isUsersEmpty {
+			var users []model.User
+			db.Find(&users)
+
+			for _, user := range users {
+				db.Model(&user).Update("password", crypto.HashSHA256(user.Password))
+			}
+
+			hashSeeder := &model.HistoryOfSeeders{
+				SeederName: "UserPasswordHash",
+			}
+			return db.Create(hashSeeder).Error
+		}
+	}
+
 	return nil
 }
 
@@ -93,11 +129,16 @@ func InitDB(dbPath string) error {
 	if err := initModels(); err != nil {
 		return err
 	}
-	if err := initUser(); err != nil {
-		return err
-	}
+	empty, err := isTableEmpty("users")
+	if empty {
+		if err := initUser(); err != nil {
+			return err
+		}
 
-	return nil
+	}
+	return runSeeders(empty)
+
+	// return nil
 }
 
 func CloseDB() error {
