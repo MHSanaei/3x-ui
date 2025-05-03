@@ -60,8 +60,8 @@ func initUser() error {
 		}
 
 		user := &model.User{
-			Username:    defaultUsername,
-			Password:    hashedPassword,
+			Username: defaultUsername,
+			Password: hashedPassword,
 		}
 		return db.Create(user).Error
 	}

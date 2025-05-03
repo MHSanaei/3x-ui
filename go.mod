@@ -15,8 +15,10 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.3
 	github.com/valyala/fasthttp v1.61.0
+	github.com/xlzd/gotp v0.1.0
 	github.com/xtls/xray-core v1.250306.1-0.20250430044058-87ab8e512882
 	go.uber.org/atomic v1.11.0
+	golang.org/x/crypto v0.37.0
 	golang.org/x/text v0.24.0
 	google.golang.org/grpc v1.72.0
 	gorm.io/driver/sqlite v1.5.7
@@ -78,14 +80,12 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vishvananda/netlink v1.3.0 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	github.com/xlzd/gotp v0.1.0 // indirect
 	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/arch v0.16.0 // indirect
-	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect

@@ -8,8 +8,8 @@ import (
 	"x-ui/logger"
 	"x-ui/util/crypto"
 
-	"gorm.io/gorm"
 	"github.com/xlzd/gotp"
+	"gorm.io/gorm"
 )
 
 type UserService struct {
@@ -44,19 +44,19 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		logger.Warning("check user err:", err)
 		return nil
 	}
-  
-  if !crypto.CheckPasswordHash(user.Password, password) {
+
+	if !crypto.CheckPasswordHash(user.Password, password) {
 		return nil
 	}
-  
-	twoFactorEnable, err := s.settingService.GetTwoFactorEnable();
+
+	twoFactorEnable, err := s.settingService.GetTwoFactorEnable()
 	if err != nil {
 		logger.Warning("check two factor err:", err)
 		return nil
 	}
-  
+
 	if twoFactorEnable {
-		twoFactorToken, err := s.settingService.GetTwoFactorToken();
+		twoFactorToken, err := s.settingService.GetTwoFactorToken()
 
 		if err != nil {
 			logger.Warning("check two factor token err:", err)
