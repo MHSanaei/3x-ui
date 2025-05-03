@@ -6,6 +6,7 @@ import (
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
+	"x-ui/util/crypto"
 
 	"gorm.io/gorm"
 	"github.com/xlzd/gotp"
@@ -32,8 +33,9 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 	db := database.GetDB()
 
 	user := &model.User{}
+
 	err := db.Model(model.User{}).
-		Where("username = ? and password = ?", username, password).
+		Where("username = ?", username).
 		First(user).
 		Error
 	if err == gorm.ErrRecordNotFound {
@@ -42,11 +44,17 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		logger.Warning("check user err:", err)
 		return nil
 	}
+  
+  if !crypto.CheckPasswordHash(user.Password, password) {
+		return nil
+	}
+  
 	twoFactorEnable, err := s.settingService.GetTwoFactorEnable();
 	if err != nil {
 		logger.Warning("check two factor err:", err)
 		return nil
 	}
+  
 	if twoFactorEnable {
 		twoFactorToken, err := s.settingService.GetTwoFactorToken();
 
@@ -65,9 +73,15 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 
 func (s *UserService) UpdateUser(id int, username string, password string) error {
 	db := database.GetDB()
+	hashedPassword, err := crypto.HashPasswordAsBcrypt(password)
+
+	if err != nil {
+		return err
+	}
+
 	return db.Model(model.User{}).
 		Where("id = ?", id).
-		Updates(map[string]any{"username": username, "password": password}).
+		Updates(map[string]any{"username": username, "password": hashedPassword}).
 		Error
 }
 
@@ -77,17 +91,23 @@ func (s *UserService) UpdateFirstUser(username string, password string) error {
 	} else if password == "" {
 		return errors.New("password can not be empty")
 	}
+	hashedPassword, er := crypto.HashPasswordAsBcrypt(password)
+
+	if er != nil {
+		return er
+	}
+
 	db := database.GetDB()
 	user := &model.User{}
 	err := db.Model(model.User{}).First(user).Error
 	if database.IsNotFound(err) {
 		user.Username = username
-		user.Password = password
+		user.Password = hashedPassword
 		return db.Model(model.User{}).Create(user).Error
 	} else if err != nil {
 		return err
 	}
 	user.Username = username
-	user.Password = password
+	user.Password = hashedPassword
 	return db.Save(user).Error
 }
