@@ -7,9 +7,11 @@ import (
 	"log"
 	"os"
 	"path"
+	"slices"
 
 	"x-ui/config"
 	"x-ui/database/model"
+	"x-ui/util/crypto"
 	"x-ui/xray"
 
 	"gorm.io/driver/sqlite"
@@ -33,6 +35,7 @@ func initModels() error {
 		&model.Setting{},
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
+		&model.HistoryOfSeeders{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
@@ -50,13 +53,59 @@ func initUser() error {
 		return err
 	}
 	if empty {
+		hashedPassword, err := crypto.HashPasswordAsBcrypt(defaultPassword)
+
+		if err != nil {
+			log.Printf("Error hashing default password: %v", err)
+			return err
+		}
+
 		user := &model.User{
 			Username:    defaultUsername,
-			Password:    defaultPassword,
+			Password:    hashedPassword,
 			LoginSecret: defaultSecret,
 		}
 		return db.Create(user).Error
 	}
+	return nil
+}
+
+func runSeeders(isUsersEmpty bool) error {
+	empty, err := isTableEmpty("history_of_seeders")
+	if err != nil {
+		log.Printf("Error checking if users table is empty: %v", err)
+		return err
+	}
+
+	if empty && isUsersEmpty {
+		hashSeeder := &model.HistoryOfSeeders{
+			SeederName: "UserPasswordHash",
+		}
+		return db.Create(hashSeeder).Error
+	} else {
+		var seedersHistory []string
+		db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &seedersHistory)
+
+		if !slices.Contains(seedersHistory, "UserPasswordHash") && !isUsersEmpty {
+			var users []model.User
+			db.Find(&users)
+
+			for _, user := range users {
+				hashedPassword, err := crypto.HashPasswordAsBcrypt(user.Password)
+				if err != nil {
+					log.Printf("Error hashing password for user '%s': %v", user.Username, err)
+					return err
+				}
+				db.Model(&user).Update("password", hashedPassword)
+			}
+
+			hashSeeder := &model.HistoryOfSeeders{
+				SeederName: "UserPasswordHash",
+			}
+			return db.Create(hashSeeder).Error
+		}
+	}
+
 	return nil
 }
 
@@ -92,11 +141,13 @@ func InitDB(dbPath string) error {
 	if err := initModels(); err != nil {
 		return err
 	}
+
+	isUsersEmpty, err := isTableEmpty("users")
+
 	if err := initUser(); err != nil {
 		return err
 	}
-
-	return nil
+	return runSeeders(isUsersEmpty)
 }
 
 func CloseDB() error {

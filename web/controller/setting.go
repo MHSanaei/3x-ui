@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"x-ui/util/crypto"
 	"x-ui/web/entity"
 	"x-ui/web/service"
 	"x-ui/web/session"
@@ -84,7 +85,7 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		return
 	}
 	user := session.GetLoginUser(c)
-	if user.Username != form.OldUsername || user.Password != form.OldPassword {
+	if user.Username != form.OldUsername || !crypto.CheckPasswordHash(user.Password, form.OldPassword) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), errors.New(I18nWeb(c, "pages.settings.toasts.originalUserPassIncorrect")))
 		return
 	}
@@ -95,7 +96,7 @@ func (a *SettingController) updateUser(c *gin.Context) {
 	err = a.userService.UpdateUser(user.Id, form.NewUsername, form.NewPassword)
 	if err == nil {
 		user.Username = form.NewUsername
-		user.Password = form.NewPassword
+		user.Password, _ = crypto.HashPasswordAsBcrypt(form.NewPassword)
 		session.SetLoginUser(c, user)
 	}
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
