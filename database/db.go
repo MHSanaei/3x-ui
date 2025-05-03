@@ -22,7 +22,6 @@ var db *gorm.DB
 const (
 	defaultUsername = "admin"
 	defaultPassword = "admin"
-	defaultSecret   = ""
 )
 
 func initModels() error {
@@ -53,7 +52,6 @@ func initUser() error {
 		user := &model.User{
 			Username:    defaultUsername,
 			Password:    defaultPassword,
-			LoginSecret: defaultSecret,
 		}
 		return db.Create(user).Error
 	}

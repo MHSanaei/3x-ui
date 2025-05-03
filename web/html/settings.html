@@ -133,7 +133,6 @@
     data: {
       themeSwitcher,
       spinning: false,
-      changeSecret: false,
       oldAllSetting: new AllSetting(),
       allSetting: new AllSetting(),
       saveBtnDisable: true,
@@ -258,7 +257,6 @@
           app.changeRemarkSample();
           this.saveBtnDisable = true;
         }
-        await this.fetchUserSecret();
       },
       async updateAllSetting() {
         this.loading(true);
@@ -302,38 +300,11 @@
           window.location.replace(url);
         }
       },
-      async fetchUserSecret() {
-        this.loading(true);
-        const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
-        if (userMessage.success) {
-          this.user = userMessage.obj;
-        }
-        this.loading(false);
-      },
-      async updateSecret() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-        if (msg && msg.obj) {
-          this.user = msg.obj;
-        }
-        this.loading(false);
-        await this.updateAllSetting();
-      },
-      async getNewSecret() {
-        if (!this.changeSecret) {
-          this.changeSecret = true;
-          this.user.loginSecret = '';
-          const newSecret = RandomUtil.randomSeq(64);
-          await PromiseUtil.sleep(1000);
-          this.user.loginSecret = newSecret;
-          this.changeSecret = false;
-        }
-      },
-      async toggleToken(value) {
-        if (value) {
-          await this.getNewSecret();
+      toggleTwoFactor(newValue) {
+        if (newValue) {
+          this.allSetting.twoFactorToken = RandomUtil.randomBase32String();
         } else {
-          this.user.loginSecret = "";
+          this.allSetting.twoFactorToken = "";
         }
       },
       addNoise() {

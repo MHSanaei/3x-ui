@@ -51,7 +51,7 @@
 "install" = "Yükle"
 "clients" = "Müşteriler"
 "usage" = "Kullanım"
-"secretToken" = "Gizli Anahtar"
+"twoFactorCode" = "Kod"
 "remained" = "Kalan"
 "security" = "Güvenlik"
 "secAlertTitle" = "Güvenlik Uyarısı"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Girdi verisi formatı geçersiz."
 "emptyUsername" = "Kullanıcı adı gerekli"
 "emptyPassword" = "Şifre gerekli"
-"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı veya şifre veya gizli anahtar."
+"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu."  
 "successLogin" = "Giriş Başarılı"
 
 [pages.index]
@@ -499,11 +499,11 @@
 
 [pages.settings.security]
 "admin" = "Yönetici kimlik bilgileri"
-"secret" = "Gizli Anahtar"
-"loginSecurity" = "Güvenli Giriş"
-"loginSecurityDesc" = "Daha fazla güvenlik sağlamak için ek bir kimlik doğrulama katmanı ekler."
-"secretToken" = "Gizli Anahtar"
-"secretTokenDesc" = "Bu anahtarı güvenli bir yerde saklayın. Bu anahtar giriş için gereklidir ve geri alınamaz."
+"twoFactor" = "İki adımlı doğrulama"  
+"twoFactorEnable" = "2FA'yı Etkinleştir"  
+"twoFactorEnableDesc" = "Daha fazla güvenlik için ek bir doğrulama katmanı ekler."  
+"twoFactorToken" = "2FA Token"  
+"twoFactorTokenDesc" = "Lütfen bu token'ı bir doğrulama uygulamasında güvenle saklayın."
 
 [pages.settings.toasts]
 "modifySettings" = "Ayarları Değiştir"

@@ -51,7 +51,7 @@
 "install" = "Instalar"
 "clients" = "Clientes"
 "usage" = "Uso"
-"secretToken" = "Token Secreto"
+"twoFactorCode" = "Código"
 "remained" = "Restante"
 "security" = "Seguridad"
 "secAlertTitle" = "Alerta de Seguridad"
@@ -87,7 +87,7 @@
 "invalidFormData" = "El formato de los datos de entrada es inválido."
 "emptyUsername" = "Por favor ingresa el nombre de usuario."
 "emptyPassword" = "Por favor ingresa la contraseña."
-"wrongUsernameOrPassword" = "Nombre de usuario o contraseña inválidos."
+"wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."  
 "successLogin" = "Inicio de Sesión Exitoso"
 
 [pages.index]
@@ -499,11 +499,11 @@
 
 [pages.settings.security]
 "admin" = "Credenciales de administrador"
-"secret" = "Token Secreto"
-"loginSecurity" = "Seguridad de Inicio de Sesión"
-"loginSecurityDesc" = "Habilitar un paso adicional de seguridad para el inicio de sesión de usuarios."
-"secretToken" = "Token Secreto"
-"secretTokenDesc" = "Por favor, copia y guarda este token de forma segura en un lugar seguro. Este token es necesario para iniciar sesión y no se puede recuperar con la herramienta de comando x-ui."
+"twoFactor" = "Autenticación de dos factores"  
+"twoFactorEnable" = "Habilitar 2FA"  
+"twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."  
+"twoFactorToken" = "Token de 2FA"  
+"twoFactorTokenDesc" = "Guarde este token de forma segura en una aplicación de autenticación." 
 
 [pages.settings.toasts]
 "modifySettings" = "Modificar Configuraciones "

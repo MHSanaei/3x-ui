@@ -51,7 +51,7 @@
 "install" = "Instal"
 "clients" = "Klien"
 "usage" = "Penggunaan"
-"secretToken" = "Token Rahasia"
+"twoFactorCode" = "Kode"
 "remained" = "Tersisa"
 "security" = "Keamanan"
 "secAlertTitle" = "Peringatan keamanan"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Format data input tidak valid."
 "emptyUsername" = "Nama Pengguna diperlukan"
 "emptyPassword" = "Kata Sandi diperlukan"
-"wrongUsernameOrPassword" = "Nama pengguna atau kata sandi tidak valid."
+"wrongUsernameOrPassword" = "Username, kata sandi, atau kode dua faktor tidak valid."  
 "successLogin" = "Login berhasil"
 
 [pages.index]
@@ -499,11 +499,11 @@
 
 [pages.settings.security]
 "admin" = "Kredensial admin"
-"secret" = "Token Rahasia"
-"loginSecurity" = "Login Aman"
-"loginSecurityDesc" = "Menambahkan lapisan otentikasi tambahan untuk memberikan keamanan lebih."
-"secretToken" = "Token Rahasia"
-"secretTokenDesc" = "Simpan token ini dengan aman di tempat yang aman. Token ini diperlukan untuk login dan tidak dapat dipulihkan."
+"twoFactor" = "Autentikasi dua faktor"
+"twoFactorEnable" = "Aktifkan 2FA"
+"twoFactorEnableDesc" = "Menambahkan lapisan autentikasi tambahan untuk keamanan lebih."
+"twoFactorToken" = "Token 2FA"
+"twoFactorTokenDesc" = "Harap simpan token ini dengan aman di aplikasi autentikasi."
 
 [pages.settings.toasts]
 "modifySettings" = "Ubah Pengaturan"

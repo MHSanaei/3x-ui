@@ -51,7 +51,7 @@
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"
 "usage" = "Sử dụng"
-"secretToken" = "Mã bí mật"
+"twoFactorCode" = "Mã"
 "remained" = "Còn lại"
 "security" = "Bảo vệ"
 "secAlertTitle" = "Cảnh báo an ninh-Tiếng Việt by Ohoang7"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Dạng dữ liệu nhập không hợp lệ."
 "emptyUsername" = "Vui lòng nhập tên người dùng."
 "emptyPassword" = "Vui lòng nhập mật khẩu."
-"wrongUsernameOrPassword" = "Tên người dùng hoặc mật khẩu không đúng."
+"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."  
 "successLogin" = "Đăng nhập thành công."
 
 [pages.index]
@@ -499,11 +499,11 @@
 
 [pages.settings.security]
 "admin" = "Thông tin đăng nhập quản trị viên"
-"secret" = "Mã thông báo bí mật"
-"loginSecurity" = "Bảo mật đăng nhập"
-"loginSecurityDesc" = "Bật bước bảo mật đăng nhập bổ sung cho người dùng"
-"secretToken" = "Mã bí mật"
-"secretTokenDesc" = "Vui lòng sao chép và lưu trữ mã này một cách an toàn ở nơi an toàn. Mã này cần thiết để đăng nhập và không thể phục hồi từ công cụ lệnh x-ui."
+"twoFactor" = "Xác thực hai yếu tố"  
+"twoFactorEnable" = "Bật 2FA"  
+"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."  
+"twoFactorToken" = "Token 2FA"  
+"twoFactorTokenDesc" = "Vui lòng lưu token này vào ứng dụng xác thực một cách an toàn."
 
 [pages.settings.toasts]
 "modifySettings" = "Chỉnh sửa cài đặt "

@@ -51,7 +51,7 @@
 "install" = "تثبيت"
 "clients" = "عملاء"
 "usage" = "استخدام"
-"secretToken" = "توكن سري"
+"twoFactorCode" = "الكود"
 "remained" = "المتبقي"
 "security" = "أمان"
 "secAlertTitle" = "تنبيه أمني"
@@ -87,7 +87,7 @@
 "invalidFormData" = "تنسيق البيانات المدخلة مش صحيح."
 "emptyUsername" = "اسم المستخدم مطلوب"
 "emptyPassword" = "الباسورد مطلوب"
-"wrongUsernameOrPassword" = "اسم المستخدم أو الباسورد أو السر مش صحيح."
+"wrongUsernameOrPassword" = "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح."  
 "successLogin" = "تسجيل دخول ناجح"
 
 [pages.index]
@@ -497,11 +497,11 @@
 
 [pages.settings.security]
 "admin" = "بيانات الأدمن"
-"secret" = "توكن سري"
-"loginSecurity" = "أمان تسجيل الدخول"
-"loginSecurityDesc" = "بيضيف طبقة مصادقة إضافية لزيادة الأمان."
-"secretToken" = "توكن سري"
-"secretTokenDesc" = "احتفظ بالتوكن ده في مكان آمن. التوكن ده مطلوب لتسجيل الدخول ومش ممكن تسترجعه لو ضاع."
+"twoFactor" = "المصادقة الثنائية"  
+"twoFactorEnable" = "تفعيل المصادقة الثنائية"  
+"twoFactorEnableDesc" = "يضيف طبقة إضافية من المصادقة لتعزيز الأمان."  
+"twoFactorToken" = "رمز المصادقة الثنائية"  
+"twoFactorTokenDesc" = "يرجى حفظ هذا الرمز بشكل آمن في تطبيق المصادقة."  
 
 [pages.settings.toasts]
 "modifySettings" = "تعديل الإعدادات"

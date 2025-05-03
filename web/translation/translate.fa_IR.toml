@@ -51,7 +51,7 @@
 "install" = "نصب"
 "clients" = "کاربران"
 "usage" = "استفاده"
-"secretToken" = "توکن امنیتی"
+"twoFactorCode" = "کد"
 "remained" = "باقی‌مانده"
 "security" = "امنیت"
 "secAlertTitle" = "هشدار‌امنیتی"
@@ -87,7 +87,7 @@
 "invalidFormData" = "اطلاعات به‌درستی وارد نشده‌است"
 "emptyUsername" = "لطفا یک نام‌کاربری وارد کنید‌"
 "emptyPassword" = "لطفا یک رمزعبور وارد کنید"
-"wrongUsernameOrPassword" = "نام‌کاربری یا رمزعبور‌اشتباه‌است"
+"wrongUsernameOrPassword" = "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است."  
 "successLogin" = "ورود"
 
 [pages.index]
@@ -499,11 +499,11 @@
 
 [pages.settings.security]
 "admin" = "اعتبارنامه‌های ادمین"
-"secret" = "توکن مخفی"
-"loginSecurity" = "ورود ایمن"
-"loginSecurityDesc" = "یک لایه اضافی از احراز هویت برای ایجاد امنیت بیشتر اضافه می کند"
-"secretToken" = "توکن مخفی"
-"secretTokenDesc" = "لطفاً این توکن را در مکانی امن ذخیره کنید. این توکن برای ورود به سیستم مورد نیاز است و قابل بازیابی نیست"
+"twoFactor" = "احراز هویت دو مرحله‌ای"  
+"twoFactorEnable" = "فعال‌سازی 2FA"  
+"twoFactorEnableDesc" = "یک لایه اضافی امنیتی برای احراز هویت فراهم می‌کند."  
+"twoFactorToken" = "توکن 2FA"  
+"twoFactorTokenDesc" = "لطفاً این توکن را در یک برنامه احراز هویت ذخیره کنید."
 
 [pages.settings.toasts]
 "modifySettings" = "ویرایش تنظیمات"
