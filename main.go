@@ -151,9 +151,7 @@ func showSetting(show bool) {
 			fmt.Println("get current user info failed, error info:", err)
 		}
 
-		username := userModel.Username
-		userpasswd := userModel.Password
-		if username == "" || userpasswd == "" {
+		if userModel.Username == "" || userModel.Password == "" {
 			fmt.Println("current username or password is empty")
 		}
 
@@ -163,8 +161,6 @@ func showSetting(show bool) {
 		} else {
 			fmt.Println("Panel is secure with SSL")
 		}
-		fmt.Println("username:", username)
-		fmt.Println("password:", userpasswd)
 		fmt.Println("port:", port)
 		fmt.Println("webBasePath:", webBasePath)
 	}
