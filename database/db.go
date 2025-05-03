@@ -53,9 +53,16 @@ func initUser() error {
 		return err
 	}
 	if empty {
+		hashedPassword, err := crypto.HashPasswordAsBcrypt(defaultPassword)
+
+		if err != nil {
+			log.Printf("Error hashing default password: %v", err)
+			return err
+		}
+
 		user := &model.User{
 			Username:    defaultUsername,
-			Password:    crypto.HashSHA256(defaultPassword),
+			Password:    hashedPassword,
 			LoginSecret: defaultSecret,
 		}
 		return db.Create(user).Error
@@ -84,7 +91,12 @@ func runSeeders(isUsersEmpty bool) error {
 			db.Find(&users)
 
 			for _, user := range users {
-				db.Model(&user).Update("password", crypto.HashSHA256(user.Password))
+				hashedPassword, err := crypto.HashPasswordAsBcrypt(user.Password)
+				if err != nil {
+					log.Printf("Error hashing password for user '%s': %v", user.Username, err)
+					return err
+				}
+				db.Model(&user).Update("password", hashedPassword)
 			}
 
 			hashSeeder := &model.HistoryOfSeeders{
