@@ -2028,7 +2028,7 @@ func (s *InboundService) GetOnlineClients() []string {
 }
 
 
-func (s *InboundService) GetValidEmails(emails []string) ([]string, []string, error) {
+func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {
 	db := database.GetDB()
 
 	// Step 1: Get ClientTraffic records for emails in the input list

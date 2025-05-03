@@ -1464,7 +1464,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
-		valid_emails ,extra_emails, err := t.inboundService.GetValidEmails(emails)
+		valid_emails ,extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
 	
 		for _, valid_emails := range valid_emails {
 			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
