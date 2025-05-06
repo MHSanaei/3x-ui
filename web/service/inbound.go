@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -2024,4 +2025,38 @@ func (s *InboundService) MigrateDB() {
 
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
+}
+
+func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {
+	db := database.GetDB()
+
+	// Step 1: Get ClientTraffic records for emails in the input list
+	var clients []xray.ClientTraffic
+	err := db.Where("email IN ?", emails).Find(&clients).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, nil, err
+	}
+
+	// Step 2: Sort clients by (Up + Down) descending
+	sort.Slice(clients, func(i, j int) bool {
+		return (clients[i].Up + clients[i].Down) > (clients[j].Up + clients[j].Down)
+	})
+
+	// Step 3: Extract sorted valid emails and track found ones
+	validEmails := make([]string, 0, len(clients))
+	found := make(map[string]bool)
+	for _, client := range clients {
+		validEmails = append(validEmails, client.Email)
+		found[client.Email] = true
+	}
+
+	// Step 4: Identify emails that were not found in the database
+	extraEmails := make([]string, 0)
+	for _, email := range emails {
+		if !found[email] {
+			extraEmails = append(extraEmails, email)
+		}
+	}
+
+	return validEmails, extraEmails, nil
 }
