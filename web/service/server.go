@@ -591,6 +591,66 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	return nil
 }
 
+func (s *ServerService) UpdateGeofile(fileName string) error {
+    files := []struct {
+        URL      string
+        FileName string
+    }{
+        {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
+        {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
+        {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
+        {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
+        {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
+        {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+    }
+
+    downloadFile := func(url, destPath string) error {
+        resp, err := http.Get(url)
+        if err != nil {
+            return common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
+        }
+        defer resp.Body.Close()
+
+        file, err := os.Create(destPath)
+        if err != nil {
+            return common.NewErrorf("Failed to create Geofile %s: %v", destPath, err)
+        }
+        defer file.Close()
+
+        _, err = io.Copy(file, resp.Body)
+        if err != nil {
+            return common.NewErrorf("Failed to save Geofile %s: %v", destPath, err)
+        }
+
+        return nil
+    }
+
+    var fileURL string
+    for _, file := range files {
+        if file.FileName == fileName {
+            fileURL = file.URL
+            break
+        }
+    }
+
+    if fileURL == "" {
+        return common.NewErrorf("File '%s' not found in the list of Geofiles", fileName)
+    }
+
+    destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), fileName)
+
+    if err := downloadFile(fileURL, destPath); err != nil {
+        return common.NewErrorf("Error downloading Geofile '%s': %v", fileName, err)
+    }
+
+    err := s.RestartXrayService()
+    if err != nil {
+        return common.NewErrorf("Updated Geofile '%s' but Failed to start Xray: %v", fileName, err)
+    }
+
+    return nil
+}
+
 func (s *ServerService) GetNewX25519Cert() (any, error) {
 	// Run the command
 	cmd := exec.Command(xray.GetBinaryPath(), "x25519")

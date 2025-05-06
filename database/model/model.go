@@ -63,6 +63,11 @@ type InboundClientIps struct {
 	Ips         string `json:"ips" form:"ips"`
 }
 
+type HistoryOfSeeders struct {
+	Id         int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	SeederName string `json:"seederName"`
+}
+
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen
 	if listen != "" {

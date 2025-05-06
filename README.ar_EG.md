@@ -33,7 +33,7 @@
 
 لتثبيت المشروع أو تحديثه، نفذ الأمر ده:
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.5.8/install.sh)
 ```
 
 ## تثبيت النسخة القديمة (مش موصى بيها)
