@@ -1074,7 +1074,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					count, _ := strconv.Atoi(dataArray[1])
 					client_LimitIP = count
 				}
-				
 
 				messageId := callbackQuery.Message.GetMessageID()
 				inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
@@ -1560,7 +1559,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
-	
+
 		for _, email := range emails {
 			err := t.inboundService.ResetClientTrafficByEmail(email)
 			if err == nil {
@@ -1571,18 +1570,18 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
 			}
 		}
-	
-		t.SendMsgToTgbot(chatId,t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
+
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.messages.FinishProcess"), tu.ReplyKeyboardRemove())
 	case "get_sorted_traffic_usage_report":
 		t.deleteMessageTgBot(chatId, callbackQuery.Message.GetMessageID())
 		emails, err := t.inboundService.getAllEmails()
-		
+
 		if err != nil {
 			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
 			return
 		}
-		valid_emails ,extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
-	
+		valid_emails, extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
+
 		for _, valid_emails := range valid_emails {
 			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
 			if err != nil {
@@ -1599,11 +1598,11 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 
 			output := t.clientInfoMsg(traffic, false, false, false, false, true, false)
 			t.SendMsgToTgbot(chatId, output, tu.ReplyKeyboardRemove())
-			}	
+		}
 		for _, extra_emails := range extra_emails {
-			msg :=  fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
+			msg := fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
 			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
-			
+
 		}
 	}
 }
@@ -1642,13 +1641,13 @@ func (t *Tgbot) BuildInboundClientDataMessage(inbound_remark string, protocol mo
 
 	switch protocol {
 	case model.VMESS, model.VLESS:
-		message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark, "ClientId=="+client_Id, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime,"IpLimit=="+ip_limit ,"ClientComment=="+client_Comment)
+		message = t.I18nBot("tgbot.messages.inbound_client_data_id", "InboundRemark=="+inbound_remark, "ClientId=="+client_Id, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime, "IpLimit=="+ip_limit, "ClientComment=="+client_Comment)
 
 	case model.Trojan:
-		message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark, "ClientPass=="+client_TrPassword, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime,"IpLimit=="+ip_limit , "ClientComment=="+client_Comment)
+		message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark, "ClientPass=="+client_TrPassword, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime, "IpLimit=="+ip_limit, "ClientComment=="+client_Comment)
 
 	case model.Shadowsocks:
-		message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark, "ClientPass=="+client_ShPassword, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime,"IpLimit=="+ip_limit , "ClientComment=="+client_Comment)
+		message = t.I18nBot("tgbot.messages.inbound_client_data_pass", "InboundRemark=="+inbound_remark, "ClientPass=="+client_ShPassword, "ClientEmail=="+client_Email, "ClientTraffic=="+traffic_value, "ClientExp=="+expiryTime, "IpLimit=="+ip_limit, "ClientComment=="+client_Comment)
 
 	default:
 		return "", errors.New("unknown protocol")

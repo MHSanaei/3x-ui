@@ -3,10 +3,10 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"sort"
 
 	"x-ui/database"
 	"x-ui/database/model"
@@ -2026,7 +2026,6 @@ func (s *InboundService) MigrateDB() {
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
 }
-
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {
 	db := database.GetDB()
