@@ -124,8 +124,12 @@
 "totalData" = "Datos totales"
 "sent" = "Enviado"
 "received" = "Recibido"
-"xraySwitchVersionDialog" = "Cambiar Versión de Xray"
-"xraySwitchVersionDialogDesc" = "¿Estás seguro de que deseas cambiar la versión de Xray a"
+"xraySwitchVersionDialog" = "¿Realmente deseas cambiar la versión de Xray?"
+"xraySwitchVersionDialogDesc" = "Esto cambiará la versión de Xray a #version#."
+"xraySwitchVersionPopover" = "Xray se actualizó correctamente"
+"geofileUpdateDialog" = "¿Realmente deseas actualizar el geofichero?"
+"geofileUpdateDialogDesc" = "Esto actualizará el archivo #filename#."
+"geofileUpdatePopover" = "Geofichero actualizado correctamente"
 "dontRefresh" = "La instalación está en progreso, por favor no actualices esta página."
 "logs" = "Registros"
 "config" = "Configuración"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 Contraseña predeterminada: {{ .ClientPassword }}\n\nIntroduce tu contraseña."
 "email_prompt" = "📧 Correo electrónico predeterminado: {{ .ClientEmail }}\n\nIntroduce tu correo electrónico."
 "comment_prompt" = "💬 Comentario predeterminado: {{ .ClientComment }}\n\nIntroduce tu comentario."
-"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de vencimiento: {{ .ClientExp }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
-"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Contraseña: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de vencimiento: {{ .ClientExp }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
+"inbound_client_data_id" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Correo: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de expiración: {{ .ClientExp }}\n🌐 Límite de IP: {{ .IpLimit }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
+"inbound_client_data_pass" = "🔄 Entrada: {{ .InboundRemark }}\n\n🔑 Contraseña: {{ .ClientPass }}\n📧 Correo: {{ .ClientEmail }}\n📊 Tráfico: {{ .ClientTraffic }}\n📅 Fecha de expiración: {{ .ClientExp }}\n🌐 Límite de IP: {{ .IpLimit }}\n💬 Comentario: {{ .ClientComment }}\n\n¡Ahora puedes agregar al cliente a la entrada!"
 "cancel" = "❌ ¡Proceso cancelado! \n\nPuedes /start de nuevo en cualquier momento. 🔄"
 "error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
 "using_default_value"  = "Está bien, me quedaré con el valor predeterminado. 😊"
 "incorrect_input" ="Tu entrada no es válida.\nLas frases deben ser continuas sin espacios.\nEjemplo correcto: aaaaaa\nEjemplo incorrecto: aaa aaa 🚫"
+"AreYouSure" = "¿Estás seguro? 🤔"
+"SuccessResetTraffic" = "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ✅ Éxito"
+"FailedResetTraffic" = "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ❌ Fallido \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes."
 
 
 [tgbot.buttons]
@@ -653,7 +661,8 @@
 "change_password" = "⚙️🔑 Contraseña"
 "change_email" = "⚙️📧 Correo electrónico"
 "change_comment" = "⚙️💬 Comentario"
-
+"ResetAllTraffics" = "Reiniciar todo el tráfico"
+"SortedTrafficUsageReport" = "Informe de uso de tráfico ordenado"
 
 
 [tgbot.answers]

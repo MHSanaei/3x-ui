@@ -124,8 +124,12 @@
 "totalData" = "Total data"
 "sent" = "Dikirim"
 "received" = "Diterima"
-"xraySwitchVersionDialog" = "Ganti Versi Xray"
-"xraySwitchVersionDialogDesc" = "Apakah Anda yakin ingin mengubah versi Xray menjadi"
+"xraySwitchVersionDialog" = "Apakah Anda yakin ingin mengubah versi Xray?"
+"xraySwitchVersionDialogDesc" = "Ini akan mengubah versi Xray ke #version#."
+"xraySwitchVersionPopover" = "Xray berhasil diperbarui"
+"geofileUpdateDialog" = "Apakah Anda yakin ingin memperbarui geofile?"
+"geofileUpdateDialogDesc" = "Ini akan memperbarui file #filename#."
+"geofileUpdatePopover" = "Geofile berhasil diperbarui"
 "dontRefresh" = "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini"
 "logs" = "Log"
 "config" = "Konfigurasi"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 Kata Sandi Default: {{ .ClientPassword }}\n\nMasukkan kata sandi Anda."
 "email_prompt" = "📧 Email Default: {{ .ClientEmail }}\n\nMasukkan email Anda."
 "comment_prompt" = "💬 Komentar Default: {{ .ClientComment }}\n\nMasukkan komentar Anda."
-"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu Lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke masuk!"
-"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata Sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu Lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang Anda bisa menambahkan klien ke masuk!"
+"inbound_client_data_id" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n🌐 Batas IP: {{ .IpLimit }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang kamu bisa menambahkan klien ke inbound!"
+"inbound_client_data_pass" = "🔄 Masuk: {{ .InboundRemark }}\n\n🔑 Kata sandi: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Lalu lintas: {{ .ClientTraffic }}\n📅 Tanggal Kedaluwarsa: {{ .ClientExp }}\n🌐 Batas IP: {{ .IpLimit }}\n💬 Komentar: {{ .ClientComment }}\n\nSekarang kamu bisa menambahkan klien ke inbound!"
 "cancel" = "❌ Proses Dibatalkan! \n\nAnda dapat /start lagi kapan saja. 🔄"
 "error_add_client"  = "⚠️ Kesalahan:\n\n {{ .error }}"
 "using_default_value"  = "Oke, saya akan tetap menggunakan nilai default. 😊"
 "incorrect_input" ="Masukan Anda tidak valid.\nFrasa harus berlanjut tanpa spasi.\nContoh benar: aaaaaa\nContoh salah: aaa aaa 🚫"
+"AreYouSure" = "Apakah kamu yakin? 🤔"
+"SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ✅ Berhasil"
+"FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ❌ Gagal \n\n🛠️ Kesalahan: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Proses reset traffic selesai untuk semua klien."
 
 
 [tgbot.buttons]
@@ -653,7 +661,8 @@
 "change_password" = "⚙️🔑 Kata Sandi"
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Komentar"
-
+"ResetAllTraffics" = "Reset Semua Lalu Lintas"
+"SortedTrafficUsageReport" = "Laporan Penggunaan Lalu Lintas yang Terurut"
 
 
 [tgbot.answers]

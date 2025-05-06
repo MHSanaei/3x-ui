@@ -124,8 +124,12 @@
 "totalData" = "Tổng dữ liệu"
 "sent" = "Đã gửi"
 "received" = "Đã nhận"
-"xraySwitchVersionDialog" = "Chuyển đổi Phiên bản Xray"
-"xraySwitchVersionDialogDesc" = "Bạn có chắc chắn muốn chuyển đổi phiên bản Xray sang"
+"xraySwitchVersionDialog" = "Bạn có chắc chắn muốn thay đổi phiên bản Xray không?"
+"xraySwitchVersionDialogDesc" = "Hành động này sẽ thay đổi phiên bản Xray thành #version#."
+"xraySwitchVersionPopover" = "Xray đã được cập nhật thành công"
+"geofileUpdateDialog" = "Bạn có chắc chắn muốn cập nhật geofile không?"
+"geofileUpdateDialogDesc" = "Hành động này sẽ cập nhật tệp #filename#."
+"geofileUpdatePopover" = "Geofile đã được cập nhật thành công"
 "dontRefresh" = "Đang tiến hành cài đặt, vui lòng không làm mới trang này."
 "logs" = "Nhật ký"
 "config" = "Cấu hình"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 Mật khẩu mặc định: {{ .ClientPassword }}\n\nVui lòng nhập mật khẩu của bạn."
 "email_prompt" = "📧 Email mặc định: {{ .ClientEmail }}\n\nVui lòng nhập email của bạn."
 "comment_prompt" = "💬 Bình luận mặc định: {{ .ClientComment }}\n\nVui lòng nhập bình luận của bạn."
-"inbound_client_data_id" = "🔄 Vào: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Lưu lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào vào ngay bây giờ!"
-"inbound_client_data_pass" = "🔄 Vào: {{ .InboundRemark }}\n\n🔑 Mật khẩu: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Lưu lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n💬 Bình luận: {{ .ClientComment }}\n\nBạn có thể thêm khách hàng vào vào ngay bây giờ!"
+"inbound_client_data_id" = "🔄 Kết nối vào: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Dung lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n🌐 Giới hạn IP: {{ .IpLimit }}\n💬 Ghi chú: {{ .ClientComment }}\n\nBây giờ bạn có thể thêm khách hàng vào inbound!"
+"inbound_client_data_pass" = "🔄 Kết nối vào: {{ .InboundRemark }}\n\n🔑 Mật khẩu: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Dung lượng: {{ .ClientTraffic }}\n📅 Ngày hết hạn: {{ .ClientExp }}\n🌐 Giới hạn IP: {{ .IpLimit }}\n💬 Ghi chú: {{ .ClientComment }}\n\nBây giờ bạn có thể thêm khách hàng vào inbound!"
 "cancel" = "❌ Quá trình đã bị hủy! \n\nBạn có thể bắt đầu lại bất cứ lúc nào bằng cách nhập /start. 🔄"
 "error_add_client"  = "⚠️ Lỗi:\n\n {{ .error }}"
 "using_default_value"  = "Được rồi, tôi sẽ sử dụng giá trị mặc định. 😊"
 "incorrect_input" ="Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫"
+"AreYouSure" = "Bạn có chắc không? 🤔"
+"SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công"
+"FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng."
 
 
 [tgbot.buttons]
@@ -653,6 +661,8 @@
 "change_password" = "⚙️🔑 Mật Khẩu"
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Bình Luận"
+"ResetAllTraffics" = "Đặt lại tất cả lưu lượng"
+"SortedTrafficUsageReport" = "Báo cáo sử dụng lưu lượng đã sắp xếp"
 
 
 [tgbot.answers]

@@ -124,8 +124,12 @@
 "totalData" = "Общий объем данных"
 "sent" = "Отправлено"
 "received" = "Получено"
-"xraySwitchVersionDialog" = "Переключить версию Xray"
-"xraySwitchVersionDialogDesc" = "Вы точно хотите сменить версию Xray?"
+"xraySwitchVersionDialog" = "Вы действительно хотите изменить версию Xray?"
+"xraySwitchVersionDialogDesc" = "Это изменит версию Xray на #version#."
+"xraySwitchVersionPopover" = "Xray успешно обновлён"
+"geofileUpdateDialog" = "Вы действительно хотите обновить геофайл?"
+"geofileUpdateDialogDesc" = "Это обновит файл #filename#."
+"geofileUpdatePopover" = "Геофайл успешно обновлён"
 "dontRefresh" = "Установка в процессе. Не обновляйте страницу"
 "logs" = "Журнал"
 "config" = "Конфигурация"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 Стандартный пароль: {{ .ClientPassword }}\n\nВведите ваш пароль."
 "email_prompt" = "📧 Стандартный email: {{ .ClientEmail }}\n\nВведите ваш email."
 "comment_prompt" = "💬 Стандартный комментарий: {{ .ClientComment }}\n\nВведите ваш комментарий."
-"inbound_client_data_id" = "🔄 Входящие: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата истечения: {{ .ClientExp }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящие!"
-"inbound_client_data_pass" = "🔄 Входящие: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата истечения: {{ .ClientExp }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящие!"
+"inbound_client_data_id" = "🔄 Вход: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Почта: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата окончания: {{ .ClientExp }}\n🌐 Лимит IP: {{ .IpLimit }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящий поток!"
+"inbound_client_data_pass" = "🔄 Вход: {{ .InboundRemark }}\n\n🔑 Пароль: {{ .ClientPass }}\n📧 Почта: {{ .ClientEmail }}\n📊 Трафик: {{ .ClientTraffic }}\n📅 Дата окончания: {{ .ClientExp }}\n🌐 Лимит IP: {{ .IpLimit }}\n💬 Комментарий: {{ .ClientComment }}\n\nТеперь вы можете добавить клиента во входящий поток!"
 "cancel" = "❌ Процесс отменён! \n\nВы можете снова начать с /start в любое время. 🔄"
 "error_add_client"  = "⚠️ Ошибка:\n\n {{ .error }}"
 "using_default_value"  = "Хорошо, оставлю значение по умолчанию. 😊"
 "incorrect_input" ="Ваш ввод недействителен.\nФразы должны быть непрерывными без пробелов.\nПравильный пример: aaaaaa\nНеправильный пример: aaa aaa 🚫"
+"AreYouSure" = "Вы уверены? 🤔"
+"SuccessResetTraffic" = "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ✅ Успешно"
+"FailedResetTraffic" = "📧 Почта: {{ .ClientEmail }}\n🏁 Результат: ❌ Неудача \n\n🛠️ Ошибка: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Сброс трафика завершён для всех клиентов."
 
 
 [tgbot.buttons]
@@ -653,6 +661,8 @@
 "change_password" = "⚙️🔑 Пароль"
 "change_email" = "⚙️📧 Электронная почта"
 "change_comment" = "⚙️💬 Комментарий"
+"ResetAllTraffics" = "Сбросить весь трафик"
+"SortedTrafficUsageReport" = "Отсортированный отчет об использовании трафика"
 
 
 [tgbot.answers]

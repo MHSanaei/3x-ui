@@ -124,8 +124,12 @@
 "totalData" = "總數據"
 "sent" = "已發送"
 "received" = "已接收"
-"xraySwitchVersionDialog" = "切換 Xray 版本"
-"xraySwitchVersionDialogDesc" = "是否切換 Xray 版本至"
+"xraySwitchVersionDialog" = "您確定要變更Xray版本嗎？"
+"xraySwitchVersionDialogDesc" = "這將會把Xray版本變更為#version#。"
+"xraySwitchVersionPopover" = "Xray 更新成功"
+"geofileUpdateDialog" = "您確定要更新地理檔案嗎？"
+"geofileUpdateDialogDesc" = "這將更新 #filename# 檔案。"
+"geofileUpdatePopover" = "地理檔案更新成功"
 "dontRefresh" = "安裝中，請勿重新整理此頁面"
 "logs" = "日誌"
 "config" = "配置"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 預設密碼: {{ .ClientPassword }}\n\n請輸入您的密碼。"
 "email_prompt" = "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。"
 "comment_prompt" = "💬 預設評論: {{ .ClientComment }}\n\n請輸入您的評論。"
-"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
-"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n💬 評論: {{ .ClientComment }}\n\n您現在可以將客戶新增至入站！"
+"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n🌐 IP 限制: {{ .IpLimit }}\n💬 備註: {{ .ClientComment }}\n\n你現在可以將客戶加入入站了！"
+"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密碼: {{ .ClientPass }}\n📧 電子郵件: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日: {{ .ClientExp }}\n🌐 IP 限制: {{ .IpLimit }}\n💬 備註: {{ .ClientComment }}\n\n你現在可以將客戶加入入站了！"
 "cancel" = "❌ 程序已取消！\n\n您可以隨時使用 /start 重新開始。 🔄"
 "error_add_client"  = "⚠️ 錯誤:\n\n {{ .error }}"
 "using_default_value"  = "好的，我會使用預設值。 😊"
 "incorrect_input" ="您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫"
+"AreYouSure" = "你確定嗎？🤔"
+"SuccessResetTraffic" = "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
+"FailedResetTraffic" = "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ 錯誤: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 所有客戶的流量重置已完成。"
 
 
 [tgbot.buttons]
@@ -653,6 +661,8 @@
 "change_password" = "⚙️🔑 密碼"
 "change_email" = "⚙️📧 電子郵件"
 "change_comment" = "⚙️💬 評論"
+"ResetAllTraffics" = "重設所有流量"
+"SortedTrafficUsageReport" = "排序過的流量使用報告"
 
 
 [tgbot.answers]

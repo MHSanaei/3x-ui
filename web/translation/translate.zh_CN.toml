@@ -124,8 +124,12 @@
 "totalData" = "总数据"
 "sent" = "已发送"
 "received" = "已接收"
-"xraySwitchVersionDialog" = "切换 Xray 版本"
-"xraySwitchVersionDialogDesc" = "是否切换 Xray 版本至"
+"xraySwitchVersionDialog" = "您确定要更改Xray版本吗？"
+"xraySwitchVersionDialogDesc" = "这将把Xray版本更改为#version#。"
+"xraySwitchVersionPopover" = "Xray 更新成功"
+"geofileUpdateDialog" = "您确定要更新地理文件吗？"
+"geofileUpdateDialogDesc" = "这将更新 #filename# 文件。"
+"geofileUpdatePopover" = "地理文件更新成功"
 "dontRefresh" = "安装中，请勿刷新此页面"
 "logs" = "日志"
 "config" = "配置"
@@ -603,12 +607,16 @@
 "pass_prompt" = "🔑 默认密码: {{ .ClientPassword }}\n\n请输入您的密码。"
 "email_prompt" = "📧 默认邮箱: {{ .ClientEmail }}\n\n请输入您的邮箱。"
 "comment_prompt" = "💬 默认评论: {{ .ClientComment }}\n\n请输入您的评论。"
-"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 邮箱: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 过期日期: {{ .ClientExp }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到入站！"
-"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密码: {{ .ClientPass }}\n📧 邮箱: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 过期日期: {{ .ClientExp }}\n💬 评论: {{ .ClientComment }}\n\n您现在可以将客户添加到入站！"
+"inbound_client_data_id" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 邮箱: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日期: {{ .ClientExp }}\n🌐 IP 限制: {{ .IpLimit }}\n💬 备注: {{ .ClientComment }}\n\n你现在可以将客户添加到入站了！"
+"inbound_client_data_pass" = "🔄 入站: {{ .InboundRemark }}\n\n🔑 密码: {{ .ClientPass }}\n📧 邮箱: {{ .ClientEmail }}\n📊 流量: {{ .ClientTraffic }}\n📅 到期日期: {{ .ClientExp }}\n🌐 IP 限制: {{ .IpLimit }}\n💬 备注: {{ .ClientComment }}\n\n你现在可以将客户添加到入站了！"
 "cancel" = "❌ 进程已取消！\n\n您可以随时使用 /start 重新开始。 🔄"
 "error_add_client"  = "⚠️ 错误:\n\n {{ .error }}"
 "using_default_value"  = "好的，我会使用默认值。 😊"
 "incorrect_input" ="您的输入无效。\n短语应连续输入，不能有空格。\n正确示例: aaaaaa\n错误示例: aaa aaa 🚫"
+"AreYouSure" = "你确定吗？🤔"
+"SuccessResetTraffic" = "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ✅ 成功"
+"FailedResetTraffic" = "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ❌ 失败 \n\n🛠️ 错误: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 所有客户的流量重置已完成。"
 
 
 [tgbot.buttons]
@@ -653,6 +661,8 @@
 "change_password" = "⚙️🔑 密码"
 "change_email" = "⚙️📧 邮箱"
 "change_comment" = "⚙️💬 评论"
+"ResetAllTraffics" = "重置所有流量"
+"SortedTrafficUsageReport" = "排序的流量使用报告"
 
 
 [tgbot.answers]

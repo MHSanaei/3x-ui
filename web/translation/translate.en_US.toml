@@ -122,8 +122,12 @@
 "totalData" = "Total Data"
 "sent" = "Sent"
 "received" = "Received"
-"xraySwitchVersionDialog" = "Change Xray Version"
-"xraySwitchVersionDialogDesc" = "Are you sure you want to change the Xray version to"
+"xraySwitchVersionDialog" = "Do you really want to change the Xray version?"
+"xraySwitchVersionDialogDesc" = "This will change the Xray version to #version#."
+"xraySwitchVersionPopover" = "Xray updated successfully"
+"geofileUpdateDialog" = "Do you really want to update the geofile?"
+"geofileUpdateDialogDesc" = "This will update the #filename# file."
+"geofileUpdatePopover" = "Geofile updated successfully"
 "dontRefresh" = "Installation is in progress, please do not refresh this page"
 "logs" = "Logs"
 "config" = "Config"
@@ -601,12 +605,17 @@
 "pass_prompt" = "🔑 Default Password: {{ .ClientPassword }}\n\nEnter your password."
 "email_prompt" = "📧 Default Email: {{ .ClientEmail }}\n\nEnter your email."
 "comment_prompt" = "💬 Default Comment: {{ .ClientComment }}\n\nEnter your Comment."
-"inbound_client_data_id" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
-"inbound_client_data_pass" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"inbound_client_data_id" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n🌐 IP Limit: {{ .IpLimit }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
+"inbound_client_data_pass" = "🔄 Inbound: {{ .InboundRemark }}\n\n🔑 Password: {{ .ClientPass }}\n📧 Email: {{ .ClientEmail }}\n📊 Traffic: {{ .ClientTraffic }}\n📅 Expire Date: {{ .ClientExp }}\n🌐 IP Limit: {{ .IpLimit }}\n💬 Comment: {{ .ClientComment }}\n\nYou can add the client to inbound now!"
 "cancel" = "❌ Process Canceled! \n\nYou can /start again anytime. 🔄"
 "error_add_client"  = "⚠️ Error:\n\n {{ .error }}"
 "using_default_value"  = "Okay, I'll stick with the default value. 😊"
 "incorrect_input" ="Your input is not valid.\nThe phrases should be continuous without spaces.\nCorrect example: aaaaaa\nIncorrect example: aaa aaa 🚫"
+"AreYouSure" = "Are you sure? 🤔"
+"SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ✅ Success"
+"FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
+"FinishProcess" = "🔚 Traffic reset process finished for all clients."
+
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
@@ -650,6 +659,8 @@
 "change_password" = "⚙️🔑 Password"
 "change_email" = "⚙️📧 Email"
 "change_comment" = "⚙️💬 Comment"
+"ResetAllTraffics" = "Reset All Traffics"
+"SortedTrafficUsageReport" = "Sorted Traffic Usage Report"
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operation successful!"
