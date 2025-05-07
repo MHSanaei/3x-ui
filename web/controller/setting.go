@@ -86,11 +86,11 @@ func (a *SettingController) updateUser(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	if user.Username != form.OldUsername || !crypto.CheckPasswordHash(user.Password, form.OldPassword) {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), errors.New(I18nWeb(c, "pages.settings.toasts.originalUserPassIncorrect")))
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New(I18nWeb(c, "pages.settings.toasts.originalUserPassIncorrect")))
 		return
 	}
 	if form.NewUsername == "" || form.NewPassword == "" {
-		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), errors.New(I18nWeb(c, "pages.settings.toasts.userPassMustBeNotEmpty")))
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUserError"), errors.New(I18nWeb(c, "pages.settings.toasts.userPassMustBeNotEmpty")))
 		return
 	}
 	err = a.userService.UpdateUser(user.Id, form.NewUsername, form.NewPassword)
@@ -99,12 +99,12 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		user.Password, _ = crypto.HashPasswordAsBcrypt(form.NewPassword)
 		session.SetLoginUser(c, user)
 	}
-	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
+	jsonMsg(c, I18nWeb(c, "success"), err)
 }
 
 func (a *SettingController) restartPanel(c *gin.Context) {
 	err := a.panelService.RestartPanel(time.Second * 3)
-	jsonMsg(c, I18nWeb(c, "pages.settings.restartPanel"), err)
+	jsonMsg(c, I18nWeb(c, "pages.settings.restartPanelSuccess"), err)
 }
 
 func (a *SettingController) updateSecret(c *gin.Context) {

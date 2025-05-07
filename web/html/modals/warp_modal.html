@@ -3,7 +3,7 @@
          :confirm-loading="warpModal.confirmLoading" :closable="true" :mask-closable="true"
          :footer="null" :class="themeSwitcher.currentTheme">
     <template v-if="ObjectUtil.isEmpty(warpModal.warpData)">
-        <a-button icon="api" @click="register" :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.create" }}</a-button>
+        <a-button icon="api" @click="register" :loading="warpModal.confirmLoading">{{ i18n "create" }}</a-button>
     </template>
     <template v-else>
         <table :style="{ margin: '5px 0', width: '100%' }">
@@ -32,7 +32,7 @@
                     <a-form-item label="Key">
                         <a-input v-model="warpPlus"></a-input>
                         <a-button @click="updateLicense(warpPlus)" :disabled="warpPlus.length<26"
-                            :loading="warpModal.confirmLoading">{{ i18n "pages.inbounds.update" }}</a-button>
+                            :loading="warpModal.confirmLoading">{{ i18n "update" }}</a-button>
                     </a-form-item>
                 </a-form>
             </a-collapse-panel>
