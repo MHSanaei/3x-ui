@@ -122,6 +122,7 @@
     </a-layout>
   </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
@@ -140,6 +141,7 @@
       lang: LanguageManager.getLanguage(),
       remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
+      twoFactor: { qrElement: null },
       datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
       remarkSample: '',
       defaultFragment: {
@@ -302,9 +304,22 @@
       },
       toggleTwoFactor(newValue) {
         if (newValue) {
-          this.allSetting.twoFactorToken = RandomUtil.randomBase32String();
+          const newTwoFactorToken = RandomUtil.randomBase32String();
+
+          this.allSetting.twoFactorToken = newTwoFactorToken;
+
+          this.twoFactor.qrElement = new QRious({
+            size: 150,
+            value: `otpauth://totp/3x-ui:Administrator?secret=${newTwoFactorToken}&issuer=3x-ui`,
+            background: 'white',
+            backgroundAlpha: 0,
+            foreground: 'black',
+            padding: 12,
+            level: 'L'
+          })
         } else {
           this.allSetting.twoFactorToken = "";
+          this.twoFactor.qrElement = null;
         }
       },
       addNoise() {
@@ -497,6 +512,19 @@
     },
     async mounted() {
       await this.getAllSetting();
+
+      if (this.allSetting.twoFactorEnable) {
+        this.twoFactor.qrElement = new QRious({
+          size: 150,
+          value: `otpauth://totp/3x-ui:Administrator?secret=${this.allSetting.twoFactorToken}&issuer=3x-ui`,
+          background: 'white',
+          backgroundAlpha: 0,
+          foreground: 'black',
+          padding: 12,
+          level: 'L'
+        })
+      }
+
       while (true) {
         await PromiseUtil.sleep(1000);
         this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);

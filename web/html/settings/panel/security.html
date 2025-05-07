@@ -43,9 +43,18 @@
             <template #title>{{ i18n "pages.settings.security.twoFactorToken" }}</template>
             <template #description>{{ i18n "pages.settings.security.twoFactorTokenDesc" }}</template>
             <template #control>
-                <a-input disabled="disabled" v-model="allSetting.twoFactorToken" :style="{ cursor: 'text' }">
-                    <a-icon slot="addonAfter" type="copy" @click="ClipboardManager.copyText(allSetting.twoFactorToken)"/>            
-                </a-input>
+                <a-space direction="horizontal" size="middle">
+                    <div
+                        :style="{ border: '1px solid', borderRadius: '1rem', borderColor: themeSwitcher.isDarkTheme ? 'var(--dark-color-surface-300)' : '#d9d9d9', padding: 0 }">
+                        <img id="twoFactorQr" :src="twoFactor.qrElement.toDataURL()" :style="{ filter: themeSwitcher.isDarkTheme ? 'invert(1)' : 'none'}"></canvas>
+                    </div>
+                    <a-tooltip>
+                        <template #title>
+                            <span>{{ i18n "copy" }}</span>
+                        </template>
+                        <a-icon type="copy" @click='ClipboardManager.copyText(allSetting.twoFactorToken, true, `{{ i18n "copySuccess" }}`)'></a-icon>
+                    </a-tooltip>
+                </a-space>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
