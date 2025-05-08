@@ -48,7 +48,8 @@ var defaultValueMap = map[string]string{
 	"tgBotLoginNotify":            "true",
 	"tgCpu":                       "80",
 	"tgLang":                      "en-US",
-	"secretEnable":                "false",
+	"twoFactorEnable":             "false",
+	"twoFactorToken":              "",
 	"subEnable":                   "false",
 	"subTitle":                    "",
 	"subListen":                   "",
@@ -166,8 +167,7 @@ func (s *SettingService) ResetSettings() error {
 		return err
 	}
 	return db.Model(model.User{}).
-		Where("1 = 1").
-		Update("login_secret", "").Error
+		Where("1 = 1").Error
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
@@ -318,6 +318,14 @@ func (s *SettingService) GetTgLang() (string, error) {
 	return s.getString("tgLang")
 }
 
+func (s *SettingService) GetTwoFactorEnable() (bool, error) {
+	return s.getBool("twoFactorEnable")
+}
+
+func (s *SettingService) GetTwoFactorToken() (string, error) {
+	return s.getString("twoFactorToken")
+}
+
 func (s *SettingService) GetPort() (int, error) {
 	return s.getInt("webPort")
 }
@@ -356,14 +364,6 @@ func (s *SettingService) GetSessionMaxAge() (int, error) {
 
 func (s *SettingService) GetRemarkModel() (string, error) {
 	return s.getString("remarkModel")
-}
-
-func (s *SettingService) GetSecretStatus() (bool, error) {
-	return s.getBool("secretEnable")
-}
-
-func (s *SettingService) SetSecretStatus(value bool) error {
-	return s.setBool("secretEnable", value)
 }
 
 func (s *SettingService) GetSecret() ([]byte, error) {

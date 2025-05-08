@@ -23,8 +23,9 @@ class AllSetting {
         this.tgBotLoginNotify = true;
         this.tgCpu = 80;
         this.tgLang = "en-US";
+        this.twoFactorEnable = false;
+        this.twoFactorToken = "";
         this.xrayTemplateConfig = "";
-        this.secretEnable = false;
         this.subEnable = false;
         this.subTitle = "";
         this.subListen = "";
