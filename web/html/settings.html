@@ -122,10 +122,13 @@
     </a-layout>
   </a-layout>
 {{template "js" .}}
+<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/otpauth/otpauth.umd.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aSettingListItem" .}}
+{{template "modals/twoFactorModal"}}
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
@@ -133,7 +136,6 @@
     data: {
       themeSwitcher,
       spinning: false,
-      changeSecret: false,
       oldAllSetting: new AllSetting(),
       allSetting: new AllSetting(),
       saveBtnDisable: true,
@@ -258,7 +260,6 @@
           app.changeRemarkSample();
           this.saveBtnDisable = true;
         }
-        await this.fetchUserSecret();
       },
       async updateAllSetting() {
         this.loading(true);
@@ -302,38 +303,34 @@
           window.location.replace(url);
         }
       },
-      async fetchUserSecret() {
-        this.loading(true);
-        const userMessage = await HttpUtil.post("/panel/setting/getUserSecret", this.user);
-        if (userMessage.success) {
-          this.user = userMessage.obj;
-        }
-        this.loading(false);
-      },
-      async updateSecret() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/updateUserSecret", this.user);
-        if (msg && msg.obj) {
-          this.user = msg.obj;
-        }
-        this.loading(false);
-        await this.updateAllSetting();
-      },
-      async getNewSecret() {
-        if (!this.changeSecret) {
-          this.changeSecret = true;
-          this.user.loginSecret = '';
-          const newSecret = RandomUtil.randomSeq(64);
-          await PromiseUtil.sleep(1000);
-          this.user.loginSecret = newSecret;
-          this.changeSecret = false;
-        }
-      },
-      async toggleToken(value) {
-        if (value) {
-          await this.getNewSecret();
+      toggleTwoFactor(newValue) {
+        if (newValue) {
+          const newTwoFactorToken = RandomUtil.randomBase32String()
+
+          twoFactorModal.show({
+            title: '{{ i18n "pages.settings.security.twoFactorModalSetTitle" }}',
+            token: newTwoFactorToken,
+            type: 'set',
+            confirm: (success) => {
+              if (success) {
+                this.allSetting.twoFactorToken = newTwoFactorToken
+              }
+
+              this.allSetting.twoFactorEnable = success
+            }
+          })
         } else {
-          this.user.loginSecret = "";
+          twoFactorModal.show({
+            title: '{{ i18n "pages.settings.security.twoFactorModalDeleteTitle" }}',
+            token: this.allSetting.twoFactorToken,
+            type: 'remove',
+            confirm: (success) => {
+              if (success) {
+                this.allSetting.twoFactorEnable = false
+                this.allSetting.twoFactorToken = ""
+              }
+            }
+          })
         }
       },
       addNoise() {
@@ -526,6 +523,7 @@
     },
     async mounted() {
       await this.getAllSetting();
+
       while (true) {
         await PromiseUtil.sleep(1000);
         this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);

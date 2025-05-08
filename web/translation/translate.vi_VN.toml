@@ -51,7 +51,7 @@
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"
 "usage" = "Sử dụng"
-"secretToken" = "Mã bí mật"
+"twoFactorCode" = "Mã"
 "remained" = "Còn lại"
 "security" = "Bảo vệ"
 "secAlertTitle" = "Cảnh báo an ninh-Tiếng Việt by Ohoang7"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Dạng dữ liệu nhập không hợp lệ."
 "emptyUsername" = "Vui lòng nhập tên người dùng."
 "emptyPassword" = "Vui lòng nhập mật khẩu."
-"wrongUsernameOrPassword" = "Tên người dùng hoặc mật khẩu không đúng."
+"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."  
 "successLogin" = "Đăng nhập thành công."
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "Thông tin đăng nhập quản trị viên"
-"secret" = "Mã thông báo bí mật"
-"loginSecurity" = "Bảo mật đăng nhập"
-"loginSecurityDesc" = "Bật bước bảo mật đăng nhập bổ sung cho người dùng"
-"secretToken" = "Mã bí mật"
-"secretTokenDesc" = "Vui lòng sao chép và lưu trữ mã này một cách an toàn ở nơi an toàn. Mã này cần thiết để đăng nhập và không thể phục hồi từ công cụ lệnh x-ui."
+"twoFactor" = "Xác thực hai yếu tố"  
+"twoFactorEnable" = "Bật 2FA"  
+"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."  
+"twoFactorModalSetTitle" = "Bật xác thực hai yếu tố"
+"twoFactorModalDeleteTitle" = "Tắt xác thực hai yếu tố"
+"twoFactorModalSteps" = "Để thiết lập xác thực hai yếu tố, hãy thực hiện các bước sau:"
+"twoFactorModalFirstStep" = "1. Quét mã QR này trong ứng dụng xác thực hoặc sao chép mã token gần mã QR và dán vào ứng dụng"
+"twoFactorModalSecondStep" = "2. Nhập mã từ ứng dụng"
+"twoFactorModalRemoveStep" = "Nhập mã từ ứng dụng để xóa xác thực hai yếu tố."
+"twoFactorModalSetSuccess" = "Xác thực hai yếu tố đã được thiết lập thành công"
+"twoFactorModalDeleteSuccess" = "Xác thực hai yếu tố đã được xóa thành công"
+"twoFactorModalError" = "Mã sai"
 
 [pages.settings.toasts]
 "modifySettings" = "Chỉnh sửa cài đặt "

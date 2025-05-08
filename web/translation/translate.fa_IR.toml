@@ -51,7 +51,7 @@
 "install" = "نصب"
 "clients" = "کاربران"
 "usage" = "استفاده"
-"secretToken" = "توکن امنیتی"
+"twoFactorCode" = "کد"
 "remained" = "باقی‌مانده"
 "security" = "امنیت"
 "secAlertTitle" = "هشدار‌امنیتی"
@@ -87,7 +87,7 @@
 "invalidFormData" = "اطلاعات به‌درستی وارد نشده‌است"
 "emptyUsername" = "لطفا یک نام‌کاربری وارد کنید‌"
 "emptyPassword" = "لطفا یک رمزعبور وارد کنید"
-"wrongUsernameOrPassword" = "نام‌کاربری یا رمزعبور‌اشتباه‌است"
+"wrongUsernameOrPassword" = "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است."  
 "successLogin" = "ورود"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "اعتبارنامه‌های ادمین"
-"secret" = "توکن مخفی"
-"loginSecurity" = "ورود ایمن"
-"loginSecurityDesc" = "یک لایه اضافی از احراز هویت برای ایجاد امنیت بیشتر اضافه می کند"
-"secretToken" = "توکن مخفی"
-"secretTokenDesc" = "لطفاً این توکن را در مکانی امن ذخیره کنید. این توکن برای ورود به سیستم مورد نیاز است و قابل بازیابی نیست"
+"twoFactor" = "احراز هویت دو مرحله‌ای"  
+"twoFactorEnable" = "فعال‌سازی 2FA"  
+"twoFactorEnableDesc" = "یک لایه اضافی امنیتی برای احراز هویت فراهم می‌کند."  
+"twoFactorModalSetTitle" = "فعال‌سازی احراز هویت دو مرحله‌ای"
+"twoFactorModalDeleteTitle" = "غیرفعال‌سازی احراز هویت دو مرحله‌ای"
+"twoFactorModalSteps" = "برای راه‌اندازی احراز هویت دو مرحله‌ای، مراحل زیر را انجام دهید:"
+"twoFactorModalFirstStep" = "1. این کد QR را در برنامه احراز هویت اسکن کنید یا توکن کنار کد QR را کپی کرده و در برنامه بچسبانید"
+"twoFactorModalSecondStep" = "2. کد را از برنامه وارد کنید"
+"twoFactorModalRemoveStep" = "برای حذف احراز هویت دو مرحله‌ای، کد را از برنامه وارد کنید."
+"twoFactorModalSetSuccess" = "احراز هویت دو مرحله‌ای با موفقیت برقرار شد"
+"twoFactorModalDeleteSuccess" = "احراز هویت دو مرحله‌ای با موفقیت حذف شد"
+"twoFactorModalError" = "کد نادرست"
 
 [pages.settings.toasts]
 "modifySettings" = "ویرایش تنظیمات"

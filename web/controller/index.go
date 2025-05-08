@@ -14,9 +14,9 @@ import (
 )
 
 type LoginForm struct {
-	Username    string `json:"username" form:"username"`
-	Password    string `json:"password" form:"password"`
-	LoginSecret string `json:"loginSecret" form:"loginSecret"`
+	Username    	string `json:"username" form:"username"`
+	Password    	string `json:"password" form:"password"`
+	TwoFactorCode	string `json:"twoFactorCode" form:"twoFactorCode"`
 }
 
 type IndexController struct {
@@ -37,7 +37,7 @@ func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
 	g.POST("/login", a.login)
 	g.GET("/logout", a.logout)
-	g.POST("/getSecretStatus", a.getSecretStatus)
+	g.POST("/getTwoFactorEnable", a.getTwoFactorEnable)
 }
 
 func (a *IndexController) index(c *gin.Context) {
@@ -64,14 +64,13 @@ func (a *IndexController) login(c *gin.Context) {
 		return
 	}
 
-	user := a.userService.CheckUser(form.Username, form.Password, form.LoginSecret)
+	user := a.userService.CheckUser(form.Username, form.Password, form.TwoFactorCode)
 	timeStr := time.Now().Format("2006-01-02 15:04:05")
 	safeUser := template.HTMLEscapeString(form.Username)
 	safePass := template.HTMLEscapeString(form.Password)
-	safeSecret := template.HTMLEscapeString(form.LoginSecret)
 
 	if user == nil {
-		logger.Warningf("wrong username: \"%s\", password: \"%s\", secret: \"%s\", IP: \"%s\"", safeUser, safePass, safeSecret, getRemoteIp(c))
+		logger.Warningf("wrong username: \"%s\", password: \"%s\", IP: \"%s\"", safeUser, safePass, getRemoteIp(c))
 		a.tgbot.UserLoginNotify(safeUser, safePass, getRemoteIp(c), timeStr, 0)
 		pureJsonMsg(c, http.StatusOK, false, I18nWeb(c, "pages.login.toasts.wrongUsernameOrPassword"))
 		return
@@ -108,8 +107,8 @@ func (a *IndexController) logout(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 }
 
-func (a *IndexController) getSecretStatus(c *gin.Context) {
-	status, err := a.settingService.GetSecretStatus()
+func (a *IndexController) getTwoFactorEnable(c *gin.Context) {
+	status, err := a.settingService.GetTwoFactorEnable()
 	if err == nil {
 		jsonObj(c, status, nil)
 	}

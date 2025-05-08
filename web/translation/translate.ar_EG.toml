@@ -51,7 +51,7 @@
 "install" = "تثبيت"
 "clients" = "عملاء"
 "usage" = "استخدام"
-"secretToken" = "توكن سري"
+"twoFactorCode" = "الكود"
 "remained" = "المتبقي"
 "security" = "أمان"
 "secAlertTitle" = "تنبيه أمني"
@@ -87,7 +87,7 @@
 "invalidFormData" = "تنسيق البيانات المدخلة مش صحيح."
 "emptyUsername" = "اسم المستخدم مطلوب"
 "emptyPassword" = "الباسورد مطلوب"
-"wrongUsernameOrPassword" = "اسم المستخدم أو الباسورد أو السر مش صحيح."
+"wrongUsernameOrPassword" = "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح."  
 "successLogin" = "تسجيل دخول ناجح"
 
 [pages.index]
@@ -501,11 +501,18 @@
 
 [pages.settings.security]
 "admin" = "بيانات الأدمن"
-"secret" = "توكن سري"
-"loginSecurity" = "أمان تسجيل الدخول"
-"loginSecurityDesc" = "بيضيف طبقة مصادقة إضافية لزيادة الأمان."
-"secretToken" = "توكن سري"
-"secretTokenDesc" = "احتفظ بالتوكن ده في مكان آمن. التوكن ده مطلوب لتسجيل الدخول ومش ممكن تسترجعه لو ضاع."
+"twoFactor" = "المصادقة الثنائية"  
+"twoFactorEnable" = "تفعيل المصادقة الثنائية"  
+"twoFactorEnableDesc" = "يضيف طبقة إضافية من المصادقة لتعزيز الأمان."  
+"twoFactorModalSetTitle" = "تفعيل المصادقة الثنائية"
+"twoFactorModalDeleteTitle" = "تعطيل المصادقة الثنائية"
+"twoFactorModalSteps" = "لإعداد المصادقة الثنائية، قم ببعض الخطوات:"
+"twoFactorModalFirstStep" = "1. امسح رمز QR هذا في تطبيق المصادقة أو انسخ الرمز الموجود بجانب رمز QR والصقه في التطبيق"
+"twoFactorModalSecondStep" = "2. أدخل الرمز من التطبيق"
+"twoFactorModalRemoveStep" = "أدخل الرمز من التطبيق لإزالة المصادقة الثنائية."
+"twoFactorModalSetSuccess" = "تم إنشاء المصادقة الثنائية بنجاح"
+"twoFactorModalDeleteSuccess" = "تم حذف المصادقة الثنائية بنجاح"
+"twoFactorModalError" = "رمز خاطئ"
 
 [pages.settings.toasts]
 "modifySettings" = "تعديل الإعدادات"

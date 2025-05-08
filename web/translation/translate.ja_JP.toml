@@ -51,7 +51,7 @@
 "install" = "インストール"
 "clients" = "クライアント"
 "usage" = "利用状況"
-"secretToken" = "シークレットトークン"
+"twoFactorCode" = "コード"
 "remained" = "残り"
 "security" = "セキュリティ"
 "secAlertTitle" = "セキュリティアラート"
@@ -87,7 +87,7 @@
 "invalidFormData" = "データ形式エラー"
 "emptyUsername" = "ユーザー名を入力してください"
 "emptyPassword" = "パスワードを入力してください"
-"wrongUsernameOrPassword" = "ユーザー名またはパスワードが間違っています"
+"wrongUsernameOrPassword" = "ユーザー名、パスワード、または二段階認証コードが無効です。"  
 "successLogin" = "ログイン成功"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "管理者の資格情報"
-"secret" = "セキュリティトークン"
-"loginSecurity" = "ログインセキュリティ"
-"loginSecurityDesc" = "追加の認証を追加してセキュリティを向上させる"
-"secretToken" = "セキュリティトークン"
-"secretTokenDesc" = "このトークンを安全な場所に保管してください。このトークンはログインに使用され、紛失すると回復できません。"
+"twoFactor" = "二段階認証"  
+"twoFactorEnable" = "2FAを有効化"  
+"twoFactorEnableDesc" = "セキュリティを強化するために追加の認証層を追加します。"  
+"twoFactorModalSetTitle" = "二段階認証を有効にする"
+"twoFactorModalDeleteTitle" = "二段階認証を無効にする"
+"twoFactorModalSteps" = "二段階認証を設定するには、次の手順を実行してください:"
+"twoFactorModalFirstStep" = "1. 認証アプリでこのQRコードをスキャンするか、QRコード近くのトークンをコピーしてアプリに貼り付けます"
+"twoFactorModalSecondStep" = "2. アプリからコードを入力してください"
+"twoFactorModalRemoveStep" = "二段階認証を削除するには、アプリからコードを入力してください。"
+"twoFactorModalSetSuccess" = "二要素認証が正常に設定されました"
+"twoFactorModalDeleteSuccess" = "二要素認証が正常に削除されました"
+"twoFactorModalError" = "コードが間違っています"
 
 [pages.settings.toasts]
 "modifySettings" = "設定を変更"

@@ -145,6 +145,33 @@ class RandomUtil {
 
         return Base64.alternativeEncode(String.fromCharCode(...array));
     }
+
+    static randomBase32String(length = 16) {
+        const array = new Uint8Array(length);
+        
+        window.crypto.getRandomValues(array);
+        
+        const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        let result = '';
+        let bits = 0;
+        let buffer = 0;
+        
+        for (let i = 0; i < array.length; i++) {
+            buffer = (buffer << 8) | array[i];
+            bits += 8;
+            
+            while (bits >= 5) {
+                bits -= 5;
+                result += base32Chars[(buffer >>> bits) & 0x1F];
+            }
+        }
+        
+        if (bits > 0) {
+            result += base32Chars[(buffer << (5 - bits)) & 0x1F];
+        }
+        
+        return result;
+    }
 }
 
 class ObjectUtil {

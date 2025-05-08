@@ -51,7 +51,7 @@
 "install" = "安裝"
 "clients" = "客戶端"
 "usage" = "使用情況"
-"secretToken" = "安全金鑰"
+"twoFactorCode" = "代碼"
 "remained" = "剩餘"
 "security" = "安全"
 "secAlertTitle" = "安全警報"
@@ -87,7 +87,7 @@
 "invalidFormData" = "資料格式錯誤"
 "emptyUsername" = "請輸入使用者名稱"
 "emptyPassword" = "請輸入密碼"
-"wrongUsernameOrPassword" = "使用者名稱或密碼錯誤"
+"wrongUsernameOrPassword" = "用戶名、密碼或雙重驗證碼無效。"  
 "successLogin" = "登入"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "管理員憑證"
-"secret" = "安全令牌"
-"loginSecurity" = "登入安全"
-"loginSecurityDesc" = "新增額外的身份驗證以提高安全性"
-"secretToken" = "安全令牌"
-"secretTokenDesc" = "請將此令牌儲存在安全的地方。此令牌用於登入，丟失無法恢復。"
+"twoFactor" = "雙重驗證"  
+"twoFactorEnable" = "啟用2FA"  
+"twoFactorEnableDesc" = "增加額外的驗證層以提高安全性。"  
+"twoFactorModalSetTitle" = "啟用雙重認證"
+"twoFactorModalDeleteTitle" = "停用雙重認證"
+"twoFactorModalSteps" = "要設定雙重認證，請執行以下步驟："
+"twoFactorModalFirstStep" = "1. 在認證應用程式中掃描此QR碼，或複製QR碼附近的令牌並貼到應用程式中"
+"twoFactorModalSecondStep" = "2. 輸入應用程式中的驗證碼"
+"twoFactorModalRemoveStep" = "輸入應用程式中的驗證碼以移除雙重認證。"
+"twoFactorModalSetSuccess" = "雙重身份驗證已成功建立"
+"twoFactorModalDeleteSuccess" = "雙重身份驗證已成功刪除"
+"twoFactorModalError" = "驗證碼錯誤"
 
 [pages.settings.toasts]
 "modifySettings" = "修改設定"

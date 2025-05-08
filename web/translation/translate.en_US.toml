@@ -51,7 +51,7 @@
 "install" = "Install"
 "clients" = "Clients"
 "usage" = "Usage"
-"secretToken" = "Secret Token"
+"twoFactorCode" = "Code"
 "remained" = "Remained"
 "security" = "Security"
 "secAlertTitle" = "Security Alert"
@@ -87,7 +87,7 @@
 "invalidFormData" = "The Input data format is invalid."
 "emptyUsername" = "Username is required"
 "emptyPassword" = "Password is required"
-"wrongUsernameOrPassword" = "Invalid username or password or secret."
+"wrongUsernameOrPassword" = "Invalid username or password or two-factor code."
 "successLogin" = "Login"
 
 [pages.index]
@@ -501,11 +501,18 @@
 
 [pages.settings.security]
 "admin" = "Admin credentials"
-"secret" = "Secret Token"
-"loginSecurity" = "Secure Login"
-"loginSecurityDesc" = "Adds an additional layer of authentication to provide more security."
-"secretToken" = "Secret Token"
-"secretTokenDesc" = "Please securely store this token in a safe place. This token is required for login and cannot be recovered."
+"twoFactor" = "Two-factor authentication"
+"twoFactorEnable" = "Enable 2FA"
+"twoFactorEnableDesc" = "Adds an additional layer of authentication to provide more security."
+"twoFactorModalSetTitle" = "Enable two-factor authentication"
+"twoFactorModalDeleteTitle" = "Disable two-factor authentication"
+"twoFactorModalSteps" = "To set up two-factor authentication, perform a few steps:"
+"twoFactorModalFirstStep" = "1. Scan this QR code in the app for authentication or copy the token near the QR code and paste it into the app"
+"twoFactorModalSecondStep" = "2. Enter the code from the app"
+"twoFactorModalRemoveStep" = "Enter the code from the application to remove two-factor authentication."
+"twoFactorModalSetSuccess" = "Two-factor authentication has been successfully established"
+"twoFactorModalDeleteSuccess" = "Two-factor authentication has been successfully deleted"
+"twoFactorModalError" = "Wrong code"
 
 [pages.settings.toasts]
 "modifySettings" = "Modify Settings"

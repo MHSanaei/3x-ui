@@ -51,7 +51,7 @@
 "install" = "Instalar"
 "clients" = "Clientes"
 "usage" = "Uso"
-"secretToken" = "Token Secreto"
+"twoFactorCode" = "Código"
 "remained" = "Restante"
 "security" = "Segurança"
 "secAlertTitle" = "Alerta de Segurança"
@@ -87,7 +87,7 @@
 "invalidFormData" = "O formato dos dados de entrada é inválido."
 "emptyUsername" = "Nome de usuário é obrigatório"
 "emptyPassword" = "Senha é obrigatória"
-"wrongUsernameOrPassword" = "Nome de usuário, senha ou segredo inválidos."
+"wrongUsernameOrPassword" = "Nome de usuário, senha ou código de dois fatores inválido."  
 "successLogin" = "Login realizado com sucesso"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "Credenciais de administrador"
-"secret" = "Token Secreto"
-"loginSecurity" = "Login Seguro"
-"loginSecurityDesc" = "Adiciona uma camada extra de autenticação para fornecer mais segurança."
-"secretToken" = "Token Secreto"
-"secretTokenDesc" = "Por favor, armazene este token em um local seguro. Este token é necessário para o login e não pode ser recuperado."
+"twoFactor" = "Autenticação de dois fatores"  
+"twoFactorEnable" = "Ativar 2FA"  
+"twoFactorEnableDesc" = "Adiciona uma camada extra de autenticação para mais segurança."  
+"twoFactorModalSetTitle" = "Ativar autenticação de dois fatores"
+"twoFactorModalDeleteTitle" = "Desativar autenticação de dois fatores"
+"twoFactorModalSteps" = "Para configurar a autenticação de dois fatores, siga alguns passos:"
+"twoFactorModalFirstStep" = "1. Escaneie este QR code no aplicativo de autenticação ou copie o token próximo ao QR code e cole no aplicativo"
+"twoFactorModalSecondStep" = "2. Digite o código do aplicativo"
+"twoFactorModalRemoveStep" = "Digite o código do aplicativo para remover a autenticação de dois fatores."
+"twoFactorModalSetSuccess" = "A autenticação de dois fatores foi estabelecida com sucesso"
+"twoFactorModalDeleteSuccess" = "A autenticação de dois fatores foi excluída com sucesso"
+"twoFactorModalError" = "Código incorreto"
 
 [pages.settings.toasts]
 "modifySettings" = "Modificar Configurações"
