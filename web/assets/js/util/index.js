@@ -512,7 +512,7 @@ class Wireguard {
 }
 
 class ClipboardManager {
-    static copyText(content = "", hasSuccessCopyMessage = false, successCopyMessage = '') {
+    static copyText(content = "") {
         // !! here old way of copying is used because not everyone can afford https connection
         return new Promise((resolve) => {
             try {
@@ -534,12 +534,6 @@ class ClipboardManager {
                 window.document.execCommand("copy");
 
                 window.document.body.removeChild(textarea);
-
-                if (
-                    hasSuccessCopyMessage
-                ) {
-                    Vue.prototype.$message['success'](successCopyMessage)
-                }
 
                 resolve(true)
             } catch {
