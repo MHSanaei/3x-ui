@@ -512,11 +512,11 @@
                         <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
                       </a-input-password>
                     </a-form-item>
-                    <a-form-item v-if="secretEnable">
-                      <a-input-password autocomplete="secret" name="secret" v-model.trim="user.loginSecret"
-                        placeholder='{{ i18n "secretToken" }}' @keydown.enter.native="login">
+                    <a-form-item v-if="twoFactorEnable">
+                      <a-input autocomplete="totp" name="twoFactorCode" v-model.trim="user.twoFactorCode"
+                        placeholder='{{ i18n "twoFactorCode" }}' @keydown.enter.native="login">
                         <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
-                      </a-input-password>
+                      </a-input>
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
@@ -549,14 +549,14 @@
         user: {
           username: "",
           password: "",
-          loginSecret: ""
+          twoFactorCode: ""
         },
-        secretEnable: false,
+        twoFactorEnable: false,
         lang: ""
       },
       async mounted() {
         this.lang = LanguageManager.getLanguage();
-        this.secretEnable = await this.getSecretStatus();
+        this.twoFactorEnable = await this.getTwoFactorEnable();
       },
       methods: {
         async login() {
@@ -567,12 +567,12 @@
             location.href = basePath + 'panel/';
           }
         },
-        async getSecretStatus() {
+        async getTwoFactorEnable() {
           this.loading = true;
-          const msg = await HttpUtil.post('/getSecretStatus');
+          const msg = await HttpUtil.post('/getTwoFactorEnable');
           this.loading = false;
           if (msg.success) {
-            this.secretEnable = msg.obj;
+            this.twoFactorEnable = msg.obj;
             return msg.obj;
           }
         },

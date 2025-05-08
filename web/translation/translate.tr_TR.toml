@@ -51,7 +51,7 @@
 "install" = "Yükle"
 "clients" = "Müşteriler"
 "usage" = "Kullanım"
-"secretToken" = "Gizli Anahtar"
+"twoFactorCode" = "Kod"
 "remained" = "Kalan"
 "security" = "Güvenlik"
 "secAlertTitle" = "Güvenlik Uyarısı"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Girdi verisi formatı geçersiz."
 "emptyUsername" = "Kullanıcı adı gerekli"
 "emptyPassword" = "Şifre gerekli"
-"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı veya şifre veya gizli anahtar."
+"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu."  
 "successLogin" = "Giriş Başarılı"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "Yönetici kimlik bilgileri"
-"secret" = "Gizli Anahtar"
-"loginSecurity" = "Güvenli Giriş"
-"loginSecurityDesc" = "Daha fazla güvenlik sağlamak için ek bir kimlik doğrulama katmanı ekler."
-"secretToken" = "Gizli Anahtar"
-"secretTokenDesc" = "Bu anahtarı güvenli bir yerde saklayın. Bu anahtar giriş için gereklidir ve geri alınamaz."
+"twoFactor" = "İki adımlı doğrulama"  
+"twoFactorEnable" = "2FA'yı Etkinleştir"  
+"twoFactorEnableDesc" = "Daha fazla güvenlik için ek bir doğrulama katmanı ekler."  
+"twoFactorModalSetTitle" = "İki adımlı doğrulamayı etkinleştir"
+"twoFactorModalDeleteTitle" = "İki adımlı doğrulamayı devre dışı bırak"
+"twoFactorModalSteps" = "İki adımlı doğrulamayı ayarlamak için şu adımları izleyin:"
+"twoFactorModalFirstStep" = "1. Bu QR kodunu doğrulama uygulamasında tarayın veya QR kodunun yanındaki token'ı kopyalayıp uygulamaya yapıştırın"
+"twoFactorModalSecondStep" = "2. Uygulamadaki kodu girin"
+"twoFactorModalRemoveStep" = "İki adımlı doğrulamayı kaldırmak için uygulamadaki kodu girin."
+"twoFactorModalSetSuccess" = "İki faktörlü kimlik doğrulama başarıyla kuruldu"
+"twoFactorModalDeleteSuccess" = "İki faktörlü kimlik doğrulama başarıyla silindi"
+"twoFactorModalError" = "Yanlış kod"
 
 [pages.settings.toasts]
 "modifySettings" = "Ayarları Değiştir"

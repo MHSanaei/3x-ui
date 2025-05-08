@@ -184,10 +184,8 @@ reset_user() {
     read -rp "Please set the login password [default is a random password]: " config_password
     [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
     /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
-    /usr/local/x-ui/x-ui setting -remove_secret >/dev/null 2>&1
     echo -e "Panel login username has been reset to: ${green} ${config_account} ${plain}"
     echo -e "Panel login password has been reset to: ${green} ${config_password} ${plain}"
-    echo -e "${yellow} Panel login secret token disabled ${plain}"
     echo -e "${green} Please use the new login username and password to access the X-UI panel. Also remember them! ${plain}"
     confirm_restart
 }
@@ -1731,7 +1729,7 @@ show_menu() {
 │   ${green}4.${plain} Legacy Version                            │
 │   ${green}5.${plain} Uninstall                                 │
 │────────────────────────────────────────────────│
-│   ${green}6.${plain} Reset Username & Password & Secret Token  │
+│   ${green}6.${plain} Reset Username & Password                 │
 │   ${green}7.${plain} Reset Web Base Path                       │
 │   ${green}8.${plain} Reset Settings                            │
 │   ${green}9.${plain} Change Port                               │

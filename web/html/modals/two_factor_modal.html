@@ -1,0 +1,118 @@
+{{define "modals/twoFactorModal"}}
+<a-modal id="two-factor-modal" v-model="twoFactorModal.visible" :title="twoFactorModal.title" :closable="true"
+    :class="themeSwitcher.currentTheme">
+    <template v-if="twoFactorModal.type === 'set'">
+        <p>{{ i18n "pages.settings.security.twoFactorModalSteps" }}</p>
+        <a-divider></a-divider>
+        <p>{{ i18n "pages.settings.security.twoFactorModalFirstStep" }}</p>
+        <div :style="{ display: 'flex', alignItems: 'center', flexDirection: 'column', gap: '12px' }">
+            <div
+                :style="{ border: '1px solid', borderRadius: '1rem', borderColor: themeSwitcher.isDarkTheme ? 'var(--dark-color-surface-300)' : '#d9d9d9', padding: 0 }">
+                <img :src="twoFactorModal.qrImage"
+                    :style="{ filter: themeSwitcher.isDarkTheme ? 'invert(1)' : 'none'}"
+                    :alt="twoFactorModal.token">
+            </div>
+            <span :style="{ fontSize: '12px', fontFamily: 'monospace' }">[[ twoFactorModal.token ]]</span>
+        </div>
+        <a-divider></a-divider>
+        <p>{{ i18n "pages.settings.security.twoFactorModalSecondStep" }}</p>
+        <a-input v-model.trim="twoFactorModal.enteredCode" :style="{ width: '100%' }"></a-input>
+    </template>
+    <template v-if="twoFactorModal.type === 'remove'">
+        <p>{{ i18n "pages.settings.security.twoFactorModalRemoveStep" }}</p>
+        <a-input v-model.trim="twoFactorModal.enteredCode" :style="{ width: '100%' }"></a-input>
+    </template>
+    <template slot="footer">
+        <a-button @click="twoFactorModal.cancel">
+            <span>{{ i18n "cancel" }}</span>
+        </a-button>
+        <a-button type="primary" :disabled="twoFactorModal.enteredCode.length < 6" @click="twoFactorModal.ok">
+            <span>{{ i18n "confirm" }}</span>
+        </a-button>
+    </template>
+</a-modal>
+
+<script>
+    const twoFactorModal = {
+        title: '',
+        fileName: '',
+        token: '',
+        enteredCode: '',
+        visible: false,
+        type: 'set',
+        confirm: null,
+        totpObject: null,
+        qrImage: "",
+        ok() {
+            if (twoFactorModal.totpObject.generate() === twoFactorModal.enteredCode) {
+                ObjectUtil.execute(twoFactorModal.confirm, true)
+
+                twoFactorModal.close()
+
+                switch (twoFactorModal.type) {
+                    case 'set':
+                        Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalSetSuccess" }}')
+                        break;
+                    case 'remove':
+                        Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalDeleteSuccess" }}')
+                        break;
+                    default:
+                        break;
+                }
+            } else {
+                Vue.prototype.$message['error']('{{ i18n "pages.settings.security.twoFactorModalError" }}')
+            }
+        },
+        cancel() {
+            ObjectUtil.execute(twoFactorModal.confirm, false)
+
+            twoFactorModal.close()
+        },
+        show: function ({
+            title = '',
+            token = '',
+            type = 'set',
+            confirm = (success) => { }
+        }) {
+            this.title = title;
+            this.token = token;
+            this.visible = true;
+            this.confirm = confirm;
+            this.type = type;
+
+            this.totpObject = new OTPAuth.TOTP({
+                issuer: "3x-ui",
+                label: "Administrator",
+                algorithm: "SHA1",
+                digits: 6,
+                period: 30,
+                secret: twoFactorModal.token,
+            });
+
+            if (type === 'set') {
+                this.qrImage = new QRious({
+                    size: 150,
+                    value: twoFactorModal.totpObject.toString(),
+                    background: 'white',
+                    backgroundAlpha: 0,
+                    foreground: 'black',
+                    padding: 12,
+                    level: 'L'
+                }).toDataURL()
+            }
+        },
+        close: function () {
+            twoFactorModal.enteredCode = "";
+            twoFactorModal.visible = false;
+        },
+    };
+
+    const twoFactorModalApp = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#two-factor-modal',
+        data: {
+            twoFactorModal: twoFactorModal,
+        },
+    });
+</script>
+{{end}}

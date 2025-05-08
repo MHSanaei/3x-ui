@@ -51,7 +51,7 @@
 "install" = "Instal"
 "clients" = "Klien"
 "usage" = "Penggunaan"
-"secretToken" = "Token Rahasia"
+"twoFactorCode" = "Kode"
 "remained" = "Tersisa"
 "security" = "Keamanan"
 "secAlertTitle" = "Peringatan keamanan"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Format data input tidak valid."
 "emptyUsername" = "Nama Pengguna diperlukan"
 "emptyPassword" = "Kata Sandi diperlukan"
-"wrongUsernameOrPassword" = "Nama pengguna atau kata sandi tidak valid."
+"wrongUsernameOrPassword" = "Username, kata sandi, atau kode dua faktor tidak valid."  
 "successLogin" = "Login berhasil"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "Kredensial admin"
-"secret" = "Token Rahasia"
-"loginSecurity" = "Login Aman"
-"loginSecurityDesc" = "Menambahkan lapisan otentikasi tambahan untuk memberikan keamanan lebih."
-"secretToken" = "Token Rahasia"
-"secretTokenDesc" = "Simpan token ini dengan aman di tempat yang aman. Token ini diperlukan untuk login dan tidak dapat dipulihkan."
+"twoFactor" = "Autentikasi dua faktor"
+"twoFactorEnable" = "Aktifkan 2FA"
+"twoFactorEnableDesc" = "Menambahkan lapisan autentikasi tambahan untuk keamanan lebih."
+"twoFactorModalSetTitle" = "Aktifkan autentikasi dua faktor"
+"twoFactorModalDeleteTitle" = "Nonaktifkan autentikasi dua faktor"
+"twoFactorModalSteps" = "Untuk menyiapkan autentikasi dua faktor, lakukan beberapa langkah:"
+"twoFactorModalFirstStep" = "1. Pindai kode QR ini di aplikasi autentikasi atau salin token di dekat kode QR dan tempelkan ke aplikasi"
+"twoFactorModalSecondStep" = "2. Masukkan kode dari aplikasi"
+"twoFactorModalRemoveStep" = "Masukkan kode dari aplikasi untuk menghapus autentikasi dua faktor."
+"twoFactorModalSetSuccess" = "Autentikasi dua faktor telah berhasil dibuat"
+"twoFactorModalDeleteSuccess" = "Autentikasi dua faktor telah berhasil dihapus"
+"twoFactorModalError" = "Kode salah"
 
 [pages.settings.toasts]
 "modifySettings" = "Ubah Pengaturan"

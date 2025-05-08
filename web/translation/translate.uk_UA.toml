@@ -51,7 +51,7 @@
 "install" = "Встановити"
 "clients" = "Клієнти"
 "usage" = "Використання"
-"secretToken" = "Секретний маркер"
+"twoFactorCode" = "Код"
 "remained" = "Залишилося"
 "security" = "Беспека"
 "secAlertTitle" = "Попередження системи безпеки"
@@ -87,7 +87,7 @@
 "invalidFormData" = "Формат вхідних даних недійсний."
 "emptyUsername" = "Потрібне ім'я користувача"
 "emptyPassword" = "Потрібен пароль"
-"wrongUsernameOrPassword" = "Невірне ім'я користувача або пароль."
+"wrongUsernameOrPassword" = "Невірне ім’я користувача, пароль або код двофакторної аутентифікації."  
 "successLogin" = "Вхід"
 
 [pages.index]
@@ -503,11 +503,18 @@
 
 [pages.settings.security]
 "admin" = "Облікові дані адміністратора"
-"secret" = "Секретний маркер"
-"loginSecurity" = "Безпечний вхід"
-"loginSecurityDesc" = "Додає додатковий рівень автентифікації для забезпечення більшої безпеки."
-"secretToken" = "Секретний маркер"
-"secretTokenDesc" = "Будь ласка, надійно зберігайте цей маркер у безпечному місці. Цей маркер потрібен для входу, і його неможливо відновити."
+"twoFactor" = "Двофакторна аутентифікація"  
+"twoFactorEnable" = "Увімкнути 2FA"  
+"twoFactorEnableDesc" = "Додає додатковий рівень аутентифікації для підвищення безпеки."  
+"twoFactorModalSetTitle" = "Увімкнути двофакторну аутентифікацію"
+"twoFactorModalDeleteTitle" = "Вимкнути двофакторну аутентифікацію"
+"twoFactorModalSteps" = "Щоб налаштувати двофакторну аутентифікацію, виконайте кілька кроків:"
+"twoFactorModalFirstStep" = "1. Відскануйте цей QR-код у програмі для аутентифікації або скопіюйте токен біля QR-коду та вставте його в програму"
+"twoFactorModalSecondStep" = "2. Введіть код з програми"
+"twoFactorModalRemoveStep" = "Введіть код з програми, щоб вимкнути двофакторну аутентифікацію."
+"twoFactorModalSetSuccess" = "Двофакторна аутентифікація була успішно встановлена"
+"twoFactorModalDeleteSuccess" = "Двофакторна аутентифікація була успішно видалена"
+"twoFactorModalError" = "Невірний код"
 
 [pages.settings.toasts]
 "modifySettings" = "Змінити налаштування"
