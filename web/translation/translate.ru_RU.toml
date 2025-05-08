@@ -506,8 +506,15 @@
 "twoFactor" = "Двухфакторная аутентификация"  
 "twoFactorEnable" = "Включить 2FA"  
 "twoFactorEnableDesc" = "Добавляет дополнительный уровень аутентификации для повышения безопасности."  
-"twoFactorToken" = "Токен 2FA"  
-"twoFactorTokenDesc" = "Пожалуйста, сохраните этот токен в приложении для аутентификации."
+"twoFactorModalSetTitle" = "Включить двухфакторную аутентификацию"
+"twoFactorModalDeleteTitle" = "Отключить двухфакторную аутентификацию"
+"twoFactorModalSteps" = "Для настройки двухфакторной аутентификации выполните несколько шагов:"
+"twoFactorModalFirstStep" = "1. Отсканируйте этот QR-код в приложении для аутентификации или скопируйте токен рядом с QR-кодом и вставьте его в приложение"
+"twoFactorModalSecondStep" = "2. Введите код из приложения"
+"twoFactorModalRemoveStep" = "Введите код из приложения, чтобы отключить двухфакторную аутентификацию."
+"twoFactorModalSetSuccess" = "Двухфакторная аутентификация была успешно установлена"
+"twoFactorModalDeleteSuccess" = "Двухфакторная аутентификация была успешно удалена"
+"twoFactorModalError" = "Неверный код"
 
 [pages.settings.toasts]
 "modifySettings" = "Настройки изменены"

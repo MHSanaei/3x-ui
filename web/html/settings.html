@@ -123,10 +123,12 @@
   </a-layout>
 {{template "js" .}}
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/otpauth/otpauth.umd.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aSettingListItem" .}}
+{{template "modals/twoFactorModal"}}
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
@@ -304,22 +306,32 @@
       },
       toggleTwoFactor(newValue) {
         if (newValue) {
-          const newTwoFactorToken = RandomUtil.randomBase32String();
+          const newTwoFactorToken = RandomUtil.randomBase32String()
 
-          this.allSetting.twoFactorToken = newTwoFactorToken;
+          twoFactorModal.show({
+            title: '{{ i18n "pages.settings.security.twoFactorModalSetTitle" }}',
+            token: newTwoFactorToken,
+            type: 'set',
+            confirm: (success) => {
+              if (success) {
+                this.allSetting.twoFactorToken = newTwoFactorToken
+              }
 
-          this.twoFactor.qrElement = new QRious({
-            size: 150,
-            value: `otpauth://totp/3x-ui:Administrator?secret=${newTwoFactorToken}&issuer=3x-ui`,
-            background: 'white',
-            backgroundAlpha: 0,
-            foreground: 'black',
-            padding: 12,
-            level: 'L'
+              this.allSetting.twoFactorEnable = success
+            }
           })
         } else {
-          this.allSetting.twoFactorToken = "";
-          this.twoFactor.qrElement = null;
+          twoFactorModal.show({
+            title: '{{ i18n "pages.settings.security.twoFactorModalDeleteTitle" }}',
+            token: this.allSetting.twoFactorToken,
+            type: 'remove',
+            confirm: (success) => {
+              if (success) {
+                this.allSetting.twoFactorEnable = false
+                this.allSetting.twoFactorToken = ""
+              }
+            }
+          })
         }
       },
       addNoise() {

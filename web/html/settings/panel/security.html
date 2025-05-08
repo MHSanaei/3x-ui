@@ -36,25 +36,7 @@
             <template #title>{{ i18n "pages.settings.security.twoFactorEnable" }}</template>
             <template #description>{{ i18n "pages.settings.security.twoFactorEnableDesc" }}</template>
             <template #control>
-                <a-switch @change="toggleTwoFactor" v-model="allSetting.twoFactorEnable"></a-switch>
-            </template>
-        </a-setting-list-item>
-        <a-setting-list-item paddings="small" v-if="allSetting.twoFactorEnable">
-            <template #title>{{ i18n "pages.settings.security.twoFactorToken" }}</template>
-            <template #description>{{ i18n "pages.settings.security.twoFactorTokenDesc" }}</template>
-            <template #control>
-                <a-space direction="horizontal" size="middle">
-                    <div
-                        :style="{ border: '1px solid', borderRadius: '1rem', borderColor: themeSwitcher.isDarkTheme ? 'var(--dark-color-surface-300)' : '#d9d9d9', padding: 0 }">
-                        <img id="twoFactorQr" :src="twoFactor.qrElement.toDataURL()" :style="{ filter: themeSwitcher.isDarkTheme ? 'invert(1)' : 'none'}"></canvas>
-                    </div>
-                    <a-tooltip>
-                        <template #title>
-                            <span>{{ i18n "copy" }}</span>
-                        </template>
-                        <a-icon type="copy" @click='ClipboardManager.copyText(allSetting.twoFactorToken, true, `{{ i18n "copySuccess" }}`)'></a-icon>
-                    </a-tooltip>
-                </a-space>
+                <a-switch @click="toggleTwoFactor" :checked="allSetting.twoFactorEnable"></a-switch>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>

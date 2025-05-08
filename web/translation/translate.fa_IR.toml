@@ -506,8 +506,15 @@
 "twoFactor" = "احراز هویت دو مرحله‌ای"  
 "twoFactorEnable" = "فعال‌سازی 2FA"  
 "twoFactorEnableDesc" = "یک لایه اضافی امنیتی برای احراز هویت فراهم می‌کند."  
-"twoFactorToken" = "توکن 2FA"  
-"twoFactorTokenDesc" = "لطفاً این توکن را در یک برنامه احراز هویت ذخیره کنید."
+"twoFactorModalSetTitle" = "فعال‌سازی احراز هویت دو مرحله‌ای"
+"twoFactorModalDeleteTitle" = "غیرفعال‌سازی احراز هویت دو مرحله‌ای"
+"twoFactorModalSteps" = "برای راه‌اندازی احراز هویت دو مرحله‌ای، مراحل زیر را انجام دهید:"
+"twoFactorModalFirstStep" = "1. این کد QR را در برنامه احراز هویت اسکن کنید یا توکن کنار کد QR را کپی کرده و در برنامه بچسبانید"
+"twoFactorModalSecondStep" = "2. کد را از برنامه وارد کنید"
+"twoFactorModalRemoveStep" = "برای حذف احراز هویت دو مرحله‌ای، کد را از برنامه وارد کنید."
+"twoFactorModalSetSuccess" = "احراز هویت دو مرحله‌ای با موفقیت برقرار شد"
+"twoFactorModalDeleteSuccess" = "احراز هویت دو مرحله‌ای با موفقیت حذف شد"
+"twoFactorModalError" = "کد نادرست"
 
 [pages.settings.toasts]
 "modifySettings" = "ویرایش تنظیمات"

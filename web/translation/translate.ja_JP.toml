@@ -506,8 +506,15 @@
 "twoFactor" = "二段階認証"  
 "twoFactorEnable" = "2FAを有効化"  
 "twoFactorEnableDesc" = "セキュリティを強化するために追加の認証層を追加します。"  
-"twoFactorToken" = "2FAトークン"  
-"twoFactorTokenDesc" = "このトークンを認証アプリに安全に保存してください。"
+"twoFactorModalSetTitle" = "二段階認証を有効にする"
+"twoFactorModalDeleteTitle" = "二段階認証を無効にする"
+"twoFactorModalSteps" = "二段階認証を設定するには、次の手順を実行してください:"
+"twoFactorModalFirstStep" = "1. 認証アプリでこのQRコードをスキャンするか、QRコード近くのトークンをコピーしてアプリに貼り付けます"
+"twoFactorModalSecondStep" = "2. アプリからコードを入力してください"
+"twoFactorModalRemoveStep" = "二段階認証を削除するには、アプリからコードを入力してください。"
+"twoFactorModalSetSuccess" = "二要素認証が正常に設定されました"
+"twoFactorModalDeleteSuccess" = "二要素認証が正常に削除されました"
+"twoFactorModalError" = "コードが間違っています"
 
 [pages.settings.toasts]
 "modifySettings" = "設定を変更"

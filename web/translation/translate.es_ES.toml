@@ -506,8 +506,15 @@
 "twoFactor" = "Autenticación de dos factores"  
 "twoFactorEnable" = "Habilitar 2FA"  
 "twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."  
-"twoFactorToken" = "Token de 2FA"  
-"twoFactorTokenDesc" = "Guarde este token de forma segura en una aplicación de autenticación." 
+"twoFactorModalSetTitle" = "Activar autenticación de dos factores"
+"twoFactorModalDeleteTitle" = "Desactivar autenticación de dos factores"
+"twoFactorModalSteps" = "Para configurar la autenticación de dos factores, sigue estos pasos:"
+"twoFactorModalFirstStep" = "1. Escanea este código QR en la aplicación de autenticación o copia el token cerca del código QR y pégalo en la aplicación"
+"twoFactorModalSecondStep" = "2. Ingresa el código de la aplicación"
+"twoFactorModalRemoveStep" = "Ingresa el código de la aplicación para eliminar la autenticación de dos factores."
+"twoFactorModalSetSuccess" = "La autenticación de dos factores se ha establecido con éxito"
+"twoFactorModalDeleteSuccess" = "La autenticación de dos factores se ha eliminado con éxito"
+"twoFactorModalError" = "Código incorrecto"
 
 [pages.settings.toasts]
 "modifySettings" = "Modificar Configuraciones "

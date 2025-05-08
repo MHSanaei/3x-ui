@@ -504,8 +504,15 @@
 "twoFactor" = "Two-factor authentication"
 "twoFactorEnable" = "Enable 2FA"
 "twoFactorEnableDesc" = "Adds an additional layer of authentication to provide more security."
-"twoFactorToken" = "2FA token"
-"twoFactorTokenDesc" = "Please securely store this token in a authentication app."
+"twoFactorModalSetTitle" = "Enable two-factor authentication"
+"twoFactorModalDeleteTitle" = "Disable two-factor authentication"
+"twoFactorModalSteps" = "To set up two-factor authentication, perform a few steps:"
+"twoFactorModalFirstStep" = "1. Scan this QR code in the app for authentication or copy the token near the QR code and paste it into the app"
+"twoFactorModalSecondStep" = "2. Enter the code from the app"
+"twoFactorModalRemoveStep" = "Enter the code from the application to remove two-factor authentication."
+"twoFactorModalSetSuccess" = "Two-factor authentication has been successfully established"
+"twoFactorModalDeleteSuccess" = "Two-factor authentication has been successfully deleted"
+"twoFactorModalError" = "Wrong code"
 
 [pages.settings.toasts]
 "modifySettings" = "Modify Settings"

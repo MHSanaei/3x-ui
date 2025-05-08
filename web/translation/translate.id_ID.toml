@@ -506,8 +506,15 @@
 "twoFactor" = "Autentikasi dua faktor"
 "twoFactorEnable" = "Aktifkan 2FA"
 "twoFactorEnableDesc" = "Menambahkan lapisan autentikasi tambahan untuk keamanan lebih."
-"twoFactorToken" = "Token 2FA"
-"twoFactorTokenDesc" = "Harap simpan token ini dengan aman di aplikasi autentikasi."
+"twoFactorModalSetTitle" = "Aktifkan autentikasi dua faktor"
+"twoFactorModalDeleteTitle" = "Nonaktifkan autentikasi dua faktor"
+"twoFactorModalSteps" = "Untuk menyiapkan autentikasi dua faktor, lakukan beberapa langkah:"
+"twoFactorModalFirstStep" = "1. Pindai kode QR ini di aplikasi autentikasi atau salin token di dekat kode QR dan tempelkan ke aplikasi"
+"twoFactorModalSecondStep" = "2. Masukkan kode dari aplikasi"
+"twoFactorModalRemoveStep" = "Masukkan kode dari aplikasi untuk menghapus autentikasi dua faktor."
+"twoFactorModalSetSuccess" = "Autentikasi dua faktor telah berhasil dibuat"
+"twoFactorModalDeleteSuccess" = "Autentikasi dua faktor telah berhasil dihapus"
+"twoFactorModalError" = "Kode salah"
 
 [pages.settings.toasts]
 "modifySettings" = "Ubah Pengaturan"
