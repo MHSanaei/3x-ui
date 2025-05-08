@@ -541,6 +541,7 @@
 "modifySettings" = "Los parámetros han sido modificados."
 "getSettings" = "Ocurrió un error al obtener los parámetros."
 "modifyUserError" = "Ocurrió un error al cambiar las credenciales del administrador."
+"modifyUser" = "Has cambiado exitosamente las credenciales del administrador."
 "originalUserPassIncorrect" = "Nombre de usuario o contraseña original incorrectos"
 "userPassMustBeNotEmpty" = "El nuevo nombre de usuario y la nueva contraseña no pueden estar vacíos"
 "getOutboundTrafficError" = "Error al obtener el tráfico saliente"

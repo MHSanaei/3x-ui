@@ -541,6 +541,7 @@
 "modifySettings" = "Parameter telah diubah."
 "getSettings" = "Terjadi kesalahan saat mengambil parameter."
 "modifyUserError" = "Terjadi kesalahan saat mengubah kredensial administrator."
+"modifyUser" = "Anda telah berhasil mengubah kredensial administrator."
 "originalUserPassIncorrect" = "Username atau password saat ini tidak valid"
 "userPassMustBeNotEmpty" = "Username dan password baru tidak boleh kosong"
 "getOutboundTrafficError" = "Gagal mendapatkan lalu lintas keluar"

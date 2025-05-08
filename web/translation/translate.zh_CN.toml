@@ -541,6 +541,7 @@
 "modifySettings" = "参数已更改。"
 "getSettings" = "获取参数时发生错误"
 "modifyUserError" = "更改管理员凭据时发生错误。"
+"modifyUser" = "您已成功更改管理员凭据。"
 "originalUserPassIncorrect" = "原用户名或原密码错误"
 "userPassMustBeNotEmpty" = "新用户名和新密码不能为空"
 "getOutboundTrafficError" = "获取出站流量错误"

@@ -99,7 +99,7 @@ func (a *SettingController) updateUser(c *gin.Context) {
 		user.Password, _ = crypto.HashPasswordAsBcrypt(form.NewPassword)
 		session.SetLoginUser(c, user)
 	}
-	jsonMsg(c, I18nWeb(c, "success"), err)
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifyUser"), err)
 }
 
 func (a *SettingController) restartPanel(c *gin.Context) {

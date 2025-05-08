@@ -541,6 +541,7 @@
 "modifySettings" = "Parametreler değiştirildi."
 "getSettings" = "Parametreler alınırken bir hata oluştu."
 "modifyUserError" = "Yönetici kimlik bilgileri değiştirilirken bir hata oluştu."
+"modifyUser" = "Yönetici kimlik bilgilerini başarıyla değiştirdiniz."
 "originalUserPassIncorrect" = "Mevcut kullanıcı adı veya şifre geçersiz"
 "userPassMustBeNotEmpty" = "Yeni kullanıcı adı ve şifre boş olamaz"
 "getOutboundTrafficError" = "Giden trafik alınırken hata"

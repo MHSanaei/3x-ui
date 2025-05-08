@@ -538,6 +538,7 @@
 "modifySettings" = "The parameters have been changed."
 "getSettings" = "An error occurred while retrieving parameters."
 "modifyUserError" = "An error occurred while changing administrator credentials."
+"modifyUser" = "You have successfully changed the credentials of the administrator."
 "originalUserPassIncorrect" = "The сurrent username or password is invalid"
 "userPassMustBeNotEmpty" = "The new username and password is empty"
 "getOutboundTrafficError" = "Error getting traffics"

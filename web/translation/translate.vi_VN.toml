@@ -541,6 +541,7 @@
 "modifySettings" = "Các tham số đã được thay đổi."
 "getSettings" = "Lỗi xảy ra khi truy xuất tham số."
 "modifyUserError" = "Đã xảy ra lỗi khi thay đổi thông tin đăng nhập quản trị viên."
+"modifyUser" = "Bạn đã thay đổi thông tin đăng nhập quản trị viên thành công."
 "originalUserPassIncorrect" = "Tên người dùng hoặc mật khẩu gốc không đúng"
 "userPassMustBeNotEmpty" = "Tên người dùng mới và mật khẩu mới không thể để trống"
 "getOutboundTrafficError" = "Lỗi khi lấy lưu lượng truy cập đi"

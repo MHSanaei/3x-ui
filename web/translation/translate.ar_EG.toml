@@ -539,6 +539,7 @@
 "modifySettings" = "تم تغيير المعلمات."
 "getSettings" = "حدث خطأ أثناء استرداد المعلمات."
 "modifyUserError" = "حدث خطأ أثناء تغيير بيانات اعتماد المسؤول."
+"modifyUser" = "لقد قمت بتغيير بيانات اعتماد المسؤول بنجاح."
 "originalUserPassIncorrect" = "اسم المستخدم أو الباسورد الحالي غير صحيح"
 "userPassMustBeNotEmpty" = "اسم المستخدم والباسورد الجديدين فاضيين"
 "getOutboundTrafficError" = "خطأ في الحصول على حركات المرور الصادرة"

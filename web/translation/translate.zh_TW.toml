@@ -543,6 +543,7 @@
 "modifySettings" = "參數已更改。"
 "getSettings" = "取得參數時發生錯誤"
 "modifyUserError" = "變更管理員憑證時發生錯誤。"
+"modifyUser" = "您已成功變更管理員憑證。"
 "originalUserPassIncorrect" = "原使用者名稱或原密碼錯誤"
 "userPassMustBeNotEmpty" = "新使用者名稱和新密碼不能為空"
 "getOutboundTrafficError" = "取得出站流量錯誤"

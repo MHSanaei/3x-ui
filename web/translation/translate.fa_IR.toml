@@ -541,6 +541,7 @@
 "modifySettings" = "پارامترها تغییر کرده‌اند."
 "getSettings" = "خطا در دریافت پارامترها"
 "modifyUserError" = "خطا در تغییر اعتبارنامه‌های مدیر سیستم."
+"modifyUser" = "شما با موفقیت اعتبارنامه‌های مدیر سیستم را تغییر دادید."
 "originalUserPassIncorrect" = "نام‌کاربری یا رمزعبور فعلی اشتباه‌است"
 "userPassMustBeNotEmpty" = "نام‌کاربری یا رمزعبور جدید خالی‌است"
 "getOutboundTrafficError" = "خطا در دریافت ترافیک خروجی"

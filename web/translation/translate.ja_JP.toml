@@ -541,6 +541,7 @@
 "modifySettings" = "パラメーターが変更されました。"
 "getSettings" = "パラメーターの取得中にエラーが発生しました"
 "modifyUserError" = "管理者認証情報の変更中にエラーが発生しました。"
+"modifyUser" = "管理者の認証情報を正常に変更しました。"
 "originalUserPassIncorrect" = "旧ユーザー名または旧パスワードが間違っています"
 "userPassMustBeNotEmpty" = "新しいユーザー名と新しいパスワードは空にできません"
 "getOutboundTrafficError" = "送信トラフィックの取得エラー"
