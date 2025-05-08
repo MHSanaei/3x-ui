@@ -524,18 +524,6 @@
     async mounted() {
       await this.getAllSetting();
 
-      if (this.allSetting.twoFactorEnable) {
-        this.twoFactor.qrElement = new QRious({
-          size: 150,
-          value: `otpauth://totp/3x-ui:Administrator?secret=${this.allSetting.twoFactorToken}&issuer=3x-ui`,
-          background: 'white',
-          backgroundAlpha: 0,
-          foreground: 'black',
-          padding: 12,
-          level: 'L'
-        })
-      }
-
       while (true) {
         await PromiseUtil.sleep(1000);
         this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);
