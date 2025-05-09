@@ -4,6 +4,8 @@
 "confirm" = "Confirm"
 "cancel" = "Cancel"
 "close" = "Close"
+"create" = "Create"
+"update" = "Update"
 "copy" = "Copy"
 "copied" = "Copied"
 "download" = "Download"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "No added Fake DNS servers."
 "emptyBalancersDesc" = "No added balancers."
 "emptyReverseDesc" = "No added reverse proxies."
+"somethingWentWrong" = "Something went wrong"
 
 [menu]
 "theme" = "Theme"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Username is required"
 "emptyPassword" = "Password is required"
 "wrongUsernameOrPassword" = "Invalid username or password or two-factor code."
-"successLogin" = "Login"
+"successLogin" = " You have successfully logged into your account."
 
 [pages.index]
 "title" = "Overview"
@@ -137,6 +140,11 @@
 "exportDatabaseDesc" = "Click to download a .db file containing a backup of your current database to your device."
 "importDatabase" = "Restore"
 "importDatabaseDesc" = "Click to select and upload a .db file from your device to restore your database from a backup."
+"importDatabaseSuccess" = "The database has been successfully imported."
+"importDatabaseError" = "An error occurred while importing the database."
+"readDatabaseError" = "An error occurred while reading the database."
+"getDatabaseError" = "An error occurred while retrieving the database."
+"getConfigError" = "An error occurred while retrieving the config file."
 
 [pages.inbounds]
 "title" = "Inbounds"
@@ -157,8 +165,6 @@
 "generalActions" = "General Actions"
 "autoRefresh" = "Auto-refresh"
 "autoRefreshInterval" = "Interval"
-"create" = "Create"
-"update" = "Update"
 "modifyInbound" = "Modify Inbound"
 "deleteInbound" = "Delete Inbound"
 "deleteInboundContent" = "Are you sure you want to delete inbound?"
@@ -235,6 +241,22 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
+"updateSuccess" = "The update was successful."
+"logCleanSuccess" = "The log has been cleared."
+"inboundsUpdateSuccess" = "Inbounds have been successfully updated."
+"inboundUpdateSuccess" = "Inbound has been successfully updated."
+"inboundCreateSuccess" = "Inbound has been successfully created."
+"inboundDeleteSuccess" = "Inbound has been successfully deleted."
+"inboundClientAddSuccess" = "Inbound client(s) have been added."
+"inboundClientDeleteSuccess" = "Inbound client has been deleted."
+"inboundClientUpdateSuccess" = "Inbound client has been updated."
+"delDepletedClientsSuccess" = "All depleted clients are deleted."
+"resetAllClientTrafficSuccess" = "All traffic from the client has been reset."
+"resetAllTrafficSuccess" = "All traffic has been reset."
+"resetInboundClientTrafficSuccess" = "Traffic has been reset."
+"trafficGetError" = "Error getting traffics."
+"getNewX25519CertError" = "Error while obtaining the X25519 certificate."
+
 
 [pages.inbounds.stream.general]
 "request" = "Request"
@@ -257,6 +279,7 @@
 "infoDesc" = "Every change made here needs to be saved. Please restart the panel to apply changes."
 "restartPanel" = "Restart Panel"
 "restartPanelDesc" = "Are you sure you want to restart the panel? If you cannot access the panel after restarting, please view the panel log info on the server."
+"restartPanelSuccess" = "The panel was successfully restarted."
 "actions" = "Actions"
 "resetDefaultConfig" = "Reset to Default"
 "panelSettings" = "General"
@@ -364,6 +387,10 @@
 "title" = "Xray Configs"
 "save" = "Save"
 "restart" = "Restart Xray"
+"restartSuccess" = "Xray has been successfully relaunched."
+"stopSuccess" = "Xray has been successfully stopped."
+"restartError" = "There was an error when rebooting the Xray."
+"stopError" = "There was an error when stopping the Xray."
 "basicTemplate" = "Basics"
 "advancedTemplate" = "Advanced"
 "generalConfigs" = "General"
@@ -515,11 +542,14 @@
 "twoFactorModalError" = "Wrong code"
 
 [pages.settings.toasts]
-"modifySettings" = "Modify Settings"
-"getSettings" = "Get Settings"
-"modifyUser" = "Modify Admin"
-"originalUserPassIncorrect" = "The Current username or password is invalid"
+"modifySettings" = "The parameters have been changed."
+"getSettings" = "An error occurred while retrieving parameters."
+"modifyUserError" = "An error occurred while changing administrator credentials."
+"modifyUser" = "You have successfully changed the credentials of the administrator."
+"originalUserPassIncorrect" = "The сurrent username or password is invalid"
 "userPassMustBeNotEmpty" = "The new username and password is empty"
+"getOutboundTrafficError" = "Error getting traffics"
+"resetOutboundTrafficError" = "Error in reset outbound traffics"
 
 [tgbot]
 "keyboardClosed" = "❌ Custom keyboard closed!"

@@ -978,7 +978,7 @@
             openAddInbound() {
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.addInbound"}}',
-                    okText: '{{ i18n "pages.inbounds.create"}}',
+                    okText: '{{ i18n "create"}}',
                     cancelText: '{{ i18n "close" }}',
                     confirm: async (inbound, dbInbound) => {
                         await this.addInbound(inbound, dbInbound, inModal);
@@ -991,7 +991,7 @@
                 const inbound = dbInbound.toInbound();
                 inModal.show({
                     title: '{{ i18n "pages.inbounds.modifyInbound"}}',
-                    okText: '{{ i18n "pages.inbounds.update"}}',
+                    okText: '{{ i18n "update"}}',
                     cancelText: '{{ i18n "close" }}',
                     inbound: inbound,
                     dbInbound: dbInbound,

@@ -4,6 +4,8 @@
 "confirm" = "تایید"
 "cancel" = "انصراف"
 "close" = "بستن"
+"create" = "ایجاد"
+"update" = "به‌روزرسانی"
 "copy" = "کپی"
 "copied" = "کپی شد"
 "download" = "دانلود"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "هیچ سرور Fake DNS اضافه نشده است."
 "emptyBalancersDesc" = "هیچ بالانسر اضافه نشده است."
 "emptyReverseDesc" = "هیچ پروکسی معکوس اضافه نشده است."
+"somethingWentWrong" = "مشکلی پیش آمد"
 
 [menu]
 "theme" = "تم"
@@ -88,7 +91,7 @@
 "emptyUsername" = "لطفا یک نام‌کاربری وارد کنید‌"
 "emptyPassword" = "لطفا یک رمزعبور وارد کنید"
 "wrongUsernameOrPassword" = "نام کاربری، رمز عبور یا کد دو مرحله‌ای نامعتبر است."  
-"successLogin" = "ورود"
+"successLogin" = "شما با موفقیت به حساب کاربری خود وارد شدید."
 
 [pages.index]
 "title" = "نمای کلی"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "برای دانلود یک فایل .db حاوی پشتیبان از پایگاه داده فعلی خود به دستگاهتان کلیک کنید."
 "importDatabase" = "بازیابی"
 "importDatabaseDesc" = "برای انتخاب و آپلود یک فایل .db از دستگاهتان و بازیابی پایگاه داده از یک پشتیبان کلیک کنید."
+"importDatabaseSuccess" = "پایگاه داده با موفقیت وارد شد"
+"importDatabaseError" = "خطا در وارد کردن پایگاه داده"
+"readDatabaseError" = "خطا در خواندن پایگاه داده"
+"getDatabaseError" = "خطا در دریافت پایگاه داده"
+"getConfigError" = "خطا در دریافت فایل پیکربندی"
 
 [pages.inbounds]
 "title" = "کاربران"
@@ -159,14 +167,14 @@
 "generalActions" = "عملیات کلی"
 "autoRefresh" = "تازه‌سازی خودکار"
 "autoRefreshInterval" = "فاصله"
-"create" = "افزودن"
-"update" = "ویرایش"
 "modifyInbound" = "ویرایش ورودی"
 "deleteInbound" = "حذف ورودی"
 "deleteInboundContent" = "آیا مطمئن به حذف ورودی هستید؟"
 "deleteClient" = "حذف کاربر"
 "deleteClientContent" = "آیا مطمئن به حذف کاربر هستید؟"
 "resetTrafficContent" = "آیا مطمئن به ریست ترافیک هستید؟"
+"inboundUpdateSuccess" = "ورودی با موفقیت به‌روزرسانی شد."
+"inboundCreateSuccess" = "ورودی با موفقیت ایجاد شد."
 "copyLink" = "کپی لینک"
 "address" = "آدرس"
 "network" = "شبکه"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "فراهم‌سازی"
+"updateSuccess" = "بروزرسانی با موفقیت انجام شد"
+"logCleanSuccess" = "لاگ پاکسازی شد"
+"inboundsUpdateSuccess" = "ورودی‌ها با موفقیت به‌روزرسانی شدند"
+"inboundUpdateSuccess" = "ورودی با موفقیت به‌روزرسانی شد"
+"inboundCreateSuccess" = "ورودی با موفقیت ایجاد شد"
+"inboundDeleteSuccess" = "ورودی با موفقیت حذف شد"
+"inboundClientAddSuccess" = "کلاینت(های) ورودی اضافه شدند"
+"inboundClientDeleteSuccess" = "کلاینت ورودی حذف شد"
+"inboundClientUpdateSuccess" = "کلاینت ورودی به‌روزرسانی شد"
+"delDepletedClientsSuccess" = "تمام کلاینت‌های مصرف شده حذف شدند"
+"resetAllClientTrafficSuccess" = "تمام ترافیک کلاینت بازنشانی شد"
+"resetAllTrafficSuccess" = "تمام ترافیک‌ها بازنشانی شدند"
+"resetInboundClientTrafficSuccess" = "ترافیک بازنشانی شد"
+"trafficGetError" = "خطا در دریافت ترافیک‌ها"
+"getNewX25519CertError" = "خطا در دریافت گواهی X25519."
 
 [pages.inbounds.stream.general]
 "request" = "درخواست"
@@ -259,6 +282,7 @@
 "infoDesc" = "برای اعمال تغییرات در این بخش باید پس از ذخیره کردن، پنل را ریستارت کنید"
 "restartPanel" = "ریستارت پنل"
 "restartPanelDesc" = "آیا مطمئن به ریستارت پنل هستید؟ اگر پس‌از ریستارت نمی‌توانید به پنل دسترسی پیدا کنید، لطفاً گزارش‌های موجود در اسکریپت پنل را بررسی کنید"
+"restartPanelSuccess" = "پنل با موفقیت راه‌اندازی مجدد شد"
 "actions" = "عملیات ها"
 "resetDefaultConfig" = "برگشت به پیش‌فرض"
 "panelSettings" = "پیکربندی"
@@ -366,6 +390,10 @@
 "title" = "پیکربندی ایکس‌ری"
 "save" = "ذخیره"
 "restart" = "ریستارت ایکس‌ری"
+"restartSuccess" = "Xray با موفقیت راه‌اندازی مجدد شد"
+"stopSuccess" = "Xray با موفقیت متوقف شد"
+"restartError" = "خطا در راه‌اندازی مجدد Xray."
+"stopError" = "خطا در توقف Xray."
 "basicTemplate" = "پایه"
 "advancedTemplate" = "پیشرفته"
 "generalConfigs" = "استراتژی‌ کلی"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "کد نادرست"
 
 [pages.settings.toasts]
-"modifySettings" = "ویرایش تنظیمات"
-"getSettings" = "دریافت تنظیمات"
-"modifyUser" = "ویرایش مدیر"
+"modifySettings" = "پارامترها تغییر کرده‌اند."
+"getSettings" = "خطا در دریافت پارامترها"
+"modifyUserError" = "خطا در تغییر اعتبارنامه‌های مدیر سیستم."
+"modifyUser" = "شما با موفقیت اعتبارنامه‌های مدیر سیستم را تغییر دادید."
 "originalUserPassIncorrect" = "نام‌کاربری یا رمزعبور فعلی اشتباه‌است"
 "userPassMustBeNotEmpty" = "نام‌کاربری یا رمزعبور جدید خالی‌است"
+"getOutboundTrafficError" = "خطا در دریافت ترافیک خروجی"
+"resetOutboundTrafficError" = "خطا در بازنشانی ترافیک خروجی"
 
 [tgbot]
 "keyboardClosed" = "❌ کیبورد سفارشی بسته شد!"

@@ -93,7 +93,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 func (a *XraySettingController) getOutboundsTraffic(c *gin.Context) {
 	outboundsTraffic, err := a.OutboundService.GetOutboundsTraffic()
 	if err != nil {
-		jsonMsg(c, "Error getting traffics", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getOutboundTrafficError"), err)
 		return
 	}
 	jsonObj(c, outboundsTraffic, nil)
@@ -103,7 +103,7 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 	tag := c.PostForm("tag")
 	err := a.OutboundService.ResetOutboundTraffic(tag)
 	if err != nil {
-		jsonMsg(c, "Error in reset outbound traffics", err)
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.resetOutboundTrafficError"), err)
 		return
 	}
 	jsonObj(c, "", nil)

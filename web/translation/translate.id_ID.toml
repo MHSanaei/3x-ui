@@ -4,6 +4,8 @@
 "confirm" = "Konfirmasi"
 "cancel" = "Batal"
 "close" = "Tutup"
+"create" = "Buat"
+"update" = "Perbarui"
 "copy" = "Salin"
 "copied" = "Tersalin"
 "download" = "Unduh"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "Tidak ada server Fake DNS yang ditambahkan."
 "emptyBalancersDesc" = "Tidak ada penyeimbang yang ditambahkan."
 "emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
+"somethingWentWrong" = "Terjadi kesalahan"
 
 [menu]
 "theme" = "Tema"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Nama Pengguna diperlukan"
 "emptyPassword" = "Kata Sandi diperlukan"
 "wrongUsernameOrPassword" = "Username, kata sandi, atau kode dua faktor tidak valid."  
-"successLogin" = "Login berhasil"
+"successLogin" = "Anda telah berhasil masuk ke akun Anda."
 
 [pages.index]
 "title" = "Ikhtisar"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Klik untuk mengunduh file .db yang berisi cadangan dari database Anda saat ini ke perangkat Anda."
 "importDatabase" = "Pulihkan"
 "importDatabaseDesc" = "Klik untuk memilih dan mengunggah file .db dari perangkat Anda untuk memulihkan database dari cadangan."
+"importDatabaseSuccess" = "Database berhasil diimpor"
+"importDatabaseError" = "Terjadi kesalahan saat mengimpor database"
+"readDatabaseError" = "Terjadi kesalahan saat membaca database"
+"getDatabaseError" = "Terjadi kesalahan saat mengambil database"
+"getConfigError" = "Terjadi kesalahan saat mengambil file konfigurasi"
 
 [pages.inbounds]
 "title" = "Masuk"
@@ -159,14 +167,14 @@
 "generalActions" = "Tindakan Umum"
 "autoRefresh" = "Pembaruan otomatis"
 "autoRefreshInterval" = "Interval"
-"create" = "Buat"
-"update" = "Perbarui"
 "modifyInbound" = "Ubah Masuk"
 "deleteInbound" = "Hapus Masuk"
 "deleteInboundContent" = "Apakah Anda yakin ingin menghapus masuk?"
 "deleteClient" = "Hapus Klien"
 "deleteClientContent" = "Apakah Anda yakin ingin menghapus klien?"
 "resetTrafficContent" = "Apakah Anda yakin ingin mereset traffic?"
+"inboundUpdateSuccess" = "Inbound berhasil diperbarui."
+"inboundCreateSuccess" = "Inbound berhasil dibuat."
 "copyLink" = "Salin URL"
 "address" = "Alamat"
 "network" = "Jaringan"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"
+"updateSuccess" = "Pembaruan berhasil"
+"logCleanSuccess" = "Log telah dibersihkan"
+"inboundsUpdateSuccess" = "Inbound berhasil diperbarui"
+"inboundUpdateSuccess" = "Inbound berhasil diperbarui"
+"inboundCreateSuccess" = "Inbound berhasil dibuat"
+"inboundDeleteSuccess" = "Inbound berhasil dihapus"
+"inboundClientAddSuccess" = "Klien inbound telah ditambahkan"
+"inboundClientDeleteSuccess" = "Klien inbound telah dihapus"
+"inboundClientUpdateSuccess" = "Klien inbound telah diperbarui"
+"delDepletedClientsSuccess" = "Semua klien yang habis telah dihapus"
+"resetAllClientTrafficSuccess" = "Semua lalu lintas klien telah direset"
+"resetAllTrafficSuccess" = "Semua lalu lintas telah direset"
+"resetInboundClientTrafficSuccess" = "Lalu lintas telah direset"
+"trafficGetError" = "Gagal mendapatkan data lalu lintas"
+"getNewX25519CertError" = "Terjadi kesalahan saat mendapatkan sertifikat X25519."
 
 [pages.inbounds.stream.general]
 "request" = "Permintaan"
@@ -259,6 +282,7 @@
 "infoDesc" = "Setiap perubahan yang dibuat di sini perlu disimpan. Harap restart panel untuk menerapkan perubahan."
 "restartPanel" = "Restart Panel"
 "restartPanelDesc" = "Apakah Anda yakin ingin merestart panel? Jika Anda tidak dapat mengakses panel setelah merestart, lihat info log panel di server."
+"restartPanelSuccess" = "Panel berhasil dimulai ulang"
 "actions" = "Tindakan"
 "resetDefaultConfig" = "Reset ke Default"
 "panelSettings" = "Umum"
@@ -366,6 +390,10 @@
 "title" = "Konfigurasi Xray"
 "save" = "Simpan"
 "restart" = "Restart Xray"
+"restartSuccess" = "Xray berhasil diluncurkan ulang"
+"stopSuccess" = "Xray telah berhasil dihentikan"
+"restartError" = "Terjadi kesalahan saat memulai ulang Xray."
+"stopError" = "Terjadi kesalahan saat menghentikan Xray."
 "basicTemplate" = "Dasar"
 "advancedTemplate" = "Lanjutan"
 "generalConfigs" = "Strategi Umum"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Kode salah"
 
 [pages.settings.toasts]
-"modifySettings" = "Ubah Pengaturan"
-"getSettings" = "Dapatkan Pengaturan"
-"modifyUser" = "Ubah Admin"
+"modifySettings" = "Parameter telah diubah."
+"getSettings" = "Terjadi kesalahan saat mengambil parameter."
+"modifyUserError" = "Terjadi kesalahan saat mengubah kredensial administrator."
+"modifyUser" = "Anda telah berhasil mengubah kredensial administrator."
 "originalUserPassIncorrect" = "Username atau password saat ini tidak valid"
 "userPassMustBeNotEmpty" = "Username dan password baru tidak boleh kosong"
+"getOutboundTrafficError" = "Gagal mendapatkan lalu lintas keluar"
+"resetOutboundTrafficError" = "Gagal mereset lalu lintas keluar"
 
 [tgbot]
 "keyboardClosed" = "❌ Papan ketik kustom ditutup!"

@@ -4,6 +4,8 @@
 "confirm" = "Confirmar"
 "cancel" = "Cancelar"
 "close" = "Cerrar"
+"create" = "Crear"
+"update" = "Actualizar"
 "copy" = "Copiar"
 "copied" = "Copiado"
 "download" = "Descargar"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "No hay servidores Fake DNS añadidos."
 "emptyBalancersDesc" = "No hay balanceadores añadidos."
 "emptyReverseDesc" = "No hay proxies inversos añadidos."
+"somethingWentWrong" = "Algo salió mal"
 
 [menu]
 "theme" = "Tema"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Por favor ingresa el nombre de usuario."
 "emptyPassword" = "Por favor ingresa la contraseña."
 "wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."  
-"successLogin" = "Inicio de Sesión Exitoso"
+"successLogin" = "Has iniciado sesión en tu cuenta correctamente."
 
 [pages.index]
 "title" = "Estado del Sistema"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Haz clic para descargar un archivo .db que contiene una copia de seguridad de tu base de datos actual en tu dispositivo."
 "importDatabase" = "Restaurar"
 "importDatabaseDesc" = "Haz clic para seleccionar y cargar un archivo .db desde tu dispositivo para restaurar tu base de datos desde una copia de seguridad."
+"importDatabaseSuccess" = "La base de datos se ha importado correctamente"
+"importDatabaseError" = "Ocurrió un error al importar la base de datos"
+"readDatabaseError" = "Ocurrió un error al leer la base de datos"
+"getDatabaseError" = "Ocurrió un error al obtener la base de datos"
+"getConfigError" = "Ocurrió un error al obtener el archivo de configuración"
 
 [pages.inbounds]
 "title" = "Entradas"
@@ -159,14 +167,14 @@
 "generalActions" = "Acciones Generales"
 "autoRefresh" = "Auto-actualizar"
 "autoRefreshInterval" = "Intervalo"
-"create" = "Crear"
-"update" = "Actualizar"
 "modifyInbound" = "Modificar Entrada"
 "deleteInbound" = "Eliminar Entrada"
 "deleteInboundContent" = "¿Confirmar eliminación de entrada?"
 "deleteClient" = "Eliminar cliente"
 "deleteClientContent" = "¿Está seguro de que desea eliminar el cliente?"
 "resetTrafficContent" = "¿Confirmar restablecimiento de tráfico?"
+"inboundUpdateSuccess" = "La entrada se ha actualizado correctamente."
+"inboundCreateSuccess" = "La entrada se ha creado correctamente."
 "copyLink" = "Copiar Enlace"
 "address" = "Dirección"
 "network" = "Red"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Recibir"
+"updateSuccess" = "La actualización fue exitosa"
+"logCleanSuccess" = "El registro ha sido limpiado"
+"inboundsUpdateSuccess" = "Entradas actualizadas correctamente"
+"inboundUpdateSuccess" = "Entrada actualizada correctamente"
+"inboundCreateSuccess" = "Entrada creada correctamente"
+"inboundDeleteSuccess" = "Entrada eliminada correctamente"
+"inboundClientAddSuccess" = "Cliente(s) de entrada añadido(s)"
+"inboundClientDeleteSuccess" = "Cliente de entrada eliminado"
+"inboundClientUpdateSuccess" = "Cliente de entrada actualizado"
+"delDepletedClientsSuccess" = "Todos los clientes agotados fueron eliminados"
+"resetAllClientTrafficSuccess" = "Todo el tráfico del cliente ha sido reiniciado"
+"resetAllTrafficSuccess" = "Todo el tráfico ha sido reiniciado"
+"resetInboundClientTrafficSuccess" = "El tráfico ha sido reiniciado"
+"trafficGetError" = "Error al obtener los tráficos"
+"getNewX25519CertError" = "Error al obtener el certificado X25519."
 
 [pages.inbounds.stream.general]
 "request" = "Pedido"
@@ -259,6 +282,7 @@
 "infoDesc" = "Cada cambio realizado aquí debe ser guardado. Por favor, reinicie el panel para aplicar los cambios."
 "restartPanel" = "Reiniciar Panel"
 "restartPanelDesc" = "¿Está seguro de que desea reiniciar el panel? Haga clic en Aceptar para reiniciar después de 3 segundos. Si no puede acceder al panel después de reiniciar, por favor, consulte la información de registro del panel en el servidor."
+"restartPanelSuccess" = "El panel se reinició correctamente"
 "actions" = "Acciones"
 "resetDefaultConfig" = "Restablecer a Configuración Predeterminada"
 "panelSettings" = "Configuraciones del Panel"
@@ -366,6 +390,10 @@
 "title" = "Xray Configuración"
 "save" = "Guardar configuración"
 "restart" = "Reiniciar Xray"
+"restartSuccess" = "Xray se ha reiniciado correctamente"
+"stopSuccess" = "Xray se ha detenido correctamente"
+"restartError" = "Ocurrió un error al reiniciar Xray."
+"stopError" = "Ocurrió un error al detener Xray."
 "basicTemplate" = "Plantilla Básica"
 "advancedTemplate" = "Plantilla Avanzada"
 "generalConfigs" = "Configuraciones Generales"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Código incorrecto"
 
 [pages.settings.toasts]
-"modifySettings" = "Modificar Configuraciones "
-"getSettings" = "Obtener Configuraciones "
-"modifyUser" = "Modificar Usuario "
+"modifySettings" = "Los parámetros han sido modificados."
+"getSettings" = "Ocurrió un error al obtener los parámetros."
+"modifyUserError" = "Ocurrió un error al cambiar las credenciales del administrador."
+"modifyUser" = "Has cambiado exitosamente las credenciales del administrador."
 "originalUserPassIncorrect" = "Nombre de usuario o contraseña original incorrectos"
 "userPassMustBeNotEmpty" = "El nuevo nombre de usuario y la nueva contraseña no pueden estar vacíos"
+"getOutboundTrafficError" = "Error al obtener el tráfico saliente"
+"resetOutboundTrafficError" = "Error al reiniciar el tráfico saliente"
 
 [tgbot]
 "keyboardClosed" = "❌ ¡Teclado personalizado cerrado!"

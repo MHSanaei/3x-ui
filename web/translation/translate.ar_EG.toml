@@ -4,6 +4,8 @@
 "confirm" = "تأكيد"
 "cancel" = "إلغاء"
 "close" = "إغلاق"
+"create" = "إنشاء"
+"update" = "تحديث"
 "copy" = "نسخ"
 "copied" = "اتنسخ"
 "download" = "تحميل"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "مفيش سيرفر Fake DNS مضاف."
 "emptyBalancersDesc" = "مفيش موازن تحميل مضاف."
 "emptyReverseDesc" = "مفيش بروكسي عكسي مضاف."
+"somethingWentWrong" = "حدث خطأ ما"
 
 [menu]
 "theme" = "الثيم"
@@ -88,7 +91,7 @@
 "emptyUsername" = "اسم المستخدم مطلوب"
 "emptyPassword" = "الباسورد مطلوب"
 "wrongUsernameOrPassword" = "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح."  
-"successLogin" = "تسجيل دخول ناجح"
+"successLogin" = "لقد تم تسجيل الدخول إلى حسابك بنجاح."
 
 [pages.index]
 "title" = "نظرة عامة"
@@ -137,6 +140,11 @@
 "exportDatabaseDesc" = "اضغط عشان تحمل ملف .db يحتوي على نسخة احتياطية لقاعدة البيانات الحالية على جهازك."
 "importDatabase" = "استرجاع"
 "importDatabaseDesc" = "اضغط عشان تختار وتحمل ملف .db من جهازك لاسترجاع قاعدة البيانات من نسخة احتياطية."
+"importDatabaseSuccess" = "تم استيراد قاعدة البيانات بنجاح"
+"importDatabaseError" = "حدث خطأ أثناء استيراد قاعدة البيانات"
+"readDatabaseError" = "حدث خطأ أثناء قراءة قاعدة البيانات"
+"getDatabaseError" = "حدث خطأ أثناء استرجاع قاعدة البيانات"
+"getConfigError" = "حدث خطأ أثناء استرجاع ملف الإعدادات"
 
 [pages.inbounds]
 "title" = "الإدخالات"
@@ -157,14 +165,14 @@
 "generalActions" = "إجراءات عامة"
 "autoRefresh" = "تحديث تلقائي"
 "autoRefreshInterval" = "الفاصل"
-"create" = "إنشاء"
-"update" = "تحديث"
 "modifyInbound" = "تعديل الإدخال"
 "deleteInbound" = "حذف الإدخال"
 "deleteInboundContent" = "متأكد إنك عايز تحذف الإدخال؟"
 "deleteClient" = "حذف العميل"
 "deleteClientContent" = "متأكد إنك عايز تحذف العميل؟"
 "resetTrafficContent" = "متأكد إنك عايز تعيد ضبط الترافيك؟"
+"inboundUpdateSuccess" = "تم تحديث الوارد بنجاح."
+"inboundCreateSuccess" = "تم إنشاء الوارد بنجاح."
 "copyLink" = "انسخ الرابط"
 "address" = "العنوان"
 "network" = "الشبكة"
@@ -235,6 +243,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "تم الحصول عليه"
+"updateSuccess" = "تم التحديث بنجاح"
+"logCleanSuccess" = "تم مسح السجل"
+"inboundsUpdateSuccess" = "تم تحديث الواردات بنجاح"
+"inboundUpdateSuccess" = "تم تحديث الوارد بنجاح"
+"inboundCreateSuccess" = "تم إنشاء الوارد بنجاح"
+"inboundDeleteSuccess" = "تم حذف الوارد بنجاح"
+"inboundClientAddSuccess" = "تمت إضافة عميل(عملاء) وارد"
+"inboundClientDeleteSuccess" = "تم حذف عميل وارد"
+"inboundClientUpdateSuccess" = "تم تحديث عميل وارد"
+"delDepletedClientsSuccess" = "تم حذف جميع العملاء المستنفذين"
+"resetAllClientTrafficSuccess" = "تم إعادة تعيين كل حركة المرور من العميل"
+"resetAllTrafficSuccess" = "تم إعادة تعيين كل حركة المرور"
+"resetInboundClientTrafficSuccess" = "تم إعادة تعيين حركة المرور"
+"trafficGetError" = "خطأ في الحصول على حركات المرور"
+"getNewX25519CertError" = "حدث خطأ أثناء الحصول على شهادة X25519."
 
 [pages.inbounds.stream.general]
 "request" = "طلب"
@@ -257,6 +280,7 @@
 "infoDesc" = "كل تغيير هتعمله هنا لازم يتخزن. ياريت تعيد تشغيل البانل عشان التعديلات تتفعل."
 "restartPanel" = "إعادة تشغيل البانل"
 "restartPanelDesc" = "متأكد إنك عايز تعيد تشغيل البانل؟ لو ماقدرتش تدخل بعد إعادة التشغيل، شوف سجل البانل على السيرفر."
+"restartPanelSuccess" = "تم إعادة تشغيل اللوحة بنجاح"
 "actions" = "إجراءات"
 "resetDefaultConfig" = "استرجاع الافتراضي"
 "panelSettings" = "عام"
@@ -364,6 +388,10 @@
 "title" = "إعدادات Xray"
 "save" = "احفظ"
 "restart" = "أعد تشغيل Xray"
+"restartSuccess" = "تم إعادة تشغيل Xray بنجاح"
+"stopSuccess" = "تم إيقاف Xray بنجاح"
+"restartError" = "حدث خطأ أثناء إعادة تشغيل Xray."
+"stopError" = "حدث خطأ أثناء إيقاف Xray."
 "basicTemplate" = "أساسي"
 "advancedTemplate" = "متقدم"
 "generalConfigs" = "إعدادات عامة"
@@ -515,11 +543,14 @@
 "twoFactorModalError" = "رمز خاطئ"
 
 [pages.settings.toasts]
-"modifySettings" = "تعديل الإعدادات"
-"getSettings" = "جلب الإعدادات"
-"modifyUser" = "تعديل الأدمن"
+"modifySettings" = "تم تغيير المعلمات."
+"getSettings" = "حدث خطأ أثناء استرداد المعلمات."
+"modifyUserError" = "حدث خطأ أثناء تغيير بيانات اعتماد المسؤول."
+"modifyUser" = "لقد قمت بتغيير بيانات اعتماد المسؤول بنجاح."
 "originalUserPassIncorrect" = "اسم المستخدم أو الباسورد الحالي غير صحيح"
 "userPassMustBeNotEmpty" = "اسم المستخدم والباسورد الجديدين فاضيين"
+"getOutboundTrafficError" = "خطأ في الحصول على حركات المرور الصادرة"
+"resetOutboundTrafficError" = "خطأ في إعادة تعيين حركات المرور الصادرة"
 
 [tgbot]
 "keyboardClosed" = "❌ الكيبورد المخصص اتقفلت!"

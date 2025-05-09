@@ -4,6 +4,8 @@
 "confirm" = "確認"
 "cancel" = "キャンセル"
 "close" = "閉じる"
+"create" = "作成"
+"update" = "更新"
 "copy" = "コピー"
 "copied" = "コピー済み"
 "download" = "ダウンロード"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "追加されたFake DNSサーバーはありません。"
 "emptyBalancersDesc" = "追加されたバランサーはありません。"
 "emptyReverseDesc" = "追加されたリバースプロキシはありません。"
+"somethingWentWrong" = "エラーが発生しました"
 
 [menu]
 "theme" = "テーマ"
@@ -88,7 +91,7 @@
 "emptyUsername" = "ユーザー名を入力してください"
 "emptyPassword" = "パスワードを入力してください"
 "wrongUsernameOrPassword" = "ユーザー名、パスワード、または二段階認証コードが無効です。"  
-"successLogin" = "ログイン成功"
+"successLogin" = "アカウントに正常にログインしました。"
 
 [pages.index]
 "title" = "システムステータス"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "クリックして、現在のデータベースのバックアップを含む .db ファイルをデバイスにダウンロードします。"
 "importDatabase" = "復元"
 "importDatabaseDesc" = "クリックして、デバイスから .db ファイルを選択し、アップロードしてバックアップからデータベースを復元します。"
+"importDatabaseSuccess" = "データベースのインポートに成功しました"
+"importDatabaseError" = "データベースのインポート中にエラーが発生しました"
+"readDatabaseError" = "データベースの読み取り中にエラーが発生しました"
+"getDatabaseError" = "データベースの取得中にエラーが発生しました"
+"getConfigError" = "設定ファイルの取得中にエラーが発生しました"
 
 [pages.inbounds]
 "title" = "インバウンド一覧"
@@ -159,14 +167,14 @@
 "generalActions" = "一般操作"
 "autoRefresh" = "自動更新"
 "autoRefreshInterval" = "間隔"
-"create" = "追加"
-"update" = "更新"
 "modifyInbound" = "インバウンド修正"
 "deleteInbound" = "インバウンド削除"
 "deleteInboundContent" = "インバウンドを削除してもよろしいですか？"
 "deleteClient" = "クライアント削除"
 "deleteClientContent" = "クライアントを削除してもよろしいですか？"
 "resetTrafficContent" = "トラフィックをリセットしてもよろしいですか？"
+"inboundUpdateSuccess" = "インバウンドが正常に更新されました。"
+"inboundCreateSuccess" = "インバウンドが正常に作成されました。"
 "copyLink" = "リンクをコピー"
 "address" = "アドレス"
 "network" = "ネットワーク"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "取得"
+"updateSuccess" = "更新が成功しました"
+"logCleanSuccess" = "ログがクリアされました"
+"inboundsUpdateSuccess" = "インバウンドが正常に更新されました"
+"inboundUpdateSuccess" = "インバウンドが正常に更新されました"
+"inboundCreateSuccess" = "インバウンドが正常に作成されました"
+"inboundDeleteSuccess" = "インバウンドが正常に削除されました"
+"inboundClientAddSuccess" = "インバウンドクライアントが追加されました"
+"inboundClientDeleteSuccess" = "インバウンドクライアントが削除されました"
+"inboundClientUpdateSuccess" = "インバウンドクライアントが更新されました"
+"delDepletedClientsSuccess" = "すべての枯渇したクライアントが削除されました"
+"resetAllClientTrafficSuccess" = "クライアントのすべてのトラフィックがリセットされました"
+"resetAllTrafficSuccess" = "すべてのトラフィックがリセットされました"
+"resetInboundClientTrafficSuccess" = "トラフィックがリセットされました"
+"trafficGetError" = "トラフィックの取得中にエラーが発生しました"
+"getNewX25519CertError" = "X25519証明書の取得中にエラーが発生しました。"
 
 [pages.inbounds.stream.general]
 "request" = "リクエスト"
@@ -259,6 +282,7 @@
 "infoDesc" = "ここでのすべての変更は、保存してパネルを再起動する必要があります"
 "restartPanel" = "パネル再起動"
 "restartPanelDesc" = "パネルを再起動してもよろしいですか？再起動後にパネルにアクセスできない場合は、サーバーでパネルログを確認してください"
+"restartPanelSuccess" = "パネルの再起動に成功しました"
 "actions" = "操作"
 "resetDefaultConfig" = "デフォルト設定にリセット"
 "panelSettings" = "一般"
@@ -366,6 +390,10 @@
 "title" = "Xray 設定"
 "save" = "保存"
 "restart" = "Xray 再起動"
+"restartSuccess" = "Xrayの再起動に成功しました"
+"stopSuccess" = "Xrayが正常に停止しました"
+"restartError" = "Xrayの再起動中にエラーが発生しました。"
+"stopError" = "Xrayの停止中にエラーが発生しました。"
 "basicTemplate" = "基本設定"
 "advancedTemplate" = "高度な設定"
 "generalConfigs" = "一般設定"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "コードが間違っています"
 
 [pages.settings.toasts]
-"modifySettings" = "設定を変更"
-"getSettings" = "設定を取得"
-"modifyUser" = "管理者を変更"
+"modifySettings" = "パラメーターが変更されました。"
+"getSettings" = "パラメーターの取得中にエラーが発生しました"
+"modifyUserError" = "管理者認証情報の変更中にエラーが発生しました。"
+"modifyUser" = "管理者の認証情報を正常に変更しました。"
 "originalUserPassIncorrect" = "旧ユーザー名または旧パスワードが間違っています"
 "userPassMustBeNotEmpty" = "新しいユーザー名と新しいパスワードは空にできません"
+"getOutboundTrafficError" = "送信トラフィックの取得エラー"
+"resetOutboundTrafficError" = "送信トラフィックのリセットエラー"
 
 [tgbot]
 "keyboardClosed" = "❌ カスタムキーボードが閉じられました！"
