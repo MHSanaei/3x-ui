@@ -4,6 +4,8 @@
 "confirm" = "Onayla"
 "cancel" = "İptal"
 "close" = "Kapat"
+"create" = "Oluştur"
+"update" = "Güncelle"
 "copy" = "Kopyala"
 "copied" = "Kopyalandı"
 "download" = "İndir"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "Eklenmiş Fake DNS sunucusu yok."
 "emptyBalancersDesc" = "Eklenmiş dengeleyici yok."
 "emptyReverseDesc" = "Eklenmiş ters proxy yok."
+"somethingWentWrong" = "Bir şeyler yanlış gitti"
 
 [menu]
 "theme" = "Tema"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Kullanıcı adı gerekli"
 "emptyPassword" = "Şifre gerekli"
 "wrongUsernameOrPassword" = "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu."  
-"successLogin" = "Giriş Başarılı"
+"successLogin" = "Hesabınıza başarıyla giriş yaptınız."
 
 [pages.index]
 "title" = "Genel Bakış"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Mevcut veritabanınızın yedeğini içeren bir .db dosyasını cihazınıza indirmek için tıklayın."
 "importDatabase" = "Geri Yükle"
 "importDatabaseDesc" = "Cihazınızdan bir .db dosyası seçip yükleyerek veritabanınızı yedekten geri yüklemek için tıklayın."
+"importDatabaseSuccess" = "Veritabanı başarıyla içe aktarıldı"
+"importDatabaseError" = "Veritabanı içe aktarılırken bir hata oluştu"
+"readDatabaseError" = "Veritabanı okunurken bir hata oluştu"
+"getDatabaseError" = "Veritabanı alınırken bir hata oluştu"
+"getConfigError" = "Yapılandırma dosyası alınırken bir hata oluştu"
 
 [pages.inbounds]
 "title" = "Gelenler"
@@ -159,14 +167,14 @@
 "generalActions" = "Genel Eylemler"
 "autoRefresh" = "Otomatik yenileme"
 "autoRefreshInterval" = "Aralık"
-"create" = "Oluştur"
-"update" = "Güncelle"
 "modifyInbound" = "Geleni Düzenle"
 "deleteInbound" = "Geleni Sil"
 "deleteInboundContent" = "Geleni silmek istediğinizden emin misiniz?"
 "deleteClient" = "Müşteriyi Sil"
 "deleteClientContent" = "Müşteriyi silmek istediğinizden emin misiniz?"
 "resetTrafficContent" = "Trafiği sıfırlamak istediğinizden emin misiniz?"
+"inboundUpdateSuccess" = "Gelen bağlantı başarıyla güncellendi."
+"inboundCreateSuccess" = "Gelen bağlantı başarıyla oluşturuldu."
 "copyLink" = "URL'yi Kopyala"
 "address" = "Adres"
 "network" = "Ağ"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Elde Et"
+"updateSuccess" = "Güncelleme başarılı oldu"
+"logCleanSuccess" = "Günlük temizlendi"
+"inboundsUpdateSuccess" = "Gelen bağlantılar başarıyla güncellendi"
+"inboundUpdateSuccess" = "Gelen bağlantı başarıyla güncellendi"
+"inboundCreateSuccess" = "Gelen bağlantı başarıyla oluşturuldu"
+"inboundDeleteSuccess" = "Gelen bağlantı başarıyla silindi"
+"inboundClientAddSuccess" = "Gelen bağlantı istemci(leri) eklendi"
+"inboundClientDeleteSuccess" = "Gelen bağlantı istemcisi silindi"
+"inboundClientUpdateSuccess" = "Gelen bağlantı istemcisi güncellendi"
+"delDepletedClientsSuccess" = "Tüm tükenmiş istemciler silindi"
+"resetAllClientTrafficSuccess" = "İstemcinin tüm trafiği sıfırlandı"
+"resetAllTrafficSuccess" = "Tüm trafik sıfırlandı"
+"resetInboundClientTrafficSuccess" = "Trafik sıfırlandı"
+"trafficGetError" = "Trafik bilgisi alınırken hata oluştu"
+"getNewX25519CertError" = "X25519 sertifikası alınırken hata oluştu."
 
 [pages.inbounds.stream.general]
 "request" = "İstek"
@@ -259,6 +282,7 @@
 "infoDesc" = "Burada yapılan her değişikliğin kaydedilmesi gerekir. Değişikliklerin uygulanması için paneli yeniden başlatın."
 "restartPanel" = "Paneli Yeniden Başlat"
 "restartPanelDesc" = "Paneli yeniden başlatmak istediğinizden emin misiniz? Yeniden başlattıktan sonra panele erişemezseniz, sunucudaki panel günlük bilgilerini görüntüleyin."
+"restartPanelSuccess" = "Panel başarıyla yeniden başlatıldı"
 "actions" = "Eylemler"
 "resetDefaultConfig" = "Varsayılana Sıfırla"
 "panelSettings" = "Genel"
@@ -366,6 +390,10 @@
 "title" = "Xray Yapılandırmaları"
 "save" = "Kaydet"
 "restart" = "Xray'i Yeniden Başlat"
+"restartSuccess" = "Xray başarıyla yeniden başlatıldı"
+"stopSuccess" = "Xray başarıyla durduruldu"
+"restartError" = "Xray yeniden başlatılırken bir hata oluştu."
+"stopError" = "Xray durdurulurken bir hata oluştu."
 "basicTemplate" = "Temeller"
 "advancedTemplate" = "Gelişmiş"
 "generalConfigs" = "Genel"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Yanlış kod"
 
 [pages.settings.toasts]
-"modifySettings" = "Ayarları Değiştir"
-"getSettings" = "Ayarları Al"
-"modifyUser" = "Yönetici Değiştir"
+"modifySettings" = "Parametreler değiştirildi."
+"getSettings" = "Parametreler alınırken bir hata oluştu."
+"modifyUserError" = "Yönetici kimlik bilgileri değiştirilirken bir hata oluştu."
+"modifyUser" = "Yönetici kimlik bilgilerini başarıyla değiştirdiniz."
 "originalUserPassIncorrect" = "Mevcut kullanıcı adı veya şifre geçersiz"
 "userPassMustBeNotEmpty" = "Yeni kullanıcı adı ve şifre boş olamaz"
+"getOutboundTrafficError" = "Giden trafik alınırken hata"
+"resetOutboundTrafficError" = "Giden trafik sıfırlanırken hata"
 
 [tgbot]
 "keyboardClosed" = "❌ Özel klavye kapalı!"

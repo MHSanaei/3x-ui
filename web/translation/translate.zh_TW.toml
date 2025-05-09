@@ -4,6 +4,8 @@
 "confirm" = "確定"
 "cancel" = "取消"
 "close" = "關閉"
+"create" = "建立"
+"update" = "更新"
 "copy" = "複製"
 "copied" = "已複製"
 "download" = "下載"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "未添加Fake DNS伺服器。"
 "emptyBalancersDesc" = "未添加負載平衡器。"
 "emptyReverseDesc" = "未添加反向代理。"
+"somethingWentWrong" = "發生錯誤"
 
 [menu]
 "theme" = "主題"
@@ -88,7 +91,7 @@
 "emptyUsername" = "請輸入使用者名稱"
 "emptyPassword" = "請輸入密碼"
 "wrongUsernameOrPassword" = "用戶名、密碼或雙重驗證碼無效。"  
-"successLogin" = "登入"
+"successLogin" = "您已成功登入您的帳戶。"
 
 [pages.index]
 "title" = "系統狀態"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "點擊下載包含當前資料庫備份的 .db 文件到您的設備。"
 "importDatabase" = "恢復"
 "importDatabaseDesc" = "點擊選擇並上傳設備中的 .db 文件以從備份恢復資料庫。"
+"importDatabaseSuccess" = "資料庫匯入成功"
+"importDatabaseError" = "匯入資料庫時發生錯誤"
+"readDatabaseError" = "讀取資料庫時發生錯誤"
+"getDatabaseError" = "檢索資料庫時發生錯誤"
+"getConfigError" = "檢索設定檔時發生錯誤"
 
 [pages.inbounds]
 "title" = "入站列表"
@@ -167,6 +175,8 @@
 "deleteClient" = "刪除客戶端"
 "deleteClientContent" = "確定要刪除客戶端嗎？"
 "resetTrafficContent" = "確定要重置流量嗎？"
+"inboundUpdateSuccess" = "入站連接已成功更新。"
+"inboundCreateSuccess" = "入站連接已成功建立。"
 "copyLink" = "複製連結"
 "address" = "地址"
 "network" = "網路"
@@ -237,6 +247,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "獲取"
+"updateSuccess" = "更新成功"
+"logCleanSuccess" = "日誌已清除"
+"inboundsUpdateSuccess" = "入站連接已成功更新"
+"inboundUpdateSuccess" = "入站連接已成功更新"
+"inboundCreateSuccess" = "入站連接已成功建立"
+"inboundDeleteSuccess" = "入站連接已成功刪除"
+"inboundClientAddSuccess" = "已新增入站客戶端"
+"inboundClientDeleteSuccess" = "入站客戶端已刪除"
+"inboundClientUpdateSuccess" = "入站客戶端已更新"
+"delDepletedClientsSuccess" = "所有耗盡客戶端已刪除"
+"resetAllClientTrafficSuccess" = "客戶端所有流量已重置"
+"resetAllTrafficSuccess" = "所有流量已重置"
+"resetInboundClientTrafficSuccess" = "流量已重置"
+"trafficGetError" = "取得流量資料時發生錯誤"
+"getNewX25519CertError" = "取得X25519憑證時發生錯誤。"
 
 [pages.inbounds.stream.general]
 "request" = "請求"
@@ -259,6 +284,7 @@
 "infoDesc" = "此處的所有更改都需要儲存並重啟面板才能生效"
 "restartPanel" = "重啟面板"
 "restartPanelDesc" = "確定要重啟面板嗎？若重啟後無法訪問面板，請前往伺服器檢視面板日誌資訊"
+"restartPanelSuccess" = "面板已成功重新啟動"
 "actions" = "操作"
 "resetDefaultConfig" = "重置為預設配置"
 "panelSettings" = "常規"
@@ -366,6 +392,10 @@
 "title" = "Xray 配置"
 "save" = "儲存"
 "restart" = "重新啟動 Xray"
+"restartSuccess" = "Xray 已成功重新啟動"
+"stopSuccess" = "Xray 已成功停止"
+"restartError" = "重新啟動Xray時發生錯誤。"
+"stopError" = "停止Xray時發生錯誤。"
 "basicTemplate" = "基礎配置"
 "advancedTemplate" = "高階配置"
 "generalConfigs" = "常規配置"
@@ -517,11 +547,14 @@
 "twoFactorModalError" = "驗證碼錯誤"
 
 [pages.settings.toasts]
-"modifySettings" = "修改設定"
-"getSettings" = "獲取設定"
-"modifyUser" = "修改管理員"
+"modifySettings" = "參數已更改。"
+"getSettings" = "取得參數時發生錯誤"
+"modifyUserError" = "變更管理員憑證時發生錯誤。"
+"modifyUser" = "您已成功變更管理員憑證。"
 "originalUserPassIncorrect" = "原使用者名稱或原密碼錯誤"
 "userPassMustBeNotEmpty" = "新使用者名稱和新密碼不能為空"
+"getOutboundTrafficError" = "取得出站流量錯誤"
+"resetOutboundTrafficError" = "重設出站流量錯誤"
 
 [tgbot]
 "keyboardClosed" = "❌ 自定義鍵盤已關閉！"

@@ -4,6 +4,8 @@
 "confirm" = "Confirmar"
 "cancel" = "Cancelar"
 "close" = "Fechar"
+"create" = "Criar"
+"update" = "Atualizar"
 "copy" = "Copiar"
 "copied" = "Copiado"
 "download" = "Baixar"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "Nenhum servidor Fake DNS adicionado."
 "emptyBalancersDesc" = "Nenhum balanceador adicionado."
 "emptyReverseDesc" = "Nenhum proxy reverso adicionado."
+"somethingWentWrong" = "Algo deu errado"
 
 [menu]
 "theme" = "Tema"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Nome de usuário é obrigatório"
 "emptyPassword" = "Senha é obrigatória"
 "wrongUsernameOrPassword" = "Nome de usuário, senha ou código de dois fatores inválido."  
-"successLogin" = "Login realizado com sucesso"
+"successLogin" = "Você entrou na sua conta com sucesso."
 
 [pages.index]
 "title" = "Visão Geral"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Clique para baixar um arquivo .db contendo um backup do seu banco de dados atual para o seu dispositivo."
 "importDatabase" = "Restaurar"
 "importDatabaseDesc" = "Clique para selecionar e enviar um arquivo .db do seu dispositivo para restaurar seu banco de dados a partir de um backup."
+"importDatabaseSuccess" = "O banco de dados foi importado com sucesso"
+"importDatabaseError" = "Ocorreu um erro ao importar o banco de dados"
+"readDatabaseError" = "Ocorreu um erro ao ler o banco de dados"
+"getDatabaseError" = "Ocorreu um erro ao recuperar o banco de dados"
+"getConfigError" = "Ocorreu um erro ao recuperar o arquivo de configuração"
 
 [pages.inbounds]
 "title" = "Inbounds"
@@ -159,14 +167,14 @@
 "generalActions" = "Ações Gerais"
 "autoRefresh" = "Atualização automática"
 "autoRefreshInterval" = "Intervalo"
-"create" = "Criar"
-"update" = "Atualizar"
 "modifyInbound" = "Modificar Inbound"
 "deleteInbound" = "Excluir Inbound"
 "deleteInboundContent" = "Tem certeza de que deseja excluir o inbound?"
 "deleteClient" = "Excluir Cliente"
 "deleteClientContent" = "Tem certeza de que deseja excluir o cliente?"
 "resetTrafficContent" = "Tem certeza de que deseja redefinir o tráfego?"
+"inboundUpdateSuccess" = "A entrada foi atualizada com sucesso."
+"inboundCreateSuccess" = "A entrada foi criada com sucesso."
 "copyLink" = "Copiar URL"
 "address" = "Endereço"
 "network" = "Rede"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Obter"
+"updateSuccess" = "A atualização foi bem-sucedida"
+"logCleanSuccess" = "O log foi limpo"
+"inboundsUpdateSuccess" = "Entradas atualizadas com sucesso"
+"inboundUpdateSuccess" = "Entrada atualizada com sucesso"
+"inboundCreateSuccess" = "Entrada criada com sucesso"
+"inboundDeleteSuccess" = "Entrada excluída com sucesso"
+"inboundClientAddSuccess" = "Cliente(s) de entrada adicionado(s)"
+"inboundClientDeleteSuccess" = "Cliente de entrada excluído"
+"inboundClientUpdateSuccess" = "Cliente de entrada atualizado"
+"delDepletedClientsSuccess" = "Todos os clientes esgotados foram excluídos"
+"resetAllClientTrafficSuccess" = "Todo o tráfego do cliente foi reiniciado"
+"resetAllTrafficSuccess" = "Todo o tráfego foi reiniciado"
+"resetInboundClientTrafficSuccess" = "O tráfego foi reiniciado"
+"trafficGetError" = "Erro ao obter tráfegos"
+"getNewX25519CertError" = "Erro ao obter o certificado X25519."
 
 [pages.inbounds.stream.general]
 "request" = "Requisição"
@@ -259,6 +282,7 @@
 "infoDesc" = "Toda alteração feita aqui precisa ser salva. Reinicie o painel para aplicar as alterações."
 "restartPanel" = "Reiniciar Painel"
 "restartPanelDesc" = "Tem certeza de que deseja reiniciar o painel? Se não conseguir acessar o painel após reiniciar, consulte os logs do painel no servidor."
+"restartPanelSuccess" = "O painel foi reiniciado com sucesso"
 "actions" = "Ações"
 "resetDefaultConfig" = "Redefinir para Padrão"
 "panelSettings" = "Geral"
@@ -366,6 +390,10 @@
 "title" = "Configurações Xray"
 "save" = "Salvar"
 "restart" = "Reiniciar Xray"
+"restartSuccess" = "Xray foi reiniciado com sucesso"
+"stopSuccess" = "Xray foi interrompido com sucesso"
+"restartError" = "Ocorreu um erro ao reiniciar o Xray."
+"stopError" = "Ocorreu um erro ao parar o Xray."
 "basicTemplate" = "Básico"
 "advancedTemplate" = "Avançado"
 "generalConfigs" = "Geral"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Código incorreto"
 
 [pages.settings.toasts]
-"modifySettings" = "Modificar Configurações"
-"getSettings" = "Obter Configurações"
-"modifyUser" = "Modificar Admin"
+"modifySettings" = "Os parâmetros foram alterados."
+"getSettings" = "Ocorreu um erro ao recuperar os parâmetros."
+"modifyUserError" = "Ocorreu um erro ao alterar as credenciais do administrador."
+"modifyUser" = "Você alterou com sucesso as credenciais do administrador."
 "originalUserPassIncorrect" = "O nome de usuário ou senha atual é inválido"
 "userPassMustBeNotEmpty" = "O novo nome de usuário e senha não podem estar vazios"
+"getOutboundTrafficError" = "Erro ao obter tráfego de saída"
+"resetOutboundTrafficError" = "Erro ao redefinir tráfego de saída"
 
 [tgbot]
 "keyboardClosed" = "❌ Teclado personalizado fechado!"

@@ -4,6 +4,8 @@
 "confirm" = "Xác nhận"
 "cancel" = "Hủy bỏ"
 "close" = "Đóng"
+"create" = "Tạo"
+"update" = "Cập nhật"
 "copy" = "Sao chép"
 "copied" = "Đã sao chép"
 "download" = "Tải xuống"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "Không có máy chủ Fake DNS nào được thêm."
 "emptyBalancersDesc" = "Không có bộ cân bằng tải nào được thêm."
 "emptyReverseDesc" = "Không có proxy ngược nào được thêm."
+"somethingWentWrong" = "Đã xảy ra lỗi"
 
 [menu]
 "theme" = "Chủ đề"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Vui lòng nhập tên người dùng."
 "emptyPassword" = "Vui lòng nhập mật khẩu."
 "wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."  
-"successLogin" = "Đăng nhập thành công."
+"successLogin" = "Bạn đã đăng nhập vào tài khoản thành công."
 
 [pages.index]
 "title" = "Trạng thái hệ thống"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Nhấp để tải xuống tệp .db chứa bản sao lưu cơ sở dữ liệu hiện tại của bạn vào thiết bị."
 "importDatabase" = "Khôi phục"
 "importDatabaseDesc" = "Nhấp để chọn và tải lên tệp .db từ thiết bị của bạn để khôi phục cơ sở dữ liệu từ bản sao lưu."
+"importDatabaseSuccess" = "Đã nhập cơ sở dữ liệu thành công"
+"importDatabaseError" = "Lỗi xảy ra khi nhập cơ sở dữ liệu"
+"readDatabaseError" = "Lỗi xảy ra khi đọc cơ sở dữ liệu"
+"getDatabaseError" = "Lỗi xảy ra khi truy xuất cơ sở dữ liệu"
+"getConfigError" = "Lỗi xảy ra khi truy xuất tệp cấu hình"
 
 [pages.inbounds]
 "title" = "Điểm vào (Inbounds)"
@@ -159,14 +167,14 @@
 "generalActions" = "Hành động chung"
 "autoRefresh" = "Tự động làm mới"
 "autoRefreshInterval" = "Khoảng thời gian"
-"create" = "Tạo mới"
-"update" = "Cập nhật"
 "modifyInbound" = "Chỉnh sửa điểm vào (Inbound)"
 "deleteInbound" = "Xóa điểm vào (Inbound)"
 "deleteInboundContent" = "Xác nhận xóa điểm vào? (Inbound)"
 "deleteClient" = "Xóa người dùng"
 "deleteClientContent" = "Bạn có chắc chắn muốn xóa người dùng không?"
 "resetTrafficContent" = "Xác nhận đặt lại lưu lượng?"
+"inboundUpdateSuccess" = "Đã cập nhật kết nối inbound thành công."
+"inboundCreateSuccess" = "Đã tạo kết nối inbound thành công."
 "copyLink" = "Sao chép liên kết"
 "address" = "Địa chỉ"
 "network" = "Mạng"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"
+"updateSuccess" = "Cập nhật thành công"
+"logCleanSuccess" = "Đã xóa nhật ký"
+"inboundsUpdateSuccess" = "Đã cập nhật thành công các kết nối inbound"
+"inboundUpdateSuccess" = "Đã cập nhật thành công kết nối inbound"
+"inboundCreateSuccess" = "Đã tạo thành công kết nối inbound"
+"inboundDeleteSuccess" = "Đã xóa thành công kết nối inbound"
+"inboundClientAddSuccess" = "Đã thêm client inbound"
+"inboundClientDeleteSuccess" = "Đã xóa client inbound"
+"inboundClientUpdateSuccess" = "Đã cập nhật client inbound"
+"delDepletedClientsSuccess" = "Đã xóa tất cả client hết hạn"
+"resetAllClientTrafficSuccess" = "Đã đặt lại toàn bộ lưu lượng client"
+"resetAllTrafficSuccess" = "Đã đặt lại toàn bộ lưu lượng"
+"resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
+"trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
+"getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"
@@ -259,6 +282,7 @@
 "infoDesc" = "Mọi thay đổi được thực hiện ở đây cần phải được lưu. Vui lòng khởi động lại bảng điều khiển để áp dụng các thay đổi."
 "restartPanel" = "Khởi động lại bảng điều khiển"
 "restartPanelDesc" = "Bạn có chắc chắn muốn khởi động lại bảng điều khiển? Nhấn OK để khởi động lại sau 3 giây. Nếu bạn không thể truy cập bảng điều khiển sau khi khởi động lại, vui lòng xem thông tin nhật ký của bảng điều khiển trên máy chủ."
+"restartPanelSuccess" = "Đã khởi động lại bảng điều khiển thành công"
 "actions" = "Hành động"
 "resetDefaultConfig" = "Đặt lại cấu hình mặc định"
 "panelSettings" = "Bảng điều khiển"
@@ -366,6 +390,10 @@
 "title" = "Cài đặt Xray"
 "save" = "Lưu cài đặt"
 "restart" = "Khởi động lại Xray"
+"restartSuccess" = "Đã khởi động lại Xray thành công"
+"stopSuccess" = "Xray đã được dừng thành công"
+"restartError" = "Đã xảy ra lỗi khi khởi động lại Xray."
+"stopError" = "Đã xảy ra lỗi khi dừng Xray."
 "basicTemplate" = "Mẫu Cơ bản"
 "advancedTemplate" = "Mẫu Nâng cao"
 "generalConfigs" = "Cấu hình Chung"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Mã sai"
 
 [pages.settings.toasts]
-"modifySettings" = "Chỉnh sửa cài đặt "
-"getSettings" = "Lấy cài đặt "
-"modifyUser" = "Chỉnh sửa người dùng "
+"modifySettings" = "Các tham số đã được thay đổi."
+"getSettings" = "Lỗi xảy ra khi truy xuất tham số."
+"modifyUserError" = "Đã xảy ra lỗi khi thay đổi thông tin đăng nhập quản trị viên."
+"modifyUser" = "Bạn đã thay đổi thông tin đăng nhập quản trị viên thành công."
 "originalUserPassIncorrect" = "Tên người dùng hoặc mật khẩu gốc không đúng"
 "userPassMustBeNotEmpty" = "Tên người dùng mới và mật khẩu mới không thể để trống"
+"getOutboundTrafficError" = "Lỗi khi lấy lưu lượng truy cập đi"
+"resetOutboundTrafficError" = "Lỗi khi đặt lại lưu lượng truy cập đi"
 
 [tgbot]
 "keyboardClosed" = "❌ Bàn phím tùy chỉnh đã đóng!"

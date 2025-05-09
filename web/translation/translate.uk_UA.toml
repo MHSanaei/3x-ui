@@ -4,6 +4,8 @@
 "confirm" = "Підтвердити"
 "cancel" = "Скасувати"
 "close" = "Закрити"
+"create" = "Створити"
+"update" = "Оновити"
 "copy" = "Копіювати"
 "copied" = "Скопійовано"
 "download" = "Завантажити"
@@ -66,6 +68,7 @@
 "emptyFakeDnsDesc" = "Немає доданих Fake DNS-серверів."
 "emptyBalancersDesc" = "Немає доданих балансувальників."
 "emptyReverseDesc" = "Немає доданих зворотних проксі."
+"somethingWentWrong" = "Щось пішло не так"
 
 [menu]
 "theme" = "Тема"
@@ -88,7 +91,7 @@
 "emptyUsername" = "Потрібне ім'я користувача"
 "emptyPassword" = "Потрібен пароль"
 "wrongUsernameOrPassword" = "Невірне ім’я користувача, пароль або код двофакторної аутентифікації."  
-"successLogin" = "Вхід"
+"successLogin" = "Ви успішно увійшли до свого облікового запису."
 
 [pages.index]
 "title" = "Огляд"
@@ -139,6 +142,11 @@
 "exportDatabaseDesc" = "Натисніть, щоб завантажити файл .db, що містить резервну копію вашої поточної бази даних на ваш пристрій."
 "importDatabase" = "Відновити"
 "importDatabaseDesc" = "Натисніть, щоб вибрати та завантажити файл .db з вашого пристрою для відновлення бази даних з резервної копії."
+"importDatabaseSuccess" = "Базу даних успішно імпортовано"
+"importDatabaseError" = "Виникла помилка під час імпорту бази даних"
+"readDatabaseError" = "Виникла помилка під час читання бази даних"
+"getDatabaseError" = "Виникла помилка під час отримання бази даних"
+"getConfigError" = "Виникла помилка під час отримання файлу конфігурації"
 
 [pages.inbounds]
 "title" = "Вхідні"
@@ -159,14 +167,14 @@
 "generalActions" = "Загальні дії"
 "autoRefresh" = "Автооновлення"
 "autoRefreshInterval" = "Інтервал"
-"create" = "Створити"
-"update" = "Оновити"
 "modifyInbound" = "Змінити вхідний"
 "deleteInbound" = "Видалити вхідні"
 "deleteInboundContent" = "Ви впевнені, що хочете видалити вхідні?"
 "deleteClient" = "Видалити клієнта"
 "deleteClientContent" = "Ви впевнені, що хочете видалити клієнт?"
 "resetTrafficContent" = "Ви впевнені, що хочете скинути трафік?"
+"inboundUpdateSuccess" = "Вхідне підключення успішно оновлено."
+"inboundCreateSuccess" = "Вхідне підключення успішно створено."
 "copyLink" = "Копіювати URL"
 "address" = "Адреса"
 "network" = "Мережа"
@@ -237,6 +245,21 @@
 
 [pages.inbounds.toasts]
 "obtain" = "Отримати"
+"updateSuccess" = "Оновлення пройшло успішно"
+"logCleanSuccess" = "Журнал очищено"
+"inboundsUpdateSuccess" = "Вхідні підключення успішно оновлено"
+"inboundUpdateSuccess" = "Вхідне підключення успішно оновлено"
+"inboundCreateSuccess" = "Вхідне підключення успішно створено"
+"inboundDeleteSuccess" = "Вхідне підключення успішно видалено"
+"inboundClientAddSuccess" = "Клієнт(и) вхідного підключення додано"
+"inboundClientDeleteSuccess" = "Клієнта вхідного підключення видалено"
+"inboundClientUpdateSuccess" = "Клієнта вхідного підключення оновлено"
+"delDepletedClientsSuccess" = "Усі вичерпані клієнти видалені"
+"resetAllClientTrafficSuccess" = "Весь трафік клієнта скинуто"
+"resetAllTrafficSuccess" = "Весь трафік скинуто"
+"resetInboundClientTrafficSuccess" = "Трафік скинуто"
+"trafficGetError" = "Помилка отримання даних про трафік"
+"getNewX25519CertError" = "Помилка при отриманні сертифіката X25519."
 
 [pages.inbounds.stream.general]
 "request" = "Запит"
@@ -259,6 +282,7 @@
 "infoDesc" = "Кожна внесена тут зміна повинна бути збережена. Перезапустіть панель, щоб застосувати зміни."
 "restartPanel" = "Перезапустити панель"
 "restartPanelDesc" = "Ви впевнені, що бажаєте перезапустити панель? Якщо ви не можете отримати доступ до панелі після перезапуску, будь ласка, перегляньте інформацію журналу панелі на сервері."
+"restartPanelSuccess" = "Панель успішно перезапущено"
 "actions" = "Дії"
 "resetDefaultConfig" = "Відновити значення за замовчуванням"
 "panelSettings" = "Загальні"
@@ -366,6 +390,10 @@
 "title" = "Xray конфігурації"
 "save" = "Зберегти"
 "restart" = "Перезапустити Xray"
+"restartSuccess" = "Xray успішно перезапущено"
+"stopSuccess" = "Xray успішно зупинено"
+"restartError" = "Виникла помилка під час перезапуску Xray."
+"stopError" = "Виникла помилка під час зупинки Xray."
 "basicTemplate" = "Базовий шаблон"
 "advancedTemplate" = "Додатково"
 "generalConfigs" = "Загальні конфігурації"
@@ -517,11 +545,14 @@
 "twoFactorModalError" = "Невірний код"
 
 [pages.settings.toasts]
-"modifySettings" = "Змінити налаштування"
-"getSettings" = "Отримати налаштування"
-"modifyUser" = "Змінити адміністратора"
+"modifySettings" = "Параметри було змінено."
+"getSettings" = "Виникла помилка під час отримання параметрів."
+"modifyUserError" = "Виникла помилка під час зміни облікових даних адміністратора."
+"modifyUser" = "Ви успішно змінили облікові дані адміністратора."
 "originalUserPassIncorrect" = "Поточне ім'я користувача або пароль недійсні"
 "userPassMustBeNotEmpty" = "Нове ім'я користувача та пароль порожні"
+"getOutboundTrafficError" = "Помилка отримання вихідного трафіку"
+"resetOutboundTrafficError" = "Помилка скидання вихідного трафіку"
 
 [tgbot]
 "keyboardClosed" = "❌ Спеціальна клавіатура закрита!"
