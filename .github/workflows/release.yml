@@ -7,6 +7,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '**.js'
+      - '**.css'
+      - '**.html'
+      - '**.go'
+      - '**.sh'
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'x-ui.service'
 
 jobs:
   build:
