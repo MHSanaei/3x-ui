@@ -524,9 +524,6 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	}
 	defer tempFile.Close()
 
-	// Remove temp file before returning
-	defer os.Remove(tempPath)
-
 	// Save uploaded file to temporary file
 	_, err = io.Copy(tempFile, file)
 	if err != nil {
@@ -572,14 +569,6 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	}
 
 	// Migrate DB
-	err = database.InitDB(config.GetDBPath())
-	if err != nil {
-		errRename := os.Rename(fallbackPath, config.GetDBPath())
-		if errRename != nil {
-			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
-		}
-		return common.NewErrorf("Error migrating db: %v", err)
-	}
 	s.inboundService.MigrateDB()
 
 	// Start Xray
