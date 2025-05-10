@@ -13,8 +13,9 @@
             <a-button-group>
                 <a-button icon="sync" @click="refreshOutboundTraffic()" :loading="refreshing"></a-button>
                 <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
-                    title='{{ i18n "pages.inbounds.resetTrafficContent"}}' :overlay-class-name="themeSwitcher.currentTheme"
-                    ok-text='{{ i18n "reset"}}' cancel-text='{{ i18n "cancel"}}'>
+                    title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
+                    :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}'
+                    cancel-text='{{ i18n "cancel"}}'>
                     <a-icon slot="icon" type="question-circle-o"
                         :style="{ color: themeSwitcher.isDarkTheme ? '#008771' : '#008771' }"></a-icon>
                     <a-button icon="retweet"></a-button>
@@ -23,7 +24,8 @@
         </a-col>
     </a-row>
     <a-table :columns="outboundColumns" bordered :row-key="r => r.key" :data-source="outboundData"
-        :scroll="isMobile ? {} : { x: 800 }" :pagination="false" :indent-size="0">
+        :scroll="isMobile ? {} : { x: 800 }" :pagination="false" :indent-size="0"
+        :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
         <template slot="action" slot-scope="text, outbound, index">
             <span>[[ index+1 ]]</span>
             <a-dropdown :trigger="['click']">
@@ -46,7 +48,7 @@
                     </a-menu-item>
                     <a-menu-item @click="deleteOutbound(index)">
                         <span :style="{ color: '#FF4D4F' }">
-                            <a-icon type="delete"></a-icon> 
+                            <a-icon type="delete"></a-icon>
                             <span>{{ i18n "delete"}}</span>
                         </span>
                     </a-menu-item>

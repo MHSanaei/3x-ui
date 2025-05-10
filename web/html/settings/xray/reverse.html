@@ -5,7 +5,8 @@
             <span>{{ i18n "pages.xray.outbound.addReverse" }}</span>
         </a-button>
         <a-table :columns="reverseColumns" bordered :row-key="r => r.key" :data-source="reverseData"
-            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0">
+            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+            :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
             <template slot="action" slot-scope="text, reverse, index">
                 <span>[[ index+1 ]]</span>
                 <a-dropdown :trigger="['click']">
@@ -18,7 +19,7 @@
                         </a-menu-item>
                         <a-menu-item @click="deleteReverse(index)">
                             <span :style="{ color: '#FF4D4F' }">
-                                <a-icon type="delete"></a-icon> 
+                                <a-icon type="delete"></a-icon>
                                 <span>{{ i18n "delete"}}</span>
                             </span>
                         </a-menu-item>

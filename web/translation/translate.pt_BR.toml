@@ -28,6 +28,7 @@
 "edit" = "Editar"
 "delete" = "Excluir"
 "reset" = "Redefinir"
+"noData" = "Sem dados."
 "copySuccess" = "Copiado com Sucesso"
 "sure" = "Certo"
 "encryption" = "Criptografia"
