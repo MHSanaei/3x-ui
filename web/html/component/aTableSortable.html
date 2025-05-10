@@ -64,6 +64,11 @@
           drop: (e) => this.dropHandler(e),
         },
         scopedSlots: this.$scopedSlots,
+        locale: { 
+          filterConfirm: `{{ i18n "confirm" }}`, 
+          filterReset: `{{ i18n "reset" }}`, 
+          emptyText: `{{ i18n "noData" }}` 
+        }
       }, this.$slots.default,)
     },
     created() {

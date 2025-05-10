@@ -28,6 +28,7 @@
 "edit" = "編集"
 "delete" = "削除"
 "reset" = "リセット"
+"noData" = "データなし。"
 "copySuccess" = "コピー成功"
 "sure" = "確定"
 "encryption" = "暗号化"

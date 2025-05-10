@@ -28,6 +28,7 @@
 "edit" = "Düzenle"
 "delete" = "Sil"
 "reset" = "Sıfırla"
+"noData" = "Veri yok."
 "copySuccess" = "Başarıyla Kopyalandı"
 "sure" = "Emin misiniz"
 "encryption" = "Şifreleme"
