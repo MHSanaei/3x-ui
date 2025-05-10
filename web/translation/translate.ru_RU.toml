@@ -28,6 +28,7 @@
 "edit" = "Изменить"
 "delete" = "Удалить"
 "reset" = "Сбросить"
+"noData" = "Нет данных."
 "copySuccess" = "Скопировано"
 "sure" = "Да"
 "encryption" = "Шифрование"
