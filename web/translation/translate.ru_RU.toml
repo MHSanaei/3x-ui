@@ -53,7 +53,7 @@
 "install" = "Установка"
 "clients" = "Клиенты"
 "usage" = "Использование"
-"twoFactorCode" = "Секретный токен"
+"twoFactorCode" = "Код"
 "remained" = "Остаток"
 "security" = "Безопасность"
 "secAlertTitle" = "Предупреждение системы безопасности"
@@ -75,7 +75,7 @@
 "dark" = "Темная"
 "ultraDark" = "Очень темная"
 "dashboard" = "Статус системы"
-"inbounds" = "Подключения"
+"inbounds" = "Входящие подключения"
 "settings" = "Настройки"
 "xray" = "Настройки Xray"
 "logout" = "Выход"
@@ -90,13 +90,13 @@
 "invalidFormData" = "Недопустимый формат данных"
 "emptyUsername" = "Введите имя пользователя"
 "emptyPassword" = "Введите пароль"
-"wrongUsernameOrPassword" = "Неверное имя пользователя, пароль или секретный токен."
+"wrongUsernameOrPassword" = "Неверное имя пользователя, пароль или код двухфакторной аутентификации."
 "successLogin" = "Успешный вход"
 
 [pages.index]
 "title" = "Статус системы"
 "cpu" = "ЦП"
-"logicalProcessors" = "Процессоры"
+"logicalProcessors" = "Логические процессоры"
 "frequency" = "Частота"
 "swap" = "Swap"
 "storage" = "Диск"
@@ -149,7 +149,7 @@
 "getConfigError" = "Произошла ошибка при получении конфигурационного файла"
 
 [pages.inbounds]
-"title" = "Подключения"
+"title" = "Входящие подключения"
 "totalDownUp" = "Объем отправленного/полученного трафика"
 "totalUsage" = "Всего трафика"
 "inboundCount" = "Всего подключений"
