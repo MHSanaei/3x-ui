@@ -546,7 +546,7 @@
 
 [pages.settings.toasts]
 "modifySettings" = "Настройки изменены"
-"getSettings" = "Просмотр настроек"
+"getSettings" = "Произошла ошибка при получении параметров."
 "modifyUserError" = "Произошла ошибка при изменении учетных данных администратора."
 "modifyUser" = "Изменение пользователя"
 "originalUserPassIncorrect" = "Неверное имя пользователя или пароль"
