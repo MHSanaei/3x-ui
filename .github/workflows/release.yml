@@ -1,12 +1,12 @@
-name: Build and Release 3X-UI
+name: Release 3X-UI
 
 on:
   workflow_dispatch:
   release:
     types: [published]
   push:
-  pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - main
 
 jobs:
   build:
