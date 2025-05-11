@@ -301,7 +301,8 @@
                   :expand-icon-column-index="0"
                   :indent-size="0"
                   :row-class-name="dbInbound => (dbInbound.isMultiUser() ? '' : 'hideExpandIcon')"
-                  :style="{ marginTop: '10px' }">
+                  :style="{ marginTop: '10px' }"
+                  :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
                 <template slot="action" slot-scope="text, dbInbound">
                   <a-dropdown :trigger="['click']">
                     <a-icon @click="e => e.preventDefault()" type="more" :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
