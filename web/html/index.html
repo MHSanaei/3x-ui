@@ -97,7 +97,7 @@
           <transition name="list" appear>
             <template>
               <a-row v-if="!status.isLoaded">
-                <a-card hoverable :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent' }">
+                <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
                   <a-spin tip='{{ i18n "loading" }}'></a-spin>
                 </a-card>
               </a-row>
