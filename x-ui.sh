@@ -125,7 +125,7 @@ update_menu() {
 }
 
 legacy_version() {
-    echo "Enter the panel version (like 2.4.0):"
+    echo -n "Enter the panel version (like 2.4.0):"
     read -r tag_version
 
     if [ -z "$tag_version" ]; then
@@ -256,7 +256,8 @@ check_config() {
 }
 
 set_port() {
-    echo && echo -n -e "Enter port number[1-65535]: " && read -r port
+    echo -n "Enter port number[1-65535]: "
+    read -r port
     if [[ -z "${port}" ]]; then
         LOGD "Cancelled"
         before_show_menu
