@@ -32,7 +32,7 @@
 ## Установка и обновление
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.5.8/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.6.0/install.sh)
 ```
 
 ## Установить старую версию (мы не рекомендуем)
