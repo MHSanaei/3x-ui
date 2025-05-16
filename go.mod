@@ -16,11 +16,11 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.4
 	github.com/valyala/fasthttp v1.62.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.250306.1-0.20250509143200-e9b3c53a0d23
+	github.com/xtls/xray-core v1.250306.1-0.20250516082710-46f13f5da99c
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.38.0
 	golang.org/x/text v0.25.0
-	google.golang.org/grpc v1.72.0
+	google.golang.org/grpc v1.72.1
 	gorm.io/driver/sqlite v1.5.7
 	gorm.io/gorm v1.25.12
 )
@@ -64,7 +64,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/quic-go/qpack v0.5.1 // indirect
 	github.com/quic-go/quic-go v0.51.0 // indirect
-	github.com/refraction-networking/utls v1.7.2 // indirect
+	github.com/refraction-networking/utls v1.7.3 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/sagernet/sing v0.6.6 // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vishvananda/netlink v1.3.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	github.com/xtls/reality v0.0.0-20240909153216-e26ae2305463 // indirect
+	github.com/xtls/reality v0.0.0-20250516070713-4df2ec9a5b47 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/mock v0.5.2 // indirect
