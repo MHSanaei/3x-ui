@@ -1975,7 +1975,7 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	return info
 }
 
-func (t *Tgbot) UserLoginNotify(username string, password string, ip string, time string, status LoginStatus) {
+func (t *Tgbot) UserLoginNotify(username string, ip string, time string, status LoginStatus) {
 	if !t.IsRunning() {
 		return
 	}
@@ -1997,7 +1997,6 @@ func (t *Tgbot) UserLoginNotify(username string, password string, ip string, tim
 	} else if status == LoginFail {
 		msg += t.I18nBot("tgbot.messages.loginFailed")
 		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-		msg += t.I18nBot("tgbot.messages.password", "Password=="+password)
 	}
 	msg += t.I18nBot("tgbot.messages.username", "Username=="+username)
 	msg += t.I18nBot("tgbot.messages.ip", "IP=="+ip)

@@ -612,7 +612,6 @@
 "traffic" = "🚦 الترافيك: {{ .Total }} (↑{{ .Upload }},↓{{ .Download }})\r\n"
 "xrayStatus" = "ℹ️ الحالة: {{ .State }}\r\n"
 "username" = "👤 اسم المستخدم: {{ .Username }}\r\n"
-"password" = "👤 الباسورد: {{ .Password }}\r\n"
 "time" = "⏰ الوقت: {{ .Time }}\r\n"
 "inbound" = "📍 الإدخال: {{ .Remark }}\r\n"
 "port" = "🔌 البورت: {{ .Port }}\r\n"
