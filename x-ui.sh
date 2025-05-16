@@ -69,7 +69,7 @@ confirm_restart() {
 }
 
 before_show_menu() {
-    echo && echo -n -e "${yellow}Press enter to return to the main menu: ${plain}" && read temp
+    echo && echo -n -e "${yellow}Press enter to return to the main menu: ${plain}" && read -rp temp
     show_menu
 }
 
@@ -126,7 +126,7 @@ update_menu() {
 
 legacy_version() {
     echo "Enter the panel version (like 2.4.0):"
-    read tag_version
+    read -rp tag_version
 
     if [ -z "$tag_version" ]; then
         echo "Panel version cannot be empty. Exiting."
@@ -256,7 +256,7 @@ check_config() {
 }
 
 set_port() {
-    echo && echo -n -e "Enter port number[1-65535]: " && read port
+    echo && echo -n -e "Enter port number[1-65535]: " && read -rp port
     if [[ -z "${port}" ]]; then
         LOGD "Cancelled"
         before_show_menu
