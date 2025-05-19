@@ -105,6 +105,7 @@ func runWebServer() {
 		default:
 			server.Stop()
 			subServer.Stop()
+			database.CloseDB()
 			log.Println("Shutting down servers.")
 			return
 		}

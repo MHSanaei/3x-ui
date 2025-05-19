@@ -86,7 +86,7 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 
 type Setting struct {
 	Id    int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	Key   string `json:"key" form:"key"`
+	Key   string `json:"key" form:"key" gorm:"column:key"`
 	Value string `json:"value" form:"value"`
 }
 

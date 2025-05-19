@@ -3,6 +3,7 @@ package config
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 )
@@ -62,7 +63,55 @@ func GetDBFolderPath() string {
 	return dbFolderPath
 }
 
+// DatabaseConfig holds the database configuration
+type DatabaseConfig struct {
+	Connection string
+	Host       string
+	Port       string
+	Database   string
+	Username   string
+	Password   string
+}
+
+// GetDatabaseConfig returns the database configuration from environment variables
+func GetDatabaseConfig() (*DatabaseConfig, error) {
+	config := &DatabaseConfig{
+		Connection: strings.ToLower(os.Getenv("DB_CONNECTION")),
+		Host:       os.Getenv("DB_HOST"),
+		Port:       os.Getenv("DB_PORT"),
+		Database:   os.Getenv("DB_DATABASE"),
+		Username:   os.Getenv("DB_USERNAME"),
+		Password:   os.Getenv("DB_PASSWORD"),
+	}
+
+	if config.Connection == "mysql" {
+		if config.Host == "" || config.Database == "" || config.Username == "" {
+			return nil, fmt.Errorf("missing required MySQL configuration: host, database, and username are required")
+		}
+		if config.Port == "" {
+			config.Port = "3306"
+		}
+	}
+
+	return config, nil
+}
+
 func GetDBPath() string {
+	config, err := GetDatabaseConfig()
+	if err != nil {
+		log.Fatalf("Error getting database config: %v", err)
+	}
+
+	if config.Connection == "mysql" {
+		return fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8&parseTime=True&loc=Local",
+			config.Username,
+			config.Password,
+			config.Host,
+			config.Port,
+			config.Database)
+	}
+
+	// Connection is sqlite
 	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
 }
 
