@@ -76,12 +76,12 @@ type DatabaseConfig struct {
 // GetDatabaseConfig returns the database configuration from environment variables
 func GetDatabaseConfig() (*DatabaseConfig, error) {
 	config := &DatabaseConfig{
-		Connection: strings.ToLower(os.Getenv("DB_CONNECTION")),
-		Host:       os.Getenv("DB_HOST"),
-		Port:       os.Getenv("DB_PORT"),
-		Database:   os.Getenv("DB_DATABASE"),
-		Username:   os.Getenv("DB_USERNAME"),
-		Password:   os.Getenv("DB_PASSWORD"),
+		Connection: strings.ToLower(os.Getenv("XUI_DB_CONNECTION")),
+		Host:       os.Getenv("XUI_DB_HOST"),
+		Port:       os.Getenv("XUI_DB_PORT"),
+		Database:   os.Getenv("XUI_DB_DATABASE"),
+		Username:   os.Getenv("XUI_DB_USERNAME"),
+		Password:   os.Getenv("XUI_DB_PASSWORD"),
 	}
 
 	if config.Connection == "mysql" {
