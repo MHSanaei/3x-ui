@@ -592,6 +592,10 @@
 "restartSuccess" = "✅ 操作成功!"
 "restartFailed" = "❗ 操作錯誤。\r\n\r\n<code>錯誤: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core 未運行。"
+"startDesc" = "顯示主選單"
+"helpDesc" = "機器人幫助"
+"statusDesc" = "檢查機器人狀態"
+"idDesc" = "顯示您的 Telegram ID"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU 使用率為 {{ .Percent }}%，超過閾值 {{ .Threshold }}%"

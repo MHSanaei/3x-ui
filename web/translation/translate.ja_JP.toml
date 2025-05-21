@@ -590,6 +590,10 @@
 "restartSuccess" = "✅ 操作成功！"
 "restartFailed" = "❗ 操作エラー。\r\n\r\n<code>エラー: {{ .Error }}</code>"
 "xrayNotRunning" = "❗ Xray Core は動作していません。"
+"startDesc" = "メインメニューを表示"
+"helpDesc" = "ボットのヘルプ"
+"statusDesc" = "ボットの状態を確認"
+"idDesc" = "Telegram IDを表示"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU使用率は{{ .Percent }}%、しきい値{{ .Threshold }}%を超えました"

@@ -590,6 +590,10 @@
 "restartSuccess" = "✅ Operasi berhasil!"
 "restartFailed" = "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core tidak berjalan."
+"startDesc" = "Tampilkan menu utama"
+"helpDesc" = "Bantuan bot"
+"statusDesc" = "Periksa status bot"
+"idDesc" = "Tampilkan ID Telegram Anda"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%"
