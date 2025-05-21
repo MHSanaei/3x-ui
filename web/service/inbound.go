@@ -87,14 +87,23 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 
 func (s *InboundService) getAllEmails() ([]string, error) {
 	db := database.GetDB()
-	var emails []string
-	err := db.Raw(`
-		SELECT JSON_EXTRACT(client.value, '$.email')
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		`).Scan(&emails).Error
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
 	if err != nil {
 		return nil, err
+	}
+
+	var emails []string
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.Email != "" {
+				emails = append(emails, client.Email)
+			}
+		}
 	}
 	return emails, nil
 }
@@ -1120,14 +1129,46 @@ func (s *InboundService) GetInboundTags() (string, error) {
 
 func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	db := database.GetDB()
-	db.Exec(`
-		DELETE FROM client_traffics
-		WHERE email NOT IN (
-			SELECT JSON_EXTRACT(client.value, '$.email')
-			FROM inbounds,
-				JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		)
-	`)
+
+	// Get all inbounds
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	if err != nil {
+		logger.Error("Failed to get inbounds:", err)
+		return
+	}
+
+	// Collect all valid emails from inbounds
+	validEmails := make(map[string]bool)
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.Email != "" {
+				validEmails[client.Email] = true
+			}
+		}
+	}
+
+	// Get all client traffics
+	var traffics []xray.ClientTraffic
+	err = db.Model(xray.ClientTraffic{}).Find(&traffics).Error
+	if err != nil {
+		logger.Error("Failed to get client traffics:", err)
+		return
+	}
+
+	// Delete traffics with emails not in validEmails
+	for _, traffic := range traffics {
+		if !validEmails[traffic.Email] {
+			err = db.Delete(&traffic).Error
+			if err != nil {
+				logger.Error("Failed to delete orphaned traffic:", err)
+			}
+		}
+	}
 }
 
 func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
@@ -1789,19 +1830,38 @@ func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, 
 	db := database.GetDB()
 	var traffics []xray.ClientTraffic
 
-	err := db.Model(xray.ClientTraffic{}).Where(`email IN(
-		SELECT JSON_EXTRACT(client.value, '$.email') as email
-		FROM inbounds,
-	  	JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		WHERE
-	  	JSON_EXTRACT(client.value, '$.id') in (?)
-		)`, id).Find(&traffics).Error
-
+	// First get all inbounds
+	var inbounds []*model.Inbound
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
 	if err != nil {
-		logger.Debug(err)
 		return nil, err
 	}
-	return traffics, err
+
+	// Collect all emails that match the ID
+	var targetEmails []string
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			continue
+		}
+		for _, client := range clients {
+			if client.ID == id && client.Email != "" {
+				targetEmails = append(targetEmails, client.Email)
+			}
+		}
+	}
+	// Get traffics for the collected emails
+	if len(targetEmails) > 0 {
+		err = db.Model(xray.ClientTraffic{}).
+			Where("email IN ?", targetEmails).
+			Find(&traffics).Error
+		if err != nil {
+			logger.Debug(err)
+			return nil, err
+		}
+	}
+
+	return traffics, nil
 }
 
 func (s *InboundService) SearchClientTraffic(query string) (traffic *xray.ClientTraffic, err error) {
