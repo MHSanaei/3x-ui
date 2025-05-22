@@ -270,12 +270,30 @@
         }
       },
       async updateUser() {
-        this.loading(true);
-        const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
-        this.loading(false);
-        if (msg.success) {
-          this.user = {};
-          window.location.replace(basePath + "logout");
+        const sendUpdateUserRequest = async () => {
+          this.loading(true);
+          const msg = await HttpUtil.post("/panel/setting/updateUser", this.user);
+          this.loading(false);
+          if (msg.success) {
+            this.user = {};
+            window.location.replace(basePath + "logout");
+          }
+        }
+
+        if (this.allSetting.twoFactorEnable) {
+          twoFactorModal.show({
+            title: '{{ i18n "pages.settings.security.twoFactorModalChangeCredentialsTitle" }}',
+            description: '{{ i18n "pages.settings.security.twoFactorModalChangeCredentialsStep" }}',
+            token: this.allSetting.twoFactorToken,
+            type: 'confirm',
+            confirm: (success) => {
+              if (success) {
+                sendUpdateUserRequest();
+              }
+            }
+          })
+        } else {
+          sendUpdateUserRequest();
         }
       },
       async restartPanel() {
@@ -313,6 +331,8 @@
             type: 'set',
             confirm: (success) => {
               if (success) {
+                Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalSetSuccess" }}')
+
                 this.allSetting.twoFactorToken = newTwoFactorToken
               }
 
@@ -322,10 +342,13 @@
         } else {
           twoFactorModal.show({
             title: '{{ i18n "pages.settings.security.twoFactorModalDeleteTitle" }}',
+            description: '{{ i18n "pages.settings.security.twoFactorModalRemoveStep" }}',
             token: this.allSetting.twoFactorToken,
-            type: 'remove',
+            type: 'confirm',
             confirm: (success) => {
               if (success) {
+                Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalDeleteSuccess" }}')
+
                 this.allSetting.twoFactorEnable = false
                 this.allSetting.twoFactorToken = ""
               }
