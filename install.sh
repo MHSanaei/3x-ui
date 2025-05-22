@@ -81,6 +81,145 @@ gen_random_string() {
     echo "$random_string"
 }
 
+install_postgresql() {
+    echo -e "${green}Installing PostgreSQL...${plain}"
+    
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update
+        apt-get install -y postgresql postgresql-contrib
+        ;;
+    centos | almalinux | rocky | ol)
+        yum install -y postgresql-server postgresql-contrib
+        postgresql-setup initdb
+        ;;
+    fedora | amzn | virtuozzo)
+        dnf install -y postgresql-server postgresql-contrib
+        postgresql-setup --initdb
+        ;;
+    arch | manjaro | parch)
+        pacman -S --noconfirm postgresql
+        sudo -u postgres initdb -D /var/lib/postgres/data
+        ;;
+    opensuse-tumbleweed)
+        zypper install -y postgresql-server postgresql-contrib
+        ;;
+    *)
+        echo -e "${red}Unsupported OS for PostgreSQL installation${plain}"
+        return 1
+        ;;
+    esac
+
+    # Start and enable PostgreSQL service
+    systemctl start postgresql
+    systemctl enable postgresql
+    
+    if ! systemctl is-active --quiet postgresql; then
+        echo -e "${red}Failed to start PostgreSQL service${plain}"
+        return 1
+    fi
+    
+    echo -e "${green}PostgreSQL installed and started successfully${plain}"
+    return 0
+}
+
+setup_postgresql_for_xui() {
+    echo -e "${green}Setting up PostgreSQL for x-ui...${plain}"
+    
+    local db_name="x_ui"
+    local db_user="x_ui"
+    local db_password=$(gen_random_string 16)
+    
+    # Create database and user
+    sudo -u postgres psql -c "CREATE DATABASE ${db_name};" 2>/dev/null || true
+    sudo -u postgres psql -c "CREATE USER ${db_user} WITH PASSWORD '${db_password}';" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};" 2>/dev/null || true
+    sudo -u postgres psql -c "ALTER USER ${db_user} CREATEDB;" 2>/dev/null || true
+    
+    # Create environment file for x-ui
+    cat > /etc/x-ui/db.env << EOF
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=${db_name}
+DB_USER=${db_user}
+DB_PASSWORD=${db_password}
+DB_SSLMODE=disable
+DB_TIMEZONE=UTC
+EOF
+
+    chmod 600 /etc/x-ui/db.env
+    
+    echo -e "${green}PostgreSQL setup completed${plain}"
+    echo -e "${yellow}Database: ${db_name}${plain}"
+    echo -e "${yellow}User: ${db_user}${plain}"
+    echo -e "${yellow}Password: ${db_password}${plain}"
+    echo -e "${yellow}Configuration saved to: /etc/x-ui/db.env${plain}"
+    
+    return 0
+}
+
+database_setup() {
+    echo -e "${green}Database Setup${plain}"
+    echo -e "Choose your database type:"
+    echo -e "${green}1.${plain} SQLite (Default, recommended for most users)"
+    echo -e "${green}2.${plain} PostgreSQL (For high-load environments)"
+    
+    read -rp "Enter your choice [1-2, default: 1]: " db_choice
+    
+    case "${db_choice}" in
+    2)
+        echo -e "${yellow}Setting up PostgreSQL...${plain}"
+        
+        # Check if PostgreSQL is already installed
+        if command -v psql &> /dev/null && systemctl is-active --quiet postgresql; then
+            echo -e "${yellow}PostgreSQL is already installed and running${plain}"
+            read -rp "Do you want to use existing PostgreSQL installation? [y/n, default: y]: " use_existing
+            if [[ "${use_existing}" == "n" || "${use_existing}" == "N" ]]; then
+                return 1
+            fi
+        else
+            read -rp "PostgreSQL will be installed. Continue? [y/n, default: y]: " install_confirm
+            if [[ "${install_confirm}" == "n" || "${install_confirm}" == "N" ]]; then
+                echo -e "${yellow}Using SQLite instead${plain}"
+                return 0
+            fi
+            
+            if ! install_postgresql; then
+                echo -e "${red}Failed to install PostgreSQL. Using SQLite instead${plain}"
+                return 0
+            fi
+        fi
+        
+        if ! setup_postgresql_for_xui; then
+            echo -e "${red}Failed to setup PostgreSQL. Using SQLite instead${plain}"
+            return 0
+        fi
+        
+        echo -e "${green}PostgreSQL setup completed successfully${plain}"
+        ;;
+    1|"")
+        echo -e "${green}Using SQLite database (default)${plain}"
+        # Create empty env file to indicate SQLite usage
+        mkdir -p /etc/x-ui
+        cat > /etc/x-ui/db.env << EOF
+DB_TYPE=sqlite
+EOF
+        chmod 600 /etc/x-ui/db.env
+        ;;
+    *)
+        echo -e "${yellow}Invalid choice. Using SQLite (default)${plain}"
+        mkdir -p /etc/x-ui
+        cat > /etc/x-ui/db.env << EOF
+DB_TYPE=sqlite
+EOF
+        chmod 600 /etc/x-ui/db.env
+        ;;
+    esac
+    
+    return 0
+}
+
 config_after_install() {
     local existing_hasDefaultCredential=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
@@ -193,6 +332,10 @@ install_x-ui() {
     wget -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
+    
+    # Setup database before configuration
+    database_setup
+    
     config_after_install
 
     systemctl daemon-reload
@@ -200,24 +343,25 @@ install_x-ui() {
     systemctl start x-ui
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
-    echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-└───────────────────────────────────────────────────────┘"
+    echo -e "┌───────────────────────────────────────────────────────┐"
+    echo -e "│  ${blue}x-ui control menu usages (subcommands):${plain}              │"
+    echo -e "│                                                       │"
+    echo -e "│  ${blue}x-ui${plain}              - Admin Management Script          │"
+    echo -e "│  ${blue}x-ui start${plain}        - Start                            │"
+    echo -e "│  ${blue}x-ui stop${plain}         - Stop                             │"
+    echo -e "│  ${blue}x-ui restart${plain}      - Restart                          │"
+    echo -e "│  ${blue}x-ui status${plain}       - Current Status                   │"
+    echo -e "│  ${blue}x-ui settings${plain}     - Current Settings                 │"
+    echo -e "│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │"
+    echo -e "│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │"
+    echo -e "│  ${blue}x-ui log${plain}          - Check logs                       │"
+    echo -e "│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │"
+    echo -e "│  ${blue}x-ui update${plain}       - Update                           │"
+    echo -e "│  ${blue}x-ui legacy${plain}       - legacy version                   │"
+    echo -e "│  ${blue}x-ui install${plain}      - Install                          │"
+    echo -e "│  ${blue}x-ui uninstall${plain}    - Uninstall                        │"
+    echo -e "│  ${blue}x-ui database${plain}     - Database Management              │"
+    echo -e "└───────────────────────────────────────────────────────┘"
 }
 
 echo -e "${green}Running...${plain}"

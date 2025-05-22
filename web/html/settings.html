@@ -115,6 +115,9 @@
               <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }} Json' v-if="allSetting.subEnable" :style="{ paddingTop: '20px' }">
                 {{ template "settings/panel/subscription/json" . }}
               </a-tab-pane>
+              <a-tab-pane key="6" tab='{{ i18n "pages.settings.databaseSettings" }}' :style="{ paddingTop: '20px' }">
+                {{ template "settings/panel/database" . }}
+              </a-tab-pane>
             </a-tabs>
           </a-space>
         </a-spin>

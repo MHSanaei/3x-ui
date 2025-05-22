@@ -1,0 +1,42 @@
+[Unit]
+Description=PostgreSQL database server for 3x-ui
+Documentation=man:postgres(1)
+After=network.target
+Wants=network.target
+Before=x-ui.service
+
+[Service]
+Type=notify
+User=postgres
+Group=postgres
+
+# PostgreSQL data directory
+Environment=PGDATA=/var/lib/postgresql/data
+
+# PostgreSQL configuration
+ExecStart=/usr/bin/postgres -D ${PGDATA}
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Process management
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutSec=0
+
+# Restart policy
+Restart=on-failure
+RestartSec=5s
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/postgresql
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
+WantedBy=x-ui.service 

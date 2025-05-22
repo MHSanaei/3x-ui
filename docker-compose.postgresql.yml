@@ -1,0 +1,122 @@
+version: '3.8'
+
+networks:
+  x-ui-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  x-ui-data:
+    driver: local
+  x-ui-cert:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: x-ui-postgres
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-x_ui}
+      POSTGRES_USER: ${DB_USER:-x_ui}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      x-ui-network:
+        ipv4_address: 172.20.0.2
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-x_ui} -d ${DB_NAME:-x_ui}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=4MB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  3x-ui:
+    image: ghcr.io/mhsanaei/3x-ui:latest
+    container_name: 3x-ui
+    hostname: 3x-ui
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      XRAY_VMESS_AEAD_FORCED: "false"
+      XUI_ENABLE_FAIL2BAN: "true"
+      DB_TYPE: "postgres"
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: ${DB_NAME:-x_ui}
+      DB_USER: ${DB_USER:-x_ui}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      DB_TIMEZONE: ${DB_TIMEZONE:-UTC}
+    volumes:
+      - x-ui-data:/etc/x-ui/
+      - x-ui-cert:/root/cert/
+    networks:
+      x-ui-network:
+        ipv4_address: 172.20.0.3
+    ports:
+      - "${XUI_PORT:-2053}:2053"
+      - "${XUI_SUB_PORT:-2096}:2096"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2053/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
+    cap_add:
+      - NET_ADMIN
+    security_opt:
+      - no-new-privileges:true
+
+  # Optional: PostgreSQL Admin Interface
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: x-ui-pgadmin
+    hostname: pgadmin
+    restart: unless-stopped
+    profiles:
+      - admin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - ./pgadmin_servers.json:/pgadmin4/servers.json:ro
+    networks:
+      x-ui-network:
+        ipv4_address: 172.20.0.4
+    ports:
+      - "127.0.0.1:5050:80"
+    depends_on:
+      postgres:
+        condition: service_healthy 

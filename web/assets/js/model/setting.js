@@ -42,11 +42,18 @@ class AllSetting {
         this.subShowInfo = true;
         this.subURI = "";
         this.subJsonURI = "";
-        this.subJsonFragment = "";
-        this.subJsonNoises = "";
-        this.subJsonMux = "";
-        this.subJsonRules = "";
-
+        this.subJsonFragment = "";        
+        this.subJsonNoises = "";        
+        this.subJsonMux = "";        
+        this.subJsonRules = "";        
+        this.dbType = "sqlite";        
+        this.dbHost = "localhost";        
+        this.dbPort = 5432;        
+        this.dbName = "x_ui";        
+        this.dbUser = "x_ui";        
+        this.dbPassword = "";        
+        this.dbSSLMode = "disable";        
+        this.dbTimeZone = "UTC";        
         this.timeLocation = "Local";
 
         if (data == null) {

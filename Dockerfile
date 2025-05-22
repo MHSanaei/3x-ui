@@ -29,12 +29,14 @@ RUN apk add --no-cache --update \
   ca-certificates \
   tzdata \
   fail2ban \
-  bash
+  bash \
+  postgresql-client \
+  curl
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
-
+COPY wait-for-postgres.sh /app/
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -46,9 +48,20 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
+  /app/wait-for-postgres.sh \
   /usr/bin/x-ui
 
+# Environment variables for database configuration
 ENV XUI_ENABLE_FAIL2BAN="true"
+ENV DB_TYPE="sqlite"
+ENV DB_HOST="localhost"
+ENV DB_PORT="5432"
+ENV DB_NAME="x_ui"
+ENV DB_USER="x_ui"
+ENV DB_PASSWORD=""
+ENV DB_SSLMODE="disable"
+ENV DB_TIMEZONE="UTC"
+
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]

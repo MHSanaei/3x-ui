@@ -38,8 +38,8 @@ type AllSetting struct {
 	TgCpu                       int    `json:"tgCpu" form:"tgCpu"`
 	TgLang                      string `json:"tgLang" form:"tgLang"`
 	TimeLocation                string `json:"timeLocation" form:"timeLocation"`
-	TwoFactorEnable				bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
-	TwoFactorToken				string `json:"twoFactorToken" form:"twoFactorToken"`
+	TwoFactorEnable             bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
+	TwoFactorToken              string `json:"twoFactorToken" form:"twoFactorToken"`
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubListen                   string `json:"subListen" form:"subListen"`
@@ -61,6 +61,14 @@ type AllSetting struct {
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
 	Datepicker                  string `json:"datepicker" form:"datepicker"`
+	DbType                      string `json:"dbType" form:"dbType"`
+	DbHost                      string `json:"dbHost" form:"dbHost"`
+	DbPort                      int    `json:"dbPort" form:"dbPort"`
+	DbName                      string `json:"dbName" form:"dbName"`
+	DbUser                      string `json:"dbUser" form:"dbUser"`
+	DbPassword                  string `json:"dbPassword" form:"dbPassword"`
+	DbSSLMode                   string `json:"dbSSLMode" form:"dbSSLMode"`
+	DbTimeZone                  string `json:"dbTimeZone" form:"dbTimeZone"`
 }
 
 func (s *AllSetting) CheckValid() error {
