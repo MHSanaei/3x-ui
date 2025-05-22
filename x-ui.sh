@@ -1620,6 +1620,319 @@ remove_iplimit() {
     esac
 }
 
+install_postgresql() {
+    echo -e "${green}Installing PostgreSQL...${plain}"
+    
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update
+        apt-get install -y postgresql postgresql-contrib
+        ;;
+    centos | almalinux | rocky | ol)
+        yum install -y postgresql-server postgresql-contrib
+        postgresql-setup initdb
+        ;;
+    fedora | amzn | virtuozzo)
+        dnf install -y postgresql-server postgresql-contrib
+        postgresql-setup --initdb
+        ;;
+    arch | manjaro | parch)
+        pacman -S --noconfirm postgresql
+        sudo -u postgres initdb -D /var/lib/postgres/data
+        ;;
+    opensuse-tumbleweed)
+        zypper install -y postgresql-server postgresql-contrib
+        ;;
+    *)
+        echo -e "${red}Unsupported OS for PostgreSQL installation${plain}"
+        return 1
+        ;;
+    esac
+
+    # Start and enable PostgreSQL service
+    systemctl start postgresql
+    systemctl enable postgresql
+    
+    if ! systemctl is-active --quiet postgresql; then
+        echo -e "${red}Failed to start PostgreSQL service${plain}"
+        return 1
+    fi
+    
+    echo -e "${green}PostgreSQL installed and started successfully${plain}"
+    return 0
+}
+
+setup_postgresql_for_xui() {
+    echo -e "${green}Setting up PostgreSQL for x-ui...${plain}"
+    
+    local db_name="x_ui"
+    local db_user="x_ui"
+    local db_password=$(gen_random_string 16)
+    
+    # Create database and user
+    sudo -u postgres psql -c "CREATE DATABASE ${db_name};" 2>/dev/null || true
+    sudo -u postgres psql -c "CREATE USER ${db_user} WITH PASSWORD '${db_password}';" 2>/dev/null || true
+    sudo -u postgres psql -c "GRANT ALL PRIVILEGES ON DATABASE ${db_name} TO ${db_user};" 2>/dev/null || true
+    sudo -u postgres psql -c "ALTER USER ${db_user} CREATEDB;" 2>/dev/null || true
+    
+    # Create environment file for x-ui
+    mkdir -p /etc/x-ui
+    cat > /etc/x-ui/db.env << EOF
+DB_TYPE=postgres
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=${db_name}
+DB_USER=${db_user}
+DB_PASSWORD=${db_password}
+DB_SSLMODE=disable
+DB_TIMEZONE=UTC
+EOF
+
+    chmod 600 /etc/x-ui/db.env
+    
+    echo -e "${green}PostgreSQL setup completed${plain}"
+    echo -e "${yellow}Database: ${db_name}${plain}"
+    echo -e "${yellow}User: ${db_user}${plain}"
+    echo -e "${yellow}Password: ${db_password}${plain}"
+    echo -e "${yellow}Configuration saved to: /etc/x-ui/db.env${plain}"
+    
+    return 0
+}
+
+switch_to_postgresql() {
+    echo -e "${yellow}Switching to PostgreSQL database...${plain}"
+    
+    # Check if PostgreSQL is installed
+    if ! command -v psql &> /dev/null; then
+        echo -e "${yellow}PostgreSQL is not installed. Installing now...${plain}"
+        if ! install_postgresql; then
+            echo -e "${red}Failed to install PostgreSQL${plain}"
+            return 1
+        fi
+    fi
+    
+    # Check if PostgreSQL service is running
+    if ! systemctl is-active --quiet postgresql; then
+        echo -e "${yellow}Starting PostgreSQL service...${plain}"
+        systemctl start postgresql
+        systemctl enable postgresql
+    fi
+    
+    # Setup PostgreSQL for x-ui
+    if ! setup_postgresql_for_xui; then
+        echo -e "${red}Failed to setup PostgreSQL${plain}"
+        return 1
+    fi
+    
+    echo -e "${green}Successfully switched to PostgreSQL${plain}"
+    echo -e "${yellow}Please restart x-ui panel to apply changes${plain}"
+    return 0
+}
+
+switch_to_sqlite() {
+    echo -e "${yellow}Switching to SQLite database...${plain}"
+    
+    # Create environment file for SQLite
+    mkdir -p /etc/x-ui
+    cat > /etc/x-ui/db.env << EOF
+DB_TYPE=sqlite
+EOF
+    chmod 600 /etc/x-ui/db.env
+    
+    echo -e "${green}Successfully switched to SQLite${plain}"
+    echo -e "${yellow}Please restart x-ui panel to apply changes${plain}"
+    return 0
+}
+
+backup_database() {
+    local backup_dir="/etc/x-ui/backups"
+    local timestamp=$(date +"%Y%m%d_%H%M%S")
+    
+    mkdir -p "$backup_dir"
+    
+    # Check current database type
+    if [[ -f /etc/x-ui/db.env ]]; then
+        source /etc/x-ui/db.env
+    else
+        DB_TYPE="sqlite"
+    fi
+    
+    case "$DB_TYPE" in
+    postgres)
+        echo -e "${green}Backing up PostgreSQL database...${plain}"
+        if [[ -f /etc/x-ui/db.env ]]; then
+            source /etc/x-ui/db.env
+            PGPASSWORD="$DB_PASSWORD" pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" > "$backup_dir/postgresql_backup_$timestamp.sql"
+            if [[ $? -eq 0 ]]; then
+                echo -e "${green}PostgreSQL backup created: $backup_dir/postgresql_backup_$timestamp.sql${plain}"
+            else
+                echo -e "${red}Failed to create PostgreSQL backup${plain}"
+                return 1
+            fi
+        else
+            echo -e "${red}Database configuration not found${plain}"
+            return 1
+        fi
+        ;;
+    sqlite|*)
+        echo -e "${green}Backing up SQLite database...${plain}"
+        local sqlite_path="/etc/x-ui/x-ui.db"
+        if [[ -f "$sqlite_path" ]]; then
+            cp "$sqlite_path" "$backup_dir/sqlite_backup_$timestamp.db"
+            echo -e "${green}SQLite backup created: $backup_dir/sqlite_backup_$timestamp.db${plain}"
+        else
+            echo -e "${red}SQLite database not found at $sqlite_path${plain}"
+            return 1
+        fi
+        ;;
+    esac
+    
+    return 0
+}
+
+show_database_status() {
+    echo -e "${green}Database Status:${plain}"
+    
+    if [[ -f /etc/x-ui/db.env ]]; then
+        source /etc/x-ui/db.env
+        echo -e "Current database type: ${green}$DB_TYPE${plain}"
+        
+        case "$DB_TYPE" in
+        postgres)
+            echo -e "Host: $DB_HOST"
+            echo -e "Port: $DB_PORT"
+            echo -e "Database: $DB_NAME"
+            echo -e "User: $DB_USER"
+            
+            # Check PostgreSQL service status
+            if systemctl is-active --quiet postgresql; then
+                echo -e "PostgreSQL service: ${green}Running${plain}"
+            else
+                echo -e "PostgreSQL service: ${red}Not Running${plain}"
+            fi
+            
+            # Test connection
+            if PGPASSWORD="$DB_PASSWORD" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "SELECT 1;" &>/dev/null; then
+                echo -e "Database connection: ${green}OK${plain}"
+            else
+                echo -e "Database connection: ${red}Failed${plain}"
+            fi
+            ;;
+        sqlite|*)
+            local sqlite_path="/etc/x-ui/x-ui.db"
+            if [[ -f "$sqlite_path" ]]; then
+                echo -e "SQLite file: ${green}$sqlite_path${plain}"
+                echo -e "File size: $(du -h "$sqlite_path" | cut -f1)"
+            else
+                echo -e "SQLite file: ${red}Not found${plain}"
+            fi
+            ;;
+        esac
+    else
+        echo -e "Database configuration: ${red}Not found${plain}"
+        echo -e "Using default: ${green}SQLite${plain}"
+    fi
+}
+
+database_menu() {
+    echo -e "${green}\t1.${plain} Show Database Status"
+    echo -e "${green}\t2.${plain} Switch to PostgreSQL"
+    echo -e "${green}\t3.${plain} Switch to SQLite"
+    echo -e "${green}\t4.${plain} Install PostgreSQL"
+    echo -e "${green}\t5.${plain} Backup Database"
+    echo -e "${green}\t6.${plain} PostgreSQL Service Management"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " choice
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        show_database_status
+        database_menu
+        ;;
+    2)
+        confirm "Switch to PostgreSQL database? This will require panel restart." "y"
+        if [[ $? == 0 ]]; then
+            switch_to_postgresql
+        fi
+        database_menu
+        ;;
+    3)
+        confirm "Switch to SQLite database? This will require panel restart." "y"
+        if [[ $? == 0 ]]; then
+            switch_to_sqlite
+        fi
+        database_menu
+        ;;
+    4)
+        confirm "Install PostgreSQL?" "y"
+        if [[ $? == 0 ]]; then
+            install_postgresql
+        fi
+        database_menu
+        ;;
+    5)
+        confirm "Create database backup?" "y"
+        if [[ $? == 0 ]]; then
+            backup_database
+        fi
+        database_menu
+        ;;
+    6)
+        postgresql_service_menu
+        database_menu
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        database_menu
+        ;;
+    esac
+}
+
+postgresql_service_menu() {
+    echo -e "${green}\t1.${plain} Start PostgreSQL"
+    echo -e "${green}\t2.${plain} Stop PostgreSQL"
+    echo -e "${green}\t3.${plain} Restart PostgreSQL"
+    echo -e "${green}\t4.${plain} PostgreSQL Status"
+    echo -e "${green}\t5.${plain} Enable PostgreSQL Autostart"
+    echo -e "${green}\t6.${plain} Disable PostgreSQL Autostart"
+    echo -e "${green}\t0.${plain} Back to Database Menu"
+    read -rp "Choose an option: " choice
+    case "$choice" in
+    0)
+        return
+        ;;
+    1)
+        systemctl start postgresql
+        echo -e "${green}PostgreSQL started${plain}"
+        ;;
+    2)
+        systemctl stop postgresql
+        echo -e "${green}PostgreSQL stopped${plain}"
+        ;;
+    3)
+        systemctl restart postgresql
+        echo -e "${green}PostgreSQL restarted${plain}"
+        ;;
+    4)
+        systemctl status postgresql
+        ;;
+    5)
+        systemctl enable postgresql
+        echo -e "${green}PostgreSQL autostart enabled${plain}"
+        ;;
+    6)
+        systemctl disable postgresql
+        echo -e "${green}PostgreSQL autostart disabled${plain}"
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        postgresql_service_menu
+        ;;
+    esac
+}
+
 SSH_port_forwarding() {
     local server_ip=$(curl -s https://api.ipify.org)
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
@@ -1698,66 +2011,66 @@ SSH_port_forwarding() {
 }
 
 show_usage() {
-    echo -e "┌───────────────────────────────────────────────────────┐
-│  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                       │
-│  ${blue}x-ui${plain}              - Admin Management Script          │
-│  ${blue}x-ui start${plain}        - Start                            │
-│  ${blue}x-ui stop${plain}         - Stop                             │
-│  ${blue}x-ui restart${plain}      - Restart                          │
-│  ${blue}x-ui status${plain}       - Current Status                   │
-│  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
-│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
-│  ${blue}x-ui log${plain}          - Check logs                       │
-│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
-│  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - legacy version                   │
-│  ${blue}x-ui install${plain}      - Install                          │
-│  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-└───────────────────────────────────────────────────────┘"
+    echo -e "┌───────────────────────────────────────────────────────┐"
+    echo -e "│  ${blue}x-ui control menu usages (subcommands):${plain}              │"
+    echo -e "│                                                       │"
+    echo -e "│  ${blue}x-ui${plain}              - Admin Management Script          │"
+    echo -e "│  ${blue}x-ui start${plain}        - Start                            │"
+    echo -e "│  ${blue}x-ui stop${plain}         - Stop                             │"
+    echo -e "│  ${blue}x-ui restart${plain}      - Restart                          │"
+    echo -e "│  ${blue}x-ui status${plain}       - Current Status                   │"
+    echo -e "│  ${blue}x-ui settings${plain}     - Current Settings                 │"
+    echo -e "│  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │"
+    echo -e "│  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │"
+    echo -e "│  ${blue}x-ui log${plain}          - Check logs                       │"
+    echo -e "│  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │"
+    echo -e "│  ${blue}x-ui update${plain}       - Update                           │"
+    echo -e "│  ${blue}x-ui legacy${plain}       - legacy version                   │"
+    echo -e "│  ${blue}x-ui install${plain}      - Install                          │"
+    echo -e "│  ${blue}x-ui uninstall${plain}    - Uninstall                        │"
+    echo -e "│  ${blue}x-ui database${plain}     - Database Management              │"
+    echo -e "└───────────────────────────────────────────────────────┘"
 }
 
 show_menu() {
-    echo -e "
-╔────────────────────────────────────────────────╗
-│   ${green}3X-UI Panel Management Script${plain}                │
-│   ${green}0.${plain} Exit Script                               │
-│────────────────────────────────────────────────│
-│   ${green}1.${plain} Install                                   │
-│   ${green}2.${plain} Update                                    │
-│   ${green}3.${plain} Update Menu                               │
-│   ${green}4.${plain} Legacy Version                            │
-│   ${green}5.${plain} Uninstall                                 │
-│────────────────────────────────────────────────│
-│   ${green}6.${plain} Reset Username & Password                 │
-│   ${green}7.${plain} Reset Web Base Path                       │
-│   ${green}8.${plain} Reset Settings                            │
-│   ${green}9.${plain} Change Port                               │
-│  ${green}10.${plain} View Current Settings                     │
-│────────────────────────────────────────────────│
-│  ${green}11.${plain} Start                                     │
-│  ${green}12.${plain} Stop                                      │
-│  ${green}13.${plain} Restart                                   │
-│  ${green}14.${plain} Check Status                              │
-│  ${green}15.${plain} Logs Management                           │
-│────────────────────────────────────────────────│
-│  ${green}16.${plain} Enable Autostart                          │
-│  ${green}17.${plain} Disable Autostart                         │
-│────────────────────────────────────────────────│
-│  ${green}18.${plain} SSL Certificate Management                │
-│  ${green}19.${plain} Cloudflare SSL Certificate                │
-│  ${green}20.${plain} IP Limit Management                       │
-│  ${green}21.${plain} Firewall Management                       │
-│  ${green}22.${plain} SSH Port Forwarding Management            │
-│────────────────────────────────────────────────│
-│  ${green}23.${plain} Enable BBR                                │
-│  ${green}24.${plain} Update Geo Files                          │
-│  ${green}25.${plain} Speedtest by Ookla                        │
-╚────────────────────────────────────────────────╝
-"
+    echo -e "╔────────────────────────────────────────────────╗"
+    echo -e "│   ${green}3X-UI Panel Management Script${plain}                │"
+    echo -e "│   ${green}0.${plain} Exit Script                               │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│   ${green}1.${plain} Install                                   │"
+    echo -e "│   ${green}2.${plain} Update                                    │"
+    echo -e "│   ${green}3.${plain} Update Menu                               │"
+    echo -e "│   ${green}4.${plain} Legacy Version                            │"
+    echo -e "│   ${green}5.${plain} Uninstall                                 │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│   ${green}6.${plain} Reset Username & Password                 │"
+    echo -e "│   ${green}7.${plain} Reset Web Base Path                       │"
+    echo -e "│   ${green}8.${plain} Reset Settings                            │"
+    echo -e "│   ${green}9.${plain} Change Port                               │"
+    echo -e "│  ${green}10.${plain} View Current Settings                     │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│  ${green}11.${plain} Start                                     │"
+    echo -e "│  ${green}12.${plain} Stop                                      │"
+    echo -e "│  ${green}13.${plain} Restart                                   │"
+    echo -e "│  ${green}14.${plain} Check Status                              │"
+    echo -e "│  ${green}15.${plain} Logs Management                           │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│  ${green}16.${plain} Enable Autostart                          │"
+    echo -e "│  ${green}17.${plain} Disable Autostart                         │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│  ${green}18.${plain} SSL Certificate Management                │"
+    echo -e "│  ${green}19.${plain} Cloudflare SSL Certificate                │"
+    echo -e "│  ${green}20.${plain} IP Limit Management                       │"
+    echo -e "│  ${green}21.${plain} Firewall Management                       │"
+    echo -e "│  ${green}22.${plain} SSH Port Forwarding Management            │"
+    echo -e "│────────────────────────────────────────────────│"
+    echo -e "│  ${green}23.${plain} Enable BBR                                │"
+    echo -e "│  ${green}24.${plain} Update Geo Files                          │"
+    echo -e "│  ${green}25.${plain} Speedtest by Ookla                        │"
+    echo -e "│  ${green}26.${plain} Database Management                       │"
+    echo -e "╚────────────────────────────────────────────────╝"
     show_status
-    echo && read -rp "Please enter your selection [0-25]: " num
+    echo && read -rp "Please enter your selection [0-26]: " num
 
     case "${num}" in
     0)
@@ -1838,8 +2151,11 @@ show_menu() {
     25)
         run_speedtest
         ;;
+    26)
+        database_menu
+        ;;
     *)
-        LOGE "Please enter the correct number [0-25]"
+        LOGE "Please enter the correct number [0-26]"
         ;;
     esac
 }
@@ -1885,7 +2201,12 @@ if [[ $# > 0 ]]; then
     "uninstall")
         check_install 0 && uninstall 0
         ;;
-    *) show_usage ;;
+    "database")
+        check_install 0 && database_menu 0
+        ;;
+    *) 
+        show_usage 
+        ;;
     esac
 else
     show_menu

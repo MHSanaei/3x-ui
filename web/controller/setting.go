@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"x-ui/database"
 	"x-ui/util/crypto"
 	"x-ui/web/entity"
 	"x-ui/web/service"
@@ -40,6 +41,7 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+	g.POST("/testDatabaseConnection", a.testDatabaseConnection)
 }
 
 func (a *SettingController) getAllSetting(c *gin.Context) {
@@ -108,4 +110,20 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+func (a *SettingController) testDatabaseConnection(c *gin.Context) {
+	dbConfig, err := a.settingService.GetDatabaseConfig()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.testDatabaseConnection"), err)
+		return
+	}
+
+	err = database.TestDatabaseConnection(dbConfig)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.testDatabaseConnection"), err)
+		return
+	}
+
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.testDatabaseConnectionSuccess"), nil)
 }

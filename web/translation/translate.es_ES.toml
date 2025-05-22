@@ -554,6 +554,28 @@
 "userPassMustBeNotEmpty" = "El nuevo nombre de usuario y la nueva contraseña no pueden estar vacíos"
 "getOutboundTrafficError" = "Error al obtener el tráfico saliente"
 "resetOutboundTrafficError" = "Error al reiniciar el tráfico saliente"
+"testDatabaseConnection" = "Error al probar la conexión de la base de datos"
+"testDatabaseConnectionSuccess" = "Prueba de conexión de base de datos exitosa"
+
+[pages.settings.database]
+"databaseSettings" = "Configuración de Base de Datos"
+"databaseType" = "Tipo de Base de Datos"
+"databaseTypeDesc" = "Elija entre SQLite (predeterminado) o PostgreSQL"
+"databaseHost" = "Host de Base de Datos"
+"databaseHostDesc" = "Nombre del host o dirección IP del servidor PostgreSQL"
+"databasePort" = "Puerto de Base de Datos"
+"databasePortDesc" = "Puerto del servidor PostgreSQL (predeterminado: 5432)"
+"databaseName" = "Nombre de Base de Datos"
+"databaseNameDesc" = "Nombre de la base de datos PostgreSQL"
+"databaseUser" = "Usuario de Base de Datos"
+"databaseUserDesc" = "Nombre de usuario PostgreSQL para autenticación"
+"databasePassword" = "Contraseña de Base de Datos"
+"databasePasswordDesc" = "Contraseña PostgreSQL para autenticación"
+"databaseSSLMode" = "Modo SSL"
+"databaseSSLModeDesc" = "Modo de conexión SSL de PostgreSQL"
+"databaseTimeZone" = "Zona Horaria"
+"databaseTimeZoneDesc" = "Zona horaria de la base de datos (predeterminado: UTC)"
+"databaseWarning" = "Advertencia: Cambiar la configuración de la base de datos requiere reiniciar el panel"
 
 [tgbot]
 "keyboardClosed" = "❌ ¡Teclado personalizado cerrado!"

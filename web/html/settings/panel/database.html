@@ -1,0 +1,86 @@
+{{define "settings/panel/database"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.settings.databaseSettings"}}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.databaseType"}}</template>
+            <template #description>{{ i18n "pages.settings.databaseTypeDesc"}}</template>
+            <template #control>
+                <a-select v-model="allSetting.dbType" :style="{ width: '100%' }">
+                    <a-select-option value="sqlite">SQLite</a-select-option>
+                    <a-select-option value="postgres">PostgreSQL</a-select-option>
+                </a-select>
+            </template>
+        </a-setting-list-item>
+        
+        <template v-if="allSetting.dbType === 'postgres'">
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databaseHost"}}</template>
+                <template #description>{{ i18n "pages.settings.databaseHostDesc"}}</template>
+                <template #control>
+                    <a-input type="text" v-model="allSetting.dbHost" placeholder="localhost"></a-input>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databasePort"}}</template>
+                <template #description>{{ i18n "pages.settings.databasePortDesc"}}</template>
+                <template #control>
+                    <a-input-number v-model="allSetting.dbPort" :min="1" :max="65535" :style="{ width: '100%' }"></a-input-number>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databaseName"}}</template>
+                <template #description>{{ i18n "pages.settings.databaseNameDesc"}}</template>
+                <template #control>
+                    <a-input type="text" v-model="allSetting.dbName" placeholder="x_ui"></a-input>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databaseUser"}}</template>
+                <template #description>{{ i18n "pages.settings.databaseUserDesc"}}</template>
+                <template #control>
+                    <a-input type="text" v-model="allSetting.dbUser" placeholder="x_ui"></a-input>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databasePassword"}}</template>
+                <template #description>{{ i18n "pages.settings.databasePasswordDesc"}}</template>
+                <template #control>
+                    <a-input type="password" v-model="allSetting.dbPassword"></a-input>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databaseSSLMode"}}</template>
+                <template #description>{{ i18n "pages.settings.databaseSSLModeDesc"}}</template>
+                <template #control>
+                    <a-select v-model="allSetting.dbSSLMode" :style="{ width: '100%' }">
+                        <a-select-option value="disable">Disable</a-select-option>
+                        <a-select-option value="require">Require</a-select-option>
+                        <a-select-option value="verify-ca">Verify CA</a-select-option>
+                        <a-select-option value="verify-full">Verify Full</a-select-option>
+                    </a-select>
+                </template>
+            </a-setting-list-item>
+            
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.databaseTimeZone"}}</template>
+                <template #description>{{ i18n "pages.settings.databaseTimeZoneDesc"}}</template>
+                <template #control>
+                    <a-input type="text" v-model="allSetting.dbTimeZone" placeholder="UTC"></a-input>
+                </template>
+            </a-setting-list-item>
+        </template>
+        
+        <a-alert type="warning" :style="{ marginTop: '20px' }">
+            <template slot="message">
+                <a-icon type="exclamation-circle" theme="filled" :style="{ color: '#FFA031' }"></a-icon>
+                <span>{{ i18n "pages.settings.databaseWarning" }}</span>
+            </template>
+        </a-alert>
+    </a-collapse-panel>
+</a-collapse>
+{{end}} 

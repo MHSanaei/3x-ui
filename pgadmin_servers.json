@@ -1,0 +1,23 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "3X-UI PostgreSQL",
+      "Group": "Servers",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "x_ui",
+      "Username": "x_ui",
+      "PassFile": "/tmp/pgpassfile",
+      "SSLMode": "disable",
+      "SSLCert": "<STORAGE_DIR>/.postgresql/postgresql.crt",
+      "SSLKey": "<STORAGE_DIR>/.postgresql/postgresql.key",
+      "SSLCompression": 0,
+      "Timeout": 10,
+      "UseSSHTunnel": 0,
+      "TunnelHost": "",
+      "TunnelPort": "22",
+      "TunnelUsername": "",
+      "TunnelAuthentication": 0
+    }
+  }
+} 

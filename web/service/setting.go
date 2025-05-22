@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"x-ui/config"
 	"x-ui/database"
 	"x-ui/database/model"
 	"x-ui/logger"
@@ -72,6 +73,14 @@ var defaultValueMap = map[string]string{
 	"warp":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
+	"dbType":                      "sqlite",
+	"dbHost":                      "localhost",
+	"dbPort":                      "5432",
+	"dbName":                      "x_ui",
+	"dbUser":                      "x_ui",
+	"dbPassword":                  "",
+	"dbSSLMode":                   "disable",
+	"dbTimeZone":                  "UTC",
 }
 
 type SettingService struct{}
@@ -517,6 +526,131 @@ func (s *SettingService) GetExternalTrafficInformURI() (string, error) {
 
 func (s *SettingService) SetExternalTrafficInformURI(InformURI string) error {
 	return s.setString("externalTrafficInformURI", InformURI)
+}
+
+// Database configuration methods
+func (s *SettingService) GetDbType() (string, error) {
+	return s.getString("dbType")
+}
+
+func (s *SettingService) SetDbType(dbType string) error {
+	return s.setString("dbType", dbType)
+}
+
+func (s *SettingService) GetDbHost() (string, error) {
+	return s.getString("dbHost")
+}
+
+func (s *SettingService) SetDbHost(host string) error {
+	return s.setString("dbHost", host)
+}
+
+func (s *SettingService) GetDbPort() (int, error) {
+	return s.getInt("dbPort")
+}
+
+func (s *SettingService) SetDbPort(port int) error {
+	return s.setInt("dbPort", port)
+}
+
+func (s *SettingService) GetDbName() (string, error) {
+	return s.getString("dbName")
+}
+
+func (s *SettingService) SetDbName(name string) error {
+	return s.setString("dbName", name)
+}
+
+func (s *SettingService) GetDbUser() (string, error) {
+	return s.getString("dbUser")
+}
+
+func (s *SettingService) SetDbUser(user string) error {
+	return s.setString("dbUser", user)
+}
+
+func (s *SettingService) GetDbPassword() (string, error) {
+	return s.getString("dbPassword")
+}
+
+func (s *SettingService) SetDbPassword(password string) error {
+	return s.setString("dbPassword", password)
+}
+
+func (s *SettingService) GetDbSSLMode() (string, error) {
+	return s.getString("dbSSLMode")
+}
+
+func (s *SettingService) SetDbSSLMode(sslMode string) error {
+	return s.setString("dbSSLMode", sslMode)
+}
+
+func (s *SettingService) GetDbTimeZone() (string, error) {
+	return s.getString("dbTimeZone")
+}
+
+func (s *SettingService) SetDbTimeZone(timeZone string) error {
+	return s.setString("dbTimeZone", timeZone)
+}
+
+// GetDatabaseConfig returns database configuration from settings
+func (s *SettingService) GetDatabaseConfig() (*config.DatabaseConfig, error) {
+	dbType, err := s.GetDbType()
+	if err != nil {
+		return nil, err
+	}
+
+	dbConfig := &config.DatabaseConfig{
+		Type: config.DatabaseType(dbType),
+	}
+
+	if dbConfig.Type == config.DatabaseTypePostgreSQL {
+		host, err := s.GetDbHost()
+		if err != nil {
+			return nil, err
+		}
+		port, err := s.GetDbPort()
+		if err != nil {
+			return nil, err
+		}
+		name, err := s.GetDbName()
+		if err != nil {
+			return nil, err
+		}
+		user, err := s.GetDbUser()
+		if err != nil {
+			return nil, err
+		}
+		password, err := s.GetDbPassword()
+		if err != nil {
+			return nil, err
+		}
+		sslMode, err := s.GetDbSSLMode()
+		if err != nil {
+			return nil, err
+		}
+		timeZone, err := s.GetDbTimeZone()
+		if err != nil {
+			return nil, err
+		}
+
+		dbConfig.Postgres = config.PostgresConfig{
+			Host:     host,
+			Port:     port,
+			Database: name,
+			Username: user,
+			Password: password,
+			SSLMode:  sslMode,
+			TimeZone: timeZone,
+		}
+	} else {
+		// For SQLite, use default path
+		dbConfig.SQLite = config.SQLiteConfig{
+			Path: config.GetDefaultDatabaseConfig().SQLite.Path,
+		}
+	}
+
+	return dbConfig, nil
 }
 
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
