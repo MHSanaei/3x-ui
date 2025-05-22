@@ -588,6 +588,10 @@
 "restartSuccess" = "✅ العملية نجحت!"
 "restartFailed" = "❗ حصل خطأ في العملية.\r\n\r\n<code>Error: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core مش شغال."
+"startDesc" = "عرض القائمة الرئيسية"
+"helpDesc" = "مساعدة البوت"
+"statusDesc" = "التحقق من حالة البوت"
+"idDesc" = "عرض معرف Telegram الخاص بك"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 حمل المعالج {{ .Percent }}% عدى الحد المسموح ({{ .Threshold }}%)"
