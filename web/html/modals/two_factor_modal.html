@@ -15,8 +15,8 @@
         <p>{{ i18n "pages.settings.security.twoFactorModalSecondStep" }}</p>
         <a-input v-model.trim="twoFactorModal.enteredCode" :style="{ width: '100%' }"></a-input>
     </template>
-    <template v-if="twoFactorModal.type === 'remove'">
-        <p>{{ i18n "pages.settings.security.twoFactorModalRemoveStep" }}</p>
+    <template v-if="twoFactorModal.type === 'confirm'">
+        <p>[[ twoFactorModal.description ]]</p>
         <a-input v-model.trim="twoFactorModal.enteredCode" :style="{ width: '100%' }"></a-input>
     </template>
     <template slot="footer">
@@ -32,6 +32,7 @@
 <script>
     const twoFactorModal = {
         title: '',
+        description: '',
         fileName: '',
         token: '',
         enteredCode: '',
@@ -45,17 +46,6 @@
                 ObjectUtil.execute(twoFactorModal.confirm, true)
 
                 twoFactorModal.close()
-
-                switch (twoFactorModal.type) {
-                    case 'set':
-                        Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalSetSuccess" }}')
-                        break;
-                    case 'remove':
-                        Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalDeleteSuccess" }}')
-                        break;
-                    default:
-                        break;
-                }
             } else {
                 Vue.prototype.$message['error']('{{ i18n "pages.settings.security.twoFactorModalError" }}')
             }
@@ -67,11 +57,13 @@
         },
         show: function ({
             title = '',
+            description = '',
             token = '',
             type = 'set',
             confirm = (success) => { }
         }) {
             this.title = title;
+            this.description = description;
             this.token = token;
             this.visible = true;
             this.confirm = confirm;
