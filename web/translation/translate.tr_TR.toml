@@ -590,6 +590,10 @@
 "restartSuccess" = "✅ İşlem başarılı!"
 "restartFailed" = "❗ İşlem hatası.\r\n\r\n<code>Hata: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core çalışmıyor."
+"startDesc" = "Ana menüyü göster"
+"helpDesc" = "Bot yardımı"
+"statusDesc" = "Bot durumunu kontrol et"
+"idDesc" = "Telegram ID'nizi göster"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Yükü {{ .Percent }}% eşiği {{ .Threshold }}%'yi aşıyor"

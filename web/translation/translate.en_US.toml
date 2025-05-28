@@ -339,7 +339,7 @@
 "subEnable" = "Enable Subscription Service"
 "subEnableDesc" = "Enables the subscription service."
 "subTitle" = "Subscription Title"
- "subTitleDesc" = "Title shown in VPN client"
+"subTitleDesc" = "Title shown in VPN client"
 "subListen" = "Listen IP"
 "subListenDesc" = "The IP address for the subscription service. (leave blank to listen on all IPs)"
 "subPort" = "Listen Port"
@@ -587,6 +587,10 @@
 "restartSuccess" = "✅ Operation successful!"
 "restartFailed" = "❗ Error in operation.\r\n\r\n<code>Error: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core is not running."
+"startDesc" = "Show the main menu"
+"helpDesc" = "Bot help"
+"statusDesc" = "Check bot status"
+"idDesc" = "Show your Telegram ID"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 CPU Load {{ .Percent }}% exceeds the threshold of {{ .Threshold }}%"
