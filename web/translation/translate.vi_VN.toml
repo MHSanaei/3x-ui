@@ -590,6 +590,10 @@
 "restartSuccess" = "✅ Hoạt động thành công!"
 "restartFailed" = "❗ Lỗi trong quá trình hoạt động.\r\n\r\n<code>Lỗi: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core không chạy."
+"startDesc" = "Hiển thị menu chính"
+"helpDesc" = "Trợ giúp bot"
+"statusDesc" = "Kiểm tra trạng thái bot"
+"idDesc" = "Hiển thị ID Telegram của bạn"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Sử dụng CPU {{ .Percent }}% vượt quá ngưỡng {{ .Threshold }}%"
