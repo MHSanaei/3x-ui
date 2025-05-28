@@ -21,6 +21,90 @@ type InboundService struct {
 	xrayApi xray.XrayAPI
 }
 
+func (s *InboundService) UpdateClientActiveIPsInDB(inboundID int, clientIdentifier string, newActiveIPsJSON string) error {
+	db := database.GetDB()
+	var inbound model.Inbound
+	err := db.First(&inbound, inboundID).Error
+	if err != nil {
+		return fmt.Errorf("inbound with ID %d not found: %w", inboundID, err)
+	}
+
+	if inbound.Settings == "" {
+		return fmt.Errorf("inbound settings for ID %d are empty", inboundID)
+	}
+
+	settingsMap := make(map[string]interface{})
+	err = json.Unmarshal([]byte(inbound.Settings), &settingsMap)
+	if err != nil {
+		return fmt.Errorf("error unmarshalling settings for inbound ID %d: %w", inboundID, err)
+	}
+
+	clientsRaw, ok := settingsMap["clients"]
+	if !ok {
+		return fmt.Errorf("no 'clients' field in settings for inbound ID %d", inboundID)
+	}
+
+	clients, ok := clientsRaw.([]interface{})
+	if !ok {
+		return fmt.Errorf("'clients' field is not an array in settings for inbound ID %d", inboundID)
+	}
+
+	clientFound := false
+	for i, clientInterface := range clients {
+		clientMap, ok := clientInterface.(map[string]interface{})
+		if !ok {
+			logger.Warningf("Client entry is not a map for inbound ID %d, index %d", inboundID, i)
+			continue
+		}
+
+		// Try to match by email first
+		clientEmail, emailOk := clientMap["email"].(string)
+		if emailOk && clientEmail == clientIdentifier {
+			clientMap["activeIPs"] = newActiveIPsJSON
+			clients[i] = clientMap
+			clientFound = true
+			break
+		}
+
+		// If not matched by email, try to match by ID (for vmess/vless etc.)
+		clientID, idOk := clientMap["id"].(string)
+		if idOk && clientID == clientIdentifier {
+			clientMap["activeIPs"] = newActiveIPsJSON
+			clients[i] = clientMap
+			clientFound = true
+			break
+		}
+		
+		// If not matched by email or ID, try to match by Password (for trojan etc.)
+		clientPassword, passwordOk := clientMap["password"].(string)
+		if passwordOk && clientPassword == clientIdentifier {
+			clientMap["activeIPs"] = newActiveIPsJSON
+			clients[i] = clientMap
+			clientFound = true
+			break
+		}
+	}
+
+	if !clientFound {
+		return fmt.Errorf("client with identifier '%s' not found in inbound ID %d", clientIdentifier, inboundID)
+	}
+
+	settingsMap["clients"] = clients
+	updatedSettingsBytes, err := json.Marshal(settingsMap)
+	if err != nil {
+		return fmt.Errorf("error marshalling updated settings for inbound ID %d: %w", inboundID, err)
+	}
+
+	inbound.Settings = string(updatedSettingsBytes)
+	err = db.Save(&inbound).Error
+	if err != nil {
+		return fmt.Errorf("error saving updated inbound settings for ID %d: %w", inboundID, err)
+	}
+
+	logger.Infof("Successfully updated ActiveIPs for client '%s' in inbound ID %d", clientIdentifier, inboundID)
+	return nil
+}
+
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
