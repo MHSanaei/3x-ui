@@ -32,7 +32,7 @@
 ## 安装 & 升级
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.6.0/install.sh)
+bash <(curl -Ls https://github.com/itboyhan1/3x-ui-xdsb/blob/main/install.sh)
 ```
 
 ## 安装旧版本 (我们不建议)
@@ -40,7 +40,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.6.
 要安装您想要的版本，请使用以下安装命令。例如，ver `v1.7.9`:
 
 ```
-VERSION=v1.7.9 && bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/$VERSION/install.sh") $VERSION
+VERSION=v1.7.9 && bash <(curl -Ls "https://github.com/itboyhan1/3x-ui-xdsb/blob/main/install.sh") $VERSION
 ```
 
 ### SSL证书
