@@ -7,17 +7,37 @@
   </picture>
 </p>
 
-**Un Panel Web Avanzado • Construido sobre Xray Core**
+[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg?style=for-the-badge)](https://github.com/MHSanaei/3x-ui/releases)
+[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg?style=for-the-badge)](#)
+[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg?style=for-the-badge)](#)
+[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg?style=for-the-badge)](#)
+[![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true&style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
-[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
-[![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+**3X-UI** — panel de control avanzado basado en web de código abierto diseñado para gestionar el servidor Xray-core. Ofrece una interfaz fácil de usar para configurar y monitorear varios protocolos VPN y proxy.
 
-> **Descargo de responsabilidad:** Este proyecto es solo para aprendizaje personal y comunicación, por favor no lo uses con fines ilegales, por favor no lo uses en un entorno de producción
+> [!IMPORTANT]
+> Este proyecto es solo para uso personal y comunicación, por favor no lo use para fines ilegales, por favor no lo use en un entorno de producción.
 
-**Si este proyecto te es útil, podrías considerar darle una**:star2:
+Como una versión mejorada del proyecto X-UI original, 3X-UI proporciona mayor estabilidad, soporte más amplio de protocolos y características adicionales.
+
+## Inicio Rápido
+
+```
+$ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+```
+
+## Un Agradecimiento Especial a
+
+- [alireza0](https://github.com/alireza0/)
+
+## Reconocimientos
+
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Licencia: **GPL-3.0**): _Reglas de enrutamiento mejoradas para v2ray/xray y v2ray/xray-clients con dominios iraníes incorporados y un enfoque en seguridad y bloqueo de anuncios._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (Licencia: **GPL-3.0**): _Este repositorio contiene reglas de enrutamiento V2Ray actualizadas automáticamente basadas en datos de dominios y direcciones bloqueadas en Rusia._
+
+## Apoyar el Proyecto
+
+**Si este proyecto te es útil, puedes darle una**:star2:
 
 <p align="left">
   <a href="https://buymeacoffee.com/mhsanaei" target="_blank">
@@ -29,21 +49,6 @@
 - MATIC (polygon): `0x41C9548675D044c6Bfb425786C765bc37427256A`
 - LTC (Litecoin): `ltc1q2ach7x6d2zq0n4l0t4zl7d7xe2s6fs7a3vspwv`
 
-## Instalar y Actualizar
+## Estrellas a lo Largo del Tiempo
 
-```
-bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.6.0/install.sh)
-```
-
-## Un agradecimiento especial a
-
-- [alireza0](https://github.com/alireza0/)
-
-## Reconocimientos
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Licencia: **GPL-3.0**): _Reglas de enrutamiento mejoradas de v2ray/xray y v2ray/xray-clients con dominios iraníes integrados y un enfoque en seguridad y bloqueo de anuncios._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _Este repositorio contiene reglas de enrutamiento de V2Ray actualizadas automáticamente basadas en datos de dominios y direcciones bloqueados en Rusia._
-
-## Estrellas a lo largo del tiempo
-
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 

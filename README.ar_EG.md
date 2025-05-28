@@ -7,17 +7,37 @@
   </picture>
 </p>
 
-**لوحة تحكم ويب متقدمة • مبنية على Xray Core**
+[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg?style=for-the-badge)](https://github.com/MHSanaei/3x-ui/releases)
+[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg?style=for-the-badge)](#)
+[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg?style=for-the-badge)](#)
+[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg?style=for-the-badge)](#)
+[![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true&style=for-the-badge)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 
-[![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg)](https://github.com/MHSanaei/3x-ui/releases)
-[![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg)](#)
-[![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg)](#)
-[![Downloads](https://img.shields.io/github/downloads/mhsanaei/3x-ui/total.svg)](#)
-[![License](https://img.shields.io/badge/license-GPL%20V3-blue.svg?longCache=true)](https://www.gnu.org/licenses/gpl-3.0.en.html)
+**3X-UI** — لوحة تحكم متقدمة مفتوحة المصدر تعتمد على الويب مصممة لإدارة خادم Xray-core. توفر واجهة سهلة الاستخدام لتكوين ومراقبة بروتوكولات VPN والوكيل المختلفة.
 
-> **تنبيه:** المشروع ده للتعلم الشخصي والتواصل فقط. رجاءً استخدمه بشكل قانوني.
+> [!IMPORTANT]
+> هذا المشروع مخصص للاستخدام الشخصي والاتصال فقط، يرجى عدم استخدامه لأغراض غير قانونية، يرجى عدم استخدامه في بيئة الإنتاج.
 
-**لو المشروع عجبك وساعدك، ممكن تدعمنا بعمل** :star2:
+كمشروع محسن من مشروع X-UI الأصلي، يوفر 3X-UI استقرارًا محسنًا ودعمًا أوسع للبروتوكولات وميزات إضافية.
+
+## البدء السريع
+
+```
+$ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+```
+
+## شكر خاص إلى
+
+- [alireza0](https://github.com/alireza0/)
+
+## الاعتراف
+
+- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (الترخيص: **GPL-3.0**): _قواعد توجيه v2ray/xray و v2ray/xray-clients المحسنة مع النطاقات الإيرانية المدمجة وتركيز على الأمان وحظر الإعلانات._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (الترخيص: **GPL-3.0**): _يحتوي هذا المستودع على قواعد توجيه V2Ray محدثة تلقائيًا بناءً على بيانات النطاقات والعناوين المحظورة في روسيا._
+
+## دعم المشروع
+
+**إذا كان هذا المشروع مفيدًا لك، فقد ترغب في إعطائه**:star2:
 
 <p align="left">
   <a href="https://buymeacoffee.com/mhsanaei" target="_blank">
@@ -29,22 +49,6 @@
 - MATIC (polygon): `0x41C9548675D044c6Bfb425786C765bc37427256A`
 - LTC (Litecoin): `ltc1q2ach7x6d2zq0n4l0t4zl7d7xe2s6fs7a3vspwv`
 
-## التثبيت والتحديث
+## النجوم عبر الزمن
 
-لتثبيت المشروع أو تحديثه، نفذ الأمر ده:
-```bash
-bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/refs/tags/v2.6.0/install.sh)
-```
-
-## شكر خاص لـ
-
-- [alireza0](https://github.com/alireza0/)
-
-## التحيات
-
-- [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (الرخصة: **GPL-3.0**): _قواعد محدثة لتوجيهات v2ray/xray مع تضمين دومينات إيرانية وتركيز على الأمان وحجب الإعلانات._
-- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (الرخصة: **GPL-3.0**): _المستودع ده بيحتوي على قواعد توجيه v2ray/xray محدثة تلقائيًا بناءً على بيانات الدومينات والعناوين المحظورة في روسيا._
-
-## عدد النجوم مع مرور الوقت
-
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 
