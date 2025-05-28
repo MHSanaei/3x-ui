@@ -225,6 +225,8 @@
 "exportInbound" = "导出入站规则"
 "import"="导入"
 "importInbound" = "导入入站规则"
+"maxDevices" = "最大设备数"
+"maxDevicesDesc" = "允许同时连接的最大设备数量（0 = 无限制）"
 
 [pages.client]
 "add" = "添加客户端"
