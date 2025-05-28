@@ -104,4 +104,6 @@ type Client struct {
 	SubID      string `json:"subId" form:"subId"`
 	Comment    string `json:"comment" form:"comment"`
 	Reset      int    `json:"reset" form:"reset"`
+	MaxDevices int    `json:"maxDevices" form:"maxDevices" gorm:"default:0"` // 新增：最大设备数量限制, 0表示不限制
+	ActiveIPs  string `json:"activeIPs" form:"activeIPs" gorm:"type:text"`   // 新增：当前活动的IP列表 (JSON字符串)
 }
