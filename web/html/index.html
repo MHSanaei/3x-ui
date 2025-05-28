@@ -226,8 +226,21 @@
                 </a-col>
                 <a-col :sm="24" :lg="12">
                   <a-card title='3X-UI' hoverable>
-                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                    <a rel="noopener" href="https://t.me/XrayUI" target="_blank"><a-tag color="green">@XrayUI</a-tag></a>
+                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank">
+                      <a-tag color="green">
+                        <span>v{{ .cur_ver }}</span>
+                      </a-tag>
+                    </a>
+                    <a rel="noopener" href="https://t.me/XrayUI" target="_blank">
+                      <a-tag color="green">
+                        <span>@XrayUI</span>
+                      </a-tag>
+                    </a>
+                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank">
+                      <a-tag>
+                        <span>{{ i18n "pages.index.documentation" }}</span>
+                      </a-tag>
+                    </a>
                   </a-card>
                 </a-col>
                 <a-col :sm="24" :lg="12">
@@ -303,7 +316,7 @@
                 <a-col :sm="24" :lg="12">
                   <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
                     <template #extra>
-                      <a-tooltip>
+                      <a-tooltip :placement="isMobile ? 'topRight' : 'top'">
                         <template #title>
                           {{ i18n "pages.index.toggleIpVisibility" }}
                         </template>
