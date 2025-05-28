@@ -13,6 +13,7 @@ import (
 
 	"slices"
 	"x-ui/database"
+	"x-ui/web/service"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/xray"
@@ -146,6 +147,7 @@ func (j *CheckClientIpJob) processLogFile() bool {
 
 	shouldCleanLog := false
 	db := database.GetDB()
+	var clientInboundID uint
 
 	for email, uniqueIps := range inboundClientIps {
 		var clientData model.Client
