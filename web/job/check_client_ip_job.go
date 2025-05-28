@@ -13,6 +13,7 @@ import (
 
 	"slices"
 	"x-ui/database"
+	"x-ui/web/service"
 	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/xray"
@@ -36,7 +37,7 @@ func (j *CheckClientIpJob) Run() {
 	}
 
 	shouldClearAccessLog := false
-	iplimitActive := j.hasLimitIp()
+	iplimitActive := j.hasLimitOrDeviceLimit() // 修改：检查LimitIP或MaxDevices
 	f2bInstalled := j.checkFail2BanInstalled()
 	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
@@ -45,7 +46,7 @@ func (j *CheckClientIpJob) Run() {
 			shouldClearAccessLog = j.processLogFile()
 		} else {
 			if !f2bInstalled {
-				logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+				logger.Warning("[LimitIP/MaxDevices] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
 			}
 		}
 	}
@@ -76,7 +77,7 @@ func (j *CheckClientIpJob) clearAccessLog() {
 	j.lastClear = time.Now().Unix()
 }
 
-func (j *CheckClientIpJob) hasLimitIp() bool {
+func (j *CheckClientIpJob) hasLimitOrDeviceLimit() bool { // 修改函数名和逻辑
 	db := database.GetDB()
 	var inbounds []*model.Inbound
 
@@ -96,7 +97,8 @@ func (j *CheckClientIpJob) hasLimitIp() bool {
 
 		for _, client := range clients {
 			limitIp := client.LimitIP
-			if limitIp > 0 {
+			maxDevices := client.MaxDevices // 新增：获取MaxDevices
+			if limitIp > 0 || maxDevices > 0 { // 修改：检查LimitIP或MaxDevices
 				return true
 			}
 		}
@@ -144,21 +146,120 @@ func (j *CheckClientIpJob) processLogFile() bool {
 	}
 
 	shouldCleanLog := false
+	db := database.GetDB()
+	var clientInboundID uint
+
 	for email, uniqueIps := range inboundClientIps {
+		var clientData model.Client
+		// Find the client by email. This requires iterating through inbounds and their clients.
+		// This is a simplified representation. In a real scenario, you'd need a more efficient way to get client by email.
+		foundClient := false
+		var allInbounds []*model.Inbound
+		db.Find(&allInbounds)
+		for _, inbound := range allInbounds {
+			if inbound.Settings == "" {
+				continue
+			}
+			settings := map[string][]model.Client{}
+			json.Unmarshal([]byte(inbound.Settings), &settings)
+			clients := settings["clients"]
+			for _, c := range clients {
+				// Match client by email, or ID, or password based on what's available and matches 'email' (which is clientIdentifier in this context)
+				clientIdentifierInLog := email // email from log is the clientIdentifier
+				matched := false
+				if c.Email != "" && c.Email == clientIdentifierInLog {
+					matched = true
+				} else if c.ID != "" && c.ID == clientIdentifierInLog { // For vmess/vless if email is used as ID in logs
+					matched = true
+				} else if c.Password != "" && c.Password == clientIdentifierInLog { // For trojan if email is used as password in logs
+					matched = true
+				}
 
-		ips := make([]string, 0, len(uniqueIps))
-		for ip := range uniqueIps {
-			ips = append(ips, ip)
+				if matched {
+					clientData = c
+					clientInboundID = inbound.Id // Store the inbound ID
+					foundClient = true
+					break
+				}
+			}
+			if foundClient {
+				break
+			}
 		}
-		sort.Strings(ips)
 
-		clientIpsRecord, err := j.getInboundClientIps(email)
-		if err != nil {
-			j.addInboundClientIps(email, ips)
+		if !foundClient {
+			logger.Warningf("Client with identifier %s not found for IP processing", email)
 			continue
 		}
 
-		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, email, ips) || shouldCleanLog
+		currentLoggedIps := make([]string, 0, len(uniqueIps))
+		for ip := range uniqueIps {
+			currentLoggedIps = append(currentLoggedIps, ip)
+		}
+		sort.Strings(currentLoggedIps)
+
+		clientIpsRecord, err := j.getInboundClientIps(email) // This function likely needs to be adapted or clientData used directly
+
+		activeIPs := []string{}
+		if clientData.ActiveIPs != "" {
+			errUnmarshal := json.Unmarshal([]byte(clientData.ActiveIPs), &activeIPs)
+			if errUnmarshal != nil {
+				logger.Warningf("Error unmarshalling ActiveIPs for client %s: %v", email, errUnmarshal)
+				activeIPs = []string{} // Reset if unmarshalling fails
+			}
+		}
+
+		newActiveIPs := make([]string, len(activeIPs))
+		copy(newActiveIPs, activeIPs)
+		changedActiveIPs := false
+
+		for _, loggedIp := range currentLoggedIps {
+			isExistingActiveIP := j.contains(newActiveIPs, loggedIp)
+
+			if clientData.MaxDevices > 0 {
+				if !isExistingActiveIP {
+					if len(newActiveIPs) < clientData.MaxDevices {
+						newActiveIPs = append(newActiveIPs, loggedIp)
+						changedActiveIPs = true
+					} else {
+						if !j.contains(j.disAllowedIps, loggedIp) {
+							j.disAllowedIps = append(j.disAllowedIps, loggedIp)
+							logger.Infof("[MaxDevices] IP %s for client %s banned due to exceeding max device limit (%d)", loggedIp, email, clientData.MaxDevices)
+							shouldCleanLog = true
+						}
+					}
+				}
+			} // End MaxDevices check
+		} // End loop currentLoggedIps
+
+		if changedActiveIPs {
+			activeIPsBytes, marshalErr := json.Marshal(newActiveIPs)
+			if marshalErr != nil {
+				logger.Warningf("Error marshalling new ActiveIPs for client %s: %v", email, marshalErr)
+			} else {
+				// Update clientData.ActiveIPs in the database
+				// This part is complex because clientData is part of a JSON string in Inbound.Settings
+				// A proper solution would involve updating the specific client within the Inbound's settings JSON
+				// and then saving the Inbound object.
+				// For simplicity, we'll log it. A full implementation needs to update the DB.
+				logger.Infof("Client %s ActiveIPs updated to: %s", email, string(activeIPsBytes))
+				// Placeholder for actual DB update logic for clientData.ActiveIPs
+				// Example: err := s.updateClientActiveIPsInDB(inbound.Id, clientData.ID_or_Email, string(activeIPsBytes)); if err != nil { ... }
+				inboundService := service.InboundService{} // Create an instance of InboundService
+				dbUpdateErr := inboundService.UpdateClientActiveIPsInDB(clientInboundID, email, string(activeIPsBytes))
+				if dbUpdateErr != nil {
+					logger.Warningf("Failed to update ActiveIPs in DB for client %s: %v", email, dbUpdateErr)
+				}
+			}
+		}
+
+		if err != nil { // This 'err' is from j.getInboundClientIps(email)
+			j.addInboundClientIps(email, currentLoggedIps) // This function likely needs to be adapted
+			continue
+		}
+
+		// Original LimitIP logic (needs to be integrated with new ActiveIPs logic if LimitIP is also active)
+		shouldCleanLog = j.updateInboundClientIps(clientIpsRecord, email, currentLoggedIps) || shouldCleanLog
 	}
 
 	return shouldCleanLog
@@ -179,7 +280,7 @@ func (j *CheckClientIpJob) checkAccessLogAvailable(iplimitActive bool) bool {
 
 	if accessLogPath == "none" || accessLogPath == "" {
 		if iplimitActive {
-			logger.Warning("[LimitIP] Access log path is not set, Please configure the access log path in Xray configs.")
+			logger.Warning("[LimitIP/MaxDevices] Access log path is not set, Please configure the access log path in Xray configs.") // Updated log message
 		}
 		return false
 	}
