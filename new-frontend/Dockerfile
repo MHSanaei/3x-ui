@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY package.json yarn.lock ./
 RUN corepack enable
 RUN yarn install --frozen-lockfile --network-timeout 600000
 
@@ -23,7 +23,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/yarn.lock ./yarn.lock
 
 RUN corepack enable
-RUN RUN npm install
+RUN yarn install --frozen-lockfile --network-timeout 600000
 
 EXPOSE 3000
 
