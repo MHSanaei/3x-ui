@@ -5,11 +5,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install dependencies
-# Copy package.json and yarn.lock (or package-lock.json if using npm)
-COPY package.json yarn.lock ./
+# Copy package.json and package-lock.json ./ (or package-lock.json if using npm)
+COPY package.json package-lock.json ./
 # Ensure corepack is enabled to use yarn specified in package.json
 RUN corepack enable
-RUN yarn install --frozen-lockfile --network-timeout 600000
+RUN npm install 
 
 # Copy the rest of the application source code
 COPY . .
@@ -20,7 +20,7 @@ COPY . .
 # For flexibility, runtime ENV var is often preferred.
 # ARG NEXT_PUBLIC_API_BASE_URL
 # ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
-RUN yarn build
+RUN npm run build
 
 # Stage 2: Production environment
 FROM node:20-alpine AS runner
@@ -47,11 +47,10 @@ COPY --from=builder /app/yarn.lock ./
 # Install production dependencies only
 # Ensure corepack is enabled
 RUN corepack enable
-RUN yarn install --production --frozen-lockfile --network-timeout 600000
-
+RUN npm install
 # Expose port 3000 (default for Next.js)
 EXPOSE 3000
 
 # The "start" script in package.json runs "next start"
 # This will serve the application from the .next folder.
-CMD ["yarn", "start"]
+CMD ["npm", "start"]
