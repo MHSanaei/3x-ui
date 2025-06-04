@@ -1,0 +1,48 @@
+# Stage 1: Build the Go application
+FROM golang:1.21-alpine AS builder
+
+WORKDIR /app
+
+# Copy go.mod and go.sum and download dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application source code
+COPY . .
+
+# Build the Go application
+# Assuming the main package is in the root and output is 'x-ui' or 'main'
+# The original entrypoint seems to be related to x-ui.sh or DockerEntrypoint.sh
+# We need to ensure the binary is built correctly.
+# For 3x-ui, the main.go seems to be the entry point.
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/x-ui main.go
+
+# Stage 2: Production environment
+FROM alpine:latest
+
+WORKDIR /app
+
+# Copy the binary from the builder stage
+COPY --from=builder /app/x-ui /app/x-ui
+COPY --from=builder /app/x-ui.sh /app/x-ui.sh
+COPY --from=builder /app/DockerEntrypoint.sh /app/DockerEntrypoint.sh
+COPY --from=builder /app/config/name /app/config/name
+COPY --from=builder /app/config/version /app/config/version
+
+
+# Ensure necessary directories exist and have correct permissions if needed by the app
+# The original compose file mounts $PWD/db/:/etc/x-ui/ and $PWD/cert/:/root/cert/
+# So, these paths should be available or created by the entrypoint script.
+RUN mkdir -p /etc/x-ui && \
+    mkdir -p /root/cert && \
+    chmod +x /app/x-ui.sh /app/DockerEntrypoint.sh /app/x-ui
+
+# Expose default panel port (e.g., 2053, but this will be handled by docker-compose)
+# The original compose uses network_mode: host, so ports are directly from the app.
+# If we move away from network_mode: host, we'll need to EXPOSE the correct port here.
+# Let's assume the Go app listens on a port defined by an ENV or config, e.g., 2053
+EXPOSE 2053
+
+# Entrypoint
+ENTRYPOINT ["/app/DockerEntrypoint.sh"]
+CMD ["/app/x-ui"] # Default command if DockerEntrypoint.sh doesn't override

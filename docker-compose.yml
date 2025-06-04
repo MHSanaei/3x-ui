@@ -1,14 +1,42 @@
+version: '3.8'
+
 services:
-  3x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
-    container_name: 3x-ui
-    hostname: yourhostname
-    volumes:
-      - $PWD/db/:/etc/x-ui/
-      - $PWD/cert/:/root/cert/
-    environment:
-      XRAY_VMESS_AEAD_FORCED: "false"
-      XUI_ENABLE_FAIL2BAN: "true"
-    tty: true
-    network_mode: host
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: 3x-ui-backend
     restart: unless-stopped
+    volumes:
+      - ./db/:/etc/x-ui/
+      - ./cert/:/root/cert/
+    ports:
+      - "2053:2053"
+    environment:
+      - XRAY_VMESS_AEAD_FORCED=false
+      - XUI_ENABLE_FAIL2BAN=true
+      # - XUI_PORT=2053 # Example if backend reads port from ENV
+
+  frontend:
+    build:
+      context: ./new-frontend
+      dockerfile: Dockerfile
+    container_name: 3x-ui-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_BASE_URL=http://backend:2053
+    depends_on:
+      - backend
+    # networks: # Uncomment if using a custom network defined below
+    #  - xui-net
+
+# volumes:
+  # db_data:
+  # cert_data:
+
+# networks:
+#   xui-net:
+#     driver: bridge

@@ -3,19 +3,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import InboundForm from '@/components/inbounds/InboundForm';
 import { Inbound } from '@/types/inbound';
 import { post } from '@/services/api';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Removed useParams, id comes from prop
 
-const EditInboundPage: React.FC = () => {
+interface EditInboundClientComponentProps {
+  id: string; // Passed from the server component page.tsx
+}
+
+const EditInboundClientComponent: React.FC<EditInboundClientComponentProps> = ({ id }) => {
   const [pageLoading, setPageLoading] = useState(true);
   const [formProcessing, setFormProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialInboundData, setInitialInboundData] = useState<Inbound | undefined>(undefined);
   const router = useRouter();
-  const params = useParams();
-  const id = params.id as string;
+  // const params = useParams(); // Not needed, id comes from props
+  // const id = params.id as string; // Not needed
 
   const fetchInboundData = useCallback(async () => {
-    if (!id) {
+    if (!id) { // id prop should always be present
         setError("Inbound ID is missing.");
         setPageLoading(false);
         return;
@@ -90,4 +94,4 @@ const EditInboundPage: React.FC = () => {
     </div>
   );
 };
-export default EditInboundPage;
+export default EditInboundClientComponent;

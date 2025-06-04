@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Removed useParams, id comes from prop
 import { useAuth } from '@/context/AuthContext';
 import { post } from '@/services/api';
 import { Inbound, ClientSetting, Protocol } from '@/types/inbound';
@@ -26,11 +26,15 @@ interface DisplayClient extends ClientSetting {
 
 enum ClientAction { NONE = '', DELETING = 'deleting', RESETTING_TRAFFIC = 'resetting_traffic' }
 
-const ManageClientsPage: React.FC = () => {
-  const params = useParams();
+interface ManageClientsClientComponentProps {
+  inboundIdProp: number; // Renamed to avoid conflict with 'id' from useParams if it were used
+}
+
+const ManageClientsClientComponent: React.FC<ManageClientsClientComponentProps> = ({ inboundIdProp }) => {
   const router = useRouter();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const inboundId = parseInt(params.id as string, 10);
+
+  const inboundId = inboundIdProp; // Use the id from props
 
   const [inbound, setInbound] = useState<Inbound | null>(null);
   const [displayClients, setDisplayClients] = useState<DisplayClient[]>([]);
@@ -210,7 +214,7 @@ const ManageClientsPage: React.FC = () => {
       {inbound?.protocol === 'shadowsocks' &&
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
             For Shadowsocks, client configuration (method and password) is part of the main inbound settings.
-            Use the &apos;QR&apos; button below to get the share link for the inbound.
+            The QR code / subscription link below uses these global settings.
         </p>
       }
 
@@ -231,7 +235,7 @@ const ManageClientsPage: React.FC = () => {
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               { (inbound?.protocol === 'shadowsocks') ? (
                 <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{inbound.remark || 'Shadowsocks Inbound'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{inbound.remark || 'Shadowsocks Settings'}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{formatBytes(inbound.up || 0)} / {formatBytes(inbound.down || 0)}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{inbound.total > 0 ? formatBytes(inbound.total) : 'Unlimited'}</td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{inbound.expiryTime > 0 ? new Date(inbound.expiryTime).toLocaleDateString() : 'Never'}</td>
@@ -292,4 +296,4 @@ const ManageClientsPage: React.FC = () => {
     </div>
   );
 };
-export default ManageClientsPage;
+export default ManageClientsClientComponent;
