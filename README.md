@@ -25,9 +25,6 @@
   </a>
 </p>
 
-- USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
-- MATIC (polygon): `0x41C9548675D044c6Bfb425786C765bc37427256A`
-- LTC (Litecoin): `ltc1q2ach7x6d2zq0n4l0t4zl7d7xe2s6fs7a3vspwv`
 
 ## ✨ New Frontend!
 
@@ -50,7 +47,7 @@ This new version is designed to be run using Docker and Docker Compose for ease 
 **Quick Install Command:**
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/santiyagoburcart/N-ui//ules_wip_13152731386518941922/install.sh
 ```
 *(Note: The URL should point to the new `install.sh` in the `main` branch or a specific release tag once updated).*
 
