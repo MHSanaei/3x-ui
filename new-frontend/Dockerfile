@@ -23,7 +23,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/yarn.lock ./yarn.lock
 
 RUN corepack enable
-RUN yarn install --production --frozen-lockfile --network-timeout 600000
+RUN RUN npm install
 
 EXPOSE 3000
 
