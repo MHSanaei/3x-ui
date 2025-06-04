@@ -241,7 +241,7 @@ main() {
                 # exit 1 # Or proceed with current branch
             fi
         fi
-        git reset --hard origin/\$(git rev-parse --abbrev-ref HEAD)
+        git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
         git pull
         cd "$INSTALL_DIR"
     else
