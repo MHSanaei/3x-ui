@@ -1,0 +1,267 @@
+"use client";
+
+import React, { useEffect, useState, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
+import { post } from '@/services/api';
+import { Inbound, ClientSetting, Protocol } from '@/types/inbound';
+import { formatBytes } from '@/lib/formatters';
+import ClientFormModal from '@/components/inbounds/ClientFormModal';
+
+// Define button styles locally for consistency
+const btnPrimaryStyles = "px-4 py-2 bg-primary-500 text-white font-semibold rounded-lg shadow-md hover:bg-primary-600 disabled:opacity-50 transition-colors text-sm";
+const btnTextPrimaryStyles = "text-primary-600 hover:text-primary-800 dark:text-primary-400 dark:hover:text-primary-300 disabled:opacity-50";
+const btnTextDangerStyles = "text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-50";
+const btnTextWarningStyles = "text-yellow-500 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300 disabled:opacity-50";
+const btnTextIndigoStyles = "text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 disabled:opacity-50";
+
+
+interface DisplayClient extends ClientSetting {
+  up?: number; down?: number; actualTotal?: number;
+  actualExpiryTime?: number; enableClientStat?: boolean;
+  inboundId?: number; clientTrafficId?: number;
+  originalIndex?: number;
+}
+
+const ManageClientsPage: React.FC = () => {
+  const params = useParams();
+  const router = useRouter();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
+  const inboundId = parseInt(params.id as string, 10);
+
+  const [inbound, setInbound] = useState<Inbound | null>(null);
+  const [displayClients, setDisplayClients] = useState<DisplayClient[]>([]);
+  const [isLoading, setIsLoading] = useState(true); // Page loading state
+  const [pageError, setPageError] = useState<string | null>(null);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingClient, setEditingClient] = useState<DisplayClient | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [modalLoading, setModalLoading] = useState(false); // For add/edit operations
+
+  const [actionClientId, setActionClientId] = useState<string | number | null>(null); // For delete loading state
+  const [actionError, setActionError] = useState<string | null>(null); // For errors during actions like delete
+
+  const fetchInboundAndClients = useCallback(async () => {
+    if (!isAuthenticated || !inboundId) return;
+    setIsLoading(true); setPageError(null); setActionError(null); // Clear action error on refresh
+    try {
+      const response = await post<Inbound[]>('/inbound/list', {});
+      if (response.success && response.data) {
+        const currentInbound = response.data.find(ib => ib.id === inboundId);
+        if (currentInbound) {
+          setInbound(currentInbound);
+          let definedClients: ClientSetting[] = [];
+          if (currentInbound.protocol === 'vmess' || currentInbound.protocol === 'vless' || currentInbound.protocol === 'trojan') {
+            if (currentInbound.settings) {
+              try {
+                const parsedSettings = JSON.parse(currentInbound.settings);
+                if (Array.isArray(parsedSettings.clients)) definedClients = parsedSettings.clients;
+              } catch (e) { console.error("Error parsing settings:", e); setPageError("Could not parse client definitions."); }
+            }
+          }
+          const mergedClients: DisplayClient[] = definedClients.map((dc, index) => {
+            const stat = currentInbound.clientStats?.find(cs => cs.email === dc.email);
+            return {
+                ...dc,
+                up: stat?.up, down: stat?.down, actualTotal: stat?.total,
+                actualExpiryTime: stat?.expiryTime, enableClientStat: stat?.enable,
+                inboundId: stat?.inboundId, clientTrafficId: stat?.id,
+                originalIndex: index
+            };
+          });
+          currentInbound.clientStats?.forEach(stat => {
+            if (!mergedClients.find(mc => mc.email === stat.email)) {
+              mergedClients.push({
+                email: stat.email, up: stat.up, down: stat.down, actualTotal: stat.total,
+                actualExpiryTime: stat.expiryTime, enableClientStat: stat.enable,
+                inboundId: stat.inboundId, clientTrafficId: stat.id,
+              });
+            }
+          });
+          setDisplayClients(mergedClients);
+        } else { setPageError('Inbound not found.'); setInbound(null); setDisplayClients([]); }
+      } else { setPageError(response.message || 'Failed to fetch inbound data.'); setInbound(null); setDisplayClients([]); }
+    } catch (err) { setPageError(err instanceof Error ? err.message : 'An unknown error occurred.'); setInbound(null); setDisplayClients([]); }
+    finally { setIsLoading(false); }
+  }, [isAuthenticated, inboundId]);
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) fetchInboundAndClients();
+    else if (!authLoading && !isAuthenticated) { setIsLoading(false); router.push('/auth/login'); }
+  }, [isAuthenticated, authLoading, fetchInboundAndClients, router]);
+
+  const openAddModal = () => {
+    setEditingClient(null); setModalError(null); setIsModalOpen(true);
+  };
+
+  const openEditModal = (client: DisplayClient) => {
+    setEditingClient(client); setModalError(null); setIsModalOpen(true);
+  };
+
+  const handleClientFormSubmit = async (submittedClientData: ClientSetting) => {
+    if (!inbound) { setModalError("Inbound data not available."); return; }
+    setModalLoading(true); setModalError(null); setActionError(null);
+    try {
+      let currentSettings: { clients?: ClientSetting[], [key:string]: unknown } = {};
+      try { currentSettings = JSON.parse(inbound.settings || '{}'); }
+      catch (e) { console.error("Corrupted inbound settings:", e); currentSettings.clients = []; }
+
+      const updatedClients = [...(currentSettings.clients || [])]; // Changed to const
+      // clientIdentifierForApi and related logic removed
+
+      if (editingClient && editingClient.originalIndex !== undefined) {
+        updatedClients[editingClient.originalIndex] = submittedClientData;
+      } else { // Add mode (or if originalIndex is somehow undefined for an edit - fallback to add)
+        // Check if client with this email already exists to avoid duplicates if adding
+        if (!editingClient && updatedClients.some(c => c.email === submittedClientData.email)) {
+            setModalError(`Client with email ${submittedClientData.email} already exists.`);
+            setModalLoading(false);
+            return;
+        }
+        updatedClients.push(submittedClientData);
+      }
+
+      const updatedSettingsJson = JSON.stringify({ ...currentSettings, clients: updatedClients }, null, 2);
+      const payloadForApi: Partial<Inbound> = { ...inbound, id: inbound.id, settings: updatedSettingsJson };
+
+      // Using a single update endpoint for simplicity
+      const response = await post<Inbound>(`/inbound/update/${inbound.id}`, payloadForApi);
+
+      if (response.success) {
+        setIsModalOpen(false); setEditingClient(null);
+        await fetchInboundAndClients();
+      } else { setModalError(response.message || `Failed to ${editingClient ? 'update' : 'add'} client.`); }
+    } catch (err) { setModalError(err instanceof Error ? err.message : `An error occurred.`); }
+    finally { setModalLoading(false); }
+  };
+
+  const handleDeleteClient = async (clientToDelete: DisplayClient) => {
+    if (!inbound) { setActionError("Inbound data not available for delete operation."); return; }
+
+    // For deletion, we need the client's main identifier (email or id/password based on how backend delClient works)
+    // The backend /inbound/:id/delClient/:clientId expects :clientId to be the user's email.
+    // This was based on existing panel's behavior (delUser function in controllers).
+    const clientIdentifierForApi = clientToDelete.email;
+
+    if (!clientIdentifierForApi) {
+      setActionError("Client email (identifier for API) is missing.");
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete client: ${clientToDelete.email}? This action might also remove associated traffic stats.`)) return;
+
+    setActionClientId(clientIdentifierForApi); // Use email or other unique ID for loading state
+    setActionError(null);
+    try {
+      // API endpoint: /inbound/:id/delClient/:email
+      const response = await post(`/inbound/${inbound.id}/delClient/${clientIdentifierForApi}`, {});
+      if (response.success) {
+        await fetchInboundAndClients(); // Refresh list
+      } else {
+        setActionError(response.message || "Failed to delete client.");
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "An error occurred while deleting client.");
+    } finally {
+      setActionClientId(null);
+    }
+  };
+
+  const getClientIdentifier = (client: DisplayClient, proto: Protocol | undefined): string => proto === 'trojan' ? client.password || 'N/A' : client.id || 'N/A';
+  const getClientIdentifierLabel = (proto: Protocol | undefined): string => proto === 'trojan' ? 'Password' : 'UUID';
+
+  if (isLoading || authLoading) return <div className="p-4 text-center text-gray-700 dark:text-gray-300">Loading client data...</div>;
+  if (pageError && !inbound) return <div className="p-4 text-red-500 dark:text-red-400 text-center">Error: {pageError}</div>;
+  if (!inbound && !isLoading) return <div className="p-4 text-center text-gray-700 dark:text-gray-300">Inbound data not available or not found.</div>;
+
+  const canManageClients = inbound && (inbound.protocol === 'vmess' || inbound.protocol === 'vless' || inbound.protocol === 'trojan');
+
+  return (
+    <div className="text-gray-800 dark:text-gray-200 p-2 md:p-0">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl md:text-3xl font-semibold">
+          Clients for: <span className="text-primary-500 dark:text-primary-400">{inbound?.remark || `#${inbound?.id}`}</span>
+           <span className="text-base ml-2 text-gray-500 dark:text-gray-400">({inbound?.protocol})</span>
+        </h1>
+        {canManageClients && (
+            <button onClick={openAddModal} className={btnPrimaryStyles}>Add New Client</button>
+        )}
+      </div>
+
+      {pageError && inbound && <div className="mb-4 p-3 bg-yellow-100 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200 rounded-md">Page load error: {pageError} (displaying potentially stale data)</div>}
+      {actionError && <div className="mb-4 p-3 bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200 rounded-md">Action Error: {actionError}</div>}
+
+
+      {displayClients.length === 0 && !pageError && <p>No clients configured for this inbound.</p>}
+
+      {displayClients.length > 0 && (
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 shadow-lg rounded-lg">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
+                {canManageClients && <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{getClientIdentifierLabel(inbound?.protocol)}</th>}
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Traffic (Up/Down)</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Quota</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Expiry</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {displayClients.map((client) => {
+                const clientActionId = client.email; // Using email as the unique ID for delete action tracking
+                return (
+                <tr key={client.email || client.id || client.password} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">{client.email}</td>
+                  {canManageClients && <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-xs break-all">{getClientIdentifier(client, inbound?.protocol)}</td>}
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">{formatBytes(client.up || 0)} / {formatBytes(client.down || 0)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    { (client.totalGB !== undefined && client.totalGB > 0) ? formatBytes(client.totalGB * 1024 * 1024 * 1024) : (client.actualTotal !== undefined && client.actualTotal > 0) ? formatBytes(client.actualTotal) : 'Unlimited' }
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                    {client.actualExpiryTime && client.actualExpiryTime > 0 ? new Date(client.actualExpiryTime).toLocaleDateString() : client.expiryTime && client.expiryTime > 0 ? new Date(client.expiryTime).toLocaleDateString() + " (Def)" : 'Never'}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm">
+                    {client.enableClientStat === undefined ? 'N/A' : client.enableClientStat ?
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-700 dark:text-green-100">Enabled</span> :
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800 dark:bg-red-700 dark:text-red-100">Disabled</span>
+                    }
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium space-x-2">
+                    {canManageClients && <button onClick={() => openEditModal(client)} disabled={actionClientId !== null} className={btnTextPrimaryStyles}>Edit</button>}
+                    {canManageClients &&
+                        <button
+                            onClick={() => handleDeleteClient(client)}
+                            disabled={actionClientId === clientActionId || actionClientId === 'all_clients_locked'} // More generic lock for any client action
+                            className={btnTextDangerStyles}
+                        >
+                            {actionClientId === clientActionId ? 'Deleting...' : 'Delete'}
+                        </button>
+                    }
+                    <button className={btnTextWarningStyles} disabled={actionClientId !== null}>Reset Traffic</button>
+                    {canManageClients && (client.id || client.password) && <button className={btnTextIndigoStyles} disabled={actionClientId !== null}>QR</button>}
+                  </td>
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {isModalOpen && inbound && (
+        <ClientFormModal
+          isOpen={isModalOpen}
+          onClose={() => { setIsModalOpen(false); setEditingClient(null); }}
+          onSubmit={handleClientFormSubmit}
+          protocol={inbound.protocol as Protocol}
+          existingClient={editingClient}
+          formError={modalError}
+          isLoading={modalLoading}
+        />
+      )}
+    </div>
+  );
+};
+export default ManageClientsPage;
