@@ -13,7 +13,7 @@ OS_RELEASE_ID=""
 OS_RELEASE_VERSION_ID=""
 INSTALL_DIR="/opt/3x-ui-docker"
 REPO_DIR_NAME="3x-ui-source"
-REPO_URL="https://github.com/MHSanaei/3x-ui.git"
+REPO_URL="https://github.com/santiyagoburcart/N-ui.git"
 
 # --- Utility Functions ---
 detect_os() {
