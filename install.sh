@@ -11,10 +11,9 @@ plain='[0m'
 ARCH=$(uname -m)
 OS_RELEASE_ID=""
 OS_RELEASE_VERSION_ID=""
-INSTALL_DIR="/opt/3x-ui-docker" # Main directory for installation
-REPO_DIR_NAME="3x-ui-source" # Subdirectory for the cloned/copied repository
-REPO_URL="https://github.com/MHSanaei/3x-ui.git" # Default repository URL
-# REPO_BRANCH="main" # Default branch, can be overridden by script argument
+INSTALL_DIR="/opt/3x-ui-docker"
+REPO_DIR_NAME="3x-ui-source"
+REPO_URL="https://github.com/MHSanaei/3x-ui.git"
 
 # --- Utility Functions ---
 detect_os() {
@@ -71,10 +70,8 @@ install_dependencies() {
             ;;
         *)
             print_colored "$yellow" "Unsupported OS for automatic dependency installation: $OS_RELEASE_ID. Please install curl, tar, and git manually."
-            # exit 1 # Or proceed with caution
             ;;
         esac
-        # Verify installation
         if ! check_command curl || ! check_command tar || ! check_command git; then
              print_colored "$red" "Failed to install essential dependencies. Please install them manually and re-run."
              exit 1
@@ -84,198 +81,187 @@ install_dependencies() {
     fi
 }
 
-# --- Function to check and install Docker ---
-fn_install_docker() {
-    echo "Checking for Docker..."
-    if command -v docker &> /dev/null; then
-        echo "Docker is already installed."
-        docker --version
+install_docker() {
+    print_colored "$blue" "Checking for Docker..."
+    if check_command docker; then
+        print_colored "$green" "Docker is already installed: $(docker --version)"
         return 0
     fi
 
-    echo "Docker not found. Attempting to install Docker..."
-    if [[ -x "$(command -v apt-get)" ]]; then
-        echo "Attempting Docker installation for Debian/Ubuntu..."
+    print_colored "$yellow" "Docker not found. Attempting to install Docker..."
+    if [[ "$OS_RELEASE_ID" == "ubuntu" || "$OS_RELEASE_ID" == "debian" || "$OS_RELEASE_ID" == "armbian" ]]; then
+        print_colored "$blue" "Attempting Docker installation for Debian-based system..."
         apt-get update -y
-        apt-get install -y apt-transport-https ca-certificates curl software-properties-common gnupg lsb-release
-        install -m 0755 -d /etc/apt/keyrings # Ensure keyring directory exists
-        curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo "$ID")/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-        chmod a+r /etc/apt/keyrings/docker.gpg
-        echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release && echo "$ID") \
-          $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+        apt-get install -y apt-transport-https ca-certificates software-properties-common gnupg lsb-release
+        mkdir -p /etc/apt/keyrings
+        curl -fsSL https://download.docker.com/linux/${OS_RELEASE_ID}/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+        echo           "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${OS_RELEASE_ID}           $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
         apt-get update -y
-        apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin || {
-            echo -e "${red}Docker installation via apt failed. Trying convenience script...${plain}"
-            curl -fsSL https://get.docker.com -o get-docker.sh
-            sh get-docker.sh || {
-                echo -e "${red}Docker installation failed. Please install Docker manually and re-run this script.${plain}"
-                exit 1
-            }
-            rm get-docker.sh
+        apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+            print_colored "$yellow" "Docker installation via apt failed. Trying convenience script..."
+            curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+            rm -f get-docker.sh
         }
-    elif [[ -x "$(command -v yum)" ]]; then
-        echo "Attempting Docker installation for CentOS/RHEL..."
+    elif [[ "$OS_RELEASE_ID" == "centos" || "$OS_RELEASE_ID" == "almalinux" || "$OS_RELEASE_ID" == "rocky" || "$OS_RELEASE_ID" == "ol" ]]; then
+        print_colored "$blue" "Attempting Docker installation for RHEL-based system..."
         yum install -y yum-utils
         yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-        yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin || {
-            echo -e "${red}Docker installation via yum failed. Trying convenience script...${plain}"
-            curl -fsSL https://get.docker.com -o get-docker.sh
-            sh get-docker.sh || {
-                echo -e "${red}Docker installation failed. Please install Docker manually and re-run this script.${plain}"
-                exit 1
-            }
-            rm get-docker.sh
+        yum install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+            print_colored "$yellow" "Docker installation via yum failed. Trying convenience script..."
+            curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+            rm -f get-docker.sh
         }
-    elif [[ -x "$(command -v dnf)" ]]; then
-        echo "Attempting Docker installation for Fedora..."
-        dnf -y install dnf-plugins-core
-        dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-        dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin || {
-            echo -e "${red}Docker installation via dnf failed. Please install Docker manually and re-run this script.${plain}"
-            exit 1
-        }
+    elif [[ "$OS_RELEASE_ID" == "fedora" ]]; then
+         print_colored "$blue" "Attempting Docker installation for Fedora..."
+         dnf -y install dnf-plugins-core
+         dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+         dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin || {
+            print_colored "$yellow" "Docker installation via dnf failed. Trying convenience script..."
+            curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+            rm -f get-docker.sh
+         }
     else
-        echo -e "${red}Unsupported package manager for Docker auto-installation. Trying convenience script...${plain}"
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh || {
-            echo -e "${red}Docker installation failed. Please install Docker manually and re-run this script.${plain}"
-            exit 1
-        }
-        rm get-docker.sh
+        print_colored "$yellow" "Unsupported OS for automatic Docker installation via package manager. Trying convenience script..."
+        curl -fsSL https://get.docker.com -o get-docker.sh && sh get-docker.sh
+        rm -f get-docker.sh
+    fi
+
+    if ! check_command docker; then
+        print_colored "$red" "Docker installation failed. Please install Docker manually and re-run this script."
+        exit 1
     fi
 
     if ! systemctl is-active --quiet docker; then
-        systemctl start docker || echo -e "${yellow}Attempt to start Docker via systemctl failed. It might already be running or need manual intervention.${plain}"
+      systemctl start docker || print_colored "$yellow" "Failed to start Docker service via systemctl. It might need manual start."
     fi
-    if ! systemctl is-enabled --quiet docker; then
-        systemctl enable docker || echo -e "${yellow}Attempt to enable Docker via systemctl failed.${plain}"
-    fi
-    echo "Docker installed and started."
-    docker --version
+    systemctl enable docker || print_colored "$yellow" "Failed to enable Docker service via systemctl."
+    print_colored "$green" "Docker installed and status confirmed: $(docker --version)"
 }
 
-# --- Function to check and install Docker Compose ---
-fn_install_docker_compose() {
-    echo "Checking for Docker Compose..."
+install_docker_compose_plugin() {
+    print_colored "$blue" "Checking for Docker Compose plugin (v2)..."
     if docker compose version &> /dev/null; then
-        echo "Docker Compose (plugin) is already installed."
-        docker compose version
+        print_colored "$green" "Docker Compose plugin is already installed: $(docker compose version)"
         return 0
     fi
 
-    echo "Docker Compose (plugin) not found."
-    echo "It's usually included with recent Docker Engine installations (as docker-compose-plugin)."
-    echo "If Docker was just installed, it might already be there as part of docker-ce or docker-ce-cli."
-    echo "Verifying if 'docker-compose-plugin' can be installed or is part of 'docker-ce-cli' update..."
+    print_colored "$yellow" "Docker Compose plugin not found."
+    print_colored "$blue" "Attempting to install/update docker-compose-plugin..."
 
-    # Attempt to install or update packages that might include the compose plugin
     if [[ -x "$(command -v apt-get)" ]]; then
-        apt-get install -y docker-compose-plugin docker-ce-cli || echo -e "${yellow}Attempt to install/update docker-compose-plugin via apt failed or already up-to-date.${plain}"
+        apt-get install -y docker-compose-plugin || print_colored "$yellow" "apt: docker-compose-plugin not found or error. Trying legacy."
     elif [[ -x "$(command -v yum)" ]]; then
-        yum install -y docker-compose-plugin docker-ce-cli || echo -e "${yellow}Attempt to install/update docker-compose-plugin via yum failed or already up-to-date.${plain}"
+        yum install -y docker-compose-plugin || print_colored "$yellow" "yum: docker-compose-plugin not found or error. Trying legacy."
     elif [[ -x "$(command -v dnf)" ]]; then
-        dnf install -y docker-compose-plugin docker-ce-cli || echo -e "${yellow}Attempt to install/update docker-compose-plugin via dnf failed or already up-to-date.${plain}"
-    fi
-
-    # Re-check after attempting plugin install
-    if docker compose version &> /dev/null; then
-        echo "Docker Compose (plugin) is now available."
-        docker compose version
-        return 0
-    fi
-
-    echo -e "${yellow}Docker Compose (plugin) still not found. Checking for legacy docker-compose (standalone)...${plain}"
-    if command -v docker-compose &> /dev/null; then
-        echo "Legacy docker-compose found."
-        docker-compose --version
-        echo -e "${yellow}Warning: Legacy docker-compose is deprecated. Consider upgrading your Docker setup to use the Docker Compose plugin (docker compose).${plain}"
-        return 0
-    fi
-
-    echo "Attempting to install legacy docker-compose as a fallback..."
-    LATEST_COMPOSE_VERSION=\$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep 'tag_name' | cut -d\\\" -f4)
-    if [ -z "\$LATEST_COMPOSE_VERSION" ]; then
-        echo -e "${red}Failed to fetch latest docker-compose version. Please install Docker Compose manually.${plain}"
-        exit 1
-    fi
-
-    INSTALL_PATH1="/usr/local/lib/docker/cli-plugins"
-    INSTALL_PATH2="/usr/libexec/docker/cli-plugins"
-    INSTALL_PATH3="/usr/local/bin"
-
-    mkdir -p \$INSTALL_PATH1 && \
-    curl -SL https://github.com/docker/compose/releases/download/\$LATEST_COMPOSE_VERSION/docker-compose-\$(uname -s)-\$(uname -m) -o \$INSTALL_PATH1/docker-compose && \
-    chmod +x \$INSTALL_PATH1/docker-compose || \
-    (mkdir -p \$INSTALL_PATH2 && \
-     curl -SL https://github.com/docker/compose/releases/download/\$LATEST_COMPOSE_VERSION/docker-compose-\$(uname -s)-\$(uname -m) -o \$INSTALL_PATH2/docker-compose && \
-     chmod +x \$INSTALL_PATH2/docker-compose) || \
-    (curl -SL https://github.com/docker/compose/releases/download/\$LATEST_COMPOSE_VERSION/docker-compose-\$(uname -s)-\$(uname -m) -o \$INSTALL_PATH3/docker-compose && \
-     chmod +x \$INSTALL_PATH3/docker-compose) || \
-    {
-        echo -e "${red}Failed to download and install legacy docker-compose in standard paths. Please install Docker Compose manually.${plain}"
-        exit 1
-    }
-
-    if docker compose version &> /dev/null; then
-        echo "Docker Compose (plugin) became available after legacy install attempt (possibly due to PATH or Docker restart)."
-    elif command -v docker-compose &> /dev/null; then
-        echo "Legacy docker-compose installed successfully."
-        docker-compose --version
+        dnf install -y docker-compose-plugin || print_colored "$yellow" "dnf: docker-compose-plugin not found or error. Trying legacy."
     else
-        echo -e "${red}Failed to make legacy docker-compose command available. Please check your PATH or install manually.${plain}"
+        print_colored "$yellow" "No known package manager for docker-compose-plugin. Will try legacy."
+    fi
+
+    if docker compose version &> /dev/null; then
+        print_colored "$green" "Docker Compose plugin is now available: $(docker compose version)"
+        return 0
+    fi
+
+    print_colored "$yellow" "Docker Compose plugin (v2) still not found. Attempting to install legacy docker-compose (v1)..."
+    if command -v docker-compose &>/dev/null; then
+        print_colored "$green" "Legacy docker-compose is already installed: $(docker-compose --version)"
+        return 0
+    fi
+
+    print_colored "$blue" "Downloading latest legacy docker-compose..."
+    LATEST_COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name":' | cut -d'"' -f4)
+
+    if [ -z "$LATEST_COMPOSE_VERSION" ]; then
+        print_colored "$red" "Failed to fetch latest docker-compose version from GitHub API. Please install it manually."
+        exit 1
+    fi
+    print_colored "$blue" "Latest legacy docker-compose version: $LATEST_COMPOSE_VERSION"
+
+    COMPOSE_URL="https://github.com/docker/compose/releases/download/$LATEST_COMPOSE_VERSION/docker-compose-$(uname -s)-$(uname -m)"
+
+    INSTALL_PATH="/usr/local/bin/docker-compose"
+    print_colored "$blue" "Installing docker-compose to $INSTALL_PATH..."
+
+    curl -SL "$COMPOSE_URL" -o "$INSTALL_PATH"
+    if [ $? -ne 0 ]; then
+        print_colored "$red" "Download failed from $COMPOSE_URL. Please check the URL or install manually."
+        INSTALL_PATH_ALT="/usr/bin/docker-compose"
+        print_colored "$blue" "Attempting alternative installation to $INSTALL_PATH_ALT..."
+        curl -SL "$COMPOSE_URL" -o "$INSTALL_PATH_ALT"
+         if [ $? -ne 0 ]; then
+            print_colored "$red" "Download to $INSTALL_PATH_ALT also failed. Please install docker-compose manually."
+            exit 1
+         fi
+         chmod +x "$INSTALL_PATH_ALT"
+    else
+        chmod +x "$INSTALL_PATH"
+    fi
+
+    if command -v docker-compose &>/dev/null; then
+        print_colored "$green" "Legacy docker-compose installed successfully: $(docker-compose --version)"
+    else
+        print_colored "$red" "Installation of legacy docker-compose failed or it's not in PATH. Please install it manually."
         exit 1
     fi
 }
-
 
 # --- Main Installation Logic ---
 main() {
     check_root
-    detect_os # Call detect_os to populate OS_RELEASE_ID
+    detect_os
 
     print_colored "$blue" "Starting 3X-UI New Frontend Docker-based Installation..."
 
-    install_dependencies # Call install_dependencies
-    fn_install_docker # Renamed from install_docker to avoid conflict if sourcing other scripts
-    fn_install_docker_compose # Renamed from install_docker_compose_plugin
+    install_dependencies
+    install_docker # Corrected function name
+    install_docker_compose_plugin # Corrected function name
 
-    # Handle installation directory
-    if [ -n "$1" ]; then
-        print_colored "$yellow" "Argument \$1 ($1) detected. This script primarily installs from main/master branch for Docker setup. Argument will be ignored for repo cloning."
-    fi
-
-    local user_install_dir
+    local user_install_dir # Made variables local where appropriate
     read -rp "Enter installation directory (default: $INSTALL_DIR): " user_install_dir
-    INSTALL_DIR=\${user_install_dir:-$INSTALL_DIR}
+    INSTALL_DIR=${user_install_dir:-$INSTALL_DIR}
 
     print_colored "$blue" "Panel will be installed in: $INSTALL_DIR"
     mkdir -p "$INSTALL_DIR"
-    # cd "$INSTALL_DIR" # We cd into REPO_PATH later
 
-    # Clone or update the repository
-    local REPO_PATH="\$INSTALL_DIR/\$REPO_DIR_NAME" # Made REPO_PATH local
-    if [ -d "\$REPO_PATH" ] && [ -d "\$REPO_PATH/.git" ]; then
-        print_colored "$yellow" "Existing repository found at \$REPO_PATH. Attempting to update..."
-        cd "\$REPO_PATH" || { print_colored "$red" "Failed to cd to $REPO_PATH"; exit 1; }
+    local REPO_PATH="$INSTALL_DIR/$REPO_DIR_NAME"
+    if [ -d "$REPO_PATH" ] && [ -d "$REPO_PATH/.git" ]; then
+        print_colored "$yellow" "Existing repository found at $REPO_PATH. Attempting to update..."
+        cd "$REPO_PATH" || { print_colored "$red" "Failed to cd to $REPO_PATH"; exit 1; }
         git fetch --all
-        print_colored "$yellow" "Resetting to origin/main to ensure latest of main branch..."
-        git reset --hard origin/main # Or use a specific tag/branch if versioning is set up
-        git pull origin main || print_colored "$red" "Failed to pull latest changes for main branch. Continuing with local version."
+        print_colored "$yellow" "Checking out and pulling latest 'main' branch..."
+        current_branch=\$(git rev-parse --abbrev-ref HEAD)
+        if [ "\$current_branch" != "main" ] && [ "\$current_branch" != "master" ]; then
+            if git show-ref --verify --quiet refs/heads/main; then
+                git checkout main
+            elif git show-ref --verify --quiet refs/heads/master; then
+                git checkout master
+            else
+                print_colored "$red" "Could not find main or master branch to checkout."
+                # exit 1 # Or proceed with current branch
+            fi
+        fi
+        git reset --hard origin/\$(git rev-parse --abbrev-ref HEAD)
+        git pull
+        cd "$INSTALL_DIR"
     else
         print_colored "$blue" "Cloning repository from $REPO_URL into $REPO_PATH..."
-        rm -rf "\$REPO_PATH"
-        git clone --depth 1 "$REPO_URL" "\$REPO_PATH" || { print_colored "$red" "Failed to clone repository."; exit 1; }
+        rm -rf "$REPO_PATH"
+        git clone --depth 1 "$REPO_URL" "$REPO_PATH" || { print_colored "$red" "Failed to clone repository."; exit 1; }
     fi
 
-    cd "\$REPO_PATH" || { print_colored "$red" "Failed to cd into repository directory '\$REPO_PATH'."; exit 1; }
+    if [ ! -d "$REPO_PATH" ]; then
+        print_colored "$red" "Failed to clone or find repository at $REPO_PATH. Aborting."
+        exit 1
+    fi
+    cd "$REPO_PATH"
 
     if [ ! -f "docker-compose.yml" ] || [ ! -f "new-frontend/Dockerfile" ] || [ ! -f "Dockerfile.backend" ]; then
-        print_colored "$red" "Essential Docker configuration files not found in the repository. Aborting."
+        print_colored "$red" "Essential Docker configuration files not found in the repository ($REPO_PATH). Aborting."
         exit 1
     fi
 
-    print_colored "$blue" "Creating data directories (db, cert) if they don't exist..."
+    print_colored "$blue" "Creating data directories (db, cert) if they don't exist in $REPO_PATH..."
     mkdir -p db
     mkdir -p cert
 
@@ -284,37 +270,44 @@ main() {
     local HOST_FRONTEND_PORT
     local HOST_BACKEND_PANEL_PORT
     local INTERNAL_BACKEND_PORT=2053
+    local USER_API_URL
+    local NEXT_PUBLIC_API_BASE_URL
 
-    print_colored "$yellow" "Configuring .env file..."
+    print_colored "$yellow" "Configuring .env file in $REPO_PATH..."
     read -rp "Enter HOST port for Frontend (default: $DEFAULT_FRONTEND_PORT): " HOST_FRONTEND_PORT
     HOST_FRONTEND_PORT=\${HOST_FRONTEND_PORT:-$DEFAULT_FRONTEND_PORT}
 
     read -rp "Enter HOST port for Backend Panel (default: $DEFAULT_BACKEND_PANEL_PORT): " HOST_BACKEND_PANEL_PORT
     HOST_BACKEND_PANEL_PORT=\${HOST_BACKEND_PANEL_PORT:-$DEFAULT_BACKEND_PANEL_PORT}
 
+    DEFAULT_API_URL="http://backend:$INTERNAL_BACKEND_PORT"
+    read -rp "Enter API Base URL for Frontend (default: $DEFAULT_API_URL, press Enter to use default): " USER_API_URL
+    NEXT_PUBLIC_API_BASE_URL=\${USER_API_URL:-$DEFAULT_API_URL}
+
     cat << EOF_ENV > .env
 # .env for 3x-ui docker-compose
-PANEL_NAME=3x-ui
 FRONTEND_HOST_PORT=$HOST_FRONTEND_PORT
 BACKEND_HOST_PORT=$HOST_BACKEND_PANEL_PORT
 BACKEND_INTERNAL_PORT=$INTERNAL_BACKEND_PORT
+NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 XRAY_VMESS_AEAD_FORCED=false
 XUI_ENABLE_FAIL2BAN=true
-NEXT_PUBLIC_API_BASE_URL=http://backend:\${BACKEND_INTERNAL_PORT:-2053}
+# XUI_USERNAME=admin
+# XUI_PASSWORD=admin
 EOF_ENV
-    print_colored "$green" ".env file configured."
+    print_colored "$green" ".env file configured in $REPO_PATH."
     print_colored "$yellow" "Note: Frontend will be accessible on host at port $HOST_FRONTEND_PORT."
     print_colored "$yellow" "Backend panel (API) will be accessible on host at port $HOST_BACKEND_PANEL_PORT."
 
-    print_colored "$blue" "Building and starting services with Docker Compose..."
+    print_colored "$blue" "Building and starting services with Docker Compose (from $REPO_PATH)..."
     print_colored "$yellow" "This may take a few minutes for the first build..."
     if docker compose up -d --build --remove-orphans; then
         print_colored "$green" "3X-UI services (new frontend & backend) started successfully!"
         print_colored "$green" "Frontend should be accessible at: http://<your_server_ip>:$HOST_FRONTEND_PORT"
         print_colored "$yellow" "Please allow a moment for services to initialize fully."
-        print_colored "$blue" "To manage services, navigate to '\$(pwd)' and use 'docker compose' commands (e.g., docker compose logs -f, docker compose stop)."
+        print_colored "$blue" "To manage services, navigate to '$REPO_PATH' and use 'docker compose' commands (e.g., docker compose logs -f, docker compose stop)."
     else
-        print_colored "$red" "Failed to start services with Docker Compose. Please check logs above and run 'docker compose logs' for details."
+        print_colored "$red" "Failed to start services with Docker Compose. Please check logs above and run 'docker compose logs' in '$REPO_PATH' for details."
         exit 1
     fi
 
@@ -322,6 +315,6 @@ EOF_ENV
 }
 
 # --- Script Execution ---
-main "\$@"
+main "$@"
 
 exit 0
