@@ -230,7 +230,7 @@ main() {
         cd "$REPO_PATH" || { print_colored "$red" "Failed to cd to $REPO_PATH"; exit 1; }
         git fetch --all
         print_colored "$yellow" "Checking out and pulling latest 'main' branch..."
-        current_branch=\$(git rev-parse --abbrev-ref HEAD)
+        current_branch=$(git rev-parse --abbrev-ref HEAD)
         if [ "\$current_branch" != "main" ] && [ "\$current_branch" != "master" ]; then
             if git show-ref --verify --quiet refs/heads/main; then
                 git checkout main
