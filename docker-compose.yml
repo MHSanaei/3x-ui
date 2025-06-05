@@ -19,6 +19,8 @@ services:
     build:
       context: ./new-frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_BASE_URL=http://backend:2053
     container_name: 3x-ui-frontend
     restart: unless-stopped
     ports:

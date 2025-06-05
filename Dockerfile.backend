@@ -32,6 +32,10 @@ RUN wget -O /tmp/Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/do
     chmod +x /app/bin/xray-linux-${TARGETARCH} && \
     rm /tmp/Xray-linux-64.zip
 
+RUN mkdir -p /app/log && \
+    touch /app/log/3xipl.log && \
+    touch /app/log/3xipl-banned.log
+
 # Copy the binary from the builder stage
 COPY --from=builder /app/x-ui /app/x-ui
 COPY --from=builder /app/x-ui.sh /app/x-ui.sh
