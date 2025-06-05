@@ -54,6 +54,8 @@ RUN mkdir -p /etc/x-ui && \
 # Let's assume the Go app listens on a port defined by an ENV or config, e.g., 2053
 EXPOSE 2053
 
+COPY 3x-ipl.filter.conf /etc/fail2ban/filter.d/3x-ipl.conf
+COPY 3x-ipl.action.conf /etc/fail2ban/action.d/3x-ipl.conf
 COPY xui_fail2ban.local /etc/fail2ban/jail.local
 # Entrypoint
 ENTRYPOINT ["/app/DockerEntrypoint.sh"]

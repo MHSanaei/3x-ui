@@ -18,7 +18,7 @@ enabled = true
 # If 3x-ui creates /etc/fail2ban/jail.d/3x-ipl.conf, this [3x-ipl] section might be redundant
 # or could conflict. However, disabling sshd is the main goal here.
 port    = http,https,2053 # Example, adjust if your panel port is different
-logpath = %(xui_iplimit_log_path)s # This variable would need to be defined or replaced
+logpath = /app/log/3xipl.log
 # Default log path from xray/process.go -> /app/log/3xipl.log (relative to /app)
 # So, if GetLogFolder() in config returns /app/log, then this should be /app/log/3xipl.log.
 # Let's use a placeholder that 3x-ui might populate or rely on its own jail.d file.
@@ -36,3 +36,6 @@ logpath = %(xui_iplimit_log_path)s # This variable would need to be defined or r
 
 # For now, let's make a simple [3x-ipl] and assume the main app configures it further.
 # The critical part is disabling sshd.
+
+[sshd-ddos]
+enabled = false
