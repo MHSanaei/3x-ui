@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. Pindai kode QR ini di aplikasi autentikasi atau salin token di dekat kode QR dan tempelkan ke aplikasi"
 "twoFactorModalSecondStep" = "2. Masukkan kode dari aplikasi"
 "twoFactorModalRemoveStep" = "Masukkan kode dari aplikasi untuk menghapus autentikasi dua faktor."
+"twoFactorModalChangeCredentialsTitle" = "Ubah kredensial"
+"twoFactorModalChangeCredentialsStep" = "Masukkan kode dari aplikasi untuk mengubah kredensial administrator."
 "twoFactorModalSetSuccess" = "Autentikasi dua faktor telah berhasil dibuat"
 "twoFactorModalDeleteSuccess" = "Autentikasi dua faktor telah berhasil dihapus"
 "twoFactorModalError" = "Kode salah"

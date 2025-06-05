@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. Quét mã QR này trong ứng dụng xác thực hoặc sao chép mã token gần mã QR và dán vào ứng dụng"
 "twoFactorModalSecondStep" = "2. Nhập mã từ ứng dụng"
 "twoFactorModalRemoveStep" = "Nhập mã từ ứng dụng để xóa xác thực hai yếu tố."
+"twoFactorModalChangeCredentialsTitle" = "Thay đổi thông tin xác thực"
+"twoFactorModalChangeCredentialsStep" = "Nhập mã từ ứng dụng để thay đổi thông tin xác thực quản trị viên."
 "twoFactorModalSetSuccess" = "Xác thực hai yếu tố đã được thiết lập thành công"
 "twoFactorModalDeleteSuccess" = "Xác thực hai yếu tố đã được xóa thành công"
 "twoFactorModalError" = "Mã sai"

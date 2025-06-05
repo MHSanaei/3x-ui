@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. این کد QR را در برنامه احراز هویت اسکن کنید یا توکن کنار کد QR را کپی کرده و در برنامه بچسبانید"
 "twoFactorModalSecondStep" = "2. کد را از برنامه وارد کنید"
 "twoFactorModalRemoveStep" = "برای حذف احراز هویت دو مرحله‌ای، کد را از برنامه وارد کنید."
+"twoFactorModalChangeCredentialsTitle" = "تغییر اعتبارنامه‌ها"
+"twoFactorModalChangeCredentialsStep" = "برای تغییر اعتبارنامه‌های مدیر، کد را از برنامه وارد کنید."
 "twoFactorModalSetSuccess" = "احراز هویت دو مرحله‌ای با موفقیت برقرار شد"
 "twoFactorModalDeleteSuccess" = "احراز هویت دو مرحله‌ای با موفقیت حذف شد"
 "twoFactorModalError" = "کد نادرست"

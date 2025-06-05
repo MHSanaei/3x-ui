@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. Відскануйте цей QR-код у програмі для аутентифікації або скопіюйте токен біля QR-коду та вставте його в програму"
 "twoFactorModalSecondStep" = "2. Введіть код з програми"
 "twoFactorModalRemoveStep" = "Введіть код з програми, щоб вимкнути двофакторну аутентифікацію."
+"twoFactorModalChangeCredentialsTitle" = "Змінити облікові дані"
+"twoFactorModalChangeCredentialsStep" = "Введіть код з додатку, щоб змінити облікові дані адміністратора."
 "twoFactorModalSetSuccess" = "Двофакторна аутентифікація була успішно встановлена"
 "twoFactorModalDeleteSuccess" = "Двофакторна аутентифікація була успішно видалена"
 "twoFactorModalError" = "Невірний код"

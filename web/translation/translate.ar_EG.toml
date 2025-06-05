@@ -540,6 +540,8 @@
 "twoFactorModalFirstStep" = "1. امسح رمز QR هذا في تطبيق المصادقة أو انسخ الرمز الموجود بجانب رمز QR والصقه في التطبيق"
 "twoFactorModalSecondStep" = "2. أدخل الرمز من التطبيق"
 "twoFactorModalRemoveStep" = "أدخل الرمز من التطبيق لإزالة المصادقة الثنائية."
+"twoFactorModalChangeCredentialsTitle" = "تغيير بيانات الاعتماد"
+"twoFactorModalChangeCredentialsStep" = "أدخل الرمز من التطبيق لتغيير بيانات اعتماد المسؤول."
 "twoFactorModalSetSuccess" = "تم إنشاء المصادقة الثنائية بنجاح"
 "twoFactorModalDeleteSuccess" = "تم حذف المصادقة الثنائية بنجاح"
 "twoFactorModalError" = "رمز خاطئ"

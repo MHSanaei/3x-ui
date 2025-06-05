@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. Escaneie este QR code no aplicativo de autenticação ou copie o token próximo ao QR code e cole no aplicativo"
 "twoFactorModalSecondStep" = "2. Digite o código do aplicativo"
 "twoFactorModalRemoveStep" = "Digite o código do aplicativo para remover a autenticação de dois fatores."
+"twoFactorModalChangeCredentialsTitle" = "Alterar credenciais"
+"twoFactorModalChangeCredentialsStep" = "Insira o código do aplicativo para alterar as credenciais do administrador."
 "twoFactorModalSetSuccess" = "A autenticação de dois fatores foi estabelecida com sucesso"
 "twoFactorModalDeleteSuccess" = "A autenticação de dois fatores foi excluída com sucesso"
 "twoFactorModalError" = "Código incorreto"

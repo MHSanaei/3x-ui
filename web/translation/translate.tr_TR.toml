@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. Bu QR kodunu doğrulama uygulamasında tarayın veya QR kodunun yanındaki token'ı kopyalayıp uygulamaya yapıştırın"
 "twoFactorModalSecondStep" = "2. Uygulamadaki kodu girin"
 "twoFactorModalRemoveStep" = "İki adımlı doğrulamayı kaldırmak için uygulamadaki kodu girin."
+"twoFactorModalChangeCredentialsTitle" = "Kimlik bilgilerini değiştir"
+"twoFactorModalChangeCredentialsStep" = "Yönetici kimlik bilgilerini değiştirmek için uygulamadaki kodu girin."
 "twoFactorModalSetSuccess" = "İki faktörlü kimlik doğrulama başarıyla kuruldu"
 "twoFactorModalDeleteSuccess" = "İki faktörlü kimlik doğrulama başarıyla silindi"
 "twoFactorModalError" = "Yanlış kod"

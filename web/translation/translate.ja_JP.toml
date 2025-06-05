@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. 認証アプリでこのQRコードをスキャンするか、QRコード近くのトークンをコピーしてアプリに貼り付けます"
 "twoFactorModalSecondStep" = "2. アプリからコードを入力してください"
 "twoFactorModalRemoveStep" = "二段階認証を削除するには、アプリからコードを入力してください。"
+"twoFactorModalChangeCredentialsTitle" = "認証情報の変更"
+"twoFactorModalChangeCredentialsStep" = "管理者の認証情報を変更するには、アプリケーションからコードを入力してください。"
 "twoFactorModalSetSuccess" = "二要素認証が正常に設定されました"
 "twoFactorModalDeleteSuccess" = "二要素認証が正常に削除されました"
 "twoFactorModalError" = "コードが間違っています"
