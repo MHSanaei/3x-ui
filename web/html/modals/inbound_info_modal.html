@@ -478,10 +478,19 @@
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
       this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
 
-      if (app.ipLimitEnable && this.clientSettings.limitIp) {
-        refreshIPs(this.clientStats.email).then((ips) => {
-          this.clientIps = ips;
-        })
+      if (
+        [
+          Protocols.VMESS, 
+          Protocols.VLESS,
+          Protocols.TROJAN, 
+          Protocols.SHADOWSOCKS
+        ].includes(this.inbound.protocol)
+      ) {
+        if (app.ipLimitEnable && this.clientSettings.limitIp) {
+          refreshIPs(this.clientStats.email).then((ips) => {
+            this.clientIps = ips;
+          })
+        }
       }
       if (this.inbound.protocol == Protocols.WIREGUARD) {
         this.links = this.inbound.genInboundLinks(dbInbound.remark).split('\r\n')
