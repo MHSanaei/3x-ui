@@ -5,6 +5,7 @@ WORKDIR /app
 
 # Copy go.mod and go.sum and download dependencies
 COPY go.mod go.sum ./
+RUN apk add --no-cache gcc musl-dev sqlite-dev
 RUN go mod download
 
 # Copy the rest of the application source code
@@ -15,7 +16,7 @@ COPY . .
 # The original entrypoint seems to be related to x-ui.sh or DockerEntrypoint.sh
 # We need to ensure the binary is built correctly.
 # For 3x-ui, the main.go seems to be the entry point.
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/x-ui main.go
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o /app/x-ui main.go
 
 # Stage 2: Production environment
 FROM alpine:latest
@@ -33,6 +34,7 @@ COPY --from=builder /app/config/version /app/config/version
 # Ensure necessary directories exist and have correct permissions if needed by the app
 # The original compose file mounts $PWD/db/:/etc/x-ui/ and $PWD/cert/:/root/cert/
 # So, these paths should be available or created by the entrypoint script.
+RUN apk add --no-cache sqlite fail2ban
 RUN mkdir -p /etc/x-ui && \
     mkdir -p /root/cert && \
     chmod +x /app/x-ui.sh /app/DockerEntrypoint.sh /app/x-ui
