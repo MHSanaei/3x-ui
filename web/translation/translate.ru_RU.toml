@@ -128,6 +128,7 @@
 "totalData" = "Общий объем трафика"
 "sent" = "Отправлено"
 "received" = "Получено"
+"documentation" = "Документация"
 "xraySwitchVersionDialog" = "Переключить версию Xray"
 "xraySwitchVersionDialogDesc" = "Вы точно хотите сменить версию Xray?"
 "xraySwitchVersionPopover" = "Xray успешно обновлён"

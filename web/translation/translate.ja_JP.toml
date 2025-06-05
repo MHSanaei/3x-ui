@@ -128,6 +128,7 @@
 "totalData" = "総データ量"
 "sent" = "送信"
 "received" = "受信"
+"documentation" = "ドキュメント"
 "xraySwitchVersionDialog" = "Xrayのバージョンを本当に変更しますか？"
 "xraySwitchVersionDialogDesc" = "Xrayのバージョンが#version#に変更されます。"
 "xraySwitchVersionPopover" = "Xrayの更新が成功しました"

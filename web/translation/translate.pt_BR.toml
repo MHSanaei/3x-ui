@@ -128,6 +128,7 @@
 "totalData" = "Dados totais"
 "sent" = "Enviado"
 "received" = "Recebido"
+"documentation" = "Documentação"
 "xraySwitchVersionDialog" = "Você realmente deseja alterar a versão do Xray?"
 "xraySwitchVersionDialogDesc" = "Isso mudará a versão do Xray para #version#."
 "xraySwitchVersionPopover" = "Xray atualizado com sucesso"
