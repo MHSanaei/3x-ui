@@ -126,6 +126,7 @@
 "totalData" = "إجمالي البيانات"
 "sent" = "مرسل"
 "received" = "مستقبل"
+"documentation" = "التوثيق"
 "xraySwitchVersionDialog" = "هل تريد حقًا تغيير إصدار Xray؟"
 "xraySwitchVersionDialogDesc" = "سيؤدي هذا إلى تغيير إصدار Xray إلى #version#."
 "xraySwitchVersionPopover" = "تم تحديث Xray بنجاح"

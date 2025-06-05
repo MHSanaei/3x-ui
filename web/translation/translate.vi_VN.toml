@@ -128,6 +128,7 @@
 "totalData" = "Tổng dữ liệu"
 "sent" = "Đã gửi"
 "received" = "Đã nhận"
+"documentation" = "Tài liệu"
 "xraySwitchVersionDialog" = "Bạn có chắc chắn muốn thay đổi phiên bản Xray không?"
 "xraySwitchVersionDialogDesc" = "Hành động này sẽ thay đổi phiên bản Xray thành #version#."
 "xraySwitchVersionPopover" = "Xray đã được cập nhật thành công"

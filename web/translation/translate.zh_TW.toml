@@ -128,6 +128,7 @@
 "totalData" = "總數據"
 "sent" = "已發送"
 "received" = "已接收"
+"documentation" = "文件"
 "xraySwitchVersionDialog" = "您確定要變更Xray版本嗎？"
 "xraySwitchVersionDialogDesc" = "這將會把Xray版本變更為#version#。"
 "xraySwitchVersionPopover" = "Xray 更新成功"
