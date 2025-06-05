@@ -23,13 +23,14 @@ FROM alpine:latest
 
 WORKDIR /app
 RUN mkdir -p /app/bin
-ARG XRAY_VERSION=v1.8.10
+ARG XRAY_VERSION=v1.8.11
 ARG TARGETARCH=amd64
-RUN wget -O /tmp/Xray-linux-${TARGETARCH}.zip https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${TARGETARCH}.zip && \
-    unzip /tmp/Xray-linux-${TARGETARCH}.zip -d /app/bin xray geoip.dat geosite.dat && \
+# Use Xray-linux-64.zip for amd64 architecture as per Xray release naming
+RUN wget -O /tmp/Xray-linux-64.zip https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-64.zip && \
+    unzip /tmp/Xray-linux-64.zip -d /app/bin xray geoip.dat geosite.dat && \
     mv /app/bin/xray /app/bin/xray-linux-${TARGETARCH} && \
     chmod +x /app/bin/xray-linux-${TARGETARCH} && \
-    rm /tmp/Xray-linux-${TARGETARCH}.zip
+    rm /tmp/Xray-linux-64.zip
 
 # Copy the binary from the builder stage
 COPY --from=builder /app/x-ui /app/x-ui
