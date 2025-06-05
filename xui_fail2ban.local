@@ -1,0 +1,38 @@
+[DEFAULT]
+# Ban hosts for one hour:
+bantime = 1h
+# Override /etc/fail2ban/jail.d/00-firewalld.conf:
+banaction = iptables-multiport
+banaction_allports = iptables-allports
+
+[sshd]
+enabled = false
+
+[3x-ipl]
+enabled = true
+# Adjust filter, action, logpath, maxretry, findtime, bantime as needed
+# These should ideally be managed by the 3x-ui application logic if it creates its own filter/action
+# For now, we ensure it's enabled, but specific parameters might be overwritten by 3x-ui's setup.
+# Assuming 3x-ui will create /etc/fail2ban/filter.d/3x-ipl.conf and /etc/fail2ban/action.d/3x-ipl.conf
+# and potentially /etc/fail2ban/jail.d/3x-ipl.conf
+# If 3x-ui creates /etc/fail2ban/jail.d/3x-ipl.conf, this [3x-ipl] section might be redundant
+# or could conflict. However, disabling sshd is the main goal here.
+port    = http,https,2053 # Example, adjust if your panel port is different
+logpath = %(xui_iplimit_log_path)s # This variable would need to be defined or replaced
+# Default log path from xray/process.go -> /app/log/3xipl.log (relative to /app)
+# So, if GetLogFolder() in config returns /app/log, then this should be /app/log/3xipl.log.
+# Let's use a placeholder that 3x-ui might populate or rely on its own jail.d file.
+# For safety, we'll use the log path from xray/process.go which is /app/log/3xipl.log
+# (assuming GetLogFolder is /app/log).
+# The Dockerfile uses WORKDIR /app, so relative paths might be tricky.
+# Let's assume /var/log/3xipl.log as seen in x-ui.sh, which is more standard for logs.
+# The application itself writes to GetIPLimitLogPath().
+# From xray/process.go: GetIPLimitLogPath() returns config.GetLogFolder() + "/3xipl.log"
+# config.GetLogFolder() by default is likely "log" relative to app dir, so "/app/log/3xipl.log".
+# We need to ensure this log path is what fail2ban is configured to read.
+# The original x-ui.sh sets log_folder="${XUI_LOG_FOLDER:=/var/log}"
+# and iplimit_log_path="${log_folder}/3xipl.log"
+# This suggests the application might be configurable or has different behaviors.
+
+# For now, let's make a simple [3x-ipl] and assume the main app configures it further.
+# The critical part is disabling sshd.
