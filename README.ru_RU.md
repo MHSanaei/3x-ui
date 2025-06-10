@@ -23,7 +23,7 @@
 ## Быстрый старт
 
 ```
-$ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
 Полную документацию смотрите в [вики проекта](https://github.com/MHSanaei/3x-ui/wiki).
