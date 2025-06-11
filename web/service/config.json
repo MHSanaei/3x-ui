@@ -81,5 +81,9 @@
       }
     ]
   },
-  "stats": {}
+  "stats": {},
+  "metrics": {
+    "tag": "metrics_out",
+    "listen": "127.0.0.1:11111"
+  }
 }
