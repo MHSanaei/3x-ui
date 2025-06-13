@@ -1,8 +1,10 @@
 services:
-  3x-ui:
-    image: ghcr.io/mhsanaei/3x-ui:latest
-    container_name: 3x-ui
-    hostname: yourhostname
+  3xui:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: 3xui_app
+    # hostname: yourhostname <- optional
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
