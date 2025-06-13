@@ -542,6 +542,8 @@
 "twoFactorModalFirstStep" = "1. 在认证应用程序中扫描此QR码，或复制QR码附近的令牌并粘贴到应用程序中"
 "twoFactorModalSecondStep" = "2. 输入应用程序中的验证码"
 "twoFactorModalRemoveStep" = "输入应用程序中的验证码以移除双重认证。"
+"twoFactorModalChangeCredentialsTitle" = "更改凭据"
+"twoFactorModalChangeCredentialsStep" = "输入应用程序中的代码以更改管理员凭据。"
 "twoFactorModalSetSuccess" = "双因素认证已成功建立"
 "twoFactorModalDeleteSuccess" = "双因素认证已成功删除"
 "twoFactorModalError" = "验证码错误"

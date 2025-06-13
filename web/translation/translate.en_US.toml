@@ -539,6 +539,8 @@
 "twoFactorModalFirstStep" = "1. Scan this QR code in the app for authentication or copy the token near the QR code and paste it into the app"
 "twoFactorModalSecondStep" = "2. Enter the code from the app"
 "twoFactorModalRemoveStep" = "Enter the code from the application to remove two-factor authentication."
+"twoFactorModalChangeCredentialsTitle" = "Change credentials"
+"twoFactorModalChangeCredentialsStep" = "Enter the code from the application to change administrator credentials."
 "twoFactorModalSetSuccess" = "Two-factor authentication has been successfully established"
 "twoFactorModalDeleteSuccess" = "Two-factor authentication has been successfully deleted"
 "twoFactorModalError" = "Wrong code"
