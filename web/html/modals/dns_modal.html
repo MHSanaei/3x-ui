@@ -6,6 +6,16 @@
     <a-form-item label='{{ i18n "pages.xray.outbound.address" }}'>
       <a-input v-model.trim="dnsModal.dnsServer.address"></a-input>
     </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
+      <a-input-number v-model.number="dnsModal.dnsServer.port" :min="1" :max="65531"></a-input-number>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.dns.strategy" }}'>
+      <a-select v-model="dnsModal.dnsServer.queryStrategy" :style="{ width: '100%' }"
+        :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option :value="l" :label="l" v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]] </a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-divider :style="{ margin: '5px 0' }"></a-divider>
     <a-form-item label='{{ i18n "pages.xray.dns.domains" }}'>
       <a-button icon="plus" size="small" type="primary" @click="dnsModal.dnsServer.domains.push('')"></a-button>
       <template v-for="(domain, index) in dnsModal.dnsServer.domains">
@@ -14,15 +24,6 @@
             @click="dnsModal.dnsServer.domains.splice(index,1)"></a-button>
         </a-input>
       </template>
-    </a-form-item>
-    <a-form-item label='{{ i18n "pages.xray.dns.strategy" }}' v-if="isAdvanced">
-      <a-select v-model="dnsModal.dnsServer.queryStrategy" :style="{ width: '100%' }"
-        :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]] </a-select-option>
-      </a-select>
-    </a-form-item>
-    <a-form-item label='Skip Fallback' v-if="isAdvanced">
-      <a-switch v-model="dnsModal.dnsServer.skipFallback"></a-switch>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.xray.dns.expectIPs"}}'>
       <a-button icon="plus" size="small" type="primary" @click="dnsModal.dnsServer.expectIPs.push('')"></a-button>
@@ -33,31 +34,50 @@
         </a-input>
       </template>
     </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.dns.unexpectIPs"}}'>
+      <a-button icon="plus" size="small" type="primary" @click="dnsModal.dnsServer.unexpectedIPs.push('')"></a-button>
+      <template v-for="(domain, index) in dnsModal.dnsServer.unexpectedIPs">
+        <a-input v-model.trim="dnsModal.dnsServer.unexpectedIPs[index]">
+          <a-button icon="minus" size="small" slot="addonAfter"
+            @click="dnsModal.dnsServer.unexpectedIPs.splice(index,1)"></a-button>
+        </a-input>
+      </template>
+    </a-form-item>
+    <a-divider :style="{ margin: '5px 0' }"></a-divider>
+    <a-form-item label='Skip Fallback'>
+      <a-switch v-model="dnsModal.dnsServer.skipFallback"></a-switch>
+    </a-form-item>
+    <a-form-item label='Disable Cache'>
+      <a-switch v-model="dnsModal.dnsServer.disableCache"></a-switch>
+    </a-form-item>
+    <a-form-item label='Final Query'>
+      <a-switch v-model="dnsModal.dnsServer.finalQuery"></a-switch>
+    </a-form-item>
   </a-form>
 </a-modal>
 <script>
+  const defaultDnsObject = {
+    address: "localhost",
+    port: 53,
+    domains: [],
+    expectIPs: [],
+    unexpectedIPs: [],
+    queryStrategy: 'UseIP',
+    skipFallback: true,
+    disableCache: false,
+    finalQuery: false
+  }
+
   const dnsModal = {
     title: '',
     visible: false,
     okText: '{{ i18n "confirm" }}',
     isEdit: false,
     confirm: null,
-    dnsServer: {
-      address: "localhost",
-      domains: [],
-      expectIPs: [],
-      queryStrategy: 'UseIP',
-      skipFallback: true,
+    dnsServer: { ...defaultDnsObject },
+    ok() {      
+      ObjectUtil.execute(dnsModal.confirm, { ...dnsModal.dnsServer });
     },
-    ok() {
-      domains = dnsModal.dnsServer.domains.filter(d => d.length > 0);
-      expectIPs = dnsModal.dnsServer.expectIPs.filter(ip => ip.length > 0);
-      dnsModal.dnsServer.domains = domains;
-      dnsModal.dnsServer.expectIPs = expectIPs;
-      newDnsServer = (domains.length > 0 || expectIPs.length > 0) ? dnsModal.dnsServer : dnsModal.dnsServer.address;
-      ObjectUtil.execute(dnsModal.confirm, newDnsServer);
-    },
-
     show({
       title = '',
       okText = '{{ i18n "confirm" }}',
@@ -69,28 +89,28 @@
       this.okText = okText;
       this.confirm = confirm;
       this.visible = true;
+      this.isEdit = isEdit;
+
       if (isEdit) {
-        if (typeof dnsServer == 'object') {
-          this.dnsServer = dnsServer;
-        } else {
-          this.dnsServer = {
-            address: dnsServer ?? "",
-            domains: [],
-            expectIPs: [],
-            queryStrategy: 'UseIP',
-            skipFallback: true,
-          }
+        switch (typeof dnsServer) {
+          case 'string':
+            const dnsObj = { ...defaultDnsObject };
+
+            dnsObj.address = dnsServer;
+
+            this.dnsServer = dnsObj;
+            break;
+          case 'object':
+            this.dnsServer = dnsServer;
+            break;
         }
       } else {
-        this.dnsServer = {
-          address: "localhost",
-          domains: [],
-          expectIPs: [],
-          queryStrategy: 'UseIP',
-          skipFallback: true,
-        }
+        this.dnsServer = { ...defaultDnsObject };
+      
+        this.dnsServer.domains = [];
+        this.dnsServer.expectIPs = [];
+        this.dnsServer.unexpectedIPs = [];
       }
-      this.isEdit = isEdit;
     },
     close() {
       dnsModal.visible = false;
@@ -101,13 +121,6 @@
     el: '#dns-modal',
     data: {
       dnsModal: dnsModal,
-    },
-    computed: {
-      isAdvanced: {
-        get: function () {
-          return dnsModal.dnsServer.domains.length > 0;
-        }
-      }
     }
   });
 </script>
