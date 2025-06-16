@@ -57,7 +57,7 @@ install_base() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install -y -q wget curl tar tzdata
         ;;
-    centos | almalinux | rocky | ol)
+    centos | rhel | almalinux | rocky | ol)
         yum -y update && yum install -y -q wget curl tar tzdata
         ;;
     fedora | amzn | virtuozzo)
