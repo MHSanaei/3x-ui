@@ -110,9 +110,12 @@
             </template>
             <template v-else>
                 <a-empty description='{{ i18n "emptyDnsDesc" }}' :style="{ margin: '10px' }">
-                    <a-button type="primary" icon="plus" @click="addDNSServer()" :style="{ marginTop: '10px' }">
-                        <span>{{ i18n "pages.xray.dns.add" }}</span>
-                    </a-button>
+                    <a-button-group>
+                        <a-button type="primary" icon="plus" @click="addDNSServer()">
+                            <span>{{ i18n "pages.xray.dns.add" }}</span>
+                        </a-button>
+                        <a-button type="primary" icon="menu" @click="openDNSPresets()"></a-button>
+                    </a-button-group>
                 </a-empty>
             </template>
         </a-collapse-panel>

@@ -525,6 +525,9 @@
 "unexpectIPs" = "意外IP"
 "useSystemHosts" = "使用系統Hosts"
 "useSystemHostsDesc" = "使用已安裝系統的hosts檔案"
+"usePreset" = "使用範本"
+"dnsPresetTitle" = "DNS範本"
+"dnsPresetFamily" = "家庭"
 
 [pages.xray.fakedns]
 "add" = "新增假 DNS"

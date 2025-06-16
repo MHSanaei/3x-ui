@@ -520,6 +520,9 @@
 "unexpectIPs" = "Unexpect IPs"
 "useSystemHosts" = "Use System Hosts"
 "useSystemHostsDesc" = "Use the hosts file from an installed system"
+"usePreset" = "Use Preset"
+"dnsPresetTitle" = "DNS Presets"
+"dnsPresetFamily" = "Family"
 
 [pages.xray.fakedns]
 "add" = "Add Fake DNS"

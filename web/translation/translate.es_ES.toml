@@ -523,6 +523,9 @@
 "unexpectIPs" = "IPs inesperadas"
 "useSystemHosts" = "Usar Hosts del sistema"
 "useSystemHostsDesc" = "Usar el archivo hosts de un sistema instalado"
+"usePreset" = "Usar plantilla"
+"dnsPresetTitle" = "Plantillas DNS"
+"dnsPresetFamily" = "Familiar"
 
 [pages.xray.fakedns]
 "add" = "Agregar DNS Falso"

@@ -524,6 +524,9 @@
 "unexpectIPs" = "IP tak terduga"
 "useSystemHosts" = "Gunakan Hosts Sistem"
 "useSystemHostsDesc" = "Gunakan file hosts dari sistem yang terinstal"
+"usePreset" = "Gunakan templat"
+"dnsPresetTitle" = "Templat DNS"
+"dnsPresetFamily" = "Keluarga"
 
 [pages.xray.fakedns]
 "add" = "Tambahkan DNS Palsu"

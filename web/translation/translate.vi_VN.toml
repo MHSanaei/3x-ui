@@ -523,6 +523,9 @@
 "unexpectIPs" = "IP không mong muốn"
 "useSystemHosts" = "Sử dụng Hosts hệ thống"
 "useSystemHostsDesc" = "Sử dụng file hosts từ hệ thống đã cài đặt"
+"usePreset" = "Dùng mẫu"
+"dnsPresetTitle" = "Mẫu DNS"
+"dnsPresetFamily" = "Gia đình"
 
 [pages.xray.fakedns]
 "add" = "Thêm DNS giả"

@@ -523,6 +523,9 @@
 "unexpectIPs" = "Неожидаемые IP"
 "useSystemHosts" = "Использовать системные Hosts"
 "useSystemHostsDesc" = "Использовать файл hosts из установленной системы"
+"usePreset" = "Использовать шаблон"
+"dnsPresetTitle" = "Шаблоны DNS"
+"dnsPresetFamily" = "Семейный"
 
 [pages.xray.fakedns]
 "add" = "Создать Fake DNS"

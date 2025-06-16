@@ -523,6 +523,9 @@
 "unexpectIPs" = "Beklenmeyen IP'ler"
 "useSystemHosts" = "Sistem Hosts'larını Kullan"
 "useSystemHostsDesc" = "Yüklü bir sistemden hosts dosyasını kullan"
+"usePreset" = "Şablon kullan"
+"dnsPresetTitle" = "DNS Şablonları"
+"dnsPresetFamily" = "Aile"
 
 [pages.xray.fakedns]
 "add" = "Sahte DNS Ekle"

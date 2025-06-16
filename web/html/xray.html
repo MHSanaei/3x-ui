@@ -128,6 +128,7 @@
 {{template "modals/reverseModal"}}
 {{template "modals/balancerModal"}}
 {{template "modals/dnsModal"}}
+{{template "modals/dnsPresetsModal"}}
 {{template "modals/fakednsModal"}}
 {{template "modals/warpModal"}}
 <script>
@@ -816,6 +817,16 @@
                 this.updateObservatorySelectors();
                 this.obsSettings = '';
                 this.changeObsCode()
+            },
+            openDNSPresets() {
+                dnsPresetsModal.show({
+                    title: '{{ i18n "pages.xray.dns.dnsPresetTitle" }}',
+                    selected: (selectedPreset) => {
+                        this.dnsServers = selectedPreset;
+                        
+                        dnsPresetsModal.close();
+                    }
+                });
             },
             addDNSServer(){
                 dnsModal.show({

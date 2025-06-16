@@ -523,6 +523,9 @@
 "unexpectIPs" = "آی‌پی‌های غیرمنتظره"
 "useSystemHosts" = "استفاده از Hosts سیستم"
 "useSystemHostsDesc" = "استفاده از فایل hosts یک سیستم نصب‌شده"
+"usePreset" = "استفاده از پیش‌تنظیم"
+"dnsPresetTitle" = "پیش‌تنظیم‌های DNS"
+"dnsPresetFamily" = "خانوادگی"
 
 [pages.xray.fakedns]
 "add" = "افزودن دی‌ان‌اس جعلی"

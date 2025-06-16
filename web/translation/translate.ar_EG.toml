@@ -521,6 +521,9 @@
 "unexpectIPs" = "عناوين IP غير متوقعة"
 "useSystemHosts" = "استخدام ملف Hosts الخاص بالنظام"
 "useSystemHostsDesc" = "استخدام ملف hosts من نظام مثبت"
+"usePreset" = "استخدام النموذج"
+"dnsPresetTitle" = "قوالب DNS"
+"dnsPresetFamily" = "العائلي"
 
 [pages.xray.fakedns]
 "add" = "أضف Fake DNS"

@@ -523,6 +523,9 @@
 "unexpectIPs" = "予期しないIP"
 "useSystemHosts" = "システムのHostsを使用"
 "useSystemHostsDesc" = "インストール済みシステムのhostsファイルを使用する"
+"usePreset" = "テンプレートを使用"
+"dnsPresetTitle" = "DNSテンプレート"
+"dnsPresetFamily" = "ファミリー"
 
 [pages.xray.fakedns]
 "add" = "フェイクDNS追加"
