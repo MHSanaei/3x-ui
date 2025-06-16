@@ -135,18 +135,18 @@
         { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
         { title: '{{ i18n "pages.xray.rules.source"}}', children: [
             { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
-            { title: 'Port', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
+            { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true } ]},
         { title: '{{ i18n "pages.inbounds.network"}}', children: [
             { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
-            { title: 'Protocol', dataIndex: 'protocol', align: 'center', width: 15, ellipsis: true },
+            { title: '{{ i18n "protocol" }}', dataIndex: 'protocol', align: 'center', width: 15, ellipsis: true },
             { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 10, ellipsis: true } ]}, 
         { title: '{{ i18n "pages.xray.rules.dest"}}', children: [
             { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
-            { title: 'Domain', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
-            { title: 'Port', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
+            { title: '{{ i18n "pages.xray.outbound.domain" }}', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
+            { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
-            { title: 'Tag', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
-            { title: 'Client Email', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
+            { title: '{{ i18n "pages.xray.outbound.tag" }}', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
+            { title: '{{ i18n "pages.inbounds.client" }}', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]},
         { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 17 },
         { title: '{{ i18n "pages.xray.rules.balancer"}}', dataIndex: 'balancerTag', align: 'center', width: 15 },
     ];
