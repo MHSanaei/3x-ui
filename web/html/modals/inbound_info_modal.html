@@ -433,6 +433,9 @@
                   <a-tooltip title='{{ i18n "copy" }}'>
                     <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets" @click="copy(infoModal.links[index])"></a-button>
                   </a-tooltip>
+                  <a-tooltip title='{{ i18n "download" }}'>
+                    <a-button :style="{ minWidth: '24px' }" size="small" icon="download" @click="FileManager.downloadTextFile(infoModal.links[index], `peer-${index + 1}.conf`)"></a-button>
+                  </a-tooltip>
                 </tr-info-title>
                 <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)" :style="{ borderRadius: '1rem', padding: '0.5rem' }" class="client-table-odd-row">
                 </div>
