@@ -128,6 +128,7 @@
 {{template "modals/reverseModal"}}
 {{template "modals/balancerModal"}}
 {{template "modals/dnsModal"}}
+{{template "modals/dnsPresetsModal"}}
 {{template "modals/fakednsModal"}}
 {{template "modals/warpModal"}}
 <script>
@@ -308,16 +309,7 @@
                     { label: 'Netflix', value: 'geosite:netflix' },
                     { label: 'Reddit', value: 'geosite:reddit' },
                     { label: 'Speedtest', value: 'geosite:speedtest' },
-                ],
-                familyProtectDNS: {
-                    "servers": [
-                        "1.1.1.3",  // https://developers.cloudflare.com/1.1.1.1/setup/
-                        "1.0.0.3",
-                        "2606:4700:4700::1113",
-                        "2606:4700:4700::1003"
-                    ],
-                    "queryStrategy": "UseIP"
-                },
+                ]
             },
             defaultObservatory: {
                 subjectSelector: [],
@@ -826,6 +818,16 @@
                 this.obsSettings = '';
                 this.changeObsCode()
             },
+            openDNSPresets() {
+                dnsPresetsModal.show({
+                    title: '{{ i18n "pages.xray.dns.dnsPresetTitle" }}',
+                    selected: (selectedPreset) => {
+                        this.dnsServers = selectedPreset;
+                        
+                        dnsPresetsModal.close();
+                    }
+                });
+            },
             addDNSServer(){
                 dnsModal.show({
                     title: '{{ i18n "pages.xray.dns.add" }}',
@@ -1270,21 +1272,6 @@
                     }
                 },
             },
-            familyProtectSettings: {
-                get: function () {
-                    if (!this.templateSettings || !this.templateSettings.dns || !this.templateSettings.dns.servers) return false;
-                    return ArrayUtils.doAllItemsExist(this.settingsData.familyProtectDNS.servers, this.templateSettings.dns.servers);
-                },
-                set: function (newValue) {
-                    newTemplateSettings = this.templateSettings;
-                    if (newValue) {
-                        newTemplateSettings.dns = this.settingsData.familyProtectDNS;
-                    } else {
-                        newTemplateSettings.dns.servers = newTemplateSettings.dns?.servers?.filter(data => !this.settingsData.familyProtectDNS.servers.includes(data))
-                    }
-                    this.templateSettings = newTemplateSettings;
-                },
-            },
             WarpExist: {
                 get: function() {
                     return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp")>=0  : false;
@@ -1372,6 +1359,20 @@
                         newTemplateSettings.dns.disableFallbackIfMatch = newValue;
                     } else {
                         delete newTemplateSettings.dns.disableFallbackIfMatch
+                    }
+                    this.templateSettings = newTemplateSettings;
+                }
+            },
+            dnsUseSystemHosts: {
+                get: function () {
+                    return this.enableDNS ? this.templateSettings.dns.useSystemHosts : false;
+                },
+                set: function (newValue) {
+                    newTemplateSettings = this.templateSettings;
+                    if (newValue) {
+                        newTemplateSettings.dns.useSystemHosts = newValue;
+                    } else {
+                        delete newTemplateSettings.dns.useSystemHosts
                     }
                     this.templateSettings = newTemplateSettings;
                 }
