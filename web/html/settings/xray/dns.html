@@ -29,7 +29,7 @@
                 <template #control>
                     <a-select v-model="dnsStrategy" :style="{ width: '100%' }"
                         :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option :value="l" :label="l" v-for="l in ['UseIP', 'UseIPv4', 'UseIPv6']">
+                        <a-select-option :value="l" :label="l" v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']">
                             <span>[[ l ]]</span>
                         </a-select-option>
                     </a-select>
@@ -54,6 +54,14 @@
                 <template #description>{{ i18n "pages.xray.dns.disableFallbackIfMatchDesc" }}</template>
                 <template #control>
                     <a-switch v-model="dnsDisableFallbackIfMatch"></a-switch>
+                </template>
+            </a-setting-list-item>
+
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.xray.dns.useSystemHosts" }}</template>
+                <template #description>{{ i18n "pages.xray.dns.useSystemHostsDesc" }}</template>
+                <template #control>
+                    <a-switch v-model="dnsUseSystemHosts"></a-switch>
                 </template>
             </a-setting-list-item>
         </template>
@@ -102,9 +110,12 @@
             </template>
             <template v-else>
                 <a-empty description='{{ i18n "emptyDnsDesc" }}' :style="{ margin: '10px' }">
-                    <a-button type="primary" icon="plus" @click="addDNSServer()" :style="{ marginTop: '10px' }">
-                        <span>{{ i18n "pages.xray.dns.add" }}</span>
-                    </a-button>
+                    <a-button-group>
+                        <a-button type="primary" icon="plus" @click="addDNSServer()">
+                            <span>{{ i18n "pages.xray.dns.add" }}</span>
+                        </a-button>
+                        <a-button type="primary" icon="menu" @click="openDNSPresets()"></a-button>
+                    </a-button-group>
                 </a-empty>
             </template>
         </a-collapse-panel>

@@ -3,11 +3,11 @@ set -euo pipefail
 IFS=$'\n\t'
 
 # ------------------------------------------------------------------------------
-# DockerInit.sh — download and prepare Xray binaries and geolocation databases
+# DockerInit.sh ï¿½ download and prepare Xray binaries and geolocation databases
 # ------------------------------------------------------------------------------
 
 # Xray version
-readonly XRAY_VERSION="v25.5.16"
+readonly XRAY_VERSION="v25.6.8"
 
 # URL template for downloading Xray
 readonly XRAY_URL_TEMPLATE="https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-%s.zip"
