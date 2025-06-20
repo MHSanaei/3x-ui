@@ -2150,7 +2150,7 @@ Inbound.TrojanSettings.Fallback = class extends XrayCommonClass {
 Inbound.ShadowsocksSettings = class extends Inbound.Settings {
     constructor(protocol,
         method = SSMethods.BLAKE3_AES_256_GCM,
-        password = RandomUtil.randomShadowsocksPassword(),
+        password = '',
         network = 'tcp,udp',
         shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()],
         ivCheck = false,
@@ -2188,7 +2188,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
 Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
     constructor(
         method = '',
-        password = RandomUtil.randomShadowsocksPassword(),
+        password = '',
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
         totalGB = 0,
