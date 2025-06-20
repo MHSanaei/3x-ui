@@ -138,10 +138,10 @@ class RandomUtil {
         }
     }
 
-    static randomShadowsocksPassword(method = "2022-blake3-aes-256-gcm") {
+    static randomShadowsocksPassword(method = SSMethods.BLAKE3_AES_256_GCM) {
         let length = 32;
 
-        if (method === "2022-blake3-aes-128-gcm") {
+        if ([SSMethods.BLAKE3_AES_128_GCM].includes(method)) {
             length = 16; 
         }
 
