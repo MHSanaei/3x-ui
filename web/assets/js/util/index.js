@@ -138,8 +138,14 @@ class RandomUtil {
         }
     }
 
-    static randomShadowsocksPassword() {
-        const array = new Uint8Array(32);
+    static randomShadowsocksPassword(method = "2022-blake3-aes-256-gcm") {
+        let length = 32;
+
+        if (method === "2022-blake3-aes-128-gcm") {
+            length = 16; 
+        }
+
+        const array = new Uint8Array(length);
 
         window.crypto.getRandomValues(array);
 
