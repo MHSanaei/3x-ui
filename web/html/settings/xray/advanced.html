@@ -1,5 +1,5 @@
 {{define "settings/xray/advanced"}}
-<a-space direction="vertical" size="small">
+<a-space direction="vertical" size="small" :style="{ marginTop: '20px' }">
     <a-list-item-meta title='{{ i18n "pages.xray.Template"}}'
         description='{{ i18n "pages.xray.TemplateDesc"}}'></a-list-item-meta>
     <a-radio-group v-model="advSettings" @change="changeCode" button-style="solid" :style="{ margin: '10px 0' }"
