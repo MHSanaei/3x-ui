@@ -81,51 +81,16 @@
   }
   .client-comment {
     font-size: 12px;
-    color: #888;
-    font-style: italic;
-    line-height: 1.2;
-  }
-  .dark .client-comment {
-    color: #bbb;
+    opacity: 0.75;
+    cursor: help;
   }
   .client-email {
     font-weight: 500;
   }
-  .client-cell {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  .client-info-row {
+  .client-popup-item {
     display: flex;
     align-items: center;
-    gap: 6px;
-  }
-  .client-popup-item {
-    margin-bottom: 8px;
-    padding: 4px 0;
-    border-bottom: 1px solid #f0f0f0;
-  }
-  .dark .client-popup-item {
-    border-bottom: 1px solid #333;
-  }
-  .client-popup-item:last-child {
-    border-bottom: none;
-    margin-bottom: 0;
-  }
-  .client-popup-email {
-    font-weight: 500;
-    margin-bottom: 2px;
-  }
-  .client-popup-comment {
-    font-size: 11px;
-    color: #666;
-    font-style: italic;
-    max-width: 200px;
-    word-break: break-word;
-  }
-  .dark .client-popup-comment {
-    color: #aaa;
+    gap: 5px;
   }
   .online-animation .ant-badge-status-dot {
     animation: onlineAnimation 1.2s linear infinite;
@@ -431,8 +396,13 @@
                     <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
                       <template slot="content">
                         <div v-for="clientEmail in clientCount[dbInbound.id].deactive" :key="clientEmail" class="client-popup-item">
-                          <div class="client-popup-email">[[ clientEmail ]]</div>
-                          <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                          <span>[[ clientEmail ]]</span>
+                          <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                            <template #title>
+                              [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                            </template>
+                            <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                          </a-tooltip>
                         </div>
                       </template>
                       <a-tag :style="{ margin: '0', padding: '0 2px' }" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
@@ -440,8 +410,13 @@
                     <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
                       <template slot="content">
                         <div v-for="clientEmail in clientCount[dbInbound.id].depleted" :key="clientEmail" class="client-popup-item">
-                          <div class="client-popup-email">[[ clientEmail ]]</div>
-                          <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                          <span>[[ clientEmail ]]</span>
+                          <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                            <template #title>
+                              [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                            </template>
+                            <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                          </a-tooltip>
                         </div>
                       </template>
                       <a-tag :style="{ margin: '0', padding: '0 2px' }" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
@@ -449,8 +424,13 @@
                     <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
                       <template slot="content">
                         <div v-for="clientEmail in clientCount[dbInbound.id].expiring" :key="clientEmail" class="client-popup-item">
-                          <div class="client-popup-email">[[ clientEmail ]]</div>
-                          <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                          <span>[[ clientEmail ]]</span>
+                          <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                            <template #title>
+                              [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                            </template>
+                            <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                          </a-tooltip>
                         </div>
                       </template>
                       <a-tag :style="{ margin: '0', padding: '0 2px' }" color="orange" v-if="clientCount[dbInbound.id].expiring.length">[[ clientCount[dbInbound.id].expiring.length ]]</a-tag>
@@ -458,8 +438,13 @@
                     <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
                       <template slot="content">
                         <div v-for="clientEmail in clientCount[dbInbound.id].online" :key="clientEmail" class="client-popup-item">
-                          <div class="client-popup-email">[[ clientEmail ]]</div>
-                          <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                          <span>[[ clientEmail ]]</span>
+                          <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                            <template #title>
+                              [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                            </template>
+                            <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                          </a-tooltip>
                         </div>
                       </template>
                       <a-tag :style="{ margin: '0', padding: '0 2px' }" color="blue" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>
@@ -540,8 +525,13 @@
                             <a-popover title='{{ i18n "disabled" }}' :overlay-class-name="themeSwitcher.currentTheme">
                               <template slot="content">
                                 <div v-for="clientEmail in clientCount[dbInbound.id].deactive" :key="clientEmail" class="client-popup-item">
-                                  <div class="client-popup-email">[[ clientEmail ]]</div>
-                                  <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                                  <span>[[ clientEmail ]]</span>
+                                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template #title>
+                                      [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                    </template>
+                                    <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                  </a-tooltip>
                                 </div>
                               </template>
                               <a-tag :style="{ margin: '0', padding: '0 2px' }" v-if="clientCount[dbInbound.id].deactive.length">[[ clientCount[dbInbound.id].deactive.length ]]</a-tag>
@@ -549,8 +539,13 @@
                             <a-popover title='{{ i18n "depleted" }}' :overlay-class-name="themeSwitcher.currentTheme">
                               <template slot="content">
                                 <div v-for="clientEmail in clientCount[dbInbound.id].depleted" :key="clientEmail" class="client-popup-item">
-                                  <div class="client-popup-email">[[ clientEmail ]]</div>
-                                  <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                                  <span>[[ clientEmail ]]</span>
+                                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template #title>
+                                      [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                    </template>
+                                    <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                  </a-tooltip>
                                 </div>
                               </template>
                               <a-tag :style="{ margin: '0', padding: '0 2px' }" color="red" v-if="clientCount[dbInbound.id].depleted.length">[[ clientCount[dbInbound.id].depleted.length ]]</a-tag>
@@ -558,8 +553,13 @@
                             <a-popover title='{{ i18n "depletingSoon" }}' :overlay-class-name="themeSwitcher.currentTheme">
                               <template slot="content">
                                 <div v-for="clientEmail in clientCount[dbInbound.id].expiring" :key="clientEmail" class="client-popup-item">
-                                  <div class="client-popup-email">[[ clientEmail ]]</div>
-                                  <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                                  <span>[[ clientEmail ]]</span>
+                                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template #title>
+                                      [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                    </template>
+                                    <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                  </a-tooltip>
                                 </div>
                               </template>
                               <a-tag :style="{ margin: '0', padding: '0 2px' }" color="orange" v-if="clientCount[dbInbound.id].expiring.length">[[ clientCount[dbInbound.id].expiring.length ]]</a-tag>
@@ -567,8 +567,13 @@
                             <a-popover title='{{ i18n "online" }}' :overlay-class-name="themeSwitcher.currentTheme">
                               <template slot="content">
                                 <div v-for="clientEmail in clientCount[dbInbound.id].online" :key="clientEmail" class="client-popup-item">
-                                  <div class="client-popup-email">[[ clientEmail ]]</div>
-                                  <div v-if="getClientWithComment(clientEmail, dbInbound.id).comment" class="client-popup-comment">[[ getClientWithComment(clientEmail, dbInbound.id).comment ]]</div>
+                                  <span>[[ clientEmail ]]</span>
+                                  <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                                    <template #title>
+                                      [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                    </template>
+                                    <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                  </a-tooltip>
                                 </div>
                               </template>
                               <a-tag :style="{ margin: '0', padding: '0 2px' }" color="green" v-if="clientCount[dbInbound.id].online.length">[[ clientCount[dbInbound.id].online.length ]]</a-tag>

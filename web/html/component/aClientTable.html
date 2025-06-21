@@ -41,28 +41,28 @@
   </template>
 </template>
 <template slot="client" slot-scope="text, client">
-  <div class="client-cell">
-    <div class="client-info-row">
-      <a-tooltip>
-        <template slot="title">
-          <template v-if="!isClientEnabled(record, client.email)">{{ i18n "depleted" }}</template>
-          <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
-          <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
-        </template>
-        <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
-      </a-tooltip>
+  <a-space direction="horizontal" :size="2">
+    <a-tooltip>
+      <template slot="title">
+        <template v-if="!isClientEnabled(record, client.email)">{{ i18n "depleted" }}</template>
+        <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
+        <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
+      </template>
+      <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
+    </a-tooltip>
+    <a-space direction="vertical" :size="2">
       <span class="client-email">[[ client.email ]]</span>
-    </div>
-    <div v-if="client.comment && client.comment.trim()" style="margin-left: 18px;">
-      <a-tooltip v-if="client.comment.length > 50" :overlay-class-name="themeSwitcher.currentTheme">
-        <template slot="title">
-          [[ client.comment ]]
-        </template>
-        <span class="client-comment">[[ client.comment.substring(0, 47) + '...' ]]</span>
-      </a-tooltip>
-      <span v-else class="client-comment">[[ client.comment ]]</span>
-    </div>
-  </div>
+      <template v-if="client.comment && client.comment.trim()">
+        <a-tooltip v-if="client.comment.length > 50" :overlay-class-name="themeSwitcher.currentTheme">
+          <template slot="title">
+            [[ client.comment ]]
+          </template>
+          <span class="client-comment">[[ client.comment.substring(0, 47) + '...' ]]</span>
+        </a-tooltip>
+        <span v-else class="client-comment">[[ client.comment ]]</span>
+      </template>
+    </a-space>
+  </a-space>
 </template>
 <template slot="traffic" slot-scope="text, client">
   <a-popover :overlay-class-name="themeSwitcher.currentTheme">
@@ -182,15 +182,6 @@
   <a-popover placement="bottomRight" :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
     <template slot="content">
       <table>
-        <tr v-if="client.comment && client.comment.trim()">
-          <td colspan="3" :style="{ textAlign: 'left', borderBottom: '1px solid #f0f0f0', paddingBottom: '8px', marginBottom: '8px' }">
-            <div :style="{ fontSize: '0.9em', fontWeight: '500', marginBottom: '4px' }">[[ client.email ]]</div>
-            <div :style="{ fontSize: '0.85em', color: '#666', fontStyle: 'italic', wordBreak: 'break-word', maxWidth: '250px' }">[[ client.comment ]]</div>
-          </td>
-        </tr>
-        <tr v-else>
-          <td colspan="3" :style="{ textAlign: 'center', fontWeight: '500', paddingBottom: '8px' }">[[ client.email ]]</td>
-        </tr>
         <tr>
           <td colspan="3" :style="{ textAlign: 'center' }">{{ i18n "pages.inbounds.traffic" }}</td>
         </tr>
