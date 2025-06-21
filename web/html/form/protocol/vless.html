@@ -12,7 +12,12 @@
         <th>ID</th>
       </tr>
       <tr v-for="(client, index) in inbound.settings.vlesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
-        <td>[[ client.email ]]</td>
+        <td>
+          <div class="client-cell">
+            <div class="client-email">[[ client.email ]]</div>
+            <div v-if="client.comment && client.comment.trim()" class="client-comment">[[ client.comment ]]</div>
+          </div>
+        </td>
         <td>[[ client.id ]]</td>
       </tr>
     </table>
