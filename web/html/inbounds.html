@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-{{template "head" .}}
+{{ template "page/head_start" .}}
 <style>
   .ant-table:not(.ant-table-expanded-row .ant-table) {
     outline: 1px solid #f0f0f0;
@@ -143,8 +141,9 @@
     padding: 12px 2px;
   }
 </style>
+{{ template "page/head_end" .}}
 
-<body>
+{{ template "page/body_start" .}}
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
@@ -657,7 +656,7 @@
     </a-layout-content>
   </a-layout>
 </a-layout>
-{{template "js" .}}
+{{template "page/body_scripts" .}}
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/uri/URI.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/inbound.js?{{ .cur_ver }}"></script>
@@ -666,6 +665,13 @@
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
 {{template "component/aPersianDatepicker" .}}
+{{template "modals/inboundModal"}}
+{{template "modals/promptModal"}}
+{{template "modals/qrcodeModal"}}
+{{template "modals/textModal"}}
+{{template "modals/inboundInfoModal"}}
+{{template "modals/clientsModal"}}
+{{template "modals/clientsBulkModal"}}
 <script>
     const columns = [{
         title: "ID",
@@ -1607,13 +1613,4 @@
         },
     });
 </script>
-
-{{template "modals/inboundModal"}}
-{{template "modals/promptModal"}}
-{{template "modals/qrcodeModal"}}
-{{template "modals/textModal"}}
-{{template "modals/inboundInfoModal"}}
-{{template "modals/clientsModal"}}
-{{template "modals/clientsBulkModal"}}
-</body>
-</html>
+{{ template "page/body_end" .}}
