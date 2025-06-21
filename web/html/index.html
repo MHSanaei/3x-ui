@@ -4,15 +4,6 @@
     .ant-layout-content {
       margin: 24px 16px;
     }
-    .ant-card-hoverable {
-      margin-inline: 0.3rem;
-    }
-    .ant-alert-error {
-      margin-inline: 0.3rem;
-    }
-  }
-  .ant-col-sm-24 {
-    margin-top: 10px;
   }
   .ant-card-dark h2 {
     color: var(--dark-color-text-primary);
@@ -84,9 +75,9 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="spinning" :delay="200" :tip="loadingTip">
+      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip">
         <transition name="list" appear>
-          <a-alert type="error" v-if="showAlert" :style="{ marginBottom: '10px' }"
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
             message='{{ i18n "secAlertTitle" }}'
             color="red"
             description='{{ i18n "secAlertSsl" }}'
@@ -95,15 +86,15 @@
         </transition>
         <transition name="list" appear>
           <template>
-            <a-row v-if="!status.isLoaded">
+            <a-row v-if="!loadingStates.fetched">
               <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
                 <a-spin tip='{{ i18n "loading" }}'></a-spin>
               </a-card>
             </a-row>
-            <a-row v-else>
-              <a-row>
+            <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
+              <a-col>
                 <a-card hoverable>
-                  <a-row>
+                  <a-row :gutter="[0, isMobile ? 16 : 0]">
                     <a-col :sm="24" :md="12">
                       <a-row>
                         <a-col :span="12" :style="{ textAlign: 'center' }">
@@ -153,7 +144,7 @@
                     </a-col>
                   </a-row>
                 </a-card>
-              </a-row>
+              </a-col>
               <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <template #title>
@@ -488,7 +479,7 @@
     }
 
     class Status {
-        constructor(data, isLoaded = false) {
+        constructor(data) {
             this.cpu = new CurTotal(0, 0);
             this.cpuCores = 0;
             this.logicalPro = 0;
@@ -512,7 +503,6 @@
               return;
             }
 
-            this.isLoaded = isLoaded;
             this.cpu = new CurTotal(data.cpu, 100);
             this.cpuCores = data.cpuCores;
             this.logicalPro = data.logicalPro;
@@ -632,32 +622,39 @@
         mixins: [MediaQueryMixin],
         data: {
             themeSwitcher,
+            loadingStates: {
+              fetched: false,
+              spinning: false
+            },
             status: new Status(),
             versionModal,
             logModal,
             backupModal,
-            spinning: false,
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
             showIp: false
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
-                this.spinning = spinning;
+                this.loadingStates.spinning = spinning;
                 this.loadingTip = tip;
             },
             async getStatus() {
                 try {
                     const msg = await HttpUtil.post('/server/status');
                     if (msg.success) {
+                        if (!this.loadingStates.fetched) {
+                            this.loadingStates.fetched = true;
+                        }
+
                         this.setStatus(msg.obj, true);
                     }
                 } catch (e) {
                     console.error("Failed to get status:", e);
                 }
             },
-            setStatus(data, isLoaded = false) {
-              this.status = new Status(data, isLoaded);
+            setStatus(data) {
+                this.status = new Status(data);
             },
             async openSelectV2rayVersion() {
                 this.loading(true);
