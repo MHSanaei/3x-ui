@@ -795,6 +795,25 @@ class LanguageManager {
             if (window.navigator) {
                 lang = window.navigator.language || window.navigator.userLanguage;
 
+                const simularLangs = [
+                    ["ar", this.supportedLanguages[0].value],
+                    ["fa", this.supportedLanguages[2].value],
+                    ["ja", this.supportedLanguages[5].value],
+                    ["ru", this.supportedLanguages[6].value],
+                    ["vi", this.supportedLanguages[7].value],
+                    ["es", this.supportedLanguages[8].value],
+                    ["id", this.supportedLanguages[9].value],
+                    ["uk", this.supportedLanguages[10].value],
+                    ["tr", this.supportedLanguages[11].value],
+                    ["pt", this.supportedLanguages[12].value],
+                ]
+
+                simularLangs.forEach((pair) => {
+                    if (lang === pair[0]) {
+                        lang = pair[1];
+                    }
+                });
+
                 if (LanguageManager.isSupportLanguage(lang)) {
                     CookieManager.setCookie("lang", lang, 150);
                 } else {
