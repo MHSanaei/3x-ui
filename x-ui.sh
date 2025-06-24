@@ -179,11 +179,20 @@ reset_user() {
         fi
         return 0
     fi
+    
     read -rp "Please set the login username [default is a random username]: " config_account
     [[ -z $config_account ]] && config_account=$(date +%s%N | md5sum | cut -c 1-8)
     read -rp "Please set the login password [default is a random password]: " config_password
     [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
-    /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} >/dev/null 2>&1
+
+    read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
+    if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
+        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor false >/dev/null 2>&1
+    else
+        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor true >/dev/null 2>&1
+        echo -e "Two factor authentication has been disabled."
+    fi
+    
     echo -e "Panel login username has been reset to: ${green} ${config_account} ${plain}"
     echo -e "Panel login password has been reset to: ${green} ${config_password} ${plain}"
     echo -e "${green} Please use the new login username and password to access the X-UI panel. Also remember them! ${plain}"
