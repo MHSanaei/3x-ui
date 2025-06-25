@@ -9,7 +9,8 @@ RUN apk --no-cache --update add \
   build-base \
   gcc \
   wget \
-  unzip
+  unzip \
+  bash
 
 COPY . .
 
