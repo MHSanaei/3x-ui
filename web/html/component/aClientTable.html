@@ -41,14 +41,28 @@
   </template>
 </template>
 <template slot="client" slot-scope="text, client">
-  <a-tooltip>
-    <template slot="title">
-      <template v-if="!isClientEnabled(record, client.email)">{{ i18n "depleted" }}</template>
-      <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
-      <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
-    </template>
-    <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
-  </a-tooltip> [[ client.email ]]
+  <a-space direction="horizontal" :size="2">
+    <a-tooltip>
+      <template slot="title">
+        <template v-if="!isClientEnabled(record, client.email)">{{ i18n "depleted" }}</template>
+        <template v-else-if="!client.enable">{{ i18n "disabled" }}</template>
+        <template v-else-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
+      </template>
+      <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
+    </a-tooltip>
+    <a-space direction="vertical" :size="2">
+      <span class="client-email">[[ client.email ]]</span>
+      <template v-if="client.comment && client.comment.trim()">
+        <a-tooltip v-if="client.comment.length > 50" :overlay-class-name="themeSwitcher.currentTheme">
+          <template slot="title">
+            [[ client.comment ]]
+          </template>
+          <span class="client-comment">[[ client.comment.substring(0, 47) + '...' ]]</span>
+        </a-tooltip>
+        <span v-else class="client-comment">[[ client.comment ]]</span>
+      </template>
+    </a-space>
+  </a-space>
 </template>
 <template slot="traffic" slot-scope="text, client">
   <a-popover :overlay-class-name="themeSwitcher.currentTheme">

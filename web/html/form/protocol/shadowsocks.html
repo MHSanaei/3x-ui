@@ -31,7 +31,7 @@
             <a-tooltip>
                 <template slot="title">
                     <span>{{ i18n "reset" }}</span>
-                </template> Password <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword()" type="sync"></a-icon>
+                </template> Password <a-icon @click="inbound.settings.password = RandomUtil.randomShadowsocksPassword(inbound.settings.method)" type="sync"></a-icon>
             </a-tooltip>
         </template>
         <a-input v-model.trim="inbound.settings.password"></a-input>

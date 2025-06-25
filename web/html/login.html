@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-{{template "head" .}}
+{{ template "page/head_start" .}}
 <style>
   html * {
     -webkit-font-smoothing: antialiased;
@@ -453,174 +451,174 @@
     margin: 2px 0 4px;
   }
 </style>
+{{ template "page/head_end" .}}
 
-<body>
-  <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    <transition name="list" appear>
-      <a-layout-content class="under" :style="{ minHeight: '0' }">
-        <div class="waves-header">
-          <div class="waves-inner-header"></div>
-          <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-            viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
-            <defs>
-              <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
-            </defs>
-            <g class="parallax">
-              <use xlink:href="#gentle-wave" x="48" y="0" fill="rgba(0, 135, 113, 0.08)" />
-              <use xlink:href="#gentle-wave" x="48" y="3" fill="rgba(0, 135, 113, 0.08)" />
-              <use xlink:href="#gentle-wave" x="48" y="5" fill="rgba(0, 135, 113, 0.08)" />
-              <use xlink:href="#gentle-wave" x="48" y="7" fill="#c7ebe2" />
-            </g>
-          </svg>
-        </div>
-        <a-row type="flex" justify="center" align="middle" :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
-          <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" :style="{ margin: '3rem 0' }">
-            <div class="setting-section">
-              <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
-                <template slot="content">
-                  <a-space direction="vertical" :size="10">
-                    <a-theme-switch-login></a-theme-switch-login>
-                    <span>{{ i18n "pages.settings.language" }}</span>
-                    <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
-                      <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
-                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
-                        &nbsp;&nbsp;<span v-text="l.name"></span>
-                      </a-select-option>
-                    </a-select>
-                  </a-space>
-                </template>
-                <a-button shape="circle" icon="setting"></a-button>
-              </a-popover>
-            </div>
-            <a-row type="flex" justify="center">
-              <a-col :style="{ width: '100%' }">
-                <h2 class="title headline zoom">
-                  <span class="words-wrapper">
-                    <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
-                    <b>{{ i18n "pages.login.title" }}</b>
-                  </span>
-                </h2>
-              </a-col>
-            </a-row>
-            <a-row type="flex" justify="center">
-              <a-col span="24">
-                <a-form>
-                  <a-space direction="vertical" size="middle">
-                    <a-form-item>
-                      <a-input autocomplete="username" name="username" v-model.trim="user.username"
-                        placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
-                        <a-icon slot="prefix" type="user" :style="{ fontSize: '1rem' }"></a-icon>
-                      </a-input>
-                    </a-form-item>
-                    <a-form-item>
-                      <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
-                        placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
-                      </a-input-password>
-                    </a-form-item>
-                    <a-form-item v-if="twoFactorEnable">
-                      <a-input autocomplete="totp" name="twoFactorCode" v-model.trim="user.twoFactorCode"
-                        placeholder='{{ i18n "twoFactorCode" }}' @keydown.enter.native="login">
-                        <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
-                      </a-input>
-                    </a-form-item>
-                    <a-form-item>
-                      <a-row justify="center" class="centered">
-                        <div :style="{ height: '50px', marginTop: '1rem', ...loading ? { width: '52px' } : { display: 'inline-block' } }" class="wave-btn-bg wave-btn-bg-cl">
-                          <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login"
-                            :icon="loading ? 'poweroff' : undefined">
-                            [[ loading ? '' : '{{ i18n "login" }}' ]]
-                          </a-button>
-                        </div>
-                      </a-row>
-                    </a-form-item>
-                  </a-space>
-                </a-form>
-              </a-col>
-            </a-row>
-          </a-col>
-        </a-row>
-      </a-layout-content>
-    </transition>
-  </a-layout>
-  {{template "js" .}}
-  {{template "component/aThemeSwitch" .}}
-  <script>
-    const app = new Vue({
-      delimiters: ['[[', ']]'],
-      el: '#app',
-      data: {
-        themeSwitcher,
-        loading: false,
-        user: {
-          username: "",
-          password: "",
-          twoFactorCode: ""
-        },
-        twoFactorEnable: false,
-        lang: ""
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+  <transition name="list" appear>
+    <a-layout-content class="under" :style="{ minHeight: '0' }">
+      <div class="waves-header">
+        <div class="waves-inner-header"></div>
+        <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+          viewBox="0 24 150 28" preserveAspectRatio="none" shape-rendering="auto">
+          <defs>
+            <path id="gentle-wave" d="M-160 44c30 0 58-18 88-18s 58 18 88 18 58-18 88-18 58 18 88 18 v44h-352z" />
+          </defs>
+          <g class="parallax">
+            <use xlink:href="#gentle-wave" x="48" y="0" fill="rgba(0, 135, 113, 0.08)" />
+            <use xlink:href="#gentle-wave" x="48" y="3" fill="rgba(0, 135, 113, 0.08)" />
+            <use xlink:href="#gentle-wave" x="48" y="5" fill="rgba(0, 135, 113, 0.08)" />
+            <use xlink:href="#gentle-wave" x="48" y="7" fill="#c7ebe2" />
+          </g>
+        </svg>
+      </div>
+      <a-row type="flex" justify="center" align="middle" :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
+        <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" :style="{ margin: '3rem 0' }">
+          <div class="setting-section">
+            <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
+              <template slot="content">
+                <a-space direction="vertical" :size="10">
+                  <a-theme-switch-login></a-theme-switch-login>
+                  <span>{{ i18n "pages.settings.language" }}</span>
+                  <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
+                      <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                      &nbsp;&nbsp;<span v-text="l.name"></span>
+                    </a-select-option>
+                  </a-select>
+                </a-space>
+              </template>
+              <a-button shape="circle" icon="setting"></a-button>
+            </a-popover>
+          </div>
+          <a-row type="flex" justify="center">
+            <a-col :style="{ width: '100%' }">
+              <h2 class="title headline zoom">
+                <span class="words-wrapper">
+                  <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
+                  <b>{{ i18n "pages.login.title" }}</b>
+                </span>
+              </h2>
+            </a-col>
+          </a-row>
+          <a-row type="flex" justify="center">
+            <a-col span="24">
+              <a-form>
+                <a-space direction="vertical" size="middle">
+                  <a-form-item>
+                    <a-input autocomplete="username" name="username" v-model.trim="user.username"
+                      placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
+                      <a-icon slot="prefix" type="user" :style="{ fontSize: '1rem' }"></a-icon>
+                    </a-input>
+                  </a-form-item>
+                  <a-form-item>
+                    <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
+                      placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
+                      <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
+                    </a-input-password>
+                  </a-form-item>
+                  <a-form-item v-if="twoFactorEnable">
+                    <a-input autocomplete="totp" name="twoFactorCode" v-model.trim="user.twoFactorCode"
+                      placeholder='{{ i18n "twoFactorCode" }}' @keydown.enter.native="login">
+                      <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
+                    </a-input>
+                  </a-form-item>
+                  <a-form-item>
+                    <a-row justify="center" class="centered">
+                      <div :style="{ height: '50px', marginTop: '1rem', ...loading ? { width: '52px' } : { display: 'inline-block' } }" class="wave-btn-bg wave-btn-bg-cl">
+                        <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login"
+                          :icon="loading ? 'poweroff' : undefined">
+                          [[ loading ? '' : '{{ i18n "login" }}' ]]
+                        </a-button>
+                      </div>
+                    </a-row>
+                  </a-form-item>
+                </a-space>
+              </a-form>
+            </a-col>
+          </a-row>
+        </a-col>
+      </a-row>
+    </a-layout-content>
+  </transition>
+</a-layout>
+{{template "page/body_scripts" .}}
+{{template "component/aThemeSwitch" .}}
+<script>
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    data: {
+      themeSwitcher,
+      loading: false,
+      user: {
+        username: "",
+        password: "",
+        twoFactorCode: ""
       },
-      async mounted() {
-        this.lang = LanguageManager.getLanguage();
-        this.twoFactorEnable = await this.getTwoFactorEnable();
+      twoFactorEnable: false,
+      lang: ""
+    },
+    async mounted() {
+      this.lang = LanguageManager.getLanguage();
+      this.twoFactorEnable = await this.getTwoFactorEnable();
+    },
+    methods: {
+      async login() {
+        this.loading = true;
+        const msg = await HttpUtil.post('/login', this.user);
+        this.loading = false;
+        if (msg.success) {
+          location.href = basePath + 'panel/';
+        }
       },
-      methods: {
-        async login() {
-          this.loading = true;
-          const msg = await HttpUtil.post('/login', this.user);
-          this.loading = false;
-          if (msg.success) {
-            location.href = basePath + 'panel/';
-          }
-        },
-        async getTwoFactorEnable() {
-          this.loading = true;
-          const msg = await HttpUtil.post('/getTwoFactorEnable');
-          this.loading = false;
-          if (msg.success) {
-            this.twoFactorEnable = msg.obj;
-            return msg.obj;
-          }
-        },
+      async getTwoFactorEnable() {
+        this.loading = true;
+        const msg = await HttpUtil.post('/getTwoFactorEnable');
+        this.loading = false;
+        if (msg.success) {
+          this.twoFactorEnable = msg.obj;
+          return msg.obj;
+        }
       },
-    });
+    },
+  });
 
-    document.addEventListener("DOMContentLoaded", function () {
-      var animationDelay = 2000;
-      initHeadline();
+  document.addEventListener("DOMContentLoaded", function () {
+    var animationDelay = 2000;
+    initHeadline();
 
-      function initHeadline() {
-        animateHeadline(document.querySelectorAll('.headline'));
-      }
+    function initHeadline() {
+      animateHeadline(document.querySelectorAll('.headline'));
+    }
 
-      function animateHeadline(headlines) {
-        var duration = animationDelay;
-        headlines.forEach(function (headline) {
-          setTimeout(function () {
-            hideWord(headline.querySelector('.is-visible'));
-          }, duration);
-        });
-      }
-
-      function hideWord(word) {
-        var nextWord = takeNext(word);
-        switchWord(word, nextWord);
+    function animateHeadline(headlines) {
+      var duration = animationDelay;
+      headlines.forEach(function (headline) {
         setTimeout(function () {
-          hideWord(nextWord);
-        }, animationDelay);
-      }
+          hideWord(headline.querySelector('.is-visible'));
+        }, duration);
+      });
+    }
 
-      function takeNext(word) {
-        return word.nextElementSibling ? word.nextElementSibling : word.parentElement.firstElementChild;
-      }
+    function hideWord(word) {
+      var nextWord = takeNext(word);
+      switchWord(word, nextWord);
+      setTimeout(function () {
+        hideWord(nextWord);
+      }, animationDelay);
+    }
 
-      function switchWord(oldWord, newWord) {
-        oldWord.classList.remove('is-visible');
-        oldWord.classList.add('is-hidden');
-        newWord.classList.remove('is-hidden');
-        newWord.classList.add('is-visible');
-      }
-    });
-  </script>
-</body>
-</html>
+    function takeNext(word) {
+      return word.nextElementSibling ? word.nextElementSibling : word.parentElement.firstElementChild;
+    }
+
+    function switchWord(oldWord, newWord) {
+      oldWord.classList.remove('is-visible');
+      oldWord.classList.add('is-hidden');
+      newWord.classList.remove('is-hidden');
+      newWord.classList.add('is-visible');
+    }
+  });
+</script>
+{{ template "page/body_end" .}}
