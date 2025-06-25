@@ -1,0 +1,56 @@
+{{define "modals/fakednsModal"}}
+<a-modal id="fakedns-modal" v-model="fakednsModal.visible" :title="fakednsModal.title" @ok="fakednsModal.ok"
+  :closable="true" :mask-closable="false" :ok-text="fakednsModal.okText" cancel-text='{{ i18n "close" }}'
+  :class="themeSwitcher.currentTheme">
+  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='{{ i18n "pages.xray.fakedns.ipPool" }}'>
+      <a-input v-model.trim="fakednsModal.fakeDns.ipPool"></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.xray.fakedns.poolSize" }}'>
+      <a-input-number v-model.number="fakednsModal.fakeDns.poolSize" :min="1"></a-input-number>
+    </a-form-item>
+  </a-form>
+</a-modal>
+<script>
+  const fakednsDefaultData = {
+    ipPool: "198.18.0.0/16",
+    poolSize: 65535,
+  }
+
+  const fakednsModal = {
+    title: '',
+    visible: false,
+    okText: '{{ i18n "confirm" }}',
+    isEdit: false,
+    confirm: null,
+    fakeDns: { ...fakednsDefaultData },
+    ok() {
+      ObjectUtil.execute(fakednsModal.confirm, fakednsModal.fakeDns);
+    },
+    show({ title = '', okText = '{{ i18n "confirm" }}', fakeDns, confirm = (fakeDns) => { }, isEdit = false }) {
+      this.title = title;
+      this.okText = okText;
+      this.confirm = confirm;
+      this.visible = true;
+      if (isEdit) {
+        this.fakeDns = fakeDns;
+      } else {
+        this.fakeDns = { ...fakednsDefaultData }
+      }
+      this.isEdit = isEdit;
+    },
+    close() {
+      fakednsModal.visible = false;
+    },
+  };
+
+  new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#fakedns-modal',
+    data: {
+      fakednsModal: fakednsModal,
+    }
+  });
+
+</script>
+{{end}}

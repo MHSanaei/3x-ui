@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-{{template "head" .}}
+{{ template "page/head_start" .}}
 <style>
   @media (min-width: 769px) {
     .ant-layout-content {
@@ -60,68 +58,103 @@
     margin-block-end: 12px;
   }
 </style>
-<body>
-  <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    <a-sidebar></a-sidebar>
-    <a-layout id="content-layout">
-      <a-layout-content>
-        <a-spin :spinning="spinning" :delay="500" tip='{{ i18n "loading"}}'>
-          <transition name="list" appear>
-            <a-alert type="error" v-if="confAlerts.length>0" :style="{ marginBottom: '10px' }"
-                message='{{ i18n "secAlertTitle" }}'
-                color="red"
-                show-icon closable>
-              <template slot="description">
-                <b>{{ i18n "secAlertConf" }}</b>
-                <ul><li v-for="a in confAlerts">[[ a ]]</li></ul>
-              </template>
-            </a-alert>
-          </transition>
-          <a-space direction="vertical">
-            <a-card hoverable :style="{ marginBottom: '.5rem', overflowX: 'hidden' }">
-              <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
-                <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
-                  <a-space direction="horizontal">
-                    <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
-                    <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
-                  </a-space>
-                </a-col>
-                <a-col :xs="24" :sm="14">
-                  <template>
-                    <div>
-                      <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200"></a-back-top>
-                      <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }"
-                        message='{{ i18n "pages.settings.infoDesc" }}'
-                        show-icon>
-                      </a-alert>
-                    </div>
-                  </template>
-                </a-col>
-              </a-row>
-            </a-card>
-            <a-tabs default-active-key="1">
-              <a-tab-pane key="1" tab='{{ i18n "pages.settings.panelSettings" }}' :style="{ paddingTop: '20px' }">
-                {{ template "settings/panel/general" . }}
-              </a-tab-pane>
-              <a-tab-pane key="2" tab='{{ i18n "pages.settings.securitySettings" }}' :style="{ paddingTop: '20px' }">
-                {{ template "settings/panel/security" . }}
-              </a-tab-pane>
-              <a-tab-pane key="3" tab='{{ i18n "pages.settings.TGBotSettings" }}' :style="{ paddingTop: '20px' }">
-                {{ template "settings/panel/telegram" . }}
-              </a-tab-pane>
-              <a-tab-pane key="4" tab='{{ i18n "pages.settings.subSettings" }}' :style="{ paddingTop: '20px' }">
-                {{ template "settings/panel/subscription/general" . }}
-              </a-tab-pane>
-              <a-tab-pane key="5" tab='{{ i18n "pages.settings.subSettings" }} Json' v-if="allSetting.subEnable" :style="{ paddingTop: '20px' }">
-                {{ template "settings/panel/subscription/json" . }}
-              </a-tab-pane>
-            </a-tabs>
-          </a-space>
-        </a-spin>
-      </a-layout-content>
-    </a-layout>
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content>
+      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+        <transition name="list" appear>
+          <a-alert type="error" v-if="confAlerts.length>0 && loadingStates.fetched" :style="{ marginBottom: '10px' }"
+              message='{{ i18n "secAlertTitle" }}'
+              color="red"
+              show-icon closable>
+            <template slot="description">
+              <b>{{ i18n "secAlertConf" }}</b>
+              <ul><li v-for="a in confAlerts">[[ a ]]</li></ul>
+            </template>
+          </a-alert>
+        </transition>
+        <transition name="list" appear>
+          <template>
+            <a-row v-if="!loadingStates.fetched">
+              <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+                <a-spin tip='{{ i18n "loading" }}'></a-spin>
+              </a-card>
+            </a-row>
+            <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
+              <a-col>
+                <a-card hoverable>
+                  <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
+                    <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
+                      <a-space direction="horizontal">
+                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
+                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
+                      </a-space>
+                    </a-col>
+                    <a-col :xs="24" :sm="14">
+                      <template>
+                        <div>
+                          <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200"></a-back-top>
+                          <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }"
+                            message='{{ i18n "pages.settings.infoDesc" }}'
+                            show-icon>
+                          </a-alert>
+                        </div>
+                      </template>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+              <a-col>
+                <a-tabs default-active-key="1">
+                  <a-tab-pane key="1" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="setting"></a-icon>
+                      <span>{{ i18n "pages.settings.panelSettings" }}</span>
+                    </template>
+                    {{ template "settings/panel/general" . }}
+                  </a-tab-pane>
+                  <a-tab-pane key="2" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="safety"></a-icon>
+                      <span>{{ i18n "pages.settings.securitySettings" }}</span>
+                    </template>
+                    {{ template "settings/panel/security" . }}
+                  </a-tab-pane>
+                  <a-tab-pane key="3" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="message"></a-icon>
+                      <span>{{ i18n "pages.settings.TGBotSettings" }}</span>
+                    </template>
+                    {{ template "settings/panel/telegram" . }}
+                  </a-tab-pane>
+                  <a-tab-pane key="4" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="cloud-server"></a-icon>
+                      <span>{{ i18n "pages.settings.subSettings" }}</span>
+                    </template>
+                    {{ template "settings/panel/subscription/general" . }}
+                  </a-tab-pane>
+                  <a-tab-pane key="5" v-if="allSetting.subEnable" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="code"></a-icon>
+                      <span>{{ i18n "pages.settings.subSettings" }} (JSON)</span>
+                    </template>
+                    {{ template "settings/panel/subscription/json" . }}
+                  </a-tab-pane>
+                </a-tabs>
+              </a-col>
+            </a-row>
+          </template>
+        </transition>
+      </a-spin>
+    </a-layout-content>
   </a-layout>
-{{template "js" .}}
+</a-layout>
+{{template "page/body_scripts" .}}
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/otpauth/otpauth.umd.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/js/model/setting.js?{{ .cur_ver }}"></script>
@@ -132,10 +165,14 @@
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
+    mixins: [MediaQueryMixin],
     el: '#app',
     data: {
       themeSwitcher,
-      spinning: false,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
       oldAllSetting: new AllSetting(),
       allSetting: new AllSetting(),
       saveBtnDisable: true,
@@ -248,13 +285,16 @@
     },
     methods: {
       loading(spinning = true) {
-        this.spinning = spinning;
+        this.loadingStates.spinning = spinning;
       },
       async getAllSetting() {
-        this.loading(true);
         const msg = await HttpUtil.post("/panel/setting/all");
-        this.loading(false);
+
         if (msg.success) {
+          if (!this.loadingStates.fetched) {
+            this.loadingStates.fetched = true
+          }
+
           this.oldAllSetting = new AllSetting(msg.obj);
           this.allSetting = new AllSetting(msg.obj);
           app.changeRemarkSample();
@@ -508,7 +548,7 @@
           if (!this.allSetting) return [];
           var alerts = []
           if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
-          if (this.allSetting.webPort == 54321) alerts.push('{{ i18n "secAlertPanelPort" }}');
+          if (this.allSetting.webPort === 2053) alerts.push('{{ i18n "secAlertPanelPort" }}');
           panelPath = window.location.pathname.split('/').length < 4
           if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
           if (this.allSetting.subEnable) {
@@ -531,5 +571,4 @@
     }
   });
 </script>
-</body>
-</html>
+{{ template "page/body_end" .}}

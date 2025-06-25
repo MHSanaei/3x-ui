@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"time"
+	"math"
 
 	"x-ui/logger"
 	"x-ui/util/common"
@@ -32,7 +33,7 @@ type XrayAPI struct {
 }
 
 func (x *XrayAPI) Init(apiPort int) error {
-	if apiPort <= 0 {
+	if apiPort <= 0 || apiPort > math.MaxUint16 {
 		return fmt.Errorf("invalid Xray API port: %d", apiPort)
 	}
 
