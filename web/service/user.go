@@ -79,6 +79,16 @@ func (s *UserService) UpdateUser(id int, username string, password string) error
 		return err
 	}
 
+	twoFactorEnable, err := s.settingService.GetTwoFactorEnable()
+	if err != nil {
+		return err
+	}
+
+	if twoFactorEnable {
+		s.settingService.SetTwoFactorEnable(false)
+		s.settingService.SetTwoFactorToken("")
+	}
+
 	return db.Model(model.User{}).
 		Where("id = ?", id).
 		Updates(map[string]any{"username": username, "password": hashedPassword}).

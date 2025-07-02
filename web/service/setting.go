@@ -322,8 +322,16 @@ func (s *SettingService) GetTwoFactorEnable() (bool, error) {
 	return s.getBool("twoFactorEnable")
 }
 
+func (s *SettingService) SetTwoFactorEnable(value bool) error {
+	return s.setBool("twoFactorEnable", value)
+}
+
 func (s *SettingService) GetTwoFactorToken() (string, error) {
 	return s.getString("twoFactorToken")
+}
+
+func (s *SettingService) SetTwoFactorToken(value string) error {
+	return s.setString("twoFactorToken", value)
 }
 
 func (s *SettingService) GetPort() (int, error) {
