@@ -135,7 +135,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="4" header='{{ i18n "pages.xray.blockConfigs"}}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.xray.basicRouting"}}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" :style="{ textAlign: 'center' }">
                 <template slot="message">
@@ -144,22 +144,12 @@
                 </template>
             </a-alert>
         </a-row>
-        <a-setting-list-item paddings="small">
+        <a-setting-list-item paddings="small" :style="{ marginBottom: '20px' }">
             <template #title>{{ i18n "pages.xray.Torrent"}}</template>
-            <template #description>{{ i18n "pages.xray.TorrentDesc"}}</template>
             <template #control>
                 <a-switch v-model="torrentSettings"></a-switch>
             </template>
         </a-setting-list-item>
-        <a-setting-list-item paddings="small">
-            <template #title>{{ i18n "pages.xray.Family"}}</template>
-            <template #description>{{ i18n "pages.xray.FamilyDesc"}}</template>
-            <template #control>
-                <a-switch v-model="familyProtectSettings"></a-switch>
-            </template>
-        </a-setting-list-item>
-    </a-collapse-panel>
-    <a-collapse-panel key="5" header='{{ i18n "pages.xray.basicRouting"}}'>
         <a-row :xs="24" :sm="24" :lg="12">
             <a-alert type="warning" :style="{ textAlign: 'center' }">
                 <template slot="message">

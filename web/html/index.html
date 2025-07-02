@@ -1,20 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-{{template "head" .}}
+{{ template "page/head_start" .}}
 <style>
   @media (min-width: 769px) {
     .ant-layout-content {
       margin: 24px 16px;
     }
-    .ant-card-hoverable {
-      margin-inline: 0.3rem;
-    }
-    .ant-alert-error {
-      margin-inline: 0.3rem;
-    }
-  }
-  .ant-col-sm-24 {
-    margin-top: 10px;
   }
   .ant-card-dark h2 {
     color: var(--dark-color-text-primary);
@@ -79,371 +68,385 @@
     }
   }
 </style>
+{{ template "page/head_end" .}}
 
-<body>
-  <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
-    <a-sidebar></a-sidebar>
-    <a-layout id="content-layout">
-      <a-layout-content>
-        <a-spin :spinning="spinning" :delay="200" :tip="loadingTip">
-          <transition name="list" appear>
-            <a-alert type="error" v-if="showAlert" :style="{ marginBottom: '10px' }"
-              message='{{ i18n "secAlertTitle" }}'
-              color="red"
-              description='{{ i18n "secAlertSsl" }}'
-              show-icon closable>
-            </a-alert>
-          </transition>
-          <transition name="list" appear>
-            <template>
-              <a-row v-if="!status.isLoaded">
-                <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-                  <a-spin tip='{{ i18n "loading" }}'></a-spin>
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content>
+      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip">
+        <transition name="list" appear>
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
+            message='{{ i18n "secAlertTitle" }}'
+            color="red"
+            description='{{ i18n "secAlertSsl" }}'
+            show-icon closable>
+          </a-alert>
+        </transition>
+        <transition name="list" appear>
+          <template>
+            <a-row v-if="!loadingStates.fetched">
+              <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+                <a-spin tip='{{ i18n "loading" }}'></a-spin>
+              </a-card>
+            </a-row>
+            <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
+              <a-col>
+                <a-card hoverable>
+                  <a-row :gutter="[0, isMobile ? 16 : 0]">
+                    <a-col :sm="24" :md="12">
+                      <a-row>
+                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                          <a-progress type="dashboard" status="normal"
+                            :stroke-color="status.cpu.color"
+                            :percent="status.cpu.percent"></a-progress>
+                          <div>
+                            <b>{{ i18n "pages.index.cpu" }}:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] 
+                            <a-tooltip>
+                              <a-icon type="area-chart"></a-icon> 
+                              <template slot="title">
+                                <div><b>{{ i18n "pages.index.logicalProcessors" }}:</b> [[ (status.logicalPro) ]]</div>
+                                <div><b>{{ i18n "pages.index.frequency" }}:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
+                              </template>
+                            </a-tooltip>
+                          </div>
+                        </a-col>
+                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                          <a-progress type="dashboard" status="normal"
+                            :stroke-color="status.mem.color"
+                            :percent="status.mem.percent"></a-progress>
+                          <div>
+                            <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
+                          </div>
+                        </a-col>
+                      </a-row>
+                    </a-col>
+                    <a-col :sm="24" :md="12">
+                      <a-row>
+                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                          <a-progress type="dashboard" status="normal"
+                            :stroke-color="status.swap.color"
+                            :percent="status.swap.percent"></a-progress>
+                          <div>
+                            <b>{{ i18n "pages.index.swap" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
+                          </div>
+                        </a-col>
+                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                          <a-progress type="dashboard" status="normal"
+                            :stroke-color="status.disk.color"
+                            :percent="status.disk.percent"></a-progress>
+                          <div>
+                            <b>{{ i18n "pages.index.storage"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
+                          </div>
+                        </a-col>
+                      </a-row>
+                    </a-col>
+                  </a-row>
                 </a-card>
-              </a-row>
-              <a-row v-else>
-                <a-row>
-                  <a-card hoverable>
-                    <a-row>
-                      <a-col :sm="24" :md="12">
-                        <a-row>
-                          <a-col :span="12" :style="{ textAlign: 'center' }">
-                            <a-progress type="dashboard" status="normal"
-                              :stroke-color="status.cpu.color"
-                              :percent="status.cpu.percent"></a-progress>
-                            <div>
-                              <b>{{ i18n "pages.index.cpu" }}:</b> [[ CPUFormatter.cpuCoreFormat(status.cpuCores) ]] 
-                              <a-tooltip>
-                                <a-icon type="area-chart"></a-icon> 
-                                <template slot="title">
-                                  <div><b>{{ i18n "pages.index.logicalProcessors" }}:</b> [[ (status.logicalPro) ]]</div>
-                                  <div><b>{{ i18n "pages.index.frequency" }}:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
-                                </template>
-                              </a-tooltip>
-                            </div>
-                          </a-col>
-                          <a-col :span="12" :style="{ textAlign: 'center' }">
-                            <a-progress type="dashboard" status="normal"
-                              :stroke-color="status.mem.color"
-                              :percent="status.mem.percent"></a-progress>
-                            <div>
-                              <b>{{ i18n "pages.index.memory"}}:</b> [[ SizeFormatter.sizeFormat(status.mem.current) ]] / [[ SizeFormatter.sizeFormat(status.mem.total) ]]
-                            </div>
-                          </a-col>
-                        </a-row>
-                      </a-col>
-                      <a-col :sm="24" :md="12">
-                        <a-row>
-                          <a-col :span="12" :style="{ textAlign: 'center' }">
-                            <a-progress type="dashboard" status="normal"
-                              :stroke-color="status.swap.color"
-                              :percent="status.swap.percent"></a-progress>
-                            <div>
-                              <b>{{ i18n "pages.index.swap" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
-                            </div>
-                          </a-col>
-                          <a-col :span="12" :style="{ textAlign: 'center' }">
-                            <a-progress type="dashboard" status="normal"
-                              :stroke-color="status.disk.color"
-                              :percent="status.disk.percent"></a-progress>
-                            <div>
-                              <b>{{ i18n "pages.index.storage"}}:</b> [[ SizeFormatter.sizeFormat(status.disk.current) ]] / [[ SizeFormatter.sizeFormat(status.disk.total) ]]
-                            </div>
-                          </a-col>
-                        </a-row>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-row>
-                <a-col :sm="24" :lg="12">
-                  <a-card hoverable>
-                    <template #title>
-                      <a-space direction="horizontal">
-                        <span>{{ i18n "pages.index.xrayStatus" }}</span>
-                        <a-tag v-if="isMobile && status.xray.version != 'Unknown'" color="green">
-                          v[[ status.xray.version ]]
-                        </a-tag>
-                      </a-space>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card hoverable>
+                  <template #title>
+                    <a-space direction="horizontal">
+                      <span>{{ i18n "pages.index.xrayStatus" }}</span>
+                      <a-tag v-if="isMobile && status.xray.version != 'Unknown'" color="green">
+                        v[[ status.xray.version ]]
+                      </a-tag>
+                    </a-space>
+                  </template>
+                  <template #extra>
+                    <template v-if="status.xray.state != 'error'">
+                      <a-badge status="processing" class="running-animation" :text="status.xray.stateMsg" :color="status.xray.color"/>
                     </template>
-                    <template #extra>
-                      <template v-if="status.xray.state != 'error'">
-                        <a-badge status="processing" class="running-animation" :text="status.xray.stateMsg" :color="status.xray.color"/>
-                      </template>
-                      <template v-else>
-                        <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                          <span slot="title">
-                            <a-row type="flex" align="middle" justify="space-between">
-                              <a-col>
-                                <span>{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
-                              </a-col>
-                              <a-col>
-                                <a-icon type="bars" :style="{ cursor: 'pointer', float: 'right' }" @click="openLogs()"></a-tag>
-                              </a-col>
-                            </a-row>
-                          </span>
-                          <template slot="content">
-                            <span :style="{ maxWidth: '400px' }" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
-                          </template>
-                          <a-badge :text="status.xray.stateMsg" :color="status.xray.color"/>
-                        </a-popover>
-                      </template>
-                    </template>
-                    <template #actions>
-                      <a-space direction="horizontal" @click="stopXrayService" :style="{ justifyContent: 'center' }">
-                        <a-icon type="poweroff"></a-icon>
-                        <span v-if="!isMobile">{{ i18n "pages.index.stopXray" }}</span>
-                      </a-space>
-                      <a-space direction="horizontal" @click="restartXrayService" :style="{ justifyContent: 'center' }">
-                        <a-icon type="reload"></a-icon>
-                        <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
-                      </a-space>
-                      <a-space direction="horizontal" @click="openSelectV2rayVersion" :style="{ justifyContent: 'center' }">
-                        <a-icon type="tool"></a-icon>
-                        <span v-if="!isMobile">
-                          [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n "pages.index.xraySwitch" }}' ]]
+                    <template v-else>
+                      <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                        <span slot="title">
+                          <a-row type="flex" align="middle" justify="space-between">
+                            <a-col>
+                              <span>{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
+                            </a-col>
+                            <a-col>
+                              <a-icon type="bars" :style="{ cursor: 'pointer', float: 'right' }" @click="openLogs()"></a-tag>
+                            </a-col>
+                          </a-row>
                         </span>
-                      </a-space>
+                        <template slot="content">
+                          <span :style="{ maxWidth: '400px' }" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
+                        </template>
+                        <a-badge :text="status.xray.stateMsg" :color="status.xray.color"/>
+                      </a-popover>
                     </template>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "menu.link" }}' hoverable>
-                    <template #actions>
-                      <a-space direction="horizontal" @click="openLogs()" :style="{ justifyContent: 'center' }">
-                        <a-icon type="bars"></a-icon>
-                        <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
-                      </a-space>
-                      <a-space direction="horizontal" @click="openConfig" :style="{ justifyContent: 'center' }">
-                        <a-icon type="control"></a-icon>
-                        <span v-if="!isMobile">{{ i18n "pages.index.config" }}</span>
-                      </a-space>
-                      <a-space direction="horizontal" @click="openBackup" :style="{ justifyContent: 'center' }">
-                        <a-icon type="cloud-server"></a-icon>
-                        <span v-if="!isMobile">{{ i18n "pages.index.backup" }}</span>
-                      </a-space>
-                    </template>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='3X-UI' hoverable>
-                    <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank"><a-tag color="green">v{{ .cur_ver }}</a-tag></a>
-                    <a rel="noopener" href="https://t.me/XrayUI" target="_blank"><a-tag color="green">@XrayUI</a-tag></a>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.operationHours" }}' hoverable>
-                    <a-tag :color="status.xray.color">Xray: [[ TimeFormatter.formatSecond(status.appStats.uptime) ]]</a-tag>
-                    <a-tag color="green">OS: [[ TimeFormatter.formatSecond(status.uptime) ]]</a-tag>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.systemLoad" }}' hoverable>
+                  </template>
+                  <template #actions>
+                    <a-space direction="horizontal" @click="stopXrayService" :style="{ justifyContent: 'center' }">
+                      <a-icon type="poweroff"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.stopXray" }}</span>
+                    </a-space>
+                    <a-space direction="horizontal" @click="restartXrayService" :style="{ justifyContent: 'center' }">
+                      <a-icon type="reload"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
+                    </a-space>
+                    <a-space direction="horizontal" @click="openSelectV2rayVersion" :style="{ justifyContent: 'center' }">
+                      <a-icon type="tool"></a-icon>
+                      <span v-if="!isMobile">
+                        [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n "pages.index.xraySwitch" }}' ]]
+                      </span>
+                    </a-space>
+                  </template>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "menu.link" }}' hoverable>
+                  <template #actions>
+                    <a-space direction="horizontal" @click="openLogs()" :style="{ justifyContent: 'center' }">
+                      <a-icon type="bars"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
+                    </a-space>
+                    <a-space direction="horizontal" @click="openConfig" :style="{ justifyContent: 'center' }">
+                      <a-icon type="control"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.config" }}</span>
+                    </a-space>
+                    <a-space direction="horizontal" @click="openBackup" :style="{ justifyContent: 'center' }">
+                      <a-icon type="cloud-server"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.backup" }}</span>
+                    </a-space>
+                  </template>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='3X-UI' hoverable>
+                  <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/releases" target="_blank">
                     <a-tag color="green">
-                      <a-tooltip>
-                        [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
-                        <template slot="title">
-                          {{ i18n "pages.index.systemLoadDesc" }}
-                        </template>
-                      </a-tooltip>
+                      <span>v{{ .cur_ver }}</span>
                     </a-tag>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "usage"}}' hoverable>
-                    <a-tag color="green"> {{ i18n "pages.index.memory" }}: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
-                    <a-tag color="green"> {{ i18n "pages.index.threads" }}: [[ status.appStats.threads ]] </a-tag>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.overallSpeed" }}' hoverable>
-                    <a-row :gutter="isMobile ? [8,8] : 0">
-                      <a-col :span="12">
-                        <a-custom-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
-                          <template #prefix>
-                            <a-icon type="arrow-up" />
-                          </template>
-                          <template #suffix>
-                            /s
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :span="12">
-                        <a-custom-statistic title='{{ i18n "pages.index.download" }}' :value="SizeFormatter.sizeFormat(status.netIO.down)">
-                          <template #prefix>
-                            <a-icon type="arrow-down" />
-                          </template>
-                          <template #suffix>
-                            /s
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.totalData" }}' hoverable>
-                    <a-row :gutter="isMobile ? [8,8] : 0">
-                      <a-col :span="12">
-                        <a-custom-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
-                          <template #prefix>
-                            <a-icon type="cloud-upload" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :span="12">
-                        <a-custom-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
-                          <template #prefix>
-                            <a-icon type="cloud-download" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
-                    <template #extra>
-                      <a-tooltip>
-                        <template #title>
-                          {{ i18n "pages.index.toggleIpVisibility" }}
+                  </a>
+                  <a rel="noopener" href="https://t.me/XrayUI" target="_blank">
+                    <a-tag color="green">
+                      <span>@XrayUI</span>
+                    </a-tag>
+                  </a>
+                  <a rel="noopener" href="https://github.com/MHSanaei/3x-ui/wiki" target="_blank">
+                    <a-tag color="purple">
+                      <span>{{ i18n "pages.index.documentation" }}</span>
+                    </a-tag>
+                  </a>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.operationHours" }}' hoverable>
+                  <a-tag :color="status.xray.color">Xray: [[ TimeFormatter.formatSecond(status.appStats.uptime) ]]</a-tag>
+                  <a-tag color="green">OS: [[ TimeFormatter.formatSecond(status.uptime) ]]</a-tag>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.systemLoad" }}' hoverable>
+                  <a-tag color="green">
+                    <a-tooltip>
+                      [[ status.loads[0] ]] | [[ status.loads[1] ]] | [[ status.loads[2] ]]
+                      <template slot="title">
+                        {{ i18n "pages.index.systemLoadDesc" }}
+                      </template>
+                    </a-tooltip>
+                  </a-tag>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "usage"}}' hoverable>
+                  <a-tag color="green"> {{ i18n "pages.index.memory" }}: [[ SizeFormatter.sizeFormat(status.appStats.mem) ]] </a-tag>
+                  <a-tag color="green"> {{ i18n "pages.index.threads" }}: [[ status.appStats.threads ]] </a-tag>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.overallSpeed" }}' hoverable>
+                  <a-row :gutter="isMobile ? [8,8] : 0">
+                    <a-col :span="12">
+                      <a-custom-statistic title='{{ i18n "pages.index.upload" }}' :value="SizeFormatter.sizeFormat(status.netIO.up)">
+                        <template #prefix>
+                          <a-icon type="arrow-up" />
                         </template>
-                        <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
-                      </a-tooltip>
-                    </template>
-                    <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'" :gutter="isMobile ? [8,8] : 0">
-                      <a-col :span="isMobile ? 24 : 12">
-                        <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :span="isMobile ? 24 : 12">
-                        <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
-                          <template #prefix>
-                            <a-icon type="global" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-                <a-col :sm="24" :lg="12">
-                  <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
-                    <a-row :gutter="isMobile ? [8,8] : 0">
-                      <a-col :span="12">
-                        <a-custom-statistic title="TCP" :value="status.tcpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                      <a-col :span="12">
-                        <a-custom-statistic title="UDP" :value="status.udpCount">
-                          <template #prefix>
-                            <a-icon type="swap" />
-                          </template>
-                        </a-custom-statistic>
-                      </a-col>
-                    </a-row>
-                  </a-card>
-                </a-col>
-              </a-row>
-            </template>
-          </transition>
-        </a-spin>
-      </a-layout-content>
-    </a-layout>
-    <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}' :closable="true"
-        @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
-      <a-collapse default-active-key="1">
-        <a-collapse-panel key="1" header='Xray'>
-          <a-alert type="warning" :style="{ marginBottom: '12px', width: '100%' }" message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
-          <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
-            <a-list-item class="ant-version-list-item" v-for="version, index in versionModal.versions">
-              <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ version ]]</a-tag>
-              <a-radio :class="themeSwitcher.currentTheme" :checked="version === `v${status.xray.version}`" @click="switchV2rayVersion(version)"></a-radio>
-            </a-list-item>
-          </a-list>
-        </a-collapse-panel>
-        <a-collapse-panel key="2" header='Geofiles'>
-          <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
-            <a-list-item class="ant-version-list-item" v-for="file, index in ['geosite.dat', 'geoip.dat', 'geosite_IR.dat', 'geoip_IR.dat', 'geosite_RU.dat', 'geoip_RU.dat']">
-              <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ file ]]</a-tag>
-              <a-icon type="reload" @click="updateGeofile(file)" :style="{ marginRight: '8px' }"/>
-            </a-list-item>
-          </a-list>
-        </a-collapse-panel>
-      </a-collapse>
-    </a-modal>
-    <a-modal id="log-modal" v-model="logModal.visible"
-        :closable="true" @cancel="() => logModal.visible = false"
-        :class="themeSwitcher.currentTheme"
-        width="800px" footer="">
-      <template slot="title">
-        {{ i18n "pages.index.logs" }}
-        <a-icon :spin="logModal.loading"
-          type="sync"
-          :style="{ verticalAlign: 'middle', marginLeft: '10px' }"
-          :disabled="logModal.loading"
-          @click="openLogs()">
-        </a-icon>
-      </template>
-      <a-form layout="inline">
-        <a-form-item :style="{ marginRight: '0.5rem' }">
-          <a-input-group compact>
-            <a-select size="small" v-model="logModal.rows" :style="{ width: '70px' }"
-                @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="10">10</a-select-option>
-              <a-select-option value="20">20</a-select-option>
-              <a-select-option value="50">50</a-select-option>
-              <a-select-option value="100">100</a-select-option>
-              <a-select-option value="500">500</a-select-option>
-            </a-select>
-            <a-select size="small" v-model="logModal.level" :style="{ width: '95px' }"
-                @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="debug">Debug</a-select-option>
-              <a-select-option value="info">Info</a-select-option>
-              <a-select-option value="notice">Notice</a-select-option>
-              <a-select-option value="warning">Warning</a-select-option>
-              <a-select-option value="err">Error</a-select-option>
-            </a-select>
-          </a-input-group>
-        </a-form-item>
-        <a-form-item>
-          <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
-        </a-form-item>
-        <a-form-item :style="{ float: 'right' }">
-          <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
-        </a-form-item>
-      </a-form>
-      <div class="ant-input" :style="{ height: 'auto', maxHeight: '500px', overflow: 'auto', marginTop: '0.5rem' }" v-html="logModal.formattedLogs"></div>
-    </a-modal>
-    <a-modal id="backup-modal" 
-        v-model="backupModal.visible" 
-        title='{{ i18n "pages.index.backupTitle" }}'
-        :closable="true"
-        footer=""
-        :class="themeSwitcher.currentTheme">
-      <a-list class="ant-backup-list" bordered :style="{ width: '100%' }">
-        <a-list-item class="ant-backup-list-item">
-          <a-list-item-meta>
-            <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
-            <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
-          </a-list-item-meta>
-          <a-button @click="exportDatabase()" type="primary" icon="download"/>
-        </a-list-item>
-        <a-list-item class="ant-backup-list-item">
-          <a-list-item-meta>
-            <template #title>{{ i18n "pages.index.importDatabase" }}</template>
-            <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
-          </a-list-item-meta>
-          <a-button @click="importDatabase()" type="primary" icon="upload" />
-        </a-list-item>
-      </a-list>
-    </a-modal>
+                        <template #suffix>
+                          /s
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <a-custom-statistic title='{{ i18n "pages.index.download" }}' :value="SizeFormatter.sizeFormat(status.netIO.down)">
+                        <template #prefix>
+                          <a-icon type="arrow-down" />
+                        </template>
+                        <template #suffix>
+                          /s
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.totalData" }}' hoverable>
+                  <a-row :gutter="isMobile ? [8,8] : 0">
+                    <a-col :span="12">
+                      <a-custom-statistic title='{{ i18n "pages.index.sent" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.sent)">
+                        <template #prefix>
+                          <a-icon type="cloud-upload" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <a-custom-statistic title='{{ i18n "pages.index.received" }}' :value="SizeFormatter.sizeFormat(status.netTraffic.recv)">
+                        <template #prefix>
+                          <a-icon type="cloud-download" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.ipAddresses" }}' hoverable>
+                  <template #extra>
+                    <a-tooltip :placement="isMobile ? 'topRight' : 'top'">
+                      <template #title>
+                        {{ i18n "pages.index.toggleIpVisibility" }}
+                      </template>
+                      <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
+                    </a-tooltip>
+                  </template>
+                  <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'" :gutter="isMobile ? [8,8] : 0">
+                    <a-col :span="isMobile ? 24 : 12">
+                      <a-custom-statistic title="IPv4" :value="status.publicIP.ipv4">
+                        <template #prefix>
+                          <a-icon type="global" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                    <a-col :span="isMobile ? 24 : 12">
+                      <a-custom-statistic title="IPv6" :value="status.publicIP.ipv6">
+                        <template #prefix>
+                          <a-icon type="global" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+              <a-col :sm="24" :lg="12">
+                <a-card title='{{ i18n "pages.index.connectionCount" }}' hoverable>
+                  <a-row :gutter="isMobile ? [8,8] : 0">
+                    <a-col :span="12">
+                      <a-custom-statistic title="TCP" :value="status.tcpCount">
+                        <template #prefix>
+                          <a-icon type="swap" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                    <a-col :span="12">
+                      <a-custom-statistic title="UDP" :value="status.udpCount">
+                        <template #prefix>
+                          <a-icon type="swap" />
+                        </template>
+                      </a-custom-statistic>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
+            </a-row>
+          </template>
+        </transition>
+      </a-spin>
+    </a-layout-content>
   </a-layout>
-{{template "js" .}}
+  <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}' :closable="true"
+      @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
+    <a-collapse default-active-key="1">
+      <a-collapse-panel key="1" header='Xray'>
+        <a-alert type="warning" :style="{ marginBottom: '12px', width: '100%' }" message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
+        <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
+          <a-list-item class="ant-version-list-item" v-for="version, index in versionModal.versions">
+            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ version ]]</a-tag>
+            <a-radio :class="themeSwitcher.currentTheme" :checked="version === `v${status.xray.version}`" @click="switchV2rayVersion(version)"></a-radio>
+          </a-list-item>
+        </a-list>
+      </a-collapse-panel>
+      <a-collapse-panel key="2" header='Geofiles'>
+        <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
+          <a-list-item class="ant-version-list-item" v-for="file, index in ['geosite.dat', 'geoip.dat', 'geosite_IR.dat', 'geoip_IR.dat', 'geosite_RU.dat', 'geoip_RU.dat']">
+            <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ file ]]</a-tag>
+            <a-icon type="reload" @click="updateGeofile(file)" :style="{ marginRight: '8px' }"/>
+          </a-list-item>
+        </a-list>
+      </a-collapse-panel>
+    </a-collapse>
+  </a-modal>
+  <a-modal id="log-modal" v-model="logModal.visible"
+      :closable="true" @cancel="() => logModal.visible = false"
+      :class="themeSwitcher.currentTheme"
+      width="800px" footer="">
+    <template slot="title">
+      {{ i18n "pages.index.logs" }}
+      <a-icon :spin="logModal.loading"
+        type="sync"
+        :style="{ verticalAlign: 'middle', marginLeft: '10px' }"
+        :disabled="logModal.loading"
+        @click="openLogs()">
+      </a-icon>
+    </template>
+    <a-form layout="inline">
+      <a-form-item :style="{ marginRight: '0.5rem' }">
+        <a-input-group compact>
+          <a-select size="small" v-model="logModal.rows" :style="{ width: '70px' }"
+              @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="10">10</a-select-option>
+            <a-select-option value="20">20</a-select-option>
+            <a-select-option value="50">50</a-select-option>
+            <a-select-option value="100">100</a-select-option>
+            <a-select-option value="500">500</a-select-option>
+          </a-select>
+          <a-select size="small" v-model="logModal.level" :style="{ width: '95px' }"
+              @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="debug">Debug</a-select-option>
+            <a-select-option value="info">Info</a-select-option>
+            <a-select-option value="notice">Notice</a-select-option>
+            <a-select-option value="warning">Warning</a-select-option>
+            <a-select-option value="err">Error</a-select-option>
+          </a-select>
+        </a-input-group>
+      </a-form-item>
+      <a-form-item>
+        <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
+      </a-form-item>
+      <a-form-item :style="{ float: 'right' }">
+        <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
+      </a-form-item>
+    </a-form>
+    <div class="ant-input" :style="{ height: 'auto', maxHeight: '500px', overflow: 'auto', marginTop: '0.5rem' }" v-html="logModal.formattedLogs"></div>
+  </a-modal>
+  <a-modal id="backup-modal" 
+      v-model="backupModal.visible" 
+      title='{{ i18n "pages.index.backupTitle" }}'
+      :closable="true"
+      footer=""
+      :class="themeSwitcher.currentTheme">
+    <a-list class="ant-backup-list" bordered :style="{ width: '100%' }">
+      <a-list-item class="ant-backup-list-item">
+        <a-list-item-meta>
+          <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
+          <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
+        </a-list-item-meta>
+        <a-button @click="exportDatabase()" type="primary" icon="download"/>
+      </a-list-item>
+      <a-list-item class="ant-backup-list-item">
+        <a-list-item-meta>
+          <template #title>{{ i18n "pages.index.importDatabase" }}</template>
+          <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
+        </a-list-item-meta>
+        <a-button @click="importDatabase()" type="primary" icon="upload" />
+      </a-list-item>
+    </a-list>
+  </a-modal>
+</a-layout>
+{{template "page/body_scripts" .}}
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
@@ -476,7 +479,7 @@
     }
 
     class Status {
-        constructor(data, isLoaded = false) {
+        constructor(data) {
             this.cpu = new CurTotal(0, 0);
             this.cpuCores = 0;
             this.logicalPro = 0;
@@ -500,7 +503,6 @@
               return;
             }
 
-            this.isLoaded = isLoaded;
             this.cpu = new CurTotal(data.cpu, 100);
             this.cpuCores = data.cpuCores;
             this.logicalPro = data.logicalPro;
@@ -620,32 +622,39 @@
         mixins: [MediaQueryMixin],
         data: {
             themeSwitcher,
+            loadingStates: {
+              fetched: false,
+              spinning: false
+            },
             status: new Status(),
             versionModal,
             logModal,
             backupModal,
-            spinning: false,
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
             showIp: false
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
-                this.spinning = spinning;
+                this.loadingStates.spinning = spinning;
                 this.loadingTip = tip;
             },
             async getStatus() {
                 try {
                     const msg = await HttpUtil.post('/server/status');
                     if (msg.success) {
+                        if (!this.loadingStates.fetched) {
+                            this.loadingStates.fetched = true;
+                        }
+
                         this.setStatus(msg.obj, true);
                     }
                 } catch (e) {
                     console.error("Failed to get status:", e);
                 }
             },
-            setStatus(data, isLoaded = false) {
-              this.status = new Status(data, isLoaded);
+            setStatus(data) {
+                this.status = new Status(data);
             },
             async openSelectV2rayVersion() {
                 this.loading(true);
@@ -775,5 +784,4 @@
         },
     });
 </script>
-</body>
-</html>
+{{ template "page/body_end" .}}

@@ -128,6 +128,7 @@
 "totalData" = "Total data"
 "sent" = "Dikirim"
 "received" = "Diterima"
+"documentation" = "Dokumentasi"
 "xraySwitchVersionDialog" = "Apakah Anda yakin ingin mengubah versi Xray?"
 "xraySwitchVersionDialogDesc" = "Ini akan mengubah versi Xray ke #version#."
 "xraySwitchVersionPopover" = "Xray berhasil diperbarui"
@@ -401,7 +402,6 @@
 "generalConfigsDesc" = "Opsi ini akan menentukan penyesuaian strategi umum."
 "logConfigs" = "Catatan"
 "logConfigsDesc" = "Log dapat mempengaruhi efisiensi server Anda. Disarankan untuk mengaktifkannya dengan bijak hanya jika diperlukan"
-"blockConfigs" = "Pelindung"
 "blockConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan protokol dan situs web yang diminta."
 "basicRouting" = "Perutean Dasar"
 "blockConnectionsConfigsDesc" = "Opsi ini akan memblokir lalu lintas berdasarkan negara yang diminta."
@@ -422,8 +422,6 @@
 "RoutingStrategyDesc" = "Atur strategi pengalihan lalu lintas keseluruhan untuk menyelesaikan semua permintaan."
 "Torrent" = "Blokir Protokol BitTorrent"
 "TorrentDesc" = "Memblokir protokol BitTorrent."
-"Family" = "Proteksi Keluarga"
-"FamilyDesc" = "Memblokir konten dewasa dan situs web berbahaya."
 "Inbounds" = "Masuk"
 "InboundsDesc" = "Menerima klien tertentu."
 "Outbounds" = "Keluar"
@@ -523,6 +521,12 @@
 "edit" = "Sunting Server"
 "domains" = "Domains"
 "expectIPs" = "IP yang Diharapkan"
+"unexpectIPs" = "IP tak terduga"
+"useSystemHosts" = "Gunakan Hosts Sistem"
+"useSystemHostsDesc" = "Gunakan file hosts dari sistem yang terinstal"
+"usePreset" = "Gunakan templat"
+"dnsPresetTitle" = "Templat DNS"
+"dnsPresetFamily" = "Keluarga"
 
 [pages.xray.fakedns]
 "add" = "Tambahkan DNS Palsu"
@@ -592,6 +596,10 @@
 "restartSuccess" = "✅ Operasi berhasil!"
 "restartFailed" = "❗ Kesalahan dalam operasi.\r\n\r\n<code>Error: {{ .Error }}</code>."
 "xrayNotRunning" = "❗ Xray Core tidak berjalan."
+"startDesc" = "Tampilkan menu utama"
+"helpDesc" = "Bantuan bot"
+"statusDesc" = "Periksa status bot"
+"idDesc" = "Tampilkan ID Telegram Anda"
 
 [tgbot.messages]
 "cpuThreshold" = "🔴 Beban CPU {{ .Percent }}% melebihi batas {{ .Threshold }}%"

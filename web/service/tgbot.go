@@ -147,6 +147,19 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
+	// After bot initialization, set up bot commands with localized descriptions
+	err = bot.SetMyCommands(&telego.SetMyCommandsParams{
+		Commands: []telego.BotCommand{
+			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
+			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
+			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
+			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
+		},
+	})
+	if err != nil {
+		logger.Warning("Failed to set bot commands:", err)
+	}
+
 	// Start receiving Telegram bot messages
 	if !isRunning {
 		logger.Info("Telegram bot receiver started")
@@ -935,7 +948,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 								tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.cancel")).WithCallbackData(t.encodeQuery("add_client_default_traffic_exp")),
 							),
 							tu.InlineKeyboardRow(
-								tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmNumber", "Num=="+strconv.Itoa(inputNumber))).WithCallbackData(t.encodeQuery("add_client_reset_exp_c "+strconv.Itoa(inputNumber))),
+								tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.confirmNumberAdd", "Num=="+strconv.Itoa(inputNumber))).WithCallbackData(t.encodeQuery("add_client_reset_exp_c "+strconv.Itoa(inputNumber))),
 							),
 							tu.InlineKeyboardRow(
 								tu.InlineKeyboardButton("1").WithCallbackData(t.encodeQuery("add_client_reset_exp_in "+strconv.Itoa(inputNumber)+" 1")),
