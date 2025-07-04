@@ -1249,7 +1249,6 @@ class Inbound extends XrayCommonClass {
             id: clientId,
             scy: security,
             net: this.stream.network,
-            type: 'none',
             tls: tls,
         };
         const network = this.stream.network;
@@ -1284,7 +1283,7 @@ class Inbound extends XrayCommonClass {
             const xhttp = this.stream.xhttp;
             obj.path = xhttp.path;
             obj.host = xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host');
-            obj.mode = xhttp.mode;
+            obj.type = xhttp.mode;
         }
 
         if (tls === 'tls') {
