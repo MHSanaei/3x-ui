@@ -84,7 +84,7 @@
 
 [pages.login]
 "hello" = "Привіт"
-"title" = "Ласкаво просимо"
+"title" = "Привітання!"
 "loginAgain" = "Ваш сеанс закінчився, увійдіть знову"
 
 [pages.login.toasts]
