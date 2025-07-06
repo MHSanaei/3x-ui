@@ -94,21 +94,34 @@ type ServerService struct {
 	inboundService InboundService
 	cachedIPv4     string
 	cachedIPv6     string
+	noIPv6         bool
 }
 
 func getPublicIP(url string) string {
-	resp, err := http.Get(url)
+	client := &http.Client{
+		Timeout: 3 * time.Second,
+	}
+
+	resp, err := client.Get(url)
 	if err != nil {
 		return "N/A"
 	}
 	defer resp.Body.Close()
+
+	// Don't retry if access is blocked or region-restricted
+	if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnavailableForLegalReasons {
+		return "N/A"
+	}
+	if resp.StatusCode != http.StatusOK {
+		return "N/A"
+	}
 
 	ip, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "N/A"
 	}
 
-	ipString := string(ip)
+	ipString := strings.TrimSpace(string(ip))
 	if ipString == "" {
 		return "N/A"
 	}
@@ -221,10 +234,23 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// IP fetching with caching
-	if s.cachedIPv4 == "" || s.cachedIPv6 == "" {
+	if s.cachedIPv4 == "" {
 		s.cachedIPv4 = getPublicIP("https://api.ipify.org")
-		s.cachedIPv6 = getPublicIP("https://api6.ipify.org")
+		if s.cachedIPv4 == "N/A" {
+			s.cachedIPv4 = getPublicIP("https://4.ident.me")
+		}
 	}
+
+	if s.cachedIPv6 == "" && !s.noIPv6 {
+		s.cachedIPv6 = getPublicIP("https://api6.ipify.org")
+		if s.cachedIPv6 == "N/A" {
+			s.cachedIPv6 = getPublicIP("https://6.ident.me")
+			if s.cachedIPv6 == "N/A" {
+				s.noIPv6 = true
+			}
+		}
+	}
+
 	status.PublicIP.IPv4 = s.cachedIPv4
 	status.PublicIP.IPv6 = s.cachedIPv6
 
