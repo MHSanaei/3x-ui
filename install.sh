@@ -85,7 +85,10 @@ config_after_install() {
     local existing_hasDefaultCredential=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local server_ip=$(curl -s https://api.ipify.org)
+    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
+    if [ -z "$server_ip" ]; then
+        server_ip=$(curl -s --max-time 3 https://4.ident.me)
+    fi
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
