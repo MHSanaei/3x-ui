@@ -104,6 +104,8 @@
                 }
             },
             SSMethodChange() {
+                this.inModal.inbound.settings.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
+                
                 if (this.inModal.inbound.isSSMultiUser) {
                     if (this.inModal.inbound.settings.shadowsockses.length ==0){
                         this.inModal.inbound.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
@@ -117,6 +119,9 @@
                             client.method = "";
                         })
                     }
+                    this.inModal.inbound.settings.shadowsockses.forEach(client => {
+                        client.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
+                    })
                 } else {
                     if (this.inModal.inbound.settings.shadowsockses.length > 0){
                         this.inModal.inbound.settings.shadowsockses = [];
