@@ -242,7 +242,7 @@ func (p *process) Stop() error {
 	return p.cmd.Process.Signal(syscall.SIGTERM)
 }
 
-func writeCrachReport(m []byte) error {
+func writeCrashReport(m []byte) error {
 	crashReportPath := config.GetBinFolderPath() + "/core_crash_" + time.Now().Format("20060102_150405") + ".log"
 	return os.WriteFile(crashReportPath, m, os.ModePerm)
 }
