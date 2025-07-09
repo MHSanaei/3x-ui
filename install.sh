@@ -7,7 +7,7 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
-show_ip_service_lists=("https://api.ipify.org" "https://4.ident.me" "https://ifconfig.io/ip" "https://ipinfo.tw/ip")
+show_ip_service_lists=("https://api.ipify.org" "https://4.ident.me")
 
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1

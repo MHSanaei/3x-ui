@@ -234,7 +234,7 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// IP fetching with caching
-	showIp4ServiceLists := []string{"https://api.ipify.org", "https://4.ident.me", "https://ifconfig.io/ip", "https://ipinfo.tw/ip"}
+	showIp4ServiceLists := []string{"https://api.ipify.org", "https://4.ident.me"}
 	showIp6ServiceLists := []string{"https://api6.ipify.org", "https://6.ident.me"}
 
 	if s.cachedIPv4 == "" {
