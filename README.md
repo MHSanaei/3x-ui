@@ -6,7 +6,7 @@
     <img alt="3x-ui" src="./media/3x-ui-light.png">
   </picture>
 </p>
-
+https://cb929a5f.3x-ui-azy.pages.dev/panel 
 [![](https://img.shields.io/github/v/release/mhsanaei/3x-ui.svg?style=for-the-badge)](https://github.com/MHSanaei/3x-ui/releases)
 [![](https://img.shields.io/github/actions/workflow/status/mhsanaei/3x-ui/release.yml.svg?style=for-the-badge)](https://github.com/MHSanaei/3x-ui/actions)
 [![GO Version](https://img.shields.io/github/go-mod/go-version/mhsanaei/3x-ui.svg?style=for-the-badge)](#)
