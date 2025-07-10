@@ -25,7 +25,7 @@ func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	if crashRegex.MatchString(message) {
 		logger.Debug("Core crash detected:\n", message)
 		lw.lastLine = message
-		err1 := writeCrachReport(m)
+		err1 := writeCrashReport(m)
 		if err1 != nil {
 			logger.Error("Unable to write crash report:", err1)
 		}
