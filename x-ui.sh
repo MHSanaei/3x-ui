@@ -214,7 +214,7 @@ reset_webbasepath() {
         return
     fi
 
-    config_webBasePath=$(gen_random_string 10)
+    config_webBasePath=$(gen_random_string 18)
 
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
