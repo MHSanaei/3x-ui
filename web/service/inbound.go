@@ -2060,3 +2060,29 @@ func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, [
 
 	return validEmails, extraEmails, nil
 }
+
+func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, download int64) error {
+	db := database.GetDB()
+	
+	// Find the client traffic record by email
+	var clientTraffic xray.ClientTraffic
+	err := db.Model(xray.ClientTraffic{}).Where("email = ?", email).First(&clientTraffic).Error
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return common.NewError("Client with email not found:", email)
+		}
+		return err
+	}
+	
+	// Update the upload and download values
+	clientTraffic.Up = upload
+	clientTraffic.Down = download
+	
+	// Save the updated record
+	err = db.Save(&clientTraffic).Error
+	if err != nil {
+		return err
+	}
+	
+	return nil
+}
