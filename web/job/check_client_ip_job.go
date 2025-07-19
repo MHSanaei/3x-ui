@@ -260,14 +260,6 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	shouldCleanLog := false
 	j.disAllowedIps = []string{}
 
-	logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		logger.Errorf("failed to open IP limit log file: %s", err)
-		return false
-	}
-	defer logIpFile.Close()
-	log.SetOutput(logIpFile)
-	log.SetFlags(log.LstdFlags)
 
 	for _, client := range clients {
 		if client.Email == clientEmail {
@@ -277,10 +269,9 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 				shouldCleanLog = true
 
 				if limitIp < len(ips) {
-					j.disAllowedIps = append(j.disAllowedIps, ips[limitIp:]...)
-					for i := limitIp; i < len(ips); i++ {
-						log.Printf("[LIMIT_IP] Email = %s || SRC = %s", clientEmail, ips[i])
-					}
+					logger.Warningf("User '%s' exceeded IP limit (%d > %d). Disabling inbound.", clientEmail, len(ips), limitIp)
+					inbound.Enable = false 
+					break 
 				}
 			}
 		}
