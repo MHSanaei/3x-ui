@@ -1785,6 +1785,21 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	return nil, nil
 }
 
+func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, download int64) error {
+	db := database.GetDB()
+
+	result := db.Model(xray.ClientTraffic{}).
+		Where("email = ?", email).
+		Updates(map[string]any{"up": upload, "down": download})
+
+	err := result.Error
+	if err != nil {
+		logger.Warningf("Error updating ClientTraffic with email %s: %v", email, err)
+		return err
+	}
+	return nil
+}
+
 func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, error) {
 	db := database.GetDB()
 	var traffics []xray.ClientTraffic
