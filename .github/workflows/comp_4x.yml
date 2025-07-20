@@ -1,0 +1,201 @@
+name: Release 4X-UI
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - '**.js'
+      - '**.css'
+      - '**.html'
+      - '**.sh'
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'x-ui.service'
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        platform:
+          - amd64
+          - arm64
+          - armv7
+          - armv6
+          - 386
+          - armv5
+          - s390x
+          - windows-amd64
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensure full history for changelog (optional)
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip  # Ensure unzip is installed
+          if [ "${{ matrix.platform }}" == "arm64" ]; then
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+          elif [ "${{ matrix.platform }}" == "armv7" ]; then
+            sudo apt-get install -y gcc-arm-linux-gnueabihf
+          elif [ "${{ matrix.platform }}" == "armv6" ]; then
+            sudo apt-get install -y gcc-arm-linux-gnueabihf
+          elif [ "${{ matrix.platform }}" == "386" ]; then
+            sudo apt-get install -y gcc-i686-linux-gnu
+          elif [ "${{ matrix.platform }}" == "armv5" ]; then
+            sudo apt-get install -y gcc-arm-linux-gnueabi
+          elif [ "${{ matrix.platform }}" == "s390x" ]; then
+            sudo apt-get install -y gcc-s390x-linux-gnu
+          fi
+
+      - name: Build 4x-ui
+        run: |
+          set -e
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/latest/download/"
+          mkdir -p 4x-ui/bin
+          if [ "${{ matrix.platform }}" == "windows-amd64" ]; then
+            export GOOS=windows
+            export GOARCH=amd64
+            export CGO_ENABLED=0
+            echo "Building for windows-amd64..."
+            go build -ldflags "-w -s" -o 4x-ui/4x-ui.exe -v main.go || { echo "Error: Build failed for windows-amd64"; exit 1; }
+            cd 4x-ui/bin
+            wget -q ${Xray_URL}Xray-windows-64.zip || { echo "Error: Failed to download Xray for windows-amd64"; exit 1; }
+            unzip -o Xray-windows-64.zip || { echo "Error: Failed to unzip Xray-windows-64.zip"; exit 1; }
+            rm -f Xray-windows-64.zip
+            mv -f xray.exe xray-windows-amd64.exe || { echo "Error: Failed to rename xray.exe"; exit 1; }
+          else
+            export GOOS=linux
+            export CGO_ENABLED=0  # Set to 1 if CGO is required
+            if [ "${{ matrix.platform }}" == "amd64" ]; then
+              export GOARCH=amd64
+            elif [ "${{ matrix.platform }}" == "arm64" ]; then
+              export GOARCH=arm64
+              export CGO_ENABLED=1
+              export CC=aarch64-linux-gnu-gcc
+            elif [ "${{ matrix.platform }}" == "armv7" ]; then
+              export GOARCH=arm
+              export GOARM=7
+              export CGO_ENABLED=1
+              export CC=arm-linux-gnueabihf-gcc
+            elif [ "${{ matrix.platform }}" == "armv6" ]; then
+              export GOARCH=arm
+              export GOARM=6
+              export CGO_ENABLED=1
+              export CC=arm-linux-gnueabihf-gcc
+            elif [ "${{ matrix.platform }}" == "386" ]; then
+              export GOARCH=386
+              export CGO_ENABLED=1
+              export CC=i686-linux-gnu-gcc
+            elif [ "${{ matrix.platform }}" == "armv5" ]; then
+              export GOARCH=arm
+              export GOARM=5
+              export CGO_ENABLED=1
+              export CC=arm-linux-gnueabi-gcc
+            elif [ "${{ matrix.platform }}" == "s390x" ]; then
+              export GOARCH=s390x
+              export CGO_ENABLED=1
+              export CC=s390x-linux-gnu-gcc
+            fi
+            echo "Building for ${{ matrix.platform }}..."
+            go build -ldflags "-w -s" -o 4x-ui/4x-ui -v main.go || { echo "Error: Build failed for ${{ matrix.platform }}"; exit 1; }
+            cd 4x-ui/bin
+            if [ "${{ matrix.platform }}" == "amd64" ]; then
+              wget -q ${Xray_URL}Xray-linux-64.zip || { echo "Error: Failed to download Xray for amd64"; exit 1; }
+              unzip -o Xray-linux-64.zip || { echo "Error: Failed to unzip Xray-linux-64.zip"; exit 1; }
+              rm -f Xray-linux-64.zip
+              mv -f xray xray-linux-amd64 || { echo "Error: Failed to rename xray for amd64"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "arm64" ]; then
+              wget -q ${Xray_URL}Xray-linux-arm64-v8a.zip || { echo "Error: Failed to download Xray for arm64"; exit 1; }
+              unzip -o Xray-linux-arm64-v8a.zip || { echo "Error: Failed to unzip Xray-linux-arm64-v8a.zip"; exit 1; }
+              rm -f Xray-linux-arm64-v8a.zip
+              mv -f xray xray-linux-arm64 || { echo "Error: Failed to rename xray for arm64"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "armv7" ]; then
+              wget -q ${Xray_URL}Xray-linux-arm32-v7a.zip || { echo "Error: Failed to download Xray for armv7"; exit 1; }
+              unzip -o Xray-linux-arm32-v7a.zip || { echo "Error: Failed to unzip Xray-linux-arm32-v7a.zip"; exit 1; }
+              rm -f Xray-linux-arm32-v7a.zip
+              mv -f xray xray-linux-armv7 || { echo "Error: Failed to rename xray for armv7"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "armv6" ]; then
+              wget -q ${Xray_URL}Xray-linux-arm32-v6.zip || { echo "Error: Failed to download Xray for armv6"; exit 1; }
+              unzip -o Xray-linux-arm32-v6.zip || { echo "Error: Failed to unzip Xray-linux-arm32-v6.zip"; exit 1; }
+              rm -f Xray-linux-arm32-v6.zip
+              mv -f xray xray-linux-armv6 || { echo " ascend: true
+              mv -f xray xray-linux-armv6 || { echo "Error: Failed to rename xray for armv6"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "386" ]; then
+              wget -q ${Xray_URL}Xray-linux-32.zip || { echo "Error: Failed to download Xray for 386"; exit 1; }
+              unzip -o Xray-linux-32.zip || { echo "Error: Failed to unzip Xray-linux-32.zip"; exit 1; }
+              rm -f Xray-linux-32.zip
+              mv -f xray xray-linux-386 || { echo "Error: Failed to rename xray for 386"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "armv5" ]; then
+              wget -q ${Xray_URL}Xray-linux-arm32-v5.zip || { echo "Error: Failed to download Xray for armv5"; exit 1; }
+              unzip -o Xray-linux-arm32-v5.zip || { echo "Error: Failed to unzip Xray-linux-arm32-v5.zip"; exit 1; }
+              rm -f Xray-linux-arm32-v5.zip
+              mv -f xray xray-linux-armv5 || { echo "Error: Failed to rename xray for armv5"; exit 1; }
+            elif [ "${{ matrix.platform }}" == "s390x" ]; then
+              wget -q ${Xray_URL}Xray-linux-s390x.zip || { echo "Error: Failed to download Xray for s390x"; exit 1; }
+              unzip -o Xray-linux-s390x.zip || { echo "Error: Failed to unzip Xray-linux-s390x.zip"; exit 1; }
+              rm -f Xray-linux-s390x.zip
+              mv -f xray xray-linux-s390x || { echo "Error: f to rename xray for s390x"; exit 1; }
+            fi
+          fi
+          # Clean up any duplicate files
+          rm -f geo*.dat.* || true
+          # Download geoip and geosite files
+          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat || { echo "Error: Failed to download geoip.dat"; exit 1; }
+          wget -q https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat || { echo "Error: Failed to download geosite.dat"; exit 1; }
+          wget -q -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat || { echo "Error: Failed to download geoip_IR.dat"; exit 1; }
+          wget -q -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat || { echo "Error: Failed to download geosite_IR.dat"; exit 1; }
+          wget -q -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat || { echo "Error: Failed to download geoip_RU.dat"; exit 1; }
+          wget -q -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat || { echo "Error: Failed to download geosite_RU.dat"; exit 1; }
+          # Copy additional files
+          cp ../../LICENSE 4x-ui/bin/ 2>/dev/null || echo "Warning: LICENSE not found"
+          cp ../../README.md 4x-ui/bin/ 2>/dev/null || echo "Warning: README.md not found"
+          cp ../../x-ui.service 4x-ui/ 2>/dev/null || echo "Warning: x-ui.service not found"
+          cp ../../x-ui.sh 4x-ui/ 2>/dev/null || echo "Warning: x-ui.sh not found"
+          cd ../..
+          # Package and generate checksum
+          if [ "${{ matrix.platform }}" == "windows-amd64" ]; then
+            zip -r 4x-ui-${{ matrix.platform }}.zip 4x-ui || { echo "Error: Failed to zip 4x-ui-${{ matrix.platform }}"; exit 1; }
+            sha256sum 4x-ui-${{ matrix.platform }}.zip > 4x-ui-${{ matrix.platform }}.sha256
+          else
+            tar -zcvf 4x-ui-${{ matrix.platform }}.tar.gz 4x-ui || { echo "Error: Failed to tar 4x-ui-${{ matrix.platform }}"; exit 1; }
+            sha256sum 4x-ui-${{ matrix.platform }}.tar.gz > 4x-ui-${{ matrix.platform }}.sha256
+          fi
+          # List generated files for debugging
+          ls -l 4x-ui-${{ matrix.platform }}.*
+
+      - name: Upload files to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 4x-ui-${{ matrix.platform }}
+          path: |
+            4x-ui-${{ matrix.platform }}.*
+            4x-ui-${{ matrix.platform }}.sha256
+          if-no-files-found: error
+
+      - name: Upload files to GH release
+        uses: svenstaro/upload-release-action@v2
+        if: github.event_name == 'release' && github.event.action == 'published'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ github.ref }}
+          file: |
+            4x-ui-${{ matrix.platform }}.*
+            4x-ui-${{ matrix.platform }}.sha256
+          asset_name: 4x-ui-${{ matrix.platform }}.*
+          prerelease: true
