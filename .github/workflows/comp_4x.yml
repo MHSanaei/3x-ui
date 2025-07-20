@@ -135,7 +135,6 @@ jobs:
               unzip -o Xray-linux-arm32-v6.zip || { echo "Error: Failed to unzip Xray-linux-arm32-v6.zip"; exit 1; }
               rm -f Xray-linux-arm32-v6.zip
               mv -f xray xray-linux-armv6 || { echo " ascend: true
-System: ```yaml
               mv -f xray xray-linux-armv6 || { echo "Error: Failed to rename xray for armv6"; exit 1; }
             elif [ "${{ matrix.platform }}" == "386" ]; then
               wget -q ${Xray_URL}Xray-linux-32.zip || { echo "Error: Failed to download Xray for 386"; exit 1; }
