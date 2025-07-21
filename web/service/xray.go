@@ -7,6 +7,7 @@ import (
 
 	"x-ui/logger"
 	"x-ui/xray"
+	"x-ui/web/service"
 
 	"go.uber.org/atomic"
 )
@@ -70,6 +71,28 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	err = json.Unmarshal([]byte(templateConfig), xrayConfig)
 	if err != nil {
 		return nil, err
+	}
+
+	// --- Блокировка запрещённых доменов ---
+	blockedDomains, err := service.BlockedDomainService{}.GetAll()
+	if err == nil && len(blockedDomains) > 0 {
+		var domains []string
+		for _, d := range blockedDomains {
+			domains = append(domains, d.Domain)
+		}
+		var routing map[string]any
+		if err := json.Unmarshal(xrayConfig.RouterConfig, &routing); err == nil {
+			rules, _ := routing["rules"].([]any)
+			blockRule := map[string]any{
+				"type": "field",
+				"outboundTag": "blocked",
+				"domain": domains,
+			}
+			routing["rules"] = append(rules, blockRule)
+			if newRouting, err := json.MarshalIndent(routing, "", "  "); err == nil {
+				xrayConfig.RouterConfig = newRouting
+			}
+		}
 	}
 
 	s.inboundService.AddTraffic(nil, nil)
