@@ -100,8 +100,11 @@ type Server struct {
 func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:           ctx,
+		cancel:        cancel,
+		xrayService:   service.XrayService{},
+		settingService: service.SettingService{},
+		tgbotService:  service.Tgbot{},
 	}
 }
 

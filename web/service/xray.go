@@ -7,7 +7,8 @@ import (
 
 	"x-ui/logger"
 	"x-ui/xray"
-	"x-ui/web/service"
+	"x-ui/database"
+	"x-ui/database/model"
 
 	"go.uber.org/atomic"
 )
@@ -74,7 +75,8 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	}
 
 	// --- Блокировка запрещённых доменов ---
-	blockedDomains, err := service.BlockedDomainService{}.GetAll()
+	var blockedDomains []model.BlockedDomain
+	err = database.GetDB().Find(&blockedDomains).Error
 	if err == nil && len(blockedDomains) > 0 {
 		var domains []string
 		for _, d := range blockedDomains {

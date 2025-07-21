@@ -10,8 +10,8 @@ import (
 	"x-ui/logger"
 	"x-ui/util/json_util"
 	"x-ui/util/random"
-	"x-ui/web/service"
 	"x-ui/xray"
+	"x-ui/web/service"
 )
 
 //go:embed default.json

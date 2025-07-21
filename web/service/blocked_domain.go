@@ -3,7 +3,6 @@ package service
 import (
 	"x-ui/database"
 	"x-ui/database/model"
-	"gorm.io/gorm"
 )
 
 type BlockedDomainService struct{}
