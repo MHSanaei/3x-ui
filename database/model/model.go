@@ -105,3 +105,11 @@ type Client struct {
 	Comment    string `json:"comment" form:"comment"`
 	Reset      int    `json:"reset" form:"reset"`
 }
+
+type BlockedDomain struct {
+	Id        int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Domain    string `json:"domain" gorm:"unique;not null"`
+	Comment   string `json:"comment"`
+	CreatedAt int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
