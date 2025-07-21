@@ -12,8 +12,8 @@ import (
 	"x-ui/logger"
 	"x-ui/util/common"
 	"x-ui/util/random"
-	"x-ui/web/service"
 	"x-ui/xray"
+	"x-ui/web/service"
 
 	"github.com/goccy/go-json"
 )

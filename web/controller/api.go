@@ -1,15 +1,12 @@
 package controller
 
 import (
-	"x-ui/web/service"
-
 	"github.com/gin-gonic/gin"
 )
 
 type APIController struct {
 	BaseController
 	inboundController *InboundController
-	Tgbot             service.Tgbot
 }
 
 func NewAPIController(g *gin.RouterGroup) *APIController {
@@ -29,7 +26,6 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 		Path    string
 		Handler gin.HandlerFunc
 	}{
-		{"GET", "/createbackup", a.createBackup},
 		{"GET", "/list", a.inboundController.getInbounds},
 		{"GET", "/get/:id", a.inboundController.getInbound},
 		{"GET", "/getClientTraffics/:email", a.inboundController.getClientTraffics},
@@ -52,8 +48,4 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 	for _, route := range inboundRoutes {
 		g.Handle(route.Method, route.Path, route.Handler)
 	}
-}
-
-func (a *APIController) createBackup(c *gin.Context) {
-	a.Tgbot.SendBackupToAdmins()
 }

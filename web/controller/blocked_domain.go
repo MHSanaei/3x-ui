@@ -6,15 +6,14 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"x-ui/database/model"
-	"x-ui/web/service"
+	"x-ui/database"
 )
 
 type BlockedDomainController struct {
-	service *service.BlockedDomainService
 }
 
 func NewBlockedDomainController(g *gin.RouterGroup) *BlockedDomainController {
-	ctrl := &BlockedDomainController{service: &service.BlockedDomainService{}}
+	ctrl := &BlockedDomainController{}
 	r := g.Group("/blocked-domains")
 	r.GET("/", ctrl.List)
 	r.POST("/", ctrl.Create)
@@ -24,7 +23,8 @@ func NewBlockedDomainController(g *gin.RouterGroup) *BlockedDomainController {
 }
 
 func (ctrl *BlockedDomainController) List(c *gin.Context) {
-	domains, err := ctrl.service.GetAll()
+	var domains []model.BlockedDomain
+	err := database.GetDB().Find(&domains).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return
@@ -38,7 +38,8 @@ func (ctrl *BlockedDomainController) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
-	if err := ctrl.service.Create(&domain); err != nil {
+	err := database.GetDB().Create(&domain).Error
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
@@ -57,7 +58,8 @@ func (ctrl *BlockedDomainController) Update(c *gin.Context) {
 		return
 	}
 	domain.Id = id
-	if err := ctrl.service.Update(&domain); err != nil {
+	err = database.GetDB().Save(&domain).Error
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
@@ -70,7 +72,8 @@ func (ctrl *BlockedDomainController) Delete(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": "invalid id"})
 		return
 	}
-	if err := ctrl.service.Delete(id); err != nil {
+	err = database.GetDB().Delete(&model.BlockedDomain{}, id).Error
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "msg": err.Error()})
 		return
 	}

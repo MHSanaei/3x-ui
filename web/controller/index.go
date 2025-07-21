@@ -21,7 +21,6 @@ type LoginForm struct {
 
 type IndexController struct {
 	BaseController
-
 	settingService service.SettingService
 	userService    service.UserService
 	tgbot          service.Tgbot
