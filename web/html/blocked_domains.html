@@ -70,7 +70,7 @@
     },
     methods: {
       i18n(key) {
-        return I18nManager ? I18nManager.t(key) : key;
+        return key;
       },
       fetchDomains() {
         axios.get('blocked-domains/').then(res => {
