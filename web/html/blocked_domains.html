@@ -1,132 +1,131 @@
-{{ define "page/blocked_domains" }}
-<template>
-  <div>
-    <a-card :title="i18n('menu.blocked_domains')">
-      <a-button type="primary" @click="showAddModal = true" style="margin-bottom: 16px;">
-        {{ i18n "add" }}
-      </a-button>
-      <a-table-sortable
-        :data-source="domains"
-        :row-key="'id'"
-        :pagination="false"
-        style="margin-bottom: 16px;"
-      >
-        <a-table-column title="#" :customRender="(_, __, i) => i + 1" width="50" />
-        <a-table-column title="{{ i18n "domain" }}" dataIndex="domain" key="domain" />
-        <a-table-column title="{{ i18n "comment" }}" dataIndex="comment" key="comment" />
-        <a-table-column
-          :title="i18n('action')"
-          key="action"
-          :customRender="(_, record) => actionRender(record)"
-          width="120"
-        />
-      </a-table-sortable>
-      <a-modal v-model="showAddModal" :title="i18n('add_domain')" @ok="addDomain">
-        <a-form :model="addForm">
-          <a-form-item :label="i18n('domain')">
-            <a-input v-model="addForm.domain" />
-          </a-form-item>
-          <a-form-item :label="i18n('comment')">
-            <a-input v-model="addForm.comment" />
-          </a-form-item>
-        </a-form>
-      </a-modal>
-      <a-modal v-model="showEditModal" :title="i18n('edit_domain')" @ok="editDomain">
-        <a-form :model="editForm">
-          <a-form-item :label="i18n('domain')">
-            <a-input v-model="editForm.domain" />
-          </a-form-item>
-          <a-form-item :label="i18n('comment')">
-            <a-input v-model="editForm.comment" />
-          </a-form-item>
-        </a-form>
-      </a-modal>
-    </a-card>
-  </div>
-</template>
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content>
+      <a-card :title="i18n('menu.blocked_domains')">
+        <a-button type="primary" @click="showAddModal = true" style="margin-bottom: 16px;">
+          [[ i18n('add') ]]
+        </a-button>
+        <a-table-sortable
+          :data-source="domains"
+          :row-key="'id'"
+          :pagination="false"
+          style="margin-bottom: 16px;"
+        >
+          <a-table-column title="#" :customRender="(_, __, i) => i + 1" width="50" />
+          <a-table-column title="[[ i18n('domain') ]]" dataIndex="domain" key="domain" />
+          <a-table-column title="[[ i18n('comment') ]]" dataIndex="comment" key="comment" />
+          <a-table-column
+            :title="i18n('action')"
+            key="action"
+            :customRender="(_, record) => actionRender(record)"
+            width="120"
+          />
+        </a-table-sortable>
+        <a-modal v-model="showAddModal" :title="i18n('add_domain')" @ok="addDomain">
+          <a-form :model="addForm">
+            <a-form-item :label="i18n('domain')">
+              <a-input v-model="addForm.domain" />
+            </a-form-item>
+            <a-form-item :label="i18n('comment')">
+              <a-input v-model="addForm.comment" />
+            </a-form-item>
+          </a-form>
+        </a-modal>
+        <a-modal v-model="showEditModal" :title="i18n('edit_domain')" @ok="editDomain">
+          <a-form :model="editForm">
+            <a-form-item :label="i18n('domain')">
+              <a-input v-model="editForm.domain" />
+            </a-form-item>
+            <a-form-item :label="i18n('comment')">
+              <a-input v-model="editForm.comment" />
+            </a-form-item>
+          </a-form>
+        </a-modal>
+      </a-card>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+
+{{ template "page/body_scripts" .}}
+{{ template "component/aSidebar" .}}
+{{ template "component/aThemeSwitch" .}}
 <script>
-new Vue({
-  el: '#app',
-  data() {
-    return {
-      domains: [],
-      showAddModal: false,
-      showEditModal: false,
-      addForm: { domain: '', comment: '' },
-      editForm: { id: null, domain: '', comment: '' },
-    };
-  },
-  methods: {
-    i18n(key) {
-      // Простейший i18n, можно заменить на глобальный
-      const dict = {
-        'menu.blocked_domains': 'Запрещённые сайты',
-        'add': 'Добавить',
-        'domain': 'Домен',
-        'comment': 'Комментарий',
-        'action': 'Действия',
-        'add_domain': 'Добавить домен',
-        'edit_domain': 'Редактировать домен',
-        'edit': 'Редактировать',
-        'delete': 'Удалить',
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    data() {
+      return {
+        domains: [],
+        showAddModal: false,
+        showEditModal: false,
+        addForm: { domain: '', comment: '' },
+        editForm: { id: null, domain: '', comment: '' },
       };
-      return dict[key] || key;
     },
-    fetchDomains() {
-      axios.get('blocked-domains/').then(res => {
-        if (res.data.success) {
-          this.domains = res.data.obj;
+    methods: {
+      i18n(key) {
+        return I18nManager ? I18nManager.t(key) : key;
+      },
+      fetchDomains() {
+        axios.get('blocked-domains/').then(res => {
+          if (res.data.success) {
+            this.domains = res.data.obj;
+          }
+        });
+      },
+      addDomain() {
+        axios.post('blocked-domains/', this.addForm).then(res => {
+          if (res.data.success) {
+            this.showAddModal = false;
+            this.addForm = { domain: '', comment: '' };
+            this.fetchDomains();
+          }
+        });
+      },
+      editDomain() {
+        axios.put(`blocked-domains/${this.editForm.id}`, this.editForm).then(res => {
+          if (res.data.success) {
+            this.showEditModal = false;
+            this.editForm = { id: null, domain: '', comment: '' };
+            this.fetchDomains();
+          }
+        });
+      },
+      deleteDomain(id) {
+        this.$confirm({
+          title: this.i18n('delete'),
+          content: this.i18n('domain') + '?',
+          onOk: () => {
+            axios.delete(`blocked-domains/${id}`).then(res => {
+              if (res.data.success) {
+                this.fetchDomains();
+              }
+            });
+          },
+        });
+      },
+      actionRender(record) {
+        return (
+          `<a @click=\"editDomainShow(${record.id})\">${this.i18n('edit')}</a> | ` +
+          `<a @click=\"deleteDomain(${record.id})\">${this.i18n('delete')}</a>`
+        );
+      },
+      editDomainShow(id) {
+        const d = this.domains.find(x => x.id === id);
+        if (d) {
+          this.editForm = { ...d };
+          this.showEditModal = true;
         }
-      });
+      },
     },
-    addDomain() {
-      axios.post('blocked-domains/', this.addForm).then(res => {
-        if (res.data.success) {
-          this.showAddModal = false;
-          this.addForm = { domain: '', comment: '' };
-          this.fetchDomains();
-        }
-      });
+    mounted() {
+      this.fetchDomains();
     },
-    editDomain() {
-      axios.put(`blocked-domains/${this.editForm.id}`, this.editForm).then(res => {
-        if (res.data.success) {
-          this.showEditModal = false;
-          this.editForm = { id: null, domain: '', comment: '' };
-          this.fetchDomains();
-        }
-      });
-    },
-    deleteDomain(id) {
-      this.$confirm({
-        title: this.i18n('delete'),
-        content: this.i18n('domain') + '?',
-        onOk: () => {
-          axios.delete(`blocked-domains/${id}`).then(res => {
-            if (res.data.success) {
-              this.fetchDomains();
-            }
-          });
-        },
-      });
-    },
-    actionRender(record) {
-      return (
-        `<a @click="editDomainShow(${record.id})">${this.i18n('edit')}</a> |
-         <a @click="deleteDomain(${record.id})">${this.i18n('delete')}</a>`
-      );
-    },
-    editDomainShow(id) {
-      const d = this.domains.find(x => x.id === id);
-      if (d) {
-        this.editForm = { ...d };
-        this.showEditModal = true;
-      }
-    },
-  },
-  mounted() {
-    this.fetchDomains();
-  },
-});
+  });
 </script>
-{{ end }} 
+{{ template "page/body_end" .}} 
