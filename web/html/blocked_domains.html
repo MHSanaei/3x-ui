@@ -73,14 +73,14 @@
         return key;
       },
       fetchDomains() {
-        axios.get('blocked-domains/').then(res => {
+        axios.get(basePath + 'blocked-domains/').then(res => {
           if (res.data.success) {
             this.domains = res.data.obj;
           }
         });
       },
       addDomain() {
-        axios.post('blocked-domains/', this.addForm).then(res => {
+        axios.post(basePath + 'blocked-domains/', this.addForm).then(res => {
           if (res.data.success) {
             this.showAddModal = false;
             this.addForm = { domain: '', comment: '' };
@@ -89,7 +89,7 @@
         });
       },
       editDomain() {
-        axios.put(`blocked-domains/${this.editForm.id}`, this.editForm).then(res => {
+        axios.put(basePath + `blocked-domains/${this.editForm.id}`, this.editForm).then(res => {
           if (res.data.success) {
             this.showEditModal = false;
             this.editForm = { id: null, domain: '', comment: '' };
@@ -102,7 +102,7 @@
           title: this.i18n('delete'),
           content: this.i18n('domain') + '?',
           onOk: () => {
-            axios.delete(`blocked-domains/${id}`).then(res => {
+            axios.delete(basePath + `blocked-domains/${id}`).then(res => {
               if (res.data.success) {
                 this.fetchDomains();
               }
