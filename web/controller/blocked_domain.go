@@ -34,7 +34,7 @@ func (ctrl *BlockedDomainController) List(c *gin.Context) {
 
 func (ctrl *BlockedDomainController) Create(c *gin.Context) {
 	var domain model.BlockedDomain
-	if err := c.ShouldBindJSON(&domain); err != nil {
+	if err := c.ShouldBind(&domain); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
@@ -53,7 +53,7 @@ func (ctrl *BlockedDomainController) Update(c *gin.Context) {
 		return
 	}
 	var domain model.BlockedDomain
-	if err := c.ShouldBindJSON(&domain); err != nil {
+	if err := c.ShouldBind(&domain); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"success": false, "msg": err.Error()})
 		return
 	}
