@@ -131,13 +131,17 @@ func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, 
 	t := template.New("").Funcs(funcMap)
 	err := fs.WalkDir(htmlFS, "html", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return err
+			if strings.Contains(err.Error(), "pattern matches no files") {
+				return nil
+			}
+			println("TEMPLATE ERROR in ", path, ": ", err.Error())
+			return nil
 		}
 
 		if d.IsDir() {
 			newT, err := t.ParseFS(htmlFS, path+"/*.html")
 			if err != nil {
-				// ignore
+				println("TEMPLATE ERROR in ", path, ": ", err.Error())
 				return nil
 			}
 			t = newT

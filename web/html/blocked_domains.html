@@ -1,9 +1,9 @@
-{{define "page/blocked_domains"}}
+{{ define "page/blocked_domains" }}
 <template>
   <div>
     <a-card :title="i18n('menu.blocked_domains')">
       <a-button type="primary" @click="showAddModal = true" style="margin-bottom: 16px;">
-        {{ i18n('add') }}
+        {{ i18n "add" }}
       </a-button>
       <a-table-sortable
         :data-source="domains"
@@ -12,8 +12,8 @@
         style="margin-bottom: 16px;"
       >
         <a-table-column title="#" :customRender="(_, __, i) => i + 1" width="50" />
-        <a-table-column title="{{ i18n('domain') }}" dataIndex="domain" key="domain" />
-        <a-table-column title="{{ i18n('comment') }}" dataIndex="comment" key="comment" />
+        <a-table-column title="{{ i18n "domain" }}" dataIndex="domain" key="domain" />
+        <a-table-column title="{{ i18n "comment" }}" dataIndex="comment" key="comment" />
         <a-table-column
           :title="i18n('action')"
           key="action"
@@ -129,4 +129,4 @@ new Vue({
   },
 });
 </script>
-{{end}} 
+{{ end }} 
