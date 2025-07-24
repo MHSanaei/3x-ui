@@ -180,6 +180,21 @@ func (s *SettingService) getSetting(key string) (*model.Setting, error) {
 	return setting, nil
 }
 
+func (s *SettingService) GetAPIKey() (string, error) {
+	setting, err := s.getSetting("ApiKey")
+	if err != nil {
+		return "", err
+	}
+	if setting == nil {
+		return "", nil
+	}
+	return setting.Value, nil
+}
+
+func (s *SettingService) SetAPIKey(apiKey string) error {
+	return s.saveSetting("ApiKey", apiKey)
+}
+
 func (s *SettingService) saveSetting(key string, value string) error {
 	setting, err := s.getSetting(key)
 	db := database.GetDB()

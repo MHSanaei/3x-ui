@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"x-ui/database/model"
+	"x-ui/web/middleware"
 	"x-ui/web/service"
 	"x-ui/web/session"
 
@@ -32,15 +33,26 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/update/:id", a.updateInbound)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
-	g.POST("/addClient", a.addInboundClient)
-	g.POST("/:id/delClient/:clientId", a.delInboundClient)
-	g.POST("/updateClient/:clientId", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
 	g.POST("/resetAllTraffics", a.resetAllTraffics)
 	g.POST("/resetAllClientTraffics/:id", a.resetAllClientTraffics)
 	g.POST("/delDepletedClients/:id", a.delDepletedClients)
 	g.POST("/import", a.importInbound)
 	g.POST("/onlines", a.onlines)
+
+	// Routes for UI
+	g.POST("/addClient", a.addInboundClient)
+	g.POST("/:id/delClient/:clientId", a.delInboundClient)
+	g.POST("/updateClient/:clientId", a.updateInboundClient)
+
+	// Routes for API (for slave servers)
+	apiGroup := g.Group("/api")
+	apiGroup.Use(middleware.ApiAuth())
+	{
+		apiGroup.POST("/addClient", a.addInboundClient)
+		apiGroup.POST("/:id/delClient/:clientId", a.delInboundClient)
+		apiGroup.POST("/updateClient/:clientId", a.updateInboundClient)
+	}
 }
 
 func (a *InboundController) getInbounds(c *gin.Context) {

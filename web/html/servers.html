@@ -1,0 +1,165 @@
+{{template "header" .}}
+
+<div id="app" class="row" v-cloak>
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Server Management</h3>
+                <div class="card-tools">
+                    <button class="btn btn-primary" @click="showAddModal">Add Server</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Address</th>
+                        <th>Port</th>
+                        <th>Enabled</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="(server, index) in servers">
+                        <td>{{index + 1}}</td>
+                        <td>{{server.name}}</td>
+                        <td>{{server.address}}</td>
+                        <td>{{server.port}}</td>
+                        <td>
+                            <span v-if="server.enable" class="badge bg-success">Yes</span>
+                            <span v-else class="badge bg-danger">No</span>
+                        </td>
+                        <td>
+                            <button class="btn btn-info btn-sm" @click="showEditModal(server)">Edit</button>
+                            <button class="btn btn-danger btn-sm" @click="deleteServer(server.id)">Delete</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="serverModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{modal.title}}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label>Name</label>
+                            <input type="text" class="form-control" v-model="modal.server.name">
+                        </div>
+                        <div class="form-group">
+                            <label>Address (IP or Domain)</label>
+                            <input type="text" class="form-control" v-model="modal.server.address">
+                        </div>
+                        <div class="form-group">
+                            <label>Port</label>
+                            <input type="number" class="form-control" v-model.number="modal.server.port">
+                        </div>
+                        <div class="form-group">
+                            <label>API Key</label>
+                            <input type="text" class="form-control" v-model="modal.server.apiKey">
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" v-model="modal.server.enable">
+                            <label class="form-check-label">Enabled</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" @click="saveServer">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const app = new Vue({
+        el: '#app',
+        data: {
+            servers: [],
+            modal: {
+                title: '',
+                server: {
+                    name: '',
+                    address: '',
+                    port: 0,
+                    apiKey: '',
+                    enable: true
+                }
+            }
+        },
+        methods: {
+            loadServers() {
+                axios.get('{{.base_path}}server/list')
+                    .then(response => {
+                        this.servers = response.data.obj;
+                    })
+                    .catch(error => {
+                        alert(error.response.data.msg);
+                    });
+            },
+            showAddModal() {
+                this.modal.title = 'Add Server';
+                this.modal.server = {
+                    name: '',
+                    address: '',
+                    port: 0,
+                    apiKey: '',
+                    enable: true
+                };
+                $('#serverModal').modal('show');
+            },
+            showEditModal(server) {
+                this.modal.title = 'Edit Server';
+                this.modal.server = Object.assign({}, server);
+                $('#serverModal').modal('show');
+            },
+            saveServer() {
+                let url = '{{.base_path}}server/add';
+                if (this.modal.server.id) {
+                    url = `{{.base_path}}server/update/${this.modal.server.id}`;
+                }
+                axios.post(url, this.modal.server)
+                    .then(response => {
+                        alert(response.data.msg);
+                        $('#serverModal').modal('hide');
+                        this.loadServers();
+                    })
+                    .catch(error => {
+                        alert(error.response.data.msg);
+                    });
+            },
+            deleteServer(id) {
+                if (!confirm('Are you sure you want to delete this server?')) {
+                    return;
+                }
+                axios.post(`{{.base_path}}server/del/${id}`)
+                    .then(response => {
+                        alert(response.data.msg);
+                        this.loadServers();
+                    })
+                    .catch(error => {
+                        alert(error.response.data.msg);
+                    });
+            }
+        },
+        mounted() {
+            this.loadServers();
+        }
+    });
+</script>
+
+{{template "footer" .}}
