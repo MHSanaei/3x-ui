@@ -232,7 +232,7 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 	}
 }
 
-func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) {
+func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool, apiKey string) {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
@@ -241,6 +241,15 @@ func updateSetting(port int, username string, password string, webBasePath strin
 
 	settingService := service.SettingService{}
 	userService := service.UserService{}
+
+	if apiKey != "" {
+		err := settingService.SetAPIKey(apiKey)
+		if err != nil {
+			fmt.Println("Failed to set API Key:", err)
+		} else {
+			fmt.Printf("API Key set successfully: %v\n", apiKey)
+		}
+	}
 
 	if port > 0 {
 		err := settingService.SetPort(port)
@@ -388,9 +397,11 @@ func main() {
 	var show bool
 	var getCert bool
 	var resetTwoFactor bool
+	var apiKey string
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
 	settingCmd.IntVar(&port, "port", 0, "Set panel port number")
+	settingCmd.StringVar(&apiKey, "apiKey", "", "Set API Key")
 	settingCmd.StringVar(&username, "username", "", "Set login username")
 	settingCmd.StringVar(&password, "password", "", "Set login password")
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
@@ -440,7 +451,7 @@ func main() {
 		if reset {
 			resetSetting()
 		} else {
-			updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor)
+			updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor, apiKey)
 		}
 		if show {
 			showSetting(show)

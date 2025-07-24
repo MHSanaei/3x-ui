@@ -143,6 +143,13 @@ config_after_install() {
     fi
 
     /usr/local/x-ui/x-ui migrate
+
+    local existing_apiKey=$(/usr/local/x-ui/x-ui setting -show true | grep -oP 'ApiKey: \K.*')
+    if [[ -z "$existing_apiKey" ]]; then
+        local config_apiKey=$(gen_random_string 32)
+        /usr/local/x-ui/x-ui setting -apiKey "${config_apiKey}"
+        echo -e "${green}Generated random API Key: ${config_apiKey}${plain}"
+    fi
 }
 
 install_x-ui() {
