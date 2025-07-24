@@ -258,7 +258,7 @@
 "resetInboundClientTrafficSuccess" = "Traffic has been reset."
 "trafficGetError" = "Error getting traffics."
 "getNewX25519CertError" = "Error while obtaining the X25519 certificate."
-
+"getNewmldsa65Error" = "Error while obtaining mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Request"

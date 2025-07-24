@@ -709,3 +709,29 @@ func (s *ServerService) GetNewX25519Cert() (any, error) {
 
 	return keyPair, nil
 }
+
+func (s *ServerService) GetNewmldsa65() (any, error) {
+	// Run the command
+	cmd := exec.Command(xray.GetBinaryPath(), "mldsa65")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+
+	SeedLine := strings.Split(lines[0], ":")
+	VerifyLine := strings.Split(lines[1], ":")
+
+	seed := strings.TrimSpace(SeedLine[1])
+	verify := strings.TrimSpace(VerifyLine[1])
+
+	keyPair := map[string]any{
+		"seed":   seed,
+		"verify": verify,
+	}
+
+	return keyPair, nil
+}

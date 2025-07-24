@@ -260,6 +260,7 @@
 "resetInboundClientTrafficSuccess" = "تم إعادة تعيين حركة المرور"
 "trafficGetError" = "خطأ في الحصول على حركات المرور"
 "getNewX25519CertError" = "حدث خطأ أثناء الحصول على شهادة X25519."
+"getNewmldsa65Error" = "حدث خطاء في الحصول على mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "طلب"

@@ -263,6 +263,7 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	rltyData["show"] = false
 	rltyData["publicKey"] = rltyClientSettings["publicKey"]
 	rltyData["fingerprint"] = rltyClientSettings["fingerprint"]
+	rltyData["mldsa65Verify"] = rltyClientSettings["mldsa65Verify"]
 
 	// Set random data
 	rltyData["spiderX"] = "/" + random.Seq(15)

@@ -262,6 +262,7 @@
 "resetInboundClientTrafficSuccess" = "Lalu lintas telah direset"
 "trafficGetError" = "Gagal mendapatkan data lalu lintas"
 "getNewX25519CertError" = "Terjadi kesalahan saat mendapatkan sertifikat X25519."
+"getNewmldsa65Error" = "Terjadi kesalahan saat mendapatkan sertifikat mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Permintaan"

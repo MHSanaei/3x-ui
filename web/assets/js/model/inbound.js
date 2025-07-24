@@ -732,6 +732,7 @@ class RealityStreamSettings extends XrayCommonClass {
         maxClient = '',
         maxTimediff = 0,
         shortIds = RandomUtil.randomShortIds(),
+        mldsa65Seed = '',
         settings = new RealityStreamSettings.Settings()
     ) {
         super();
@@ -744,6 +745,7 @@ class RealityStreamSettings extends XrayCommonClass {
         this.maxClient = maxClient;
         this.maxTimediff = maxTimediff;
         this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds;
+        this.mldsa65Seed = mldsa65Seed;
         this.settings = settings;
     }
 
@@ -754,7 +756,8 @@ class RealityStreamSettings extends XrayCommonClass {
                 json.settings.publicKey,
                 json.settings.fingerprint,
                 json.settings.serverName,
-                json.settings.spiderX
+                json.settings.spiderX,
+                json.settings.mldsa65Verify,
             );
         }
         return new RealityStreamSettings(
@@ -767,6 +770,7 @@ class RealityStreamSettings extends XrayCommonClass {
             json.maxClient,
             json.maxTimediff,
             json.shortIds,
+            json.mldsa65Seed,
             settings,
         );
     }
@@ -782,6 +786,7 @@ class RealityStreamSettings extends XrayCommonClass {
             maxClient: this.maxClient,
             maxTimediff: this.maxTimediff,
             shortIds: this.shortIds.split(","),
+            mldsa65Seed: this.mldsa65Seed,
             settings: this.settings,
         };
     }
@@ -792,13 +797,15 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
         publicKey = '',
         fingerprint = UTLS_FINGERPRINT.UTLS_CHROME,
         serverName = '',
-        spiderX = '/'
+        spiderX = '/',
+        mldsa65Verify = ''
     ) {
         super();
         this.publicKey = publicKey;
         this.fingerprint = fingerprint;
         this.serverName = serverName;
         this.spiderX = spiderX;
+        this.mldsa65Verify = mldsa65Verify;
     }
     static fromJson(json = {}) {
         return new RealityStreamSettings.Settings(
@@ -806,6 +813,7 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
             json.fingerprint,
             json.serverName,
             json.spiderX,
+            json.mldsa65Verify
         );
     }
     toJson() {
@@ -814,6 +822,7 @@ RealityStreamSettings.Settings = class extends XrayCommonClass {
             fingerprint: this.fingerprint,
             serverName: this.serverName,
             spiderX: this.spiderX,
+            mldsa65Verify: this.mldsa65Verify
         };
     }
 };
