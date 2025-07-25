@@ -124,7 +124,7 @@ config_after_install() {
     else
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_username=$(gen_random_string 10)
-            local config_password=$(gen_random_string 10)
+            local config_password=$(gen_random_string 18)
 
             echo -e "${yellow}Default credentials detected. Security update required...${plain}"
             /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}"
