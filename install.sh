@@ -7,6 +7,7 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
+show_ip_service_lists=("https://api.ipify.org" "https://4.ident.me")
 
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
@@ -85,10 +86,13 @@ config_after_install() {
     local existing_hasDefaultCredential=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
-    fi
+
+    for ip_service_addr in "${show_ip_service_lists[@]}"; do
+        local server_ip=$(curl -s --max-time 3 ${ip_service_addr} 2>/dev/null)
+        if [ -n "${server_ip}" ]; then
+            break
+        fi
+    done
 
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then

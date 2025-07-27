@@ -234,21 +234,29 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// IP fetching with caching
+	showIp4ServiceLists := []string{"https://api.ipify.org", "https://4.ident.me"}
+	showIp6ServiceLists := []string{"https://api6.ipify.org", "https://6.ident.me"}
+
 	if s.cachedIPv4 == "" {
-		s.cachedIPv4 = getPublicIP("https://api.ipify.org")
-		if s.cachedIPv4 == "N/A" {
-			s.cachedIPv4 = getPublicIP("https://4.ident.me")
+		for _, ip4Service := range showIp4ServiceLists {
+			s.cachedIPv4 = getPublicIP(ip4Service)
+			if s.cachedIPv4 != "N/A" {
+				break
+			}
 		}
 	}
 
 	if s.cachedIPv6 == "" && !s.noIPv6 {
-		s.cachedIPv6 = getPublicIP("https://api6.ipify.org")
-		if s.cachedIPv6 == "N/A" {
-			s.cachedIPv6 = getPublicIP("https://6.ident.me")
-			if s.cachedIPv6 == "N/A" {
-				s.noIPv6 = true
+		for _, ip6Service := range showIp6ServiceLists {
+			s.cachedIPv6 = getPublicIP(ip6Service)
+			if s.cachedIPv6 != "N/A" {
+				break
 			}
 		}
+	}
+
+	if s.cachedIPv6 == "N/A" {
+		s.noIPv6 = true
 	}
 
 	status.PublicIP.IPv4 = s.cachedIPv4
