@@ -50,6 +50,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/getDb", a.getDb)
 	g.POST("/importDB", a.importDB)
 	g.POST("/getNewX25519Cert", a.getNewX25519Cert)
+	g.POST("/getNewmldsa65", a.getNewmldsa65)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -194,6 +195,15 @@ func (a *ServerController) getNewX25519Cert(c *gin.Context) {
 	cert, err := a.serverService.GetNewX25519Cert()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.getNewX25519CertError"), err)
+		return
+	}
+	jsonObj(c, cert, nil)
+}
+
+func (a *ServerController) getNewmldsa65(c *gin.Context) {
+	cert, err := a.serverService.GetNewmldsa65()
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.getNewmldsa65Error"), err)
 		return
 	}
 	jsonObj(c, cert, nil)
