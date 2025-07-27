@@ -17,7 +17,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.6
 	github.com/valyala/fasthttp v1.63.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.250608.1-0.20250724021908-4f45c5faa5f1
+	github.com/xtls/xray-core v1.250726.0
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.40.0
 	golang.org/x/text v0.27.0
@@ -58,6 +58,7 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20250317134145-8bc96cf8fc35 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-sqlite3 v1.14.28 // indirect
+	github.com/miekg/dns v1.1.67 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pires/go-proxyproto v0.8.1 // indirect
@@ -80,7 +81,7 @@ require (
 	github.com/valyala/fastjson v1.6.4 // indirect
 	github.com/vishvananda/netlink v1.3.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	github.com/xtls/reality v0.0.0-20250723121014-c6320729d93b // indirect
+	github.com/xtls/reality v0.0.0-20250725142056-5b52a03d4fb7 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/mock v0.5.2 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
