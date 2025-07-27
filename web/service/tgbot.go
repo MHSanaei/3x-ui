@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -397,10 +398,9 @@ func (t *Tgbot) OnReceive() {
 				smsg := message.Text
 				delete(userStates, message.Chat.ID)
 
-				// Получаем все инбаунды
 				inbounds, err := t.inboundService.GetAllInbounds()
 				if err != nil {
-					t.SendMsgToTgbot(message.Chat.ID, "Ошибка получения inbounds: "+err.Error(), tu.ReplyKeyboardRemove())
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.inboundError")+err.Error(), tu.ReplyKeyboardRemove())
 					return
 				}
 
@@ -408,21 +408,98 @@ func (t *Tgbot) OnReceive() {
 				for _, inbound := range inbounds {
 					clients, err := t.inboundService.GetClients(inbound)
 					if err != nil {
-						t.SendMsgToTgbot(message.Chat.ID, "Ошибка получения клиентов: "+err.Error(), tu.ReplyKeyboardRemove())
+						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.clientError")+err.Error(), tu.ReplyKeyboardRemove())
 						continue
 					}
 					allClients = append(allClients, clients...)
 				}
 
-				// Формируем строку для вывода (dev-версия)
-				var sb strings.Builder
-				sb.WriteString("Получено сообщение для рассылки: \n")
-				sb.WriteString(smsg + "\n\n")
-				sb.WriteString("Все пользователи (структуры):\n")
-				for i, client := range allClients {
-					sb.WriteString(fmt.Sprintf("%d: %+v\n", i+1, client))
+				count := 0
+				for _, client := range allClients {
+					if client.TgID != 0 {
+						t.SendMsgToTgbot(client.TgID, smsg)
+						count++
+					}
 				}
-				t.SendMsgToTgbot(message.Chat.ID, sb.String(), tu.ReplyKeyboardRemove())
+
+				resultMsg := fmt.Sprintf(t.I18nBot("tgbot.broadcastMessageSent"), "Count=="+strconv.Itoa(count))
+				t.SendMsgToTgbot(message.Chat.ID, resultMsg, tu.ReplyKeyboardRemove())
+			case "awaiting_choose_user":
+				inboundIdStr, ok := userStates[message.Chat.ID+1000000000]
+				if !ok {
+					inbounds, err := t.inboundService.GetAllInbounds()
+					if err != nil || len(inbounds) == 0 {
+						t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.getInboundsFailed"), tu.ReplyKeyboardRemove())
+						delete(userStates, message.Chat.ID)
+						return
+					}
+					var buttons []telego.InlineKeyboardButton
+					for _, inbound := range inbounds {
+						btnText := inbound.Remark
+						callback := t.encodeQuery("broadcast_choose_inbound " + strconv.Itoa(inbound.Id))
+						buttons = append(buttons, tu.InlineKeyboardButton(btnText).WithCallbackData(callback))
+					}
+					keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(2, buttons...))
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.chooseBroadcastInbound"), keyboard)
+					return
+				}
+				email := strings.TrimSpace(message.Text)
+				inboundId, _ := strconv.Atoi(inboundIdStr)
+				inbound, err := t.inboundService.GetInbound(inboundId)
+				if err != nil {
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.getInboundsFailed"), tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+				clients, err := t.inboundService.GetClients(inbound)
+				if err != nil {
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.getClientsFailed"), tu.ReplyKeyboardRemove())
+					delete(userStates, message.Chat.ID)
+					return
+				}
+				var found *model.Client
+				for _, c := range clients {
+					if c.Email == email {
+						found = &c
+						break
+					}
+				}
+				if found == nil {
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.broadcastUserNotFound"), tu.ReplyKeyboardRemove())
+					return
+				}
+				if found.TgID == 0 {
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.broadcastUserNoTgId"), tu.ReplyKeyboardRemove())
+					return
+				}
+				userStates[message.Chat.ID+2000000000] = email
+				userStates[message.Chat.ID] = "awaiting_broadcast_message_user"
+				t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.broadcastEnterText"), tu.ForceReply())
+				return
+			case "awaiting_broadcast_message_user":
+				email := userStates[message.Chat.ID+2000000000]
+				inboundIdStr := userStates[message.Chat.ID+1000000000]
+				inboundId, _ := strconv.Atoi(inboundIdStr)
+				inbound, _ := t.inboundService.GetInbound(inboundId)
+				clients, _ := t.inboundService.GetClients(inbound)
+				var found *model.Client
+				for _, c := range clients {
+					if c.Email == email {
+						found = &c
+						break
+					}
+				}
+				if found != nil && found.TgID != 0 {
+					t.SendMsgToTgbot(found.TgID, message.Text)
+					msg := t.I18nBot("tgbot.answers.broadcastSentToUser", "Email=="+email)
+					t.SendMsgToTgbot(message.Chat.ID, msg, tu.ReplyKeyboardRemove())
+				} else {
+					t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.answers.broadcastUserNoTgId"), tu.ReplyKeyboardRemove())
+				}
+				delete(userStates, message.Chat.ID)
+				delete(userStates, message.Chat.ID+1000000000)
+				delete(userStates, message.Chat.ID+2000000000)
+				return
 			}
 
 		} else {
@@ -1658,6 +1735,100 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		msg := t.I18nBot("tgbot.messages.enterMessageText")
 		t.SendMsgToTgbot(chatId, msg, tu.ForceReply())
 		userStates[chatId] = "awaiting_broadcast_message"
+	case "message_send_user":
+		inbounds, err := t.inboundService.GetAllInbounds()
+		if err != nil || len(inbounds) == 0 {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.getInboundsFailed"), tu.ReplyKeyboardRemove())
+			return
+		}
+		var buttons []telego.InlineKeyboardButton
+		for _, inbound := range inbounds {
+			btnText := inbound.Remark
+			callback := t.encodeQuery("broadcast_choose_inbound " + strconv.Itoa(inbound.Id))
+			buttons = append(buttons, tu.InlineKeyboardButton(btnText).WithCallbackData(callback))
+		}
+		keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(2, buttons...))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseBroadcastInbound"), keyboard)
+		userStates[chatId] = "awaiting_choose_user"
+		return
+	case "broadcast_choose_inbound":
+		dataArray := strings.Split(callbackQuery.Data, " ")
+		inboundId, _ := strconv.Atoi(dataArray[1])
+		userStates[chatId+1000000000] = strconv.Itoa(inboundId)
+		inbound, err := t.inboundService.GetInbound(inboundId)
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.getInboundsFailed"), tu.ReplyKeyboardRemove())
+			delete(userStates, chatId)
+			return
+		}
+		clients, err := t.inboundService.GetClients(inbound)
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.getClientsFailed"), tu.ReplyKeyboardRemove())
+			delete(userStates, chatId)
+			return
+		}
+		topClients := make([]model.Client, 0, 9)
+		currentTgId := chatId
+		sort.Slice(clients, func(i, j int) bool {
+			return clients[i].TotalGB > clients[j].TotalGB
+		})
+		for _, c := range clients {
+			if len(topClients) >= 9 {
+				break
+			}
+			if c.TgID != 0 && c.TgID != currentTgId {
+				topClients = append(topClients, c)
+			}
+		}
+		var userButtons []telego.InlineKeyboardButton
+		for _, c := range topClients {
+			userButtons = append(userButtons, tu.InlineKeyboardButton(c.Email).WithCallbackData(t.encodeQuery("broadcast_choose_user "+c.Email)))
+		}
+		userButtons = append(userButtons, tu.InlineKeyboardButton("Ввести email").WithCallbackData(t.encodeQuery("broadcast_enter_email")))
+		keyboardUsers := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(1, userButtons...))
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseBroadcastUser"), keyboardUsers)
+		userStates[chatId] = "awaiting_choose_user"
+		return
+	case "broadcast_choose_user":
+		inboundIdStr := userStates[chatId+1000000000]
+		inboundId, _ := strconv.Atoi(inboundIdStr)
+		inbound, err := t.inboundService.GetInbound(inboundId)
+		dataArray := strings.Split(callbackQuery.Data, " ")
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.getInboundsFailed"), tu.ReplyKeyboardRemove())
+			delete(userStates, chatId)
+			return
+		}
+		email := dataArray[1]
+		clients, err := t.inboundService.GetClients(inbound)
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.getClientsFailed"), tu.ReplyKeyboardRemove())
+			delete(userStates, chatId)
+			return
+		}
+		var found *model.Client
+		for _, c := range clients {
+			if c.Email == email {
+				found = &c
+				break
+			}
+		}
+		if found == nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.broadcastUserNotFound"), tu.ReplyKeyboardRemove())
+			return
+		}
+		if found.TgID == 0 {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.broadcastUserNoTgId"), tu.ReplyKeyboardRemove())
+			return
+		}
+		userStates[chatId+2000000000] = email
+		userStates[chatId] = "awaiting_broadcast_message_user"
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.broadcastEnterText"), tu.ForceReply())
+		return
+	case "broadcast_enter_email":
+		userStates[chatId] = "awaiting_choose_user"
+		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseUser"), tu.ForceReply())
+		return
 	}
 }
 
