@@ -700,6 +700,9 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
+"msgSend" = "💬 Bildirimleri Gönder"
+"msgUser" = "👤 Kullanıcıya"
+"msgAll" = "👥 Tüm Bot Kullanıcılarına"
 
 "addClient" = "Müşteri Ekle"
 "submitDisable" = "Devre Dışı Olarak Gönder ☑️"

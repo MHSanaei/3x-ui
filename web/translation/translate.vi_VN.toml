@@ -700,6 +700,9 @@
 "limitTraffic" = "🚧 Giới hạn lưu lượng"
 "getBanLogs" = "Cấm nhật ký"
 "allClients" = "Tất cả Khách hàng"
+"msgSend" = "💬 Gửi thông báo"
+"msgUser" = "👤 Đến người dùng"
+"msgAll" = "👥 Đến tất cả người dùng bot"
 
 "addClient" = "Thêm Khách Hàng"
 "submitDisable" = "Gửi Dưới Dạng Vô Hiệu ☑️"

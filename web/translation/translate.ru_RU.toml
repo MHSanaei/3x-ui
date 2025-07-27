@@ -700,6 +700,9 @@
 "limitTraffic" = "🚧 Лимит трафика"
 "getBanLogs" = "📄 Лог банов"
 "allClients" = "👥 Все клиенты"
+"msgSend" = "💬 Отправка уведомлений"
+"msgUser" = "👤 Пользователю"
+"msgAll" = "👥 Всем пользовтелям бота"
 
 "addClient" = "➕ Новый клиент"
 "submitDisable" = "Добавить отключенным ☑️"
@@ -708,7 +711,7 @@
 "change_id" = "⚙️🔑 ID"
 "change_password" = "⚙️🔑 Пароль"
 "change_email" = "⚙️📧 Email"
-"change_comment" = "⚙️💬 Комментарий"
+"change_comment" = "⚙️💬  Комментарий"
 "ResetAllTraffics" = "Сбросить весь трафик"
 "SortedTrafficUsageReport" = "Отсортированный отчет об использовании трафика"
 
@@ -735,3 +738,6 @@
 "askToAddUserId" = "❌ Ваша конфигурация не найдена!\r\n💭 Пожалуйста, попросите администратора использовать ваш Telegram User ID в конфигурации.\r\n\r\n🆔 Ваш User ID: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Выберите клиента для инбаунда {{ .Inbound }}"
 "chooseInbound" = "Выберите инбаунд"
+"chooseSend" = "Выберите способ отправки уведомления"
+"chooseUser" = "Выберите пользователя или отправьте его email"
+"enterText" = "Введите желаемый текст сообщения"

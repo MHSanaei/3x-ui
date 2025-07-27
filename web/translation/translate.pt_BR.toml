@@ -700,6 +700,9 @@
 "limitTraffic" = "🚧 Limite de tráfego"
 "getBanLogs" = "Obter logs de banimento"
 "allClients" = "Todos os clientes"
+"msgSend" = "💬 Enviar Notificações"
+"msgUser" = "👤 Para Usuário"
+"msgAll" = "👥 Para Todos os Usuários do Bot"
 
 "addClient" = "Adicionar Cliente"
 "submitDisable" = "Enviar como Desativado ☑️"

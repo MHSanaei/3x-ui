@@ -701,6 +701,9 @@
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
 "allClients" = "Semua Klien"
+"msgSend" = "💬 Kirim Notifikasi"
+"msgUser" = "👤 Ke Pengguna"
+"msgAll" = "👥 Ke Semua Pengguna Bot"
 
 "addClient" = "Tambah Klien"
 "submitDisable" = "Kirim Sebagai Nonaktif ☑️"

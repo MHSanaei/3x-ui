@@ -393,6 +393,36 @@ func (t *Tgbot) OnReceive() {
 				inbound, _ := t.inboundService.GetInbound(receiver_inbound_ID)
 				message_text, _ := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
 				t.addClient(message.Chat.ID, message_text)
+			case "awaiting_broadcast_message":
+				smsg := message.Text
+				delete(userStates, message.Chat.ID)
+
+				// Получаем все инбаунды
+				inbounds, err := t.inboundService.GetAllInbounds()
+				if err != nil {
+					t.SendMsgToTgbot(message.Chat.ID, "Ошибка получения inbounds: "+err.Error(), tu.ReplyKeyboardRemove())
+					return
+				}
+
+				var allClients []model.Client
+				for _, inbound := range inbounds {
+					clients, err := t.inboundService.GetClients(inbound)
+					if err != nil {
+						t.SendMsgToTgbot(message.Chat.ID, "Ошибка получения клиентов: "+err.Error(), tu.ReplyKeyboardRemove())
+						continue
+					}
+					allClients = append(allClients, clients...)
+				}
+
+				// Формируем строку для вывода (dev-версия)
+				var sb strings.Builder
+				sb.WriteString("Получено сообщение для рассылки: \n")
+				sb.WriteString(smsg + "\n\n")
+				sb.WriteString("Все пользователи (структуры):\n")
+				for i, client := range allClients {
+					sb.WriteString(fmt.Sprintf("%d: %+v\n", i+1, client))
+				}
+				t.SendMsgToTgbot(message.Chat.ID, sb.String(), tu.ReplyKeyboardRemove())
 			}
 
 		} else {
@@ -1157,8 +1187,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						return
 					}
 				}
-				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
-				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "clear_ips":
 				inlineKeyboard := tu.InlineKeyboard(
 					tu.InlineKeyboardRow(
@@ -1617,6 +1645,19 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
 
 		}
+	case "message_send":
+		inlineKeyboard := tu.InlineKeyboard(
+			tu.InlineKeyboardRow(
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.msgUser")).WithCallbackData(t.encodeQuery("message_send_user")),
+				tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.msgAll")).WithCallbackData(t.encodeQuery("message_send_all")),
+			),
+		)
+		msg := t.I18nBot("tgbot.messages.chooseSend")
+		t.SendMsgToTgbot(chatId, msg, inlineKeyboard)
+	case "message_send_all":
+		msg := t.I18nBot("tgbot.messages.enterMessageText")
+		t.SendMsgToTgbot(chatId, msg, tu.ForceReply())
+		userStates[chatId] = "awaiting_broadcast_message"
 	}
 }
 
@@ -1798,6 +1839,9 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.addClient")).WithCallbackData(t.encodeQuery("add_client")),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.msgSend")).WithCallbackData(t.encodeQuery("message_send")),
 		),
 		// TODOOOOOOOOOOOOOO: Add restart button here.
 	)

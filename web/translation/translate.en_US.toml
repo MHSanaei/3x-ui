@@ -697,6 +697,9 @@
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
 "allClients" = "All Clients"
+"msgSend" = "💬 Send Notifications"
+"msgUser" = "👤 To User"
+"msgAll" = "👥 To All Bot Users"
 
 "addClient" = "Add Client"
 "submitDisable" = "Submit As Disable ☑️"
