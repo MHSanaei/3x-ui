@@ -262,6 +262,7 @@
 "resetInboundClientTrafficSuccess" = "Трафік скинуто"
 "trafficGetError" = "Помилка отримання даних про трафік"
 "getNewX25519CertError" = "Помилка при отриманні сертифіката X25519."
+"getNewmldsa65Error" = "Помилка при отриманні сертифіката mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Запит"

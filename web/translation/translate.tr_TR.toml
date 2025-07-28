@@ -262,6 +262,7 @@
 "resetInboundClientTrafficSuccess" = "Trafik sıfırlandı"
 "trafficGetError" = "Trafik bilgisi alınırken hata oluştu"
 "getNewX25519CertError" = "X25519 sertifikası alınırken hata oluştu."
+"getNewmldsa65Error" = "mldsa65 sertifikası alınırken hata oluştu."
 
 [pages.inbounds.stream.general]
 "request" = "İstek"

@@ -264,6 +264,7 @@
 "resetInboundClientTrafficSuccess" = "流量已重置"
 "trafficGetError" = "取得流量資料時發生錯誤"
 "getNewX25519CertError" = "取得X25519憑證時發生錯誤。"
+"getNewmldsa65Error" = "取得mldsa65憑證時發生錯誤。"
 
 [pages.inbounds.stream.general]
 "request" = "請求"

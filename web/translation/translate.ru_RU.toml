@@ -262,6 +262,7 @@
 "resetInboundClientTrafficSuccess" = "Трафик сброшен"
 "trafficGetError" = "Ошибка получения данных о трафике"
 "getNewX25519CertError" = "Ошибка при получении сертификата X25519."
+"getNewmldsa65Error" = "Ошибка при получении сертификата mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Запрос"
