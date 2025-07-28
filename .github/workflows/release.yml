@@ -42,51 +42,54 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          if [ "${{ matrix.platform }}" == "arm64" ]; then
-            sudo apt install gcc-aarch64-linux-gnu
-          elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            sudo apt install gcc-arm-linux-gnueabihf
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            sudo apt install gcc-arm-linux-gnueabihf
-          elif [ "${{ matrix.platform }}" == "386" ]; then
-            sudo apt install gcc-i686-linux-gnu
-          elif [ "${{ matrix.platform }}" == "armv5" ]; then
-            sudo apt install gcc-arm-linux-gnueabi
-          elif [ "${{ matrix.platform }}" == "s390x" ]; then
-            sudo apt install gcc-s390x-linux-gnu
-          fi
-
       - name: Build 3x-ui
         run: |
           export CGO_ENABLED=1
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
-          if [ "${{ matrix.platform }}" == "arm64" ]; then
-            export GOARCH=arm64
-            export CC=aarch64-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "armv7" ]; then
-            export GOARCH=arm
-            export GOARM=7
-            export CC=arm-linux-gnueabihf-gcc
-          elif [ "${{ matrix.platform }}" == "armv6" ]; then
-            export GOARCH=arm
-            export GOARM=6
-            export CC=arm-linux-gnueabihf-gcc
-          elif [ "${{ matrix.platform }}" == "386" ]; then
-            export GOARCH=386
-            export CC=i686-linux-gnu-gcc
-          elif [ "${{ matrix.platform }}" == "armv5" ]; then
-            export GOARCH=arm
-            export GOARM=5
-            export CC=arm-linux-gnueabi-gcc
-          elif [ "${{ matrix.platform }}" == "s390x" ]; then
-            export GOARCH=s390x
-            export CC=s390x-linux-gnu-gcc
-          fi
-          go build -ldflags "-w -s" -o xui-release -v main.go
+          TOOLCHAIN_URL=""
+          MUSL_CC_HOST="https://github.com/musl-cc/musl.cc/releases/download/v0.0.1" #http://musl.cc
+          case "${{ matrix.platform }}" in
+            amd64)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/x86_64-linux-musl-cross.tgz"
+              ;;
+            arm64)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/aarch64-linux-musl-cross.tgz"
+              ;;
+            armv7)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/armv7l-linux-musleabihf-cross.tgz"
+              export GOARCH=arm
+              export GOARM=7
+              ;;
+            armv6)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/armv6-linux-musleabihf-cross.tgz"
+              export GOARCH=arm
+              export GOARM=6
+              ;;
+            armv5)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/arm-linux-musleabi-cross.tgz"
+              export GOARCH=arm
+              export GOARM=5
+              ;;
+            386)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/i686-linux-musl-cross.tgz"
+              ;;
+            s390x)
+              TOOLCHAIN_URL="$MUSL_CC_HOST/s390x-linux-musl-cross.tgz"
+              ;;
+          esac
+          echo "Downloading musl toolchain for ${{ matrix.platform }}"
+          curl -LO "$TOOLCHAIN_URL"
+          tar -xf *.tgz
+          TOOLCHAIN_DIR=$(find . -maxdepth 1 -type d -name "*-cross" | head -n1)
+          TOOLCHAIN_DIR=$(realpath "$TOOLCHAIN_DIR")
+          export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+          # Detect compiler
+          export CC=$(find $TOOLCHAIN_DIR/bin -name '*-gcc' | head -n1)
+          echo "Using CC=$CC"
+          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
+          file xui-release
+          ldd xui-release || echo "Static binary confirmed"
           
           mkdir x-ui
           cp xui-release x-ui/
