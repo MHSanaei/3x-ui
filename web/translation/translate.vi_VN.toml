@@ -262,7 +262,6 @@
 "resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
 "trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
 "getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
-"getNewmldsa65Error" = "Lỗi khi lấy chúng tôi mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"
@@ -701,6 +700,9 @@
 "limitTraffic" = "🚧 Giới hạn lưu lượng"
 "getBanLogs" = "Cấm nhật ký"
 "allClients" = "Tất cả Khách hàng"
+"msgSend" = "💬 Gửi thông báo"
+"msgUser" = "👤 Đến người dùng"
+"msgAll" = "👥 Đến tất cả người dùng bot"
 
 "addClient" = "Thêm Khách Hàng"
 "submitDisable" = "Gửi Dưới Dạng Vô Hiệu ☑️"
@@ -736,3 +738,14 @@
 "askToAddUserId" = "Cấu hình của bạn không được tìm thấy!\r\nVui lòng yêu cầu Quản trị viên sử dụng ID người dùng telegram của bạn trong cấu hình của bạn.\r\n\r\nID người dùng của bạn: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Chọn một Khách hàng cho Inbound {{ .Inbound }}"
 "chooseInbound" = "Chọn một Inbound"
+
+"enterText" = "Nhập nội dung tin nhắn muốn gửi cho tất cả người dùng"
+"inboundError" = "❌ Lỗi khi lấy dữ liệu inbound"
+"clientError" = "❌ Lỗi khi lấy người dùng"
+"broadcastMessageSent" = "Tin nhắn đã được gửi đến {{ .Count }} người dùng"
+"chooseBroadcastInbound" = "Chọn inbound để gửi broadcast"
+"chooseBroadcastUser" = "Chọn người dùng để gửi broadcast hoặc nhập email thủ công"
+"broadcastUserNotFound" = "❌ Không tìm thấy người dùng với email này trong inbound đã chọn."
+"broadcastUserNoTgId" = "❌ Người dùng không có Telegram ID, không thể gửi broadcast."
+"broadcastEnterText" = "Nhập nội dung tin nhắn cho người dùng đã chọn"
+"broadcastSentToUser" = "Tin nhắn đã được gửi đến người dùng: {{ .Email }}"

@@ -264,7 +264,6 @@
 "resetInboundClientTrafficSuccess" = "流量已重置"
 "trafficGetError" = "取得流量資料時發生錯誤"
 "getNewX25519CertError" = "取得X25519憑證時發生錯誤。"
-"getNewmldsa65Error" = "取得mldsa65憑證時發生錯誤。"
 
 [pages.inbounds.stream.general]
 "request" = "請求"
@@ -703,6 +702,9 @@
 "limitTraffic" = "🚧 流量限制"
 "getBanLogs" = "禁止日誌"
 "allClients" = "所有客戶"
+"msgSend" = "💬 發送通知"
+"msgUser" = "👤 給使用者"
+"msgAll" = "👥 給所有機器人使用者"
 
 "addClient" = "新增客戶"
 "submitDisable" = "以停用方式送出 ☑️"
@@ -738,3 +740,14 @@
 "askToAddUserId" = "未找到您的配置！\r\n請向管理員詢問，在您的配置中使用您的 Telegram 使用者 ChatID。\r\n\r\n您的使用者 ChatID：<code>{{ .TgUserID }}</code>"
 "chooseClient" = "為入站 {{ .Inbound }} 選擇一個客戶"
 "chooseInbound" = "選擇一個入站"
+
+"enterText" = "請輸入要發送給所有用戶的訊息內容"
+"inboundError" = "❌ 取得入站資料時發生錯誤"
+"clientError" = "❌ 取得用戶時發生錯誤"
+"broadcastMessageSent" = "訊息已發送給 {{ .Count }} 位用戶"
+"chooseBroadcastInbound" = "選擇要廣播的入站"
+"chooseBroadcastUser" = "選擇要廣播的用戶或手動輸入電子郵件"
+"broadcastUserNotFound" = "❌ 在所選入站中找不到該電子郵件的用戶。"
+"broadcastUserNoTgId" = "❌ 用戶未設置 Telegram ID，無法廣播。"
+"broadcastEnterText" = "請輸入要發送給所選用戶的訊息內容"
+"broadcastSentToUser" = "訊息已發送給用戶: {{ .Email }}"

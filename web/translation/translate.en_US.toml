@@ -258,7 +258,7 @@
 "resetInboundClientTrafficSuccess" = "Traffic has been reset."
 "trafficGetError" = "Error getting traffics."
 "getNewX25519CertError" = "Error while obtaining the X25519 certificate."
-"getNewmldsa65Error" = "Error while obtaining mldsa65."
+
 
 [pages.inbounds.stream.general]
 "request" = "Request"
@@ -697,6 +697,9 @@
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
 "allClients" = "All Clients"
+"msgSend" = "💬 Send Notifications"
+"msgUser" = "👤 To User"
+"msgAll" = "👥 To All Bot Users"
 
 "addClient" = "Add Client"
 "submitDisable" = "Submit As Disable ☑️"
@@ -731,3 +734,14 @@
 "askToAddUserId" = "Your configuration is not found!\r\nPlease ask your admin to use your Telegram ChatID in your configuration(s).\r\n\r\nYour ChatID: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Choose a Client for Inbound {{ .Inbound }}"
 "chooseInbound" = "Choose an Inbound"
+
+"enterText" = "Enter the desired message text to send to all users"
+"inboundError" = "❌ Error getting inbounds"
+"clientError" = "❌ Error getting users"
+"broadcastMessageSent" = "Message sent to {{ .Count }} users"
+"chooseBroadcastInbound" = "Choose inbound for broadcast"
+"chooseBroadcastUser" = "Choose user for broadcast or enter email manually"
+"broadcastUserNotFound" = "❌ User with this email not found in the selected inbound."
+"broadcastUserNoTgId" = "❌ User does not have a Telegram ID, broadcast not possible."
+"broadcastEnterText" = "Enter the message text for the selected user"
+"broadcastSentToUser" = "Message sent to user: {{ .Email }}"

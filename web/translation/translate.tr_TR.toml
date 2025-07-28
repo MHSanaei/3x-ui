@@ -262,7 +262,6 @@
 "resetInboundClientTrafficSuccess" = "Trafik sıfırlandı"
 "trafficGetError" = "Trafik bilgisi alınırken hata oluştu"
 "getNewX25519CertError" = "X25519 sertifikası alınırken hata oluştu."
-"getNewmldsa65Error" = "mldsa65 sertifikası alınırken hata oluştu."
 
 [pages.inbounds.stream.general]
 "request" = "İstek"
@@ -701,6 +700,9 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
+"msgSend" = "💬 Bildirimleri Gönder"
+"msgUser" = "👤 Kullanıcıya"
+"msgAll" = "👥 Tüm Bot Kullanıcılarına"
 
 "addClient" = "Müşteri Ekle"
 "submitDisable" = "Devre Dışı Olarak Gönder ☑️"
@@ -736,3 +738,14 @@
 "askToAddUserId" = "Yapılandırmanız bulunamadı!\r\nLütfen yöneticinizden yapılandırmalarınıza Telegram ChatID'nizi eklemesini isteyin.\r\n\r\nKullanıcı ChatID'niz: <code>{{ .TgUserID }}</code>"
 "chooseClient" = "Gelen {{ .Inbound }} için bir Müşteri Seçin"
 "chooseInbound" = "Bir Gelen Seçin"
+
+"enterText" = "Tüm kullanıcılara göndermek için istenen mesaj metnini girin"
+"inboundError" = "❌ Girişler alınırken hata oluştu"
+"clientError" = "❌ Kullanıcılar alınırken hata oluştu"
+"broadcastMessageSent" = "Mesaj {{ .Count }} kullanıcıya gönderildi"
+"chooseBroadcastInbound" = "Yayın için giriş seçin"
+"chooseBroadcastUser" = "Yayın için kullanıcı seçin veya e-postayı manuel girin"
+"broadcastUserNotFound" = "❌ Seçilen girişte bu e-postaya sahip kullanıcı bulunamadı."
+"broadcastUserNoTgId" = "❌ Kullanıcının Telegram ID'si yok, yayın yapılamaz."
+"broadcastEnterText" = "Seçilen kullanıcı için mesaj metnini girin"
+"broadcastSentToUser" = "Mesaj kullanıcıya gönderildi: {{ .Email }}"

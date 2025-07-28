@@ -262,7 +262,6 @@
 "resetInboundClientTrafficSuccess" = "トラフィックがリセットされました"
 "trafficGetError" = "トラフィックの取得中にエラーが発生しました"
 "getNewX25519CertError" = "X25519証明書の取得中にエラーが発生しました。"
-"getNewmldsa65Error" = "mldsa65証明書の取得中にエラーが発生しました。"
 
 [pages.inbounds.stream.general]
 "request" = "リクエスト"
@@ -701,6 +700,9 @@
 "limitTraffic" = "🚧 トラフィック制限"
 "getBanLogs" = "禁止ログ"
 "allClients" = "すべてのクライアント"
+"msgSend" = "💬 通知を送信"
+"msgUser" = "👤 ユーザーへ"
+"msgAll" = "👥 すべてのボットユーザーへ"
 
 "addClient" = "クライアントを追加"
 "submitDisable" = "無効として送信 ☑️"
@@ -736,3 +738,14 @@
 "askToAddUserId" = "設定が見つかりませんでした！\r\n管理者に問い合わせて、設定にTelegramユーザーのChatIDを使用してください。\r\n\r\nあなたのユーザーChatID：<code>{{ .TgUserID }}</code>"
 "chooseClient" = "インバウンド {{ .Inbound }} のクライアントを選択"
 "chooseInbound" = "インバウンドを選択"
+
+"enterText" = "すべてのユーザーに送信するメッセージのテキストを入力してください"
+"inboundError" = "❌ インバウンドの取得中にエラーが発生しました"
+"clientError" = "❌ ユーザーの取得中にエラーが発生しました"
+"broadcastMessageSent" = "メッセージは{{ .Count }}人のユーザーに送信されました"
+"chooseBroadcastInbound" = "ブロードキャスト用のインバウンドを選択"
+"chooseBroadcastUser" = "ブロードキャスト用のユーザーを選択するか、メールアドレスを手動で入力してください"
+"broadcastUserNotFound" = "❌ 選択したインバウンドにこのメールアドレスのユーザーが見つかりません。"
+"broadcastUserNoTgId" = "❌ ユーザーにTelegram IDが設定されていないため、ブロードキャストできません。"
+"broadcastEnterText" = "選択したユーザーに送信するメッセージのテキストを入力してください"
+"broadcastSentToUser" = "メッセージはユーザーに送信されました: {{ .Email }}"
