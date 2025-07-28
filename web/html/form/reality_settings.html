@@ -45,7 +45,7 @@
         <a-input v-model="inbound.stream.reality.settings.publicKey"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
-        <a-input type="password" v-model="inbound.stream.reality.privateKey"></a-input>
+        <a-input v-model="inbound.stream.reality.privateKey"></a-input>
     </a-form-item>
     <a-form-item label=" ">
         <a-button type="primary" icon="import" @click="getNewX25519Cert">Get New Cert</a-button>
