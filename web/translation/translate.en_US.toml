@@ -745,3 +745,5 @@
 "broadcastUserNoTgId" = "❌ User does not have a Telegram ID, broadcast not possible."
 "broadcastEnterText" = "Enter the message text for the selected user"
 "broadcastSentToUser" = "Message sent to user: {{ .Email }}"
+"chooseSend" = "Choose how to send notification"
+"chooseUser" = "Select a user or enter their email"

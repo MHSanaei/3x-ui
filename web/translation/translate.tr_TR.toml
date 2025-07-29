@@ -750,3 +750,5 @@
 "broadcastUserNoTgId" = "❌ Kullanıcının Telegram ID'si yok, yayın yapılamaz."
 "broadcastEnterText" = "Seçilen kullanıcı için mesaj metnini girin"
 "broadcastSentToUser" = "Mesaj kullanıcıya gönderildi: {{ .Email }}"
+"chooseSend" = "Bildirimi gönderme yöntemini seçin"
+"chooseUser" = "Bir kullanıcı seçin veya e-posta adresini girin"

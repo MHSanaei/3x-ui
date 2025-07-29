@@ -751,3 +751,5 @@
 "broadcastUserNoTgId" = "❌ Pengguna tidak memiliki Telegram ID, siaran tidak dapat dilakukan."
 "broadcastEnterText" = "Masukkan teks pesan untuk pengguna yang dipilih"
 "broadcastSentToUser" = "Pesan telah dikirim ke pengguna: {{ .Email }}"
+"chooseSend" = "Pilih cara mengirim notifikasi"
+"chooseUser" = "Pilih pengguna atau masukkan emailnya"

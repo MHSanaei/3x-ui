@@ -750,3 +750,5 @@
 "broadcastUserNoTgId" = "❌ Người dùng không có Telegram ID, không thể gửi broadcast."
 "broadcastEnterText" = "Nhập nội dung tin nhắn cho người dùng đã chọn"
 "broadcastSentToUser" = "Tin nhắn đã được gửi đến người dùng: {{ .Email }}"
+"chooseSend" = "Chọn cách gửi thông báo"
+"chooseUser" = "Chọn người dùng hoặc nhập email của họ"

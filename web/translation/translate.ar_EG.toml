@@ -748,3 +748,5 @@
 "broadcastUserNoTgId" = "❌ المستخدم لا يحتوي على معرف Telegram، لا يمكن الإرسال الجماعي."
 "broadcastEnterText" = "أدخل نص الرسالة للمستخدم المحدد"
 "broadcastSentToUser" = "تم إرسال الرسالة إلى المستخدم: {{ .Email }}"
+"chooseSend" = "اختر طريقة إرسال الإشعار"
+"chooseUser" = "اختر مستخدمًا أو أدخل بريده الإلكتروني"

@@ -750,3 +750,5 @@
 "broadcastUserNoTgId" = "❌ کاربر Telegram ID ندارد، ارسال پیام ممکن نیست."
 "broadcastEnterText" = "متن پیام برای کاربر انتخاب شده را وارد کنید"
 "broadcastSentToUser" = "پیام به کاربر ارسال شد: {{ .Email }}"
+"chooseSend" = "روش ارسال اعلان را انتخاب کنید"
+"chooseUser" = "یک کاربر را انتخاب کنید یا ایمیل او را وارد کنید"

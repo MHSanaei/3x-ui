@@ -751,3 +751,5 @@
 "broadcastUserNoTgId" = "❌ ユーザーにTelegram IDが設定されていないため、ブロードキャストできません。"
 "broadcastEnterText" = "選択したユーザーに送信するメッセージのテキストを入力してください"
 "broadcastSentToUser" = "メッセージはユーザーに送信されました: {{ .Email }}"
+"chooseSend" = "通知の送信方法を選択してください"
+"chooseUser" = "ユーザーを選択するか、メールアドレスを入力してください"

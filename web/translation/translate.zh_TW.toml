@@ -752,3 +752,5 @@
 "broadcastUserNoTgId" = "❌ 用戶未設置 Telegram ID，無法廣播。"
 "broadcastEnterText" = "請輸入要發送給所選用戶的訊息內容"
 "broadcastSentToUser" = "訊息已發送給用戶: {{ .Email }}"
+"chooseSend" = "選擇通知發送方式"
+"chooseUser" = "選擇用戶或輸入其電子郵件"
