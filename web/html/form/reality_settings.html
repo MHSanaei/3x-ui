@@ -36,22 +36,22 @@
                     type="sync"></a-icon>
             </a-tooltip>
         </template>
-        <a-input v-model.trim="inbound.stream.reality.shortIds"></a-input>
+        <a-textarea v-model.trim="inbound.stream.reality.shortIds"></a-textarea>
     </a-form-item>
     <a-form-item label='SpiderX'>
         <a-input v-model.trim="inbound.stream.reality.settings.spiderX"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
-        <a-input v-model="inbound.stream.reality.settings.publicKey"></a-input>
+        <a-textarea v-model="inbound.stream.reality.settings.publicKey"></a-textarea>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
-        <a-input v-model="inbound.stream.reality.privateKey"></a-input>
+        <a-textarea v-model="inbound.stream.reality.privateKey"></a-textarea>
     </a-form-item>
     <a-form-item label=" ">
         <a-button type="primary" icon="import" @click="getNewX25519Cert">Get New Cert</a-button>
     </a-form-item>
     <a-form-item label="mldsa65 Seed">
-        <a-input v-model="inbound.stream.reality.mldsa65Seed"></a-input>
+        <a-textarea v-model="inbound.stream.reality.mldsa65Seed"></a-textarea>
     </a-form-item>
     <a-form-item label="mldsa65 Verify">
         <a-textarea v-model="inbound.stream.reality.settings.mldsa65Verify"></a-textarea>

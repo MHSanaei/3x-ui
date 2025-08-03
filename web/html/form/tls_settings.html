@@ -85,10 +85,10 @@
       </template>
       <template v-else>
         <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
-          <a-input v-model="cert.cert"></a-input>
+          <a-textarea v-model="cert.cert"></a-textarea>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.inbounds.privatekey" }}'>
-          <a-input v-model="cert.key"></a-input>
+          <a-textarea v-model="cert.key"></a-textarea>
         </a-form-item>
       </template>
       <a-form-item label='OCSP stapling'>
