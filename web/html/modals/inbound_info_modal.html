@@ -199,7 +199,7 @@
             <a-tag>[[ infoModal.clientSettings.limitIp ]]</a-tag>
           </td>
         </tr>
-        <tr v-if="app.ipLimitEnable">
+        <tr v-if="app.ipLimitEnable && infoModal.clientSettings.limitIp > 0">
           <td>{{ i18n "pages.inbounds.IPLimitlog" }}</td>
           <td>
             <a-tag>[[ infoModal.clientIps ]]</a-tag>
