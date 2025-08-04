@@ -44,7 +44,7 @@
             <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
-    <a-form-item v-if="client.email && app.subSettings.enable">
+    <a-form-item v-if="client.email && app.subSettings?.enable">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
