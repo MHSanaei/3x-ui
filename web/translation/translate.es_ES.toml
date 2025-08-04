@@ -158,6 +158,7 @@
 "remark" = "Notas"
 "protocol" = "Protocolo"
 "port" = "Puerto"
+"portMap" = "Puertos de Destino"
 "traffic" = "Tráfico"
 "details" = "Detalles"
 "transportConfig" = "Transporte"

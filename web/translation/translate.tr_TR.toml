@@ -158,6 +158,7 @@
 "remark" = "Açıklama"
 "protocol" = "Protokol"
 "port" = "Port"
+"portMap" = "Port Atama"
 "traffic" = "Trafik"
 "details" = "Detaylar"
 "transportConfig" = "Taşıma"

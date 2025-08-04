@@ -158,6 +158,7 @@
 "remark" = "Chú thích"
 "protocol" = "Giao thức"
 "port" = "Cổng"
+"portMap" = "Cổng tạo"
 "traffic" = "Lưu lượng"
 "details" = "Chi tiết"
 "transportConfig" = "Giao vận"
