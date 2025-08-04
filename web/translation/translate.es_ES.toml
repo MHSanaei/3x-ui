@@ -117,8 +117,6 @@
 "operationHours" = "Tiempo de Funcionamiento"
 "systemLoad" = "Carga del Sistema"
 "systemLoadDesc" = "promedio de carga del sistema en los últimos 1, 5 y 15 minutos"
-"connectionTcpCountDesc" = "Conexiones TCP totales en todas las tarjetas de red."
-"connectionUdpCountDesc" = "Conexiones UDP totales en todas las tarjetas de red."
 "connectionCount" = "Número de Conexiones"
 "ipAddresses" = "Direcciones IP"
 "toggleIpVisibility" = "Alternar visibilidad de la IP"
@@ -175,8 +173,6 @@
 "deleteClient" = "Eliminar cliente"
 "deleteClientContent" = "¿Está seguro de que desea eliminar el cliente?"
 "resetTrafficContent" = "¿Confirmar restablecimiento de tráfico?"
-"inboundUpdateSuccess" = "La entrada se ha actualizado correctamente."
-"inboundCreateSuccess" = "La entrada se ha creado correctamente."
 "copyLink" = "Copiar Enlace"
 "address" = "Dirección"
 "network" = "Red"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Actualizado en: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Sí"
 "no" = "❌ No"
-
 "received_id" = "🔑📥 ID actualizado."
 "received_password" = "🔑📥 Contraseña actualizada."
 "received_email" = "📧📥 Correo electrónico actualizado."
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ✅ Éxito"
 "FailedResetTraffic" = "📧 Correo: {{ .ClientEmail }}\n🏁 Resultado: ❌ Fallido \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Proceso de reinicio de tráfico finalizado para todos los clientes."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Cerrar Teclado"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 Límite de tráfico"
 "getBanLogs" = "Registros de prohibición"
 "allClients" = "Todos los Clientes"
-
 "addClient" = "Añadir cliente"
 "submitDisable" = "Enviar como deshabilitado ☑️"
 "submitEnable" = "Enviar como habilitado ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 Comentario"
 "ResetAllTraffics" = "Reiniciar todo el tráfico"
 "SortedTrafficUsageReport" = "Informe de uso de tráfico ordenado"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ ¡Exitosa!"

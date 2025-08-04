@@ -117,8 +117,6 @@
 "operationHours" = "Thời gian hoạt động"
 "systemLoad" = "Tải hệ thống"
 "systemLoadDesc" = "trung bình tải hệ thống trong 1, 5 và 15 phút qua"
-"connectionTcpCountDesc" = "Tổng số kết nối TCP trên tất cả các thẻ mạng."
-"connectionUdpCountDesc" = "Tổng số kết nối UDP trên tất cả các thẻ mạng."
 "connectionCount" = "Số lượng kết nối"
 "ipAddresses" = "Địa chỉ IP"
 "toggleIpVisibility" = "Chuyển đổi hiển thị IP"
@@ -175,8 +173,6 @@
 "deleteClient" = "Xóa người dùng"
 "deleteClientContent" = "Bạn có chắc chắn muốn xóa người dùng không?"
 "resetTrafficContent" = "Xác nhận đặt lại lưu lượng?"
-"inboundUpdateSuccess" = "Đã cập nhật kết nối inbound thành công."
-"inboundCreateSuccess" = "Đã tạo kết nối inbound thành công."
 "copyLink" = "Sao chép liên kết"
 "address" = "Địa chỉ"
 "network" = "Mạng"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Đã cập nhật lần cuối vào: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Có"
 "no" = "❌ Không"
-
 "received_id" = "🔑📥 ID đã được cập nhật."
 "received_password" = "🔑📥 Mật khẩu đã được cập nhật."
 "received_email" = "📧📥 Email đã được cập nhật."
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công"
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ❌ Thất bại \n\n🛠️ Lỗi: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Quá trình đặt lại lưu lượng đã hoàn tất cho tất cả khách hàng."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Đóng Bàn Phím"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 Giới hạn lưu lượng"
 "getBanLogs" = "Cấm nhật ký"
 "allClients" = "Tất cả Khách hàng"
-
 "addClient" = "Thêm Khách Hàng"
 "submitDisable" = "Gửi Dưới Dạng Vô Hiệu ☑️"
 "submitEnable" = "Gửi Dưới Dạng Kích Hoạt ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 Bình Luận"
 "ResetAllTraffics" = "Đặt lại tất cả lưu lượng"
 "SortedTrafficUsageReport" = "Báo cáo sử dụng lưu lượng đã sắp xếp"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ Thành công!"

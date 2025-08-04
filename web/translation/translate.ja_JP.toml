@@ -117,8 +117,6 @@
 "operationHours" = "システム稼働時間"
 "systemLoad" = "システム負荷"
 "systemLoadDesc" = "過去1、5、15分間のシステム平均負荷"
-"connectionTcpCountDesc" = "システム内のすべてのTCP接続数"
-"connectionUdpCountDesc" = "システム内のすべてのUDP接続数"
 "connectionCount" = "接続数"
 "ipAddresses" = "IPアドレス"
 "toggleIpVisibility" = "IPの表示を切り替える"
@@ -175,8 +173,6 @@
 "deleteClient" = "クライアント削除"
 "deleteClientContent" = "クライアントを削除してもよろしいですか？"
 "resetTrafficContent" = "トラフィックをリセットしてもよろしいですか？"
-"inboundUpdateSuccess" = "インバウンドが正常に更新されました。"
-"inboundCreateSuccess" = "インバウンドが正常に作成されました。"
 "copyLink" = "リンクをコピー"
 "address" = "アドレス"
 "network" = "ネットワーク"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 更新時間：{{ .Time }}\r\n\r\n"
 "yes" = "✅ はい"
 "no" = "❌ いいえ"
-
 "received_id" = "🔑📥 IDが更新されました。"
 "received_password" = "🔑📥 パスワードが更新されました。"
 "received_email" = "📧📥 メールが更新されました。"
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
 "FailedResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ エラー: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 すべてのクライアントのトラフィックリセットが完了しました。"
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ キーボードを閉じる"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 トラフィック制限"
 "getBanLogs" = "禁止ログ"
 "allClients" = "すべてのクライアント"
-
 "addClient" = "クライアントを追加"
 "submitDisable" = "無効として送信 ☑️"
 "submitEnable" = "有効として送信 ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 コメント"
 "ResetAllTraffics" = "すべてのトラフィックをリセット"
 "SortedTrafficUsageReport" = "ソートされたトラフィック使用レポート"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

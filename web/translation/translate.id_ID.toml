@@ -117,8 +117,6 @@
 "operationHours" = "Waktu Aktif"
 "systemLoad" = "Beban Sistem"
 "systemLoadDesc" = "Rata-rata beban sistem selama 1, 5, dan 15 menit terakhir"
-"connectionTcpCountDesc" = "Total koneksi TCP di seluruh sistem"
-"connectionUdpCountDesc" = "Total koneksi UDP di seluruh sistem"
 "connectionCount" = "Statistik Koneksi"
 "ipAddresses" = "Alamat IP"
 "toggleIpVisibility" = "Alihkan visibilitas IP"
@@ -175,8 +173,6 @@
 "deleteClient" = "Hapus Klien"
 "deleteClientContent" = "Apakah Anda yakin ingin menghapus klien?"
 "resetTrafficContent" = "Apakah Anda yakin ingin mereset traffic?"
-"inboundUpdateSuccess" = "Inbound berhasil diperbarui."
-"inboundCreateSuccess" = "Inbound berhasil dibuat."
 "copyLink" = "Salin URL"
 "address" = "Alamat"
 "network" = "Jaringan"
@@ -422,7 +418,6 @@
 "RoutingStrategy" = "Strategi Pengalihan Keseluruhan"
 "RoutingStrategyDesc" = "Atur strategi pengalihan lalu lintas keseluruhan untuk menyelesaikan semua permintaan."
 "Torrent" = "Blokir Protokol BitTorrent"
-"TorrentDesc" = "Memblokir protokol BitTorrent."
 "Inbounds" = "Masuk"
 "InboundsDesc" = "Menerima klien tertentu."
 "Outbounds" = "Keluar"
@@ -648,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Diperbarui Pada: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Ya"
 "no" = "❌ Tidak"
-
 "received_id" = "🔑📥 ID diperbarui."
 "received_password" = "🔑📥 Kata sandi diperbarui."
 "received_email" = "📧📥 Email diperbarui."
@@ -667,7 +661,6 @@
 "SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ✅ Berhasil"
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Hasil: ❌ Gagal \n\n🛠️ Kesalahan: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Proses reset traffic selesai untuk semua klien."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Tutup Papan Ketik"
@@ -702,7 +695,6 @@
 "limitTraffic" = "🚧 Batas Lalu Lintas"
 "getBanLogs" = "Dapatkan Log Pemblokiran"
 "allClients" = "Semua Klien"
-
 "addClient" = "Tambah Klien"
 "submitDisable" = "Kirim Sebagai Nonaktif ☑️"
 "submitEnable" = "Kirim Sebagai Aktif ✅"
@@ -713,7 +705,6 @@
 "change_comment" = "⚙️💬 Komentar"
 "ResetAllTraffics" = "Reset Semua Lalu Lintas"
 "SortedTrafficUsageReport" = "Laporan Penggunaan Lalu Lintas yang Terurut"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operasi berhasil!"
