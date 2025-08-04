@@ -482,7 +482,14 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
-func (s *ServerService) GetXrayLogs(count string, filter string, showDirect string, showBlocked string, showProxy string) []string {
+func (s *ServerService) GetXrayLogs(
+	count string,
+	filter string,
+	showDirect string,
+	showBlocked string,
+	showProxy string,
+	freedoms []string,
+	blackholes []string) []string {
 	c, _ := strconv.Atoi(count)
 	var lines []string
 
@@ -498,22 +505,23 @@ func (s *ServerService) GetXrayLogs(count string, filter string, showDirect stri
 	defer file.Close()
 
 	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
 
-		if strings.TrimSpace(line) == "" || strings.Contains(line, "api -> api") {
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.Contains(line, "api -> api") {
 			continue
 		}
 		if filter != "" && !strings.Contains(line, filter) {
 			continue
 		}
-		if showDirect == "false" && strings.HasSuffix(line, "direct]") {
+
+		if showDirect == "false" && hasSuffix(line, freedoms) {
 			continue
 		}
-		if showBlocked == "false" && strings.HasSuffix(line, "blocked]") {
+		if showBlocked == "false" && hasSuffix(line, blackholes) {
 			continue
 		}
-		if showProxy == "false" && !strings.HasSuffix(line, "blocked]") && !strings.HasSuffix(line, "direct]") {
+		if showProxy == "false" && !hasSuffix(line, append(freedoms, blackholes...)) {
 			continue
 		}
 
@@ -525,6 +533,15 @@ func (s *ServerService) GetXrayLogs(count string, filter string, showDirect stri
 	}
 
 	return lines
+}
+
+func hasSuffix(line string, suffixes []string) bool {
+	for _, sfx := range suffixes {
+		if strings.HasSuffix(line, sfx+"]") {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *ServerService) GetConfigJson() (any, error) {
