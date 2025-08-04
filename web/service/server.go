@@ -2,6 +2,7 @@ package service
 
 import (
 	"archive/zip"
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -476,6 +477,37 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 		lines = strings.Split(out.String(), "\n")
 	} else {
 		lines = logger.GetLogs(c, level)
+	}
+
+	return lines
+}
+
+func (s *ServerService) GetXrayLogs(count string) []string {
+	c, _ := strconv.Atoi(count)
+	var lines []string
+
+	pathToAccessLog, err := xray.GetAccessLogPath()
+	if err != nil {
+		return lines
+	}
+
+	file, err := os.Open(pathToAccessLog)
+	if err != nil {
+		return lines
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.TrimSpace(line) == "" || strings.Contains(line, "api -> api") {
+			continue
+		}
+		lines = append(lines, line)
+	}
+
+	if len(lines) > c {
+		lines = lines[len(lines)-c:]
 	}
 
 	return lines
