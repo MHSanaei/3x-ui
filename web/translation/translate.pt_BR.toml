@@ -117,8 +117,6 @@
 "operationHours" = "Tempo de Atividade"
 "systemLoad" = "Carga do Sistema"
 "systemLoadDesc" = "Média de carga do sistema nos últimos 1, 5 e 15 minutos"
-"connectionTcpCountDesc" = "Total de conexões TCP no sistema"
-"connectionUdpCountDesc" = "Total de conexões UDP no sistema"
 "connectionCount" = "Estatísticas de Conexão"
 "ipAddresses" = "Endereços IP"
 "toggleIpVisibility" = "Alternar visibilidade do IP"
@@ -175,8 +173,6 @@
 "deleteClient" = "Excluir Cliente"
 "deleteClientContent" = "Tem certeza de que deseja excluir o cliente?"
 "resetTrafficContent" = "Tem certeza de que deseja redefinir o tráfego?"
-"inboundUpdateSuccess" = "A entrada foi atualizada com sucesso."
-"inboundCreateSuccess" = "A entrada foi criada com sucesso."
 "copyLink" = "Copiar URL"
 "address" = "Endereço"
 "network" = "Rede"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Atualizado em: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Sim"
 "no" = "❌ Não"
-
 "received_id" = "🔑📥 ID atualizado."
 "received_password" = "🔑📥 Senha atualizada."
 "received_email" = "📧📥 E-mail atualizado."
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ✅ Sucesso"
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Resultado: ❌ Falhou \n\n🛠️ Erro: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Processo de redefinição de tráfego concluído para todos os clientes."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Fechar teclado"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 Limite de tráfego"
 "getBanLogs" = "Obter logs de banimento"
 "allClients" = "Todos os clientes"
-
 "addClient" = "Adicionar Cliente"
 "submitDisable" = "Enviar como Desativado ☑️"
 "submitEnable" = "Enviar como Ativado ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 Comentário"
 "ResetAllTraffics" = "Redefinir Todo o Tráfego"
 "SortedTrafficUsageReport" = "Relatório de Uso de Tráfego Ordenado"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ Operação bem-sucedida!"

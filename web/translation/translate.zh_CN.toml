@@ -117,8 +117,6 @@
 "operationHours" = "系统正常运行时间"
 "systemLoad" = "系统负载"
 "systemLoadDesc" = "过去 1、5 和 15 分钟的系统平均负载"
-"connectionTcpCountDesc" = "系统中所有 TCP 连接数"
-"connectionUdpCountDesc" = "系统中所有 UDP 连接数"
 "connectionCount" = "连接数"
 "ipAddresses" = "IP地址"
 "toggleIpVisibility" = "切换IP可见性"
@@ -175,8 +173,6 @@
 "deleteClient" = "删除客户端"
 "deleteClientContent" = "确定要删除客户端吗？"
 "resetTrafficContent" = "确定要重置流量吗？"
-"inboundUpdateSuccess" = "入站连接已成功更新。"
-"inboundCreateSuccess" = "入站连接已成功创建。"
 "copyLink" = "复制链接"
 "address" = "地址"
 "network" = "网络"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 刷新时间：{{ .Time }}\r\n\r\n"
 "yes" = "✅ 是的"
 "no" = "❌ 没有"
-
 "received_id" = "🔑📥 ID 已更新。"
 "received_password" = "🔑📥 密码已更新。"
 "received_email" = "📧📥 邮箱已更新。"
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ✅ 成功"
 "FailedResetTraffic" = "📧 邮箱: {{ .ClientEmail }}\n🏁 结果: ❌ 失败 \n\n🛠️ 错误: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 所有客户的流量重置已完成。"
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ 关闭键盘"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 流量限制"
 "getBanLogs" = "禁止日志"
 "allClients" = "所有客户"
-
 "addClient" = "添加客户"
 "submitDisable" = "提交为禁用 ☑️"
 "submitEnable" = "提交为启用 ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 评论"
 "ResetAllTraffics" = "重置所有流量"
 "SortedTrafficUsageReport" = "排序的流量使用报告"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ 成功！"

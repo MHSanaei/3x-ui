@@ -117,8 +117,6 @@
 "operationHours" = "Çalışma Süresi"
 "systemLoad" = "Sistem Yükü"
 "systemLoadDesc" = "Geçmiş 1, 5 ve 15 dakika için sistem yük ortalaması"
-"connectionTcpCountDesc" = "Sistem genelinde toplam TCP bağlantıları"
-"connectionUdpCountDesc" = "Sistem genelinde toplam UDP bağlantıları"
 "connectionCount" = "Bağlantı İstatistikleri"
 "ipAddresses" = "IP adresleri"
 "toggleIpVisibility" = "IP görünürlüğünü değiştir"
@@ -175,8 +173,6 @@
 "deleteClient" = "Müşteriyi Sil"
 "deleteClientContent" = "Müşteriyi silmek istediğinizden emin misiniz?"
 "resetTrafficContent" = "Trafiği sıfırlamak istediğinizden emin misiniz?"
-"inboundUpdateSuccess" = "Gelen bağlantı başarıyla güncellendi."
-"inboundCreateSuccess" = "Gelen bağlantı başarıyla oluşturuldu."
 "copyLink" = "URL'yi Kopyala"
 "address" = "Adres"
 "network" = "Ağ"
@@ -647,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Yenilendi: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Evet"
 "no" = "❌ Hayır"
-
 "received_id" = "🔑📥 Kimlik güncellendi."
 "received_password" = "🔑📥 Şifre güncellendi."
 "received_email" = "📧📥 E-posta güncellendi."
@@ -666,7 +661,6 @@
 "SuccessResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı"
 "FailedResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Tüm müşteriler için trafik sıfırlama işlemi tamamlandı."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Klavyeyi Kapat"
@@ -701,7 +695,6 @@
 "limitTraffic" = "🚧 Trafik Sınırı"
 "getBanLogs" = "Yasak Günlüklerini Al"
 "allClients" = "Tüm Müşteriler"
-
 "addClient" = "Müşteri Ekle"
 "submitDisable" = "Devre Dışı Olarak Gönder ☑️"
 "submitEnable" = "Etkin Olarak Gönder ✅"
@@ -712,7 +705,6 @@
 "change_comment" = "⚙️💬 Yorum"
 "ResetAllTraffics" = "Tüm Trafikleri Sıfırla"
 "SortedTrafficUsageReport" = "Sıralı Trafik Kullanım Raporu"
-
 
 [tgbot.answers]
 "successfulOperation" = "✅ İşlem başarılı!"

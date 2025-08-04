@@ -643,7 +643,6 @@
 "refreshedOn" = "\r\n📋🔄 Refreshed On: {{ .Time }}\r\n\r\n"
 "yes" = "✅ Yes"
 "no" = "❌ No"
-
 "received_id" = "🔑📥 ID updated."
 "received_password" = "🔑📥 Password updated."
 "received_email" = "📧📥 Email updated."
@@ -662,7 +661,6 @@
 "SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ✅ Success"
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Traffic reset process finished for all clients."
-
 
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
@@ -697,7 +695,6 @@
 "limitTraffic" = "🚧 Traffic Limit"
 "getBanLogs" = "Get Ban Logs"
 "allClients" = "All Clients"
-
 "addClient" = "Add Client"
 "submitDisable" = "Submit As Disable ☑️"
 "submitEnable" = "Submit As Enable ✅"
