@@ -182,7 +182,7 @@
                     </template>
                   </template>
                   <template #actions>
-                    <a-space direction="horizontal" @click="openXrayLogs()" :style="{ justifyContent: 'center' }">
+                    <a-space v-if="app.ipLimitEnable" direction="horizontal" @click="openXrayLogs()" :style="{ justifyContent: 'center' }">
                       <a-icon type="bars"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                     </a-space>
@@ -429,7 +429,8 @@
     </a-form>
     <div class="ant-input" :style="{ height: 'auto', maxHeight: '500px', overflow: 'auto', marginTop: '0.5rem' }" v-html="logModal.formattedLogs"></div>
   </a-modal>
-  <a-modal id="xraylog-modal" v-model="xraylogModal.visible"
+  <a-modal id="xraylog-modal"
+      v-model="xraylogModal.visible"
       :closable="true" @cancel="() => xraylogModal.visible = false"
       :class="themeSwitcher.currentTheme"
       width="80vw"
@@ -724,7 +725,8 @@ ${dateTime}
             backupModal,
             loadingTip: '{{ i18n "loading"}}',
             showAlert: false,
-            showIp: false
+            showIp: false,
+            ipLimitEnable: false,
         },
         methods: {
             loading(spinning, tip = '{{ i18n "loading"}}') {
@@ -875,6 +877,12 @@ ${dateTime}
             if (window.location.protocol !== "https:") {
                 this.showAlert = true;
             }
+
+            const msg = await HttpUtil.post('/panel/setting/defaultSettings');
+            if (msg.success) {
+              this.ipLimitEnable = msg.obj.ipLimitEnable;
+            }
+
             while (true) {
                 try {
                     await this.getStatus();
