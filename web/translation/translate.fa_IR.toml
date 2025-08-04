@@ -158,6 +158,7 @@
 "remark" = "نام"
 "protocol" = "پروتکل"
 "port" = "پورت"
+"portMap" = "پورت‌های نظیر"
 "traffic" = "ترافیک"
 "details" = "توضیحات"
 "transportConfig" = "نحوه اتصال"

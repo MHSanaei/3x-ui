@@ -158,6 +158,7 @@
 "remark" = "Remark"
 "protocol" = "Protocol"
 "port" = "Port"
+"portMap" = "Port Mapping"
 "traffic" = "Traffic"
 "details" = "Details"
 "transportConfig" = "Transport"
