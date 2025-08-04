@@ -743,3 +743,27 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 
 	return keyPair, nil
 }
+
+func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
+	// Run the command
+	cmd := exec.Command(xray.GetBinaryPath(), "tls", "ech", "--serverName", sni)
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+	if len(lines) < 4 {
+		return nil, common.NewError("invalid ech cert")
+	}
+
+	configList := lines[1]
+	serverKeys := lines[3]
+
+	return map[string]interface{}{
+		"echServerKeys": serverKeys,
+		"echConfigList": configList,
+	}, nil
+}
