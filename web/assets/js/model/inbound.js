@@ -2339,7 +2339,7 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
         return {
             address: this.address,
             port: this.port,
-            portMap: XrayCommonClass.toV2Headers(this.portMap),
+            portMap: XrayCommonClass.toV2Headers(this.portMap, false),
             network: this.network,
             followRedirect: this.followRedirect,
         };
