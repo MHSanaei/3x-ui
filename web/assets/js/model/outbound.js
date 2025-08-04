@@ -354,13 +354,15 @@ class TlsStreamSettings extends CommonClass {
         serverName = '',
         alpn = [],
         fingerprint = '',
-        allowInsecure = false
+        allowInsecure = false,
+        echConfigList = '',
     ) {
         super();
         this.serverName = serverName;
         this.alpn = alpn;
         this.fingerprint = fingerprint;
         this.allowInsecure = allowInsecure;
+        this.echConfigList = echConfigList;
     }
 
     static fromJson(json = {}) {
@@ -369,6 +371,7 @@ class TlsStreamSettings extends CommonClass {
             json.alpn,
             json.fingerprint,
             json.allowInsecure,
+            json.echConfigList,
         );
     }
 
@@ -378,6 +381,7 @@ class TlsStreamSettings extends CommonClass {
             alpn: this.alpn,
             fingerprint: this.fingerprint,
             allowInsecure: this.allowInsecure,
+            echConfigList: this.echConfigList
         };
     }
 }
@@ -782,7 +786,8 @@ class Outbound extends CommonClass {
             let alpn = url.searchParams.get('alpn');
             let allowInsecure = url.searchParams.get('allowInsecure');
             let sni = url.searchParams.get('sni') ?? '';
-            stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, allowInsecure == 1);
+            let ech = url.searchParams.get('ech') ?? '';
+            stream.tls = new TlsStreamSettings(sni, alpn ? alpn.split(',') : [], fp, allowInsecure == 1, ech);
         }
 
         if (security == 'reality') {

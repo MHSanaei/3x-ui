@@ -158,6 +158,7 @@
 "remark" = "備考"
 "protocol" = "プロトコル"
 "port" = "ポート"
+"portMap" = "ポートマッピング"
 "traffic" = "トラフィック"
 "details" = "詳細情報"
 "transportConfig" = "トランスポート設定"

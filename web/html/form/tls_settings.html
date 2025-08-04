@@ -106,6 +106,21 @@
         <a-switch v-model="cert.buildChain"></a-switch>
       </a-form-item>
     </template>
+    <a-form-item label='ECH key'>
+        <a-input v-model="inbound.stream.tls.echServerKeys"></a-input>
+    </a-form-item>
+    <a-form-item label='ECH config'>
+        <a-input v-model="inbound.stream.tls.settings.echConfigList"></a-input>
+    </a-form-item>
+    <a-form-item label='ECH force query'>
+        <a-select v-model="inbound.stream.tls.echForceQuery"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="key in ['none', 'half', 'full']" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
+    <a-form-item label=" ">
+        <a-button type="primary" icon="import" @click="getNewEchCert">Get New ECH Cert</a-button>
+    </a-form-item>
   </template>
 
   <!-- reality settings -->
