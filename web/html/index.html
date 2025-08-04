@@ -457,6 +457,14 @@
           </a-select>
         </a-input-group>
       </a-form-item>
+      <a-form-item>
+        <a-input size="small" v-model="xraylogModal.filter"></a-input>
+      </a-form-item>
+      <a-form-item>
+        <a-checkbox v-model="xraylogModal.showDirect" @change="openXrayLogs()">Direct</a-checkbox>
+        <a-checkbox v-model="xraylogModal.showBlocked" @change="openXrayLogs()">Blocked</a-checkbox>
+        <a-checkbox v-model="xraylogModal.showProxy" @change="openXrayLogs()">Proxy</a-checkbox>
+      </a-form-item>
       <a-form-item :style="{ float: 'right' }">
         <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(xraylogModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
@@ -651,6 +659,9 @@
         visible: false,
         logs: [],
         rows: 20,
+        showDirect: true,
+        showBlocked: true,
+        showProxy: true,
         loading: false,
         show(logs) {
             this.visible = true;
@@ -817,7 +828,7 @@ ${dateTime}
             },
             async openXrayLogs(){
               xraylogModal.loading = true;
-                const msg = await HttpUtil.post('server/xraylogs/'+xraylogModal.rows);
+                const msg = await HttpUtil.post('server/xraylogs/'+xraylogModal.rows,{filter: xraylogModal.filter, showDirect: xraylogModal.showDirect, showBlocked: xraylogModal.showBlocked, showProxy: xraylogModal.showProxy});
                 if (!msg.success) {
                     return;
                 }

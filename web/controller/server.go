@@ -137,7 +137,11 @@ func (a *ServerController) getLogs(c *gin.Context) {
 
 func (a *ServerController) getXrayLogs(c *gin.Context) {
 	count := c.Param("count")
-	logs := a.serverService.GetXrayLogs(count)
+	filter := c.PostForm("filter")
+	showDirect := c.PostForm("showDirect")
+	showBlocked := c.PostForm("showBlocked")
+	showProxy := c.PostForm("showProxy")
+	logs := a.serverService.GetXrayLogs(count, filter, showDirect, showBlocked, showProxy)
 	jsonObj(c, logs, nil)
 }
 

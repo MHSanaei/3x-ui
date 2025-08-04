@@ -482,7 +482,7 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	return lines
 }
 
-func (s *ServerService) GetXrayLogs(count string) []string {
+func (s *ServerService) GetXrayLogs(count string, filter string, showDirect string, showBlocked string, showProxy string) []string {
 	c, _ := strconv.Atoi(count)
 	var lines []string
 
@@ -500,9 +500,23 @@ func (s *ServerService) GetXrayLogs(count string) []string {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
+
 		if strings.TrimSpace(line) == "" || strings.Contains(line, "api -> api") {
 			continue
 		}
+		if filter != "" && !strings.Contains(line, filter) {
+			continue
+		}
+		if showDirect == "false" && strings.HasSuffix(line, "direct]") {
+			continue
+		}
+		if showBlocked == "false" && strings.HasSuffix(line, "blocked]") {
+			continue
+		}
+		if showProxy == "false" && !strings.HasSuffix(line, "blocked]") && !strings.HasSuffix(line, "direct]") {
+			continue
+		}
+
 		lines = append(lines, line)
 	}
 
