@@ -158,6 +158,7 @@
 "remark" = "备注"
 "protocol" = "协议"
 "port" = "端口"
+"portMap" = "端口映射"
 "traffic" = "流量"
 "details" = "详细信息"
 "transportConfig" = "传输配置"

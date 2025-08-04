@@ -158,6 +158,7 @@
 "remark" = "ملاحظة"
 "protocol" = "بروتوكول"
 "port" = "بورت"
+"portMap" = "خريطة البورت"
 "traffic" = "الترافيك"
 "details" = "تفاصيل"
 "transportConfig" = "نقل"
