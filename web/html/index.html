@@ -432,7 +432,8 @@
   <a-modal id="xraylog-modal" v-model="xraylogModal.visible"
       :closable="true" @cancel="() => xraylogModal.visible = false"
       :class="themeSwitcher.currentTheme"
-      width="1200px" footer="">
+      width="80vw"
+      footer="">
     <template slot="title">
       {{ i18n "pages.index.logs" }}
       <a-icon :spin="xraylogModal.loading"
