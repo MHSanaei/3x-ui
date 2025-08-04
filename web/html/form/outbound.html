@@ -444,13 +444,16 @@
             </a-select>
           </a-form-item>
           <a-form-item label="Short ID">
-            <a-input v-model.trim="outbound.stream.reality.shortId" :style="{ width: '250px' }"></a-input>
+            <a-input v-model.trim="outbound.stream.reality.shortId"></a-input>
           </a-form-item>
           <a-form-item label="SpiderX">
-            <a-input v-model.trim="outbound.stream.reality.spiderX" :style="{ width: '250px' }"></a-input>
+            <a-input v-model.trim="outbound.stream.reality.spiderX"></a-input>
           </a-form-item>
           <a-form-item label="Public Key">
-            <a-input v-model.trim="outbound.stream.reality.publicKey"></a-input>
+            <a-textarea v-model.trim="outbound.stream.reality.publicKey"></a-textarea>
+          </a-form-item>
+          <a-form-item label="mldsa65 Verify">
+            <a-textarea v-model.trim="outbound.stream.reality.mldsa65Verify"></a-textarea>
           </a-form-item>
         </template>
       </template>

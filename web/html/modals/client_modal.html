@@ -47,7 +47,7 @@
                 }
                 this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
             } else {
-                this.addClient(this.inbound.protocol, this.clients);
+                this.addClient(this.inbound, this.clients);
             }
             this.clientStats = this.dbInbound.clientStats.find(row => row.email === this.clients[this.index].email);
             this.confirm = confirm;
@@ -59,12 +59,12 @@
                 default: return client.id;
             }
         },
-        addClient(protocol, clients) {
-            switch (protocol) {
+        addClient(inbound, clients) {
+            switch (inbound.protocol) {
                 case Protocols.VMESS: return clients.push(new Inbound.VmessSettings.VMESS());
                 case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
                 case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
-                case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks(clients[0].method));
+                case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks(clients[0].method, RandomUtil.randomShadowsocksPassword(inbound.settings.method)));
                 default: return null;
             }
         },
