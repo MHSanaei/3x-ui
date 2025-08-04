@@ -559,7 +559,7 @@ class TlsStreamSettings extends XrayCommonClass {
         disableSystemRoot = false,
         enableSessionResumption = false,
         certificates = [new TlsStreamSettings.Cert()],
-        alpn = [ALPN_OPTION.H3, ALPN_OPTION.H2, ALPN_OPTION.HTTP1],
+        alpn = [ALPN_OPTION.H2, ALPN_OPTION.HTTP1],
         settings = new TlsStreamSettings.Settings()
     ) {
         super();
@@ -725,11 +725,11 @@ class RealityStreamSettings extends XrayCommonClass {
     constructor(
         show = false,
         xver = 0,
-        dest = 'yahoo.com:443',
-        serverNames = 'yahoo.com,www.yahoo.com',
+        dest = 'google.com:443',
+        serverNames = 'google.com,www.google.com',
         privateKey = '',
-        minClient = '',
-        maxClient = '',
+        minClientVer = '',
+        maxClientVer = '',
         maxTimediff = 0,
         shortIds = RandomUtil.randomShortIds(),
         mldsa65Seed = '',
@@ -741,8 +741,8 @@ class RealityStreamSettings extends XrayCommonClass {
         this.dest = dest;
         this.serverNames = Array.isArray(serverNames) ? serverNames.join(",") : serverNames;
         this.privateKey = privateKey;
-        this.minClient = minClient;
-        this.maxClient = maxClient;
+        this.minClientVer = minClientVer;
+        this.maxClientVer = maxClientVer;
         this.maxTimediff = maxTimediff;
         this.shortIds = Array.isArray(shortIds) ? shortIds.join(",") : shortIds;
         this.mldsa65Seed = mldsa65Seed;
@@ -766,8 +766,8 @@ class RealityStreamSettings extends XrayCommonClass {
             json.dest,
             json.serverNames,
             json.privateKey,
-            json.minClient,
-            json.maxClient,
+            json.minClientVer,
+            json.maxClientVer,
             json.maxTimediff,
             json.shortIds,
             json.mldsa65Seed,
@@ -782,8 +782,8 @@ class RealityStreamSettings extends XrayCommonClass {
             dest: this.dest,
             serverNames: this.serverNames.split(","),
             privateKey: this.privateKey,
-            minClient: this.minClient,
-            maxClient: this.maxClient,
+            minClientVer: this.minClientVer,
+            maxClientVer: this.maxClientVer,
             maxTimediff: this.maxTimediff,
             shortIds: this.shortIds.split(","),
             mldsa65Seed: this.mldsa65Seed,
@@ -1394,6 +1394,9 @@ class Inbound extends XrayCommonClass {
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.spiderX)) {
                 params.set("spx", this.stream.reality.settings.spiderX);
             }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.mldsa65Verify)) {
+                params.set("pqv", this.stream.reality.settings.mldsa65Verify);
+            }
             if (type == 'tcp' && !ObjectUtil.isEmpty(flow)) {
                 params.set("flow", flow);
             }
@@ -1567,6 +1570,9 @@ class Inbound extends XrayCommonClass {
             }
             if (!ObjectUtil.isEmpty(this.stream.reality.settings.spiderX)) {
                 params.set("spx", this.stream.reality.settings.spiderX);
+            }
+            if (!ObjectUtil.isEmpty(this.stream.reality.settings.mldsa65Verify)) {
+                params.set("pqv", this.stream.reality.settings.mldsa65Verify);
             }
         }
 
