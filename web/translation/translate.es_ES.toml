@@ -133,6 +133,7 @@
 "geofileUpdateDialog" = "¿Realmente deseas actualizar el geofichero?"
 "geofileUpdateDialogDesc" = "Esto actualizará el archivo #filename#."
 "geofilesUpdateDialogDesc" = "Esto actualizará todos los archivos."
+"geofilesUpdateAll" = "Actualizar todo"
 "geofileUpdatePopover" = "Geofichero actualizado correctamente"
 "dontRefresh" = "La instalación está en progreso, por favor no actualices esta página."
 "logs" = "Registros"

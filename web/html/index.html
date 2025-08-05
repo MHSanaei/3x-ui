@@ -383,8 +383,8 @@
             <a-icon type="reload" @click="updateGeofile(file)" :style="{ marginRight: '8px' }"/>
           </a-list-item>
         </a-list>
-        <div style="margin-top: 5px; align-items: right;">
-          <a-button @click="updateGeofile('')">Update all</a-button>
+        <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
+          <a-button @click="updateGeofile('')">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button>
         </div>
       </a-collapse-panel>
     </a-collapse>
