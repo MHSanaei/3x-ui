@@ -457,6 +457,14 @@
           </a-select>
         </a-input-group>
       </a-form-item>
+      <a-form-item label="Filter:">
+        <a-input size="small" v-model="xraylogModal.filter" @keyup.enter="openXrayLogs()"></a-input>
+      </a-form-item>
+      <a-form-item>
+        <a-checkbox v-model="xraylogModal.showDirect" @change="openXrayLogs()">Direct</a-checkbox>
+        <a-checkbox v-model="xraylogModal.showBlocked" @change="openXrayLogs()">Blocked</a-checkbox>
+        <a-checkbox v-model="xraylogModal.showProxy" @change="openXrayLogs()">Proxy</a-checkbox>
+      </a-form-item>
       <a-form-item :style="{ float: 'right' }">
         <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(xraylogModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
@@ -651,6 +659,9 @@
         visible: false,
         logs: [],
         rows: 20,
+        showDirect: true,
+        showBlocked: true,
+        showProxy: true,
         loading: false,
         show(logs) {
             this.visible = true;
@@ -665,17 +676,17 @@
 
             const parts = log.split(' ');
 
-            if(parts.length === 9) {
+            if(parts.length === 10) {
               const dateTime = `<b>${parts[0]} ${parts[1]}</b>`;
               const from = `<b>${parts[3]}</b>`;
               const to = `<b>${parts[5].replace(/^\/+/, "")}</b>`;
 
               let outboundColor = '';
-              if (parts[8].startsWith('blocked')) {
-                outboundColor = ' style="color: #e04141;"';
+              if (parts[9] === "b") {
+                outboundColor = ' style="color: #e04141;"'; //red for blocked
               }
-              else if (!parts[8].startsWith('direct')) {
-                outboundColor = ' style="color: #3c89e8;"';
+              else if (parts[9] === "p") {
+                outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
               }
 
               formattedLogs += `<span${outboundColor}>
@@ -684,10 +695,10 @@ ${dateTime}
  ${from}
  ${parts[4]}
  ${to}
- ${parts.slice(6).join(' ')}
+ ${parts.slice(6, 9).join(' ')}
 </span>`;
             } else {
-              formattedLogs += `<span>${parts.join(' ')}</span>`;
+              formattedLogs += `<span>${log}</span>`;
             }
           });
 
@@ -817,7 +828,7 @@ ${dateTime}
             },
             async openXrayLogs(){
               xraylogModal.loading = true;
-                const msg = await HttpUtil.post('server/xraylogs/'+xraylogModal.rows);
+                const msg = await HttpUtil.post('server/xraylogs/'+xraylogModal.rows,{filter: xraylogModal.filter, showDirect: xraylogModal.showDirect, showBlocked: xraylogModal.showBlocked, showProxy: xraylogModal.showProxy});
                 if (!msg.success) {
                     return;
                 }
