@@ -490,7 +490,8 @@ func (s *ServerService) GetXrayLogs(
 	showProxy string,
 	freedoms []string,
 	blackholes []string) []string {
-	c, _ := strconv.Atoi(count)
+
+	countInt, _ := strconv.Atoi(count)
 	var lines []string
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
@@ -508,28 +509,40 @@ func (s *ServerService) GetXrayLogs(
 
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
+
 		if line == "" || strings.Contains(line, "api -> api") {
-			continue
-		}
-		if filter != "" && !strings.Contains(line, filter) {
+			//skipping api calls
 			continue
 		}
 
-		if showDirect == "false" && hasSuffix(line, freedoms) {
+		if filter != "" && !strings.Contains(line, filter) {
+			//skipping empty lines
 			continue
 		}
-		if showBlocked == "false" && hasSuffix(line, blackholes) {
-			continue
-		}
-		if showProxy == "false" && !hasSuffix(line, append(freedoms, blackholes...)) {
-			continue
+
+		//adding suffixes to further distinguish entries by outbound
+		if hasSuffix(line, freedoms) {
+			if showDirect == "false" {
+				continue
+			}
+			line = line + " f"
+		} else if hasSuffix(line, blackholes) {
+			if showBlocked == "false" {
+				continue
+			}
+			line = line + " b"
+		} else {
+			if showProxy == "false" {
+				continue
+			}
+			line = line + " p"
 		}
 
 		lines = append(lines, line)
 	}
 
-	if len(lines) > c {
-		lines = lines[len(lines)-c:]
+	if len(lines) > countInt {
+		lines = lines[len(lines)-countInt:]
 	}
 
 	return lines
