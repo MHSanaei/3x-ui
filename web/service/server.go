@@ -511,12 +511,12 @@ func (s *ServerService) GetXrayLogs(
 		line := strings.TrimSpace(scanner.Text())
 
 		if line == "" || strings.Contains(line, "api -> api") {
-			//skipping api calls and empty lines
+			//skipping empty lines and api calls 
 			continue
 		}
 
 		if filter != "" && !strings.Contains(line, filter) {
-			//applying filter is it's not empty
+			//applying filter if it's not empty
 			continue
 		}
 
