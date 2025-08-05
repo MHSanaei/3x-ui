@@ -132,6 +132,7 @@
 "xraySwitchVersionPopover" = "Xray se actualizó correctamente"
 "geofileUpdateDialog" = "¿Realmente deseas actualizar el geofichero?"
 "geofileUpdateDialogDesc" = "Esto actualizará el archivo #filename#."
+"geofilesUpdateDialogDesc" = "Esto actualizará todos los archivos."
 "geofileUpdatePopover" = "Geofichero actualizado correctamente"
 "dontRefresh" = "La instalación está en progreso, por favor no actualices esta página."
 "logs" = "Registros"

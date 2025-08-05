@@ -45,6 +45,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
+	g.POST("/updateGeofile", a.updateGeofile)
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
