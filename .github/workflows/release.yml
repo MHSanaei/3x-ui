@@ -48,7 +48,7 @@ jobs:
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
           TOOLCHAIN_URL=""
-          MUSL_CC_HOST="https://github.com/musl-cc/musl.cc/releases/download/v0.0.1" #http://musl.cc
+          MUSL_CC_HOST="https://download.wireguard.com/qemu-test/toolchains/20240917/"
           case "${{ matrix.platform }}" in
             amd64)
               TOOLCHAIN_URL="$MUSL_CC_HOST/x86_64-linux-musl-cross.tgz"
