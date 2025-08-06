@@ -405,9 +405,9 @@
                               <span>[[ clientEmail ]]</span>
                               <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                 <template #title>
-                                  [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                  [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                 </template>
-                                <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                               </a-tooltip>
                             </div>
                           </template>
@@ -419,9 +419,9 @@
                               <span>[[ clientEmail ]]</span>
                               <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                 <template #title>
-                                  [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                  [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                 </template>
-                                <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                               </a-tooltip>
                             </div>
                           </template>
@@ -433,9 +433,9 @@
                               <span>[[ clientEmail ]]</span>
                               <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                 <template #title>
-                                  [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                  [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                 </template>
-                                <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                               </a-tooltip>
                             </div>
                           </template>
@@ -447,9 +447,9 @@
                               <span>[[ clientEmail ]]</span>
                               <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                 <template #title>
-                                  [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                  [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                 </template>
-                                <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                               </a-tooltip>
                             </div>
                           </template>
@@ -534,9 +534,9 @@
                                       <span>[[ clientEmail ]]</span>
                                       <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                         <template #title>
-                                          [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                          [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                         </template>
-                                        <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                        <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                                       </a-tooltip>
                                     </div>
                                   </template>
@@ -548,9 +548,9 @@
                                       <span>[[ clientEmail ]]</span>
                                       <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                         <template #title>
-                                          [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                          [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                         </template>
-                                        <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                        <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                                       </a-tooltip>
                                     </div>
                                   </template>
@@ -562,9 +562,9 @@
                                       <span>[[ clientEmail ]]</span>
                                       <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                         <template #title>
-                                          [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                          [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                         </template>
-                                        <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                        <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                                       </a-tooltip>
                                     </div>
                                   </template>
@@ -576,9 +576,9 @@
                                       <span>[[ clientEmail ]]</span>
                                       <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
                                         <template #title>
-                                          [[ getClientWithComment(clientEmail, dbInbound.id).comment ]]
+                                          [[ clientCount[dbInbound.id].comments.get(clientEmail) ]]
                                         </template>
-                                        <a-icon type="message" v-if="getClientWithComment(clientEmail, dbInbound.id).comment"></a-icon>
+                                        <a-icon type="message" v-if="clientCount[dbInbound.id].comments.get(clientEmail)"></a-icon>
                                       </a-tooltip>
                                     </div>
                                   </template>
@@ -811,17 +811,6 @@
             loading(spinning = true) {
                 this.loadingStates.spinning = spinning;
             },
-            getClientWithComment(email, inboundId) {
-                const dbInbound = this.dbInbounds.find(inbound => inbound.id === inboundId);
-                if (!dbInbound) return { email, comment: '' };
-                
-                const inboundSettings = JSON.parse(dbInbound.settings);
-                if (inboundSettings.clients) {
-                    const client = inboundSettings.clients.find(c => c.email === email);
-                    return client ? { email: client.email, comment: client.comment || '' } : { email, comment: '' };
-                }
-                return { email, comment: '' };
-            },
             async getDBInbounds() {
                 this.refreshing = true;
                 const msg = await HttpUtil.post('/panel/inbound/list');
@@ -893,7 +882,7 @@
                 }
             },
             getClientCounts(dbInbound, inbound) {
-                let clientCount = 0, active = [], deactive = [], depleted = [], expiring = [], online = [];
+                let clientCount = 0, active = [], deactive = [], depleted = [], expiring = [], online = [], comments = new Map();
                 clients = inbound.clients;
                 clientStats = dbInbound.clientStats
                 now = new Date().getTime()
@@ -901,6 +890,9 @@
                     clientCount = clients.length;
                     if (dbInbound.enable) {
                         clients.forEach(client => {
+                            if (client.comment) {
+                              comments.set(client.email, client.comment)
+                            }
                             if (client.enable) {
                                 active.push(client.email);
                                 if (this.isClientOnline(client.email)) online.push(client.email);
@@ -929,6 +921,7 @@
                     depleted: depleted,
                     expiring: expiring,
                     online: online,
+                    comments: comments,
                 };
             },
 
