@@ -383,6 +383,9 @@
             <a-icon type="reload" @click="updateGeofile(file)" :style="{ marginRight: '8px' }"/>
           </a-list-item>
         </a-list>
+        <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
+          <a-button @click="updateGeofile('')">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button>
+        </div>
       </a-collapse-panel>
     </a-collapse>
   </a-modal>
@@ -786,16 +789,22 @@ ${dateTime}
                 });
             },
             updateGeofile(fileName) {
+                const isSingleFile = !!fileName;
                 this.$confirm({
                     title: '{{ i18n "pages.index.geofileUpdateDialog" }}',
-                    content: '{{ i18n "pages.index.geofileUpdateDialogDesc" }}'.replace("#filename#", fileName),
+                    content: isSingleFile
+                        ? '{{ i18n "pages.index.geofileUpdateDialogDesc" }}'.replace("#filename#", fileName)
+                        : '{{ i18n "pages.index.geofilesUpdateDialogDesc" }}',
                     okText: '{{ i18n "confirm"}}',
                     class: themeSwitcher.currentTheme,
                     cancelText: '{{ i18n "cancel"}}',
                     onOk: async () => {
                         versionModal.hide();
                         this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
-                        await HttpUtil.post(`/server/updateGeofile/${fileName}`);
+                        const url = isSingleFile 
+                            ? `/server/updateGeofile/${fileName}` 
+                            : `/server/updateGeofile`;
+                        await HttpUtil.post(url);
                         this.loading(false);
                     },
                 });

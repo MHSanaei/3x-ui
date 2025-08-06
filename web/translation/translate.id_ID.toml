@@ -132,6 +132,8 @@
 "xraySwitchVersionPopover" = "Xray berhasil diperbarui"
 "geofileUpdateDialog" = "Apakah Anda yakin ingin memperbarui geofile?"
 "geofileUpdateDialogDesc" = "Ini akan memperbarui file #filename#."
+"geofilesUpdateDialogDesc" = "Ini akan memperbarui semua berkas."
+"geofilesUpdateAll" = "Perbarui semua"
 "geofileUpdatePopover" = "Geofile berhasil diperbarui"
 "dontRefresh" = "Instalasi sedang berlangsung, harap jangan menyegarkan halaman ini"
 "logs" = "Log"

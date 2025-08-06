@@ -511,7 +511,7 @@ func (s *ServerService) GetXrayLogs(
 		line := strings.TrimSpace(scanner.Text())
 
 		if line == "" || strings.Contains(line, "api -> api") {
-			//skipping empty lines and api calls 
+			//skipping empty lines and api calls
 			continue
 		}
 
@@ -742,27 +742,43 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		return nil
 	}
 
-	var fileURL string
-	for _, file := range files {
-		if file.FileName == fileName {
-			fileURL = file.URL
-			break
+	var errorMessages []string
+
+	if fileName == "" {
+		for _, file := range files {
+			destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), file.FileName)
+
+			if err := downloadFile(file.URL, destPath); err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
+			}
 		}
-	}
+	} else {
+		destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), fileName)
 
-	if fileURL == "" {
-		return common.NewErrorf("File '%s' not found in the list of Geofiles", fileName)
-	}
+		var fileURL string
+		for _, file := range files {
+			if file.FileName == fileName {
+				fileURL = file.URL
+				break
+			}
+		}
 
-	destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), fileName)
+		if fileURL == "" {
+			errorMessages = append(errorMessages, fmt.Sprintf("File '%s' not found in the list of Geofiles", fileName))
+		}
 
-	if err := downloadFile(fileURL, destPath); err != nil {
-		return common.NewErrorf("Error downloading Geofile '%s': %v", fileName, err)
+		if err := downloadFile(fileURL, destPath); err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
+		}
 	}
 
 	err := s.RestartXrayService()
 	if err != nil {
-		return common.NewErrorf("Updated Geofile '%s' but Failed to start Xray: %v", fileName, err)
+		errorMessages = append(errorMessages, fmt.Sprintf("Updated Geofile '%s' but Failed to start Xray: %v", fileName, err))
+	}
+
+	if len(errorMessages) > 0 {
+		return common.NewErrorf("%s", strings.Join(errorMessages, "\r\n"))
 	}
 
 	return nil

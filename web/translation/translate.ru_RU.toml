@@ -132,6 +132,8 @@
 "xraySwitchVersionPopover" = "Xray успешно обновлён"
 "geofileUpdateDialog" = "Вы действительно хотите обновить геофайл?"
 "geofileUpdateDialogDesc" = "Это обновит файл #filename#."
+"geofilesUpdateDialogDesc" = "Это обновит все геофайлы."
+"geofilesUpdateAll" = "Обновить все"
 "geofileUpdatePopover" = "Геофайл успешно обновлён"
 "dontRefresh" = "Установка в процессе. Не обновляйте страницу"
 "logs" = "Журнал"
