@@ -16,7 +16,7 @@ var (
 	p                 *xray.Process
 	lock              sync.Mutex
 	isNeedXrayRestart atomic.Bool // Indicates that restart was requested for Xray
-	isManuallyStopped atomic.Bool // Indicates that Xray was stopped manually (i.e. didn't crash)
+	isManuallyStopped atomic.Bool // Indicates that Xray was stopped manually from the panel
 	result            string
 )
 
@@ -39,6 +39,7 @@ func (s *XrayService) GetXrayErr() error {
 
 	if runtime.GOOS == "windows" && err.Error() == "exit status 1" {
 		// exit status 1 on Windows means that Xray process was killed
+		// as we kill process to stop in on Windows, this is not an error
 		return nil
 	}
 
@@ -60,6 +61,7 @@ func (s *XrayService) GetXrayResult() string {
 
 	if runtime.GOOS == "windows" && result == "exit status 1" {
 		// exit status 1 on Windows means that Xray process was killed
+		// as we kill process to stop in on Windows, this is not an error
 		return ""
 	}
 
@@ -246,7 +248,7 @@ func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
 }
 
-// Check if Xray is not running and wasn't stopped manually
-func (s *XrayService) IsNeedToResurrect() bool {
+// Check if Xray is not running and wasn't stopped manually, i.e. crashed
+func (s *XrayService) DidXrayCrash() bool {
 	return !s.IsXrayRunning() && !isManuallyStopped.Load()
 }
