@@ -347,7 +347,6 @@ func (s *ServerService) StopXrayService() error {
 }
 
 func (s *ServerService) RestartXrayService() error {
-	s.xrayService.StopXray()
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
 		logger.Error("start xray failed:", err)
