@@ -641,7 +641,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         keyFile = '',
         certificate = '',
         key = '',
-        ocspStapling = 0,
         oneTimeLoading = false,
         usage = USAGE_OPTION.ENCIPHERMENT,
         buildChain = false,
@@ -652,7 +651,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
         this.keyFile = keyFile;
         this.cert = Array.isArray(certificate) ? certificate.join('\n') : certificate;
         this.key = Array.isArray(key) ? key.join('\n') : key;
-        this.ocspStapling = ocspStapling;
         this.oneTimeLoading = oneTimeLoading;
         this.usage = usage;
         this.buildChain = buildChain
@@ -664,7 +662,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 true,
                 json.certificateFile,
                 json.keyFile, '', '',
-                json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
                 json.buildChain,
@@ -674,7 +671,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
                 false, '', '',
                 json.certificate.join('\n'),
                 json.key.join('\n'),
-                json.ocspStapling,
                 json.oneTimeLoading,
                 json.usage,
                 json.buildChain,
@@ -687,7 +683,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
             return {
                 certificateFile: this.certFile,
                 keyFile: this.keyFile,
-                ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
                 buildChain: this.buildChain,
@@ -696,7 +691,6 @@ TlsStreamSettings.Cert = class extends XrayCommonClass {
             return {
                 certificate: this.cert.split('\n'),
                 key: this.key.split('\n'),
-                ocspStapling: this.ocspStapling,
                 oneTimeLoading: this.oneTimeLoading,
                 usage: this.usage,
                 buildChain: this.buildChain,
