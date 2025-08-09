@@ -18,6 +18,9 @@ var version string
 //go:embed name
 var name string
 
+// default folder for database
+var defaultDbFolder = "/etc/x-ui"
+
 type LogLevel string
 
 const (
@@ -77,26 +80,28 @@ func getDBFolderPath() string {
 		return dbFolderPath
 	}
 
-	defaultFolder := "/etc/x-ui"
-
 	if runtime.GOOS == "windows" {
-		homeDir := os.Getenv("LOCALAPPDATA")
-		if homeDir == "" {
-			logger.Error("Error while getting local app data folder")
-			return defaultFolder
-		}
-
-		userFolder := filepath.Join(homeDir, "x-ui")
-		err := moveExistingDb(defaultFolder, userFolder)
-		if err != nil {
-			logger.Error("Error while moving existing DB: %w", err)
-			return defaultFolder
-		}
-
-		return userFolder
+		return getWindowsDbPath()
 	} else {
-		return defaultFolder
+		return defaultDbFolder
 	}
+}
+
+func getWindowsDbPath() string {
+	homeDir := os.Getenv("LOCALAPPDATA")
+	if homeDir == "" {
+		logger.Errorf("Error while getting local app data folder, falling back to %s", defaultDbFolder)
+		return defaultDbFolder
+	}
+
+	userFolder := filepath.Join(homeDir, "x-ui")
+	err := moveExistingDb(defaultDbFolder, userFolder)
+	if err != nil {
+		logger.Error("Error while moving existing DB: %w, falling back to %s", err, defaultDbFolder)
+		return defaultDbFolder
+	}
+
+	return userFolder
 }
 
 func moveExistingDb(from string, to string) error {
