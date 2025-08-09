@@ -4,7 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"x-ui/logger"
+
+	"github.com/otiai10/copy"
 )
 
 //go:embed version
@@ -12,6 +17,9 @@ var version string
 
 //go:embed name
 var name string
+
+// default folder for database
+var defaultDbFolder = "/etc/x-ui"
 
 type LogLevel string
 
@@ -54,16 +62,8 @@ func GetBinFolderPath() string {
 	return binFolderPath
 }
 
-func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
-	if dbFolderPath == "" {
-		dbFolderPath = "/etc/x-ui"
-	}
-	return dbFolderPath
-}
-
 func GetDBPath() string {
-	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+	return fmt.Sprintf("%s/%s.db", getDBFolderPath(), GetName())
 }
 
 func GetLogFolder() string {
@@ -72,4 +72,45 @@ func GetLogFolder() string {
 		logFolderPath = "/var/log"
 	}
 	return logFolderPath
+}
+
+func getDBFolderPath() string {
+	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
+	if dbFolderPath != "" {
+		return dbFolderPath
+	}
+
+	if runtime.GOOS == "windows" {
+		return getWindowsDbPath()
+	} else {
+		return defaultDbFolder
+	}
+}
+
+func getWindowsDbPath() string {
+	homeDir := os.Getenv("LOCALAPPDATA")
+	if homeDir == "" {
+		logger.Errorf("Error while getting local app data folder, falling back to %s", defaultDbFolder)
+		return defaultDbFolder
+	}
+
+	userFolder := filepath.Join(homeDir, "x-ui")
+	err := moveExistingDb(defaultDbFolder, userFolder)
+	if err != nil {
+		logger.Error("Error while moving existing DB: %w, falling back to %s", err, defaultDbFolder)
+		return defaultDbFolder
+	}
+
+	return userFolder
+}
+
+func moveExistingDb(from string, to string) error {
+	if _, err := os.Stat(to); os.IsNotExist(err) {
+		if _, err := os.Stat(from); !os.IsNotExist(err) {
+			if err := copy.Copy(from, to); err != nil {
+				return fmt.Errorf("failed to copy %s to %s: %w", from, to, err)
+			}
+		}
+	}
+	return nil
 }
