@@ -4,7 +4,12 @@ import (
 	_ "embed"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
+	"x-ui/logger"
+
+	"github.com/otiai10/copy"
 )
 
 //go:embed version
@@ -56,10 +61,30 @@ func GetBinFolderPath() string {
 
 func GetDBFolderPath() string {
 	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
-	if dbFolderPath == "" {
-		dbFolderPath = "/etc/x-ui"
+	if dbFolderPath != "" {
+		return dbFolderPath
 	}
-	return dbFolderPath
+
+	defaultFolder := "/etc/x-ui"
+
+	if runtime.GOOS == "windows" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			logger.Error("Error while getting user folder: %w", err)
+			return defaultFolder
+		}
+
+		userFolder := filepath.Join(homeDir, "x-ui")
+		err = moveExistingDb(defaultFolder, userFolder)
+		if err != nil {
+			logger.Error("Error while moving existing DB: %w", err)
+			return defaultFolder
+		}
+
+		return userFolder
+	} else {
+		return defaultFolder
+	}
 }
 
 func GetDBPath() string {
@@ -72,4 +97,15 @@ func GetLogFolder() string {
 		logFolderPath = "/var/log"
 	}
 	return logFolderPath
+}
+
+func moveExistingDb(from string, to string) error {
+	if _, err := os.Stat(to); os.IsNotExist(err) {
+		if _, err := os.Stat(from); !os.IsNotExist(err) {
+			if err := copy.Copy(from, to); err != nil {
+				return fmt.Errorf("failed to copy %s to %s: %w", from, to, err)
+			}
+		}
+	}
+	return nil
 }
