@@ -1710,7 +1710,7 @@ class Inbound extends XrayCommonClass {
 
     toJson() {
         let streamSettings;
-        if (this.canEnableStream()) {
+        if (this.canEnableStream() || this.stream?.sockopt) {
             streamSettings = this.stream.toJson();
         }
         return {
