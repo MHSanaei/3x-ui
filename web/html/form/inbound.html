@@ -108,6 +108,9 @@
     {{template "form/streamSettings"}}
     {{template "form/externalProxy" }}
 </template>
+<template v-else>
+    {{template "form/streamSockopt"}}
+</template>
 
 <!-- tls settings -->
 <template v-if="inbound.canEnableTls()">
