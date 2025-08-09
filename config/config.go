@@ -68,14 +68,14 @@ func GetDBFolderPath() string {
 	defaultFolder := "/etc/x-ui"
 
 	if runtime.GOOS == "windows" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			logger.Error("Error while getting user folder: %w", err)
+		homeDir := os.Getenv("LOCALAPPDATA")
+		if homeDir == "" {
+			logger.Error("Error while getting local app data folder")
 			return defaultFolder
 		}
 
 		userFolder := filepath.Join(homeDir, "x-ui")
-		err = moveExistingDb(defaultFolder, userFolder)
+		err := moveExistingDb(defaultFolder, userFolder)
 		if err != nil {
 			logger.Error("Error while moving existing DB: %w", err)
 			return defaultFolder
