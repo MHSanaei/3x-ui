@@ -59,7 +59,19 @@ func GetBinFolderPath() string {
 	return binFolderPath
 }
 
-func GetDBFolderPath() string {
+func GetDBPath() string {
+	return fmt.Sprintf("%s/%s.db", getDBFolderPath(), GetName())
+}
+
+func GetLogFolder() string {
+	logFolderPath := os.Getenv("XUI_LOG_FOLDER")
+	if logFolderPath == "" {
+		logFolderPath = "/var/log"
+	}
+	return logFolderPath
+}
+
+func getDBFolderPath() string {
 	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
 	if dbFolderPath != "" {
 		return dbFolderPath
@@ -85,18 +97,6 @@ func GetDBFolderPath() string {
 	} else {
 		return defaultFolder
 	}
-}
-
-func GetDBPath() string {
-	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
-}
-
-func GetLogFolder() string {
-	logFolderPath := os.Getenv("XUI_LOG_FOLDER")
-	if logFolderPath == "" {
-		logFolderPath = "/var/log"
-	}
-	return logFolderPath
 }
 
 func moveExistingDb(from string, to string) error {
