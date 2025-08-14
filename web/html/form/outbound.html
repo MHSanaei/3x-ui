@@ -42,6 +42,9 @@
           <a-form-item label='Interval'>
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
+          <a-form-item label='Max Split'>
+            <a-input v-model.trim="outbound.settings.fragment.maxSplit"></a-input>
+          </a-form-item>
         </template>
 
         <!-- Switch for Noises -->
@@ -74,6 +77,11 @@
             </a-form-item>
             <a-form-item label='Delay'>
               <a-input v-model.trim="noise.delay"></a-input>
+            </a-form-item>
+            <a-form-item label='Apply To'>
+              <a-select v-model="noise.applyTo" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['ip','ipv4','ipv6']" :value="s">[[ s ]]</a-select-option>
+              </a-select>
             </a-form-item>
           </a-form>
         </template>

@@ -90,6 +90,18 @@
                                 placeholder="10-20"></a-input>
                         </template>
                     </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>ApplyTo</template>
+                        <template #control>
+                            <a-select :value="noise.applyTo" :style="{ width: '100%' }"
+                                :dropdown-class-name="themeSwitcher.currentTheme"
+                                @change="(value) => updateNoiseApplyTo(index, value)">
+                                <a-select-option :value="p" :label="p" v-for="p in ['ip', 'ipv4', 'ipv6']" :key="p">
+                                    <span>[[ p ]]</span>
+                                </a-select-option>
+                            </a-select>
+                        </template>
+                    </a-setting-list-item>
                     <a-space direction="horizontal" :style="{ padding: '10px 20px' }">
                         <a-button v-if="noisesArray.length > 1" type="danger"
                             @click="removeNoise(index)">Remove</a-button>

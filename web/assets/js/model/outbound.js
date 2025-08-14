@@ -919,12 +919,14 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
     constructor(
         packets = '1-3',
         length = '',
-        interval = ''
+        interval = '',
+        maxSplit = ''
     ) {
         super();
         this.packets = packets;
         this.length = length;
         this.interval = interval;
+        this.maxSplit = maxSplit;
     }
 
     static fromJson(json = {}) {
@@ -932,6 +934,7 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
             json.packets,
             json.length,
             json.interval,
+            json.maxSplit
         );
     }
 };
@@ -940,12 +943,14 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
     constructor(
         type = 'rand',
         packet = '10-20',
-        delay = '10-16'
+        delay = '10-16',
+        applyTo = 'ip'
     ) {
         super();
         this.type = type;
         this.packet = packet;
         this.delay = delay;
+        this.applyTo = applyTo;
     }
 
     static fromJson(json = {}) {
@@ -953,6 +958,7 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
             json.type,
             json.packet,
             json.delay,
+            json.applyTo
         );
     }
 
@@ -961,6 +967,7 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
             type: this.type,
             packet: this.packet,
             delay: this.delay,
+            applyTo: this.applyTo
         };
     }
 };

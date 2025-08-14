@@ -207,7 +207,7 @@
         settings: {
           domainStrategy: "AsIs",
           noises: [
-            { type: "rand", packet: "10-20", delay: "10-16" },
+            { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" },
           ],
         },
       },
@@ -397,7 +397,7 @@
         }
       },
       addNoise() {
-        const newNoise = { type: "rand", packet: "10-20", delay: "10-16" };
+        const newNoise = { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" };
         this.noisesArray = [...this.noisesArray, newNoise];
       },
       removeNoise(index) {
@@ -418,6 +418,11 @@
       updateNoiseDelay(index, value) {
         const updatedNoises = [...this.noisesArray];
         updatedNoises[index] = { ...updatedNoises[index], delay: value };
+        this.noisesArray = updatedNoises;
+      },
+      updateNoiseApplyTo(index, value) {
+        const updatedNoises = [...this.noisesArray];
+        updatedNoises[index] = { ...updatedNoises[index], applyTo: value };
         this.noisesArray = updatedNoises;
       },
     },
