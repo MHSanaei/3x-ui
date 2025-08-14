@@ -39,7 +39,7 @@
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
-        <a-form-item v-if="app.subSettings.enable">
+        <a-form-item v-if="app.subSettings?.enable">
             <template slot="label">
                 <a-tooltip>
                     <template slot="title">

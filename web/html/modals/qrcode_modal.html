@@ -21,7 +21,7 @@
     </a-space>
   </template>
   <tr-qr-modal class="qr-modal">
-    <template v-if="app.subSettings.enable && qrModal.subId">
+    <template v-if="app.subSettings?.enable && qrModal.subId">
       <tr-qr-box class="qr-box">
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">

@@ -29,9 +29,9 @@ main
 .DS_Store
 Thumbs.db
 
-# Ignore Go specific files
+# Ignore Go build files
 *.exe
-*.exe~
+x-ui.db
 
 # Ignore Docker specific files
 docker-compose.override.yml

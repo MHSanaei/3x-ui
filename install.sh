@@ -40,19 +40,6 @@ arch() {
 
 echo "Arch: $(arch)"
 
-check_glibc_version() {
-    glibc_version=$(ldd --version | head -n1 | awk '{print $NF}')
-    
-    required_version="2.32"
-    if [[ "$(printf '%s\n' "$required_version" "$glibc_version" | sort -V | head -n1)" != "$required_version" ]]; then
-        echo -e "${red}GLIBC version $glibc_version is too old! Required: 2.32 or higher${plain}"
-        echo "Please upgrade to a newer version of your operating system to get a higher GLIBC version."
-        exit 1
-    fi
-    echo "GLIBC version: $glibc_version (meets requirement of 2.32+)"
-}
-check_glibc_version
-
 install_base() {
     case "${release}" in
     ubuntu | debian | armbian)

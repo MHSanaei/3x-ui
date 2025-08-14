@@ -6,6 +6,19 @@
     <a-form-item label='{{ i18n "pages.inbounds.destinationPort"}}'>
         <a-input-number v-model.number="inbound.settings.port"></a-input-number>
     </a-form-item>
+    <a-form-item label='{{ i18n "pages.inbounds.portMap"}}'>
+        <a-button size="small" @click="inbound.settings.portMap.push({name: '', value: ''})">+</a-button>
+    </a-form-item>
+    <a-form-item :wrapper-col="{span:24}">
+        <a-input-group compact v-for="(pm, index) in inbound.settings.portMap">
+            <a-input style="width: 50%" v-model.trim="pm.name" placeholder='{{ i18n "pages.inbounds.port"}}'>
+                <template slot="addonBefore" style="margin: 0;">[[ index+1 ]]</template>
+            </a-input>
+            <a-input style="width: 50%" v-model.trim="pm.value" placeholder='{{ i18n "pages.inbounds.targetAddress" }}'>
+                <a-button slot="addonAfter" size="small" @click="inbound.settings.portMap.splice(index,1)">-</a-button>
+            </a-input>
+        </a-input-group>
+    </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.network"}}'>
         <a-select v-model="inbound.settings.network" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp,udp">TCP,UDP</a-select-option>
@@ -17,4 +30,8 @@
         <a-switch v-model="inbound.settings.followRedirect"></a-switch>
     </a-form-item>
 </a-form>
+<!-- sockopt -->
+<template>
+    {{template "form/streamSockopt"}}
+</template>
 {{end}}
