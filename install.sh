@@ -58,7 +58,7 @@ install_base() {
         zypper refresh && zypper -q install -y wget curl tar timezone
         ;;
     *)
-        apt-get update && apt install -y -q wget curl tar tzdata
+        apt-get update && apt-get install -y -q wget curl tar tzdata
         ;;
     esac
 }

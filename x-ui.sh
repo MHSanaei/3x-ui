@@ -398,37 +398,6 @@ show_log() {
     esac
 }
 
-show_banlog() {
-    local system_log="/var/log/fail2ban.log"
-
-    echo -e "${green}Checking ban logs...${plain}\n"
-
-    if ! systemctl is-active --quiet fail2ban; then
-        echo -e "${red}Fail2ban service is not running!${plain}\n"
-        return 1
-    fi
-
-    if [[ -f "$system_log" ]]; then
-        echo -e "${green}Recent system ban activities from fail2ban.log:${plain}"
-        grep "3x-ipl" "$system_log" | grep -E "Ban|Unban" | tail -n 10 || echo -e "${yellow}No recent system ban activities found${plain}"
-        echo ""
-    fi
-
-    if [[ -f "${iplimit_banned_log_path}" ]]; then
-        echo -e "${green}3X-IPL ban log entries:${plain}"
-        if [[ -s "${iplimit_banned_log_path}" ]]; then
-            grep -v "INIT" "${iplimit_banned_log_path}" | tail -n 10 || echo -e "${yellow}No ban entries found${plain}"
-        else
-            echo -e "${yellow}Ban log file is empty${plain}"
-        fi
-    else
-        echo -e "${red}Ban log file not found at: ${iplimit_banned_log_path}${plain}"
-    fi
-
-    echo -e "\n${green}Current jail status:${plain}"
-    fail2ban-client status 3x-ipl || echo -e "${yellow}Unable to get jail status${plain}"
-}
-
 bbr_menu() {
     echo -e "${green}\t1.${plain} Enable BBR"
     echo -e "${green}\t2.${plain} Disable BBR"
@@ -1005,7 +974,7 @@ ssl_cert_issue() {
     # install socat second
     case "${release}" in
     ubuntu | debian | armbian)
-        apt update && apt install socat -y
+        apt-get update && apt-get install socat -y
         ;;
     centos | rhel | almalinux | rocky | ol)
         yum -y update && yum -y install socat
@@ -1330,81 +1299,7 @@ run_speedtest() {
     speedtest
 }
 
-create_iplimit_jails() {
-    # Use default bantime if not passed => 30 minutes
-    local bantime="${1:-30}"
 
-    # Uncomment 'allowipv6 = auto' in fail2ban.conf
-    sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
-
-    # On Debian 12+ fail2ban's default backend should be changed to systemd
-    if [[  "${release}" == "debian" && ${os_version} -ge 12 ]]; then
-        sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
-    fi
-
-    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
-[3x-ipl]
-enabled=true
-backend=auto
-filter=3x-ipl
-action=3x-ipl
-logpath=${iplimit_log_path}
-maxretry=2
-findtime=32
-bantime=${bantime}m
-EOF
-
-    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
-[Definition]
-datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
-failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
-ignoreregex =
-EOF
-
-    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
-[INCLUDES]
-before = iptables-allports.conf
-
-[Definition]
-actionstart = <iptables> -N f2b-<name>
-              <iptables> -A f2b-<name> -j <returntype>
-              <iptables> -I <chain> -p <protocol> -j f2b-<name>
-
-actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
-             <actionflush>
-             <iptables> -X f2b-<name>
-
-actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
-
-actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
-            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
-
-actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
-              echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
-
-[Init]
-name = default
-protocol = tcp
-chain = INPUT
-EOF
-
-    echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
-}
-
-iplimit_remove_conflicts() {
-    local jail_files=(
-        /etc/fail2ban/jail.conf
-        /etc/fail2ban/jail.local
-    )
-
-    for file in "${jail_files[@]}"; do
-        # Check for [3x-ipl] config in jail file then remove it
-        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
-            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
-            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
-        fi
-    done
-}
 
 ip_validation() {
     ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
@@ -1514,14 +1409,22 @@ install_iplimit() {
         # Check the OS and install necessary packages
         case "${release}" in
         ubuntu)
+            apt-get update
             if [[ "${os_version}" -ge 24 ]]; then
-                apt update && apt install python3-pip -y
+                apt-get install python3-pip -y
                 python3 -m pip install pyasynchat --break-system-packages
             fi
-            apt update && apt install fail2ban -y
+            apt-get install fail2ban -y
             ;;
-        debian | armbian)
-            apt update && apt install fail2ban -y
+        debian)
+            apt-get update
+            if [ "$os_version" -ge 12 ]; then
+                apt-get install -y python3-systemd
+            fi
+            apt-get install -y fail2ban
+            ;;
+        armbian)
+            apt-get update && apt-get install fail2ban -y
             ;;
         centos | rhel | almalinux | rocky | ol)
             yum update -y && yum install epel-release -y
@@ -1630,6 +1533,113 @@ remove_iplimit() {
         remove_iplimit
         ;;
     esac
+}
+
+show_banlog() {
+    local system_log="/var/log/fail2ban.log"
+
+    echo -e "${green}Checking ban logs...${plain}\n"
+
+    if ! systemctl is-active --quiet fail2ban; then
+        echo -e "${red}Fail2ban service is not running!${plain}\n"
+        return 1
+    fi
+
+    if [[ -f "$system_log" ]]; then
+        echo -e "${green}Recent system ban activities from fail2ban.log:${plain}"
+        grep "3x-ipl" "$system_log" | grep -E "Ban|Unban" | tail -n 10 || echo -e "${yellow}No recent system ban activities found${plain}"
+        echo ""
+    fi
+
+    if [[ -f "${iplimit_banned_log_path}" ]]; then
+        echo -e "${green}3X-IPL ban log entries:${plain}"
+        if [[ -s "${iplimit_banned_log_path}" ]]; then
+            grep -v "INIT" "${iplimit_banned_log_path}" | tail -n 10 || echo -e "${yellow}No ban entries found${plain}"
+        else
+            echo -e "${yellow}Ban log file is empty${plain}"
+        fi
+    else
+        echo -e "${red}Ban log file not found at: ${iplimit_banned_log_path}${plain}"
+    fi
+
+    echo -e "\n${green}Current jail status:${plain}"
+    fail2ban-client status 3x-ipl || echo -e "${yellow}Unable to get jail status${plain}"
+}
+
+create_iplimit_jails() {
+    # Use default bantime if not passed => 30 minutes
+    local bantime="${1:-30}"
+
+    # Uncomment 'allowipv6 = auto' in fail2ban.conf
+    sed -i 's/#allowipv6 = auto/allowipv6 = auto/g' /etc/fail2ban/fail2ban.conf
+
+    # On Debian 12+ fail2ban's default backend should be changed to systemd
+    if [[  "${release}" == "debian" && ${os_version} -ge 12 ]]; then
+        sed -i '0,/action =/s/backend = auto/backend = systemd/' /etc/fail2ban/jail.conf
+    fi
+
+    cat << EOF > /etc/fail2ban/jail.d/3x-ipl.conf
+[3x-ipl]
+enabled=true
+backend=auto
+filter=3x-ipl
+action=3x-ipl
+logpath=${iplimit_log_path}
+maxretry=2
+findtime=32
+bantime=${bantime}m
+EOF
+
+    cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
+[Definition]
+datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
+failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
+ignoreregex =
+EOF
+
+    cat << EOF > /etc/fail2ban/action.d/3x-ipl.conf
+[INCLUDES]
+before = iptables-allports.conf
+
+[Definition]
+actionstart = <iptables> -N f2b-<name>
+              <iptables> -A f2b-<name> -j <returntype>
+              <iptables> -I <chain> -p <protocol> -j f2b-<name>
+
+actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
+             <actionflush>
+             <iptables> -X f2b-<name>
+
+actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
+
+actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
+            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
+
+actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
+              echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
+
+[Init]
+name = default
+protocol = tcp
+chain = INPUT
+EOF
+
+    echo -e "${green}Ip Limit jail files created with a bantime of ${bantime} minutes.${plain}"
+}
+
+iplimit_remove_conflicts() {
+    local jail_files=(
+        /etc/fail2ban/jail.conf
+        /etc/fail2ban/jail.local
+    )
+
+    for file in "${jail_files[@]}"; do
+        # Check for [3x-ipl] config in jail file then remove it
+        if test -f "${file}" && grep -qw '3x-ipl' ${file}; then
+            sed -i "/\[3x-ipl\]/,/^$/d" ${file}
+            echo -e "${yellow}Removing conflicts of [3x-ipl] in jail (${file})!${plain}\n"
+        fi
+    done
 }
 
 SSH_port_forwarding() {
