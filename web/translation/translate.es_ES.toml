@@ -91,7 +91,7 @@
 "invalidFormData" = "El formato de los datos de entrada es inválido."
 "emptyUsername" = "Por favor ingresa el nombre de usuario."
 "emptyPassword" = "Por favor ingresa la contraseña."
-"wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."  
+"wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."
 "successLogin" = "Has iniciado sesión en tu cuenta correctamente."
 
 [pages.index]
@@ -535,9 +535,9 @@
 
 [pages.settings.security]
 "admin" = "Credenciales de administrador"
-"twoFactor" = "Autenticación de dos factores"  
-"twoFactorEnable" = "Habilitar 2FA"  
-"twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."  
+"twoFactor" = "Autenticación de dos factores"
+"twoFactorEnable" = "Habilitar 2FA"
+"twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."
 "twoFactorModalSetTitle" = "Activar autenticación de dos factores"
 "twoFactorModalDeleteTitle" = "Desactivar autenticación de dos factores"
 "twoFactorModalSteps" = "Para configurar la autenticación de dos factores, sigue estos pasos:"
@@ -561,23 +561,24 @@
 "resetOutboundTrafficError" = "Error al reiniciar el tráfico saliente"
 
 [tgbot]
-"keyboardClosed" = "❌ ¡Teclado personalizado cerrado!"
-"noResult" = "❗ ¡Sin resultados!"
-"noQuery" = "❌ ¡Consulta no encontrada! ¡Por favor utiliza el comando nuevamente!"
+"keyboardClosed" = "❌ Teclado cerrado!"
+"noResult" = "❗ ¡No hay resultados!"
+"noQuery" = "❌ ¡Consulta no encontrada! ¡Por favor, use el comando de nuevo!"
 "wentWrong" = "❌ ¡Algo salió mal!"
-"noIpRecord" = "❗ ¡Sin Registro de IP!"
+"noIpRecord" = "❗ ¡No hay registro de IP!"
 "noInbounds" = "❗ ¡No se encontraron entradas!"
-"unlimited" = "♾ Ilimitado"
-"add" = "Agregar"
+"unlimited" = "♾ Ilimitado (Restablecer)"
+"add" = "Añadir"
 "month" = "Mes"
 "months" = "Meses"
 "day" = "Día"
 "days" = "Días"
 "hours" = "Horas"
+"minutes" = "Minutos"
 "unknown" = "Desconocido"
 "inbounds" = "Entradas"
 "clients" = "Clientes"
-"offline" = "🔴 Sin conexión"
+"offline" = "🔴 Desconectado"
 "online" = "🟢 En línea"
 
 [tgbot.commands]

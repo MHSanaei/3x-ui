@@ -2,10 +2,10 @@ package entity
 
 import (
 	"crypto/tls"
+	"math"
 	"net"
 	"strings"
 	"time"
-	"math"
 
 	"x-ui/util/common"
 )
@@ -39,8 +39,8 @@ type AllSetting struct {
 	TgCpu                       int    `json:"tgCpu" form:"tgCpu"`
 	TgLang                      string `json:"tgLang" form:"tgLang"`
 	TimeLocation                string `json:"timeLocation" form:"timeLocation"`
-	TwoFactorEnable				bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
-	TwoFactorToken				string `json:"twoFactorToken" form:"twoFactorToken"`
+	TwoFactorEnable             bool   `json:"twoFactorEnable" form:"twoFactorEnable"`
+	TwoFactorToken              string `json:"twoFactorToken" form:"twoFactorToken"`
 	SubEnable                   bool   `json:"subEnable" form:"subEnable"`
 	SubTitle                    string `json:"subTitle" form:"subTitle"`
 	SubListen                   string `json:"subListen" form:"subListen"`

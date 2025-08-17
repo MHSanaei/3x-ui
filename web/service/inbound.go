@@ -177,15 +177,16 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 
 	// Secure client ID
 	for _, client := range clients {
-		if inbound.Protocol == "trojan" {
+		switch inbound.Protocol {
+		case "trojan":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
-		} else if inbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
-		} else {
+		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -436,15 +437,16 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 
 	// Secure client ID
 	for _, client := range clients {
-		if oldInbound.Protocol == "trojan" {
+		switch oldInbound.Protocol {
+		case "trojan":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
 			}
-		} else if oldInbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
-		} else {
+		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
 			}
@@ -631,13 +633,14 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	clientIndex := -1
 	for index, oldClient := range oldClients {
 		oldClientId := ""
-		if oldInbound.Protocol == "trojan" {
+		switch oldInbound.Protocol {
+		case "trojan":
 			oldClientId = oldClient.Password
 			newClientId = clients[0].Password
-		} else if oldInbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
-		} else {
+		default:
 			oldClientId = oldClient.ID
 			newClientId = clients[0].ID
 		}
@@ -1244,11 +1247,12 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId int64) (boo
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1328,11 +1332,12 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, bo
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			clientOldEnabled = oldClient.Enable
@@ -1391,11 +1396,12 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1448,11 +1454,12 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1508,11 +1515,12 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
