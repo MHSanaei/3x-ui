@@ -2209,6 +2209,22 @@ func (t *Tgbot) clientInfoMsg(
 		expiryTime = t.I18nBot("tgbot.unlimited")
 	} else if diff > 172800 || !traffic.Enable {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
+		if diff > 0 {
+			days := diff / 86400
+			hours := (diff % 86400) / 3600
+			minutes := (diff % 3600) / 60
+			remainingTime := ""
+			if days > 0 {
+				remainingTime += fmt.Sprintf("%d %s ", days, t.I18nBot("tgbot.days"))
+			}
+			if hours > 0 {
+				remainingTime += fmt.Sprintf("%d %s ", hours, t.I18nBot("tgbot.hours"))
+			}
+			if minutes > 0 {
+				remainingTime += fmt.Sprintf("%d %s", minutes, t.I18nBot("tgbot.minutes"))
+			}
+			expiryTime += fmt.Sprintf(" (%s)", remainingTime)
+		}
 	} else if traffic.ExpiryTime < 0 {
 		expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/-86400000, t.I18nBot("tgbot.days"))
 		flag = true
