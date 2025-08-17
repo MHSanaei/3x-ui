@@ -520,12 +520,12 @@ func (s *ServerService) GetXrayLogs(
 		}
 
 		//adding suffixes to further distinguish entries by outbound
-		if hasSuffix(line, freedoms) {
+		if stringContains(line, freedoms) {
 			if showDirect == "false" {
 				continue
 			}
 			line = line + " f"
-		} else if hasSuffix(line, blackholes) {
+		} else if stringContains(line, blackholes) {
 			if showBlocked == "false" {
 				continue
 			}
@@ -547,9 +547,9 @@ func (s *ServerService) GetXrayLogs(
 	return lines
 }
 
-func hasSuffix(line string, suffixes []string) bool {
+func stringContains(line string, suffixes []string) bool {
 	for _, sfx := range suffixes {
-		if strings.HasSuffix(line, sfx+"]") {
+		if strings.Contains(line, sfx+"]") {
 			return true
 		}
 	}

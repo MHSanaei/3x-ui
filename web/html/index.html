@@ -676,16 +676,16 @@
 
             const parts = log.split(' ');
 
-            if(parts.length === 10) {
+            if(parts.length >= 10) {
               const dateTime = `<b>${parts[0]} ${parts[1]}</b>`;
               const from = `<b>${parts[3]}</b>`;
               const to = `<b>${parts[5].replace(/^\/+/, "")}</b>`;
 
               let outboundColor = '';
-              if (parts[9] === "b") {
+              if (parts[parts.length - 1] === "b") {
                 outboundColor = ' style="color: #e04141;"'; //red for blocked
               }
-              else if (parts[9] === "p") {
+              else if (parts[parts.length - 1] === "p") {
                 outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
               }
 
@@ -695,10 +695,10 @@ ${dateTime}
  ${from}
  ${parts[4]}
  ${to}
- ${parts.slice(6, 9).join(' ')}
+ ${parts.slice(6, parts.length - 2).join(' ')}
 </span>`;
             } else {
-              formattedLogs += `<span>${log}</span>`;
+              formattedLogs += `<span>${parts.slice(0, parts.length - 2).join(' ')}</span>`;
             }
           });
 
