@@ -209,9 +209,10 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 	var streamSettings map[string]any
 	json.Unmarshal([]byte(stream), &streamSettings)
 	security, _ := streamSettings["security"].(string)
-	if security == "tls" {
+	switch security {
+	case "tls":
 		streamSettings["tlsSettings"] = s.tlsData(streamSettings["tlsSettings"].(map[string]any))
-	} else if security == "reality" {
+	case "reality":
 		streamSettings["realitySettings"] = s.realityData(streamSettings["realitySettings"].(map[string]any))
 	}
 	delete(streamSettings, "sockopt")
