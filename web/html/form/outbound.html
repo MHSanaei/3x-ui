@@ -105,7 +105,7 @@
         </a-form-item>
         <a-form-item label='non-IP queries'>
           <a-select v-model="outbound.settings.nonIPQuery" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in ['drop','skip']" :value="s">[[ s ]]</a-select-option>
+            <a-select-option v-for="s in ['reject','drop','skip']" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types' >
