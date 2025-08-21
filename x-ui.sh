@@ -1643,10 +1643,21 @@ iplimit_remove_conflicts() {
 }
 
 SSH_port_forwarding() {
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
-    fi
+    local URL_lists=(
+        "https://api4.ipify.org"
+		"https://ipv4.icanhazip.com"
+		"https://v4.api.ipinfo.io/ip"
+		"https://ipv4.myexternalip.com/raw"
+		"https://4.ident.me"
+		"https://check-host.net/ip"
+    )
+    local server_ip=""
+    for ip_address in "${URL_lists[@]}"; do
+        server_ip=$(curl -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
+        if [[ -n "${server_ip}" ]]; then
+            break
+        fi
+    done
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_listenIP=$(/usr/local/x-ui/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')

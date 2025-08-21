@@ -7,7 +7,6 @@ yellow='\033[0;33m'
 plain='\033[0m'
 
 cur_dir=$(pwd)
-show_ip_service_lists=("https://api.ipify.org" "https://4.ident.me")
 
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
@@ -73,10 +72,18 @@ config_after_install() {
     local existing_hasDefaultCredential=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-
-    for ip_service_addr in "${show_ip_service_lists[@]}"; do
-        local server_ip=$(curl -s --max-time 3 ${ip_service_addr} 2>/dev/null)
-        if [ -n "${server_ip}" ]; then
+    local URL_lists=(
+        "https://api4.ipify.org"
+		"https://ipv4.icanhazip.com"
+		"https://v4.api.ipinfo.io/ip"
+		"https://ipv4.myexternalip.com/raw"
+		"https://4.ident.me"
+		"https://check-host.net/ip"
+    )
+    local server_ip=""
+    for ip_address in "${URL_lists[@]}"; do
+        server_ip=$(curl -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
+        if [[ -n "${server_ip}" ]]; then
             break
         fi
     done
