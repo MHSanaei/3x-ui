@@ -676,6 +676,8 @@
 
             const parts = log.split(' ');
 
+            let logEntryCutoffIndex = 1;
+
             if(parts.length >= 10) {
               const dateTime = `<b>${parts[0]} ${parts[1]}</b>`;
               const from = `<b>${parts[3]}</b>`;
@@ -684,9 +686,14 @@
               let outboundColor = '';
               if (parts[parts.length - 1] === "b") {
                 outboundColor = ' style="color: #e04141;"'; //red for blocked
+                logEntryCutoffIndex = 2;
               }
               else if (parts[parts.length - 1] === "p") {
                 outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
+                logEntryCutoffIndex = 2;
+              }
+              else if (parts[parts.length - 1] === "f") {
+                logEntryCutoffIndex = 2;
               }
 
               formattedLogs += `<span${outboundColor}>
@@ -695,10 +702,10 @@ ${dateTime}
  ${from}
  ${parts[4]}
  ${to}
- ${parts.slice(6, parts.length - 2).join(' ')}
+ ${parts.slice(6, parts.length - logEntryCutoffIndex).join(' ')}
 </span>`;
             } else {
-              formattedLogs += `<span>${parts.slice(0, parts.length - 2).join(' ')}</span>`;
+              formattedLogs += `<span>${parts.slice(0, parts.length - logEntryCutoffIndex).join(' ')}</span>`;
             }
           });
 
