@@ -512,7 +512,7 @@
                     </a-input-password>
                   </a-form-item>
                   <a-form-item v-if="twoFactorEnable">
-                    <a-input autocomplete="totp" name="twoFactorCode" v-model.trim="user.twoFactorCode"
+                    <a-input autocomplete="one-time-code" name="twoFactorCode" v-model.trim="user.twoFactorCode"
                       placeholder='{{ i18n "twoFactorCode" }}' @keydown.enter.native="login">
                       <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
                     </a-input>
