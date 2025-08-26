@@ -278,4 +278,30 @@
     </a-badge>
   </a-popover>
 </template>
+<template slot="createdAt" slot-scope="text, client, index">
+  <template v-if="client.created_at">
+    <template v-if="app.datepicker === 'gregorian'">
+      [[ DateUtil.formatMillis(client.created_at) ]]
+    </template>
+    <template v-else>
+      [[ DateUtil.convertToJalalian(moment(client.created_at)) ]]
+    </template>
+  </template>
+  <template v-else>
+    -
+  </template>
+</template>
+<template slot="updatedAt" slot-scope="text, client, index">
+  <template v-if="client.updated_at">
+    <template v-if="app.datepicker === 'gregorian'">
+      [[ DateUtil.formatMillis(client.updated_at) ]]
+    </template>
+    <template v-else>
+      [[ DateUtil.convertToJalalian(moment(client.updated_at)) ]]
+    </template>
+  </template>
+  <template v-else>
+    -
+  </template>
+</template>
 {{end}}
