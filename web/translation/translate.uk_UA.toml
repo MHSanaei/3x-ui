@@ -165,6 +165,8 @@
 "details" = "Деталі"
 "transportConfig" = "Транспорт"
 "expireDate" = "Тривалість"
+"createdAt" = "Створено"
+"updatedAt" = "Оновлено"
 "resetTraffic" = "Скинути трафік"
 "addInbound" = "Додати вхідний"
 "generalActions" = "Загальні дії"

@@ -165,6 +165,8 @@
 "details" = "Details"
 "transportConfig" = "Transport"
 "expireDate" = "Duration"
+"createdAt" = "Created"
+"updatedAt" = "Updated"
 "resetTraffic" = "Reset Traffic"
 "addInbound" = "Add Inbound"
 "generalActions" = "General Actions"

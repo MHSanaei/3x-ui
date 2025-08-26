@@ -165,6 +165,8 @@
 "details" = "詳細資訊"
 "transportConfig" = "傳輸配置"
 "expireDate" = "到期時間"
+"createdAt" = "建立時間"
+"updatedAt" = "更新時間"
 "resetTraffic" = "重置流量"
 "addInbound" = "新增入站"
 "generalActions" = "通用操作"

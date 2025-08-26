@@ -165,6 +165,8 @@
 "details" = "Chi tiết"
 "transportConfig" = "Giao vận"
 "expireDate" = "Ngày hết hạn"
+"createdAt" = "Tạo lúc"
+"updatedAt" = "Cập nhật"
 "resetTraffic" = "Đặt lại lưu lượng"
 "addInbound" = "Thêm điểm vào"
 "generalActions" = "Hành động chung"

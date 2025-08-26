@@ -165,6 +165,8 @@
 "details" = "Detalhes"
 "transportConfig" = "Transporte"
 "expireDate" = "Duração"
+"createdAt" = "Criado"
+"updatedAt" = "Atualizado"
 "resetTraffic" = "Redefinir Tráfego"
 "addInbound" = "Adicionar Inbound"
 "generalActions" = "Ações Gerais"

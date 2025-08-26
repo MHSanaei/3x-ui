@@ -165,6 +165,8 @@
 "details" = "Подробнее"
 "transportConfig" = "Транспорт"
 "expireDate" = "Дата окончания"
+"createdAt" = "Создано"
+"updatedAt" = "Обновлено"
 "resetTraffic" = "Сброс трафика"
 "addInbound" = "Создать инбаунд"
 "generalActions" = "Общие действия"

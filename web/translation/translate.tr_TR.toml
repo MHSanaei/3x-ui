@@ -165,6 +165,8 @@
 "details" = "Detaylar"
 "transportConfig" = "Taşıma"
 "expireDate" = "Süre"
+"createdAt" = "Oluşturuldu"
+"updatedAt" = "Güncellendi"
 "resetTraffic" = "Trafiği Sıfırla"
 "addInbound" = "Gelen Ekle"
 "generalActions" = "Genel Eylemler"
