@@ -484,6 +484,9 @@
                         </a-tag>
                       </a-popover>
                     </template>
+                    <template slot="allTimeInbound" slot-scope="text, dbInbound">
+                      <a-tag>[[ SizeFormatter.sizeFormat(dbInbound.allTime || 0) ]]</a-tag>
+                    </template>
                     <template slot="enable" slot-scope="text, dbInbound">
                       <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                     </template>
@@ -724,6 +727,11 @@
         width: 60,
         scopedSlots: { customRender: 'traffic' },
     }, {
+        title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
+        align: 'center',
+        width: 60,
+        scopedSlots: { customRender: 'allTimeInbound' },
+    }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
         align: 'center',
         width: 40,
@@ -759,6 +767,7 @@
         { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'allTime' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
     ];
 
@@ -1416,6 +1425,12 @@
                 if (email.length == 0) return 0;
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
                 return clientStats ? clientStats.up + clientStats.down : 0;
+            },
+            getAllTimeClient(dbInbound, email) {
+                if (email.length == 0) return 0;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                if (!clientStats) return 0;
+                return clientStats.allTime || (clientStats.up + clientStats.down);
             },
             getRemStats(dbInbound, email) {
                 if (email.length == 0) return 0;
