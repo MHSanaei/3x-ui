@@ -167,28 +167,35 @@
             <a-col>
               <a-card size="small" :style="{ padding: '16px' }" hoverable>
                 <a-row>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.totalDownUp" }}' :value="`${SizeFormatter.sizeFormat(total.up)} / ${SizeFormatter.sizeFormat(total.down)}`">
                       <template #prefix>
                         <a-icon type="swap"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.totalUsage" }}' :value="SizeFormatter.sizeFormat(total.up + total.down)" :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-icon type="pie-chart"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
+                    <a-custom-statistic title='{{ i18n "pages.inbounds.allTimeTrafficUsage" }}' :value="SizeFormatter.sizeFormat(total.allTime)" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <template #prefix>
+                        <a-icon type="history"></a-icon>
+                      </template>
+                    </a-custom-statistic>
+                  </a-col>
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.inboundCount" }}' :value="dbInbounds.length" :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-icon type="bars"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="4">
                     <a-custom-statistic title='{{ i18n "clients" }}' value=" " :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-space direction="horizontal">
@@ -1621,11 +1628,12 @@
         },
         computed: {
             total() {
-                let down = 0, up = 0;
+                let down = 0, up = 0, allTime = 0;
                 let clients = 0, deactive = [], depleted = [], expiring = [];
                 this.dbInbounds.forEach(dbInbound => {
                     down += dbInbound.down;
                     up += dbInbound.up;
+                    allTime += (dbInbound.allTime || (dbInbound.up + dbInbound.down));
                     if (this.clientCount[dbInbound.id]) {
                         clients += this.clientCount[dbInbound.id].clients;
                         deactive = deactive.concat(this.clientCount[dbInbound.id].deactive);
@@ -1636,6 +1644,7 @@
                 return {
                     down: down,
                     up: up,
+                    allTime: allTime,
                     clients: clients,
                     deactive: deactive,
                     depleted: depleted,

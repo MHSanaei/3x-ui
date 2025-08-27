@@ -152,6 +152,7 @@
 
 [pages.inbounds]
 "allTimeTraffic" = "Загальний трафік"
+"allTimeTrafficUsage" = "Загальне використання за весь час"
 "title" = "Вхідні"
 "totalDownUp" = "Всього надісланих/отриманих"
 "totalUsage" = "Всього використанно"

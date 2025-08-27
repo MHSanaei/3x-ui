@@ -152,6 +152,7 @@
 
 [pages.inbounds]
 "allTimeTraffic" = "Tráfico Total"
+"allTimeTrafficUsage" = "Uso total de todos los tiempos"
 "title" = "Entradas"
 "totalDownUp" = "Subidas/Descargas Totales"
 "totalUsage" = "Uso Total"
