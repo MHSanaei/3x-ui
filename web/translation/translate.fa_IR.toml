@@ -165,6 +165,8 @@
 "details" = "توضیحات"
 "transportConfig" = "نحوه اتصال"
 "expireDate" = "مدت زمان"
+"createdAt" = "ایجاد"
+"updatedAt" = "به‌روزرسانی"
 "resetTraffic" = "ریست ترافیک"
 "addInbound" = "افزودن ورودی"
 "generalActions" = "عملیات کلی"

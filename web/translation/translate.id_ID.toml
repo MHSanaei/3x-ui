@@ -165,6 +165,8 @@
 "details" = "Rincian"
 "transportConfig" = "Transport"
 "expireDate" = "Durasi"
+"createdAt" = "Dibuat"
+"updatedAt" = "Diperbarui"
 "resetTraffic" = "Reset Traffic"
 "addInbound" = "Tambahkan Masuk"
 "generalActions" = "Tindakan Umum"

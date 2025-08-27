@@ -1817,7 +1817,9 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
-        reset = 0
+        reset = 0,
+        created_at = undefined,
+        updated_at = undefined
     ) {
         super();
         this.id = id;
@@ -1831,6 +1833,8 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
     }
 
     static fromJson(json = {}) {
@@ -1846,6 +1850,8 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
+            json.created_at,
+            json.updated_at,
         );
     }
     get _expiryTime() {
@@ -1926,7 +1932,9 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
-        reset = 0
+        reset = 0,
+        created_at = undefined,
+        updated_at = undefined
     ) {
         super();
         this.id = id;
@@ -1940,6 +1948,8 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
     }
 
     static fromJson(json = {}) {
@@ -1955,6 +1965,8 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
+            json.created_at,
+            json.updated_at,
         );
     }
 
@@ -2065,7 +2077,9 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
-        reset = 0
+        reset = 0,
+        created_at = undefined,
+        updated_at = undefined
     ) {
         super();
         this.password = password;
@@ -2078,6 +2092,8 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
     }
 
     toJson() {
@@ -2092,6 +2108,8 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             subId: this.subId,
             comment: this.comment,
             reset: this.reset,
+            created_at: this.created_at,
+            updated_at: this.updated_at,
         };
     }
 
@@ -2107,6 +2125,8 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
+            json.created_at,
+            json.updated_at,
         );
     }
 
@@ -2226,7 +2246,9 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
-        reset = 0
+        reset = 0,
+        created_at = undefined,
+        updated_at = undefined
     ) {
         super();
         this.method = method;
@@ -2240,6 +2262,8 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
     }
 
     toJson() {
@@ -2255,6 +2279,8 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             subId: this.subId,
             comment: this.comment,
             reset: this.reset,
+            created_at: this.created_at,
+            updated_at: this.updated_at,
         };
     }
 
@@ -2271,6 +2297,8 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
+            json.created_at,
+            json.updated_at,
         );
     }
 

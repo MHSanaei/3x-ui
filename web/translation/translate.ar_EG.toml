@@ -165,6 +165,8 @@
 "details" = "تفاصيل"
 "transportConfig" = "نقل"
 "expireDate" = "المدة"
+"createdAt" = "تاريخ الإنشاء"
+"updatedAt" = "تاريخ التحديث"
 "resetTraffic" = "إعادة ضبط الترافيك"
 "addInbound" = "أضف إدخال"
 "generalActions" = "إجراءات عامة"
