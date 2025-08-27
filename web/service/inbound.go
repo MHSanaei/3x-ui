@@ -1015,12 +1015,6 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 							break
 						}
 					}
-					// Remove "flow": "xtls-rprx-direct"
-					if _, ok := c["flow"]; ok {
-						if c["flow"] == "xtls-rprx-direct" {
-							c["flow"] = ""
-						}
-					}
 					// Backfill created_at and updated_at
 					if _, ok := c["created_at"]; !ok {
 						c["created_at"] = time.Now().Unix() * 1000
