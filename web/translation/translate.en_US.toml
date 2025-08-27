@@ -151,6 +151,7 @@
 "getConfigError" = "An error occurred while retrieving the config file."
 
 [pages.inbounds]
+"allTimeTraffic" = "All-time Traffic"
 "title" = "Inbounds"
 "totalDownUp" = "Total Sent/Received"
 "totalUsage" = "Total Usage"

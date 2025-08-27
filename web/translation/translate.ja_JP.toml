@@ -151,6 +151,7 @@
 "getConfigError" = "設定ファイルの取得中にエラーが発生しました"
 
 [pages.inbounds]
+"allTimeTraffic" = "総トラフィック"
 "title" = "インバウンド一覧"
 "totalDownUp" = "総アップロード / ダウンロード"
 "totalUsage" = "総使用量"

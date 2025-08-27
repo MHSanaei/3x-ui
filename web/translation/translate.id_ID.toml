@@ -151,6 +151,7 @@
 "getConfigError" = "Terjadi kesalahan saat mengambil file konfigurasi"
 
 [pages.inbounds]
+"allTimeTraffic" = "Total Lalu Lintas"
 "title" = "Masuk"
 "totalDownUp" = "Total Terkirim/Diterima"
 "totalUsage" = "Penggunaan Total"

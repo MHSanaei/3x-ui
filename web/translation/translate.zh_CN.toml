@@ -151,6 +151,7 @@
 "getConfigError" = "检索配置文件时出错"
 
 [pages.inbounds]
+"allTimeTraffic" = "累计总流量"
 "title" = "入站列表"
 "totalDownUp" = "总上传 / 下载"
 "totalUsage" = "总用量"
