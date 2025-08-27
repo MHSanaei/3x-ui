@@ -98,6 +98,10 @@
     </table>
   </a-popover>
 </template>
+
+<template slot="allTime" slot-scope="text, client">
+  <a-tag>[[ SizeFormatter.sizeFormat(getAllTimeClient(record, client.email)) ]]</a-tag>
+</template>
 <template slot="expiryTime" slot-scope="text, client, index">
   <template v-if="client.expiryTime !=0 && client.reset >0">
     <a-popover :overlay-class-name="themeSwitcher.currentTheme">

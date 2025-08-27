@@ -151,6 +151,8 @@
 "getConfigError" = "Lỗi xảy ra khi truy xuất tệp cấu hình"
 
 [pages.inbounds]
+"allTimeTraffic" = "Tổng Lưu Lượng"
+"allTimeTrafficUsage" = "Tổng mức sử dụng mọi lúc"
 "title" = "Điểm vào (Inbounds)"
 "totalDownUp" = "Tổng tải lên/tải xuống"
 "totalUsage" = "Tổng sử dụng"

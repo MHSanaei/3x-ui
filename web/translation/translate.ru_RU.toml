@@ -151,6 +151,8 @@
 "getConfigError" = "Произошла ошибка при получении конфигурационного файла"
 
 [pages.inbounds]
+"allTimeTraffic" = "Общий трафик"
+"allTimeTrafficUsage" = "Общее использование за все время"
 "title" = "Инбаунды"
 "totalDownUp" = "Объем отправленного/полученного трафика"
 "totalUsage" = "Всего трафика"

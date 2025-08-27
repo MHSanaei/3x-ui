@@ -151,6 +151,8 @@
 "getConfigError" = "Ocurrió un error al obtener el archivo de configuración"
 
 [pages.inbounds]
+"allTimeTraffic" = "Tráfico Total"
+"allTimeTrafficUsage" = "Uso total de todos los tiempos"
 "title" = "Entradas"
 "totalDownUp" = "Subidas/Descargas Totales"
 "totalUsage" = "Uso Total"

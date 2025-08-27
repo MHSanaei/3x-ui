@@ -32,6 +32,7 @@ type Inbound struct {
 	Up          int64                `json:"up" form:"up"`
 	Down        int64                `json:"down" form:"down"`
 	Total       int64                `json:"total" form:"total"`
+	AllTime     int64                `json:"allTime" form:"allTime" gorm:"default:0"`
 	Remark      string               `json:"remark" form:"remark"`
 	Enable      bool                 `json:"enable" form:"enable"`
 	ExpiryTime  int64                `json:"expiryTime" form:"expiryTime"`

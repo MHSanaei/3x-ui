@@ -167,28 +167,35 @@
             <a-col>
               <a-card size="small" :style="{ padding: '16px' }" hoverable>
                 <a-row>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.totalDownUp" }}' :value="`${SizeFormatter.sizeFormat(total.up)} / ${SizeFormatter.sizeFormat(total.down)}`">
                       <template #prefix>
                         <a-icon type="swap"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.totalUsage" }}' :value="SizeFormatter.sizeFormat(total.up + total.down)" :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-icon type="pie-chart"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="5">
+                    <a-custom-statistic title='{{ i18n "pages.inbounds.allTimeTrafficUsage" }}' :value="SizeFormatter.sizeFormat(total.allTime)" :style="{ marginTop: isMobile ? '10px' : 0 }">
+                      <template #prefix>
+                        <a-icon type="history"></a-icon>
+                      </template>
+                    </a-custom-statistic>
+                  </a-col>
+                  <a-col :sm="12" :md="5">
                     <a-custom-statistic title='{{ i18n "pages.inbounds.inboundCount" }}' :value="dbInbounds.length" :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-icon type="bars"></a-icon>
                       </template>
                     </a-custom-statistic>
                   </a-col>
-                  <a-col :sm="12" :md="6">
+                  <a-col :sm="12" :md="4">
                     <a-custom-statistic title='{{ i18n "clients" }}' value=" " :style="{ marginTop: isMobile ? '10px' : 0 }">
                       <template #prefix>
                         <a-space direction="horizontal">
@@ -484,6 +491,9 @@
                         </a-tag>
                       </a-popover>
                     </template>
+                    <template slot="allTimeInbound" slot-scope="text, dbInbound">
+                      <a-tag>[[ SizeFormatter.sizeFormat(dbInbound.allTime || 0) ]]</a-tag>
+                    </template>
                     <template slot="enable" slot-scope="text, dbInbound">
                       <a-switch v-model="dbInbound.enable" @change="switchEnable(dbInbound.id,dbInbound.enable)"></a-switch>
                     </template>
@@ -724,6 +734,11 @@
         width: 60,
         scopedSlots: { customRender: 'traffic' },
     }, {
+        title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
+        align: 'center',
+        width: 60,
+        scopedSlots: { customRender: 'allTimeInbound' },
+    }, {
         title: '{{ i18n "pages.inbounds.expireDate" }}',
         align: 'center',
         width: 40,
@@ -759,6 +774,7 @@
         { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
+        { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'allTime' } },
         { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
         { title: '{{ i18n "pages.inbounds.createdAt" }}', width: 90, align: 'center', scopedSlots: { customRender: 'createdAt' } },
         { title: '{{ i18n "pages.inbounds.updatedAt" }}', width: 90, align: 'center', scopedSlots: { customRender: 'updatedAt' } },
@@ -1419,6 +1435,12 @@
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
                 return clientStats ? clientStats.up + clientStats.down : 0;
             },
+            getAllTimeClient(dbInbound, email) {
+                if (email.length == 0) return 0;
+                clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+                if (!clientStats) return 0;
+                return clientStats.allTime || (clientStats.up + clientStats.down);
+            },
             getRemStats(dbInbound, email) {
                 if (email.length == 0) return 0;
                 clientStats = dbInbound.clientStats.find(stats => stats.email === email);
@@ -1608,11 +1630,12 @@
         },
         computed: {
             total() {
-                let down = 0, up = 0;
+                let down = 0, up = 0, allTime = 0;
                 let clients = 0, deactive = [], depleted = [], expiring = [];
                 this.dbInbounds.forEach(dbInbound => {
                     down += dbInbound.down;
                     up += dbInbound.up;
+                    allTime += (dbInbound.allTime || (dbInbound.up + dbInbound.down));
                     if (this.clientCount[dbInbound.id]) {
                         clients += this.clientCount[dbInbound.id].clients;
                         deactive = deactive.concat(this.clientCount[dbInbound.id].deactive);
@@ -1623,6 +1646,7 @@
                 return {
                     down: down,
                     up: up,
+                    allTime: allTime,
                     clients: clients,
                     deactive: deactive,
                     depleted: depleted,
