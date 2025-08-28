@@ -403,7 +403,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	oldInbound.Allocate = inbound.Allocate
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
@@ -915,8 +914,9 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 		if traffic.IsInbound {
 			err = tx.Model(&model.Inbound{}).Where("tag = ?", traffic.Tag).
 				Updates(map[string]any{
-					"up":   gorm.Expr("up + ?", traffic.Up),
-					"down": gorm.Expr("down + ?", traffic.Down),
+					"up":       gorm.Expr("up + ?", traffic.Up),
+					"down":     gorm.Expr("down + ?", traffic.Down),
+					"all_time": gorm.Expr("COALESCE(all_time, 0) + ?", traffic.Up+traffic.Down),
 				}).Error
 			if err != nil {
 				return err
@@ -962,6 +962,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 			if dbClientTraffics[dbTraffic_index].Email == traffics[traffic_index].Email {
 				dbClientTraffics[dbTraffic_index].Up += traffics[traffic_index].Up
 				dbClientTraffics[dbTraffic_index].Down += traffics[traffic_index].Down
+				dbClientTraffics[dbTraffic_index].AllTime += (traffics[traffic_index].Up + traffics[traffic_index].Down)
 
 				// Add user in onlineUsers array on traffic
 				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
@@ -2035,6 +2036,25 @@ func (s *InboundService) MigrationRequirements() {
 			tx.Rollback()
 		}
 	}()
+
+	// Calculate and backfill all_time from up+down for inbounds and clients
+	err = tx.Exec(`
+		UPDATE inbounds
+		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
+		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
+	`).Error
+	if err != nil {
+		return
+	}
+	err = tx.Exec(`
+		UPDATE client_traffics
+		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
+		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
+	`).Error
+
+	if err != nil {
+		return
+	}
 
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound

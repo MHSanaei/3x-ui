@@ -1042,27 +1042,6 @@ class Sniffing extends XrayCommonClass {
     }
 }
 
-class Allocate extends XrayCommonClass {
-    constructor(
-        strategy = "always",
-        refresh = 5,
-        concurrency = 3,
-    ) {
-        super();
-        this.strategy = strategy;
-        this.refresh = refresh;
-        this.concurrency = concurrency;
-    }
-
-    static fromJson(json = {}) {
-        return new Allocate(
-            json.strategy,
-            json.refresh,
-            json.concurrency,
-        );
-    }
-}
-
 class Inbound extends XrayCommonClass {
     constructor(
         port = RandomUtil.randomInteger(10000, 60000),
@@ -1072,7 +1051,6 @@ class Inbound extends XrayCommonClass {
         streamSettings = new StreamSettings(),
         tag = '',
         sniffing = new Sniffing(),
-        allocate = new Allocate(),
         clientStats = '',
     ) {
         super();
@@ -1083,7 +1061,6 @@ class Inbound extends XrayCommonClass {
         this.stream = streamSettings;
         this.tag = tag;
         this.sniffing = sniffing;
-        this.allocate = allocate;
         this.clientStats = clientStats;
     }
     getClientStats() {
@@ -1248,7 +1225,6 @@ class Inbound extends XrayCommonClass {
         this.stream = new StreamSettings();
         this.tag = '';
         this.sniffing = new Sniffing();
-        this.allocate = new Allocate();
     }
 
     genVmessLink(address = '', port = this.port, forceTls, remark = '', clientId, security) {
@@ -1703,7 +1679,6 @@ class Inbound extends XrayCommonClass {
             StreamSettings.fromJson(json.streamSettings),
             json.tag,
             Sniffing.fromJson(json.sniffing),
-            Allocate.fromJson(json.allocate),
             json.clientStats
         )
     }
@@ -1721,7 +1696,6 @@ class Inbound extends XrayCommonClass {
             streamSettings: streamSettings,
             tag: this.tag,
             sniffing: this.sniffing.toJson(),
-            allocate: this.allocate.toJson(),
             clientStats: this.clientStats
         };
     }

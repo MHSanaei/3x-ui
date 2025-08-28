@@ -151,6 +151,8 @@
 "getConfigError" = "خطا در دریافت فایل پیکربندی"
 
 [pages.inbounds]
+"allTimeTraffic" = "کل ترافیک"
+"allTimeTrafficUsage" = "کل استفاده در تمام مدت"
 "title" = "کاربران"
 "totalDownUp" = "دریافت/ارسال کل"
 "totalUsage" = "‌‌‌مصرف کل"

@@ -151,6 +151,8 @@
 "getConfigError" = "檢索設定檔時發生錯誤"
 
 [pages.inbounds]
+"allTimeTraffic" = "累計總流量"
+"allTimeTrafficUsage" = "所有时间总使用量"
 "title" = "入站列表"
 "totalDownUp" = "總上傳 / 下載"
 "totalUsage" = "總用量"

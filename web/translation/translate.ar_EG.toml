@@ -151,6 +151,8 @@
 "getConfigError" = "حدث خطأ أثناء استرجاع ملف الإعدادات"
 
 [pages.inbounds]
+"allTimeTraffic" = "إجمالي حركة المرور"
+"allTimeTrafficUsage" = "إجمالي الاستخدام طوال الوقت"
 "title" = "الإدخالات"
 "totalDownUp" = "إجمالي المرسل/المستقبل"
 "totalUsage" = "إجمالي الاستخدام"

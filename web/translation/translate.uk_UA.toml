@@ -151,6 +151,8 @@
 "getConfigError" = "Виникла помилка під час отримання файлу конфігурації"
 
 [pages.inbounds]
+"allTimeTraffic" = "Загальний трафік"
+"allTimeTrafficUsage" = "Загальне використання за весь час"
 "title" = "Вхідні"
 "totalDownUp" = "Всього надісланих/отриманих"
 "totalUsage" = "Всього використанно"
