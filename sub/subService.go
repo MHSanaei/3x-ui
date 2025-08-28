@@ -1,5 +1,7 @@
 package sub
 
+// TODO: We need to create a service for link generation and remove link generation from the frontend
+
 import (
 	"encoding/base64"
 	"fmt"
@@ -33,9 +35,7 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 		remarkModel: remarkModel,
 	}
 }
-
 func (s *SubService) GetSubs(subId string, host string) ([]string, string, error) {
-	s.address = host
 	var result []string
 	var header string
 	var traffic xray.ClientTraffic
@@ -61,12 +61,17 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 		if clients == nil {
 			continue
 		}
-		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-			listen, port, streamSettings, err := s.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
-			if err == nil {
-				inbound.Listen = listen
-				inbound.Port = port
-				inbound.StreamSettings = streamSettings
+		s.address = host
+		if len(inbound.Listen) > 0 {
+			if inbound.Listen[0] == '@' {
+				listen, port, streamSettings, err := s.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
+				if err == nil {
+					s.address = listen
+					inbound.Port = port
+					inbound.StreamSettings = streamSettings
+				}
+			} else {
+				s.address = inbound.Listen
 			}
 		}
 		for _, client := range clients {
@@ -442,7 +447,11 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 					params["pqv"] = pqv
 				}
 			}
-			params["spx"] = "/" + random.Seq(15)
+			if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
+				if spx, ok := spxValue.(string); ok && len(spx) > 0 {
+					params["spx"] = spx
+				}
+			}
 		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
@@ -637,7 +646,11 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 					params["pqv"] = pqv
 				}
 			}
-			params["spx"] = "/" + random.Seq(15)
+			if spxValue, ok := searchKey(realitySettings, "spiderX"); ok {
+				if spx, ok := spxValue.(string); ok && len(spx) > 0 {
+					params["spx"] = spx
+				}
+			}
 		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
