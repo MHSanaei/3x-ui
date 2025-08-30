@@ -265,7 +265,8 @@
 "resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
 "trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
 "getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
-"getNewmldsa65Error" = "Lỗi khi lấy chúng tôi mldsa65."
+"getNewmldsa65Error" = "Lỗi khi lấy chứng chỉ mldsa65."
+"getNewmlkem768Error" = "Lỗi khi lấy chứng chỉ mlkem768."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"

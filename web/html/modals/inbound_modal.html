@@ -162,6 +162,16 @@
                 inModal.inbound.stream.tls.echServerKeys = msg.obj.echServerKeys;
                 inModal.inbound.stream.tls.settings.echConfigList = msg.obj.echConfigList;
             },
+            async getNewmlkem768() {
+                inModal.loading(true);
+                const msg = await HttpUtil.post('/server/getNewmlkem768');
+                inModal.loading(false);
+                if (!msg.success) {
+                    return;
+                }
+                inModal.inbound.stream.reality.mlkem768Seed = msg.obj.seed;
+                inModal.inbound.stream.reality.settings.mlkem768Client = msg.obj.Client;
+            },
         },
     });
 

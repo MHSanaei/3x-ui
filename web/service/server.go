@@ -871,3 +871,29 @@ func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
 		"echConfigList": configList,
 	}, nil
 }
+
+func (s *ServerService) GetNewmlkem768() (any, error) {
+	// Run the command
+	cmd := exec.Command(xray.GetBinaryPath(), "mlkem768")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+
+	SeedLine := strings.Split(lines[0], ":")
+	ClientLine := strings.Split(lines[1], ":")
+
+	seed := strings.TrimSpace(SeedLine[1])
+	client := strings.TrimSpace(ClientLine[1])
+
+	keyPair := map[string]any{
+		"seed":   seed,
+		"client": client,
+	}
+
+	return keyPair, nil
+}
