@@ -87,24 +87,28 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 		if clients == nil {
 			continue
 		}
-		if len(inbound.Listen) > 0 && inbound.Listen[0] == '@' {
-			listen, port, streamSettings, err := s.SubService.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
-			if err == nil {
-				inbound.Listen = listen
-				inbound.Port = port
-				inbound.StreamSettings = streamSettings
+		listenAddress := host
+		if len(inbound.Listen) > 0 {
+			if inbound.Listen[0] == '@' {
+				listen, port, streamSettings, err := s.SubService.getFallbackMaster(inbound.Listen, inbound.StreamSettings)
+				if err == nil {
+					listenAddress = listen
+					inbound.Port = port
+					inbound.StreamSettings = streamSettings
+				}
+			} else {
+				listenAddress = inbound.Listen
 			}
 		}
 
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
 				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
-				newConfigs := s.getConfig(inbound, client, host)
+				newConfigs := s.getConfig(inbound, client, listenAddress)
 				configArray = append(configArray, newConfigs...)
 			}
 		}
 	}
-
 	if len(configArray) == 0 {
 		return "", "", nil
 	}
