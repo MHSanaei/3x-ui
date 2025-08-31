@@ -266,6 +266,9 @@ func (s *Server) startTask() {
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
+	// Check for periodic traffic resets every 10 minutes
+	s.cron.AddJob("@every 10m", job.NewPeriodicTrafficResetJob())
+
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
