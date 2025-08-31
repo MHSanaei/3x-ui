@@ -185,6 +185,38 @@
             <a-tag>↑ [[ SizeFormatter.sizeFormat(infoModal.clientStats.up) ]] / [[ SizeFormatter.sizeFormat(infoModal.clientStats.down) ]] ↓</a-tag>
           </td>
         </tr>
+        <tr>
+          <td>{{ i18n "pages.inbounds.createdAt" }}</td>
+          <td>
+            <template v-if="infoModal.clientSettings && infoModal.clientSettings.created_at">
+              <template v-if="app.datepicker === 'gregorian'">
+                <a-tag>[[ DateUtil.formatMillis(infoModal.clientSettings.created_at) ]]</a-tag>
+              </template>
+              <template v-else>
+                <a-tag>[[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.created_at)) ]]</a-tag>
+              </template>
+            </template>
+            <template v-else>
+              <a-tag>-</a-tag>
+            </template>
+          </td>
+        </tr>
+        <tr>
+          <td>{{ i18n "pages.inbounds.updatedAt" }}</td>
+          <td>
+            <template v-if="infoModal.clientSettings && infoModal.clientSettings.updated_at">
+              <template v-if="app.datepicker === 'gregorian'">
+                <a-tag>[[ DateUtil.formatMillis(infoModal.clientSettings.updated_at) ]]</a-tag>
+              </template>
+              <template v-else>
+                <a-tag>[[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.updated_at)) ]]</a-tag>
+              </template>
+            </template>
+            <template v-else>
+              <a-tag>-</a-tag>
+            </template>
+          </td>
+        </tr>
         <tr v-if="infoModal.clientSettings.comment">
           <td>{{ i18n "comment" }}</td>
           <td>
