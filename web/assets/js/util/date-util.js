@@ -134,7 +134,7 @@ class DateUtil {
     }
 
     static formatMillis(millis) {
-        return moment(millis).format('YYYY-M-D H:m:s');
+        return moment(millis).format('YYYY-M-D HH:mm:ss');
     }
 
     static firstDayOfMonth() {
