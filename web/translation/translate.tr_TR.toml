@@ -50,6 +50,7 @@
 "fail" = "Başarısız"
 "comment" = "Yorum"
 "success" = "Başarılı"
+"lastOnline" = "Son çevrimiçi"
 "getVersion" = "Sürümü Al"
 "install" = "Yükle"
 "clients" = "Müşteriler"

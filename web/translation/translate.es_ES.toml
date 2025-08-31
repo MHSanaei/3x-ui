@@ -50,6 +50,7 @@
 "fail" = "Falló"
 "comment" = "Comentario"
 "success" = "Éxito"
+"lastOnline" = "Última conexión"
 "getVersion" = "Obtener versión"
 "install" = "Instalar"
 "clients" = "Clientes"

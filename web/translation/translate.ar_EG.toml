@@ -50,6 +50,7 @@
 "fail" = "فشل"
 "comment" = "تعليق"
 "success" = "تم بنجاح"
+"lastOnline" = "آخر متصل"
 "getVersion" = "جيب النسخة"
 "install" = "تثبيت"
 "clients" = "عملاء"
