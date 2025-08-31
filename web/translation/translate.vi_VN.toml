@@ -50,6 +50,7 @@
 "fail" = "Thất bại"
 "comment" = "Bình luận"
 "success" = "Thành công"
+"lastOnline" = "Lần online gần nhất"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"

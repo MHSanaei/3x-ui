@@ -340,6 +340,11 @@ func (a *InboundController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
 
+func (a *InboundController) lastOnline(c *gin.Context) {
+	data, err := a.inboundService.GetClientsLastOnline()
+	jsonObj(c, data, err)
+}
+
 func (a *InboundController) updateClientTraffic(c *gin.Context) {
 	email := c.Param("email")
 

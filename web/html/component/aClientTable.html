@@ -33,12 +33,17 @@
   <a-switch v-model="client.enable" @change="switchEnableClient(record.id,client)"></a-switch>
 </template>
 <template slot="online" slot-scope="text, client, index">
-  <template v-if="client.enable && isClientOnline(client.email)">
-    <a-tag color="green">{{ i18n "online" }}</a-tag>
-  </template>
-  <template v-else>
-    <a-tag>{{ i18n "offline" }}</a-tag>
-  </template>
+  <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+    <template slot="content" >
+      {{ i18n "lastOnline" }}: [[ formatLastOnline(client.email) ]]
+    </template>
+    <template v-if="client.enable && isClientOnline(client.email)">
+      <a-tag color="green">{{ i18n "online" }}</a-tag>
+    </template>
+    <template v-else>
+      <a-tag>{{ i18n "offline" }}</a-tag>
+    </template>
+  </a-popover>
 </template>
 <template slot="client" slot-scope="text, client">
   <a-space direction="horizontal" :size="2">

@@ -50,6 +50,7 @@
 "fail" = "Gagal"
 "comment" = "Komentar"
 "success" = "Berhasil"
+"lastOnline" = "Terakhir online"
 "getVersion" = "Dapatkan Versi"
 "install" = "Instal"
 "clients" = "Klien"

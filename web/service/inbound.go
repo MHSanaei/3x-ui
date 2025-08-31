@@ -967,6 +967,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 				// Add user in onlineUsers array on traffic
 				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
 					onlineClients = append(onlineClients, traffics[traffic_index].Email)
+					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
 				}
 				break
 			}
@@ -2185,6 +2186,20 @@ func (s *InboundService) MigrateDB() {
 
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
+}
+
+func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
+	db := database.GetDB()
+	var rows []xray.ClientTraffic
+	err := db.Model(&xray.ClientTraffic{}).Select("email, last_online").Find(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	result := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		result[r.Email] = r.LastOnline
+	}
+	return result, nil
 }
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {

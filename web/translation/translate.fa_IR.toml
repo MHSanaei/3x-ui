@@ -50,6 +50,7 @@
 "fail" = "ناموفق"
 "comment" = "توضیحات"
 "success" = "موفق"
+"lastOnline" = "آخرین فعالیت"
 "getVersion" = "دریافت نسخه"
 "install" = "نصب"
 "clients" = "کاربران"

@@ -50,6 +50,7 @@
 "fail" = "Ошибка"
 "comment" = "Комментарий"
 "success" = "Успешно"
+"lastOnline" = "Был(а) в сети"
 "getVersion" = "Узнать версию"
 "install" = "Установка"
 "clients" = "Клиенты"

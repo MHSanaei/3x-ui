@@ -50,6 +50,7 @@
 "fail" = "失敗"
 "comment" = "コメント"
 "success" = "成功"
+"lastOnline" = "最終オンライン"
 "getVersion" = "バージョン取得"
 "install" = "インストール"
 "clients" = "クライアント"
