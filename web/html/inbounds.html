@@ -807,6 +807,7 @@
             defaultKey: '',
             clientCount: [],
             onlineClients: [],
+            lastOnlineMap: {},
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
             refreshing: false,
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
@@ -835,6 +836,7 @@
                     return;
                 }
 
+                await this.getLastOnlineMap();
                 await this.getOnlineUsers();
                 
                 this.setInbounds(msg.obj);
@@ -848,6 +850,11 @@
                     return;
                 }
                 this.onlineClients = msg.obj != null ? msg.obj : [];
+            },
+            async getLastOnlineMap() {
+                const msg = await HttpUtil.post('/panel/api/inbounds/lastOnline');
+                if (!msg.success || !msg.obj) return;
+                this.lastOnlineMap = msg.obj || {}
             },
             async getDefaultSettings() {
                 const msg = await HttpUtil.post('/panel/setting/defaultSettings');
@@ -1492,6 +1499,17 @@
             },
             isClientOnline(email) {
                 return this.onlineClients.includes(email);
+            },
+            getLastOnline(email) {
+                return this.lastOnlineMap[email] || null
+            },
+            formatLastOnline(email) {
+                const ts = this.getLastOnline(email)
+                if (!ts) return '-'
+                if (this.datepicker === 'gregorian') {
+                    return DateUtil.formatMillis(ts)
+                }
+                return DateUtil.convertToJalalian(moment(ts))
             },
             isRemovable(dbInboundId) {
                 return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;

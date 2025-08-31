@@ -217,6 +217,12 @@
             </template>
           </td>
         </tr>
+        <tr>
+          <td>{{ i18n "lastOnline" }}</td>
+          <td>
+            <a-tag>[[ app.formatLastOnline(infoModal.clientSettings && infoModal.clientSettings.email ? infoModal.clientSettings.email : '') ]]</a-tag>
+          </td>
+        </tr>
         <tr v-if="infoModal.clientSettings.comment">
           <td>{{ i18n "comment" }}</td>
           <td>
