@@ -247,6 +247,14 @@
 "days" = "يوم/أيام"
 "renew" = "تجديد تلقائي"
 "renewDesc" = "تجديد تلقائي بعد انتهاء الصلاحية. (0 = تعطيل)(الوحدة: يوم)"
+"periodicTrafficResetTitle" = "إعادة تعيين حركة المرور"
+"periodicTrafficResetDesc" = "إعادة تعيين عداد حركة المرور تلقائيًا في فترات محددة"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "أبداً"
+"daily" = "يومياً"
+"weekly" = "أسبوعياً"
+"monthly" = "شهرياً"
 
 [pages.inbounds.toasts]
 "obtain" = "تم الحصول عليه"

@@ -122,6 +122,23 @@
             </template>
             <a-input-number v-model.number="clientsBulkModal.reset" :min="0"></a-input-number>
         </a-form-item>
+        <a-form-item>
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.inbounds.periodicTrafficResetDesc" }}</span>
+                    </template>
+                    {{ i18n "pages.inbounds.periodicTrafficResetTitle" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-select v-model="clientsBulkModal.periodicTrafficReset" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="never">{{ i18n "pages.inbounds.periodicTrafficReset.never" }}</a-select-option>
+                <a-select-option value="daily">{{ i18n "pages.inbounds.periodicTrafficReset.daily" }}</a-select-option>
+                <a-select-option value="weekly">{{ i18n "pages.inbounds.periodicTrafficReset.weekly" }}</a-select-option>
+                <a-select-option value="monthly">{{ i18n "pages.inbounds.periodicTrafficReset.monthly" }}</a-select-option>
+            </a-select>
+        </a-form-item>
     </a-form>
 </a-modal>
 <script>
@@ -149,6 +166,7 @@
         flow: "",
         delayedStart: false,
         reset: 0,
+        periodicTrafficReset: "never",
         ok() {
             clients = [];
             method = clientsBulkModal.emailMethod;
@@ -176,6 +194,7 @@
                     newClient.flow = clientsBulkModal.flow;
                 }
                 newClient.reset = clientsBulkModal.reset;
+                newClient.periodicTrafficReset = clientsBulkModal.periodicTrafficReset;
                 clients.push(newClient);
             }
             ObjectUtil.execute(clientsBulkModal.confirm, clients, clientsBulkModal.dbInbound.id);
@@ -207,6 +226,7 @@
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;
             this.reset = 0;
+            this.periodicTrafficReset = "never";
         },
         newClient(protocol) {
             switch (protocol) {

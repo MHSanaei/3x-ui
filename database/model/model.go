@@ -27,16 +27,17 @@ type User struct {
 }
 
 type Inbound struct {
-	Id          int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	UserId      int                  `json:"-"`
-	Up          int64                `json:"up" form:"up"`
-	Down        int64                `json:"down" form:"down"`
-	Total       int64                `json:"total" form:"total"`
-	AllTime     int64                `json:"allTime" form:"allTime" gorm:"default:0"`
-	Remark      string               `json:"remark" form:"remark"`
-	Enable      bool                 `json:"enable" form:"enable"`
-	ExpiryTime  int64                `json:"expiryTime" form:"expiryTime"`
-	ClientStats []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	UserId               int                  `json:"-"`
+	Up                   int64                `json:"up" form:"up"`
+	Down                 int64                `json:"down" form:"down"`
+	Total                int64                `json:"total" form:"total"`
+	AllTime              int64                `json:"allTime" form:"allTime" gorm:"default:0"`
+	Remark               string               `json:"remark" form:"remark"`
+	Enable               bool                 `json:"enable" form:"enable"`
+	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`
+	PeriodicTrafficReset string               `json:"periodicTrafficReset" form:"periodicTrafficReset" gorm:"default:never"`
+	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`
@@ -90,19 +91,20 @@ type Setting struct {
 }
 
 type Client struct {
-	ID         string `json:"id"`
-	Security   string `json:"security"`
-	Password   string `json:"password"`
-	Flow       string `json:"flow"`
-	Email      string `json:"email"`
-	LimitIP    int    `json:"limitIp"`
-	TotalGB    int64  `json:"totalGB" form:"totalGB"`
-	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"`
-	Enable     bool   `json:"enable" form:"enable"`
-	TgID       int64  `json:"tgId" form:"tgId"`
-	SubID      string `json:"subId" form:"subId"`
-	Comment    string `json:"comment" form:"comment"`
-	Reset      int    `json:"reset" form:"reset"`
-	CreatedAt  int64  `json:"created_at,omitempty"`
-	UpdatedAt  int64  `json:"updated_at,omitempty"`
+	ID                   string `json:"id"`
+	Security             string `json:"security"`
+	Password             string `json:"password"`
+	Flow                 string `json:"flow"`
+	Email                string `json:"email"`
+	LimitIP              int    `json:"limitIp"`
+	TotalGB              int64  `json:"totalGB" form:"totalGB"`
+	ExpiryTime           int64  `json:"expiryTime" form:"expiryTime"`
+	Enable               bool   `json:"enable" form:"enable"`
+	TgID                 int64  `json:"tgId" form:"tgId"`
+	SubID                string `json:"subId" form:"subId"`
+	Comment              string `json:"comment" form:"comment"`
+	Reset                int    `json:"reset" form:"reset"`
+	PeriodicTrafficReset string `json:"periodicTrafficReset" form:"periodicTrafficReset"`
+	CreatedAt            int64  `json:"created_at,omitempty"`
+	UpdatedAt            int64  `json:"updated_at,omitempty"`
 }

@@ -247,6 +247,14 @@
 "days" = "天"
 "renew" = "自动续订"
 "renewDesc" = "到期后自动续订。(0 = 禁用)(单位: 天)"
+"periodicTrafficResetTitle" = "流量重置"
+"periodicTrafficResetDesc" = "按指定间隔自动重置流量计数器"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "从不"
+"daily" = "每日"
+"weekly" = "每周"
+"monthly" = "每月"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"

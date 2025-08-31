@@ -247,6 +247,14 @@
 "days" = "Дні(в)"
 "renew" = "Автоматичне оновлення"
 "renewDesc" = "Автоматичне поновлення після закінчення терміну дії. (0 = вимкнено)(одиниця: день)"
+"periodicTrafficResetTitle" = "Скидання трафіку"
+"periodicTrafficResetDesc" = "Автоматично скидати лічильник трафіку через певні проміжки часу"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Ніколи"
+"daily" = "Щодня"
+"weekly" = "Щотижня"
+"monthly" = "Щомісяця"
 
 [pages.inbounds.toasts]
 "obtain" = "Отримати"

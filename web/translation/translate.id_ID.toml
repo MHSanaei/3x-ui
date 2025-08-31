@@ -247,6 +247,14 @@
 "days" = "Hari"
 "renew" = "Perpanjang Otomatis"
 "renewDesc" = "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif)(unit: hari)"
+"periodicTrafficResetTitle" = "Reset Trafik Berkala"
+"periodicTrafficResetDesc" = "Reset otomatis penghitung trafik pada interval tertentu"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Tidak Pernah"
+"daily" = "Harian"
+"weekly" = "Mingguan"
+"monthly" = "Bulanan"
 
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"

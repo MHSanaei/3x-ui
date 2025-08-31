@@ -247,6 +247,14 @@
 "days" = "ngày"
 "renew" = "Tự động gia hạn"
 "renewDesc" = "Tự động gia hạn sau khi hết hạn. (0 = tắt)(đơn vị: ngày)"
+"periodicTrafficResetTitle" = "Đặt lại lưu lượng"
+"periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Không bao giờ"
+"daily" = "Hàng ngày"
+"weekly" = "Hàng tuần"
+"monthly" = "Hàng tháng"
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"

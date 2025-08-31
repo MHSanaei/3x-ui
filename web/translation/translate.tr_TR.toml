@@ -247,6 +247,14 @@
 "days" = "Gün"
 "renew" = "Otomatik Yenile"
 "renewDesc" = "Süresi dolduktan sonra otomatik yenileme. (0 = devre dışı)(birim: gün)"
+"periodicTrafficResetTitle" = "Trafik Sıfırlama"
+"periodicTrafficResetDesc" = "Belirtilen aralıklarla trafik sayacını otomatik olarak sıfırla"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Asla"
+"daily" = "Günlük"
+"weekly" = "Haftalık"
+"monthly" = "Aylık"
 
 [pages.inbounds.toasts]
 "obtain" = "Elde Et"
