@@ -1792,7 +1792,6 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
         reset = 0,
-        periodicTrafficReset = 'never',
         created_at = undefined,
         updated_at = undefined
     ) {
@@ -1808,7 +1807,6 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
-        this.periodicTrafficReset = periodicTrafficReset;
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
@@ -1826,7 +1824,6 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
-            json.periodicTrafficReset,
             json.created_at,
             json.updated_at,
         );
@@ -1910,7 +1907,6 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
         reset = 0,
-        periodicTrafficReset = 'never',
         created_at = undefined,
         updated_at = undefined
     ) {
@@ -1926,7 +1922,6 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
-        this.periodicTrafficReset = periodicTrafficReset;
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
@@ -1944,7 +1939,6 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
-            json.periodicTrafficReset,
             json.created_at,
             json.updated_at,
         );
@@ -2058,7 +2052,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
         reset = 0,
-        periodicTrafficReset = 'never',
         created_at = undefined,
         updated_at = undefined
     ) {
@@ -2073,7 +2066,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
-        this.periodicTrafficReset = periodicTrafficReset;
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
@@ -2090,7 +2082,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             subId: this.subId,
             comment: this.comment,
             reset: this.reset,
-            periodicTrafficReset: this.periodicTrafficReset,
             created_at: this.created_at,
             updated_at: this.updated_at,
         };
@@ -2108,7 +2099,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
-            json.periodicTrafficReset,
             json.created_at,
             json.updated_at,
         );
@@ -2231,7 +2221,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         subId = RandomUtil.randomLowerAndNum(16),
         comment = '',
         reset = 0,
-        periodicTrafficReset = 'never',
         created_at = undefined,
         updated_at = undefined
     ) {
@@ -2247,7 +2236,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.subId = subId;
         this.comment = comment;
         this.reset = reset;
-        this.periodicTrafficReset = periodicTrafficReset;
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
@@ -2265,7 +2253,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             subId: this.subId,
             comment: this.comment,
             reset: this.reset,
-            periodicTrafficReset: this.periodicTrafficReset,
             created_at: this.created_at,
             updated_at: this.updated_at,
         };
@@ -2284,7 +2271,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.subId,
             json.comment,
             json.reset,
-            json.periodicTrafficReset,
             json.created_at,
             json.updated_at,
         );

@@ -168,23 +168,5 @@
         </template>
         <a-input-number v-model.number="client.reset" :min="0"></a-input-number>
     </a-form-item>
-
-    <a-form-item>
-        <template slot="label">
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.periodicTrafficResetDesc" }}</span>
-                </template>
-                {{ i18n "pages.inbounds.periodicTrafficResetTitle" }}
-                <a-icon type="question-circle"></a-icon>
-            </a-tooltip>
-        </template>
-        <a-select v-model="client.periodicTrafficReset" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="never">{{ i18n "pages.inbounds.periodicTrafficReset.never" }}</a-select-option>
-            <a-select-option value="daily">{{ i18n "pages.inbounds.periodicTrafficReset.daily" }}</a-select-option>
-            <a-select-option value="weekly">{{ i18n "pages.inbounds.periodicTrafficReset.weekly" }}</a-select-option>
-            <a-select-option value="monthly">{{ i18n "pages.inbounds.periodicTrafficReset.monthly" }}</a-select-option>
-        </a-select>
-    </a-form-item>
 </a-form>
 {{end}}
