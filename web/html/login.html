@@ -466,71 +466,83 @@
           </g>
         </svg>
       </div>
-      <a-row type="flex" justify="center" align="middle" :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
+      <a-row type="flex" justify="center" align="middle"
+        :style="{ height: '100%', overflow: 'auto', overflowX: 'hidden' }">
         <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" :style="{ margin: '3rem 0' }">
-          <div class="setting-section">
-            <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}' placement="bottomRight" trigger="click">
-              <template slot="content">
-                <a-space direction="vertical" :size="10">
-                  <a-theme-switch-login></a-theme-switch-login>
-                  <span>{{ i18n "pages.settings.language" }}</span>
-                  <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang" @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
-                    <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
-                      <span role="img" aria-label="l.name" v-text="l.icon"></span>
-                      &nbsp;&nbsp;<span v-text="l.name"></span>
-                    </a-select-option>
-                  </a-select>
-                </a-space>
-              </template>
-              <a-button shape="circle" icon="setting"></a-button>
-            </a-popover>
-          </div>
-          <a-row type="flex" justify="center">
-            <a-col :style="{ width: '100%' }">
-              <h2 class="title headline zoom">
-                <span class="words-wrapper">
-                  <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
-                  <b>{{ i18n "pages.login.title" }}</b>
-                </span>
-              </h2>
-            </a-col>
-          </a-row>
-          <a-row type="flex" justify="center">
-            <a-col span="24">
-              <a-form>
-                <a-space direction="vertical" size="middle">
-                  <a-form-item>
-                    <a-input autocomplete="username" name="username" v-model.trim="user.username"
-                      placeholder='{{ i18n "username" }}' @keydown.enter.native="login" autofocus>
-                      <a-icon slot="prefix" type="user" :style="{ fontSize: '1rem' }"></a-icon>
-                    </a-input>
-                  </a-form-item>
-                  <a-form-item>
-                    <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
-                      placeholder='{{ i18n "password" }}' @keydown.enter.native="login">
-                      <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
-                    </a-input-password>
-                  </a-form-item>
-                  <a-form-item v-if="twoFactorEnable">
-                    <a-input autocomplete="one-time-code" name="twoFactorCode" v-model.trim="user.twoFactorCode"
-                      placeholder='{{ i18n "twoFactorCode" }}' @keydown.enter.native="login">
-                      <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
-                    </a-input>
-                  </a-form-item>
-                  <a-form-item>
-                    <a-row justify="center" class="centered">
-                      <div :style="{ height: '50px', marginTop: '1rem', ...loading ? { width: '52px' } : { display: 'inline-block' } }" class="wave-btn-bg wave-btn-bg-cl">
-                        <a-button class="ant-btn-primary-login" type="primary" :loading="loading" @click="login"
-                          :icon="loading ? 'poweroff' : undefined">
-                          [[ loading ? '' : '{{ i18n "login" }}' ]]
-                        </a-button>
-                      </div>
-                    </a-row>
-                  </a-form-item>
-                </a-space>
-              </a-form>
-            </a-col>
-          </a-row>
+          <template v-if="!loadingStates.fetched">
+            <div :style="{ textAlign: 'center' }">
+              <a-spin size="large" />
+            </div>
+          </template>
+          <template v-else>
+            <div class="setting-section">
+              <a-popover :overlay-class-name="themeSwitcher.currentTheme" title='{{ i18n "menu.settings" }}'
+                placement="bottomRight" trigger="click">
+                <template slot="content">
+                  <a-space direction="vertical" :size="10">
+                    <a-theme-switch-login></a-theme-switch-login>
+                    <span>{{ i18n "pages.settings.language" }}</span>
+                    <a-select ref="selectLang" :style="{ width: '100%' }" v-model="lang"
+                      @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
+                      <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
+                        <span role="img" aria-label="l.name" v-text="l.icon"></span>
+                        &nbsp;&nbsp;<span v-text="l.name"></span>
+                      </a-select-option>
+                    </a-select>
+                  </a-space>
+                </template>
+                <a-button shape="circle" icon="setting"></a-button>
+              </a-popover>
+            </div>
+            <a-row type="flex" justify="center">
+              <a-col :style="{ width: '100%' }">
+                <h2 class="title headline zoom">
+                  <span class="words-wrapper">
+                    <b class="is-visible">{{ i18n "pages.login.hello" }}</b>
+                    <b>{{ i18n "pages.login.title" }}</b>
+                  </span>
+                </h2>
+              </a-col>
+            </a-row>
+            <a-row type="flex" justify="center">
+              <a-col span="24">
+                <a-form @submit.prevent="login">
+                  <a-space direction="vertical" size="middle">
+                    <a-form-item>
+                      <a-input autocomplete="username" name="username" v-model.trim="user.username"
+                        placeholder='{{ i18n "username" }}' autofocus required>
+                        <a-icon slot="prefix" type="user" :style="{ fontSize: '1rem' }"></a-icon>
+                      </a-input>
+                    </a-form-item>
+                    <a-form-item>
+                      <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
+                        placeholder='{{ i18n "password" }}' required>
+                        <a-icon slot="prefix" type="lock" :style="{ fontSize: '1rem' }"></a-icon>
+                      </a-input-password>
+                    </a-form-item>
+                    <a-form-item v-if="twoFactorEnable">
+                      <a-input autocomplete="one-time-code" name="twoFactorCode" v-model.trim="user.twoFactorCode"
+                        placeholder='{{ i18n "twoFactorCode" }}' required>
+                        <a-icon slot="prefix" type="key" :style="{ fontSize: '1rem' }"></a-icon>
+                      </a-input>
+                    </a-form-item>
+                    <a-form-item>
+                      <a-row justify="center" class="centered">
+                        <div
+                          :style="{ height: '50px', marginTop: '1rem', ...loadingStates.spinning ? { width: '52px' } : { display: 'inline-block' } }"
+                          class="wave-btn-bg wave-btn-bg-cl">
+                          <a-button class="ant-btn-primary-login" type="primary" :loading="loadingStates.spinning"
+                            :icon="loadingStates.spinning ? 'poweroff' : undefined" html-type="submit">
+                            [[ loadingStates.spinning ? '' : '{{ i18n "login" }}' ]]
+                          </a-button>
+                        </div>
+                      </a-row>
+                    </a-form-item>
+                  </a-space>
+                </a-form>
+              </a-col>
+            </a-row>
+          </template>
         </a-col>
       </a-row>
     </a-layout-content>
@@ -544,7 +556,10 @@
     el: '#app',
     data: {
       themeSwitcher,
-      loading: false,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
       user: {
         username: "",
         password: "",
@@ -559,19 +574,23 @@
     },
     methods: {
       async login() {
-        this.loading = true;
+        this.loadingStates.spinning = true;
+
         const msg = await HttpUtil.post('/login', this.user);
-        this.loading = false;
+
         if (msg.success) {
           location.href = basePath + 'panel/';
         }
+
+        this.loadingStates.spinning = false;
       },
       async getTwoFactorEnable() {
-        this.loading = true;
         const msg = await HttpUtil.post('/getTwoFactorEnable');
-        this.loading = false;
+
         if (msg.success) {
           this.twoFactorEnable = msg.obj;
+          this.loadingStates.fetched = true;
+
           return msg.obj;
         }
       },
