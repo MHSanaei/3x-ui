@@ -349,6 +349,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		var oldSettings map[string]any
 		_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 		emailToCreated := map[string]int64{}
+		emailToUpdated := map[string]int64{}
 		if oldSettings != nil {
 			if oc, ok := oldSettings["clients"].([]any); ok {
 				for _, it := range oc {
@@ -359,6 +360,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 								emailToCreated[email] = int64(v)
 							case int64:
 								emailToCreated[email] = v
+							}
+							switch v := m["updated_at"].(type) {
+							case float64:
+								emailToUpdated[email] = int64(v)
+							case int64:
+								emailToUpdated[email] = v
 							}
 						}
 					}
@@ -379,7 +386,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 								m["created_at"] = now
 							}
 						}
-						m["updated_at"] = now
+						// Preserve client's updated_at if present; do not bump on parent inbound update
+						if _, hasUpdated := m["updated_at"]; !hasUpdated {
+							if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
+								m["updated_at"] = v
+							}
+						}
 						nSlice[i] = m
 					}
 				}
