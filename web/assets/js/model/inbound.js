@@ -1859,13 +1859,15 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(
         protocol,
         vlesses = [new Inbound.VLESSSettings.VLESS()],
-        decryption = 'none',
+        decryption = "none",
         fallbacks = []
     ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
         this.fallbacks = fallbacks;
+        this.selectedAuth = "X25519, not Post-Quantum";
+        this.encryption = "";
     }
 
     addFallback() {
@@ -1876,22 +1878,42 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.fallbacks.splice(index, 1);
     }
 
-    // decryption should be set to static value
     static fromJson(json = {}) {
-        return new Inbound.VLESSSettings(
+        const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
-            json.clients.map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
-            json.decryption || 'none',
-            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks),);
+            (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
+            json.decryption || "none",
+            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || [])
+        );
+
+        obj.encryption = json.encryption || "";
+        obj.selectedAuth = json.selectedAuth || "X25519, not Post-Quantum";
+
+        return obj;
     }
 
+
     toJson() {
-        return {
+        const json = {
             clients: Inbound.VLESSSettings.toJsonArray(this.vlesses),
-            decryption: this.decryption,
-            fallbacks: Inbound.VLESSSettings.toJsonArray(this.fallbacks),
         };
+
+        if (this.decryption) {
+            json.decryption = this.decryption;
+        }
+
+        if (this.encryption) {
+            json.encryption = this.encryption;
+        }
+
+        if (this.fallbacks && this.fallbacks.length > 0) {
+            json.fallbacks = Inbound.VLESSSettings.toJsonArray(this.fallbacks);
+        }
+
+        return json;
     }
+
+
 };
 
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
