@@ -230,6 +230,8 @@
 "exportInbound" = "Export Inbound"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
+"periodicTrafficResetTitle" = "Traffic Reset"
+"periodicTrafficResetDesc" = "Automatically reset traffic counter at specified intervals"
 
 [pages.client]
 "add" = "Add Client"
@@ -248,6 +250,12 @@
 "days" = "Day(s)"
 "renew" = "Auto Renew"
 "renewDesc" = "Auto-renewal after expiration. (0 = disable)(unit: day)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Never"
+"daily" = "Daily"
+"weekly" = "Weekly"
+"monthly" = "Monthly"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"

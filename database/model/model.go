@@ -27,16 +27,17 @@ type User struct {
 }
 
 type Inbound struct {
-	Id          int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	UserId      int                  `json:"-"`
-	Up          int64                `json:"up" form:"up"`
-	Down        int64                `json:"down" form:"down"`
-	Total       int64                `json:"total" form:"total"`
-	AllTime     int64                `json:"allTime" form:"allTime" gorm:"default:0"`
-	Remark      string               `json:"remark" form:"remark"`
-	Enable      bool                 `json:"enable" form:"enable"`
-	ExpiryTime  int64                `json:"expiryTime" form:"expiryTime"`
-	ClientStats []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	UserId               int                  `json:"-"`
+	Up                   int64                `json:"up" form:"up"`
+	Down                 int64                `json:"down" form:"down"`
+	Total                int64                `json:"total" form:"total"`
+	AllTime              int64                `json:"allTime" form:"allTime" gorm:"default:0"`
+	Remark               string               `json:"remark" form:"remark"`
+	Enable               bool                 `json:"enable" form:"enable"`
+	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`
+	PeriodicTrafficReset string               `json:"periodicTrafficReset" form:"periodicTrafficReset" gorm:"default:never"`
+	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`
