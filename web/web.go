@@ -266,8 +266,17 @@ func (s *Server) startTask() {
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
-	// Check for periodic traffic resets every 10 minutes
-	s.cron.AddJob("@every 10m", job.NewPeriodicTrafficResetJob())
+	// Periodic traffic resets
+	logger.Info("Scheduling periodic traffic reset jobs")
+	{
+		// Run once a day, midnight
+		// s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
+		s.cron.AddJob("* * * * *", job.NewPeriodicTrafficResetJob("daily"))
+		// Run once a week, midnight between Sat/Sun
+		s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
+		// Run once a month, midnight, first of month
+		s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+	}
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
