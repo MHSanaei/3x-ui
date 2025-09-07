@@ -271,7 +271,7 @@ func (a *ServerController) getNewEchCert(c *gin.Context) {
 func (a *ServerController) getNewVlessEnc(c *gin.Context) {
 	out, err := a.serverService.GetNewVlessEnc()
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.getNewmlkem768Error"), err)
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.getNewVlessEncError"), err)
 		return
 	}
 	jsonObj(c, out, nil)

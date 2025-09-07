@@ -1861,14 +1861,15 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         protocol,
         vlesses = [new Inbound.VLESSSettings.VLESS()],
         decryption = "none",
-        fallbacks = []
+        encryption = "",
+        fallbacks = [],
     ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
+        this.encryption = encryption;
         this.fallbacks = fallbacks;
         this.selectedAuth = "X25519, not Post-Quantum";
-        this.encryption = "";
     }
 
     addFallback() {
@@ -1883,13 +1884,11 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
             (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
-            json.decryption || "none",
+            json.decryption,
+            json.encryption,
             Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || [])
         );
-
-        obj.encryption = json.encryption || "";
         obj.selectedAuth = json.selectedAuth || "X25519, not Post-Quantum";
-
         return obj;
     }
 
@@ -1909,6 +1908,9 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
         if (this.fallbacks && this.fallbacks.length > 0) {
             json.fallbacks = Inbound.VLESSSettings.toJsonArray(this.fallbacks);
+        }
+        if (this.selectedAuth) {
+            json.selectedAuth = this.selectedAuth;
         }
 
         return json;

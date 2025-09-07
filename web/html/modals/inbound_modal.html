@@ -171,7 +171,6 @@
 
                 const auths = msg.obj.auths || [];
                 const selected = inModal.inbound.settings.selectedAuth;
-
                 const block = auths.find(a => a.label === selected);
 
                 if (!block) {
@@ -179,11 +178,12 @@
                     return;
                 }
 
-                // ✅ server config field
                 inModal.inbound.settings.decryption = block.decryption;
-
-                // ✅ UI-only field (not saved in config)
                 inModal.inbound.settings.encryption = block.encryption;
+            },
+            clearKeys() {
+                this.inbound.settings.decryption = 'none';
+                this.inbound.settings.encryption = '';
             }
 
         },

@@ -903,9 +903,10 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 			if len(parts) == 2 && current != nil {
 				key := strings.Trim(parts[0], `" `)
 				val := strings.Trim(parts[1], `" `)
-				if key == "decryption" {
+				switch key {
+				case "decryption":
 					current.Decryption = val
-				} else if key == "encryption" {
+				case "encryption":
 					current.Encryption = val
 				}
 			}

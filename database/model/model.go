@@ -106,3 +106,10 @@ type Client struct {
 	CreatedAt  int64  `json:"created_at,omitempty"`
 	UpdatedAt  int64  `json:"updated_at,omitempty"`
 }
+
+type VLESSSettings struct {
+	Clients    []Client `json:"clients"`
+	Decryption string   `json:"decryption"`
+	Encryption string   `json:"encryption"`
+	Fallbacks  []any    `json:"fallbacks"`
+}
