@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*.*.*"
     paths:
       - '.github/workflows/release.yml'
       - '**.js'
