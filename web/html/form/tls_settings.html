@@ -5,13 +5,13 @@
   <a-form-item label='{{ i18n "security" }}'>
     <a-radio-group v-model="inbound.stream.security" button-style="solid">
       <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
-      <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
-      <a-radio-button value="tls">TLS</a-radio-button>
+      <a-radio-button v-if="inbound.canEnableReality() && !inbound.settings.encryption" value="reality">Reality</a-radio-button>
+      <a-radio-button v-if="!inbound.settings.encryption" value="tls">TLS</a-radio-button>
     </a-radio-group>
   </a-form-item>
 
   <!-- tls settings -->
-  <template v-if="inbound.stream.isTls">
+  <template v-if="inbound.stream.isTls && !inbound.settings.encryption">
     <a-form-item label="SNI" placeholder="Server Name Indication">
       <a-input v-model.trim="inbound.stream.tls.sni"></a-input>
     </a-form-item>
@@ -121,7 +121,7 @@
   </template>
 
   <!-- reality settings -->
-  <template v-if="inbound.stream.isReality">
+  <template v-if="inbound.stream.isReality && !inbound.settings.encryption">
     {{template "form/realitySettings"}}
   </template>
 </a-form>

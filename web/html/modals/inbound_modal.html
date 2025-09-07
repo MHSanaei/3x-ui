@@ -1,9 +1,7 @@
 {{define "modals/inboundModal"}}
-<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title"
-        :dialog-style="{ top: '20px' }" @ok="inModal.ok"
-        :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
-        :class="themeSwitcher.currentTheme"
-        :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
+<a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" :dialog-style="{ top: '20px' }"
+    @ok="inModal.ok" :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
+    :class="themeSwitcher.currentTheme" :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
     {{template "form/inbound"}}
 </a-modal>
 <script>
@@ -20,7 +18,7 @@
         ok() {
             ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
         },
-        show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => {}, isEdit = false }) {
+        show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => { }, isEdit = false }) {
             this.title = title;
             this.okText = okText;
             if (inbound) {
@@ -41,7 +39,7 @@
             inModal.visible = false;
             inModal.loading(false);
         },
-        loading(loading=true) {
+        loading(loading = true) {
             inModal.confirmLoading = loading;
         },
     };
@@ -105,9 +103,9 @@
             },
             SSMethodChange() {
                 this.inModal.inbound.settings.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
-                
+
                 if (this.inModal.inbound.isSSMultiUser) {
-                    if (this.inModal.inbound.settings.shadowsockses.length ==0){
+                    if (this.inModal.inbound.settings.shadowsockses.length == 0) {
                         this.inModal.inbound.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
                     }
                     if (!this.inModal.inbound.isSS2022) {
@@ -123,7 +121,7 @@
                         client.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
                     })
                 } else {
-                    if (this.inModal.inbound.settings.shadowsockses.length > 0){
+                    if (this.inModal.inbound.settings.shadowsockses.length > 0) {
                         this.inModal.inbound.settings.shadowsockses = [];
                     }
                 }
@@ -154,7 +152,7 @@
             },
             async getNewEchCert() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/server/getNewEchCert', {sni: inModal.inbound.stream.tls.sni});
+                const msg = await HttpUtil.post('/server/getNewEchCert', { sni: inModal.inbound.stream.tls.sni });
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -162,6 +160,32 @@
                 inModal.inbound.stream.tls.echServerKeys = msg.obj.echServerKeys;
                 inModal.inbound.stream.tls.settings.echConfigList = msg.obj.echConfigList;
             },
+            async getNewVlessEnc() {
+                inModal.loading(true);
+                const msg = await HttpUtil.post('/server/getNewVlessEnc');
+                inModal.loading(false);
+
+                if (!msg.success) {
+                    return;
+                }
+
+                const auths = msg.obj.auths || [];
+                const selected = inModal.inbound.settings.selectedAuth;
+                const block = auths.find(a => a.label === selected);
+
+                if (!block) {
+                    console.error("No auth block for", selected);
+                    return;
+                }
+
+                inModal.inbound.settings.decryption = block.decryption;
+                inModal.inbound.settings.encryption = block.encryption;
+            },
+            clearKeys() {
+                this.inbound.settings.decryption = 'none';
+                this.inbound.settings.encryption = '';
+            }
+
         },
     });
 

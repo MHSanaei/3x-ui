@@ -1301,6 +1301,7 @@ class Inbound extends XrayCommonClass {
         const security = forceTls == 'same' ? this.stream.security : forceTls;
         const params = new Map();
         params.set("type", this.stream.network);
+        params.set("encryption", this.settings.encryption);
         switch (type) {
             case "tcp":
                 const tcp = this.stream.tcp;
@@ -1859,13 +1860,16 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(
         protocol,
         vlesses = [new Inbound.VLESSSettings.VLESS()],
-        decryption = 'none',
-        fallbacks = []
+        decryption = "none",
+        encryption = "",
+        fallbacks = [],
     ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
+        this.encryption = encryption;
         this.fallbacks = fallbacks;
+        this.selectedAuth = "X25519, not Post-Quantum";
     }
 
     addFallback() {
@@ -1876,22 +1880,43 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.fallbacks.splice(index, 1);
     }
 
-    // decryption should be set to static value
     static fromJson(json = {}) {
-        return new Inbound.VLESSSettings(
+        const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
-            json.clients.map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
-            json.decryption || 'none',
-            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks),);
+            (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
+            json.decryption,
+            json.encryption,
+            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || [])
+        );
+        obj.selectedAuth = json.selectedAuth || "X25519, not Post-Quantum";
+        return obj;
     }
 
+
     toJson() {
-        return {
+        const json = {
             clients: Inbound.VLESSSettings.toJsonArray(this.vlesses),
-            decryption: this.decryption,
-            fallbacks: Inbound.VLESSSettings.toJsonArray(this.fallbacks),
         };
+
+        if (this.decryption) {
+            json.decryption = this.decryption;
+        }
+
+        if (this.encryption) {
+            json.encryption = this.encryption;
+        }
+
+        if (this.fallbacks && this.fallbacks.length > 0) {
+            json.fallbacks = Inbound.VLESSSettings.toJsonArray(this.fallbacks);
+        }
+        if (this.selectedAuth) {
+            json.selectedAuth = this.selectedAuth;
+        }
+
+        return json;
     }
+
+
 };
 
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
