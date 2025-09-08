@@ -492,7 +492,7 @@
 </a-modal>
 <script>
   function refreshIPs(email) {
-    return HttpUtil.post(`/panel/inbound/clientIps/${email}`).then((msg) => {
+    return HttpUtil.post(`/panel/api/inbounds/clientIps/${email}`).then((msg) => {
       if (msg.success) {
         try {
           return JSON.parse(msg.obj).join(', ');
@@ -613,7 +613,7 @@
           });
       },
       clearClientIps() {
-        HttpUtil.post(`/panel/inbound/clearClientIps/${this.infoModal.clientStats.email}`)
+        HttpUtil.post(`/panel/api/inbounds/clearClientIps/${this.infoModal.clientStats.email}`)
           .then((msg) => {
             if (!msg.success) {
               return;

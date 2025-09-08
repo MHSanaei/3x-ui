@@ -132,7 +132,7 @@
             },
             async getNewX25519Cert() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/server/getNewX25519Cert');
+                const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -146,7 +146,7 @@
             },
             async getNewmldsa65() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/server/getNewmldsa65');
+                const msg = await HttpUtil.get('/panel/api/server/getNewmldsa65');
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -160,7 +160,7 @@
             },
             async getNewEchCert() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/server/getNewEchCert', { sni: inModal.inbound.stream.tls.sni });
+                const msg = await HttpUtil.post('/panel/api/server/getNewEchCert', { sni: inModal.inbound.stream.tls.sni });
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -174,7 +174,7 @@
             },
             async getNewVlessEnc() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/server/getNewVlessEnc');
+                const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
                 inModal.loading(false);
 
                 if (!msg.success) {
