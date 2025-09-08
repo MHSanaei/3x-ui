@@ -47,6 +47,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 		{"POST", "/resetAllClientTraffics/:id", a.inboundController.resetAllClientTraffics},
 		{"POST", "/delDepletedClients/:id", a.inboundController.delDepletedClients},
 		{"POST", "/onlines", a.inboundController.onlines},
+		{"POST", "/lastOnline", a.inboundController.lastOnline},
 		{"POST", "/updateClientTraffic/:email", a.inboundController.updateClientTraffic},
 	}
 

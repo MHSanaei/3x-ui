@@ -7,8 +7,9 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*.*.*"
     paths:
-      - '.github/workflows/release.yml'
       - '**.js'
       - '**.css'
       - '**.html'
@@ -38,7 +39,7 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -84,7 +85,7 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v25.8.29/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v25.9.5/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -135,10 +136,13 @@ jobs:
 
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
-        if: github.event_name == 'release' && github.event.action == 'published'
+        if: |
+          (github.event_name == 'release' && github.event.action == 'published') ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ github.ref }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
+          overwrite: true
           prerelease: true

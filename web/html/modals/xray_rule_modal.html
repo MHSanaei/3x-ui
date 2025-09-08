@@ -1,11 +1,6 @@
 {{define "modals/ruleModal"}}
 <a-modal id="rule-modal" v-model="ruleModal.visible" :title="ruleModal.title" @ok="ruleModal.ok" :confirm-loading="ruleModal.confirmLoading" :closable="true" :mask-closable="false" :ok-text="ruleModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label='Domain Matcher'>
-      <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
-      </a-select>
-    </a-form-item>
     <a-form-item>
       <template slot="label">
         <a-tooltip>
@@ -123,7 +118,6 @@
     confirm: null,
     rule: {
       type: "field",
-      domainMatcher: "",
       domain: "",
       ip: "",
       port: "",
@@ -157,7 +151,6 @@
       this.confirm = confirm;
       this.visible = true;
       if (isEdit) {
-        this.rule.domainMatcher = rule.domainMatcher;
         this.rule.domain = rule.domain ? rule.domain.join(',') : [];
         this.rule.ip = rule.ip ? rule.ip.join(',') : [];
         this.rule.port = rule.port;
@@ -172,7 +165,6 @@
         this.rule.balancerTag = rule.balancerTag ? rule.balancerTag : "";
       } else {
         this.rule = {
-          domainMatcher: "",
           domain: "",
           ip: "",
           port: "",
@@ -214,7 +206,6 @@
       rule = {};
       newRule = {};
       rule.type = "field";
-      rule.domainMatcher = value.domainMatcher;
       rule.domain = value.domain.length > 0 ? value.domain.split(',') : [];
       rule.ip = value.ip.length > 0 ? value.ip.split(',') : [];
       rule.port = value.port;

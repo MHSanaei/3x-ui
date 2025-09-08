@@ -50,6 +50,7 @@
 "fail" = "Thất bại"
 "comment" = "Bình luận"
 "success" = "Thành công"
+"lastOnline" = "Lần online gần nhất"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"
@@ -273,7 +274,8 @@
 "resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
 "trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
 "getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
-"getNewmldsa65Error" = "Lỗi khi lấy chúng tôi mldsa65."
+"getNewmldsa65Error" = "Lỗi khi lấy chứng chỉ mldsa65."
+"getNewVlessEncError" = "Lỗi khi lấy chứng chỉ VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"

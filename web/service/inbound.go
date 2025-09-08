@@ -359,6 +359,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		var oldSettings map[string]any
 		_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
 		emailToCreated := map[string]int64{}
+		emailToUpdated := map[string]int64{}
 		if oldSettings != nil {
 			if oc, ok := oldSettings["clients"].([]any); ok {
 				for _, it := range oc {
@@ -369,6 +370,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 								emailToCreated[email] = int64(v)
 							case int64:
 								emailToCreated[email] = v
+							}
+							switch v := m["updated_at"].(type) {
+							case float64:
+								emailToUpdated[email] = int64(v)
+							case int64:
+								emailToUpdated[email] = v
 							}
 						}
 					}
@@ -389,7 +396,12 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 								m["created_at"] = now
 							}
 						}
-						m["updated_at"] = now
+						// Preserve client's updated_at if present; do not bump on parent inbound update
+						if _, hasUpdated := m["updated_at"]; !hasUpdated {
+							if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
+								m["updated_at"] = v
+							}
+						}
 						nSlice[i] = m
 					}
 				}
@@ -978,6 +990,7 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 				// Add user in onlineUsers array on traffic
 				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
 					onlineClients = append(onlineClients, traffics[traffic_index].Email)
+					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
 				}
 				break
 			}
@@ -2196,6 +2209,20 @@ func (s *InboundService) MigrateDB() {
 
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
+}
+
+func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
+	db := database.GetDB()
+	var rows []xray.ClientTraffic
+	err := db.Model(&xray.ClientTraffic{}).Select("email, last_online").Find(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	result := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		result[r.Email] = r.LastOnline
+	}
+	return result, nil
 }
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {

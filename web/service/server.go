@@ -871,3 +871,53 @@ func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
 		"echConfigList": configList,
 	}, nil
 }
+
+type AuthBlock struct {
+	Label      string `json:"label"`
+	Decryption string `json:"decryption"`
+	Encryption string `json:"encryption"`
+}
+
+func (s *ServerService) GetNewVlessEnc() (any, error) {
+	cmd := exec.Command(xray.GetBinaryPath(), "vlessenc")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Run(); err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+
+	var blocks []AuthBlock
+	var current *AuthBlock
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "Authentication:") {
+			if current != nil {
+				blocks = append(blocks, *current)
+			}
+			current = &AuthBlock{Label: strings.TrimSpace(strings.TrimPrefix(line, "Authentication:"))}
+		} else if strings.HasPrefix(line, `"decryption"`) || strings.HasPrefix(line, `"encryption"`) {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 && current != nil {
+				key := strings.Trim(parts[0], `" `)
+				val := strings.Trim(parts[1], `" `)
+				switch key {
+				case "decryption":
+					current.Decryption = val
+				case "encryption":
+					current.Encryption = val
+				}
+			}
+		}
+	}
+
+	if current != nil {
+		blocks = append(blocks, *current)
+	}
+
+	return map[string]any{
+		"auths": blocks,
+	}, nil
+}

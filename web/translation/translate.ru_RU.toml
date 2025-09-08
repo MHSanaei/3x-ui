@@ -50,6 +50,7 @@
 "fail" = "Ошибка"
 "comment" = "Комментарий"
 "success" = "Успешно"
+"lastOnline" = "Был(а) в сети"
 "getVersion" = "Узнать версию"
 "install" = "Установка"
 "clients" = "Клиенты"
@@ -274,6 +275,7 @@
 "trafficGetError" = "Ошибка получения данных о трафике"
 "getNewX25519CertError" = "Ошибка при получении сертификата X25519."
 "getNewmldsa65Error" = "Ошибка при получении сертификата mldsa65."
+"getNewVlessEncError" = "Ошибка при получении сертификата VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Запрос"

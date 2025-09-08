@@ -226,6 +226,11 @@
         </template>
 
         <!-- vless settings -->
+        <template v-if="outbound.protocol === Protocols.VLESS">
+          <a-form-item label='encryption'>
+            <a-input v-model.trim="outbound.settings.encryption"></a-input>
+          </a-form-item>
+        </template>
         <template v-if="outbound.canEnableTlsFlow()">
           <a-form-item label='Flow'>
             <a-select v-model="outbound.settings.flow" :dropdown-class-name="themeSwitcher.currentTheme">

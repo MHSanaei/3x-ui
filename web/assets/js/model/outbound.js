@@ -813,7 +813,7 @@ class Outbound extends CommonClass {
         var settings;
         switch (protocol) {
             case Protocols.VLESS:
-                settings = new Outbound.VLESSSettings(address, port, userData, url.searchParams.get('flow') ?? '');
+                settings = new Outbound.VLESSSettings(address, port, userData, url.searchParams.get('flow') ?? '', url.searchParams.get('encryption') ?? 'none');
                 break;
             case Protocols.Trojan:
                 settings = new Outbound.TrojanSettings(address, port, userData);
@@ -1046,13 +1046,13 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption = 'none') {
+    constructor(address, port, id, flow, encryption) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
-        this.encryption = encryption
+        this.encryption = encryption;
     }
 
     static fromJson(json = {}) {
@@ -1071,7 +1071,7 @@ Outbound.VLESSSettings = class extends CommonClass {
             vnext: [{
                 address: this.address,
                 port: this.port,
-                users: [{ id: this.id, flow: this.flow, encryption: 'none', }],
+                users: [{ id: this.id, flow: this.flow, encryption: this.encryption }],
             }],
         };
     }

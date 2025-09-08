@@ -50,6 +50,7 @@
 "fail" = "失敗"
 "comment" = "コメント"
 "success" = "成功"
+"lastOnline" = "最終オンライン"
 "getVersion" = "バージョン取得"
 "install" = "インストール"
 "clients" = "クライアント"
@@ -274,6 +275,7 @@
 "trafficGetError" = "トラフィックの取得中にエラーが発生しました"
 "getNewX25519CertError" = "X25519証明書の取得中にエラーが発生しました。"
 "getNewmldsa65Error" = "mldsa65証明書の取得中にエラーが発生しました。"
+"getNewVlessEncError" = "VlessEnc証明書の取得中にエラーが発生しました。"
 
 [pages.inbounds.stream.general]
 "request" = "リクエスト"

@@ -10,13 +10,6 @@ WorkingDirectory=/usr/local/x-ui/
 ExecStart=/usr/local/x-ui/x-ui
 Restart=on-failure
 RestartSec=5s
-ProtectHome=tmpfs
-ProtectKernelModules=true
-ProtectControlGroups=true
-ProtectKernelLogs=true
-ProtectHostname=true
-ProtectClock=true
-MemoryDenyWriteExecute=true
 
 [Install]
 WantedBy=multi-user.target
