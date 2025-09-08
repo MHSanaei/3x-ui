@@ -40,7 +40,6 @@ var (
 	isRunning   bool
 	hostname    string
 	hashStorage *global.HashStorage
-	handler     *th.Handler
 
 	// clients data to adding new client
 	receiver_inbound_ID int
@@ -641,13 +640,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 4 {
 							num, err := strconv.Atoi(dataArray[3])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -704,6 +704,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
 
 				t.addClient(callbackQuery.Message.GetChat().ID, message_text, messageId)
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
@@ -715,13 +719,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 3 {
 							num, err := strconv.Atoi(dataArray[2])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -844,13 +849,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 4 {
 							num, err := strconv.Atoi(dataArray[3])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -919,6 +925,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
 
 				t.addClient(callbackQuery.Message.GetChat().ID, message_text, messageId)
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
@@ -930,13 +940,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 3 {
 							num, err := strconv.Atoi(dataArray[2])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -1035,13 +1046,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 4 {
 							num, err := strconv.Atoi(dataArray[3])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -1101,6 +1113,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 					return
 				}
 				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
 
 				t.addClient(callbackQuery.Message.GetChat().ID, message_text, messageId)
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.successfulOperation"))
@@ -1112,13 +1128,14 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 						if len(dataArray) == 3 {
 							num, err := strconv.Atoi(dataArray[2])
 							if err == nil {
-								if num == -2 {
+								switch num {
+								case -2:
 									inputNumber = 0
-								} else if num == -1 {
+								case -1:
 									if inputNumber > 0 {
 										inputNumber = (inputNumber / 10)
 									}
-								} else {
+								default:
 									inputNumber = (inputNumber * 10) + num
 								}
 							}
@@ -1288,6 +1305,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 
 				message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
 
 				t.addClient(callbackQuery.Message.GetChat().ID, message_text)
 			}
@@ -1524,6 +1545,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		}
 		message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+		if err != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+			return
+		}
 		t.addClient(chatId, message_text, messageId)
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="+client_Email))
 	case "add_client_default_ip_limit":
@@ -1534,6 +1559,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		}
 		message_text, err := t.BuildInboundClientDataMessage(inbound.Remark, inbound.Protocol)
+		if err != nil {
+			t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+			return
+		}
 		t.addClient(chatId, message_text, messageId)
 		t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.canceled", "Email=="+client_Email))
 	case "add_client_submit_disable":
@@ -1598,6 +1627,10 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			return
 		}
 		valid_emails, extra_emails, err := t.inboundService.FilterAndSortClientEmails(emails)
+		if err != nil {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation"), tu.ReplyKeyboardRemove())
+			return
+		}
 
 		for _, valid_emails := range valid_emails {
 			traffic, err := t.inboundService.GetClientTrafficByEmail(valid_emails)
@@ -1760,6 +1793,10 @@ func (t *Tgbot) SubmitAddClient() (bool, error) {
 	}
 
 	jsonString, err := t.BuildJSONForProtocol(inbound.Protocol)
+	if err != nil {
+		logger.Warning("BuildJSONForProtocol run failed:", err)
+		return false, errors.New("failed to build JSON for protocol")
+	}
 
 	newInbound := &model.Inbound{
 		Id:       receiver_inbound_ID,
@@ -2008,10 +2045,11 @@ func (t *Tgbot) UserLoginNotify(username string, password string, ip string, tim
 	}
 
 	msg := ""
-	if status == LoginSuccess {
+	switch status {
+	case LoginSuccess:
 		msg += t.I18nBot("tgbot.messages.loginSuccess")
 		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
-	} else if status == LoginFail {
+	case LoginFail:
 		msg += t.I18nBot("tgbot.messages.loginFailed")
 		msg += t.I18nBot("tgbot.messages.hostname", "Hostname=="+hostname)
 		msg += t.I18nBot("tgbot.messages.password", "Password=="+password)
@@ -2171,6 +2209,22 @@ func (t *Tgbot) clientInfoMsg(
 		expiryTime = t.I18nBot("tgbot.unlimited")
 	} else if diff > 172800 || !traffic.Enable {
 		expiryTime = time.Unix((traffic.ExpiryTime / 1000), 0).Format("2006-01-02 15:04:05")
+		if diff > 0 {
+			days := diff / 86400
+			hours := (diff % 86400) / 3600
+			minutes := (diff % 3600) / 60
+			remainingTime := ""
+			if days > 0 {
+				remainingTime += fmt.Sprintf("%d %s ", days, t.I18nBot("tgbot.days"))
+			}
+			if hours > 0 {
+				remainingTime += fmt.Sprintf("%d %s ", hours, t.I18nBot("tgbot.hours"))
+			}
+			if minutes > 0 {
+				remainingTime += fmt.Sprintf("%d %s", minutes, t.I18nBot("tgbot.minutes"))
+			}
+			expiryTime += fmt.Sprintf(" (%s)", remainingTime)
+		}
 	} else if traffic.ExpiryTime < 0 {
 		expiryTime = fmt.Sprintf("%d %s", traffic.ExpiryTime/-86400000, t.I18nBot("tgbot.days"))
 		flag = true

@@ -813,7 +813,7 @@ class Outbound extends CommonClass {
         var settings;
         switch (protocol) {
             case Protocols.VLESS:
-                settings = new Outbound.VLESSSettings(address, port, userData, url.searchParams.get('flow') ?? '');
+                settings = new Outbound.VLESSSettings(address, port, userData, url.searchParams.get('flow') ?? '', url.searchParams.get('encryption') ?? 'none');
                 break;
             case Protocols.Trojan:
                 settings = new Outbound.TrojanSettings(address, port, userData);
@@ -919,12 +919,14 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
     constructor(
         packets = '1-3',
         length = '',
-        interval = ''
+        interval = '',
+        maxSplit = ''
     ) {
         super();
         this.packets = packets;
         this.length = length;
         this.interval = interval;
+        this.maxSplit = maxSplit;
     }
 
     static fromJson(json = {}) {
@@ -932,6 +934,7 @@ Outbound.FreedomSettings.Fragment = class extends CommonClass {
             json.packets,
             json.length,
             json.interval,
+            json.maxSplit
         );
     }
 };
@@ -940,12 +943,14 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
     constructor(
         type = 'rand',
         packet = '10-20',
-        delay = '10-16'
+        delay = '10-16',
+        applyTo = 'ip'
     ) {
         super();
         this.type = type;
         this.packet = packet;
         this.delay = delay;
+        this.applyTo = applyTo;
     }
 
     static fromJson(json = {}) {
@@ -953,6 +958,7 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
             json.type,
             json.packet,
             json.delay,
+            json.applyTo
         );
     }
 
@@ -961,6 +967,7 @@ Outbound.FreedomSettings.Noise = class extends CommonClass {
             type: this.type,
             packet: this.packet,
             delay: this.delay,
+            applyTo: this.applyTo
         };
     }
 };
@@ -988,7 +995,7 @@ Outbound.DNSSettings = class extends CommonClass {
         network = 'udp',
         address = '',
         port = 53,
-        nonIPQuery = 'drop',
+        nonIPQuery = 'reject',
         blockTypes = []
     ) {
         super();
@@ -1039,13 +1046,13 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption = 'none') {
+    constructor(address, port, id, flow, encryption) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
-        this.encryption = encryption
+        this.encryption = encryption;
     }
 
     static fromJson(json = {}) {
@@ -1064,7 +1071,7 @@ Outbound.VLESSSettings = class extends CommonClass {
             vnext: [{
                 address: this.address,
                 port: this.port,
-                users: [{ id: this.id, flow: this.flow, encryption: 'none', }],
+                users: [{ id: this.id, flow: this.flow, encryption: this.encryption }],
             }],
         };
     }

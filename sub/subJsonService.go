@@ -184,8 +184,14 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		var newOutbounds []json_util.RawMessage
 
 		switch inbound.Protocol {
-		case "vmess", "vless":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client))
+		case "vmess":
+			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, ""))
+		case "vless":
+			var vlessSettings model.VLESSSettings
+			_ = json.Unmarshal([]byte(inbound.Settings), &vlessSettings)
+
+			newOutbounds = append(newOutbounds,
+				s.genVnext(inbound, streamSettings, client, vlessSettings.Encryption))
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client))
 		}
@@ -209,9 +215,10 @@ func (s *SubJsonService) streamData(stream string) map[string]any {
 	var streamSettings map[string]any
 	json.Unmarshal([]byte(stream), &streamSettings)
 	security, _ := streamSettings["security"].(string)
-	if security == "tls" {
+	switch security {
+	case "tls":
 		streamSettings["tlsSettings"] = s.tlsData(streamSettings["tlsSettings"].(map[string]any))
-	} else if security == "reality" {
+	case "reality":
 		streamSettings["realitySettings"] = s.realityData(streamSettings["realitySettings"].(map[string]any))
 	}
 	delete(streamSettings, "sockopt")
@@ -283,7 +290,7 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	return rltyData
 }
 
-func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
+func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, encryption string) json_util.RawMessage {
 	outbound := Outbound{}
 	usersData := make([]UserVnext, 1)
 
@@ -294,7 +301,7 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 	}
 	if inbound.Protocol == model.VLESS {
 		usersData[0].Flow = client.Flow
-		usersData[0].Encryption = "none"
+		usersData[0].Encryption = encryption
 	}
 
 	vnextData := make([]VnextSetting, 1)

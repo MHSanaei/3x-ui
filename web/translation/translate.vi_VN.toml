@@ -50,6 +50,7 @@
 "fail" = "Thất bại"
 "comment" = "Bình luận"
 "success" = "Thành công"
+"lastOnline" = "Lần online gần nhất"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"
@@ -91,7 +92,7 @@
 "invalidFormData" = "Dạng dữ liệu nhập không hợp lệ."
 "emptyUsername" = "Vui lòng nhập tên người dùng."
 "emptyPassword" = "Vui lòng nhập mật khẩu."
-"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."  
+"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."
 "successLogin" = "Bạn đã đăng nhập vào tài khoản thành công."
 
 [pages.index]
@@ -151,6 +152,8 @@
 "getConfigError" = "Lỗi xảy ra khi truy xuất tệp cấu hình"
 
 [pages.inbounds]
+"allTimeTraffic" = "Tổng Lưu Lượng"
+"allTimeTrafficUsage" = "Tổng mức sử dụng mọi lúc"
 "title" = "Điểm vào (Inbounds)"
 "totalDownUp" = "Tổng tải lên/tải xuống"
 "totalUsage" = "Tổng sử dụng"
@@ -165,6 +168,8 @@
 "details" = "Chi tiết"
 "transportConfig" = "Giao vận"
 "expireDate" = "Ngày hết hạn"
+"createdAt" = "Tạo lúc"
+"updatedAt" = "Cập nhật"
 "resetTraffic" = "Đặt lại lưu lượng"
 "addInbound" = "Thêm điểm vào"
 "generalActions" = "Hành động chung"
@@ -261,7 +266,8 @@
 "resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
 "trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
 "getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
-"getNewmldsa65Error" = "Lỗi khi lấy chúng tôi mldsa65."
+"getNewmldsa65Error" = "Lỗi khi lấy chứng chỉ mldsa65."
+"getNewVlessEncError" = "Lỗi khi lấy chứng chỉ VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"
@@ -535,9 +541,9 @@
 
 [pages.settings.security]
 "admin" = "Thông tin đăng nhập quản trị viên"
-"twoFactor" = "Xác thực hai yếu tố"  
-"twoFactorEnable" = "Bật 2FA"  
-"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."  
+"twoFactor" = "Xác thực hai yếu tố"
+"twoFactorEnable" = "Bật 2FA"
+"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."
 "twoFactorModalSetTitle" = "Bật xác thực hai yếu tố"
 "twoFactorModalDeleteTitle" = "Tắt xác thực hai yếu tố"
 "twoFactorModalSteps" = "Để thiết lập xác thực hai yếu tố, hãy thực hiện các bước sau:"
@@ -561,22 +567,23 @@
 "resetOutboundTrafficError" = "Lỗi khi đặt lại lưu lượng truy cập đi"
 
 [tgbot]
-"keyboardClosed" = "❌ Bàn phím tùy chỉnh đã đóng!"
+"keyboardClosed" = "❌ Bàn phím đã đóng!"
 "noResult" = "❗ Không có kết quả!"
-"noQuery" = "❌ Không tìm thấy truy vấn! Vui lòng sử dụng lệnh lại!"
+"noQuery" = "❌ Không tìm thấy truy vấn! Vui lòng sử dụng lại lệnh!"
 "wentWrong" = "❌ Đã xảy ra lỗi!"
 "noIpRecord" = "❗ Không có bản ghi IP!"
 "noInbounds" = "❗ Không tìm thấy inbound!"
-"unlimited" = "♾ Không giới hạn"
+"unlimited" = "♾ Không giới hạn (Đặt lại)"
 "add" = "Thêm"
 "month" = "Tháng"
 "months" = "Tháng"
 "day" = "Ngày"
 "days" = "Ngày"
 "hours" = "Giờ"
-"unknown" = "Không rõ"
-"inbounds" = "Vào"
-"clients" = "Các người dùng"
+"minutes" = "Phút"
+"unknown" = "Không xác định"
+"inbounds" = "Inbound"
+"clients" = "Client"
 "offline" = "🔴 Ngoại tuyến"
 "online" = "🟢 Trực tuyến"
 

@@ -50,6 +50,7 @@
 "fail" = "Başarısız"
 "comment" = "Yorum"
 "success" = "Başarılı"
+"lastOnline" = "Son çevrimiçi"
 "getVersion" = "Sürümü Al"
 "install" = "Yükle"
 "clients" = "Müşteriler"
@@ -151,6 +152,8 @@
 "getConfigError" = "Yapılandırma dosyası alınırken bir hata oluştu"
 
 [pages.inbounds]
+"allTimeTraffic" = "Toplam Trafik"
+"allTimeTrafficUsage" = "Tüm Zamanların Toplam Kullanımı"
 "title" = "Gelenler"
 "totalDownUp" = "Toplam Gönderilen/Alınan"
 "totalUsage" = "Toplam Kullanım"
@@ -165,6 +168,8 @@
 "details" = "Detaylar"
 "transportConfig" = "Taşıma"
 "expireDate" = "Süre"
+"createdAt" = "Oluşturuldu"
+"updatedAt" = "Güncellendi"
 "resetTraffic" = "Trafiği Sıfırla"
 "addInbound" = "Gelen Ekle"
 "generalActions" = "Genel Eylemler"
@@ -262,6 +267,7 @@
 "trafficGetError" = "Trafik bilgisi alınırken hata oluştu"
 "getNewX25519CertError" = "X25519 sertifikası alınırken hata oluştu."
 "getNewmldsa65Error" = "mldsa65 sertifikası alınırken hata oluştu."
+"getNewVlessEncError" = "VlessEnc sertifikası alınırken hata oluştu."
 
 [pages.inbounds.stream.general]
 "request" = "İstek"
@@ -561,22 +567,23 @@
 "resetOutboundTrafficError" = "Giden trafik sıfırlanırken hata"
 
 [tgbot]
-"keyboardClosed" = "❌ Özel klavye kapalı!"
+"keyboardClosed" = "❌ Klavye kapatıldı!"
 "noResult" = "❗ Sonuç yok!"
 "noQuery" = "❌ Sorgu bulunamadı! Lütfen komutu tekrar kullanın!"
 "wentWrong" = "❌ Bir şeyler yanlış gitti!"
-"noIpRecord" = "❗ IP Kaydı yok!"
-"noInbounds" = "❗ Gelen bulunamadı!"
-"unlimited" = "♾ Sınırsız(Sıfırla)"
+"noIpRecord" = "❗ IP Kaydı Yok!"
+"noInbounds" = "❗ Gelen bağlantı bulunamadı!"
+"unlimited" = "♾ Sınırsız (Sıfırla)"
 "add" = "Ekle"
 "month" = "Ay"
 "months" = "Aylar"
 "day" = "Gün"
 "days" = "Günler"
 "hours" = "Saatler"
-"unknown" = "Bilinmiyor"
+"minutes" = "Dakika"
+"unknown" = "Bilinmeyen"
 "inbounds" = "Gelenler"
-"clients" = "Müşteriler"
+"clients" = "İstemciler"
 "offline" = "🔴 Çevrimdışı"
 "online" = "🟢 Çevrimiçi"
 

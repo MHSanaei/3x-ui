@@ -50,6 +50,7 @@
 "fail" = "Failed"
 "comment" = "Comment"
 "success" = "Successfully"
+"lastOnline" = "Last Online"
 "getVersion" = "Get Version"
 "install" = "Install"
 "clients" = "Clients"
@@ -151,6 +152,8 @@
 "getConfigError" = "An error occurred while retrieving the config file."
 
 [pages.inbounds]
+"allTimeTraffic" = "All-time Traffic"
+"allTimeTrafficUsage" = "All Time Total Usage"
 "title" = "Inbounds"
 "totalDownUp" = "Total Sent/Received"
 "totalUsage" = "Total Usage"
@@ -165,6 +168,8 @@
 "details" = "Details"
 "transportConfig" = "Transport"
 "expireDate" = "Duration"
+"createdAt" = "Created"
+"updatedAt" = "Updated"
 "resetTraffic" = "Reset Traffic"
 "addInbound" = "Add Inbound"
 "generalActions" = "General Actions"
@@ -262,6 +267,7 @@
 "trafficGetError" = "Error getting traffics."
 "getNewX25519CertError" = "Error while obtaining the X25519 certificate."
 "getNewmldsa65Error" = "Error while obtaining mldsa65."
+"getNewVlessEncError" = "Error while obtaining VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Request"
@@ -574,6 +580,7 @@
 "day" = "Day"
 "days" = "Days"
 "hours" = "Hours"
+"minutes" = "Minutes"
 "unknown" = "Unknown"
 "inbounds" = "Inbounds"
 "clients" = "Clients"

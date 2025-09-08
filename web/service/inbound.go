@@ -178,17 +178,42 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 
+	// Ensure created_at and updated_at on clients in settings
+	if len(clients) > 0 {
+		var settings map[string]any
+		if err2 := json.Unmarshal([]byte(inbound.Settings), &settings); err2 == nil && settings != nil {
+			now := time.Now().Unix() * 1000
+			updatedClients := make([]model.Client, 0, len(clients))
+			for _, c := range clients {
+				if c.CreatedAt == 0 {
+					c.CreatedAt = now
+				}
+				c.UpdatedAt = now
+				updatedClients = append(updatedClients, c)
+			}
+			settings["clients"] = updatedClients
+			if bs, err3 := json.MarshalIndent(settings, "", "  "); err3 == nil {
+				inbound.Settings = string(bs)
+			} else {
+				logger.Debug("Unable to marshal inbound settings with timestamps:", err3)
+			}
+		} else if err2 != nil {
+			logger.Debug("Unable to parse inbound settings for timestamps:", err2)
+		}
+	}
+
 	// Secure client ID
 	for _, client := range clients {
-		if inbound.Protocol == "trojan" {
+		switch inbound.Protocol {
+		case "trojan":
 			if client.Password == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
-		} else if inbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
-		} else {
+		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
@@ -322,6 +347,65 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		return inbound, false, err
 	}
 
+	// Ensure created_at and updated_at exist in inbound.Settings clients
+	{
+		var oldSettings map[string]any
+		_ = json.Unmarshal([]byte(oldInbound.Settings), &oldSettings)
+		emailToCreated := map[string]int64{}
+		emailToUpdated := map[string]int64{}
+		if oldSettings != nil {
+			if oc, ok := oldSettings["clients"].([]any); ok {
+				for _, it := range oc {
+					if m, ok2 := it.(map[string]any); ok2 {
+						if email, ok3 := m["email"].(string); ok3 {
+							switch v := m["created_at"].(type) {
+							case float64:
+								emailToCreated[email] = int64(v)
+							case int64:
+								emailToCreated[email] = v
+							}
+							switch v := m["updated_at"].(type) {
+							case float64:
+								emailToUpdated[email] = int64(v)
+							case int64:
+								emailToUpdated[email] = v
+							}
+						}
+					}
+				}
+			}
+		}
+		var newSettings map[string]any
+		if err2 := json.Unmarshal([]byte(inbound.Settings), &newSettings); err2 == nil && newSettings != nil {
+			now := time.Now().Unix() * 1000
+			if nSlice, ok := newSettings["clients"].([]any); ok {
+				for i := range nSlice {
+					if m, ok2 := nSlice[i].(map[string]any); ok2 {
+						email, _ := m["email"].(string)
+						if _, ok3 := m["created_at"]; !ok3 {
+							if v, ok4 := emailToCreated[email]; ok4 && v > 0 {
+								m["created_at"] = v
+							} else {
+								m["created_at"] = now
+							}
+						}
+						// Preserve client's updated_at if present; do not bump on parent inbound update
+						if _, hasUpdated := m["updated_at"]; !hasUpdated {
+							if v, ok4 := emailToUpdated[email]; ok4 && v > 0 {
+								m["updated_at"] = v
+							}
+						}
+						nSlice[i] = m
+					}
+				}
+				newSettings["clients"] = nSlice
+				if bs, err3 := json.MarshalIndent(newSettings, "", "  "); err3 == nil {
+					inbound.Settings = string(bs)
+				}
+			}
+		}
+	}
+
 	oldInbound.Up = inbound.Up
 	oldInbound.Down = inbound.Down
 	oldInbound.Total = inbound.Total
@@ -334,7 +418,6 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	oldInbound.Allocate = inbound.Allocate
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
@@ -424,6 +507,17 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 
 	interfaceClients := settings["clients"].([]any)
+	// Add timestamps for new clients being appended
+	nowTs := time.Now().Unix() * 1000
+	for i := range interfaceClients {
+		if cm, ok := interfaceClients[i].(map[string]any); ok {
+			if _, ok2 := cm["created_at"]; !ok2 {
+				cm["created_at"] = nowTs
+			}
+			cm["updated_at"] = nowTs
+			interfaceClients[i] = cm
+		}
+	}
 	existEmail, err := s.checkEmailsExistForClients(clients)
 	if err != nil {
 		return false, err
@@ -439,15 +533,16 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 
 	// Secure client ID
 	for _, client := range clients {
-		if oldInbound.Protocol == "trojan" {
+		switch oldInbound.Protocol {
+		case "trojan":
 			if client.Password == "" {
 				return false, common.NewError("empty client ID")
 			}
-		} else if oldInbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
-		} else {
+		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
 			}
@@ -644,13 +739,14 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	clientIndex := -1
 	for index, oldClient := range oldClients {
 		oldClientId := ""
-		if oldInbound.Protocol == "trojan" {
+		switch oldInbound.Protocol {
+		case "trojan":
 			oldClientId = oldClient.Password
 			newClientId = clients[0].Password
-		} else if oldInbound.Protocol == "shadowsocks" {
+		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
-		} else {
+		default:
 			oldClientId = oldClient.ID
 			newClientId = clients[0].ID
 		}
@@ -682,6 +778,25 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		return false, err
 	}
 	settingsClients := oldSettings["clients"].([]any)
+	// Preserve created_at and set updated_at for the replacing client
+	var preservedCreated any
+	if clientIndex >= 0 && clientIndex < len(settingsClients) {
+		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
+			if v, ok2 := oldMap["created_at"]; ok2 {
+				preservedCreated = v
+			}
+		}
+	}
+	if len(interfaceClients) > 0 {
+		if newMap, ok := interfaceClients[0].(map[string]any); ok {
+			if preservedCreated == nil {
+				preservedCreated = time.Now().Unix() * 1000
+			}
+			newMap["created_at"] = preservedCreated
+			newMap["updated_at"] = time.Now().Unix() * 1000
+			interfaceClients[0] = newMap
+		}
+	}
 	settingsClients[clientIndex] = interfaceClients[0]
 	oldSettings["clients"] = settingsClients
 
@@ -830,8 +945,9 @@ func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic
 		if traffic.IsInbound {
 			err = tx.Model(&model.Inbound{}).Where("tag = ?", traffic.Tag).
 				Updates(map[string]any{
-					"up":   gorm.Expr("up + ?", traffic.Up),
-					"down": gorm.Expr("down + ?", traffic.Down),
+					"up":       gorm.Expr("up + ?", traffic.Up),
+					"down":     gorm.Expr("down + ?", traffic.Down),
+					"all_time": gorm.Expr("COALESCE(all_time, 0) + ?", traffic.Up+traffic.Down),
 				}).Error
 			if err != nil {
 				return err
@@ -877,10 +993,12 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 			if dbClientTraffics[dbTraffic_index].Email == traffics[traffic_index].Email {
 				dbClientTraffics[dbTraffic_index].Up += traffics[traffic_index].Up
 				dbClientTraffics[dbTraffic_index].Down += traffics[traffic_index].Down
+				dbClientTraffics[dbTraffic_index].AllTime += (traffics[traffic_index].Up + traffics[traffic_index].Down)
 
 				// Add user in onlineUsers array on traffic
 				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
 					onlineClients = append(onlineClients, traffics[traffic_index].Email)
+					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
 				}
 				break
 			}
@@ -925,10 +1043,16 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 							oldExpiryTime := c["expiryTime"].(float64)
 							newExpiryTime := (time.Now().Unix() * 1000) - int64(oldExpiryTime)
 							c["expiryTime"] = newExpiryTime
+							c["updated_at"] = time.Now().Unix() * 1000
 							dbClientTraffics[traffic_index].ExpiryTime = newExpiryTime
 							break
 						}
 					}
+					// Backfill created_at and updated_at
+					if _, ok := c["created_at"]; !ok {
+						c["created_at"] = time.Now().Unix() * 1000
+					}
+					c["updated_at"] = time.Now().Unix() * 1000
 					newClients = append(newClients, any(c))
 				}
 				settings["clients"] = newClients
@@ -1263,11 +1387,12 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId int64) (boo
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1289,6 +1414,7 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId int64) (boo
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["tgId"] = tgId
+			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
 	}
@@ -1347,11 +1473,12 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, bo
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			clientOldEnabled = oldClient.Enable
@@ -1374,6 +1501,7 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, bo
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["enable"] = !clientOldEnabled
+			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
 	}
@@ -1410,11 +1538,12 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1436,6 +1565,7 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["limitIp"] = count
+			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
 	}
@@ -1467,11 +1597,12 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1493,6 +1624,7 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["expiryTime"] = expiry_time
+			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
 	}
@@ -1527,11 +1659,12 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 
 	for _, oldClient := range oldClients {
 		if oldClient.Email == clientEmail {
-			if inbound.Protocol == "trojan" {
+			switch inbound.Protocol {
+			case "trojan":
 				clientId = oldClient.Password
-			} else if inbound.Protocol == "shadowsocks" {
+			case "shadowsocks":
 				clientId = oldClient.Email
-			} else {
+			default:
 				clientId = oldClient.ID
 			}
 			break
@@ -1553,6 +1686,7 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["totalGB"] = totalGB * 1024 * 1024 * 1024
+			c["updated_at"] = time.Now().Unix() * 1000
 			newClients = append(newClients, any(c))
 		}
 	}
@@ -1935,6 +2069,25 @@ func (s *InboundService) MigrationRequirements() {
 		}
 	}()
 
+	// Calculate and backfill all_time from up+down for inbounds and clients
+	err = tx.Exec(`
+		UPDATE inbounds
+		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
+		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
+	`).Error
+	if err != nil {
+		return
+	}
+	err = tx.Exec(`
+		UPDATE client_traffics
+		SET all_time = IFNULL(up, 0) + IFNULL(down, 0)
+		WHERE IFNULL(all_time, 0) = 0 AND (IFNULL(up, 0) + IFNULL(down, 0)) > 0
+	`).Error
+
+	if err != nil {
+		return
+	}
+
 	// Fix inbounds based problems
 	var inbounds []*model.Inbound
 	err = tx.Model(model.Inbound{}).Where("protocol IN (?)", []string{"vmess", "vless", "trojan"}).Find(&inbounds).Error
@@ -1973,6 +2126,11 @@ func (s *InboundService) MigrationRequirements() {
 						c["flow"] = ""
 					}
 				}
+				// Backfill created_at and updated_at
+				if _, ok := c["created_at"]; !ok {
+					c["created_at"] = time.Now().Unix() * 1000
+				}
+				c["updated_at"] = time.Now().Unix() * 1000
 				newClients = append(newClients, any(c))
 			}
 			settings["clients"] = newClients
@@ -2059,6 +2217,20 @@ func (s *InboundService) MigrateDB() {
 
 func (s *InboundService) GetOnlineClients() []string {
 	return p.GetOnlineClients()
+}
+
+func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
+	db := database.GetDB()
+	var rows []xray.ClientTraffic
+	err := db.Model(&xray.ClientTraffic{}).Select("email, last_online").Find(&rows).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	result := make(map[string]int64, len(rows))
+	for _, r := range rows {
+		result[r.Email] = r.LastOnline
+	}
+	return result, nil
 }
 
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {

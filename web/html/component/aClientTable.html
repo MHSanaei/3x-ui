@@ -33,12 +33,17 @@
   <a-switch v-model="client.enable" @change="switchEnableClient(record.id,client)"></a-switch>
 </template>
 <template slot="online" slot-scope="text, client, index">
-  <template v-if="client.enable && isClientOnline(client.email)">
-    <a-tag color="green">{{ i18n "online" }}</a-tag>
-  </template>
-  <template v-else>
-    <a-tag>{{ i18n "offline" }}</a-tag>
-  </template>
+  <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+    <template slot="content" >
+      {{ i18n "lastOnline" }}: [[ formatLastOnline(client.email) ]]
+    </template>
+    <template v-if="client.enable && isClientOnline(client.email)">
+      <a-tag color="green">{{ i18n "online" }}</a-tag>
+    </template>
+    <template v-else>
+      <a-tag>{{ i18n "offline" }}</a-tag>
+    </template>
+  </a-popover>
 </template>
 <template slot="client" slot-scope="text, client">
   <a-space direction="horizontal" :size="2">
@@ -97,6 +102,10 @@
       </tr>
     </table>
   </a-popover>
+</template>
+
+<template slot="allTime" slot-scope="text, client">
+  <a-tag>[[ SizeFormatter.sizeFormat(getAllTimeClient(record, client.email)) ]]</a-tag>
 </template>
 <template slot="expiryTime" slot-scope="text, client, index">
   <template v-if="client.expiryTime !=0 && client.reset >0">
@@ -277,5 +286,31 @@
       </a-button>
     </a-badge>
   </a-popover>
+</template>
+<template slot="createdAt" slot-scope="text, client, index">
+  <template v-if="client.created_at">
+    <template v-if="app.datepicker === 'gregorian'">
+      [[ DateUtil.formatMillis(client.created_at) ]]
+    </template>
+    <template v-else>
+      [[ DateUtil.convertToJalalian(moment(client.created_at)) ]]
+    </template>
+  </template>
+  <template v-else>
+    -
+  </template>
+</template>
+<template slot="updatedAt" slot-scope="text, client, index">
+  <template v-if="client.updated_at">
+    <template v-if="app.datepicker === 'gregorian'">
+      [[ DateUtil.formatMillis(client.updated_at) ]]
+    </template>
+    <template v-else>
+      [[ DateUtil.convertToJalalian(moment(client.updated_at)) ]]
+    </template>
+  </template>
+  <template v-else>
+    -
+  </template>
 </template>
 {{end}}
