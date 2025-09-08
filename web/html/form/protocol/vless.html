@@ -22,6 +22,7 @@
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label="Authentication">
       <a-select v-model="inbound.settings.selectedAuth" @change="getNewVlessEnc" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option :value="undefined">None</a-select-option>
         <a-select-option value="X25519, not Post-Quantum">X25519 (not Post-Quantum)</a-select-option>
         <a-select-option value="ML-KEM-768, Post-Quantum">ML-KEM-768 (Post-Quantum)</a-select-option>
       </a-select>

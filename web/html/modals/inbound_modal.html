@@ -183,7 +183,8 @@
             },
             clearKeys() {
                 this.inbound.settings.decryption = 'none';
-                this.inbound.settings.encryption = '';
+                this.inbound.settings.encryption = 'none';
+                this.inbound.settings.selectedAuth = undefined;
             }
 
         },
