@@ -420,7 +420,7 @@
       },
       async restartXray() {
         this.loading(true);
-        const msg = await HttpUtil.post("server/restartXrayService");
+        const msg = await HttpUtil.post("/panel/api/server/restartXrayService");
         this.loading(false);
         if (msg.success) {
           await PromiseUtil.sleep(500);

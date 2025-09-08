@@ -151,7 +151,7 @@
     methods: {
       async getStatus() {
         try {
-          const msg = await HttpUtil.post('/server/status');
+          const msg = await HttpUtil.get('/panel/api/server/status');
           if (msg.success) {
             this.serverStatus = msg.obj;
           }
