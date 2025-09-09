@@ -37,11 +37,17 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 }
 
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
-	g = g.Group("/server")
 
-	g.Use(a.checkLogin)
-	g.POST("/status", a.status)
-	g.POST("/getXrayVersion", a.getXrayVersion)
+	g.GET("/status", a.status)
+	g.GET("/getXrayVersion", a.getXrayVersion)
+	g.GET("/getConfigJson", a.getConfigJson)
+	g.GET("/getDb", a.getDb)
+	g.GET("/getNewUUID", a.getNewUUID)
+	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
+	g.GET("/getNewmldsa65", a.getNewmldsa65)
+	g.GET("/getNewmlkem768", a.getNewmlkem768)
+	g.GET("/getNewVlessEnc", a.getNewVlessEnc)
+
 	g.POST("/stopXrayService", a.stopXrayService)
 	g.POST("/restartXrayService", a.restartXrayService)
 	g.POST("/installXray/:version", a.installXray)
@@ -49,13 +55,8 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateGeofile/:fileName", a.updateGeofile)
 	g.POST("/logs/:count", a.getLogs)
 	g.POST("/xraylogs/:count", a.getXrayLogs)
-	g.POST("/getConfigJson", a.getConfigJson)
-	g.GET("/getDb", a.getDb)
 	g.POST("/importDB", a.importDB)
-	g.POST("/getNewX25519Cert", a.getNewX25519Cert)
-	g.POST("/getNewmldsa65", a.getNewmldsa65)
 	g.POST("/getNewEchCert", a.getNewEchCert)
-	g.POST("/getNewVlessEnc", a.getNewVlessEnc)
 }
 
 func (a *ServerController) refreshStatus() {
@@ -272,6 +273,25 @@ func (a *ServerController) getNewVlessEnc(c *gin.Context) {
 	out, err := a.serverService.GetNewVlessEnc()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.getNewVlessEncError"), err)
+		return
+	}
+	jsonObj(c, out, nil)
+}
+
+func (a *ServerController) getNewUUID(c *gin.Context) {
+	uuidResp, err := a.serverService.GetNewUUID()
+	if err != nil {
+		jsonMsg(c, "Failed to generate UUID", err)
+		return
+	}
+
+	jsonObj(c, uuidResp, nil)
+}
+
+func (a *ServerController) getNewmlkem768(c *gin.Context) {
+	out, err := a.serverService.GetNewmlkem768()
+	if err != nil {
+		jsonMsg(c, "Failed to generate mlkem768 keys", err)
 		return
 	}
 	jsonObj(c, out, nil)

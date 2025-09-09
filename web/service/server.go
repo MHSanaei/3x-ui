@@ -24,6 +24,7 @@ import (
 	"x-ui/util/sys"
 	"x-ui/xray"
 
+	"github.com/google/uuid"
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/disk"
 	"github.com/shirou/gopsutil/v4/host"
@@ -872,12 +873,6 @@ func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
 	}, nil
 }
 
-type AuthBlock struct {
-	Label      string `json:"label"`
-	Decryption string `json:"decryption"`
-	Encryption string `json:"encryption"`
-}
-
 func (s *ServerService) GetNewVlessEnc() (any, error) {
 	cmd := exec.Command(xray.GetBinaryPath(), "vlessenc")
 	var out bytes.Buffer
@@ -887,37 +882,70 @@ func (s *ServerService) GetNewVlessEnc() (any, error) {
 	}
 
 	lines := strings.Split(out.String(), "\n")
-
-	var blocks []AuthBlock
-	var current *AuthBlock
+	var auths []map[string]string
+	var current map[string]string
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "Authentication:") {
 			if current != nil {
-				blocks = append(blocks, *current)
+				auths = append(auths, current)
 			}
-			current = &AuthBlock{Label: strings.TrimSpace(strings.TrimPrefix(line, "Authentication:"))}
+			current = map[string]string{
+				"label": strings.TrimSpace(strings.TrimPrefix(line, "Authentication:")),
+			}
 		} else if strings.HasPrefix(line, `"decryption"`) || strings.HasPrefix(line, `"encryption"`) {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 && current != nil {
 				key := strings.Trim(parts[0], `" `)
 				val := strings.Trim(parts[1], `" `)
-				switch key {
-				case "decryption":
-					current.Decryption = val
-				case "encryption":
-					current.Encryption = val
-				}
+				current[key] = val
 			}
 		}
 	}
 
 	if current != nil {
-		blocks = append(blocks, *current)
+		auths = append(auths, current)
 	}
 
 	return map[string]any{
-		"auths": blocks,
+		"auths": auths,
 	}, nil
+}
+
+func (s *ServerService) GetNewUUID() (map[string]string, error) {
+	newUUID, err := uuid.NewRandom()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate UUID: %w", err)
+	}
+
+	return map[string]string{
+		"uuid": newUUID.String(),
+	}, nil
+}
+
+func (s *ServerService) GetNewmlkem768() (any, error) {
+	// Run the command
+	cmd := exec.Command(xray.GetBinaryPath(), "mlkem768")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	lines := strings.Split(out.String(), "\n")
+
+	SeedLine := strings.Split(lines[0], ":")
+	ClientLine := strings.Split(lines[1], ":")
+
+	seed := strings.TrimSpace(SeedLine[1])
+	client := strings.TrimSpace(ClientLine[1])
+
+	keyPair := map[string]any{
+		"seed":   seed,
+		"client": client,
+	}
+
+	return keyPair, nil
 }

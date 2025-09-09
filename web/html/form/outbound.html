@@ -241,9 +241,9 @@
         </template>
       </template>
 
-      <!-- Servers (trojan/shadowsocks/socks/http) settings -->
+      <!-- Servers (trojan/shadowsocks/mixed/http) settings -->
       <template v-if="outbound.hasServers()">
-        <!-- http / socks -->
+        <!-- http / mixed -->
         <template v-if="outbound.hasUsername()">
           <a-form-item label='{{ i18n "username" }}'>
             <a-input v-model.trim="outbound.settings.user"></a-input>
@@ -440,6 +440,9 @@
             <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" v-model="outbound.stream.tls.alpn">
               <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
             </a-select>
+          </a-form-item>
+          <a-form-item label="ECH Config List">
+            <a-input v-model.trim="outbound.stream.tls.echConfigList"></a-input>
           </a-form-item>
           <a-form-item label="Allow Insecure">
             <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>

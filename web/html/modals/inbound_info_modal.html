@@ -354,7 +354,7 @@
           <code>[[ link.link ]]</code>
         </tr-info-row>
       </template>
-      <table v-if="inbound.protocol == Protocols.DOKODEMO" class="tr-info-table">
+      <table v-if="inbound.protocol == Protocols.TUNNEL" class="tr-info-table">
         <tr>
           <th>{{ i18n "pages.inbounds.targetAddress" }}</th>
           <th>{{ i18n "pages.inbounds.destinationPort" }}</th>
@@ -376,7 +376,7 @@
           </td>
         </tr>
       </table>
-      <table v-if="dbInbound.isSocks" class="tr-info-table">
+      <table v-if="dbInbound.isMixed" class="tr-info-table">
         <tr>
           <th>{{ i18n "password" }} Auth</th>
           <th>{{ i18n "pages.inbounds.enable" }} udp</th>
@@ -492,7 +492,7 @@
 </a-modal>
 <script>
   function refreshIPs(email) {
-    return HttpUtil.post(`/panel/inbound/clientIps/${email}`).then((msg) => {
+    return HttpUtil.post(`/panel/api/inbounds/clientIps/${email}`).then((msg) => {
       if (msg.success) {
         try {
           return JSON.parse(msg.obj).join(', ');
@@ -613,7 +613,7 @@
           });
       },
       clearClientIps() {
-        HttpUtil.post(`/panel/inbound/clearClientIps/${this.infoModal.clientStats.email}`)
+        HttpUtil.post(`/panel/api/inbounds/clearClientIps/${this.infoModal.clientStats.email}`)
           .then((msg) => {
             if (!msg.success) {
               return;
