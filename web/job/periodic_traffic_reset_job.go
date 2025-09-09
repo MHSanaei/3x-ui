@@ -1,7 +1,6 @@
 package job
 
 import (
-	"x-ui/database/model"
 	"x-ui/logger"
 	"x-ui/web/service"
 )
@@ -20,7 +19,7 @@ func NewPeriodicTrafficResetJob(period Period) *PeriodicTrafficResetJob {
 }
 
 func (j *PeriodicTrafficResetJob) Run() {
-	inbounds, err := j.inboundService.GetInboundsByPeriodicTrafficReset(string(j.period))
+	inbounds, err := j.inboundService.GetInboundsByTrafficReset(string(j.period))
 	logger.Infof("Running periodic traffic reset job for period: %s", j.period)
 	if err != nil {
 		logger.Warning("Failed to get inbounds for traffic reset:", err)
@@ -42,8 +41,4 @@ func (j *PeriodicTrafficResetJob) Run() {
 	if resetCount > 0 {
 		logger.Infof("Periodic traffic reset completed: %d inbounds reseted", resetCount)
 	}
-}
-
-func (j *PeriodicTrafficResetJob) getResetKey(inbound *model.Inbound) string {
-	return inbound.PeriodicTrafficReset + "_" + inbound.Tag
 }
