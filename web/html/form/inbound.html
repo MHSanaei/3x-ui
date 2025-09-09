@@ -83,14 +83,14 @@
     {{template "form/shadowsocks"}}
 </template>
 
-<!-- dokodemo-door -->
-<template v-if="inbound.protocol === Protocols.DOKODEMO">
-    {{template "form/dokodemo"}}
+<!-- tunnel -->
+<template v-if="inbound.protocol === Protocols.TUNNEL">
+    {{template "form/tunnel"}}
 </template>
 
-<!-- socks -->
-<template v-if="inbound.protocol === Protocols.SOCKS">
-    {{template "form/socks"}}
+<!-- mixed -->
+<template v-if="inbound.protocol === Protocols.MIXED">
+    {{template "form/mixed"}}
 </template>
 
 <!-- http -->

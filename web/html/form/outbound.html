@@ -241,9 +241,9 @@
         </template>
       </template>
 
-      <!-- Servers (trojan/shadowsocks/socks/http) settings -->
+      <!-- Servers (trojan/shadowsocks/mixed/http) settings -->
       <template v-if="outbound.hasServers()">
-        <!-- http / socks -->
+        <!-- http / mixed -->
         <template v-if="outbound.hasUsername()">
           <a-form-item label='{{ i18n "username" }}'>
             <a-input v-model.trim="outbound.settings.user"></a-input>

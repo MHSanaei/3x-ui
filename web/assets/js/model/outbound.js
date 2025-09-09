@@ -6,7 +6,7 @@ const Protocols = {
     VLESS: "vless",
     Trojan: "trojan",
     Shadowsocks: "shadowsocks",
-    Socks: "socks",
+    Mixed: "mixed",
     HTTP: "http",
     Wireguard: "wireguard"
 };
@@ -643,7 +643,7 @@ class Outbound extends CommonClass {
             Protocols.Trojan,
             Protocols.Shadowsocks,
             Protocols.HTTP,
-            Protocols.Socks
+            Protocols.Mixed
         ].includes(this.protocol);
     }
 
@@ -652,7 +652,7 @@ class Outbound extends CommonClass {
     }
 
     hasServers() {
-        return [Protocols.Trojan, Protocols.Shadowsocks, Protocols.Socks, Protocols.HTTP].includes(this.protocol);
+        return [Protocols.Trojan, Protocols.Shadowsocks, Protocols.Mixed, Protocols.HTTP].includes(this.protocol);
     }
 
     hasAddressPort() {
@@ -662,13 +662,13 @@ class Outbound extends CommonClass {
             Protocols.VLESS,
             Protocols.Trojan,
             Protocols.Shadowsocks,
-            Protocols.Socks,
+            Protocols.Mixed,
             Protocols.HTTP
         ].includes(this.protocol);
     }
 
     hasUsername() {
-        return [Protocols.Socks, Protocols.HTTP].includes(this.protocol);
+        return [Protocols.Mixed, Protocols.HTTP].includes(this.protocol);
     }
 
     static fromJson(json = {}) {
@@ -847,7 +847,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.VLESS: return new Outbound.VLESSSettings();
             case Protocols.Trojan: return new Outbound.TrojanSettings();
             case Protocols.Shadowsocks: return new Outbound.ShadowsocksSettings();
-            case Protocols.Socks: return new Outbound.SocksSettings();
+            case Protocols.Mixed: return new Outbound.MixedSettings();
             case Protocols.HTTP: return new Outbound.HttpSettings();
             case Protocols.Wireguard: return new Outbound.WireguardSettings();
             default: return null;
@@ -863,7 +863,7 @@ Outbound.Settings = class extends CommonClass {
             case Protocols.VLESS: return Outbound.VLESSSettings.fromJson(json);
             case Protocols.Trojan: return Outbound.TrojanSettings.fromJson(json);
             case Protocols.Shadowsocks: return Outbound.ShadowsocksSettings.fromJson(json);
-            case Protocols.Socks: return Outbound.SocksSettings.fromJson(json);
+            case Protocols.Mixed: return Outbound.MixedSettings.fromJson(json);
             case Protocols.HTTP: return Outbound.HttpSettings.fromJson(json);
             case Protocols.Wireguard: return Outbound.WireguardSettings.fromJson(json);
             default: return null;
@@ -1141,7 +1141,7 @@ Outbound.ShadowsocksSettings = class extends CommonClass {
     }
 };
 
-Outbound.SocksSettings = class extends CommonClass {
+Outbound.MixedSettings = class extends CommonClass {
     constructor(address, port, user, pass) {
         super();
         this.address = address;
@@ -1153,7 +1153,7 @@ Outbound.SocksSettings = class extends CommonClass {
     static fromJson(json = {}) {
         let servers = json.servers;
         if (ObjectUtil.isArrEmpty(servers)) servers = [{ users: [{}] }];
-        return new Outbound.SocksSettings(
+        return new Outbound.MixedSettings(
             servers[0].address,
             servers[0].port,
             ObjectUtil.isArrEmpty(servers[0].users) ? '' : servers[0].users[0].user,
