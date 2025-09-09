@@ -41,14 +41,44 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
-func (s *InboundService) GetInboundsByPeriodicTrafficReset(period string) ([]*model.Inbound, error) {
+func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Where("periodic_traffic_reset = ?", period).Find(&inbounds).Error
+	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
 	return inbounds, nil
+}
+
+func (s *InboundService) GetClientsByTrafficReset(period string) ([]model.Client, error) {
+	db := database.GetDB()
+	var inbounds []*model.Inbound
+
+	// Get all inbounds first
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
+	if err != nil {
+		return nil, err
+	}
+
+	var clientsWithReset []model.Client
+
+	// Parse each inbound's settings to find clients with matching traffic reset period
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil {
+			logger.Warning("Failed to get clients for inbound", inbound.Id, ":", err)
+			continue
+		}
+
+		for _, client := range clients {
+			if client.TrafficReset == period {
+				clientsWithReset = append(clientsWithReset, client)
+			}
+		}
+	}
+
+	return clientsWithReset, nil
 }
 
 func (s *InboundService) checkPortExist(listen string, port int, ignoreId int) (bool, error) {
@@ -407,7 +437,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Remark = inbound.Remark
 	oldInbound.Enable = inbound.Enable
 	oldInbound.ExpiryTime = inbound.ExpiryTime
-	oldInbound.PeriodicTrafficReset = inbound.PeriodicTrafficReset
+	oldInbound.TrafficReset = inbound.TrafficReset
 	oldInbound.Listen = inbound.Listen
 	oldInbound.Port = inbound.Port
 	oldInbound.Protocol = inbound.Protocol
@@ -697,6 +727,7 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 }
 
 func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId string) (bool, error) {
+	// TODO: check if TrafficReset field are updating
 	clients, err := s.GetClients(data)
 	if err != nil {
 		return false, err
@@ -1682,6 +1713,7 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	db := database.GetDB()
 
+	// Reset traffic stats in ClientTraffic table
 	result := db.Model(xray.ClientTraffic{}).
 		Where("email = ?", clientEmail).
 		Updates(map[string]any{"enable": true, "up": 0, "down": 0})
@@ -1690,6 +1722,48 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 	if err != nil {
 		return err
 	}
+
+	// Update lastTrafficResetTime in client settings
+	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
+	if err != nil {
+		logger.Warning("Failed to get inbound for client", clientEmail, ":", err)
+		return nil // Don't fail the reset if we can't update the timestamp
+	}
+
+	if inbound != nil {
+		var settings map[string]any
+		err = json.Unmarshal([]byte(inbound.Settings), &settings)
+		if err != nil {
+			logger.Warning("Failed to parse inbound settings:", err)
+			return nil
+		}
+
+		clientsSettings := settings["clients"].([]any)
+		now := time.Now().Unix() * 1000
+
+		for client_index := range clientsSettings {
+			c := clientsSettings[client_index].(map[string]any)
+			if c["email"] == clientEmail {
+				c["lastTrafficResetTime"] = now
+				c["updated_at"] = now
+				break
+			}
+		}
+
+		settings["clients"] = clientsSettings
+		modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			logger.Warning("Failed to marshal inbound settings:", err)
+			return nil
+		}
+
+		inbound.Settings = string(modifiedSettings)
+		err = db.Save(inbound).Error
+		if err != nil {
+			logger.Warning("Failed to save inbound with updated client settings:", err)
+		}
+	}
+
 	return nil
 }
 
