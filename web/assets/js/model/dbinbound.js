@@ -50,8 +50,8 @@ class DBInbound {
         return this.protocol === Protocols.SHADOWSOCKS;
     }
 
-    get isSocks() {
-        return this.protocol === Protocols.SOCKS;
+    get isMixed() {
+        return this.protocol === Protocols.MIXED;
     }
 
     get isHTTP() {

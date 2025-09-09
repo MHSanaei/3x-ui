@@ -3,8 +3,8 @@ const Protocols = {
     VLESS: 'vless',
     TROJAN: 'trojan',
     SHADOWSOCKS: 'shadowsocks',
-    DOKODEMO: 'dokodemo-door',
-    SOCKS: 'socks',
+    TUNNEL: 'tunnel',
+    MIXED: 'mixed',
     HTTP: 'http',
     WIREGUARD: 'wireguard',
 };
@@ -729,7 +729,7 @@ class RealityStreamSettings extends XrayCommonClass {
     constructor(
         show = false,
         xver = 0,
-        dest = 'google.com:443',
+        target = 'google.com:443',
         serverNames = 'google.com,www.google.com',
         privateKey = '',
         minClientVer = '',
@@ -742,7 +742,7 @@ class RealityStreamSettings extends XrayCommonClass {
         super();
         this.show = show;
         this.xver = xver;
-        this.dest = dest;
+        this.target = target;
         this.serverNames = Array.isArray(serverNames) ? serverNames.join(",") : serverNames;
         this.privateKey = privateKey;
         this.minClientVer = minClientVer;
@@ -767,7 +767,7 @@ class RealityStreamSettings extends XrayCommonClass {
         return new RealityStreamSettings(
             json.show,
             json.xver,
-            json.dest,
+            json.target,
             json.serverNames,
             json.privateKey,
             json.minClientVer,
@@ -783,7 +783,7 @@ class RealityStreamSettings extends XrayCommonClass {
         return {
             show: this.show,
             xver: this.xver,
-            dest: this.dest,
+            target: this.target,
             serverNames: this.serverNames.split(","),
             privateKey: this.privateKey,
             minClientVer: this.minClientVer,
@@ -1712,8 +1712,8 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.VLESS: return new Inbound.VLESSSettings(protocol);
             case Protocols.TROJAN: return new Inbound.TrojanSettings(protocol);
             case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings(protocol);
-            case Protocols.DOKODEMO: return new Inbound.DokodemoSettings(protocol);
-            case Protocols.SOCKS: return new Inbound.SocksSettings(protocol);
+            case Protocols.TUNNEL: return new Inbound.TunnelSettings(protocol);
+            case Protocols.MIXED: return new Inbound.MixedSettings(protocol);
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
             default: return null;
@@ -1726,8 +1726,8 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.VLESS: return Inbound.VLESSSettings.fromJson(json);
             case Protocols.TROJAN: return Inbound.TrojanSettings.fromJson(json);
             case Protocols.SHADOWSOCKS: return Inbound.ShadowsocksSettings.fromJson(json);
-            case Protocols.DOKODEMO: return Inbound.DokodemoSettings.fromJson(json);
-            case Protocols.SOCKS: return Inbound.SocksSettings.fromJson(json);
+            case Protocols.TUNNEL: return Inbound.TunnelSettings.fromJson(json);
+            case Protocols.MIXED: return Inbound.MixedSettings.fromJson(json);
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
             default: return null;
@@ -2327,7 +2327,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
 
 };
 
-Inbound.DokodemoSettings = class extends Inbound.Settings {
+Inbound.TunnelSettings = class extends Inbound.Settings {
     constructor(
         protocol,
         address,
@@ -2345,8 +2345,8 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.DokodemoSettings(
-            Protocols.DOKODEMO,
+        return new Inbound.TunnelSettings(
+            Protocols.TUNNEL,
             json.address,
             json.port,
             XrayCommonClass.toHeaders(json.portMap),
@@ -2366,8 +2366,8 @@ Inbound.DokodemoSettings = class extends Inbound.Settings {
     }
 };
 
-Inbound.SocksSettings = class extends Inbound.Settings {
-    constructor(protocol, auth = 'password', accounts = [new Inbound.SocksSettings.SocksAccount()], udp = false, ip = '127.0.0.1') {
+Inbound.MixedSettings = class extends Inbound.Settings {
+    constructor(protocol, auth = 'password', accounts = [new Inbound.MixedSettings.SocksAccount()], udp = false, ip = '127.0.0.1') {
         super(protocol);
         this.auth = auth;
         this.accounts = accounts;
@@ -2387,11 +2387,11 @@ Inbound.SocksSettings = class extends Inbound.Settings {
         let accounts;
         if (json.auth === 'password') {
             accounts = json.accounts.map(
-                account => Inbound.SocksSettings.SocksAccount.fromJson(account)
+                account => Inbound.MixedSettings.SocksAccount.fromJson(account)
             )
         }
-        return new Inbound.SocksSettings(
-            Protocols.SOCKS,
+        return new Inbound.MixedSettings(
+            Protocols.MIXED,
             json.auth,
             accounts,
             json.udp,
@@ -2408,7 +2408,7 @@ Inbound.SocksSettings = class extends Inbound.Settings {
         };
     }
 };
-Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
+Inbound.MixedSettings.SocksAccount = class extends XrayCommonClass {
     constructor(user = RandomUtil.randomSeq(10), pass = RandomUtil.randomSeq(10)) {
         super();
         this.user = user;
@@ -2416,7 +2416,7 @@ Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.SocksSettings.SocksAccount(json.user, json.pass);
+        return new Inbound.MixedSettings.SocksAccount(json.user, json.pass);
     }
 };
 
