@@ -729,7 +729,7 @@ class RealityStreamSettings extends XrayCommonClass {
     constructor(
         show = false,
         xver = 0,
-        dest = 'google.com:443',
+        target = 'google.com:443',
         serverNames = 'google.com,www.google.com',
         privateKey = '',
         minClientVer = '',
@@ -742,7 +742,7 @@ class RealityStreamSettings extends XrayCommonClass {
         super();
         this.show = show;
         this.xver = xver;
-        this.dest = dest;
+        this.target = target;
         this.serverNames = Array.isArray(serverNames) ? serverNames.join(",") : serverNames;
         this.privateKey = privateKey;
         this.minClientVer = minClientVer;
@@ -767,7 +767,7 @@ class RealityStreamSettings extends XrayCommonClass {
         return new RealityStreamSettings(
             json.show,
             json.xver,
-            json.dest,
+            json.target,
             json.serverNames,
             json.privateKey,
             json.minClientVer,
@@ -783,7 +783,7 @@ class RealityStreamSettings extends XrayCommonClass {
         return {
             show: this.show,
             xver: this.xver,
-            dest: this.dest,
+            target: this.target,
             serverNames: this.serverNames.split(","),
             privateKey: this.privateKey,
             minClientVer: this.minClientVer,
