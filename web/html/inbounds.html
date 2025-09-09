@@ -712,7 +712,7 @@
     }, {
         title: '{{ i18n "pages.inbounds.enable" }}',
         align: 'center',
-        width: 30,
+        width: 35,
         scopedSlots: { customRender: 'enable' },
     }, {
         title: '{{ i18n "pages.inbounds.remark" }}',
@@ -776,8 +776,8 @@
 
     const innerColumns = [
         { title: '{{ i18n "pages.inbounds.operate" }}', width: 65, scopedSlots: { customRender: 'actions' } },
-        { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
-        { title: '{{ i18n "online" }}', width: 30, scopedSlots: { customRender: 'online' } },
+        { title: '{{ i18n "pages.inbounds.enable" }}', width: 35, scopedSlots: { customRender: 'enable' } },
+        { title: '{{ i18n "online" }}', width: 32, scopedSlots: { customRender: 'online' } },
         { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
         { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
         { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'allTime' } },
@@ -813,6 +813,7 @@
             defaultKey: '',
             clientCount: [],
             onlineClients: [],
+            lastOnlineMap: {},
             isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
             refreshing: false,
             refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
@@ -841,6 +842,7 @@
                     return;
                 }
 
+                await this.getLastOnlineMap();
                 await this.getOnlineUsers();
                 
                 this.setInbounds(msg.obj);
@@ -854,6 +856,11 @@
                     return;
                 }
                 this.onlineClients = msg.obj != null ? msg.obj : [];
+            },
+            async getLastOnlineMap() {
+                const msg = await HttpUtil.post('/panel/api/inbounds/lastOnline');
+                if (!msg.success || !msg.obj) return;
+                this.lastOnlineMap = msg.obj || {}
             },
             async getDefaultSettings() {
                 const msg = await HttpUtil.post('/panel/setting/defaultSettings');
@@ -1501,6 +1508,17 @@
             },
             isClientOnline(email) {
                 return this.onlineClients.includes(email);
+            },
+            getLastOnline(email) {
+                return this.lastOnlineMap[email] || null
+            },
+            formatLastOnline(email) {
+                const ts = this.getLastOnline(email)
+                if (!ts) return '-'
+                if (this.datepicker === 'gregorian') {
+                    return DateUtil.formatMillis(ts)
+                }
+                return DateUtil.convertToJalalian(moment(ts))
             },
             isRemovable(dbInboundId) {
                 return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;

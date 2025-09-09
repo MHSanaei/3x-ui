@@ -11,4 +11,5 @@ type ClientTraffic struct {
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"`
 	Total      int64  `json:"total" form:"total"`
 	Reset      int    `json:"reset" form:"reset" gorm:"default:0"`
+	LastOnline int64  `json:"lastOnline" form:"lastOnline" gorm:"default:0"`
 }
