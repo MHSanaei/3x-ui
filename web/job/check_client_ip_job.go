@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"runtime"
 	"sort"
 	"time"
 
@@ -40,11 +41,17 @@ func (j *CheckClientIpJob) Run() {
 	isAccessLogAvailable := j.checkAccessLogAvailable(iplimitActive)
 
 	if iplimitActive {
-		if f2bInstalled && isAccessLogAvailable {
-			shouldClearAccessLog = j.processLogFile()
+		if runtime.GOOS == "windows" {
+			if isAccessLogAvailable {
+				shouldClearAccessLog = j.processLogFile()
+			}
 		} else {
-			if !f2bInstalled {
-				logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+			if f2bInstalled && isAccessLogAvailable {
+				shouldClearAccessLog = j.processLogFile()
+			} else {
+				if !f2bInstalled {
+					logger.Warning("[LimitIP] Fail2Ban is not installed, Please install Fail2Ban from the x-ui bash menu.")
+				}
 			}
 		}
 	}
