@@ -1,6 +1,6 @@
 module x-ui
 
-go 1.25.0
+go 1.25.1
 
 require (
 	github.com/gin-contrib/gzip v1.2.3
@@ -17,13 +17,13 @@ require (
 	github.com/shirou/gopsutil/v4 v4.25.8
 	github.com/valyala/fasthttp v1.65.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.250905.0
+	github.com/xtls/xray-core v1.250910.0
 	go.uber.org/atomic v1.11.0
-	golang.org/x/crypto v0.41.0
-	golang.org/x/text v0.28.0
-	google.golang.org/grpc v1.75.0
+	golang.org/x/crypto v0.42.0
+	golang.org/x/text v0.29.0
+	google.golang.org/grpc v1.75.1
 	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.30.2
+	gorm.io/gorm v1.30.5
 )
 
 require (
@@ -85,16 +85,16 @@ require (
 	go.uber.org/mock v0.6.0 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/arch v0.21.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20250521234502-f333402bd9cb // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
-	google.golang.org/protobuf v1.36.8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250908214217-97024824d090 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
