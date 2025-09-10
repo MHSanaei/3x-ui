@@ -9,7 +9,7 @@
           </template> Source IPs <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.source"></a-input>
+      <a-input v-model.trim="ruleModal.rule.sourceIP"></a-input>
     </a-form-item>
     <a-form-item>
       <template slot="label">
@@ -123,7 +123,7 @@
       port: "",
       sourcePort: "",
       network: "",
-      source: "",
+      sourceIP: "",
       user: "",
       inboundTag: [],
       protocol: [],
@@ -156,7 +156,7 @@
         this.rule.port = rule.port;
         this.rule.sourcePort = rule.sourcePort;
         this.rule.network = rule.network;
-        this.rule.source = rule.source ? rule.source.join(',') : [];
+        this.rule.sourceIP = rule.sourceIP ? rule.sourceIP.join(',') : [];
         this.rule.user = rule.user ? rule.user.join(',') : [];
         this.rule.inboundTag = rule.inboundTag;
         this.rule.protocol = rule.protocol;
@@ -170,7 +170,7 @@
           port: "",
           sourcePort: "",
           network: "",
-          source: "",
+          sourceIP: "",
           user: "",
           inboundTag: [],
           protocol: [],
@@ -211,7 +211,7 @@
       rule.port = value.port;
       rule.sourcePort = value.sourcePort;
       rule.network = value.network;
-      rule.source = value.source.length > 0 ? value.source.split(',') : [];
+      rule.sourceIP = value.sourceIP.length > 0 ? value.sourceIP.split(',') : [];
       rule.user = value.user.length > 0 ? value.user.split(',') : [];
       rule.inboundTag = value.inboundTag;
       rule.protocol = value.protocol;
