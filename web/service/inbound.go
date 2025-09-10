@@ -2247,3 +2247,95 @@ func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, [
 
 	return validEmails, extraEmails, nil
 }
+func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (bool, error) {
+	oldInbound, err := s.GetInbound(inboundId)
+	if err != nil {
+		logger.Error("Load Old Data Error")
+		return false, err
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(oldInbound.Settings), &settings); err != nil {
+		return false, err
+	}
+
+	interfaceClients, ok := settings["clients"].([]any)
+	if !ok {
+		return false, common.NewError("invalid clients format in inbound settings")
+	}
+
+	var newClients []any
+	needApiDel := false
+	found := false
+
+	for _, client := range interfaceClients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+		if cEmail, ok := c["email"].(string); ok && cEmail == email {
+			// matched client, drop it
+			found = true
+			needApiDel, _ = c["enable"].(bool)
+		} else {
+			newClients = append(newClients, client)
+		}
+	}
+
+	if !found {
+		return false, common.NewError(fmt.Sprintf("client with email %s not found", email))
+	}
+	if len(newClients) == 0 {
+		return false, common.NewError("no client remained in Inbound")
+	}
+
+	settings["clients"] = newClients
+	newSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+
+	oldInbound.Settings = string(newSettings)
+
+	db := database.GetDB()
+
+	// remove IP bindings
+	if err := s.DelClientIPs(db, email); err != nil {
+		logger.Error("Error in delete client IPs")
+		return false, err
+	}
+
+	needRestart := false
+
+	// remove stats too
+	if len(email) > 0 {
+		traffic, err := s.GetClientTrafficByEmail(email)
+		if err != nil {
+			return false, err
+		}
+		if traffic != nil {
+			if err := s.DelClientStat(db, email); err != nil {
+				logger.Error("Delete stats Data Error")
+				return false, err
+			}
+		}
+
+		if needApiDel {
+			s.xrayApi.Init(p.GetAPIPort())
+			if err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email); err1 == nil {
+				logger.Debug("Client deleted by api:", email)
+				needRestart = false
+			} else {
+				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", email)) {
+					logger.Debug("User is already deleted. Nothing to do more...")
+				} else {
+					logger.Debug("Error in deleting client by api:", err1)
+					needRestart = true
+				}
+			}
+			s.xrayApi.Close()
+		}
+	}
+
+	return needRestart, db.Save(oldInbound).Error
+}
