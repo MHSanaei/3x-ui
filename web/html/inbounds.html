@@ -983,11 +983,13 @@
                             const list = this.clientCount[inbound.id][this.filterBy];
                             if (list.length > 0) {
                                 const filteredSettings = { "clients": [] };
-                                inboundSettings.clients.forEach(client => {
-                                    if (list.includes(client.email)) {
-                                        filteredSettings.clients.push(client);
-                                    }
-                                });
+                                if (inboundSettings.clients) {
+                                    inboundSettings.clients.forEach(client => {
+                                        if (list.includes(client.email)) {
+                                            filteredSettings.clients.push(client);
+                                        }
+                                    });
+                                }
                                 newInbound.settings = Inbound.Settings.fromJson(inbound.protocol, filteredSettings);
                                 this.searchedInbounds.push(newInbound);
                             }
