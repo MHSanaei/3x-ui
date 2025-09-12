@@ -1,73 +1,4 @@
 {{ template "page/head_start" .}}
-<style>
-  @media (min-width: 769px) {
-    .ant-layout-content {
-      margin: 24px 16px;
-    }
-  }
-  .ant-card-dark h2 {
-    color: var(--dark-color-text-primary);
-  }
-  .ant-backup-list-item {
-    gap: 10px;
-  }
-  .ant-version-list-item {
-    --padding: 12px;
-    padding: var(--padding) !important;
-    gap: var(--padding);
-  }
-  .dark .ant-version-list-item svg{
-    color: var(--dark-color-text-primary);
-  }
-  .dark .ant-backup-list-item svg,
-  .dark .ant-badge-status-text,
-  .dark .ant-card-extra {
-    color: var(--dark-color-text-primary);
-  }
-  .dark .ant-card-actions>li {
-    color: rgba(255, 255, 255, 0.55);
-  }
-  .dark .ant-radio-inner {
-    background-color: var(--dark-color-surface-100);
-    border-color: var(--dark-color-surface-600);
-  }
-  .dark .ant-radio-checked .ant-radio-inner {
-    border-color: var(--color-primary-100);
-  }
-  .dark .ant-backup-list, 
-  .dark .ant-version-list,
-  .dark .ant-card-actions,
-  .dark .ant-card-actions>li:not(:last-child) {
-    border-color: var(--dark-color-stroke);
-  }
-  .ant-card-actions {
-    background: transparent;
-  }
-  .ip-hidden {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    user-select: none;
-    filter: blur(10px);
-  }
-  .running-animation .ant-badge-status-dot {
-    animation: runningAnimation 1.2s linear infinite;
-  }
-  .running-animation .ant-badge-status-processing:after {
-    border-color: var(--color-primary-100);
-  }
-  @keyframes runningAnimation {
-    0%,
-    50%,
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    10% {
-      transform: scale(1.5);
-      opacity: .2;
-    }
-  }
-</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
@@ -77,7 +8,7 @@
     <a-layout-content>
       <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip">
         <transition name="list" appear>
-          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched" class="mb-10"
             message='{{ i18n "secAlertTitle" }}'
             color="red"
             description='{{ i18n "secAlertSsl" }}'
@@ -87,7 +18,7 @@
         <transition name="list" appear>
           <template>
             <a-row v-if="!loadingStates.fetched">
-              <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+              <a-card class="card-placeholder text-center">
                 <a-spin tip='{{ i18n "loading" }}'></a-spin>
               </a-card>
             </a-row>
@@ -97,7 +28,7 @@
                   <a-row :gutter="[0, isMobile ? 16 : 0]">
                     <a-col :sm="24" :md="12">
                       <a-row>
-                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                        <a-col :span="12" class="text-center">
                           <a-progress type="dashboard" status="normal"
                             :stroke-color="status.cpu.color"
                             :percent="status.cpu.percent"></a-progress>
@@ -112,7 +43,7 @@
                             </a-tooltip>
                           </div>
                         </a-col>
-                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                        <a-col :span="12" class="text-center">
                           <a-progress type="dashboard" status="normal"
                             :stroke-color="status.mem.color"
                             :percent="status.mem.percent"></a-progress>
@@ -124,7 +55,7 @@
                     </a-col>
                     <a-col :sm="24" :md="12">
                       <a-row>
-                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                        <a-col :span="12" class="text-center">
                           <a-progress type="dashboard" status="normal"
                             :stroke-color="status.swap.color"
                             :percent="status.swap.percent"></a-progress>
@@ -132,7 +63,7 @@
                             <b>{{ i18n "pages.index.swap" }}:</b> [[ SizeFormatter.sizeFormat(status.swap.current) ]] / [[ SizeFormatter.sizeFormat(status.swap.total) ]]
                           </div>
                         </a-col>
-                        <a-col :span="12" :style="{ textAlign: 'center' }">
+                        <a-col :span="12" class="text-center">
                           <a-progress type="dashboard" status="normal"
                             :stroke-color="status.disk.color"
                             :percent="status.disk.percent"></a-progress>
@@ -167,31 +98,31 @@
                               <span>{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
                             </a-col>
                             <a-col>
-                              <a-icon type="bars" :style="{ cursor: 'pointer', float: 'right' }" @click="openLogs()"></a-icon>
+                              <a-icon type="bars" class="cursor-pointer float-right" @click="openLogs()"></a-icon>
                             </a-col>
                           </a-row>
                         </span>
                         <template slot="content">
-                          <span :style="{ maxWidth: '400px' }" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
+                          <span class="max-w-400" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
                         </template>
                         <a-badge :text="status.xray.stateMsg" :color="status.xray.color"/>
                       </a-popover>
                     </template>
                   </template>
                   <template #actions>
-                    <a-space v-if="app.ipLimitEnable" direction="horizontal" @click="openXrayLogs()" :style="{ justifyContent: 'center' }">
+                    <a-space v-if="app.ipLimitEnable" direction="horizontal" @click="openXrayLogs()" class="jc-center">
                       <a-icon type="bars"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="stopXrayService" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="stopXrayService" class="jc-center">
                       <a-icon type="poweroff"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.stopXray" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="restartXrayService" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="restartXrayService" class="jc-center">
                       <a-icon type="reload"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="openSelectV2rayVersion" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="openSelectV2rayVersion" class="jc-center">
                       <a-icon type="tool"></a-icon>
                       <span v-if="!isMobile">
                         [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n "pages.index.xraySwitch" }}' ]]
@@ -203,15 +134,15 @@
               <a-col :sm="24" :lg="12">
                 <a-card title='{{ i18n "menu.link" }}' hoverable>
                   <template #actions>
-                    <a-space direction="horizontal" @click="openLogs()" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="openLogs()" class="jc-center">
                       <a-icon type="bars"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="openConfig" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="openConfig" class="jc-center">
                       <a-icon type="control"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.config" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="openBackup" :style="{ justifyContent: 'center' }">
+                    <a-space direction="horizontal" @click="openBackup" class="jc-center">
                       <a-icon type="cloud-server"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.backup" }}</span>
                     </a-space>
@@ -314,7 +245,7 @@
                       <template #title>
                         {{ i18n "pages.index.toggleIpVisibility" }}
                       </template>
-                      <a-icon :type="showIp ? 'eye' : 'eye-invisible'" :style="{ fontSize: '1rem' }" @click="showIp = !showIp"></a-icon>
+                      <a-icon :type="showIp ? 'eye' : 'eye-invisible'" class="fs-1rem" @click="showIp = !showIp"></a-icon>
                     </a-tooltip>
                   </template>
                   <a-row :class="showIp ? 'ip-visible' : 'ip-hidden'" :gutter="isMobile ? [8,8] : 0">
@@ -365,8 +296,8 @@
       @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
     <a-collapse default-active-key="1">
       <a-collapse-panel key="1" header='Xray'>
-        <a-alert type="warning" :style="{ marginBottom: '12px', width: '100%' }" message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
-        <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
+  <a-alert type="warning" class="mb-12 w-100" message='{{ i18n "pages.index.xraySwitchClickDesk" }}' show-icon></a-alert>
+  <a-list class="ant-version-list w-100" bordered>
           <a-list-item class="ant-version-list-item" v-for="version, index in versionModal.versions">
             <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ version ]]</a-tag>
             <a-radio :class="themeSwitcher.currentTheme" :checked="version === `v${status.xray.version}`" @click="switchV2rayVersion(version)"></a-radio>
@@ -374,15 +305,13 @@
         </a-list>
       </a-collapse-panel>
       <a-collapse-panel key="2" header='Geofiles'>
-        <a-list class="ant-version-list" bordered :style="{ width: '100%' }">
+  <a-list class="ant-version-list w-100" bordered>
           <a-list-item class="ant-version-list-item" v-for="file, index in ['geosite.dat', 'geoip.dat', 'geosite_IR.dat', 'geoip_IR.dat', 'geosite_RU.dat', 'geoip_RU.dat']">
             <a-tag :color="index % 2 == 0 ? 'purple' : 'green'">[[ file ]]</a-tag>
-            <a-icon type="reload" @click="updateGeofile(file)" :style="{ marginRight: '8px' }"/>
+            <a-icon type="reload" @click="updateGeofile(file)" class="mr-8"/>
           </a-list-item>
         </a-list>
-        <div style="margin-top: 5px; display: flex; justify-content: flex-end;">
-          <a-button @click="updateGeofile('')">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button>
-        </div>
+        <div class="mt-5 d-flex justify-end"><a-button @click="updateGeofile('')">{{ i18n "pages.index.geofilesUpdateAll" }}</a-button></div>
       </a-collapse-panel>
     </a-collapse>
   </a-modal>
@@ -394,15 +323,15 @@
       {{ i18n "pages.index.logs" }}
       <a-icon :spin="logModal.loading"
         type="sync"
-        :style="{ verticalAlign: 'middle', marginLeft: '10px' }"
+  class="va-middle ml-10"
         :disabled="logModal.loading"
         @click="openLogs()">
       </a-icon>
     </template>
     <a-form layout="inline">
-      <a-form-item :style="{ marginRight: '0.5rem' }">
+  <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="logModal.rows" :style="{ width: '70px' }"
+          <a-select size="small" v-model="logModal.rows" class="w-70"
               @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
@@ -410,7 +339,7 @@
             <a-select-option value="100">100</a-select-option>
             <a-select-option value="500">500</a-select-option>
           </a-select>
-          <a-select size="small" v-model="logModal.level" :style="{ width: '95px' }"
+          <a-select size="small" v-model="logModal.level" class="w-95"
               @change="openLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="debug">Debug</a-select-option>
             <a-select-option value="info">Info</a-select-option>
@@ -423,11 +352,11 @@
       <a-form-item>
         <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
       </a-form-item>
-      <a-form-item :style="{ float: 'right' }">
+      <a-form-item style="float: right;">
         <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
     </a-form>
-    <div class="ant-input" :style="{ height: 'auto', maxHeight: '500px', overflow: 'auto', marginTop: '0.5rem' }" v-html="logModal.formattedLogs"></div>
+  <div class="ant-input log-container" v-html="logModal.formattedLogs"></div>
   </a-modal>
   <a-modal id="xraylog-modal"
       v-model="xraylogModal.visible"
@@ -439,15 +368,15 @@
       {{ i18n "pages.index.logs" }}
       <a-icon :spin="xraylogModal.loading"
         type="sync"
-        :style="{ verticalAlign: 'middle', marginLeft: '10px' }"
+  class="va-middle ml-10"
         :disabled="xraylogModal.loading"
         @click="openXrayLogs()">
       </a-icon>
     </template>
     <a-form layout="inline">
-      <a-form-item :style="{ marginRight: '0.5rem' }">
+  <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="xraylogModal.rows" :style="{ width: '70px' }"
+          <a-select size="small" v-model="xraylogModal.rows" class="w-70"
               @change="openXrayLogs()" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
@@ -465,11 +394,11 @@
         <a-checkbox v-model="xraylogModal.showBlocked" @change="openXrayLogs()">Blocked</a-checkbox>
         <a-checkbox v-model="xraylogModal.showProxy" @change="openXrayLogs()">Proxy</a-checkbox>
       </a-form-item>
-      <a-form-item :style="{ float: 'right' }">
+      <a-form-item style="float: right;">
         <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(xraylogModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
     </a-form>
-    <div class="ant-input" :style="{ height: 'auto', maxHeight: '500px', overflow: 'auto', marginTop: '0.5rem' }" v-html="xraylogModal.formattedLogs"></div>
+  <div class="ant-input log-container" v-html="xraylogModal.formattedLogs"></div>
   </a-modal>
   <a-modal id="backup-modal" 
       v-model="backupModal.visible" 
@@ -477,7 +406,7 @@
       :closable="true"
       footer=""
       :class="themeSwitcher.currentTheme">
-    <a-list class="ant-backup-list" bordered :style="{ width: '100%' }">
+  <a-list class="ant-backup-list w-100" bordered>
       <a-list-item class="ant-backup-list-item">
         <a-list-item-meta>
           <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
