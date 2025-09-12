@@ -280,6 +280,31 @@ func (s *Server) startTask() {
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
+	// Periodic traffic resets
+	logger.Info("Scheduling periodic traffic reset jobs")
+	{
+		// Inbound traffic reset jobs
+		// Run once a day, midnight
+		// TODO: for testing, run every minute, change back to daily later
+		// s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
+		s.cron.AddJob("* * * * *", job.NewPeriodicTrafficResetJob("daily"))
+		// Run once a week, midnight between Sat/Sun
+		s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
+		// Run once a month, midnight, first of month
+		s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
+
+		// Client traffic reset jobs
+		logger.Info("Scheduling periodic client traffic reset jobs")
+		// Run once a day, midnight
+		// TODO: for testing, run every minute, change back to daily later
+		// s.cron.AddJob("@daily", job.NewPeriodicClientTrafficResetJob("daily"))
+		s.cron.AddJob("* * * * *", job.NewPeriodicClientTrafficResetJob("daily"))
+		// Run once a week, midnight between Sat/Sun
+		s.cron.AddJob("@weekly", job.NewPeriodicClientTrafficResetJob("weekly"))
+		// Run once a month, midnight, first of month
+		s.cron.AddJob("@monthly", job.NewPeriodicClientTrafficResetJob("monthly"))
+	}
+
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
