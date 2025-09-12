@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -344,7 +345,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 			continue
 		}
 
-		if major > 25 || (major == 25 && minor > 8) || (major == 25 && minor == 8 && patch >= 3) {
+		if major > 25 || (major == 25 && minor > 9) || (major == 25 && minor == 9 && patch >= 11) {
 			versions = append(versions, release.TagName)
 		}
 	}
@@ -376,6 +377,8 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 	switch osName {
 	case "darwin":
 		osName = "macos"
+	case "windows":
+		osName = "windows"
 	}
 
 	switch arch {
@@ -419,19 +422,23 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 }
 
 func (s *ServerService) UpdateXray(version string) error {
+	// 1. Stop xray before doing anything
+	if err := s.StopXrayService(); err != nil {
+		logger.Warning("failed to stop xray before update:", err)
+	}
+
+	// 2. Download the zip
 	zipFileName, err := s.downloadXRay(version)
 	if err != nil {
 		return err
 	}
+	defer os.Remove(zipFileName)
 
 	zipFile, err := os.Open(zipFileName)
 	if err != nil {
 		return err
 	}
-	defer func() {
-		zipFile.Close()
-		os.Remove(zipFileName)
-	}()
+	defer zipFile.Close()
 
 	stat, err := zipFile.Stat()
 	if err != nil {
@@ -442,19 +449,14 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	s.xrayService.StopXray()
-	defer func() {
-		err := s.xrayService.RestartXray(true)
-		if err != nil {
-			logger.Error("start xray failed:", err)
-		}
-	}()
-
+	// 3. Helper to extract files
 	copyZipFile := func(zipName string, fileName string) error {
 		zipFile, err := reader.Open(zipName)
 		if err != nil {
 			return err
 		}
+		defer zipFile.Close()
+		os.MkdirAll(filepath.Dir(fileName), 0755)
 		os.Remove(fileName)
 		file, err := os.OpenFile(fileName, os.O_CREATE|os.O_RDWR|os.O_TRUNC, fs.ModePerm)
 		if err != nil {
@@ -465,8 +467,20 @@ func (s *ServerService) UpdateXray(version string) error {
 		return err
 	}
 
-	err = copyZipFile("xray", xray.GetBinaryPath())
+	// 4. Extract correct binary
+	if runtime.GOOS == "windows" {
+		targetBinary := filepath.Join("bin", "xray-windows-amd64.exe")
+		err = copyZipFile("xray.exe", targetBinary)
+	} else {
+		err = copyZipFile("xray", xray.GetBinaryPath())
+	}
 	if err != nil {
+		return err
+	}
+
+	// 5. Restart xray
+	if err := s.xrayService.RestartXray(true); err != nil {
+		logger.Error("start xray failed:", err)
 		return err
 	}
 
