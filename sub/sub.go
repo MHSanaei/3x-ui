@@ -6,11 +6,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
+	"x-ui/web/locale"
 	"x-ui/web/middleware"
 	"x-ui/web/network"
 	"x-ui/web/service"
@@ -56,6 +59,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if subDomain != "" {
 		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
 	}
+
+	// Provide base_path in context for templates
+	engine.Use(func(c *gin.Context) {
+		c.Set("base_path", "/")
+	})
 
 	LinksPath, err := s.settingService.GetSubPath()
 	if err != nil {
@@ -112,6 +120,29 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubTitle = ""
 	}
 
+	// init i18n for sub server using disk FS so templates can use {{ i18n }}
+	// Root FS is project root; translation files are under web/translation
+	if err := locale.InitLocalizerFS(os.DirFS("web"), &s.settingService); err != nil {
+		logger.Warning("sub: i18n init failed:", err)
+	}
+	// set per-request localizer from headers/cookies
+	engine.Use(locale.LocalizerMiddleware())
+
+	// load HTML templates needed for subscription page (common layout + page + component + subscription)
+	if files, err := s.getHtmlFiles(); err != nil {
+		logger.Warning("sub: getHtmlFiles failed:", err)
+	} else {
+		// register i18n function similar to web server
+		i18nWebFunc := func(key string, params ...string) string {
+			return locale.I18n(locale.Web, key, params...)
+		}
+		engine.SetFuncMap(map[string]any{"i18n": i18nWebFunc})
+		engine.LoadHTMLFiles(files...)
+	}
+
+	// serve assets from web/assets to use shared JS/CSS like other pages
+	engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
+
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
@@ -119,6 +150,30 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle)
 
 	return engine, nil
+}
+
+// getHtmlFiles loads templates from local folder (used in debug mode)
+func (s *Server) getHtmlFiles() ([]string, error) {
+	dir, _ := os.Getwd()
+	files := []string{}
+	// common layout
+	common := filepath.Join(dir, "web", "html", "common", "page.html")
+	if _, err := os.Stat(common); err == nil {
+		files = append(files, common)
+	}
+	// components used
+	theme := filepath.Join(dir, "web", "html", "component", "aThemeSwitch.html")
+	if _, err := os.Stat(theme); err == nil {
+		files = append(files, theme)
+	}
+	// page itself
+	page := filepath.Join(dir, "web", "html", "subscription.html")
+	if _, err := os.Stat(page); err == nil {
+		files = append(files, page)
+	} else {
+		return nil, err
+	}
+	return files, nil
 }
 
 func (s *Server) Start() (err error) {

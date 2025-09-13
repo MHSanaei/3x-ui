@@ -48,6 +48,22 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	return nil
 }
 
+// InitLocalizerFS allows initializing i18n from any fs.FS (e.g., disk), rooted at a directory containing a "translation" folder
+func InitLocalizerFS(fsys fs.FS, settingService SettingService) error {
+	// set default bundle to english
+	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
+	i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+
+	if err := parseTranslationFiles(fsys, i18nBundle); err != nil {
+		return err
+	}
+
+	if err := initTGBotLocalizer(settingService); err != nil {
+		return err
+	}
+	return nil
+}
+
 func createTemplateData(params []string, seperator ...string) map[string]any {
 	var sep string = "=="
 	if len(seperator) > 0 {
@@ -118,8 +134,8 @@ func LocalizerMiddleware() gin.HandlerFunc {
 	}
 }
 
-func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
-	err := fs.WalkDir(i18nFS, "translation",
+func parseTranslationFiles(fsys fs.FS, i18nBundle *i18n.Bundle) error {
+	err := fs.WalkDir(fsys, "translation",
 		func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -129,7 +145,7 @@ func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
 				return nil
 			}
 
-			data, err := i18nFS.ReadFile(path)
+			data, err := fs.ReadFile(fsys, path)
 			if err != nil {
 				return err
 			}

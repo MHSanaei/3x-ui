@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Немає доданих зворотних проксі."
 "somethingWentWrong" = "Щось пішло не так"
 
+[subscription]
+"title" = "Інформація про підписку"
+"subId" = "ID підписки"
+"status" = "Статус"
+"downloaded" = "Завантажено"
+"uploaded" = "Відвантажено"
+"expiry" = "Термін дії"
+"totalQuota" = "Загальна квота"
+"individualLinks" = "Окремі посилання"
+"active" = "Активна"
+"inactive" = "Неактивна"
+"unlimited" = "Безліміт"
+"noExpiry" = "Без строку"
+
 [menu]
 "theme" = "Тема"
 "dark" = "Темна"

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
 "somethingWentWrong" = "Terjadi kesalahan"
 
+[subscription]
+"title" = "Info langganan"
+"subId" = "ID langganan"
+"status" = "Status"
+"downloaded" = "Diunduh"
+"uploaded" = "Diunggah"
+"expiry" = "Kedaluwarsa"
+"totalQuota" = "Kuota total"
+"individualLinks" = "Tautan individual"
+"active" = "Aktif"
+"inactive" = "Nonaktif"
+"unlimited" = "Tanpa batas"
+"noExpiry" = "Tanpa kedaluwarsa"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Gelap"

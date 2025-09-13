@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Нет добавленных реверс-прокси."
 "somethingWentWrong" = "Что-то пошло не так"
 
+[subscription]
+"title" = "Информация о подписке"
+"subId" = "ID подписки"
+"status" = "Статус"
+"downloaded" = "Загружено"
+"uploaded" = "Отправлено"
+"expiry" = "Срок действия"
+"totalQuota" = "Общий лимит"
+"individualLinks" = "Индивидуальные ссылки"
+"active" = "Активна"
+"inactive" = "Неактивна"
+"unlimited" = "Безлимит"
+"noExpiry" = "Без срока"
+
 [menu]
 "theme" = "Тема"
 "dark" = "Темная"

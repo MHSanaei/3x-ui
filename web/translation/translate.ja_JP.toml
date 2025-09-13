@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "追加されたリバースプロキシはありません。"
 "somethingWentWrong" = "エラーが発生しました"
 
+[subscription]
+"title" = "サブスクリプション情報"
+"subId" = "サブスクリプションID"
+"status" = "ステータス"
+"downloaded" = "ダウンロード"
+"uploaded" = "アップロード"
+"expiry" = "有効期限"
+"totalQuota" = "合計クォータ"
+"individualLinks" = "個別リンク"
+"active" = "有効"
+"inactive" = "無効"
+"unlimited" = "無制限"
+"noExpiry" = "期限なし"
+
 [menu]
 "theme" = "テーマ"
 "dark" = "ダーク"

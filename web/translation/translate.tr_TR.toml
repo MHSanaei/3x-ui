@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Eklenmiş ters proxy yok."
 "somethingWentWrong" = "Bir şeyler yanlış gitti"
 
+[subscription]
+"title" = "Abonelik Bilgisi"
+"subId" = "Abonelik Kimliği"
+"status" = "Durum"
+"downloaded" = "İndirilen"
+"uploaded" = "Yüklenen"
+"expiry" = "Son Kullanma"
+"totalQuota" = "Toplam Kota"
+"individualLinks" = "Bireysel Bağlantılar"
+"active" = "Aktif"
+"inactive" = "Pasif"
+"unlimited" = "Sınırsız"
+"noExpiry" = "Süresiz"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Koyu"

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "未添加反向代理。"
 "somethingWentWrong" = "發生錯誤"
 
+[subscription]
+"title" = "訂閱資訊"
+"subId" = "訂閱 ID"
+"status" = "狀態"
+"downloaded" = "已下載"
+"uploaded" = "已上傳"
+"expiry" = "到期"
+"totalQuota" = "總配額"
+"individualLinks" = "個別連結"
+"active" = "啟用"
+"inactive" = "停用"
+"unlimited" = "無限制"
+"noExpiry" = "無到期"
+
 [menu]
 "theme" = "主題"
 "dark" = "深色"
