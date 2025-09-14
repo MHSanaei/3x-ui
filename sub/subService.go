@@ -3,9 +3,14 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/goccy/go-json"
 
 	"x-ui/database"
 	"x-ui/database/model"
@@ -14,8 +19,6 @@ import (
 	"x-ui/util/random"
 	"x-ui/web/service"
 	"x-ui/xray"
-
-	"github.com/goccy/go-json"
 )
 
 type SubService struct {
@@ -34,19 +37,20 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
-func (s *SubService) GetSubs(subId string, host string) ([]string, string, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, string, int64, error) {
 	s.address = host
 	var result []string
 	var header string
 	var traffic xray.ClientTraffic
+	var lastOnline int64
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, "", err
+		return nil, "", 0, err
 	}
 
 	if len(inbounds) == 0 {
-		return nil, "", common.NewError("No inbounds found with ", subId)
+		return nil, "", 0, common.NewError("No inbounds found with ", subId)
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -73,7 +77,11 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 			if client.Enable && client.SubID == subId {
 				link := s.getLink(inbound, client.Email)
 				result = append(result, link)
-				clientTraffics = append(clientTraffics, s.getClientTraffics(inbound.ClientStats, client.Email))
+				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
+				clientTraffics = append(clientTraffics, ct)
+				if ct.LastOnline > lastOnline {
+					lastOnline = ct.LastOnline
+				}
 			}
 		}
 	}
@@ -101,7 +109,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, error
 		}
 	}
 	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-	return result, header, nil
+	return result, header, lastOnline, nil
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
@@ -1000,4 +1008,173 @@ func searchHost(headers any) string {
 	}
 
 	return ""
+}
+
+// PageData is a view model for subscription.html
+type PageData struct {
+	Host         string
+	BasePath     string
+	SId          string
+	Download     string
+	Upload       string
+	Total        string
+	Used         string
+	Remained     string
+	Expire       int64
+	LastOnline   int64
+	Datepicker   string
+	DownloadByte int64
+	UploadByte   int64
+	TotalByte    int64
+	SubUrl       string
+	SubJsonUrl   string
+	Result       []string
+}
+
+// ResolveRequest extracts scheme and host info from request/headers consistently.
+func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
+	// scheme
+	scheme = "http"
+	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+		scheme = "https"
+	}
+
+	// base host (no port)
+	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil && h != "" {
+		host = h
+	}
+	if host == "" {
+		host = c.GetHeader("X-Real-IP")
+	}
+	if host == "" {
+		var err error
+		host, _, err = net.SplitHostPort(c.Request.Host)
+		if err != nil {
+			host = c.Request.Host
+		}
+	}
+
+	// host:port for URLs
+	hostWithPort = c.GetHeader("X-Forwarded-Host")
+	if hostWithPort == "" {
+		hostWithPort = c.Request.Host
+	}
+	if hostWithPort == "" {
+		hostWithPort = host
+	}
+
+	// header display host
+	hostHeader = c.GetHeader("X-Forwarded-Host")
+	if hostHeader == "" {
+		hostHeader = c.GetHeader("X-Real-IP")
+	}
+	if hostHeader == "" {
+		hostHeader = host
+	}
+	return
+}
+
+// BuildURLs constructs absolute subscription and json URLs.
+func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
+	if strings.HasSuffix(subPath, "/") {
+		subURL = scheme + "://" + hostWithPort + subPath + subId
+	} else {
+		subURL = scheme + "://" + hostWithPort + strings.TrimRight(subPath, "/") + "/" + subId
+	}
+	if strings.HasSuffix(subJsonPath, "/") {
+		subJsonURL = scheme + "://" + hostWithPort + subJsonPath + subId
+	} else {
+		subJsonURL = scheme + "://" + hostWithPort + strings.TrimRight(subJsonPath, "/") + "/" + subId
+	}
+	return
+}
+
+// BuildPageData parses header and prepares the template view model.
+func (s *SubService) BuildPageData(subId, hostHeader, header string, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
+	// Parse header values
+	var uploadByte, downloadByte, totalByte, expire int64
+	parts := strings.Split(header, ";")
+	for _, p := range parts {
+		kv := strings.Split(strings.TrimSpace(p), "=")
+		if len(kv) != 2 {
+			continue
+		}
+		key := strings.ToLower(strings.TrimSpace(kv[0]))
+		val := strings.TrimSpace(kv[1])
+		switch key {
+		case "upload":
+			if v, err := parseInt64(val); err == nil {
+				uploadByte = v
+			}
+		case "download":
+			if v, err := parseInt64(val); err == nil {
+				downloadByte = v
+			}
+		case "total":
+			if v, err := parseInt64(val); err == nil {
+				totalByte = v
+			}
+		case "expire":
+			if v, err := parseInt64(val); err == nil {
+				expire = v
+			}
+		}
+	}
+
+	download := common.FormatTraffic(downloadByte)
+	upload := common.FormatTraffic(uploadByte)
+	total := "∞"
+	used := common.FormatTraffic(uploadByte + downloadByte)
+	remained := ""
+	if totalByte > 0 {
+		total = common.FormatTraffic(totalByte)
+		left := totalByte - (uploadByte + downloadByte)
+		if left < 0 {
+			left = 0
+		}
+		remained = common.FormatTraffic(left)
+	}
+
+	datepicker := s.datepicker
+	if datepicker == "" {
+		datepicker = "gregorian"
+	}
+
+	return PageData{
+		Host:         hostHeader,
+		BasePath:     "/",
+		SId:          subId,
+		Download:     download,
+		Upload:       upload,
+		Total:        total,
+		Used:         used,
+		Remained:     remained,
+		Expire:       expire,
+		LastOnline:   lastOnline,
+		Datepicker:   datepicker,
+		DownloadByte: downloadByte,
+		UploadByte:   uploadByte,
+		TotalByte:    totalByte,
+		SubUrl:       subURL,
+		SubJsonUrl:   subJsonURL,
+		Result:       subs,
+	}
+}
+
+func getHostFromXFH(s string) (string, error) {
+	if strings.Contains(s, ":") {
+		realHost, _, err := net.SplitHostPort(s)
+		if err != nil {
+			return "", err
+		}
+		return realHost, nil
+	}
+	return s, nil
+}
+
+func parseInt64(s string) (int64, error) {
+	// handle potential quotes
+	s = strings.Trim(s, "\"'")
+	n, err := strconv.ParseInt(s, 10, 64)
+	return n, err
 }

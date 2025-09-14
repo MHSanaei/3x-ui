@@ -2,8 +2,8 @@ package sub
 
 import (
 	"encoding/base64"
-	"net"
 	"strings"
+	"x-ui/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -58,21 +58,8 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
-	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
-		host = h
-	}
-	if host == "" {
-		host = c.GetHeader("X-Real-IP")
-	}
-	if host == "" {
-		var err error
-		host, _, err = net.SplitHostPort(c.Request.Host)
-		if err != nil {
-			host = c.Request.Host
-		}
-	}
-	subs, header, err := a.subService.GetSubs(subId, host)
+	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
+	subs, header, lastOnline, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
 	} else {
@@ -81,10 +68,38 @@ func (a *SUBController) subs(c *gin.Context) {
 			result += sub + "\n"
 		}
 
+		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
+		accept := c.GetHeader("Accept")
+		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
+			// Build page data in service
+			subURL, subJsonURL := a.subService.BuildURLs(scheme, hostWithPort, a.subPath, a.subJsonPath, subId)
+			page := a.subService.BuildPageData(subId, hostHeader, header, lastOnline, subs, subURL, subJsonURL)
+			c.HTML(200, "subscription.html", gin.H{
+				"title":        "subscription.title",
+				"cur_ver":      config.GetVersion(),
+				"host":         page.Host,
+				"base_path":    page.BasePath,
+				"sId":          page.SId,
+				"download":     page.Download,
+				"upload":       page.Upload,
+				"total":        page.Total,
+				"used":         page.Used,
+				"remained":     page.Remained,
+				"expire":       page.Expire,
+				"lastOnline":   page.LastOnline,
+				"datepicker":   page.Datepicker,
+				"downloadByte": page.DownloadByte,
+				"uploadByte":   page.UploadByte,
+				"totalByte":    page.TotalByte,
+				"subUrl":       page.SubUrl,
+				"subJsonUrl":   page.SubJsonUrl,
+				"result":       page.Result,
+			})
+			return
+		}
+
 		// Add headers
-		c.Writer.Header().Set("Subscription-Userinfo", header)
-		c.Writer.Header().Set("Profile-Update-Interval", a.updateInterval)
-		c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(a.subTitle)))
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -96,41 +111,21 @@ func (a *SUBController) subs(c *gin.Context) {
 
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
-	var host string
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil {
-		host = h
-	}
-	if host == "" {
-		host = c.GetHeader("X-Real-IP")
-	}
-	if host == "" {
-		var err error
-		host, _, err = net.SplitHostPort(c.Request.Host)
-		if err != nil {
-			host = c.Request.Host
-		}
-	}
+	_, host, _, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")
 	} else {
 
 		// Add headers
-		c.Writer.Header().Set("Subscription-Userinfo", header)
-		c.Writer.Header().Set("Profile-Update-Interval", a.updateInterval)
-		c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(a.subTitle)))
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		c.String(200, jsonSub)
 	}
 }
 
-func getHostFromXFH(s string) (string, error) {
-	if strings.Contains(s, ":") {
-		realHost, _, err := net.SplitHostPort(s)
-		if err != nil {
-			return "", err
-		}
-		return realHost, nil
-	}
-	return s, nil
+func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
+	c.Writer.Header().Set("Subscription-Userinfo", header)
+	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
+	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
 }

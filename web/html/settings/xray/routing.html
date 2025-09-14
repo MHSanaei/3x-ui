@@ -67,17 +67,21 @@
         </template>
         <template slot="info" slot-scope="text, rule, index">
             <a-popover placement="bottomRight"
-                v-if="(rule.source+rule.sourcePort+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
+                v-if="(rule.sourceIP+rule.sourcePort+rule.vlessRoute+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
                 :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
                 <template slot="content">
                     <table cellpadding="2" :style="{ maxWidth: '300px' }">
-                        <tr v-if="rule.source">
-                            <td>Source</td>
-                            <td><a-tag color="blue" v-for="r in rule.source.split(',')">[[ r ]]</a-tag></td>
+                        <tr v-if="rule.sourceIP">
+                            <td>Source IP</td>
+                            <td><a-tag color="blue" v-for="r in rule.sourceIP.split(',')">[[ r ]]</a-tag></td>
                         </tr>
                         <tr v-if="rule.sourcePort">
                             <td>Source Port</td>
                             <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
+                        </tr>
+                        <tr v-if="rule.vlessRoute">
+                            <td>VLESS Route</td>
+                            <td><a-tag color="geekblue" v-for="r in rule.vlessRoute.split(',')">[[ r ]]</a-tag></td>
                         </tr>
                         <tr v-if="rule.network">
                             <td>Network</td>
