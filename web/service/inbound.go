@@ -51,36 +51,6 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 	return inbounds, nil
 }
 
-func (s *InboundService) GetClientsByTrafficReset(period string) ([]model.Client, error) {
-	db := database.GetDB()
-	var inbounds []*model.Inbound
-
-	// Get all inbounds first
-	err := db.Model(model.Inbound{}).Find(&inbounds).Error
-	if err != nil {
-		return nil, err
-	}
-
-	var clientsWithReset []model.Client
-
-	// Parse each inbound's settings to find clients with matching traffic reset period
-	for _, inbound := range inbounds {
-		clients, err := s.GetClients(inbound)
-		if err != nil {
-			logger.Warning("Failed to get clients for inbound", inbound.Id, ":", err)
-			continue
-		}
-
-		for _, client := range clients {
-			if client.TrafficReset == period {
-				clientsWithReset = append(clientsWithReset, client)
-			}
-		}
-	}
-
-	return clientsWithReset, nil
-}
-
 func (s *InboundService) checkPortExist(listen string, port int, ignoreId int) (bool, error) {
 	db := database.GetDB()
 	if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {

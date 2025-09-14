@@ -280,7 +280,7 @@ func (s *Server) startTask() {
 		// TODO: Client traffic reset jobs
 		// logger.Info("Scheduling periodic client traffic reset jobs")
 		// Run once a day, midnight
-		// TODO: for testing, run every minute, change back to daily later
+		// TODO: for testing, run every 10s, change back to daily later
 		// s.cron.AddJob("@every 10s", job.NewPeriodicClientTrafficResetJob("daily"))
 		// s.cron.AddJob("* * * * *", job.NewPeriodicClientTrafficResetJob("daily"))
 		// Run once a week, midnight between Sat/Sun
