@@ -31,7 +31,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-//go:embed assets/*
+//go:embed assets
 var assetsFS embed.FS
 
 //go:embed html/*
@@ -76,6 +76,15 @@ type wrapAssetsFileInfo struct {
 
 func (f *wrapAssetsFileInfo) ModTime() time.Time {
 	return startTime
+}
+
+// Expose embedded resources for reuse by other servers (e.g., sub server)
+func EmbeddedHTML() embed.FS {
+	return htmlFS
+}
+
+func EmbeddedAssets() embed.FS {
+	return assetsFS
 }
 
 type Server struct {
@@ -180,6 +189,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	assetsBasePath := basePath + "assets/"
 
 	store := cookie.NewStore(secret)
+	// Configure default session cookie options, including expiration (MaxAge)
+	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
+		store.Options(sessions.Options{
+			Path:     "/",
+			MaxAge:   sessionMaxAge * 60, // minutes -> seconds
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
 	engine.Use(sessions.Sessions("3x-ui", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
@@ -201,7 +219,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	i18nWebFunc := func(key string, params ...string) string {
 		return locale.I18n(locale.Web, key, params...)
 	}
-	engine.FuncMap["i18n"] = i18nWebFunc
+	// Register template functions before loading templates
+	funcMap := template.FuncMap{
+		"i18n": i18nWebFunc,
+	}
+	engine.SetFuncMap(funcMap)
 	engine.Use(locale.LocalizerMiddleware())
 
 	// set static files and template
@@ -211,11 +233,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Use the registered func map with the loaded templates
 		engine.LoadHTMLFiles(files...)
 		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/assets")))
 	} else {
 		// for production
-		template, err := s.getHtmlTemplate(engine.FuncMap)
+		template, err := s.getHtmlTemplate(funcMap)
 		if err != nil {
 			return nil, err
 		}

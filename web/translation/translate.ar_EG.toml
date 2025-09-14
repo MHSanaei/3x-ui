@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "مفيش بروكسي عكسي مضاف."
 "somethingWentWrong" = "حدث خطأ ما"
 
+[subscription]
+"title" = "معلومات الاشتراك"
+"subId" = "معرّف الاشتراك"
+"status" = "الحالة"
+"downloaded" = "التنزيل"
+"uploaded" = "الرفع"
+"expiry" = "تاريخ الانتهاء"
+"totalQuota" = "الحصة الإجمالية"
+"individualLinks" = "روابط فردية"
+"active" = "نشط"
+"inactive" = "غير نشط"
+"unlimited" = "غير محدود"
+"noExpiry" = "بدون انتهاء"
+
 [menu]
 "theme" = "الثيم"
 "dark" = "داكن"

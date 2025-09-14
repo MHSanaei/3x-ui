@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "No hay proxies inversos añadidos."
 "somethingWentWrong" = "Algo salió mal"
 
+[subscription]
+"title" = "Información de suscripción"
+"subId" = "ID de suscripción"
+"status" = "Estado"
+"downloaded" = "Descargado"
+"uploaded" = "Subido"
+"expiry" = "Caducidad"
+"totalQuota" = "Cuota total"
+"individualLinks" = "Enlaces individuales"
+"active" = "Activo"
+"inactive" = "Inactivo"
+"unlimited" = "Ilimitado"
+"noExpiry" = "Sin caducidad"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Oscuro"

@@ -1,67 +1,8 @@
 {{ template "page/head_start" .}}
-<style>
-  @media (min-width: 769px) {
-    .ant-layout-content {
-      margin: 24px 16px;
-    }
-  }
-  @media (max-width: 768px) {
-    .ant-tabs-nav .ant-tabs-tab {
-      margin: 0;
-      padding: 12px .5rem;
-    }
-  }
-  .ant-tabs-bar {
-    margin: 0;
-  }
-  .ant-list-item {
-    display: block;
-  }
-  .alert-msg {
-    color: rgb(194, 117, 18);
-    font-weight: normal;
-    font-size: 16px;
-    padding: .5rem 1rem;
-    text-align: center;
-    background: rgb(255 145 0 / 15%);
-    margin: 1.5rem 2.5rem 0rem;
-    border-radius: .5rem;
-    transition: all 0.5s;
-    animation: signal 3s cubic-bezier(0.18, 0.89, 0.32, 1.28) infinite;
-  }
-  .alert-msg:hover {
-    cursor: default;
-    transition-duration: .3s;
-    animation: signal 0.9s ease infinite;
-  }
-  @keyframes signal {
-    0% {
-      box-shadow: 0 0 0 0 rgba(194, 118, 18, 0.5);
-    }
-
-    50% {
-      box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
-    }
-
-    100% {
-      box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
-    }
-  }
-  .alert-msg>i {
-    color: inherit;
-    font-size: 24px;
-  }
-  .dark .ant-input-password-icon {
-    color: var(--dark-color-text-primary);
-  }
-  .ant-collapse-content-box .ant-alert {
-    margin-block-end: 12px;
-  }
-</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' settings-page'">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "No added reverse proxies."
 "somethingWentWrong" = "Something went wrong"
 
+[subscription]
+"title" = "Subscription info"
+"subId" = "Subscription ID"
+"status" = "Status"
+"downloaded" = "Downloaded"
+"uploaded" = "Uploaded"
+"expiry" = "Expiry"
+"totalQuota" = "Total quota"
+"individualLinks" = "Individual links"
+"active" = "Active"
+"inactive" = "Inactive"
+"unlimited" = "Unlimited"
+"noExpiry" = "No expiry"
+
 [menu]
 "theme" = "Theme"
 "dark" = "Dark"

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Nenhum proxy reverso adicionado."
 "somethingWentWrong" = "Algo deu errado"
 
+[subscription]
+"title" = "Informações da assinatura"
+"subId" = "ID da assinatura"
+"status" = "Status"
+"downloaded" = "Baixado"
+"uploaded" = "Enviado"
+"expiry" = "Validade"
+"totalQuota" = "Cota total"
+"individualLinks" = "Links individuais"
+"active" = "Ativo"
+"inactive" = "Inativo"
+"unlimited" = "Ilimitado"
+"noExpiry" = "Sem validade"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Escuro"

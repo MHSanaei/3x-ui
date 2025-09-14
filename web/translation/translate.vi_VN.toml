@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Không có proxy ngược nào được thêm."
 "somethingWentWrong" = "Đã xảy ra lỗi"
 
+[subscription]
+"title" = "Thông tin đăng ký"
+"subId" = "ID đăng ký"
+"status" = "Trạng thái"
+"downloaded" = "Đã tải xuống"
+"uploaded" = "Đã tải lên"
+"expiry" = "Hết hạn"
+"totalQuota" = "Tổng hạn mức"
+"individualLinks" = "Liên kết riêng lẻ"
+"active" = "Hoạt động"
+"inactive" = "Không hoạt động"
+"unlimited" = "Không giới hạn"
+"noExpiry" = "Không hết hạn"
+
 [menu]
 "theme" = "Chủ đề"
 "dark" = "Tối"

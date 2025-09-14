@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "هیچ پروکسی معکوس اضافه نشده است."
 "somethingWentWrong" = "مشکلی پیش آمد"
 
+[subscription]
+"title" = "اطلاعات سابسکریپشن"
+"subId" = "شناسه اشتراک"
+"status" = "وضعیت"
+"downloaded" = "دانلود"
+"uploaded" = "آپلود"
+"expiry" = "تاریخ پایان"
+"totalQuota" = "حجم کلی"
+"individualLinks" = "لینک‌های تکی"
+"active" = "فعال"
+"inactive" = "غیرفعال"
+"unlimited" = "نامحدود"
+"noExpiry" = "بدون انقضا"
+
 [menu]
 "theme" = "تم"
 "dark" = "تیره"

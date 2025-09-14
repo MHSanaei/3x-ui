@@ -95,7 +95,7 @@ func GetLogFolder() string {
 		return logFolderPath
 	}
 	if runtime.GOOS == "windows" {
-		return getBaseDir()
+		return filepath.Join(".", "log")
 	}
 	return "/var/log"
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -224,6 +225,15 @@ func (p *process) Start() (err error) {
 	go func() {
 		err := cmd.Run()
 		if err != nil {
+			// On Windows, killing the process results in "exit status 1" which isn't an error for us
+			if runtime.GOOS == "windows" {
+				errStr := strings.ToLower(err.Error())
+				if strings.Contains(errStr, "exit status 1") {
+					// Suppress noisy log on graceful stop
+					p.exitErr = err
+					return
+				}
+			}
 			logger.Error("Failure in running xray-core:", err)
 			p.exitErr = err
 		}
@@ -239,7 +249,7 @@ func (p *process) Stop() error {
 	if !p.IsRunning() {
 		return errors.New("xray is not running")
 	}
-	
+
 	if runtime.GOOS == "windows" {
 		return p.cmd.Process.Kill()
 	} else {

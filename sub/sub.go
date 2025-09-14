@@ -3,20 +3,40 @@ package sub
 import (
 	"context"
 	"crypto/tls"
+	"html/template"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
-	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
+	webpkg "x-ui/web"
+	"x-ui/web/locale"
 	"x-ui/web/middleware"
 	"x-ui/web/network"
 	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )
+
+// setEmbeddedTemplates parses and sets embedded templates on the engine
+func setEmbeddedTemplates(engine *gin.Engine) error {
+	t, err := template.New("").Funcs(engine.FuncMap).ParseFS(
+		webpkg.EmbeddedHTML(),
+		"html/common/page.html",
+		"html/component/aThemeSwitch.html",
+		"html/subscription.html",
+	)
+	if err != nil {
+		return err
+	}
+	engine.SetHTMLTemplate(t)
+	return nil
+}
 
 type Server struct {
 	httpServer *http.Server
@@ -38,13 +58,10 @@ func NewServer() *Server {
 }
 
 func (s *Server) initRouter() (*gin.Engine, error) {
-	if config.IsDebug() {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.DefaultWriter = io.Discard
-		gin.DefaultErrorWriter = io.Discard
-		gin.SetMode(gin.ReleaseMode)
-	}
+	// Always run in release mode for the subscription server
+	gin.DefaultWriter = io.Discard
+	gin.DefaultErrorWriter = io.Discard
+	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
 
@@ -56,6 +73,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if subDomain != "" {
 		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
 	}
+
+	// Provide base_path in context for templates
+	engine.Use(func(c *gin.Context) {
+		c.Set("base_path", "/")
+	})
 
 	LinksPath, err := s.settingService.GetSubPath()
 	if err != nil {
@@ -112,6 +134,36 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubTitle = ""
 	}
 
+	// set per-request localizer from headers/cookies
+	engine.Use(locale.LocalizerMiddleware())
+
+	// register i18n function similar to web server
+	i18nWebFunc := func(key string, params ...string) string {
+		return locale.I18n(locale.Web, key, params...)
+	}
+	engine.SetFuncMap(map[string]any{"i18n": i18nWebFunc})
+
+	// Templates: prefer embedded; fallback to disk if necessary
+	if err := setEmbeddedTemplates(engine); err != nil {
+		logger.Warning("sub: failed to parse embedded templates:", err)
+		if files, derr := s.getHtmlFiles(); derr == nil {
+			engine.LoadHTMLFiles(files...)
+		} else {
+			logger.Error("sub: no templates available (embedded parse and disk load failed)", err, derr)
+		}
+	}
+
+	// Assets: use disk if present, fallback to embedded
+	if _, err := os.Stat("web/assets"); err == nil {
+		engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
+	} else {
+		if subFS, err := fs.Sub(webpkg.EmbeddedAssets(), "assets"); err == nil {
+			engine.StaticFS("/assets", http.FS(subFS))
+		} else {
+			logger.Error("sub: failed to mount embedded assets:", err)
+		}
+	}
+
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
@@ -119,6 +171,30 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle)
 
 	return engine, nil
+}
+
+// getHtmlFiles loads templates from local folder (used in debug mode)
+func (s *Server) getHtmlFiles() ([]string, error) {
+	dir, _ := os.Getwd()
+	files := []string{}
+	// common layout
+	common := filepath.Join(dir, "web", "html", "common", "page.html")
+	if _, err := os.Stat(common); err == nil {
+		files = append(files, common)
+	}
+	// components used
+	theme := filepath.Join(dir, "web", "html", "component", "aThemeSwitch.html")
+	if _, err := os.Stat(theme); err == nil {
+		files = append(files, theme)
+	}
+	// page itself
+	page := filepath.Join(dir, "web", "html", "subscription.html")
+	if _, err := os.Stat(page); err == nil {
+		files = append(files, page)
+	} else {
+		return nil, err
+	}
+	return files, nil
 }
 
 func (s *Server) Start() (err error) {
