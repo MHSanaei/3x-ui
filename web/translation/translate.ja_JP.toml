@@ -230,6 +230,7 @@
 "exportInbound" = "インバウンドルールをエクスポート"
 "import" = "インポート"
 "importInbound" = "インバウンドルールをインポート"
+"lastReset" = "最後のリセット"
 
 [pages.client]
 "add" = "クライアント追加"

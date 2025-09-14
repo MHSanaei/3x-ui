@@ -230,6 +230,7 @@
 "exportInbound" = "تصدير الإدخال"
 "import" = "استيراد"
 "importInbound" = "استيراد إدخال"
+"lastReset" = "آخر إعادة تعيين"
 
 [pages.client]
 "add" = "أضف عميل"

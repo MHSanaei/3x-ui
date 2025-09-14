@@ -232,6 +232,7 @@
 "importInbound" = "Import an Inbound"
 "periodicTrafficResetTitle" = "Traffic Reset"
 "periodicTrafficResetDesc" = "Automatically reset traffic counter at specified intervals"
+"lastReset" = "Last Reset"
 
 [pages.client]
 "add" = "Add Client"

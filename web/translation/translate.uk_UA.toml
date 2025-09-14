@@ -230,6 +230,7 @@
 "exportInbound" = "Експортувати вхідні"
 "import" = "Імпорт"
 "importInbound" = "Імпортувати вхідний"
+"lastReset" = "Останнє скидання"
 
 [pages.client]
 "add" = "Додати клієнта"

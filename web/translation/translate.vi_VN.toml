@@ -230,6 +230,7 @@
 "exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
+"lastReset" = "Đặt lại lần cuối"
 
 [pages.client]
 "add" = "Thêm người dùng"

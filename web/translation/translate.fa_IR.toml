@@ -230,6 +230,7 @@
 "exportInbound" = "استخراج ورودی"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
+"lastReset" = "آخرین بازنشانی"
 
 [pages.client]
 "add" = "کاربر جدید"

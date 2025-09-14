@@ -230,6 +230,7 @@
 "exportInbound" = "Exportación entrante"
 "import" = "Importar"
 "importInbound" = "Importar un entrante"
+"lastReset" = "Último reinicio"
 
 [pages.client]
 "add" = "Agregar Cliente"

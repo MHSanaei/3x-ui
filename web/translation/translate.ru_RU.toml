@@ -250,6 +250,7 @@
 "renewDesc" = "Автопродление после истечения срока действия. (0 = отключить)(единица: день)"
 "periodicTrafficResetTitle" = "Сброс трафика"
 "periodicTrafficResetDesc" = "Автоматический сброс счетчика трафика через указанные интервалы"
+"lastReset" = "Последний сброс"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Никогда"

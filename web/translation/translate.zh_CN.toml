@@ -230,6 +230,7 @@
 "exportInbound" = "导出入站规则"
 "import"="导入"
 "importInbound" = "导入入站规则"
+"lastReset" = "上次重置"
 
 [pages.client]
 "add" = "添加客户端"

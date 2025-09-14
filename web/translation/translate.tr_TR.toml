@@ -230,6 +230,7 @@
 "exportInbound" = "Geleni Dışa Aktar"
 "import" = "İçe Aktar"
 "importInbound" = "Bir Gelen İçe Aktar"
+"lastReset" = "Son Sıfırlama"
 
 [pages.client]
 "add" = "Müşteri Ekle"

@@ -44,10 +44,12 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
+	logger.Info("Fetching inbounds with traffic reset period:", period)
 	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
+	logger.Infof("Found %d inbounds with traffic reset period: %s", len(inbounds), period)
 	return inbounds, nil
 }
 
@@ -1844,20 +1846,39 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 
 func (s *InboundService) ResetAllClientTraffics(id int) error {
 	db := database.GetDB()
+	now := time.Now().Unix() * 1000
 
-	whereText := "inbound_id "
-	if id == -1 {
-		whereText += " > ?"
-	} else {
-		whereText += " = ?"
-	}
+	return db.Transaction(func(tx *gorm.DB) error {
+		whereText := "inbound_id "
+		if id == -1 {
+			whereText += " > ?"
+		} else {
+			whereText += " = ?"
+		}
 
-	result := db.Model(xray.ClientTraffic{}).
-		Where(whereText, id).
-		Updates(map[string]any{"enable": true, "up": 0, "down": 0})
+		// Reset client traffics
+		result := tx.Model(xray.ClientTraffic{}).
+			Where(whereText, id).
+			Updates(map[string]any{"enable": true, "up": 0, "down": 0})
 
-	err := result.Error
-	return err
+		if result.Error != nil {
+			return result.Error
+		}
+
+		// Update lastTrafficResetTime for the inbound(s)
+		inboundWhereText := "id "
+		if id == -1 {
+			inboundWhereText += " > ?"
+		} else {
+			inboundWhereText += " = ?"
+		}
+
+		result = tx.Model(model.Inbound{}).
+			Where(inboundWhereText, id).
+			Update("last_traffic_reset_time", now)
+
+		return result.Error
+	})
 }
 
 func (s *InboundService) ResetAllTraffics() error {
