@@ -648,7 +648,7 @@
                             <tr>
                               <td>{{ i18n "pages.inbounds.periodicTrafficResetTitle" }}</td>
                               <td>
-                                <a-tag color="blue">[[ i18n("pages.inbounds.periodicTrafficReset." + dbInbound.periodicTrafficReset) ]]</a-tag>
+                                <a-tag color="blue">[[ i18n("pages.inbounds.periodicTrafficReset." + dbInbound.trafficReset) ]]</a-tag>
                               </td>
                             </tr>
                           </table>
@@ -1097,7 +1097,8 @@
                     remark: dbInbound.remark + " - Cloned",
                     enable: dbInbound.enable,
                     expiryTime: dbInbound.expiryTime,
-                    periodicTrafficReset: dbInbound.periodicTrafficReset,
+                    trafficReset: dbInbound.trafficReset,
+                    lastTrafficResetTime: dbInbound.lastTrafficResetTime,
 
                     listen: '',
                     port: RandomUtil.randomInteger(10000, 60000),
@@ -1142,7 +1143,8 @@
                     remark: dbInbound.remark,
                     enable: dbInbound.enable,
                     expiryTime: dbInbound.expiryTime,
-                    periodicTrafficReset: dbInbound.periodicTrafficReset,
+                    trafficReset: dbInbound.trafficReset,
+                    lastTrafficResetTime: dbInbound.lastTrafficResetTime,
 
                     listen: inbound.listen,
                     port: inbound.port,
@@ -1166,7 +1168,8 @@
                     remark: dbInbound.remark,
                     enable: dbInbound.enable,
                     expiryTime: dbInbound.expiryTime,
-                    periodicTrafficReset: dbInbound.periodicTrafficReset,
+                    trafficReset: dbInbound.trafficReset,
+                    lastTrafficResetTime: dbInbound.lastTrafficResetTime,
 
                     listen: inbound.listen,
                     port: inbound.port,

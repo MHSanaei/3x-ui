@@ -54,7 +54,7 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-select v-model="dbInbound.periodicTrafficReset" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select v-model="dbInbound.trafficReset" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="never">{{ i18n "pages.inbounds.periodicTrafficReset.never" }}</a-select-option>
             <a-select-option value="daily">{{ i18n "pages.inbounds.periodicTrafficReset.daily" }}</a-select-option>
             <a-select-option value="weekly">{{ i18n "pages.inbounds.periodicTrafficReset.weekly" }}</a-select-option>

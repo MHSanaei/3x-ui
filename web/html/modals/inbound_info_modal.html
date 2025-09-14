@@ -237,10 +237,10 @@
             </a-tooltip>
           </td>
         </tr>
-        <tr v-if="infoModal.clientSettings.periodicTrafficReset">
+        <tr v-if="infoModal.clientSettings.trafficReset">
           <td>{{ i18n "pages.inbounds.periodicTrafficResetTitle" }}</td>
           <td>
-            <a-tag color="blue">[[ i18n("pages.inbounds.periodicTrafficReset." + infoModal.clientSettings.periodicTrafficReset) ]]</a-tag>
+            <a-tag color="blue">[[ i18n("pages.inbounds.periodicTrafficReset." + infoModal.clientSettings.trafficReset) ]]</a-tag>
           </td>
         </tr>
         <tr v-if="app.ipLimitEnable">
