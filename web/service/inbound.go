@@ -44,12 +44,10 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
-	logger.Info("Fetching inbounds with traffic reset period:", period)
 	err := db.Model(model.Inbound{}).Where("traffic_reset = ?", period).Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	logger.Infof("Found %d inbounds with traffic reset period: %s", len(inbounds), period)
 	return inbounds, nil
 }
 
