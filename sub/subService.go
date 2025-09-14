@@ -37,20 +37,19 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
-func (s *SubService) GetSubs(subId string, host string) ([]string, string, int64, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
 	s.address = host
 	var result []string
-	var header string
 	var traffic xray.ClientTraffic
 	var lastOnline int64
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, "", 0, err
+		return nil, 0, traffic, err
 	}
 
 	if len(inbounds) == 0 {
-		return nil, "", 0, common.NewError("No inbounds found with ", subId)
+		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -108,8 +107,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, string, int64
 			}
 		}
 	}
-	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-	return result, header, lastOnline, nil
+	return result, lastOnline, traffic, nil
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
@@ -1090,45 +1088,15 @@ func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId
 }
 
 // BuildPageData parses header and prepares the template view model.
-func (s *SubService) BuildPageData(subId, hostHeader, header string, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
-	// Parse header values
-	var uploadByte, downloadByte, totalByte, expire int64
-	parts := strings.Split(header, ";")
-	for _, p := range parts {
-		kv := strings.Split(strings.TrimSpace(p), "=")
-		if len(kv) != 2 {
-			continue
-		}
-		key := strings.ToLower(strings.TrimSpace(kv[0]))
-		val := strings.TrimSpace(kv[1])
-		switch key {
-		case "upload":
-			if v, err := parseInt64(val); err == nil {
-				uploadByte = v
-			}
-		case "download":
-			if v, err := parseInt64(val); err == nil {
-				downloadByte = v
-			}
-		case "total":
-			if v, err := parseInt64(val); err == nil {
-				totalByte = v
-			}
-		case "expire":
-			if v, err := parseInt64(val); err == nil {
-				expire = v
-			}
-		}
-	}
-
-	download := common.FormatTraffic(downloadByte)
-	upload := common.FormatTraffic(uploadByte)
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
+	download := common.FormatTraffic(traffic.Down)
+	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
-	used := common.FormatTraffic(uploadByte + downloadByte)
+	used := common.FormatTraffic(traffic.Up + traffic.Down)
 	remained := ""
-	if totalByte > 0 {
-		total = common.FormatTraffic(totalByte)
-		left := totalByte - (uploadByte + downloadByte)
+	if traffic.Total > 0 {
+		total = common.FormatTraffic(traffic.Total)
+		left := traffic.Total - (traffic.Up + traffic.Down)
 		if left < 0 {
 			left = 0
 		}
@@ -1149,12 +1117,12 @@ func (s *SubService) BuildPageData(subId, hostHeader, header string, lastOnline 
 		Total:        total,
 		Used:         used,
 		Remained:     remained,
-		Expire:       expire,
+		Expire:       traffic.ExpiryTime / 1000,
 		LastOnline:   lastOnline,
 		Datepicker:   datepicker,
-		DownloadByte: downloadByte,
-		UploadByte:   uploadByte,
-		TotalByte:    totalByte,
+		DownloadByte: traffic.Down,
+		UploadByte:   traffic.Up,
+		TotalByte:    traffic.Total,
 		SubUrl:       subURL,
 		SubJsonUrl:   subJsonURL,
 		Result:       subs,

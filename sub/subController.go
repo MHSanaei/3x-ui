@@ -2,6 +2,7 @@ package sub
 
 import (
 	"encoding/base64"
+	"fmt"
 	"strings"
 	"x-ui/config"
 
@@ -59,7 +60,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subs, header, lastOnline, err := a.subService.GetSubs(subId, host)
+	subs, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
 	} else {
@@ -73,7 +74,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
 			// Build page data in service
 			subURL, subJsonURL := a.subService.BuildURLs(scheme, hostWithPort, a.subPath, a.subJsonPath, subId)
-			page := a.subService.BuildPageData(subId, hostHeader, header, lastOnline, subs, subURL, subJsonURL)
+			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL)
 			c.HTML(200, "subscription.html", gin.H{
 				"title":        "subscription.title",
 				"cur_ver":      config.GetVersion(),
@@ -99,6 +100,7 @@ func (a *SUBController) subs(c *gin.Context) {
 		}
 
 		// Add headers
+		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
 		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		if a.subEncrypt {
