@@ -146,8 +146,9 @@
     { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
     {
       title: '{{ i18n "pages.xray.rules.source"}}', children: [
-        { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true }]
+        { title: 'IP', dataIndex: "sourceIP", align: 'center', width: 20, ellipsis: true },
+        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true },
+        { title: 'VLESS Route', dataIndex: 'vlessRoute', align: 'center', width: 15, ellipsis: true }]
     },
     {
       title: '{{ i18n "pages.inbounds.network"}}', children: [
