@@ -3,6 +3,7 @@ package locale
 import (
 	"embed"
 	"io/fs"
+	"os"
 	"strings"
 
 	"x-ui/logger"
@@ -48,22 +49,6 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	return nil
 }
 
-// InitLocalizerFS allows initializing i18n from any fs.FS (e.g., disk), rooted at a directory containing a "translation" folder
-func InitLocalizerFS(fsys fs.FS, settingService SettingService) error {
-	// set default bundle to english
-	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
-	i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
-
-	if err := parseTranslationFiles(fsys, i18nBundle); err != nil {
-		return err
-	}
-
-	if err := initTGBotLocalizer(settingService); err != nil {
-		return err
-	}
-	return nil
-}
-
 func createTemplateData(params []string, seperator ...string) map[string]any {
 	var sep string = "=="
 	if len(seperator) > 0 {
@@ -94,6 +79,11 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 
 	templateData := createTemplateData(params)
 
+	if localizer == nil {
+		// Fallback to key if localizer not ready; prevents nil panic on pages like sub
+		return key
+	}
+
 	msg, err := localizer.Localize(&i18n.LocalizeConfig{
 		MessageID:    key,
 		TemplateData: templateData,
@@ -118,6 +108,15 @@ func initTGBotLocalizer(settingService SettingService) error {
 
 func LocalizerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Ensure bundle is initialized so creating a Localizer won't panic
+		if i18nBundle == nil {
+			i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
+			i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
+			// Try lazy-load from disk when running sub server without InitLocalizer
+			if err := loadTranslationsFromDisk(i18nBundle); err != nil {
+				logger.Warning("i18n lazy load failed:", err)
+			}
+		}
 		var lang string
 
 		if cookie, err := c.Request.Cookie("lang"); err == nil {
@@ -134,8 +133,27 @@ func LocalizerMiddleware() gin.HandlerFunc {
 	}
 }
 
-func parseTranslationFiles(fsys fs.FS, i18nBundle *i18n.Bundle) error {
-	err := fs.WalkDir(fsys, "translation",
+// loadTranslationsFromDisk attempts to load translation files from "web/translation" using the local filesystem.
+func loadTranslationsFromDisk(bundle *i18n.Bundle) error {
+	root := os.DirFS("web")
+	return fs.WalkDir(root, "translation", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			return nil
+		}
+		data, err := fs.ReadFile(root, path)
+		if err != nil {
+			return err
+		}
+		_, err = bundle.ParseMessageFileBytes(data, path)
+		return err
+	})
+}
+
+func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
+	err := fs.WalkDir(i18nFS, "translation",
 		func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return err
@@ -145,7 +163,7 @@ func parseTranslationFiles(fsys fs.FS, i18nBundle *i18n.Bundle) error {
 				return nil
 			}
 
-			data, err := fs.ReadFile(fsys, path)
+			data, err := i18nFS.ReadFile(path)
 			if err != nil {
 				return err
 			}

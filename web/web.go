@@ -78,6 +78,15 @@ func (f *wrapAssetsFileInfo) ModTime() time.Time {
 	return startTime
 }
 
+// Expose embedded resources for reuse by other servers (e.g., sub server)
+func EmbeddedHTML() embed.FS {
+	return htmlFS
+}
+
+func EmbeddedAssets() embed.FS {
+	return assetsFS
+}
+
 type Server struct {
 	httpServer *http.Server
 	listener   net.Listener

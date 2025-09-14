@@ -3,16 +3,18 @@ package sub
 import (
 	"context"
 	"crypto/tls"
+	"html/template"
 	"io"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 
-	"x-ui/config"
 	"x-ui/logger"
 	"x-ui/util/common"
+	webpkg "x-ui/web"
 	"x-ui/web/locale"
 	"x-ui/web/middleware"
 	"x-ui/web/network"
@@ -20,6 +22,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// setEmbeddedTemplates parses and sets embedded templates on the engine
+func setEmbeddedTemplates(engine *gin.Engine) error {
+	t, err := template.New("").Funcs(engine.FuncMap).ParseFS(
+		webpkg.EmbeddedHTML(),
+		"html/common/page.html",
+		"html/component/aThemeSwitch.html",
+		"html/subscription.html",
+	)
+	if err != nil {
+		return err
+	}
+	engine.SetHTMLTemplate(t)
+	return nil
+}
 
 type Server struct {
 	httpServer *http.Server
@@ -41,13 +58,10 @@ func NewServer() *Server {
 }
 
 func (s *Server) initRouter() (*gin.Engine, error) {
-	if config.IsDebug() {
-		gin.SetMode(gin.DebugMode)
-	} else {
-		gin.DefaultWriter = io.Discard
-		gin.DefaultErrorWriter = io.Discard
-		gin.SetMode(gin.ReleaseMode)
-	}
+	// Always run in release mode for the subscription server
+	gin.DefaultWriter = io.Discard
+	gin.DefaultErrorWriter = io.Discard
+	gin.SetMode(gin.ReleaseMode)
 
 	engine := gin.Default()
 
@@ -120,28 +134,35 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubTitle = ""
 	}
 
-	// init i18n for sub server using disk FS so templates can use {{ i18n }}
-	// Root FS is project root; translation files are under web/translation
-	if err := locale.InitLocalizerFS(os.DirFS("web"), &s.settingService); err != nil {
-		logger.Warning("sub: i18n init failed:", err)
-	}
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
 
-	// load HTML templates needed for subscription page (common layout + page + component + subscription)
-	if files, err := s.getHtmlFiles(); err != nil {
-		logger.Warning("sub: getHtmlFiles failed:", err)
-	} else {
-		// register i18n function similar to web server
-		i18nWebFunc := func(key string, params ...string) string {
-			return locale.I18n(locale.Web, key, params...)
+	// register i18n function similar to web server
+	i18nWebFunc := func(key string, params ...string) string {
+		return locale.I18n(locale.Web, key, params...)
+	}
+	engine.SetFuncMap(map[string]any{"i18n": i18nWebFunc})
+
+	// Templates: prefer embedded; fallback to disk if necessary
+	if err := setEmbeddedTemplates(engine); err != nil {
+		logger.Warning("sub: failed to parse embedded templates:", err)
+		if files, derr := s.getHtmlFiles(); derr == nil {
+			engine.LoadHTMLFiles(files...)
+		} else {
+			logger.Error("sub: no templates available (embedded parse and disk load failed)", err, derr)
 		}
-		engine.SetFuncMap(map[string]any{"i18n": i18nWebFunc})
-		engine.LoadHTMLFiles(files...)
 	}
 
-	// serve assets from web/assets to use shared JS/CSS like other pages
-	engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
+	// Assets: use disk if present, fallback to embedded
+	if _, err := os.Stat("web/assets"); err == nil {
+		engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
+	} else {
+		if subFS, err := fs.Sub(webpkg.EmbeddedAssets(), "assets"); err == nil {
+			engine.StaticFS("/assets", http.FS(subFS))
+		} else {
+			logger.Error("sub: failed to mount embedded assets:", err)
+		}
+	}
 
 	g := engine.Group("/")
 
