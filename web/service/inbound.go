@@ -1706,47 +1706,6 @@ func (s *InboundService) ResetClientTrafficByEmail(clientEmail string) error {
 		return err
 	}
 
-	// Update lastTrafficResetTime in client settings
-	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
-	if err != nil {
-		logger.Warning("Failed to get inbound for client", clientEmail, ":", err)
-		return nil // Don't fail the reset if we can't update the timestamp
-	}
-
-	if inbound != nil {
-		var settings map[string]any
-		err = json.Unmarshal([]byte(inbound.Settings), &settings)
-		if err != nil {
-			logger.Warning("Failed to parse inbound settings:", err)
-			return nil
-		}
-
-		clientsSettings := settings["clients"].([]any)
-		now := time.Now().Unix() * 1000
-
-		for client_index := range clientsSettings {
-			c := clientsSettings[client_index].(map[string]any)
-			if c["email"] == clientEmail {
-				c["lastTrafficResetTime"] = now
-				c["updated_at"] = now
-				break
-			}
-		}
-
-		settings["clients"] = clientsSettings
-		modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
-		if err != nil {
-			logger.Warning("Failed to marshal inbound settings:", err)
-			return nil
-		}
-
-		inbound.Settings = string(modifiedSettings)
-		err = db.Save(inbound).Error
-		if err != nil {
-			logger.Warning("Failed to save inbound with updated client settings:", err)
-		}
-	}
-
 	return nil
 }
 
