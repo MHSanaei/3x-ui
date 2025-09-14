@@ -1178,15 +1178,3 @@ func parseInt64(s string) (int64, error) {
 	n, err := strconv.ParseInt(s, 10, 64)
 	return n, err
 }
-
-// ApplyCommonHeaders sets standard subscription headers on the response writer.
-func (s *SubService) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
-	c.Writer.Header().Set("Subscription-Userinfo", header)
-	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
-	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
-}
-
-// ApplyBase64ContentHeader adds the full subscription content as base64 header for convenience.
-func (s *SubService) ApplyBase64ContentHeader(c *gin.Context, content string) {
-	c.Writer.Header().Set("Subscription-Content-Base64", base64.StdEncoding.EncodeToString([]byte(content)))
-}

@@ -3,6 +3,7 @@ package sub
 import (
 	"encoding/base64"
 	"strings"
+	"x-ui/config"
 
 	"github.com/gin-gonic/gin"
 )
@@ -67,10 +68,6 @@ func (a *SUBController) subs(c *gin.Context) {
 			result += sub + "\n"
 		}
 
-		// Add headers via service
-		a.subService.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
-		a.subService.ApplyBase64ContentHeader(c, result)
-
 		// If the request expects HTML (e.g., browser) or explicitly asked (?html=1 or ?view=html), render the info page here
 		accept := c.GetHeader("Accept")
 		if strings.Contains(strings.ToLower(accept), "text/html") || c.Query("html") == "1" || strings.EqualFold(c.Query("view"), "html") {
@@ -79,6 +76,7 @@ func (a *SUBController) subs(c *gin.Context) {
 			page := a.subService.BuildPageData(subId, hostHeader, header, lastOnline, subs, subURL, subJsonURL)
 			c.HTML(200, "subscription.html", gin.H{
 				"title":        "subscription.title",
+				"cur_ver":      config.GetVersion(),
 				"host":         page.Host,
 				"base_path":    page.BasePath,
 				"sId":          page.SId,
@@ -100,6 +98,9 @@ func (a *SUBController) subs(c *gin.Context) {
 			return
 		}
 
+		// Add headers
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
+
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
 		} else {
@@ -116,11 +117,15 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		c.String(400, "Error!")
 	} else {
 
-		// Add headers via service
-		a.subService.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
+		// Add headers
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		c.String(200, jsonSub)
 	}
 }
 
-// Note: host parsing and page data preparation moved to SubService
+func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
+	c.Writer.Header().Set("Subscription-Userinfo", header)
+	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
+	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
+}

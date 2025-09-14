@@ -1,4 +1,10 @@
 {{ template "page/head_start" .}}
+<script src="{{ .base_path }}assets/moment/moment.min.js"></script>
+<script src="{{ .base_path }}assets/moment/moment-jalali.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/vue/vue.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/ant-design-vue/antd.min.js"></script>
+<script src="{{ .base_path }}assets/js/util/index.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
@@ -262,11 +268,7 @@
     style="display:none">{{ range .result }}{{ . }}
 {{ end }}</textarea>
 
-{{template "page/body_scripts" .}}
-<script
-    src="{{ .base_path }}assets/moment/moment-jalali.min.js?{{ .cur_ver }}"></script>
-<script
-    src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 {{template "component/aThemeSwitch" .}}
 <script src="{{ .base_path }}assets/js/subscription.js?{{ .cur_ver }}"></script>
+
 {{ template "page/body_end" .}}
