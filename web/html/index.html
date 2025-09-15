@@ -598,40 +598,56 @@
             this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
         },
         formatLogs(logs) {
-            let formattedLogs = '';
+            let formattedLogs = `
+<style>
+  table {
+    border-collapse: collapse;
+    width: auto;
+  }
 
-          logs.forEach((log, index) => {
-            if(index > 0) formattedLogs += '<br>';
+  table td, table th {
+    padding: 2px 15px;
+  }
+</style>
 
-            const parts = log.split(' ');
+<table>
+    <tr>
+        <th>Date</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Inbound</th>
+        <th>Outbound</th>
+        <th>Email</th>
+    </tr>
+`;
 
-            if(parts.length === 10) {
-              const dateTime = `<b>${parts[0]} ${parts[1]}</b>`;
-              const from = `<b>${parts[3]}</b>`;
-              const to = `<b>${parts[5].replace(/^\/+/, "")}</b>`;
+            logs.reverse().forEach((log, index) => {
+                let outboundColor = '';
+                if (log.Event === 1) {
+                    outboundColor = ' style="color: #e04141;"'; //red for blocked
+                }
+                else if (log.Event === 2) {
+                    outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
+                }
 
-              let outboundColor = '';
-              if (parts[9] === "b") {
-                outboundColor = ' style="color: #e04141;"'; //red for blocked
-              }
-              else if (parts[9] === "p") {
-                outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
-              }
+                let text = ``;
+                if (log.Email !== "") {
+                    text = `<td>${log.Email}</td>`;
+                }
 
-              formattedLogs += `<span${outboundColor}>
-${dateTime}
- ${parts[2]}
- ${from}
- ${parts[4]}
- ${to}
- ${parts.slice(6, 9).join(' ')}
-</span>`;
-            } else {
-              formattedLogs += `<span>${log}</span>`;
-            }
-          });
+                formattedLogs += `
+<tr ${outboundColor}>
+    <td><b>${new Date(log.DateTime).toLocaleString()}</b></td>
+    <td>${log.FromAddress}</td>
+    <td>${log.ToAddress}</td>
+    <td>${log.Inbound}</td>
+    <td>${log.Outbound}</td>
+    ${text}
+</tr>
+`;
+            });
 
-            return formattedLogs;
+            return formattedLogs += "</table>";
         },
         hide() {
             this.visible = false;
