@@ -2,7 +2,7 @@
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' index-page'">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
@@ -88,7 +88,7 @@
                   </template>
                   <template #extra>
                     <template v-if="status.xray.state != 'error'">
-                      <a-badge status="processing" class="running-animation" :text="status.xray.stateMsg" :color="status.xray.color"/>
+                      <a-badge status="processing" :class="({ green: 'xray-running-animation', orange: 'xray-stop-animation' }[status.xray.color]) || 'xray-processing-animation'" :text="status.xray.stateMsg" :color="status.xray.color"/>
                     </template>
                     <template v-else>
                       <a-popover :overlay-class-name="themeSwitcher.currentTheme">
@@ -105,7 +105,7 @@
                         <template slot="content">
                           <span class="max-w-400" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
                         </template>
-                        <a-badge :text="status.xray.stateMsg" :color="status.xray.color"/>
+                        <a-badge :text="status.xray.stateMsg" :color="status.xray.color" :class="status.xray.color === 'red' ? 'xray-error-animation' : ''"/>
                       </a-popover>
                     </template>
                   </template>
