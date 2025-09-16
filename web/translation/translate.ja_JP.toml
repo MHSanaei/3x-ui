@@ -244,6 +244,8 @@
 "exportInbound" = "インバウンドルールをエクスポート"
 "import" = "インポート"
 "importInbound" = "インバウンドルールをインポート"
+"periodicTrafficResetTitle" = "トラフィックリセット"
+"periodicTrafficResetDesc" = "指定された間隔でトラフィックカウンタを自動的にリセット"
 "lastReset" = "最後のリセット"
 
 [pages.client]
@@ -263,8 +265,6 @@
 "days" = "日"
 "renew" = "自動更新"
 "renewDesc" = "期限が切れた後に自動更新。（0 = 無効）（単位：日）"
-"periodicTrafficResetTitle" = "トラフィックリセット"
-"periodicTrafficResetDesc" = "指定された間隔でトラフィックカウンタを自動的にリセット"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "なし"

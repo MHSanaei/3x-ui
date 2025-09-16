@@ -244,6 +244,8 @@
 "exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
+"periodicTrafficResetTitle" = "Đặt lại lưu lượng"
+"periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
 "lastReset" = "Đặt lại lần cuối"
 
 [pages.client]
@@ -263,8 +265,6 @@
 "days" = "ngày"
 "renew" = "Tự động gia hạn"
 "renewDesc" = "Tự động gia hạn sau khi hết hạn. (0 = tắt)(đơn vị: ngày)"
-"periodicTrafficResetTitle" = "Đặt lại lưu lượng"
-"periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Không bao giờ"

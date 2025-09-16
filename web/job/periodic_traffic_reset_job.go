@@ -39,6 +39,6 @@ func (j *PeriodicTrafficResetJob) Run() {
 	}
 
 	if resetCount > 0 {
-		logger.Infof("Periodic traffic reset completed: %d inbounds reseted", resetCount)
+		logger.Infof("Periodic traffic reset completed: %d inbounds reset", resetCount)
 	}
 }
