@@ -1837,8 +1837,14 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		whereText += "= ?"
 	}
 
+	// Only consider truly depleted clients: expired OR traffic exhausted
+	now := time.Now().Unix() * 1000
 	depletedClients := []xray.ClientTraffic{}
-	err = db.Model(xray.ClientTraffic{}).Where(whereText+" and enable = ?", id, false).Select("inbound_id, GROUP_CONCAT(email) as email").Group("inbound_id").Find(&depletedClients).Error
+	err = db.Model(xray.ClientTraffic{}).
+		Where(whereText+" and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))", id, now).
+		Select("inbound_id, GROUP_CONCAT(email) as email").
+		Group("inbound_id").
+		Find(&depletedClients).Error
 	if err != nil {
 		return err
 	}
@@ -1889,7 +1895,8 @@ func (s *InboundService) DelDepletedClients(id int) (err error) {
 		}
 	}
 
-	err = tx.Where(whereText+" and enable = ?", id, false).Delete(xray.ClientTraffic{}).Error
+	// Delete stats only for truly depleted clients
+	err = tx.Where(whereText+" and ((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?))", id, now).Delete(xray.ClientTraffic{}).Error
 	if err != nil {
 		return err
 	}
