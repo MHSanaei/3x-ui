@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"x-ui/config"
@@ -98,6 +99,20 @@ type ServerService struct {
 	cachedIPv4     string
 	cachedIPv6     string
 	noIPv6         bool
+	// CPU utilization smoothing state
+	mu               sync.Mutex
+	lastCPUTimes     cpu.TimesStat
+	hasLastCPUSample bool
+	emaCPU           float64
+	// CPU history buffer (in-memory, protected by mu)
+	cpuHistory  []CPUSample
+	cpuCapacity int
+}
+
+// CPUSample represents a single CPU utilization sample with timestamp
+type CPUSample struct {
+	T   int64   `json:"t"`   // unix seconds
+	Cpu float64 `json:"cpu"` // percent 0..100
 }
 
 func getPublicIP(url string) string {
@@ -139,11 +154,11 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// CPU stats
-	percents, err := cpu.Percent(0, false)
+	util, err := s.sampleCPUUtilization()
 	if err != nil {
 		logger.Warning("get cpu percent failed:", err)
 	} else {
-		status.Cpu = percents[0]
+		status.Cpu = util
 	}
 
 	status.CpuCores, err = cpu.Counts(false)
@@ -305,6 +320,137 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	return status
+}
+
+// AppendCpuSample appends a CPU sample into the in-memory history with capacity trimming.
+func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.cpuCapacity == 0 {
+		s.cpuCapacity = 10800 // ~6 hours at 2s per sample
+	}
+	p := CPUSample{T: t.Unix(), Cpu: v}
+	s.cpuHistory = append(s.cpuHistory, p)
+	if len(s.cpuHistory) > s.cpuCapacity {
+		drop := len(s.cpuHistory) - s.cpuCapacity
+		s.cpuHistory = s.cpuHistory[drop:]
+	}
+}
+
+// GetCpuHistory returns samples from the last 'mins' minutes (bounded 1..360).
+func (s *ServerService) GetCpuHistory(mins int) []CPUSample {
+	if mins < 1 {
+		mins = 1
+	}
+	if mins > 360 {
+		mins = 360
+	}
+	cutoff := time.Now().Add(-time.Duration(mins) * time.Minute).Unix()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if len(s.cpuHistory) == 0 {
+		return nil
+	}
+	// find first index >= cutoff (linear scan from end is fine for these sizes)
+	i := len(s.cpuHistory) - 1
+	for ; i >= 0; i-- {
+		if s.cpuHistory[i].T < cutoff {
+			i++
+			break
+		}
+	}
+	if i < 0 {
+		i = 0
+	}
+	// copy to avoid exposing internal slice
+	out := make([]CPUSample, len(s.cpuHistory)-i)
+	copy(out, s.cpuHistory[i:])
+	return out
+}
+
+// sampleCPUUtilization returns a smoothed total CPU utilization percentage across all logical processors.
+// It computes utilization from CPU time deltas (non-blocking) and applies an exponential moving average
+// to reduce spikes similar to Task Manager's smoothing.
+func (s *ServerService) sampleCPUUtilization() (float64, error) {
+	// Prefer native Windows API to avoid external deps for CPU percent
+	if runtime.GOOS == "windows" {
+		if pct, err := sys.CPUPercentRaw(); err == nil {
+			s.mu.Lock()
+			// Smooth with EMA
+			const alpha = 0.3
+			if s.emaCPU == 0 {
+				s.emaCPU = pct
+			} else {
+				s.emaCPU = alpha*pct + (1-alpha)*s.emaCPU
+			}
+			val := s.emaCPU
+			s.mu.Unlock()
+			return val, nil
+		}
+		// If native call fails, fall back to gopsutil times
+	}
+	// Read aggregate CPU times (all CPUs combined)
+	times, err := cpu.Times(false)
+	if err != nil {
+		return 0, err
+	}
+	if len(times) == 0 {
+		return 0, fmt.Errorf("no cpu times available")
+	}
+
+	cur := times[0]
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// If this is the first sample, initialize and return current EMA (0 by default)
+	if !s.hasLastCPUSample {
+		s.lastCPUTimes = cur
+		s.hasLastCPUSample = true
+		return s.emaCPU, nil
+	}
+
+	// Compute busy and total deltas
+	idleDelta := cur.Idle - s.lastCPUTimes.Idle
+	// Sum of busy deltas (exclude Idle)
+	busyDelta := (cur.User - s.lastCPUTimes.User) +
+		(cur.System - s.lastCPUTimes.System) +
+		(cur.Nice - s.lastCPUTimes.Nice) +
+		(cur.Iowait - s.lastCPUTimes.Iowait) +
+		(cur.Irq - s.lastCPUTimes.Irq) +
+		(cur.Softirq - s.lastCPUTimes.Softirq) +
+		(cur.Steal - s.lastCPUTimes.Steal) +
+		(cur.Guest - s.lastCPUTimes.Guest) +
+		(cur.GuestNice - s.lastCPUTimes.GuestNice)
+
+	totalDelta := busyDelta + idleDelta
+
+	// Update last sample for next time
+	s.lastCPUTimes = cur
+
+	// Guard against division by zero or negative deltas (e.g., counter resets)
+	if totalDelta <= 0 {
+		return s.emaCPU, nil
+	}
+
+	raw := 100.0 * (busyDelta / totalDelta)
+	if raw < 0 {
+		raw = 0
+	}
+	if raw > 100 {
+		raw = 100
+	}
+
+	// Exponential moving average to smooth spikes
+	const alpha = 0.3 // smoothing factor (0<alpha<=1). Higher = more responsive, lower = smoother
+	if s.emaCPU == 0 {
+		// Initialize EMA with the first real reading to avoid long warm-up from zero
+		s.emaCPU = raw
+	} else {
+		s.emaCPU = alpha*raw + (1-alpha)*s.emaCPU
+	}
+
+	return s.emaCPU, nil
 }
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {

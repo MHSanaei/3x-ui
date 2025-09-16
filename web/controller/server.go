@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"x-ui/web/global"
@@ -39,6 +40,7 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/status", a.status)
+	g.GET("/cpuHistory", a.getCpuHistory)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
@@ -61,16 +63,18 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 func (a *ServerController) refreshStatus() {
 	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
+	// collect cpu history when status is fresh
+	if a.lastStatus != nil {
+		a.serverService.AppendCpuSample(time.Now(), a.lastStatus.Cpu)
+	}
 }
 
 func (a *ServerController) startTask() {
 	webServer := global.GetWebServer()
 	c := webServer.GetCron()
 	c.AddFunc("@every 2s", func() {
-		now := time.Now()
-		if now.Sub(a.lastGetStatusTime) > time.Minute*3 {
-			return
-		}
+		// Always refresh to keep CPU history collected continuously.
+		// Sampling is lightweight and capped to ~6 hours in memory.
 		a.refreshStatus()
 	})
 }
@@ -79,6 +83,26 @@ func (a *ServerController) status(c *gin.Context) {
 	a.lastGetStatusTime = time.Now()
 
 	jsonObj(c, a.lastStatus, nil)
+}
+
+// getCpuHistory returns recent CPU utilization points.
+// Query param q=minutes (int). Bounds: 1..360 (6 hours). Defaults to 60.
+func (a *ServerController) getCpuHistory(c *gin.Context) {
+	minsStr := c.Query("q")
+	mins := 60
+	if minsStr != "" {
+		if v, err := strconv.Atoi(minsStr); err == nil {
+			mins = v
+		}
+	}
+	if mins < 1 {
+		mins = 1
+	}
+	if mins > 360 {
+		mins = 360
+	}
+	res := a.serverService.GetCpuHistory(mins)
+	jsonObj(c, res, nil)
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {

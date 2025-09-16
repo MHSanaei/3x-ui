@@ -41,6 +41,11 @@
                                 <div><b>{{ i18n "pages.index.frequency" }}:</b> [[ CPUFormatter.cpuSpeedFormat(status.cpuSpeedMhz) ]]</div>
                               </template>
                             </a-tooltip>
+                            <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                              <a-button size="small" type="default" class="ml-8" @click="openCpuHistory()">
+                                <a-icon type="history" />
+                              </a-button>
+                            </a-tooltip>
                           </div>
                         </a-col>
                         <a-col :span="12" class="text-center">
@@ -423,6 +428,36 @@
       </a-list-item>
     </a-list>
   </a-modal>
+  <!-- CPU History Modal -->
+  <a-modal id="cpu-history-modal"
+           v-model="cpuHistoryModal.visible"
+           :closable="true" @cancel="() => cpuHistoryModal.visible = false"
+           :class="themeSwitcher.currentTheme"
+           width="900px" footer="">
+    <template slot="title">
+      CPU History
+      <a-select size="small" v-model="cpuHistoryModal.minutes" class="ml-10" style="width: 120px" @change="loadCpuHistory">
+        <a-select-option :value="15">15 min</a-select-option>
+        <a-select-option :value="60">1 hour</a-select-option>
+        <a-select-option :value="180">3 hours</a-select-option>
+        <a-select-option :value="360">6 hours</a-select-option>
+      </a-select>
+    </template>
+    <div style="padding: 8px 0;">
+      <sparkline :data="cpuHistoryLong"
+                 :labels="cpuHistoryLabels"
+                 :vb-width="840"
+                 :height="220"
+                 :stroke="status.cpu.color"
+                 :stroke-width="2.2"
+                 :show-grid="true"
+                 :show-axes="true"
+                 :tick-count-x="5"
+                 :fill-opacity="0.18"
+                 :marker-radius="3.2"
+                 :show-tooltip="true" />
+    </div>
+  </a-modal>
 </a-layout>
 {{template "page/body_scripts" .}}
 {{template "component/aSidebar" .}}
@@ -430,6 +465,190 @@
 {{template "component/aCustomStatistic" .}}
 {{template "modals/textModal"}}
 <script>
+  // Tiny Sparkline component using an inline SVG polyline
+  Vue.component('sparkline', {
+    props: {
+      data: { type: Array, required: true },
+      // viewBox width for drawing space; SVG width will be 100% of container
+      vbWidth: { type: Number, default: 320 },
+      height: { type: Number, default: 80 },
+      stroke: { type: String, default: '#008771' },
+      strokeWidth: { type: Number, default: 2 },
+      maxPoints: { type: Number, default: 120 },
+      showGrid: { type: Boolean, default: true },
+      gridColor: { type: String, default: 'rgba(255,255,255,0.08)' },
+      fillOpacity: { type: Number, default: 0.15 },
+      showMarker: { type: Boolean, default: true },
+      markerRadius: { type: Number, default: 2.8 },
+      // New opts for axes/labels/tooltip
+      labels: { type: Array, default: () => [] }, // same length as data for x labels (e.g., timestamps)
+      showAxes: { type: Boolean, default: false },
+      yTickStep: { type: Number, default: 25 }, // percent ticks
+      tickCountX: { type: Number, default: 4 },
+      paddingLeft: { type: Number, default: 32 },
+      paddingRight: { type: Number, default: 6 },
+      paddingTop: { type: Number, default: 6 },
+      paddingBottom: { type: Number, default: 20 },
+      showTooltip: { type: Boolean, default: false },
+    },
+    data() {
+      return {
+        hoverIdx: -1,
+      }
+    },
+    computed: {
+      viewBoxAttr() {
+        return '0 0 ' + this.vbWidth + ' ' + this.height
+      },
+      drawWidth() {
+        return Math.max(1, this.vbWidth - this.paddingLeft - this.paddingRight)
+      },
+      drawHeight() {
+        return Math.max(1, this.height - this.paddingTop - this.paddingBottom)
+      },
+      nPoints() {
+        return Math.min(this.data.length, this.maxPoints)
+      },
+      dataSlice() {
+        const n = this.nPoints
+        if (n === 0) return []
+        return this.data.slice(this.data.length - n)
+      },
+      labelsSlice() {
+        const n = this.nPoints
+        if (!this.labels || this.labels.length === 0 || n === 0) return []
+        const start = Math.max(0, this.labels.length - n)
+        return this.labels.slice(start)
+      },
+      pointsArr() {
+        const n = this.nPoints
+        if (n === 0) return []
+        const slice = this.dataSlice
+        const max = 100
+        const w = this.drawWidth
+        const h = this.drawHeight
+        const dx = n > 1 ? w / (n - 1) : 0
+        return slice.map((v, i) => {
+          const x = Math.round(this.paddingLeft + i * dx)
+          const y = Math.round(this.paddingTop + (h - (Math.max(0, Math.min(100, v)) / max) * h))
+          return [x, y]
+        })
+      },
+      points() {
+        return this.pointsArr.map(p => `${p[0]},${p[1]}`).join(' ')
+      },
+      areaPath() {
+        if (this.pointsArr.length === 0) return ''
+        const first = this.pointsArr[0]
+        const last = this.pointsArr[this.pointsArr.length - 1]
+        const line = this.points
+        // Close to bottom to create an area fill
+        return `M ${first[0]},${this.paddingTop + this.drawHeight} L ${line.replace(/ /g,' L ')} L ${last[0]},${this.paddingTop + this.drawHeight} Z`
+      },
+      gridLines() {
+        if (!this.showGrid) return []
+        const h = this.drawHeight
+        const w = this.drawWidth
+        // draw at 25%, 50%, 75%
+        return [0.25, 0.5, 0.75]
+          .map(r => Math.round(this.paddingTop + h * r))
+          .map(y => ({ x1: this.paddingLeft, y1: y, x2: this.paddingLeft + w, y2: y }))
+      },
+      lastPoint() {
+        if (this.pointsArr.length === 0) return null
+        return this.pointsArr[this.pointsArr.length - 1]
+      },
+      yTicks() {
+        if (!this.showAxes) return []
+        const step = Math.max(1, this.yTickStep)
+        const ticks = []
+        for (let p = 0; p <= 100; p += step) {
+          const y = Math.round(this.paddingTop + (this.drawHeight - (p / 100) * this.drawHeight))
+          ticks.push({ y, label: `${p}%` })
+        }
+        return ticks
+      },
+      xTicks() {
+        if (!this.showAxes) return []
+        const labels = this.labelsSlice
+        const n = this.nPoints
+        const m = Math.max(2, this.tickCountX)
+        const ticks = []
+        if (n === 0) return ticks
+        const w = this.drawWidth
+        const dx = n > 1 ? w / (n - 1) : 0
+        const positions = []
+        for (let i = 0; i < m; i++) {
+          const idx = Math.round((i * (n - 1)) / (m - 1))
+          positions.push(idx)
+        }
+        positions.forEach(idx => {
+          const label = labels[idx] != null ? String(labels[idx]) : String(idx)
+          const x = Math.round(this.paddingLeft + idx * dx)
+          ticks.push({ x, label })
+        })
+        return ticks
+      },
+    },
+    methods: {
+      onMouseMove(evt) {
+        if (!this.showTooltip || this.pointsArr.length === 0) return
+        const rect = evt.currentTarget.getBoundingClientRect()
+        const px = evt.clientX - rect.left
+        // translate to viewBox space
+        const x = (px / rect.width) * this.vbWidth
+        const n = this.nPoints
+        const dx = n > 1 ? this.drawWidth / (n - 1) : 0
+        const idx = Math.max(0, Math.min(n - 1, Math.round((x - this.paddingLeft) / (dx || 1))))
+        this.hoverIdx = idx
+      },
+      onMouseLeave() {
+        this.hoverIdx = -1
+      },
+      fmtHoverText() {
+        const labels = this.labelsSlice
+        const idx = this.hoverIdx
+        if (idx < 0 || idx >= this.dataSlice.length) return ''
+        const val = Math.max(0, Math.min(100, Number(this.dataSlice[idx] || 0)))
+        const lab = labels[idx] != null ? labels[idx] : ''
+        return `${val}%${lab ? ' • ' + lab : ''}`
+      },
+    },
+    template: `
+      <svg width="100%" :height="height" :viewBox="viewBoxAttr" preserveAspectRatio="none" style="display:block"
+           @mousemove="onMouseMove" @mouseleave="onMouseLeave">
+        <defs>
+          <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" :stop-color="stroke" :stop-opacity="fillOpacity"/>
+            <stop offset="100%" :stop-color="stroke" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <g v-if="showGrid">
+          <line v-for="(g,i) in gridLines" :key="i" :x1="g.x1" :y1="g.y1" :x2="g.x2" :y2="g.y2" :stroke="gridColor" stroke-width="1"/>
+        </g>
+        <g v-if="showAxes">
+          <!-- Y ticks/labels -->
+          <g v-for="(t,i) in yTicks" :key="'y'+i">
+            <text :x="Math.max(0, paddingLeft - 4)" :y="t.y + 4" text-anchor="end" font-size="10" fill="rgba(200,200,200,0.8)" v-text="t.label"></text>
+          </g>
+          <!-- X ticks/labels -->
+          <g v-for="(t,i) in xTicks" :key="'x'+i">
+            <text :x="t.x" :y="paddingTop + drawHeight + 14" text-anchor="middle" font-size="10" fill="rgba(200,200,200,0.8)" v-text="t.label"></text>
+          </g>
+        </g>
+        <path v-if="areaPath" :d="areaPath" fill="url(#spkGrad)" stroke="none" />
+        <polyline :points="points" fill="none" :stroke="stroke" :stroke-width="strokeWidth" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle v-if="showMarker && lastPoint" :cx="lastPoint[0]" :cy="lastPoint[1]" :r="markerRadius" :fill="stroke" />
+        <!-- Hover marker/tooltip -->
+        <g v-if="showTooltip && hoverIdx >= 0">
+          <line :x1="pointsArr[hoverIdx][0]" :x2="pointsArr[hoverIdx][0]" :y1="paddingTop" :y2="paddingTop + drawHeight" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+          <circle :cx="pointsArr[hoverIdx][0]" :cy="pointsArr[hoverIdx][1]" r="3.5" :fill="stroke" />
+          <text :x="pointsArr[hoverIdx][0]" :y="paddingTop + 12" text-anchor="middle" font-size="11" fill="#fff" style="paint-order: stroke; stroke: rgba(0,0,0,0.35); stroke-width: 3;" v-text="fmtHoverText()"></text>
+        </g>
+      </svg>
+    `,
+  })
+
     class CurTotal {
 
         constructor(current, total) {
@@ -659,6 +878,10 @@ ${dateTime}
               spinning: false
             },
             status: new Status(),
+            cpuHistory: [], // keep last N cpu utilization points (0..100)
+            cpuHistoryLong: [], // long-range history for modal (values)
+            cpuHistoryLabels: [], // formatted timestamps matching long history
+            cpuHistoryModal: { visible: false, minutes: 60 },
             versionModal,
             logModal,
             xraylogModal,
@@ -689,7 +912,46 @@ ${dateTime}
             },
             setStatus(data) {
                 this.status = new Status(data);
+                // Push CPU percent into history (clamped 0..100)
+                const v = Math.max(0, Math.min(100, Number(data?.cpu ?? 0)))
+                this.cpuHistory.push(v)
+                const maxPoints = this.isMobile ? 60 : 120
+                if (this.cpuHistory.length > maxPoints) {
+                  this.cpuHistory.splice(0, this.cpuHistory.length - maxPoints)
+                }
             },
+      openCpuHistory() {
+        this.cpuHistoryModal.visible = true
+        this.loadCpuHistory()
+      },
+      async loadCpuHistory() {
+        const mins = this.cpuHistoryModal.minutes || 60
+        try {
+          const msg = await HttpUtil.get(`/panel/api/server/cpuHistory?q=${mins}`)
+          if (msg.success && Array.isArray(msg.obj)) {
+            // msg.obj is array of {t, cpu}
+            const arr = msg.obj.map(p => Math.max(0, Math.min(100, Number(p.cpu || 0))))
+            const labels = msg.obj.map(p => {
+              const t = p.t
+              let d
+              if (typeof t === 'number') {
+                // Heuristic: if seconds, convert to ms
+                d = new Date(t < 1e12 ? t * 1000 : t)
+              } else {
+                d = new Date(t)
+              }
+              if (isNaN(d.getTime())) return ''
+              const hh = String(d.getHours()).padStart(2, '0')
+              const mm = String(d.getMinutes()).padStart(2, '0')
+              return `${hh}:${mm}`
+            })
+            this.cpuHistoryLong = arr
+            this.cpuHistoryLabels = labels
+          }
+        } catch (e) {
+          console.error('Failed to load CPU history', e)
+        }
+      },
             async openSelectV2rayVersion() {
                 this.loading(true);
                 const msg = await HttpUtil.get('/panel/api/server/getXrayVersion');
