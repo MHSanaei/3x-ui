@@ -244,6 +244,9 @@
 "exportInbound" = "Exportar Inbound"
 "import" = "Importar"
 "importInbound" = "Importar um Inbound"
+"periodicTrafficResetTitle" = "Reset de Tráfego"
+"periodicTrafficResetDesc" = "Reinicia automaticamente o contador de tráfego em intervalos especificados"
+"lastReset" = "Último Reset"
 
 [pages.client]
 "add" = "Adicionar Cliente"
@@ -262,6 +265,12 @@
 "days" = "Dia(s)"
 "renew" = "Renovação Automática"
 "renewDesc" = "Renovação automática após expiração. (0 = desativado)(unidade: dia)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Nunca"
+"daily" = "Diariamente"
+"weekly" = "Semanalmente"
+"monthly" = "Mensalmente"
 
 [pages.inbounds.toasts]
 "obtain" = "Obter"

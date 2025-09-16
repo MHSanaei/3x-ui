@@ -244,6 +244,9 @@
 "exportInbound" = "Ekspor Masuk"
 "import" = "Impor"
 "importInbound" = "Impor Masuk"
+"periodicTrafficResetTitle" = "Reset Trafik Berkala"
+"periodicTrafficResetDesc" = "Reset otomatis penghitung trafik pada interval tertentu"
+"lastReset" = "Reset Terakhir"
 
 [pages.client]
 "add" = "Tambah Klien"
@@ -262,6 +265,12 @@
 "days" = "Hari"
 "renew" = "Perpanjang Otomatis"
 "renewDesc" = "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif)(unit: hari)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Tidak Pernah"
+"daily" = "Harian"
+"weekly" = "Mingguan"
+"monthly" = "Bulanan"
 
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"

@@ -244,6 +244,9 @@
 "exportInbound" = "导出入站规则"
 "import"="导入"
 "importInbound" = "导入入站规则"
+"periodicTrafficResetTitle" = "流量重置"
+"periodicTrafficResetDesc" = "按指定间隔自动重置流量计数器"
+"lastReset" = "上次重置"
 
 [pages.client]
 "add" = "添加客户端"
@@ -262,6 +265,12 @@
 "days" = "天"
 "renew" = "自动续订"
 "renewDesc" = "到期后自动续订。(0 = 禁用)(单位: 天)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "从不"
+"daily" = "每日"
+"weekly" = "每周"
+"monthly" = "每月"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"

@@ -292,34 +292,25 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 
 func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, encryption string) json_util.RawMessage {
 	outbound := Outbound{}
-	usersData := make([]UserVnext, 1)
-
-	usersData[0].ID = client.ID
-	usersData[0].Level = 8
-	if inbound.Protocol == model.VMESS {
-		usersData[0].Security = client.Security
-	}
-	if inbound.Protocol == model.VLESS {
-		usersData[0].Flow = client.Flow
-		usersData[0].Encryption = encryption
-	}
-
-	vnextData := make([]VnextSetting, 1)
-	vnextData[0] = VnextSetting{
-		Address: inbound.Listen,
-		Port:    inbound.Port,
-		Users:   usersData,
-	}
-
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
 	if s.mux != "" {
 		outbound.Mux = json_util.RawMessage(s.mux)
 	}
 	outbound.StreamSettings = streamSettings
-	outbound.Settings = OutboundSettings{
-		Vnext: vnextData,
+	// Emit flattened settings inside Settings to match new Xray format
+	settings := make(map[string]any)
+	settings["address"] = inbound.Listen
+	settings["port"] = inbound.Port
+	settings["id"] = client.ID
+	if inbound.Protocol == model.VLESS {
+		settings["flow"] = client.Flow
+		settings["encryption"] = encryption
 	}
+	if inbound.Protocol == model.VMESS {
+		settings["security"] = client.Security
+	}
+	outbound.Settings = settings
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
@@ -356,8 +347,8 @@ func (s *SubJsonService) genServer(inbound *model.Inbound, streamSettings json_u
 		outbound.Mux = json_util.RawMessage(s.mux)
 	}
 	outbound.StreamSettings = streamSettings
-	outbound.Settings = OutboundSettings{
-		Servers: serverData,
+	outbound.Settings = map[string]any{
+		"servers": serverData,
 	}
 
 	result, _ := json.MarshalIndent(outbound, "", "  ")
@@ -369,28 +360,10 @@ type Outbound struct {
 	Tag            string               `json:"tag"`
 	StreamSettings json_util.RawMessage `json:"streamSettings"`
 	Mux            json_util.RawMessage `json:"mux,omitempty"`
-	ProxySettings  map[string]any       `json:"proxySettings,omitempty"`
-	Settings       OutboundSettings     `json:"settings,omitempty"`
+	Settings       map[string]any       `json:"settings,omitempty"`
 }
 
-type OutboundSettings struct {
-	Vnext   []VnextSetting  `json:"vnext,omitempty"`
-	Servers []ServerSetting `json:"servers,omitempty"`
-}
-
-type VnextSetting struct {
-	Address string      `json:"address"`
-	Port    int         `json:"port"`
-	Users   []UserVnext `json:"users"`
-}
-
-type UserVnext struct {
-	Encryption string `json:"encryption,omitempty"`
-	Flow       string `json:"flow,omitempty"`
-	ID         string `json:"id"`
-	Security   string `json:"security,omitempty"`
-	Level      int    `json:"level"`
-}
+// Legacy vnext-related structs removed for flattened schema
 
 type ServerSetting struct {
 	Password string `json:"password"`

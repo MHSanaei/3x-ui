@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"x-ui/logger"
 	"x-ui/util/common"
@@ -74,11 +75,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		engine.Use(middleware.DomainValidatorMiddleware(subDomain))
 	}
 
-	// Provide base_path in context for templates
-	engine.Use(func(c *gin.Context) {
-		c.Set("base_path", "/")
-	})
-
 	LinksPath, err := s.settingService.GetSubPath()
 	if err != nil {
 		return nil, err
@@ -88,6 +84,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Set base_path based on LinksPath for template rendering
+	engine.Use(func(c *gin.Context) {
+		c.Set("base_path", LinksPath)
+	})
 
 	Encrypt, err := s.settingService.GetSubEncrypt()
 	if err != nil {
@@ -154,11 +155,29 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Assets: use disk if present, fallback to embedded
+	// Serve under both root (/assets) and under the subscription path prefix (LinksPath + "assets")
+	// so reverse proxies with a URI prefix can load assets correctly.
+	// Determine LinksPath earlier to compute prefixed assets mount.
+	// Note: LinksPath always starts and ends with "/" (validated in settings).
+	var linksPathForAssets string
+	if LinksPath == "/" {
+		linksPathForAssets = "/assets"
+	} else {
+		// ensure single slash join
+		linksPathForAssets = strings.TrimRight(LinksPath, "/") + "/assets"
+	}
+
 	if _, err := os.Stat("web/assets"); err == nil {
 		engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
+		if linksPathForAssets != "/assets" {
+			engine.StaticFS(linksPathForAssets, http.FS(os.DirFS("web/assets")))
+		}
 	} else {
 		if subFS, err := fs.Sub(webpkg.EmbeddedAssets(), "assets"); err == nil {
 			engine.StaticFS("/assets", http.FS(subFS))
+			if linksPathForAssets != "/assets" {
+				engine.StaticFS(linksPathForAssets, http.FS(subFS))
+			}
 		} else {
 			logger.Error("sub: failed to mount embedded assets:", err)
 		}

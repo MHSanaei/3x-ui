@@ -27,16 +27,18 @@ type User struct {
 }
 
 type Inbound struct {
-	Id          int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
-	UserId      int                  `json:"-"`
-	Up          int64                `json:"up" form:"up"`
-	Down        int64                `json:"down" form:"down"`
-	Total       int64                `json:"total" form:"total"`
-	AllTime     int64                `json:"allTime" form:"allTime" gorm:"default:0"`
-	Remark      string               `json:"remark" form:"remark"`
-	Enable      bool                 `json:"enable" form:"enable"`
-	ExpiryTime  int64                `json:"expiryTime" form:"expiryTime"`
-	ClientStats []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
+	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	UserId               int                  `json:"-"`
+	Up                   int64                `json:"up" form:"up"`
+	Down                 int64                `json:"down" form:"down"`
+	Total                int64                `json:"total" form:"total"`
+	AllTime              int64                `json:"allTime" form:"allTime" gorm:"default:0"`
+	Remark               string               `json:"remark" form:"remark"`
+	Enable               bool                 `json:"enable" form:"enable" gorm:"index:idx_enable_traffic_reset,priority:1"`
+	ExpiryTime           int64                `json:"expiryTime" form:"expiryTime"`
+	TrafficReset         string               `json:"trafficReset" form:"trafficReset" gorm:"default:never;index:idx_enable_traffic_reset,priority:2"`
+	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`
+	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`
 
 	// config part
 	Listen         string   `json:"listen" form:"listen"`

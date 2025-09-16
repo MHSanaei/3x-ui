@@ -535,7 +535,9 @@
         switch (o.protocol) {
           case Protocols.VMess:
           case Protocols.VLESS:
-            serverObj = o.settings.vnext;
+            if (o.settings && o.settings.address && o.settings.port) {
+              return [o.settings.address + ':' + o.settings.port];
+            }
             break;
           case Protocols.HTTP:
           case Protocols.Mixed:
