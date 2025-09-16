@@ -210,7 +210,7 @@
         </a-form-item>
       </template>
 
-      <!-- Vnext (vless/vmess) settings -->
+  <!-- VLESS/VMess user settings -->
       <template v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>

@@ -219,7 +219,7 @@ class KcpStreamSettings extends CommonClass {
 
 class WsStreamSettings extends CommonClass {
     constructor(
-        path = '/', 
+        path = '/',
         host = '',
         heartbeatPeriod = 0,
 
@@ -647,10 +647,6 @@ class Outbound extends CommonClass {
         ].includes(this.protocol);
     }
 
-    hasVnext() {
-        return [Protocols.VMess, Protocols.VLESS].includes(this.protocol);
-    }
-
     hasServers() {
         return [Protocols.Trojan, Protocols.Shadowsocks, Protocols.Socks, Protocols.HTTP].includes(this.protocol);
     }
@@ -690,13 +686,22 @@ class Outbound extends CommonClass {
             if (this.stream?.sockopt)
                 stream = { sockopt: this.stream.sockopt.toJson() };
         }
+        // For VMess/VLESS, emit settings as a flat object
+        let settingsOut = this.settings instanceof CommonClass ? this.settings.toJson() : this.settings;
+        // Remove undefined/null keys
+        if (settingsOut && typeof settingsOut === 'object') {
+            Object.keys(settingsOut).forEach(k => {
+                if (settingsOut[k] === undefined || settingsOut[k] === null) delete settingsOut[k];
+            });
+        }
         return {
-            tag: this.tag == '' ? undefined : this.tag,
             protocol: this.protocol,
-            settings: this.settings instanceof CommonClass ? this.settings.toJson() : this.settings,
-            streamSettings: stream,
-            sendThrough: this.sendThrough != "" ? this.sendThrough : undefined,
-            mux: this.mux?.enabled ? this.mux : undefined,
+            settings: settingsOut,
+            // Only include tag, streamSettings, sendThrough, mux if present and not empty
+            ...(this.tag ? { tag: this.tag } : {}),
+            ...(stream ? { streamSettings: stream } : {}),
+            ...(this.sendThrough ? { sendThrough: this.sendThrough } : {}),
+            ...(this.mux?.enabled ? { mux: this.mux } : {}),
         };
     }
 
@@ -908,7 +913,7 @@ Outbound.FreedomSettings = class extends CommonClass {
     toJson() {
         return {
             domainStrategy: ObjectUtil.isEmpty(this.domainStrategy) ? undefined : this.domainStrategy,
-            redirect: ObjectUtil.isEmpty(this.redirect) ? undefined: this.redirect,
+            redirect: ObjectUtil.isEmpty(this.redirect) ? undefined : this.redirect,
             fragment: Object.keys(this.fragment).length === 0 ? undefined : this.fragment,
             noises: this.noises.length === 0 ? undefined : Outbound.FreedomSettings.Noise.toJsonArray(this.noises),
         };
@@ -1026,22 +1031,21 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 
     static fromJson(json = {}) {
-        if (ObjectUtil.isArrEmpty(json.vnext)) return new Outbound.VmessSettings();
+        if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VmessSettings();
         return new Outbound.VmessSettings(
-            json.vnext[0].address,
-            json.vnext[0].port,
-            json.vnext[0].users[0].id,
-            json.vnext[0].users[0].security,
+            json.address,
+            json.port,
+            json.id,
+            json.security,
         );
     }
 
     toJson() {
         return {
-            vnext: [{
-                address: this.address,
-                port: this.port,
-                users: [{ id: this.id, security: this.security }],
-            }],
+            address: this.address,
+            port: this.port,
+            id: this.id,
+            security: this.security,
         };
     }
 };
@@ -1056,23 +1060,23 @@ Outbound.VLESSSettings = class extends CommonClass {
     }
 
     static fromJson(json = {}) {
-        if (ObjectUtil.isArrEmpty(json.vnext)) return new Outbound.VLESSSettings();
+        if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VLESSSettings();
         return new Outbound.VLESSSettings(
-            json.vnext[0].address,
-            json.vnext[0].port,
-            json.vnext[0].users[0].id,
-            json.vnext[0].users[0].flow,
-            json.vnext[0].users[0].encryption,
+            json.address,
+            json.port,
+            json.id,
+            json.flow,
+            json.encryption
         );
     }
 
     toJson() {
         return {
-            vnext: [{
-                address: this.address,
-                port: this.port,
-                users: [{ id: this.id, flow: this.flow, encryption: this.encryption }],
-            }],
+            address: this.address,
+            port: this.port,
+            id: this.id,
+            flow: this.flow,
+            encryption: this.encryption,
         };
     }
 };

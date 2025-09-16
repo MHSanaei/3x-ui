@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -1138,11 +1137,4 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
-}
-
-func parseInt64(s string) (int64, error) {
-	// handle potential quotes
-	s = strings.Trim(s, "\"'")
-	n, err := strconv.ParseInt(s, 10, 64)
-	return n, err
 }
