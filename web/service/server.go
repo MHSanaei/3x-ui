@@ -94,22 +94,81 @@ type Release struct {
 }
 
 type ServerService struct {
-	xrayService    XrayService
-	inboundService InboundService
-	cachedIPv4     string
-	cachedIPv6     string
-	noIPv6         bool
-	// CPU utilization smoothing state
-	mu               sync.Mutex
-	lastCPUTimes     cpu.TimesStat
-	hasLastCPUSample bool
-	emaCPU           float64
-	// CPU history buffer (in-memory, protected by mu)
-	cpuHistory  []CPUSample
-	cpuCapacity int
+	xrayService        XrayService
+	inboundService     InboundService
+	cachedIPv4         string
+	cachedIPv6         string
+	noIPv6             bool
+	mu                 sync.Mutex
+	lastCPUTimes       cpu.TimesStat
+	hasLastCPUSample   bool
+	emaCPU             float64
+	cpuHistory         []CPUSample
+	cachedCpuSpeedMhz  float64
+	lastCpuInfoAttempt time.Time
 }
 
-// CPUSample represents a single CPU utilization sample with timestamp
+// AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds over recent data.
+func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []map[string]any {
+	if bucketSeconds <= 0 || maxPoints <= 0 {
+		return nil
+	}
+	cutoff := time.Now().Add(-time.Duration(bucketSeconds*maxPoints) * time.Second).Unix()
+	s.mu.Lock()
+	// find start index (history sorted ascending)
+	hist := s.cpuHistory
+	// binary-ish scan (simple linear from end since size capped ~10800 is fine)
+	startIdx := 0
+	for i := len(hist) - 1; i >= 0; i-- {
+		if hist[i].T < cutoff {
+			startIdx = i + 1
+			break
+		}
+	}
+	if startIdx >= len(hist) {
+		s.mu.Unlock()
+		return []map[string]any{}
+	}
+	slice := hist[startIdx:]
+	// copy for unlock
+	tmp := make([]CPUSample, len(slice))
+	copy(tmp, slice)
+	s.mu.Unlock()
+	if len(tmp) == 0 {
+		return []map[string]any{}
+	}
+	var out []map[string]any
+	var acc []float64
+	bSize := int64(bucketSeconds)
+	curBucket := (tmp[0].T / bSize) * bSize
+	flush := func(ts int64) {
+		if len(acc) == 0 {
+			return
+		}
+		sum := 0.0
+		for _, v := range acc {
+			sum += v
+		}
+		avg := sum / float64(len(acc))
+		out = append(out, map[string]any{"t": ts, "cpu": avg})
+		acc = acc[:0]
+	}
+	for _, p := range tmp {
+		b := (p.T / bSize) * bSize
+		if b != curBucket {
+			flush(curBucket)
+			curBucket = b
+		}
+		acc = append(acc, p.Cpu)
+	}
+	flush(curBucket)
+	if len(out) > maxPoints {
+		out = out[len(out)-maxPoints:]
+	}
+	return out
+}
+
+// CPUSample single CPU utilization sample
 type CPUSample struct {
 	T   int64   `json:"t"`   // unix seconds
 	Cpu float64 `json:"cpu"` // percent 0..100
@@ -168,13 +227,30 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 
 	status.LogicalPro = runtime.NumCPU()
 
-	cpuInfos, err := cpu.Info()
-	if err != nil {
-		logger.Warning("get cpu info failed:", err)
-	} else if len(cpuInfos) > 0 {
-		status.CpuSpeedMhz = cpuInfos[0].Mhz
-	} else {
-		logger.Warning("could not find cpu info")
+	if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
+		s.lastCpuInfoAttempt = time.Now()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			cpuInfos, err := cpu.Info()
+			if err != nil {
+				logger.Warning("get cpu info failed:", err)
+				return
+			}
+			if len(cpuInfos) > 0 {
+				s.cachedCpuSpeedMhz = cpuInfos[0].Mhz
+				status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+			} else {
+				logger.Warning("could not find cpu info")
+			}
+		}()
+		select {
+		case <-done:
+		case <-time.After(1500 * time.Millisecond):
+			logger.Warning("cpu info query timed out; will retry later")
+		}
+	} else if s.cachedCpuSpeedMhz != 0 {
+		status.CpuSpeedMhz = s.cachedCpuSpeedMhz
 	}
 
 	// Uptime
@@ -322,55 +398,21 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	return status
 }
 
-// AppendCpuSample appends a CPU sample into the in-memory history with capacity trimming.
 func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
+	const capacity = 9000 // ~5 hours @ 2s interval
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.cpuCapacity == 0 {
-		s.cpuCapacity = 10800 // ~6 hours at 2s per sample
-	}
 	p := CPUSample{T: t.Unix(), Cpu: v}
-	s.cpuHistory = append(s.cpuHistory, p)
-	if len(s.cpuHistory) > s.cpuCapacity {
-		drop := len(s.cpuHistory) - s.cpuCapacity
-		s.cpuHistory = s.cpuHistory[drop:]
+	if n := len(s.cpuHistory); n > 0 && s.cpuHistory[n-1].T == p.T {
+		s.cpuHistory[n-1] = p
+	} else {
+		s.cpuHistory = append(s.cpuHistory, p)
+	}
+	if len(s.cpuHistory) > capacity {
+		s.cpuHistory = s.cpuHistory[len(s.cpuHistory)-capacity:]
 	}
 }
 
-// GetCpuHistory returns samples from the last 'mins' minutes (bounded 1..360).
-func (s *ServerService) GetCpuHistory(mins int) []CPUSample {
-	if mins < 1 {
-		mins = 1
-	}
-	if mins > 360 {
-		mins = 360
-	}
-	cutoff := time.Now().Add(-time.Duration(mins) * time.Minute).Unix()
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if len(s.cpuHistory) == 0 {
-		return nil
-	}
-	// find first index >= cutoff (linear scan from end is fine for these sizes)
-	i := len(s.cpuHistory) - 1
-	for ; i >= 0; i-- {
-		if s.cpuHistory[i].T < cutoff {
-			i++
-			break
-		}
-	}
-	if i < 0 {
-		i = 0
-	}
-	// copy to avoid exposing internal slice
-	out := make([]CPUSample, len(s.cpuHistory)-i)
-	copy(out, s.cpuHistory[i:])
-	return out
-}
-
-// sampleCPUUtilization returns a smoothed total CPU utilization percentage across all logical processors.
-// It computes utilization from CPU time deltas (non-blocking) and applies an exponential moving average
-// to reduce spikes similar to Task Manager's smoothing.
 func (s *ServerService) sampleCPUUtilization() (float64, error) {
 	// Prefer native Windows API to avoid external deps for CPU percent
 	if runtime.GOOS == "windows" {
