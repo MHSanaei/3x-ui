@@ -1109,7 +1109,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 
 	return PageData{
 		Host:         hostHeader,
-		BasePath:     "/",
+		BasePath:     "/", // kept as "/"; templates now use context base_path injected from router
 		SId:          subId,
 		Download:     download,
 		Upload:       upload,
