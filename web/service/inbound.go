@@ -1272,7 +1272,7 @@ func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model
 	clientTraffic.Email = client.Email
 	clientTraffic.Total = client.TotalGB
 	clientTraffic.ExpiryTime = client.ExpiryTime
-	clientTraffic.Enable = true
+	clientTraffic.Enable = client.Enable
 	clientTraffic.Up = 0
 	clientTraffic.Down = 0
 	clientTraffic.Reset = client.Reset
@@ -1285,7 +1285,7 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 	result := tx.Model(xray.ClientTraffic{}).
 		Where("email = ?", email).
 		Updates(map[string]any{
-			"enable":      true,
+			"enable":      client.Enable,
 			"email":       client.Email,
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
@@ -1937,18 +1937,17 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 }
 
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
-	db := database.GetDB()
-	var traffics []*xray.ClientTraffic
-
-	err = db.Model(xray.ClientTraffic{}).Where("email = ?", email).Find(&traffics).Error
+	// Prefer retrieving along with client to reflect actual enabled state from inbound settings
+	t, client, err := s.GetClientByEmail(email)
 	if err != nil {
 		logger.Warningf("Error retrieving ClientTraffic with email %s: %v", email, err)
 		return nil, err
 	}
-	if len(traffics) > 0 {
-		return traffics[0], nil
+	if t != nil && client != nil {
+		// Ensure enable mirrors the client's current enable flag in settings
+		t.Enable = client.Enable
+		return t, nil
 	}
-
 	return nil, nil
 }
 
@@ -1982,6 +1981,12 @@ func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, 
 	if err != nil {
 		logger.Debug(err)
 		return nil, err
+	}
+	// Reconcile enable flag with client settings per email to avoid stale DB value
+	for i := range traffics {
+		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
+			traffics[i].Enable = client.Enable
+		}
 	}
 	return traffics, err
 }
