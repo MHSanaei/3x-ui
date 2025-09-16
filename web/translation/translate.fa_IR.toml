@@ -244,6 +244,9 @@
 "exportInbound" = "استخراج ورودی"
 "import" = "افزودن"
 "importInbound" = "افزودن یک ورودی"
+"periodicTrafficResetTitle" = "بازنشانی ترافیک"
+"periodicTrafficResetDesc" = "بازنشانی خودکار شمارنده ترافیک در فواصل زمانی مشخص"
+"lastReset" = "آخرین بازنشانی"
 
 [pages.client]
 "add" = "کاربر جدید"
@@ -261,7 +264,13 @@
 "expireDays" = "مدت زمان"
 "days" = "(روز)"
 "renew" = "تمدید خودکار"
-"renewDesc" = "(تمدید خودکار پس‌از ‌انقضا. (0 = غیرفعال)(واحد: روز"
+"renewDesc" = "تمدید خودکار پس‌از ‌انقضا. (0 = غیرفعال)(واحد: روز)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "هرگز"
+"daily" = "روزانه"
+"weekly" = "هفتگی"
+"monthly" = "ماهانه"
 
 [pages.inbounds.toasts]
 "obtain" = "فراهم‌سازی"
