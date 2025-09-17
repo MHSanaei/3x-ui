@@ -538,7 +538,7 @@
         const h = this.drawHeight
         const w = this.drawWidth
         // draw at 25%, 50%, 75%
-        return [0.25, 0.5, 0.75]
+        return [0, 0.25, 0.5, 0.75, 1]
           .map(r => Math.round(this.paddingTop + h * r))
           .map(y => ({ x1: this.paddingLeft, y1: y, x2: this.paddingLeft + w, y2: y }))
       },
@@ -622,7 +622,7 @@
           </g>
           <!-- X ticks/labels -->
           <g v-for="(t,i) in xTicks" :key="'x'+i">
-            <text class="cpu-grid-x-text" :x="t.x" :y="paddingTop + drawHeight + 14" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.3)" v-text="t.label"></text>
+            <text class="cpu-grid-x-text" :x="t.x" :y="paddingTop + drawHeight + 22" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.3)" v-text="t.label"></text>
           </g>
         </g>
         <path v-if="areaPath" :d="areaPath" fill="url(#spkGrad)" stroke="none" />
