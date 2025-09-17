@@ -233,7 +233,7 @@
                                         <a-menu slot="overlay"
                                             :class="themeSwitcher.currentTheme">
                                             <a-menu-item key="ios-shadowrocket"
-                                                @click="open('shadowrocket://add/subscription?url=' + encodeURIComponent(app.subUrl) + '&remark=' + encodeURIComponent(app.sId))">Shadowrocket</a-menu-item>
+                                                @click="open(shadowrocketUrl)">Shadowrocket</a-menu-item>
                                             <a-menu-item key="ios-v2box"
                                                 @click="open('v2box://install-sub?url=' + encodeURIComponent(app.subUrl) + '&name=' + encodeURIComponent(app.sId))">V2Box</a-menu-item>
                                             <a-menu-item key="ios-streisand"

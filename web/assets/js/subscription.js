@@ -50,7 +50,11 @@
   }
 
   function drawQR(value) {
-    try { new QRious({ element: document.getElementById('qrcode'), value, size: 220 }); } catch (e) { console.warn(e); }
+    try {
+      new QRious({ element: document.getElementById('qrcode'), value, size: 220 });
+    } catch (e) {
+      console.warn(e);
+    }
   }
 
   // Try to extract a human label (email/ps) from different link types
@@ -61,22 +65,18 @@
         if (json.ps) return json.ps;
         if (json.add && json.id) return json.add; // fallback host
       } else if (link.startsWith('vless://') || link.startsWith('trojan://')) {
-        // vless://<id>@host:port?...#name
         const hashIdx = link.indexOf('#');
         if (hashIdx !== -1) return decodeURIComponent(link.substring(hashIdx + 1));
-        // email sometimes in query params like sni or remark
         const qIdx = link.indexOf('?');
         if (qIdx !== -1) {
           const qs = new URL('http://x/?' + link.substring(qIdx + 1, hashIdx !== -1 ? hashIdx : undefined)).searchParams;
           if (qs.get('remark')) return qs.get('remark');
           if (qs.get('email')) return qs.get('email');
         }
-        // else take user@host
         const at = link.indexOf('@');
         const protSep = link.indexOf('://');
         if (at !== -1 && protSep !== -1) return link.substring(protSep + 3, at);
       } else if (link.startsWith('ss://')) {
-        // shadowsocks: label often after #
         const hashIdx = link.indexOf('#');
         if (hashIdx !== -1) return decodeURIComponent(link.substring(hashIdx + 1));
       }
@@ -96,14 +96,13 @@
     },
     async mounted() {
       this.lang = LanguageManager.getLanguage();
-      // Discover subJsonUrl if provided via template bootstrap
       const tpl = document.getElementById('subscription-data');
       const sj = tpl ? tpl.getAttribute('data-subjson-url') : '';
       if (sj) this.app.subJsonUrl = sj;
       drawQR(this.app.subUrl);
-      // Draw second QR if available
-      try { new QRious({ element: document.getElementById('qrcode-subjson'), value: this.app.subJsonUrl || '', size: 220 }); } catch (e) { /* ignore */ }
-      // Track viewport width for responsive behavior
+      try {
+        new QRious({ element: document.getElementById('qrcode-subjson'), value: this.app.subJsonUrl || '', size: 220 });
+      } catch (e) { /* ignore */ }
       this._onResize = () => { this.viewportWidth = window.innerWidth; };
       window.addEventListener('resize', this._onResize);
     },
@@ -111,15 +110,33 @@
       if (this._onResize) window.removeEventListener('resize', this._onResize);
     },
     computed: {
-      isMobile() { return this.viewportWidth < 576; },
-      isUnlimited() { return !this.app.totalByte; },
+      isMobile() {
+        return this.viewportWidth < 576;
+      },
+      isUnlimited() {
+        return !this.app.totalByte;
+      },
       isActive() {
         const now = Date.now();
         const expiryOk = !this.app.expireMs || this.app.expireMs >= now;
         const trafficOk = !this.app.totalByte || (this.app.uploadByte + this.app.downloadByte) <= this.app.totalByte;
         return expiryOk && trafficOk;
       },
+      shadowrocketUrl() {
+        const rawUrl = this.app.subUrl + '?flag=shadowrocket';
+        const base64Url = btoa(rawUrl);
+        const remark = encodeURIComponent(this.app.sId || 'Subscription');
+        return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+      }
     },
-    methods: { renderLink, copy, open, linkName, i18nLabel(key) { return '{{ i18n "' + key + '" }}'; } },
+    methods: {
+      renderLink,
+      copy,
+      open,
+      linkName,
+      i18nLabel(key) {
+        return '{{ i18n "' + key + '" }}';
+      },
+    },
   });
 })();
