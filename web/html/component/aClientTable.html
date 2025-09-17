@@ -37,7 +37,7 @@
     <template slot="content" >
       {{ i18n "lastOnline" }}: [[ formatLastOnline(client.email) ]]
     </template>
-    <template v-if="client.enable && isClientOnline(client.email) && !isClientDepleted">
+    <template v-if="client.enable && isClientOnline(client.email)">
       <a-tag color="green">{{ i18n "online" }}</a-tag>
     </template>
     <template v-else>
@@ -51,7 +51,7 @@
       <template slot="title">
         <template v-if="isClientDepleted">{{ i18n "depleted" }}</template>
         <template v-if="!isClientDepleted && !client.enable">{{ i18n "disabled" }}</template>
-        <template v-if="!isClientDepleted && client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
+        <template v-if="client.enable && isClientOnline(client.email)">{{ i18n "online" }}</template>
       </template>
       <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''" :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
     </a-tooltip>
