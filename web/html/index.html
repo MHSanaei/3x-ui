@@ -365,7 +365,7 @@
         <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
       </a-form-item>
       <a-form-item style="float: right;">
-        <a-button type="primary" icon="download" @click="downloadXrayLogs"></a-button>
+        <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
     </a-form>
     <div class="ant-input log-container" v-html="logModal.formattedLogs"></div>
@@ -400,8 +400,7 @@
         <a-checkbox v-model="xraylogModal.showProxy" @change="openXrayLogs()">Proxy</a-checkbox>
       </a-form-item>
       <a-form-item style="float: right;">
-        <a-button type="primary" icon="download"
-          @click="FileManager.downloadTextFile(xraylogModal.logs?.join('\n'), 'x-ui.log')"></a-button>
+        <a-button type="primary" icon="download" @click="downloadXrayLogs"></a-button>
       </a-form-item>
     </a-form>
     <div class="ant-input log-container" v-html="xraylogModal.formattedLogs"></div>
@@ -1104,7 +1103,6 @@
         fileInput.click();
       },
     },
-    computed: {},
     async mounted() {
       if (window.location.protocol !== "https:") {
         this.showAlert = true;
