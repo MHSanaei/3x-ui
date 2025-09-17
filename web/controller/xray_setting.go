@@ -23,13 +23,13 @@ func NewXraySettingController(g *gin.RouterGroup) *XraySettingController {
 
 func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/xray")
+	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+	g.GET("/getOutboundsTraffic", a.getOutboundsTraffic)
+	g.GET("/getXrayResult", a.getXrayResult)
 
 	g.POST("/", a.getXraySetting)
-	g.POST("/update", a.updateSetting)
-	g.GET("/getXrayResult", a.getXrayResult)
-	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
 	g.POST("/warp/:action", a.warp)
-	g.GET("/getOutboundsTraffic", a.getOutboundsTraffic)
+	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 }
 
