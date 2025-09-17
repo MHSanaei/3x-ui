@@ -343,7 +343,7 @@
     <a-form layout="inline">
       <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="logModal.rows" class="w-70" @change="openLogs()"
+          <a-select size="small" v-model="logModal.rows" :style="{ width: '70px' }" @change="openLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
@@ -351,7 +351,7 @@
             <a-select-option value="100">100</a-select-option>
             <a-select-option value="500">500</a-select-option>
           </a-select>
-          <a-select size="small" v-model="logModal.level" class="w-95" @change="openLogs()"
+          <a-select size="small" v-model="logModal.level" :style="{ width: '95px' }" @change="openLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="debug">Debug</a-select-option>
             <a-select-option value="info">Info</a-select-option>
@@ -381,7 +381,7 @@
     <a-form layout="inline">
       <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="xraylogModal.rows" class="w-70" @change="openXrayLogs()"
+          <a-select size="small" v-model="xraylogModal.rows" :style="{ width: '70px' }" @change="openXrayLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
