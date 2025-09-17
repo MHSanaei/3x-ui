@@ -365,8 +365,7 @@
         <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
       </a-form-item>
       <a-form-item style="float: right;">
-        <a-button type="primary" icon="download"
-          @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
+        <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
     </a-form>
     <div class="ant-input log-container" v-html="logModal.formattedLogs"></div>
@@ -401,8 +400,7 @@
         <a-checkbox v-model="xraylogModal.showProxy" @change="openXrayLogs()">Proxy</a-checkbox>
       </a-form-item>
       <a-form-item style="float: right;">
-        <a-button type="primary" icon="download"
-          @click="FileManager.downloadTextFile(xraylogModal.logs?.join('\n'), 'x-ui.log')"></a-button>
+        <a-button type="primary" icon="download" @click="downloadXrayLogs"></a-button>
       </a-form-item>
     </a-form>
     <div class="ant-input log-container" v-html="xraylogModal.formattedLogs"></div>
@@ -796,59 +794,74 @@
   };
 
   const xraylogModal = {
-    visible: false,
-    logs: [],
-    rows: 20,
-    showDirect: true,
-    showBlocked: true,
-    showProxy: true,
-    loading: false,
-    show(logs) {
-      this.visible = true;
-      this.logs = logs;
-      this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
-    },
-    formatLogs(logs) {
-      let formattedLogs = '';
+      visible: false,
+      logs: [],
+      rows: 20,
+      showDirect: true,
+      showBlocked: true,
+      showProxy: true,
+      loading: false,
+      show(logs) {
+        this.visible = true;
+        this.logs = logs;
+        this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
+      },
+      formatLogs(logs) {
+        let formattedLogs = `
+<style>
+  table {
+    border-collapse: collapse;
+    width: auto;
+  }
 
-      logs.forEach((log, index) => {
-        if (index > 0) formattedLogs += '<br>';
+  table td, table th {
+    padding: 2px 15px;
+  }
+</style>
 
-        const parts = log.split(' ');
+<table>
+    <tr>
+        <th>Date</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Inbound</th>
+        <th>Outbound</th>
+        <th>Email</th>
+    </tr>
+`;
 
-        if (parts.length === 10) {
-          const dateTime = `<b>${parts[0]} ${parts[1]}</b>`;
-          const from = `<b>${parts[3]}</b>`;
-          const to = `<b>${parts[5].replace(/^\/+/, "")}</b>`;
-
+        logs.reverse().forEach((log, index) => {
           let outboundColor = '';
-          if (parts[9] === "b") {
+          if (log.Event === 1) {
             outboundColor = ' style="color: #e04141;"'; //red for blocked
           }
-          else if (parts[9] === "p") {
+          else if (log.Event === 2) {
             outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
           }
 
-          formattedLogs += `<span${outboundColor}>
-${dateTime}
- ${parts[2]}
- ${from}
- ${parts[4]}
- ${to}
- ${parts.slice(6, 9).join(' ')}
-</span>`;
-        } else {
-          formattedLogs += `<span>${log}</span>`;
-        }
-      });
+          let text = ``;
+          if (log.Email !== "") {
+            text = `<td>${log.Email}</td>`;
+          }
 
-      return formattedLogs;
-    },
-    hide() {
-      this.visible = false;
-    },
-  };
+          formattedLogs += `
+<tr ${outboundColor}>
+    <td><b>${new Date(log.DateTime).toLocaleString()}</b></td>
+    <td>${log.FromAddress}</td>
+    <td>${log.ToAddress}</td>
+    <td>${log.Inbound}</td>
+    <td>${log.Outbound}</td>
+    ${text}
+</tr>
+`;
+        });
 
+        return formattedLogs += "</table>";
+      },
+      hide() {
+        this.visible = false;
+      },
+    };
   const backupModal = {
     visible: false,
     show() {
@@ -1023,6 +1036,25 @@ ${dateTime}
         await PromiseUtil.sleep(500);
         xraylogModal.loading = false;
       },
+      downloadXrayLogs() {
+        if (!Array.isArray(this.xraylogModal.logs) || this.xraylogModal.logs.length === 0) {
+          FileManager.downloadTextFile('', 'x-ui.log');
+          return;
+        }
+        const lines = this.xraylogModal.logs.map(l => {
+          try {
+            const dt = l.DateTime ? new Date(l.DateTime) : null;
+            const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
+            const eventMap = { 0: 'DIRECT', 1: 'BLOCKED', 2: 'PROXY' };
+            const eventText = eventMap[l.Event] || String(l.Event ?? '');
+            const emailPart = l.Email ? ` Email=${l.Email}` : '';
+            return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
+          } catch (e) {
+            return JSON.stringify(l);
+          }
+        }).join('\n');
+        FileManager.downloadTextFile(lines, 'x-ui.log');
+      },
       async openConfig() {
         this.loading(true);
         const msg = await HttpUtil.get('/panel/api/server/getConfigJson');
@@ -1071,7 +1103,6 @@ ${dateTime}
         fileInput.click();
       },
     },
-    computed: {},
     async mounted() {
       if (window.location.protocol !== "https:") {
         this.showAlert = true;

@@ -174,6 +174,16 @@ type CPUSample struct {
 	Cpu float64 `json:"cpu"` // percent 0..100
 }
 
+type LogEntry struct {
+	DateTime    time.Time
+	FromAddress string
+	ToAddress   string
+	Inbound     string
+	Outbound    string
+	Email       string
+	Event       int
+}
+
 func getPublicIP(url string) string {
 	client := &http.Client{
 		Timeout: 3 * time.Second,
@@ -704,19 +714,25 @@ func (s *ServerService) GetXrayLogs(
 	showBlocked string,
 	showProxy string,
 	freedoms []string,
-	blackholes []string) []string {
+	blackholes []string) []LogEntry {
+
+	const (
+		Direct = iota
+		Blocked
+		Proxied
+	)
 
 	countInt, _ := strconv.Atoi(count)
-	var lines []string
+	var entries []LogEntry
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
-		return lines
+		return nil
 	}
 
 	file, err := os.Open(pathToAccessLog)
 	if err != nil {
-		return lines
+		return nil
 	}
 	defer file.Close()
 
@@ -735,37 +751,62 @@ func (s *ServerService) GetXrayLogs(
 			continue
 		}
 
-		//adding suffixes to further distinguish entries by outbound
-		if hasSuffix(line, freedoms) {
+		var entry LogEntry
+		parts := strings.Fields(line)
+
+		for i, part := range parts {
+
+			if i == 0 {
+				dateTime, err := time.Parse("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1])
+				if err != nil {
+					continue
+				}
+				entry.DateTime = dateTime
+			}
+
+			if part == "from" {
+				entry.FromAddress = parts[i+1]
+			} else if part == "accepted" {
+				entry.ToAddress = parts[i+1]
+			} else if strings.HasPrefix(part, "[") {
+				entry.Inbound = part[1:]
+			} else if strings.HasSuffix(part, "]") {
+				entry.Outbound = part[:len(part)-1]
+			} else if part == "email:" {
+				entry.Email = parts[i+1]
+			}
+		}
+
+		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
 				continue
 			}
-			line = line + " f"
-		} else if hasSuffix(line, blackholes) {
+			entry.Event = Direct
+		} else if logEntryContains(line, blackholes) {
 			if showBlocked == "false" {
 				continue
 			}
-			line = line + " b"
+			entry.Event = Blocked
 		} else {
 			if showProxy == "false" {
 				continue
 			}
-			line = line + " p"
+			entry.Event = Proxied
 		}
 
-		lines = append(lines, line)
+		entries = append(entries, entry)
 	}
 
-	if len(lines) > countInt {
-		lines = lines[len(lines)-countInt:]
+	if len(entries) > countInt {
+		entries = entries[len(entries)-countInt:]
 	}
 
-	return lines
+	return entries
 }
 
-func hasSuffix(line string, suffixes []string) bool {
+func logEntryContains(line string, suffixes []string) bool {
 	for _, sfx := range suffixes {
-		if strings.HasSuffix(line, sfx+"]") {
+		if strings.Contains(line, sfx+"]") {
 			return true
 		}
 	}
