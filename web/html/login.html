@@ -4,7 +4,7 @@
 {{ template "page/body_start" .}}
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' login-app'">
   <transition name="list" appear>
-  <a-layout-content class="under min-h-100vh">
+  <a-layout-content class="under min-h-0">
       <div class="waves-header">
         <div class="waves-inner-header"></div>
         <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -20,7 +20,7 @@
           </g>
         </svg>
       </div>
-  <a-row type="flex" justify="center" align="middle" class="h-100 overflow-hidden-auto">
+  <a-row type="flex" justify="center" align="middle" class="h-100 overflow-y-auto overflow-x-hidden">
         <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" class="my-3rem">
           <template v-if="!loadingStates.fetched">
             <div class="text-center">
@@ -184,5 +184,80 @@
       newWord.classList.add('is-visible');
     }
   });
+
+  const pm_input_selector = 'input.ant-input, textarea.ant-input';
+  const pm_strip_props = [
+    'background',
+    'background-color',
+    'background-image',
+    'color'
+  ];
+
+  const pm_observed_forms = new WeakSet();
+
+  function pm_strip_inline(el) {
+    if (!el || el.nodeType !== 1 || !el.matches?.(pm_input_selector)) return;
+
+    let did_change = false;
+    for (const prop of pm_strip_props) {
+      if (el.style.getPropertyValue(prop)) {
+        el.style.removeProperty(prop);
+        did_change = true;
+      }
+    }
+
+    if (did_change && el.style.length === 0) {
+      el.removeAttribute('style');
+    }
+  }
+
+  function pm_attach_observer(form) {
+    if (pm_observed_forms.has(form)) return;
+    pm_observed_forms.add(form);
+
+    form.querySelectorAll(pm_input_selector).forEach(pm_strip_inline);
+
+    const pm_mo = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        if (m.type === 'attributes') {
+          pm_strip_inline(m.target);
+        } else if (m.type === 'childList') {
+          for (const n of m.addedNodes) {
+            if (n.nodeType !== 1) continue;
+            if (n.matches?.(pm_input_selector)) pm_strip_inline(n);
+            n.querySelectorAll?.(pm_input_selector).forEach(pm_strip_inline);
+          }
+        }
+      }
+    });
+
+    pm_mo.observe(form, {
+      attributes: true,
+      attributeFilter: ['style'],
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function pm_init() {
+    document.querySelectorAll('form.ant-form').forEach(pm_attach_observer);
+    const pm_host = document.getElementById('login') || document.body;
+    const pm_wait_for_forms = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        for (const n of m.addedNodes) {
+          if (n.nodeType !== 1) continue;
+          if (n.matches?.('form.ant-form')) pm_attach_observer(n);
+          n.querySelectorAll?.('form.ant-form').forEach(pm_attach_observer);
+        }
+      }
+    });
+    pm_wait_for_forms.observe(pm_host, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', pm_init, { once: true });
+  } else {
+    pm_init();
+  }
 </script>
 {{ template "page/body_end" .}}

@@ -39,7 +39,7 @@
                               </template>
                             </a-tooltip>
                             <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
-                              <a-button size="small" type="default" class="ml-8" @click="openCpuHistory()">
+                              <a-button size="small" shape="circle" class="ml-8" @click="openCpuHistory()">
                                 <a-icon type="history" />
                               </a-button>
                             </a-tooltip>
@@ -343,7 +343,7 @@
     <a-form layout="inline">
       <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="logModal.rows" class="w-70" @change="openLogs()"
+          <a-select size="small" v-model="logModal.rows" :style="{ width: '70px' }" @change="openLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
@@ -351,7 +351,7 @@
             <a-select-option value="100">100</a-select-option>
             <a-select-option value="500">500</a-select-option>
           </a-select>
-          <a-select size="small" v-model="logModal.level" class="w-95" @change="openLogs()"
+          <a-select size="small" v-model="logModal.level" :style="{ width: '95px' }" @change="openLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="debug">Debug</a-select-option>
             <a-select-option value="info">Info</a-select-option>
@@ -381,7 +381,7 @@
     <a-form layout="inline">
       <a-form-item class="mr-05">
         <a-input-group compact>
-          <a-select size="small" v-model="xraylogModal.rows" class="w-70" @change="openXrayLogs()"
+          <a-select size="small" v-model="xraylogModal.rows" :style="{ width: '70px' }" @change="openXrayLogs()"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="10">10</a-select-option>
             <a-select-option value="20">20</a-select-option>
@@ -429,7 +429,7 @@
     @cancel="() => cpuHistoryModal.visible = false" :class="themeSwitcher.currentTheme" width="900px" footer="">
     <template slot="title">
       CPU History
-      <a-select size="small" v-model="cpuHistoryModal.bucket" class="ml-10" style="width: 140px"
+      <a-select size="small" v-model="cpuHistoryModal.bucket" class="ml-10" style="width: 80px"
         @change="fetchCpuHistoryBucket">
         <a-select-option :value="2">2s</a-select-option>
         <a-select-option :value="30">30s</a-select-option>
@@ -439,7 +439,7 @@
         <a-select-option :value="300">5m</a-select-option>
       </a-select>
     </template>
-    <div style="padding: 8px 0;">
+    <div style="padding:16px">
       <sparkline :data="cpuHistoryLong" :labels="cpuHistoryLabels" :vb-width="840" :height="220"
         :stroke="status.cpu.color" :stroke-width="2.2" :show-grid="true" :show-axes="true" :tick-count-x="5"
         :max-points="cpuHistoryLong.length" :fill-opacity="0.18" :marker-radius="3.2" :show-tooltip="true" />
@@ -464,7 +464,7 @@
       strokeWidth: { type: Number, default: 2 },
       maxPoints: { type: Number, default: 120 },
       showGrid: { type: Boolean, default: true },
-      gridColor: { type: String, default: 'rgba(255,255,255,0.08)' },
+      gridColor: { type: String, default: 'rgba(0,0,0,0.1)' },
       fillOpacity: { type: Number, default: 0.15 },
       showMarker: { type: Boolean, default: true },
       markerRadius: { type: Number, default: 2.8 },
@@ -604,7 +604,7 @@
       },
     },
     template: `
-      <svg width="100%" :height="height" :viewBox="viewBoxAttr" preserveAspectRatio="none" style="display:block"
+      <svg width="100%" :height="height" :viewBox="viewBoxAttr" preserveAspectRatio="none" class="idx-cpu-history-svg"
            @mousemove="onMouseMove" @mouseleave="onMouseLeave">
         <defs>
           <linearGradient id="spkGrad" x1="0" y1="0" x2="0" y2="1">
@@ -613,16 +613,16 @@
           </linearGradient>
         </defs>
         <g v-if="showGrid">
-          <line v-for="(g,i) in gridLines" :key="i" :x1="g.x1" :y1="g.y1" :x2="g.x2" :y2="g.y2" :stroke="gridColor" stroke-width="1"/>
+          <line v-for="(g,i) in gridLines" :key="i" :x1="g.x1" :y1="g.y1" :x2="g.x2" :y2="g.y2" :stroke="gridColor" stroke-width="1" class="cpu-grid-line" />
         </g>
         <g v-if="showAxes">
           <!-- Y ticks/labels -->
           <g v-for="(t,i) in yTicks" :key="'y'+i">
-            <text :x="Math.max(0, paddingLeft - 4)" :y="t.y + 4" text-anchor="end" font-size="10" fill="rgba(200,200,200,0.8)" v-text="t.label"></text>
+            <text class="cpu-grid-y-text" :x="Math.max(0, paddingLeft - 4)" :y="t.y + 4" text-anchor="end" font-size="10" fill="rgba(0,0,0,0.3)" v-text="t.label"></text>
           </g>
           <!-- X ticks/labels -->
           <g v-for="(t,i) in xTicks" :key="'x'+i">
-            <text :x="t.x" :y="paddingTop + drawHeight + 14" text-anchor="middle" font-size="10" fill="rgba(200,200,200,0.8)" v-text="t.label"></text>
+            <text class="cpu-grid-x-text" :x="t.x" :y="paddingTop + drawHeight + 14" text-anchor="middle" font-size="10" fill="rgba(0,0,0,0.3)" v-text="t.label"></text>
           </g>
         </g>
         <path v-if="areaPath" :d="areaPath" fill="url(#spkGrad)" stroke="none" />
@@ -630,9 +630,9 @@
         <circle v-if="showMarker && lastPoint" :cx="lastPoint[0]" :cy="lastPoint[1]" :r="markerRadius" :fill="stroke" />
         <!-- Hover marker/tooltip -->
         <g v-if="showTooltip && hoverIdx >= 0">
-          <line :x1="pointsArr[hoverIdx][0]" :x2="pointsArr[hoverIdx][0]" :y1="paddingTop" :y2="paddingTop + drawHeight" stroke="rgba(255,255,255,0.25)" stroke-width="1" />
+          <line class="cpu-grid-h-line" :x1="pointsArr[hoverIdx][0]" :x2="pointsArr[hoverIdx][0]" :y1="paddingTop" :y2="paddingTop + drawHeight" stroke="rgba(0,0,0,0.2)" stroke-width="1" />
           <circle :cx="pointsArr[hoverIdx][0]" :cy="pointsArr[hoverIdx][1]" r="3.5" :fill="stroke" />
-          <text :x="pointsArr[hoverIdx][0]" :y="paddingTop + 12" text-anchor="middle" font-size="11" fill="#fff" style="paint-order: stroke; stroke: rgba(0,0,0,0.35); stroke-width: 3;" v-text="fmtHoverText()"></text>
+          <text class="cpu-grid-text" :x="pointsArr[hoverIdx][0]" :y="paddingTop + 12" text-anchor="middle" font-size="11" fill="rgba(0,0,0,0.8)" v-text="fmtHoverText()"></text>
         </g>
       </svg>
     `,
