@@ -30,7 +30,7 @@ func setEmbeddedTemplates(engine *gin.Engine) error {
 		webpkg.EmbeddedHTML(),
 		"html/common/page.html",
 		"html/component/aThemeSwitch.html",
-		"html/subscription.html",
+		"html/settings/panel/subscription/subpage.html",
 	)
 	if err != nil {
 		return err
@@ -207,7 +207,7 @@ func (s *Server) getHtmlFiles() ([]string, error) {
 		files = append(files, theme)
 	}
 	// page itself
-	page := filepath.Join(dir, "web", "html", "subscription.html")
+	page := filepath.Join(dir, "web", "html", "subpage.html")
 	if _, err := os.Stat(page); err == nil {
 		files = append(files, page)
 	} else {
