@@ -127,6 +127,18 @@
         const base64Url = btoa(rawUrl);
         const remark = encodeURIComponent(this.app.sId || 'Subscription');
         return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
+      },
+      v2boxUrl() {
+        return `v2box://install-sub?url=${encodeURIComponent(this.app.subUrl)}&name=${encodeURIComponent(this.app.sId)}`;
+      },
+      streisandUrl() {
+        return `streisand://import/${encodeURIComponent(this.app.subUrl)}`;
+      },
+      v2raytunUrl() {
+        return this.app.subUrl; 
+      },
+      npvtunUrl() {
+        return this.app.subUrl; 
       }
     },
     methods: {
