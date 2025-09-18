@@ -512,6 +512,10 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 				cm["created_at"] = nowTs
 			}
 			cm["updated_at"] = nowTs
+
+			
+			cm["speedLimit"] = clients[i].SpeedLimit 
+			
 			interfaceClients[i] = cm
 		}
 	}
@@ -592,6 +596,9 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 					"flow":     client.Flow,
 					"password": client.Password,
 					"cipher":   cipher,
+
+					
+					"level":    client.SpeedLimit,
 				})
 				if err1 == nil {
 					logger.Debug("Client added by api:", client.Email)
@@ -781,6 +788,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 			}
 			newMap["created_at"] = preservedCreated
 			newMap["updated_at"] = time.Now().Unix() * 1000
+			newMap["speedLimit"] = clients[0].SpeedLimit 
 			interfaceClients[0] = newMap
 		}
 	}
@@ -855,6 +863,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 				"flow":     clients[0].Flow,
 				"password": clients[0].Password,
 				"cipher":   cipher,
+				"level":    clients[0].SpeedLimit,
 			})
 			if err1 == nil {
 				logger.Debug("Client edited by api:", clients[0].Email)
@@ -2112,6 +2121,10 @@ func (s *InboundService) MigrationRequirements() {
 					c["created_at"] = time.Now().Unix() * 1000
 				}
 				c["updated_at"] = time.Now().Unix() * 1000
+
+				if _, ok := c["speedLimit"]; !ok {
+                     c["speedLimit"] = 0
+                }
 				newClients = append(newClients, any(c))
 			}
 			settings["clients"] = newClients

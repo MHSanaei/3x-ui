@@ -5,9 +5,11 @@ import (
 	"errors"
 	"runtime"
 	"sync"
+	"strconv"
 
 	"x-ui/logger"
 	"x-ui/xray"
+	json_util "x-ui/util/json_util"
 
 	"go.uber.org/atomic"
 )
@@ -28,6 +30,13 @@ type XrayService struct {
 
 func (s *XrayService) IsXrayRunning() bool {
 	return p != nil && p.IsRunning()
+}
+
+func (s *XrayService) GetApiPort() int {
+	if p == nil {
+		return 0
+	}
+	return p.GetAPIPort()
 }
 
 func (s *XrayService) GetXrayErr() error {
@@ -91,15 +100,233 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		return nil, err
 	}
 
-	s.inboundService.AddTraffic(nil, nil)
+	
 
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
 		return nil, err
 	}
+
+	
+	uniqueSpeeds := make(map[int]bool)
 	for _, inbound := range inbounds {
 		if !inbound.Enable {
 			continue
+		}
+		
+        
+		dbClients, _ := s.inboundService.GetClients(inbound)
+		for _, dbClient := range dbClients {
+			if dbClient.SpeedLimit > 0 {
+				uniqueSpeeds[dbClient.SpeedLimit] = true
+			}
+		}
+	}
+
+	
+	var finalPolicy map[string]interface{}
+	if xrayConfig.Policy != nil {
+		if err := json.Unmarshal(xrayConfig.Policy, &finalPolicy); err != nil {
+			logger.Warningf("Failed to parse the policy in the template: %v", err)
+			finalPolicy = make(map[string]interface{})
+		}
+	} else {
+		finalPolicy = make(map[string]interface{})
+	}
+
+	
+	var policyLevels map[string]interface{}
+	if levels, ok := finalPolicy["levels"].(map[string]interface{}); ok {
+		policyLevels = levels
+	} else {
+		policyLevels = make(map[string]interface{})
+	}
+
+	// 3. [Important modification]: Ensure the integrity of the level 0 policy, which is key to enabling device restrictions and default user statistics.
+	var level0 map[string]interface{}
+	if l0, ok := policyLevels["0"].(map[string]interface{}); ok {
+		// If level 0 already exists in the template, use it as the base for modifications.
+		level0 = l0
+	} else {
+		//  If it does not exist in the template, create a brand new map.
+		level0 = make(map[string]interface{})
+	}
+	// [Chinese comment]: Regardless of whether level 0 exists, supplement or override the following key parameters for it.
+	// handshake and connIdle are prerequisites to activate Xray connection statistics,
+	// uplinkOnly and downlinkOnly set to 0 mean no speed limit, which is the default behavior for level 0 users.
+	// statsUserUplink and statsUserDownlink ensure that user traffic can be counted.
+	level0["handshake"] = 4
+	level0["connIdle"] = 300
+	level0["uplinkOnly"] = 0
+	level0["downlinkOnly"] = 0
+	level0["statsUserUplink"] = true
+	level0["statsUserDownlink"] = true 
+	// [Added]: Add this key option to enable Xray-core's online IP statistics feature.
+	// This is a prerequisite for the proper functioning of the "device restriction" feature.
+
+	level0["statsUserOnline"] = true
+	
+	// Write the fully configured level 0 back to policyLevels to ensure the final generated config.json is correct.
+	policyLevels["0"] = level0
+
+	// 4. Iterate through all collected speed limits and create a corresponding level for each unique speed limit
+	for speed := range uniqueSpeeds {
+		// Create a level for each speed, where the level's name is the string representation of the speed
+		// For example, the speed 1024 KB/s corresponds to the level "1024"
+		policyLevels[strconv.Itoa(speed)] = map[string]interface{}{
+			"downlinkOnly": speed,
+			"uplinkOnly":   speed,
+			"handshake":         4,
+			"connIdle":          300,
+			"statsUserUplink":   true,
+			"statsUserDownlink": true,
+			"statsUserOnline": true,
+		}
+	}
+	// 5. Write the modified levels back to the policy object, serialize it back to xrayConfig.Policy, and apply the generated policy to the Xray configuration
+	finalPolicy["levels"] = policyLevels
+	policyJSON, err := json.Marshal(finalPolicy)
+	if err != nil {
+		return nil, err
+	}
+	xrayConfig.Policy = json_util.RawMessage(policyJSON)
+	// =================================================================
+	//  Add logs here to print the final generated speed limit policy
+	// =================================================================
+
+	if len(uniqueSpeeds) > 0 {
+		finalPolicyLog, _ := json.Marshal(policyLevels)
+		logger.Infof("已为Xray动态生成〔限速策略〕: %s", string(finalPolicyLog))
+	}
+
+
+	s.inboundService.AddTraffic(nil, nil)
+
+	for _, inbound := range inbounds {
+		if !inbound.Enable {
+			continue
+		}
+		
+		inboundConfig := inbound.GenXrayInboundConfig()
+
+		
+		speedByEmail := make(map[string]int)
+		speedById := make(map[string]int)
+		dbClients, _ := s.inboundService.GetClients(inbound)
+		for _, dbc := range dbClients {
+			if dbc.Email != "" {
+				speedByEmail[dbc.Email] = dbc.SpeedLimit
+			}
+			
+			if dbc.ID != "" {
+				speedById[dbc.ID] = dbc.SpeedLimit
+			}
+		}
+
+		
+		var settings map[string]interface{}
+		if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+			logger.Warningf("Failed to parse inbound.Settings (inbound %d): %v, skipping this inbound", inbound.Id, err)
+			continue
+		}
+
+		originalClients, ok := settings["clients"].([]interface{})
+		if ok {
+			clientStats := inbound.ClientStats
+
+			var xrayClients []interface{}
+			for _, clientRaw := range originalClients {
+				c, ok := clientRaw.(map[string]interface{})
+				if !ok {
+					continue
+				}
+			
+				if en, ok := c["enable"].(bool); ok && !en {
+					if em, _ := c["email"].(string); em != "" {
+						logger.Infof("User marked as disabled in settings removed from Xray config: %s", em)
+					}
+					continue
+				}
+
+				
+				email, _ := c["email"].(string)
+				idStr, _ := c["id"].(string)
+				disabledByStat := false
+				for _, stat := range clientStats {
+					if stat.Email == email && !stat.Enable {
+						disabledByStat = true
+						break
+					}
+				}
+				if disabledByStat {
+					logger.Infof("User disabled and removed from Xray config: %s", email)
+					continue
+				}
+
+
+				
+				xrayClient := make(map[string]interface{})
+				if id, ok := c["id"]; ok { xrayClient["id"] = id }
+				if email != "" { xrayClient["email"] = email }
+
+				
+				if flow, ok := c["flow"]; ok {
+					if fs, ok2 := flow.(string); ok2 && fs == "xtls-rprx-vision-udp443" {
+						xrayClient["flow"] = "xtls-rprx-vision"
+					} else {
+						xrayClient["flow"] = flow
+					}
+				}
+				if password, ok := c["password"]; ok { xrayClient["password"] = password }
+				if method, ok := c["method"]; ok { xrayClient["method"] = method }
+
+				
+				level := 0
+				if email != "" {
+					if v, ok := speedByEmail[email]; ok && v > 0 {
+						level = v
+					}
+				}
+				if level == 0 && idStr != "" {
+					if v, ok := speedById[idStr]; ok && v > 0 {
+						level = v
+					}
+				}
+				if level == 0 {
+					if sl, ok := c["speedLimit"]; ok {
+						switch vv := sl.(type) {
+						case float64:
+							level = int(vv)
+						case int:
+							level = vv
+						case int64:
+							level = int(vv)
+						case string:
+							if n, err := strconv.Atoi(vv); err == nil {
+								level = n
+							}
+						}
+					}
+				}
+				
+				if level > 0 && email != "" {
+					logger.Infof("Applied independent speed limit for user %s: %d KB/s", email, level)
+				}
+
+				// =================================================================
+
+				xrayClient["level"] = level
+
+				xrayClients = append(xrayClients, xrayClient)
+			}
+			
+			settings["clients"] = xrayClients
+			finalSettingsForXray, err := json.Marshal(settings)
+			if err != nil {
+				logger.Warningf("Failed to serialize inbound settings for Xray in GetXrayConfig for inbound %d: %v, skipping this inbound", inbound.Id, err)
+				continue
+			}
+			inboundConfig.Settings = json_util.RawMessage(finalSettingsForXray)
 		}
 		// get settings clients
 		settings := map[string]any{}
@@ -176,7 +403,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 			inbound.StreamSettings = string(newStream)
 		}
 
-		inboundConfig := inbound.GenXrayInboundConfig()
+		
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
 	return xrayConfig, nil

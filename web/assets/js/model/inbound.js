@@ -4,7 +4,7 @@ const Protocols = {
     TROJAN: 'trojan',
     SHADOWSOCKS: 'shadowsocks',
     TUNNEL: 'tunnel',
-    MIXED: 'mixed',
+    SOCKS: 'socks',
     HTTP: 'http',
     WIREGUARD: 'wireguard',
 };
@@ -140,8 +140,22 @@ class XrayCommonClass {
         return new XrayCommonClass();
     }
 
+    /**
+     * 【最佳实践】中文注释：这是一个智能的、通用的序列化方法。
+     * 1. 使用 ...this 创建一个当前对象所有属性的浅拷贝。
+     * 2. 遍历拷贝后的对象，删除所有以下划线 "_" 开头的属性。
+     * 这些带下划线的属性被约定为仅供前端 UI 逻辑使用（如 _expiryTime），不应提交给后端。
+     * 3. 返回一个干净的、只包含持久化数据的对象。
+     * 这个方法将被所有子类继承，无需在每个子类中重复实现，保证了代码的健壮性和可维护性。
+     */
     toJson() {
-        return this;
+        const obj = { ...this };
+        for (const key in obj) {
+            if (key.startsWith('_')) {
+                delete obj[key];
+            }
+        }
+        return obj;
     }
 
     toString(format = true) {
@@ -729,8 +743,8 @@ class RealityStreamSettings extends XrayCommonClass {
     constructor(
         show = false,
         xver = 0,
-        target = 'google.com:443',
-        serverNames = 'google.com,www.google.com',
+        target = 'tesla.com:443',
+        serverNames = 'tesla.com,www.tesla.com',
         privateKey = '',
         minClientVer = '',
         maxClientVer = '',
@@ -1713,7 +1727,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.TROJAN: return new Inbound.TrojanSettings(protocol);
             case Protocols.SHADOWSOCKS: return new Inbound.ShadowsocksSettings(protocol);
             case Protocols.TUNNEL: return new Inbound.TunnelSettings(protocol);
-            case Protocols.MIXED: return new Inbound.MixedSettings(protocol);
+            case Protocols.SOCKS: return new Inbound.SocksSettings(protocol);
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
             default: return null;
@@ -1727,7 +1741,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.TROJAN: return Inbound.TrojanSettings.fromJson(json);
             case Protocols.SHADOWSOCKS: return Inbound.ShadowsocksSettings.fromJson(json);
             case Protocols.TUNNEL: return Inbound.TunnelSettings.fromJson(json);
-            case Protocols.MIXED: return Inbound.MixedSettings.fromJson(json);
+            case Protocols.SOCKS: return Inbound.SocksSettings.fromJson(json);
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
             default: return null;
@@ -1784,6 +1798,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         security = USERS_SECURITY.AUTO,
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
+        speedLimit = 0, // 
         totalGB = 0,
         expiryTime = 0,
         enable = true,
@@ -1799,6 +1814,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.security = security;
         this.email = email;
         this.limitIp = limitIp;
+        this.speedLimit = speedLimit; 
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
         this.enable = enable;
@@ -1809,13 +1825,15 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
-
+    
+    
     static fromJson(json = {}) {
         return new Inbound.VmessSettings.VMESS(
             json.id,
             json.security,
             json.email,
             json.limitIp,
+            json.speedLimit ?? 0,
             json.totalGB,
             json.expiryTime,
             json.enable,
@@ -1859,16 +1877,15 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         protocol,
         vlesses = [new Inbound.VLESSSettings.VLESS()],
         decryption = "none",
-        encryption = "none",
+        encryption = "",
         fallbacks = [],
-        selectedAuth = undefined,
     ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
         this.encryption = encryption;
         this.fallbacks = fallbacks;
-        this.selectedAuth = selectedAuth;
+        this.selectedAuth = "X25519, not Post-Quantum";
     }
 
     addFallback() {
@@ -1879,24 +1896,24 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.fallbacks.splice(index, 1);
     }
 
+    // decryption should be set to static value
     static fromJson(json = {}) {
         const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
             (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),
             json.decryption,
             json.encryption,
-            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || []),
-            json.selectedAuth
+            Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || [])
         );
+        obj.selectedAuth = json.selectedAuth || "X25519, not Post-Quantum";
         return obj;
     }
-
 
     toJson() {
         const json = {
             clients: Inbound.VLESSSettings.toJsonArray(this.vlesses),
         };
-
+        
         if (this.decryption) {
             json.decryption = this.decryption;
         }
@@ -1914,8 +1931,8 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
         return json;
     }
-
-
+    
+    
 };
 
 Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
@@ -1924,6 +1941,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         flow = '',
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
+        speedLimit = 0, 
         totalGB = 0,
         expiryTime = 0,
         enable = true,
@@ -1939,6 +1957,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.flow = flow;
         this.email = email;
         this.limitIp = limitIp;
+        this.speedLimit = speedLimit; 
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
         this.enable = enable;
@@ -1949,6 +1968,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
+    
 
     static fromJson(json = {}) {
         return new Inbound.VLESSSettings.VLESS(
@@ -1956,6 +1976,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.flow,
             json.email,
             json.limitIp,
+            json.speedLimit ?? 0, 
             json.totalGB,
             json.expiryTime,
             json.enable,
@@ -2069,6 +2090,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         password = RandomUtil.randomSeq(10),
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
+        speedLimit = 0, 
         totalGB = 0,
         expiryTime = 0,
         enable = true,
@@ -2083,6 +2105,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.password = password;
         this.email = email;
         this.limitIp = limitIp;
+        this.speedLimit = speedLimit; 
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
         this.enable = enable;
@@ -2099,6 +2122,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             password: this.password,
             email: this.email,
             limitIp: this.limitIp,
+            speedLimit: this.speedLimit, 
             totalGB: this.totalGB,
             expiryTime: this.expiryTime,
             enable: this.enable,
@@ -2116,6 +2140,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.password,
             json.email,
             json.limitIp,
+            json.speedLimit ?? 0,
             json.totalGB,
             json.expiryTime,
             json.enable,
@@ -2238,6 +2263,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         password = RandomUtil.randomShadowsocksPassword(),
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
+        speedLimit = 0, 
         totalGB = 0,
         expiryTime = 0,
         enable = true,
@@ -2253,6 +2279,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.password = password;
         this.email = email;
         this.limitIp = limitIp;
+        this.speedLimit = speedLimit; 
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
         this.enable = enable;
@@ -2263,13 +2290,14 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.created_at = created_at;
         this.updated_at = updated_at;
     }
-
+    
     toJson() {
         return {
             method: this.method,
             password: this.password,
             email: this.email,
             limitIp: this.limitIp,
+            speedLimit: this.speedLimit, 
             totalGB: this.totalGB,
             expiryTime: this.expiryTime,
             enable: this.enable,
@@ -2288,6 +2316,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.password,
             json.email,
             json.limitIp,
+            json.speedLimit ?? 0, 
             json.totalGB,
             json.expiryTime,
             json.enable,
@@ -2366,8 +2395,8 @@ Inbound.TunnelSettings = class extends Inbound.Settings {
     }
 };
 
-Inbound.MixedSettings = class extends Inbound.Settings {
-    constructor(protocol, auth = 'password', accounts = [new Inbound.MixedSettings.SocksAccount()], udp = false, ip = '127.0.0.1') {
+Inbound.SocksSettings = class extends Inbound.Settings {
+    constructor(protocol, auth = 'password', accounts = [new Inbound.SocksSettings.SocksAccount()], udp = false, ip = '127.0.0.1') {
         super(protocol);
         this.auth = auth;
         this.accounts = accounts;
@@ -2387,11 +2416,11 @@ Inbound.MixedSettings = class extends Inbound.Settings {
         let accounts;
         if (json.auth === 'password') {
             accounts = json.accounts.map(
-                account => Inbound.MixedSettings.SocksAccount.fromJson(account)
+                account => Inbound.SocksSettings.SocksAccount.fromJson(account)
             )
         }
-        return new Inbound.MixedSettings(
-            Protocols.MIXED,
+        return new Inbound.SocksSettings(
+            Protocols.SOCKS,
             json.auth,
             accounts,
             json.udp,
@@ -2408,7 +2437,7 @@ Inbound.MixedSettings = class extends Inbound.Settings {
         };
     }
 };
-Inbound.MixedSettings.SocksAccount = class extends XrayCommonClass {
+Inbound.SocksSettings.SocksAccount = class extends XrayCommonClass {
     constructor(user = RandomUtil.randomSeq(10), pass = RandomUtil.randomSeq(10)) {
         super();
         this.user = user;
@@ -2416,7 +2445,7 @@ Inbound.MixedSettings.SocksAccount = class extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.MixedSettings.SocksAccount(json.user, json.pass);
+        return new Inbound.SocksSettings.SocksAccount(json.user, json.pass);
     }
 };
 

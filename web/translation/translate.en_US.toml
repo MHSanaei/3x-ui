@@ -239,6 +239,8 @@
 "telegramDesc" = "Please provide Telegram Chat ID. (use '/id' command in the bot) or (@userinfobot)"
 "subscriptionDesc" = "To find your subscription URL, navigate to the 'Details'. Additionally, you can use the same name for several clients."
 "info" = "Info"
+"speedLimit"="Independent speedLimit"
+"speedLimitDesc"="Set the maximum upload/download speed for this user in KB/s. 0 means unlimited speed."
 "same" = "Same"
 "inboundData" = "Inbound's Data"
 "exportInbound" = "Export Inbound"
