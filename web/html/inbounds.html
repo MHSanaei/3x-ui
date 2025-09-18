@@ -1434,15 +1434,19 @@
         clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null;
         return clientStats ? clientStats['enable'] : true;
       },
-      // Returns true when client's traffic is exhausted or expiry time is passed
       isClientDepleted(dbInbound, email) {
         if (!email || !dbInbound || !dbInbound.clientStats) return false;
         const stats = dbInbound.clientStats.find(s => s.email === email);
         if (!stats) return false;
-        const now = new Date().getTime();
-        const exhausted = stats.total > 0 && (stats.up + stats.down) >= stats.total;
-        const expired = stats.expiryTime > 0 && now >= stats.expiryTime;
-        return exhausted || expired;
+        const total = stats.total ?? 0;
+        const used = (stats.up ?? 0) + (stats.down ?? 0);
+        const hasTotal = total > 0;
+        const exhausted = hasTotal && used >= total;
+        const expiryTime = stats.expiryTime ?? 0;
+        const hasExpiry = expiryTime > 0;
+        const now = Date.now();
+        const expired = hasExpiry && expiryTime <= now;
+        return expired || exhausted;
       },
       isClientOnline(email) {
         return this.onlineClients.includes(email);

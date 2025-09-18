@@ -180,9 +180,9 @@
         <tr>
           <td>{{ i18n "status" }}</td>
           <td>
-            <a-tag v-if="isEnable && isActive && !isDepleted" color="green">{{ i18n "enabled" }}</a-tag>
-            <a-tag v-if="!isEnable && !isDepleted">{{ i18n "disabled" }}</a-tag>
             <a-tag v-if="isDepleted" color="red">{{ i18n "depleted" }}</a-tag>
+            <a-tag v-else-if="isEnable" color="green">{{ i18n "enabled" }}</a-tag>
+            <a-tag v-else>{{ i18n "disabled" }}</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.clientStats">
@@ -524,7 +524,7 @@
       this.dbInbound = new DBInbound(dbInbound);
       this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
-      this.clientStats = this.inbound.clients ? this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) : [];
+      this.clientStats = this.inbound.clients ? (this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) || null) : null;
 
       if (
         [
@@ -588,11 +588,21 @@
         return infoModal.dbInbound.isEnable;
       },
       get isDepleted() {
-        const stats = this.infoModal.clientStats;
-        if (!stats) return false;
-        const now = new Date().getTime();
-        const expired = stats.expiryTime > 0 && now >= stats.expiryTime;
-        const exhausted = stats.total > 0 && (stats.up + stats.down) >= stats.total;
+        const stats = infoModal.clientStats;
+        const settings = infoModal.clientSettings;
+        if (!stats || !settings) {
+          return false;
+        }
+        const total = stats.total ?? 0;
+        const used = (stats.up ?? 0) + (stats.down ?? 0);
+        const hasTotal = total > 0;
+        const exhausted = hasTotal && used >= total;
+
+        const expiryTime = settings.expiryTime ?? 0;
+        const hasExpiry = expiryTime > 0;
+        const now = Date.now();
+        const expired = hasExpiry && now >= expiryTime;
+
         return expired || exhausted;
       },
     },
