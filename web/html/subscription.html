@@ -235,14 +235,15 @@
                                             <a-menu-item key="ios-shadowrocket"
                                                 @click="open(shadowrocketUrl)">Shadowrocket</a-menu-item>
                                             <a-menu-item key="ios-v2box"
-                                                @click="open('v2box://install-sub?url=' + encodeURIComponent(app.subUrl) + '&name=' + encodeURIComponent(app.sId))">V2Box</a-menu-item>
+                                                @click="open(v2boxUrl)">V2Box</a-menu-item>
                                             <a-menu-item key="ios-streisand"
-                                                @click="open('streisand://import/' + encodeURIComponent(app.subUrl))">Streisand</a-menu-item>
+                                                @click="open(streisandUrl)">Streisand</a-menu-item>
                                             <a-menu-item key="ios-v2raytun"
-                                                @click="copy(app.subUrl)">V2RayTun</a-menu-item>
+                                                @click="copy(v2raytunUrl)">V2RayTun</a-menu-item>
                                             <a-menu-item key="ios-npvtunnel"
-                                                @click="copy(app.subUrl)">NPV
-                                                Tunnel</a-menu-item>
+                                                @click="copy(npvtunUrl)">NPV
+                                                Tunnel
+                                            </a-menu-item>
                                         </a-menu>
                                     </a-dropdown>
                                 </a-col>
