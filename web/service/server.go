@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"x-ui/config"
@@ -93,11 +94,94 @@ type Release struct {
 }
 
 type ServerService struct {
-	xrayService    XrayService
-	inboundService InboundService
-	cachedIPv4     string
-	cachedIPv6     string
-	noIPv6         bool
+	xrayService        XrayService
+	inboundService     InboundService
+	cachedIPv4         string
+	cachedIPv6         string
+	noIPv6             bool
+	mu                 sync.Mutex
+	lastCPUTimes       cpu.TimesStat
+	hasLastCPUSample   bool
+	emaCPU             float64
+	cpuHistory         []CPUSample
+	cachedCpuSpeedMhz  float64
+	lastCpuInfoAttempt time.Time
+}
+
+// AggregateCpuHistory returns up to maxPoints averaged buckets of size bucketSeconds over recent data.
+func (s *ServerService) AggregateCpuHistory(bucketSeconds int, maxPoints int) []map[string]any {
+	if bucketSeconds <= 0 || maxPoints <= 0 {
+		return nil
+	}
+	cutoff := time.Now().Add(-time.Duration(bucketSeconds*maxPoints) * time.Second).Unix()
+	s.mu.Lock()
+	// find start index (history sorted ascending)
+	hist := s.cpuHistory
+	// binary-ish scan (simple linear from end since size capped ~10800 is fine)
+	startIdx := 0
+	for i := len(hist) - 1; i >= 0; i-- {
+		if hist[i].T < cutoff {
+			startIdx = i + 1
+			break
+		}
+	}
+	if startIdx >= len(hist) {
+		s.mu.Unlock()
+		return []map[string]any{}
+	}
+	slice := hist[startIdx:]
+	// copy for unlock
+	tmp := make([]CPUSample, len(slice))
+	copy(tmp, slice)
+	s.mu.Unlock()
+	if len(tmp) == 0 {
+		return []map[string]any{}
+	}
+	var out []map[string]any
+	var acc []float64
+	bSize := int64(bucketSeconds)
+	curBucket := (tmp[0].T / bSize) * bSize
+	flush := func(ts int64) {
+		if len(acc) == 0 {
+			return
+		}
+		sum := 0.0
+		for _, v := range acc {
+			sum += v
+		}
+		avg := sum / float64(len(acc))
+		out = append(out, map[string]any{"t": ts, "cpu": avg})
+		acc = acc[:0]
+	}
+	for _, p := range tmp {
+		b := (p.T / bSize) * bSize
+		if b != curBucket {
+			flush(curBucket)
+			curBucket = b
+		}
+		acc = append(acc, p.Cpu)
+	}
+	flush(curBucket)
+	if len(out) > maxPoints {
+		out = out[len(out)-maxPoints:]
+	}
+	return out
+}
+
+// CPUSample single CPU utilization sample
+type CPUSample struct {
+	T   int64   `json:"t"`   // unix seconds
+	Cpu float64 `json:"cpu"` // percent 0..100
+}
+
+type LogEntry struct {
+	DateTime    time.Time
+	FromAddress string
+	ToAddress   string
+	Inbound     string
+	Outbound    string
+	Email       string
+	Event       int
 }
 
 func getPublicIP(url string) string {
@@ -139,11 +223,11 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// CPU stats
-	percents, err := cpu.Percent(0, false)
+	util, err := s.sampleCPUUtilization()
 	if err != nil {
 		logger.Warning("get cpu percent failed:", err)
 	} else {
-		status.Cpu = percents[0]
+		status.Cpu = util
 	}
 
 	status.CpuCores, err = cpu.Counts(false)
@@ -153,13 +237,30 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 
 	status.LogicalPro = runtime.NumCPU()
 
-	cpuInfos, err := cpu.Info()
-	if err != nil {
-		logger.Warning("get cpu info failed:", err)
-	} else if len(cpuInfos) > 0 {
-		status.CpuSpeedMhz = cpuInfos[0].Mhz
-	} else {
-		logger.Warning("could not find cpu info")
+	if status.CpuSpeedMhz = s.cachedCpuSpeedMhz; s.cachedCpuSpeedMhz == 0 && time.Since(s.lastCpuInfoAttempt) > 5*time.Minute {
+		s.lastCpuInfoAttempt = time.Now()
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			cpuInfos, err := cpu.Info()
+			if err != nil {
+				logger.Warning("get cpu info failed:", err)
+				return
+			}
+			if len(cpuInfos) > 0 {
+				s.cachedCpuSpeedMhz = cpuInfos[0].Mhz
+				status.CpuSpeedMhz = s.cachedCpuSpeedMhz
+			} else {
+				logger.Warning("could not find cpu info")
+			}
+		}()
+		select {
+		case <-done:
+		case <-time.After(1500 * time.Millisecond):
+			logger.Warning("cpu info query timed out; will retry later")
+		}
+	} else if s.cachedCpuSpeedMhz != 0 {
+		status.CpuSpeedMhz = s.cachedCpuSpeedMhz
 	}
 
 	// Uptime
@@ -305,6 +406,103 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	return status
+}
+
+func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
+	const capacity = 9000 // ~5 hours @ 2s interval
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	p := CPUSample{T: t.Unix(), Cpu: v}
+	if n := len(s.cpuHistory); n > 0 && s.cpuHistory[n-1].T == p.T {
+		s.cpuHistory[n-1] = p
+	} else {
+		s.cpuHistory = append(s.cpuHistory, p)
+	}
+	if len(s.cpuHistory) > capacity {
+		s.cpuHistory = s.cpuHistory[len(s.cpuHistory)-capacity:]
+	}
+}
+
+func (s *ServerService) sampleCPUUtilization() (float64, error) {
+	// Prefer native Windows API to avoid external deps for CPU percent
+	if runtime.GOOS == "windows" {
+		if pct, err := sys.CPUPercentRaw(); err == nil {
+			s.mu.Lock()
+			// Smooth with EMA
+			const alpha = 0.3
+			if s.emaCPU == 0 {
+				s.emaCPU = pct
+			} else {
+				s.emaCPU = alpha*pct + (1-alpha)*s.emaCPU
+			}
+			val := s.emaCPU
+			s.mu.Unlock()
+			return val, nil
+		}
+		// If native call fails, fall back to gopsutil times
+	}
+	// Read aggregate CPU times (all CPUs combined)
+	times, err := cpu.Times(false)
+	if err != nil {
+		return 0, err
+	}
+	if len(times) == 0 {
+		return 0, fmt.Errorf("no cpu times available")
+	}
+
+	cur := times[0]
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// If this is the first sample, initialize and return current EMA (0 by default)
+	if !s.hasLastCPUSample {
+		s.lastCPUTimes = cur
+		s.hasLastCPUSample = true
+		return s.emaCPU, nil
+	}
+
+	// Compute busy and total deltas
+	idleDelta := cur.Idle - s.lastCPUTimes.Idle
+	// Sum of busy deltas (exclude Idle)
+	busyDelta := (cur.User - s.lastCPUTimes.User) +
+		(cur.System - s.lastCPUTimes.System) +
+		(cur.Nice - s.lastCPUTimes.Nice) +
+		(cur.Iowait - s.lastCPUTimes.Iowait) +
+		(cur.Irq - s.lastCPUTimes.Irq) +
+		(cur.Softirq - s.lastCPUTimes.Softirq) +
+		(cur.Steal - s.lastCPUTimes.Steal) +
+		(cur.Guest - s.lastCPUTimes.Guest) +
+		(cur.GuestNice - s.lastCPUTimes.GuestNice)
+
+	totalDelta := busyDelta + idleDelta
+
+	// Update last sample for next time
+	s.lastCPUTimes = cur
+
+	// Guard against division by zero or negative deltas (e.g., counter resets)
+	if totalDelta <= 0 {
+		return s.emaCPU, nil
+	}
+
+	raw := 100.0 * (busyDelta / totalDelta)
+	if raw < 0 {
+		raw = 0
+	}
+	if raw > 100 {
+		raw = 100
+	}
+
+	// Exponential moving average to smooth spikes
+	const alpha = 0.3 // smoothing factor (0<alpha<=1). Higher = more responsive, lower = smoother
+	if s.emaCPU == 0 {
+		// Initialize EMA with the first real reading to avoid long warm-up from zero
+		s.emaCPU = raw
+	} else {
+		s.emaCPU = alpha*raw + (1-alpha)*s.emaCPU
+	}
+
+	return s.emaCPU, nil
 }
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
@@ -516,19 +714,25 @@ func (s *ServerService) GetXrayLogs(
 	showBlocked string,
 	showProxy string,
 	freedoms []string,
-	blackholes []string) []string {
+	blackholes []string) []LogEntry {
+
+	const (
+		Direct = iota
+		Blocked
+		Proxied
+	)
 
 	countInt, _ := strconv.Atoi(count)
-	var lines []string
+	var entries []LogEntry
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
-		return lines
+		return nil
 	}
 
 	file, err := os.Open(pathToAccessLog)
 	if err != nil {
-		return lines
+		return nil
 	}
 	defer file.Close()
 
@@ -547,37 +751,62 @@ func (s *ServerService) GetXrayLogs(
 			continue
 		}
 
-		//adding suffixes to further distinguish entries by outbound
-		if hasSuffix(line, freedoms) {
+		var entry LogEntry
+		parts := strings.Fields(line)
+
+		for i, part := range parts {
+
+			if i == 0 {
+				dateTime, err := time.Parse("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1])
+				if err != nil {
+					continue
+				}
+				entry.DateTime = dateTime
+			}
+
+			if part == "from" {
+				entry.FromAddress = parts[i+1]
+			} else if part == "accepted" {
+				entry.ToAddress = parts[i+1]
+			} else if strings.HasPrefix(part, "[") {
+				entry.Inbound = part[1:]
+			} else if strings.HasSuffix(part, "]") {
+				entry.Outbound = part[:len(part)-1]
+			} else if part == "email:" {
+				entry.Email = parts[i+1]
+			}
+		}
+
+		if logEntryContains(line, freedoms) {
 			if showDirect == "false" {
 				continue
 			}
-			line = line + " f"
-		} else if hasSuffix(line, blackholes) {
+			entry.Event = Direct
+		} else if logEntryContains(line, blackholes) {
 			if showBlocked == "false" {
 				continue
 			}
-			line = line + " b"
+			entry.Event = Blocked
 		} else {
 			if showProxy == "false" {
 				continue
 			}
-			line = line + " p"
+			entry.Event = Proxied
 		}
 
-		lines = append(lines, line)
+		entries = append(entries, entry)
 	}
 
-	if len(lines) > countInt {
-		lines = lines[len(lines)-countInt:]
+	if len(entries) > countInt {
+		entries = entries[len(entries)-countInt:]
 	}
 
-	return lines
+	return entries
 }
 
-func hasSuffix(line string, suffixes []string) bool {
+func logEntryContains(line string, suffixes []string) bool {
 	for _, sfx := range suffixes {
-		if strings.HasSuffix(line, sfx+"]") {
+		if strings.Contains(line, sfx+"]") {
 			return true
 		}
 	}

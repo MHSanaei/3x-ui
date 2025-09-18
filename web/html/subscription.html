@@ -9,7 +9,7 @@
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' subscription-page'">
     <a-layout-content class="p-2">
         <a-row type="flex" justify="center" class="mt-2">
             <a-col :xs="24" :sm="22" :md="18" :lg="14" :xl="12">
@@ -200,7 +200,7 @@
                                     style="text-align:center;">
                                     <!-- Android dropdown -->
                                     <a-dropdown :trigger="['click']">
-                                        <a-button :block="isMobile"
+                                        <a-button icon="android" :block="isMobile"
                                             :style="{ marginTop: isMobile ? '6px' : 0 }"
                                             size="large" type="primary">
                                             Android <a-icon type="down" />
@@ -225,7 +225,7 @@
                                     style="text-align:center;">
                                     <!-- iOS dropdown -->
                                     <a-dropdown :trigger="['click']">
-                                        <a-button :block="isMobile"
+                                        <a-button icon="apple" :block="isMobile"
                                             :style="{ marginTop: isMobile ? '6px' : 0 }"
                                             size="large" type="primary">
                                             iOS <a-icon type="down" />

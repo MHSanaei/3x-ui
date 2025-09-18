@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -1110,7 +1109,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 
 	return PageData{
 		Host:         hostHeader,
-		BasePath:     "/",
+		BasePath:     "/", // kept as "/"; templates now use context base_path injected from router
 		SId:          subId,
 		Download:     download,
 		Upload:       upload,
@@ -1138,11 +1137,4 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
-}
-
-func parseInt64(s string) (int64, error) {
-	// handle potential quotes
-	s = strings.Trim(s, "\"'")
-	n, err := strconv.ParseInt(s, 10, 64)
-	return n, err
 }

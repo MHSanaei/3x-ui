@@ -102,14 +102,15 @@
       <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[ inbound.stream.security ]]</a-tag>
       <br />
       <td>Authentication</td>
-        <a-tag :color="inbound.settings.selectedAuth ? 'green' : 'red'">[[ inbound.settings.selectedAuth ? inbound.settings.selectedAuth : '' ]]</a-tag>
+        <a-tag v-if="inbound.settings.selectedAuth" color="green">[[ inbound.settings.selectedAuth ? inbound.settings.selectedAuth : '' ]]</a-tag>
+        <a-tag v-else color="red">{{ i18n "none" }}</a-tag>
       <br />
       {{ i18n "encryption" }}
         <a-tag :color="inbound.settings.encryption ? 'green' : 'red'">[[ inbound.settings.encryption ? inbound.settings.encryption : '' ]]</a-tag>
       <br />
       <template v-if="inbound.stream.security != 'none'">
         {{ i18n "domainName" }}
-        <a-tag v-if="inbound.serverName" :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+        <a-tag v-if="inbound.serverName" color="green">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
         <a-tag v-else color="orange">{{ i18n "none" }}</a-tag>
       </template>
     </template>
@@ -179,9 +180,9 @@
         <tr>
           <td>{{ i18n "status" }}</td>
           <td>
-            <a-tag v-if="isEnable" color="green">{{ i18n "enabled" }}</a-tag>
-            <a-tag v-else>{{ i18n "disabled" }}</a-tag>
-            <a-tag v-if="!isActive" color="red">{{ i18n "depleted" }}</a-tag>
+            <a-tag v-if="isEnable && isActive && !isDepleted" color="green">{{ i18n "enabled" }}</a-tag>
+            <a-tag v-if="!isEnable && !isDepleted">{{ i18n "disabled" }}</a-tag>
+            <a-tag v-if="isDepleted" color="red">{{ i18n "depleted" }}</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.clientStats">
@@ -585,6 +586,14 @@
           return infoModal.clientSettings.enable;
         }
         return infoModal.dbInbound.isEnable;
+      },
+      get isDepleted() {
+        const stats = this.infoModal.clientStats;
+        if (!stats) return false;
+        const now = new Date().getTime();
+        const expired = stats.expiryTime > 0 && now >= stats.expiryTime;
+        const exhausted = stats.total > 0 && (stats.up + stats.down) >= stats.total;
+        return expired || exhausted;
       },
     },
     methods: {

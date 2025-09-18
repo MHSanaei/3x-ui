@@ -244,6 +244,9 @@
 "exportInbound" = "Експортувати вхідні"
 "import" = "Імпорт"
 "importInbound" = "Імпортувати вхідний"
+"periodicTrafficResetTitle" = "Скидання трафіку"
+"periodicTrafficResetDesc" = "Автоматично скидати лічильник трафіку через певні проміжки часу"
+"lastReset" = "Останнє скидання"
 
 [pages.client]
 "add" = "Додати клієнта"
@@ -262,6 +265,12 @@
 "days" = "Дні(в)"
 "renew" = "Автоматичне оновлення"
 "renewDesc" = "Автоматичне поновлення після закінчення терміну дії. (0 = вимкнено)(одиниця: день)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Ніколи"
+"daily" = "Щодня"
+"weekly" = "Щотижня"
+"monthly" = "Щомісяця"
 
 [pages.inbounds.toasts]
 "obtain" = "Отримати"

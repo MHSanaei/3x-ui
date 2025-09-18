@@ -244,6 +244,9 @@
 "exportInbound" = "تصدير الإدخال"
 "import" = "استيراد"
 "importInbound" = "استيراد إدخال"
+"periodicTrafficResetTitle" = "إعادة تعيين حركة المرور"
+"periodicTrafficResetDesc" = "إعادة تعيين عداد حركة المرور تلقائيًا في فترات محددة"
+"lastReset" = "آخر إعادة تعيين"
 
 [pages.client]
 "add" = "أضف عميل"
@@ -262,6 +265,12 @@
 "days" = "يوم/أيام"
 "renew" = "تجديد تلقائي"
 "renewDesc" = "تجديد تلقائي بعد انتهاء الصلاحية. (0 = تعطيل)(الوحدة: يوم)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "أبداً"
+"daily" = "يومياً"
+"weekly" = "أسبوعياً"
+"monthly" = "شهرياً"
 
 [pages.inbounds.toasts]
 "obtain" = "تم الحصول عليه"

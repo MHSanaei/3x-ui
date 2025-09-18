@@ -244,6 +244,9 @@
 "exportInbound" = "Экспорт инбаундов"
 "import" = "Импортировать"
 "importInbound" = "Импорт инбаундов"
+"periodicTrafficResetTitle" = "Сброс трафика"
+"periodicTrafficResetDesc" = "Автоматический сброс счетчика трафика через указанные интервалы"
+"lastReset" = "Последний сброс"
 
 [pages.client]
 "add" = "Создать клиента"
@@ -262,6 +265,12 @@
 "days" = "дней"
 "renew" = "Автопродление"
 "renewDesc" = "Автопродление после истечения срока действия. (0 = отключить)(единица: день)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Никогда"
+"daily" = "Ежедневно"
+"weekly" = "Еженедельно"
+"monthly" = "Ежемесячно"
 
 [pages.inbounds.toasts]
 "obtain" = "Получить"

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"x-ui/web/global"
@@ -20,17 +21,14 @@ type ServerController struct {
 	serverService  service.ServerService
 	settingService service.SettingService
 
-	lastStatus        *service.Status
-	lastGetStatusTime time.Time
+	lastStatus *service.Status
 
 	lastVersions        []string
-	lastGetVersionsTime time.Time
+	lastGetVersionsTime int64 // unix seconds
 }
 
 func NewServerController(g *gin.RouterGroup) *ServerController {
-	a := &ServerController{
-		lastGetStatusTime: time.Now(),
-	}
+	a := &ServerController{}
 	a.initRouter(g)
 	a.startTask()
 	return a
@@ -39,6 +37,7 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/status", a.status)
+	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getConfigJson", a.getConfigJson)
 	g.GET("/getDb", a.getDb)
@@ -61,29 +60,50 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 func (a *ServerController) refreshStatus() {
 	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
+	// collect cpu history when status is fresh
+	if a.lastStatus != nil {
+		a.serverService.AppendCpuSample(time.Now(), a.lastStatus.Cpu)
+	}
 }
 
 func (a *ServerController) startTask() {
 	webServer := global.GetWebServer()
 	c := webServer.GetCron()
 	c.AddFunc("@every 2s", func() {
-		now := time.Now()
-		if now.Sub(a.lastGetStatusTime) > time.Minute*3 {
-			return
-		}
+		// Always refresh to keep CPU history collected continuously.
+		// Sampling is lightweight and capped to ~6 hours in memory.
 		a.refreshStatus()
 	})
 }
 
-func (a *ServerController) status(c *gin.Context) {
-	a.lastGetStatusTime = time.Now()
+func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.lastStatus, nil) }
 
-	jsonObj(c, a.lastStatus, nil)
+func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
+	bucketStr := c.Param("bucket")
+	bucket, err := strconv.Atoi(bucketStr)
+	if err != nil || bucket <= 0 {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("bad bucket"))
+		return
+	}
+	allowed := map[int]bool{
+		2:   true, // Real-time view
+		30:  true, // 30s intervals
+		60:  true, // 1m intervals
+		120: true, // 2m intervals
+		180: true, // 3m intervals
+		300: true, // 5m intervals
+	}
+	if !allowed[bucket] {
+		jsonMsg(c, "invalid bucket", fmt.Errorf("unsupported bucket"))
+		return
+	}
+	points := a.serverService.AggregateCpuHistory(bucket, 60)
+	jsonObj(c, points, nil)
 }
 
 func (a *ServerController) getXrayVersion(c *gin.Context) {
-	now := time.Now()
-	if now.Sub(a.lastGetVersionsTime) <= time.Minute {
+	now := time.Now().Unix()
+	if now-a.lastGetVersionsTime <= 60 { // 1 minute cache
 		jsonObj(c, a.lastVersions, nil)
 		return
 	}
@@ -95,7 +115,7 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 	}
 
 	a.lastVersions = versions
-	a.lastGetVersionsTime = time.Now()
+	a.lastGetVersionsTime = now
 
 	jsonObj(c, versions, nil)
 }
@@ -113,7 +133,6 @@ func (a *ServerController) updateGeofile(c *gin.Context) {
 }
 
 func (a *ServerController) stopXrayService(c *gin.Context) {
-	a.lastGetStatusTime = time.Now()
 	err := a.serverService.StopXrayService()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.xray.stopError"), err)
@@ -229,9 +248,7 @@ func (a *ServerController) importDB(c *gin.Context) {
 	defer file.Close()
 	// Always restart Xray before return
 	defer a.serverService.RestartXrayService()
-	defer func() {
-		a.lastGetStatusTime = time.Now()
-	}()
+	// lastGetStatusTime removed; no longer needed
 	// Import it
 	err = a.serverService.ImportDB(file)
 	if err != nil {

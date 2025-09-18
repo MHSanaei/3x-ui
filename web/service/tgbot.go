@@ -548,6 +548,57 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		if len(dataArray) >= 2 && len(dataArray[1]) > 0 {
 			email := dataArray[1]
 			switch dataArray[0] {
+			case "get_clients_for_sub":
+				inboundId := dataArray[1]
+				inboundIdInt, err := strconv.Atoi(inboundId)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_sub_links")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+			case "get_clients_for_individual":
+				inboundId := dataArray[1]
+				inboundIdInt, err := strconv.Atoi(inboundId)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_individual_links")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+			case "get_clients_for_qr":
+				inboundId := dataArray[1]
+				inboundIdInt, err := strconv.Atoi(inboundId)
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				clientsKB, err := t.getInboundClientsFor(inboundIdInt, "client_qr_links")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				inbound, _ := t.inboundService.GetInbound(inboundIdInt)
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseClient", "Inbound=="+inbound.Remark), clientsKB)
+			case "client_sub_links":
+				t.sendClientSubLinks(chatId, email)
+				return
+			case "client_individual_links":
+				t.sendClientIndividualLinks(chatId, email)
+				return
+			case "client_qr_links":
+				t.sendClientQRLinks(chatId, email)
+				return
 			case "client_get_usage":
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.messages.email", "Email=="+email))
 				t.searchClient(chatId, email)
@@ -1327,6 +1378,27 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				}
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.buttons.allClients"))
 				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
+			case "admin_client_sub_links":
+				inbounds, err := t.getInboundsFor("get_clients_for_sub")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
+			case "admin_client_individual_links":
+				inbounds, err := t.getInboundsFor("get_clients_for_individual")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
+			case "admin_client_qr_links":
+				inbounds, err := t.getInboundsFor("get_clients_for_qr")
+				if err != nil {
+					t.sendCallbackAnswerTgBot(callbackQuery.ID, err.Error())
+					return
+				}
+				t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.chooseInbound"), inbounds)
 			}
 
 		}
@@ -1927,6 +1999,11 @@ func (t *Tgbot) SendAnswer(chatId int64, msg string, isAdmin bool) {
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.allClients")).WithCallbackData(t.encodeQuery("get_inbounds")),
 			tu.InlineKeyboardButton(t.I18nBot("tgbot.buttons.addClient")).WithCallbackData(t.encodeQuery("add_client")),
 		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("pages.settings.subSettings")).WithCallbackData(t.encodeQuery("admin_client_sub_links")),
+			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("admin_client_individual_links")),
+			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("admin_client_qr_links")),
+		),
 		// TODOOOOOOOOOOOOOO: Add restart button here.
 	)
 	numericKeyboardClient := tu.InlineKeyboard(
@@ -2073,7 +2150,10 @@ func (t *Tgbot) sendClientSubLinks(chatId int64, email string) {
 		"JSON URL:\r\n<code>" + subJsonURL + "</code>"
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
-			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links " + email)),
+			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links "+email)),
+		),
+		tu.InlineKeyboardRow(
+			tu.InlineKeyboardButton(t.I18nBot("qrCode")).WithCallbackData(t.encodeQuery("client_qr_links "+email)),
 		),
 	)
 	t.SendMsgToTgbot(chatId, msg, inlineKeyboard)
@@ -2456,6 +2536,74 @@ func (t *Tgbot) getInbounds() (*telego.InlineKeyboardMarkup, error) {
 	}
 
 	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+	return keyboard, nil
+}
+
+// getInboundsFor builds an inline keyboard of inbounds where each button leads to a custom next action
+// nextAction should be one of: get_clients_for_sub|get_clients_for_individual|get_clients_for_qr
+func (t *Tgbot) getInboundsFor(nextAction string) (*telego.InlineKeyboardMarkup, error) {
+	inbounds, err := t.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("GetAllInbounds run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	if len(inbounds) == 0 {
+		logger.Warning("No inbounds found")
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+
+	var buttons []telego.InlineKeyboardButton
+	for _, inbound := range inbounds {
+		status := "❌"
+		if inbound.Enable {
+			status = "✅"
+		}
+		callbackData := t.encodeQuery(fmt.Sprintf("%s %d", nextAction, inbound.Id))
+		buttons = append(buttons, tu.InlineKeyboardButton(fmt.Sprintf("%v - %v", inbound.Remark, status)).WithCallbackData(callbackData))
+	}
+
+	cols := 1
+	if len(buttons) >= 6 {
+		cols = 2
+	}
+
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+	return keyboard, nil
+}
+
+// getInboundClientsFor lists clients of an inbound with a specific action prefix to be appended with email
+func (t *Tgbot) getInboundClientsFor(inboundID int, action string) (*telego.InlineKeyboardMarkup, error) {
+	inbound, err := t.inboundService.GetInbound(inboundID)
+	if err != nil {
+		logger.Warning("getInboundClientsFor run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	}
+	clients, err := t.inboundService.GetClients(inbound)
+	var buttons []telego.InlineKeyboardButton
+
+	if err != nil {
+		logger.Warning("GetInboundClients run failed:", err)
+		return nil, errors.New(t.I18nBot("tgbot.answers.getInboundsFailed"))
+	} else {
+		if len(clients) > 0 {
+			for _, client := range clients {
+				buttons = append(buttons, tu.InlineKeyboardButton(client.Email).WithCallbackData(t.encodeQuery(action+" "+client.Email)))
+			}
+
+		} else {
+			return nil, errors.New(t.I18nBot("tgbot.answers.getClientsFailed"))
+		}
+
+	}
+	cols := 0
+	if len(buttons) < 6 {
+		cols = 3
+	} else {
+		cols = 2
+	}
+	keyboard := tu.InlineKeyboardGrid(tu.InlineKeyboardCols(cols, buttons...))
+
 	return keyboard, nil
 }
 
