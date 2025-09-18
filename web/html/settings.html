@@ -79,7 +79,7 @@
                     </template>
                     {{ template "settings/panel/subscription/general" . }}
                   </a-tab-pane>
-                  <a-tab-pane key="5" v-if="allSetting.subEnable" :style="{ paddingTop: '20px' }">
+                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable" :style="{ paddingTop: '20px' }">
                     <template #tab>
                       <a-icon type="code"></a-icon>
                       <span>{{ i18n "pages.settings.subSettings" }} (JSON)</span>
@@ -523,6 +523,8 @@
           if (this.allSetting.subEnable) {
             subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
             if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
+          }
+          if (this.allSetting.subJsonEnable) {
             subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
             if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
           }

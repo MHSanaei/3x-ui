@@ -371,6 +371,7 @@
 "subSettings" = "Abonelik"
 "subEnable" = "Abonelik Hizmetini Etkinleştir"
 "subEnableDesc" = "Abonelik hizmetini etkinleştirir."
+"subJsonEnable" = "JSON abonelik uç noktasını bağımsız olarak Etkinleştir/Devre Dışı bırak."
 "subTitle" = "Abonelik Başlığı"
 "subTitleDesc" = "VPN istemcisinde gösterilen başlık"
 "subListen" = "Dinleme IP"

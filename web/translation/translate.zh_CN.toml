@@ -371,6 +371,7 @@
 "subSettings" = "订阅设置"
 "subEnable" = "启用订阅服务"
 "subEnableDesc" = "启用订阅服务功能"
+"subJsonEnable" = "单独启用/禁用 JSON 订阅端点。"
 "subTitle" = "订阅标题"
 "subTitleDesc" = "在VPN客户端中显示的标题"
 "subListen" = "监听 IP"

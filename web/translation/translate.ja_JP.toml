@@ -371,6 +371,7 @@
 "subSettings" = "サブスクリプション設定"
 "subEnable" = "サブスクリプションサービスを有効にする"
 "subEnableDesc" = "サブスクリプションサービス機能を有効にする"
+"subJsonEnable" = "JSON サブスクリプションのエンドポイントを個別に有効/無効にする。"
 "subTitle" = "サブスクリプションタイトル"
 "subTitleDesc" = "VPNクライアントに表示されるタイトル"
 "subListen" = "監視IP"

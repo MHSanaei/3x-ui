@@ -85,6 +85,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
+	// Determine if JSON subscription endpoint is enabled
+	subJsonEnable, err := s.settingService.GetSubJsonEnable()
+	if err != nil {
+		return nil, err
+	}
+
 	// Set base_path based on LinksPath for template rendering
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", LinksPath)
@@ -186,7 +192,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		g, LinksPath, JsonPath, subJsonEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
 		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle)
 
 	return engine, nil

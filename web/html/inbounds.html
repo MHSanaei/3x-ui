@@ -736,10 +736,11 @@
       refreshing: false,
       refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
       subSettings: {
-        enable: false,
+        enable: true,
         subTitle: '',
         subURI: '',
         subJsonURI: '',
+        subJsonEnable: false,
       },
       remarkModel: '-ieo',
       datepicker: 'gregorian',
@@ -795,7 +796,8 @@
             enable: subEnable,
             subTitle: subTitle,
             subURI: subURI,
-            subJsonURI: subJsonURI
+            subJsonURI: subJsonURI,
+            subJsonEnable: subJsonEnable,
           };
           this.pageSize = pageSize;
           this.remarkModel = remarkModel;

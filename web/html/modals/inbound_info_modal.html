@@ -308,7 +308,7 @@
           </tr-info-title>
           <a :href="[[ infoModal.subLink ]]" target="_blank">[[ infoModal.subLink ]]</a>
         </tr-info-row>
-        <tr-info-row class="tr-info-row">
+        <tr-info-row class="tr-info-row" v-if="app.subSettings.subJsonEnable">
           <tr-info-title class="tr-info-title">
             <a-tag color="purple">Json Link</a-tag>
             <a-tooltip title='{{ i18n "copy" }}'>
@@ -548,7 +548,7 @@
       if (this.clientSettings) {
         if (this.clientSettings.subId) {
           this.subLink = this.genSubLink(this.clientSettings.subId);
-          this.subJsonLink = this.genSubJsonLink(this.clientSettings.subId);
+          this.subJsonLink = app.subSettings.subJsonEnable ? this.genSubJsonLink(this.clientSettings.subId) : '';
         }
       }
       this.visible = true;

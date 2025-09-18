@@ -56,7 +56,7 @@
                             <a-space direction="vertical" align="center">
                                 <a-row type="flex" :gutter="[8,8]"
                                     justify="center" style="width:100%">
-                                    <a-col :xs="24" :sm="12"
+                                    <a-col :xs="24" :sm="app.subJsonUrl ? 12 : 24"
                                         style="text-align:center;">
                                         <tr-qr-box class="qr-box">
                                             <a-tag color="purple"
@@ -75,7 +75,7 @@
                                             </tr-qr-bg>
                                         </tr-qr-box>
                                     </a-col>
-                                    <a-col :xs="24" :sm="12"
+                                    <a-col v-if="app.subJsonUrl" :xs="24" :sm="12"
                                         style="text-align:center;">
                                         <tr-qr-box class="qr-box">
                                             <a-tag color="purple"

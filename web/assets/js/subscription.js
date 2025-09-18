@@ -101,7 +101,10 @@
       if (sj) this.app.subJsonUrl = sj;
       drawQR(this.app.subUrl);
       try {
-        new QRious({ element: document.getElementById('qrcode-subjson'), value: this.app.subJsonUrl || '', size: 220 });
+        const elJson = document.getElementById('qrcode-subjson');
+        if (elJson && this.app.subJsonUrl) {
+          new QRious({ element: elJson, value: this.app.subJsonUrl, size: 220 });
+        }
       } catch (e) { /* ignore */ }
       this._onResize = () => { this.viewportWidth = window.innerWidth; };
       window.addEventListener('resize', this._onResize);

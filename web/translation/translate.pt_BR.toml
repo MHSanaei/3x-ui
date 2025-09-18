@@ -371,6 +371,7 @@
 "subSettings" = "Assinatura"
 "subEnable" = "Ativar Serviço de Assinatura"
 "subEnableDesc" = "Ativa o serviço de assinatura."
+"subJsonEnable" = "Ativar/Desativar o endpoint de assinatura JSON de forma independente."
 "subTitle" = "Título da Assinatura"
 "subTitleDesc" = "Título exibido no cliente VPN"
 "subListen" = "IP de Escuta"

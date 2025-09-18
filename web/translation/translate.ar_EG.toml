@@ -371,6 +371,7 @@
 "subSettings" = "الاشتراك"
 "subEnable" = "تفعيل خدمة الاشتراك"
 "subEnableDesc" = "يفعل خدمة الاشتراك."
+"subJsonEnable" = "تمكين/تعطيل نقطة نهاية اشتراك JSON بشكل مستقل."
 "subTitle" = "عنوان الاشتراك"
 "subTitleDesc" = "العنوان اللي هيظهر في عميل VPN"
 "subListen" = "IP الاستماع"

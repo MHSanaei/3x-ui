@@ -371,6 +371,7 @@
 "subSettings" = "Gói đăng ký"
 "subEnable" = "Bật dịch vụ"
 "subEnableDesc" = "Tính năng gói đăng ký với cấu hình riêng"
+"subJsonEnable" = "Bật/Tắt điểm cuối đăng ký JSON độc lập."
 "subTitle" = "Tiêu đề Đăng ký"
 "subTitleDesc" = "Tiêu đề hiển thị trong ứng dụng VPN"
 "subListen" = "Listening IP"

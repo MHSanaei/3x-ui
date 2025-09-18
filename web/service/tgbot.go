@@ -2093,6 +2093,7 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	subPort, _ := t.settingService.GetSubPort()
 	subPath, _ := t.settingService.GetSubPath()
 	subJsonPath, _ := t.settingService.GetSubJsonPath()
+	subJsonEnable, _ := t.settingService.GetSubJsonEnable()
 	subKeyFile, _ := t.settingService.GetSubKeyFile()
 	subCertFile, _ := t.settingService.GetSubCertFile()
 
@@ -2137,6 +2138,9 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 
 	subURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subPath, client.SubID)
 	subJsonURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subJsonPath, client.SubID)
+	if !subJsonEnable {
+		subJsonURL = ""
+	}
 	return subURL, subJsonURL, nil
 }
 
@@ -2146,8 +2150,10 @@ func (t *Tgbot) sendClientSubLinks(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 		return
 	}
-	msg := "Subscription URL:\r\n<code>" + subURL + "</code>\r\n\r\n" +
-		"JSON URL:\r\n<code>" + subJsonURL + "</code>"
+	msg := "Subscription URL:\r\n<code>" + subURL + "</code>"
+	if subJsonURL != "" {
+		msg += "\r\n\r\nJSON URL:\r\n<code>" + subJsonURL + "</code>"
+	}
 	inlineKeyboard := tu.InlineKeyboard(
 		tu.InlineKeyboardRow(
 			tu.InlineKeyboardButton(t.I18nBot("subscription.individualLinks")).WithCallbackData(t.encodeQuery("client_individual_links "+email)),
@@ -2271,15 +2277,17 @@ func (t *Tgbot) sendClientQRLinks(chatId int64, email string) {
 		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
 	}
 
-	// Send JSON URL QR (filename: subjson.png)
-	if png, err := createQR(subJsonURL, 320); err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.FileFromBytes(png, "subjson.png"),
-		)
-		_, _ = bot.SendDocument(context.Background(), document)
-	} else {
-		t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
+	// Send JSON URL QR (filename: subjson.png) when available
+	if subJsonURL != "" {
+		if png, err := createQR(subJsonURL, 320); err == nil {
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.FileFromBytes(png, "subjson.png"),
+			)
+			_, _ = bot.SendDocument(context.Background(), document)
+		} else {
+			t.SendMsgToTgbot(chatId, t.I18nBot("tgbot.answers.errorOperation")+"\r\n"+err.Error())
+		}
 	}
 
 	// Also generate a few individual links' QRs (first up to 5)

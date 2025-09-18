@@ -9,6 +9,13 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
+            <template #title>JSON Subscription</template>
+            <template #description>{{ i18n "pages.settings.subJsonEnable"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subJsonEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subTitle"}}</template>
             <template #description>{{ i18n "pages.settings.subTitleDesc"}}</template>
             <template #control>
