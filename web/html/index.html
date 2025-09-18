@@ -431,12 +431,12 @@
       CPU History
       <a-select size="small" v-model="cpuHistoryModal.bucket" class="ml-10" style="width: 80px"
         @change="fetchCpuHistoryBucket">
-        <a-select-option :value="2">2s</a-select-option>
-        <a-select-option :value="30">30s</a-select-option>
-        <a-select-option :value="60">1m</a-select-option>
-        <a-select-option :value="120">2m</a-select-option>
-        <a-select-option :value="180">3m</a-select-option>
-        <a-select-option :value="300">5m</a-select-option>
+        <a-select-option :value="2">2m</a-select-option>
+        <a-select-option :value="30">30m</a-select-option>
+        <a-select-option :value="60">1h</a-select-option>
+        <a-select-option :value="120">2h</a-select-option>
+        <a-select-option :value="180">3h</a-select-option>
+        <a-select-option :value="300">5h</a-select-option>
       </a-select>
     </template>
     <div style="padding:16px">
