@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "go: build",
+      "type": "shell",
+      "command": "go",
+      "args": ["build", "-o", "bin/3x-ui.exe", "./main.go"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$go"],
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "go: run",
+      "type": "shell",
+      "command": "go",
+      "args": ["run", "./main.go"],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "XUI_DEBUG": "true"
+        }
+      },
+      "problemMatcher": ["$go"]
+    },
+    {
+      "label": "go: test",
+      "type": "shell",
+      "command": "go",
+      "args": ["test", "./..."],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$go"],
+      "group": "test"
+    }
+  ]
+}
