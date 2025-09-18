@@ -5,18 +5,18 @@ import (
 	"text/template"
 	"time"
 
-	"x-ui/logger"
-	"x-ui/web/service"
-	"x-ui/web/session"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/web/session"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 type LoginForm struct {
-	Username    	string `json:"username" form:"username"`
-	Password    	string `json:"password" form:"password"`
-	TwoFactorCode	string `json:"twoFactorCode" form:"twoFactorCode"`
+	Username      string `json:"username" form:"username"`
+	Password      string `json:"password" form:"password"`
+	TwoFactorCode string `json:"twoFactorCode" form:"twoFactorCode"`
 }
 
 type IndexController struct {

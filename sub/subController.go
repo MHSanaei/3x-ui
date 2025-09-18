@@ -4,7 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strings"
-	"x-ui/config"
+
+	"github.com/mhsanaei/3x-ui/config"
 
 	"github.com/gin-gonic/gin"
 )

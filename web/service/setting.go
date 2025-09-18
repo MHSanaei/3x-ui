@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"x-ui/database"
-	"x-ui/database/model"
-	"x-ui/logger"
-	"x-ui/util/common"
-	"x-ui/util/random"
-	"x-ui/util/reflect_util"
-	"x-ui/web/entity"
-	"x-ui/xray"
+	"github.com/mhsanaei/3x-ui/database"
+	"github.com/mhsanaei/3x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/util/random"
+	"github.com/mhsanaei/3x-ui/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/web/entity"
+	"github.com/mhsanaei/3x-ui/xray"
 )
 
 //go:embed config.json

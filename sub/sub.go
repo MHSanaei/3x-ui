@@ -13,13 +13,13 @@ import (
 	"strconv"
 	"strings"
 
-	"x-ui/logger"
-	"x-ui/util/common"
-	webpkg "x-ui/web"
-	"x-ui/web/locale"
-	"x-ui/web/middleware"
-	"x-ui/web/network"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	webpkg "github.com/mhsanaei/3x-ui/web"
+	"github.com/mhsanaei/3x-ui/web/locale"
+	"github.com/mhsanaei/3x-ui/web/middleware"
+	"github.com/mhsanaei/3x-ui/web/network"
+	"github.com/mhsanaei/3x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )

@@ -9,10 +9,10 @@ import (
 	"path"
 	"slices"
 
-	"x-ui/config"
-	"x-ui/database/model"
-	"x-ui/util/crypto"
-	"x-ui/xray"
+	"github.com/mhsanaei/3x-ui/config"
+	"github.com/mhsanaei/3x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/util/crypto"
+	"github.com/mhsanaei/3x-ui/xray"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -141,6 +141,9 @@ func InitDB(dbPath string) error {
 	}
 
 	isUsersEmpty, err := isTableEmpty("users")
+	if err != nil {
+		return err
+	}
 
 	if err := initUser(); err != nil {
 		return err

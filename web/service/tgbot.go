@@ -18,14 +18,14 @@ import (
 	"strings"
 	"time"
 
-	"x-ui/config"
-	"x-ui/database"
-	"x-ui/database/model"
-	"x-ui/logger"
-	"x-ui/util/common"
-	"x-ui/web/global"
-	"x-ui/web/locale"
-	"x-ui/xray"
+	"github.com/mhsanaei/3x-ui/config"
+	"github.com/mhsanaei/3x-ui/database"
+	"github.com/mhsanaei/3x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/web/global"
+	"github.com/mhsanaei/3x-ui/web/locale"
+	"github.com/mhsanaei/3x-ui/xray"
 
 	"github.com/google/uuid"
 	"github.com/mymmrac/telego"
@@ -1581,23 +1581,6 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 		)
 		prompt_message := t.I18nBot("tgbot.messages.comment_prompt", "ClientComment=="+client_Comment)
 		t.SendMsgToTgbot(chatId, prompt_message, cancel_btn_markup)
-	default:
-		// dynamic callbacks
-		if strings.HasPrefix(callbackQuery.Data, "client_sub_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_sub_links ")
-			t.sendClientSubLinks(chatId, email)
-			return
-		}
-		if strings.HasPrefix(callbackQuery.Data, "client_individual_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_individual_links ")
-			t.sendClientIndividualLinks(chatId, email)
-			return
-		}
-		if strings.HasPrefix(callbackQuery.Data, "client_qr_links ") {
-			email := strings.TrimPrefix(callbackQuery.Data, "client_qr_links ")
-			t.sendClientQRLinks(chatId, email)
-			return
-		}
 	case "add_client_ch_default_traffic":
 		inlineKeyboard := tu.InlineKeyboard(
 			tu.InlineKeyboardRow(
@@ -1812,6 +1795,22 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			msg := fmt.Sprintf("📧 %s\n%s", extra_emails, t.I18nBot("tgbot.noResult"))
 			t.SendMsgToTgbot(chatId, msg, tu.ReplyKeyboardRemove())
 
+		}
+	default:
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_sub_links "); ok {
+			email := after
+			t.sendClientSubLinks(chatId, email)
+			return
+		}
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_individual_links "); ok {
+			email := after
+			t.sendClientIndividualLinks(chatId, email)
+			return
+		}
+		if after, ok := strings.CutPrefix(callbackQuery.Data, "client_qr_links "); ok {
+			email := after
+			t.sendClientQRLinks(chatId, email)
+			return
 		}
 	}
 }
