@@ -106,7 +106,10 @@
         <a-tag v-else color="red">{{ i18n "none" }}</a-tag>
       <br />
       {{ i18n "encryption" }}
-        <a-tag :color="inbound.settings.encryption ? 'green' : 'red'">[[ inbound.settings.encryption ? inbound.settings.encryption : '' ]]</a-tag>
+        <a-tag class="info-large-tag" :color="inbound.settings.encryption ? 'green' : 'red'">[[ inbound.settings.encryption ? inbound.settings.encryption : '' ]]</a-tag>
+        <a-tooltip title='{{ i18n "copy" }}'>
+          <a-button size="small" icon="snippets" @click="copy(inbound.settings.encryption)"></a-button>
+        </a-tooltip>
       <br />
       <template v-if="inbound.stream.security != 'none'">
         {{ i18n "domainName" }}
