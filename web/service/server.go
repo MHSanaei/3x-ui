@@ -19,12 +19,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/config"
-	"github.com/mhsanaei/3x-ui/database"
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/util/common"
-	"github.com/mhsanaei/3x-ui/util/sys"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/config"
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/util/sys"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"github.com/google/uuid"
 	"github.com/shirou/gopsutil/v4/cpu"

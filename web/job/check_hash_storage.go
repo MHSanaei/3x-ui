@@ -1,7 +1,7 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 )
 
 type CheckHashStorageJob struct {

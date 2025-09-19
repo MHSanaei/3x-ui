@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/logger"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 
 	"github.com/gin-gonic/gin"
 	"github.com/nicksnyder/go-i18n/v2/i18n"

@@ -3,7 +3,7 @@ package xray
 import (
 	"bytes"
 
-	"github.com/mhsanaei/3x-ui/util/json_util"
+	"github.com/mhsanaei/3x-ui/v2/util/json_util"
 )
 
 type Config struct {

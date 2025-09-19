@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
 type ClearLogsJob struct{}

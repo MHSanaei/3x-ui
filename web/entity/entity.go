@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
 )
 
 type Msg struct {

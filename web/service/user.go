@@ -3,10 +3,10 @@ package service
 import (
 	"errors"
 
-	"github.com/mhsanaei/3x-ui/database"
-	"github.com/mhsanaei/3x-ui/database/model"
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/util/crypto"
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/crypto"
 
 	"github.com/xlzd/gotp"
 	"gorm.io/gorm"

@@ -1,8 +1,8 @@
 package job
 
 import (
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 )
 
 type Period string

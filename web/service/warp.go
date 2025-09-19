@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/util/common"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
 )
 
 type WarpService struct {

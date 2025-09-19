@@ -1,10 +1,10 @@
 package service
 
 import (
-	"github.com/mhsanaei/3x-ui/database"
-	"github.com/mhsanaei/3x-ui/database/model"
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"gorm.io/gorm"
 )

@@ -4,8 +4,8 @@ import (
 	_ "embed"
 	"encoding/json"
 
-	"github.com/mhsanaei/3x-ui/util/common"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
 type XraySettingService struct {

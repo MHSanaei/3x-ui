@@ -10,14 +10,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/database"
-	"github.com/mhsanaei/3x-ui/database/model"
-	"github.com/mhsanaei/3x-ui/logger"
-	"github.com/mhsanaei/3x-ui/util/common"
-	"github.com/mhsanaei/3x-ui/util/random"
-	"github.com/mhsanaei/3x-ui/util/reflect_util"
-	"github.com/mhsanaei/3x-ui/web/entity"
-	"github.com/mhsanaei/3x-ui/xray"
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/util/random"
+	"github.com/mhsanaei/3x-ui/v2/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/v2/web/entity"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
 //go:embed config.json
