@@ -159,26 +159,43 @@ func (s *SubService) getFallbackMaster(dest string, streamSettings string) (stri
 }
 
 func (s *SubService) getLink(inbound *model.Inbound, email string) string {
-	switch inbound.Protocol {
-	case "vmess":
-		return s.genVmessLink(inbound, email)
-	case "vless":
-		return s.genVlessLink(inbound, email)
-	case "trojan":
-		return s.genTrojanLink(inbound, email)
-	case "shadowsocks":
-		return s.genShadowsocksLink(inbound, email)
+	serverService := service.MultiServerService{}
+	servers, err := serverService.GetServers()
+	if err != nil {
+		logger.Warning("Failed to get servers for subscription:", err)
+		return ""
 	}
-	return ""
+
+	var links []string
+	for _, server := range servers {
+		if !server.Enable {
+			continue
+		}
+		var link string
+		switch inbound.Protocol {
+		case "vmess":
+			link = s.genVmessLink(inbound, email, server)
+		case "vless":
+			link = s.genVlessLink(inbound, email, server)
+		case "trojan":
+			link = s.genTrojanLink(inbound, email, server)
+		case "shadowsocks":
+			link = s.genShadowsocksLink(inbound, email, server)
+		}
+		if link != "" {
+			links = append(links, link)
+		}
+	}
+	return strings.Join(links, "\n")
 }
 
-func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
+func (s *SubService) genVmessLink(inbound *model.Inbound, email string, server *model.Server) string {
 	if inbound.Protocol != model.VMESS {
 		return ""
 	}
 	obj := map[string]any{
 		"v":    "2",
-		"add":  s.address,
+		"add":  server.Address,
 		"port": inbound.Port,
 		"type": "none",
 	}
@@ -291,7 +308,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 					newObj[key] = value
 				}
 			}
-			newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string))
+			newObj["ps"] = s.genRemark(inbound, email, ep["remark"].(string), server.Name)
 			newObj["add"] = ep["dest"].(string)
 			newObj["port"] = int(ep["port"].(float64))
 
@@ -307,14 +324,14 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		return links
 	}
 
-	obj["ps"] = s.genRemark(inbound, email, "")
+	obj["ps"] = s.genRemark(inbound, email, "", server.Name)
 
 	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
 	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
 }
 
-func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
-	address := s.address
+func (s *SubService) genVlessLink(inbound *model.Inbound, email string, server *model.Server) string {
+	address := server.Address
 	if inbound.Protocol != model.VLESS {
 		return ""
 	}
@@ -493,7 +510,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			// Set the new query values on the URL
 			url.RawQuery = q.Encode()
 
-			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
+			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string), server.Name)
 
 			if index > 0 {
 				links += "\n"
@@ -514,12 +531,12 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	url.Fragment = s.genRemark(inbound, email, "")
+	url.Fragment = s.genRemark(inbound, email, "", server.Name)
 	return url.String()
 }
 
-func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
-	address := s.address
+func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, server *model.Server) string {
+	address := server.Address
 	if inbound.Protocol != model.Trojan {
 		return ""
 	}
@@ -688,7 +705,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			// Set the new query values on the URL
 			url.RawQuery = q.Encode()
 
-			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
+			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string), server.Name)
 
 			if index > 0 {
 				links += "\n"
@@ -710,12 +727,12 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	url.Fragment = s.genRemark(inbound, email, "")
+	url.Fragment = s.genRemark(inbound, email, "", server.Name)
 	return url.String()
 }
 
-func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
-	address := s.address
+func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, server *model.Server) string {
+	address := server.Address
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
 	}
@@ -855,7 +872,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			// Set the new query values on the URL
 			url.RawQuery = q.Encode()
 
-			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
+			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string), server.Name)
 
 			if index > 0 {
 				links += "\n"
@@ -876,17 +893,18 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
-	url.Fragment = s.genRemark(inbound, email, "")
+	url.Fragment = s.genRemark(inbound, email, "", server.Name)
 	return url.String()
 }
 
-func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
+func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string, serverName string) string {
 	separationChar := string(s.remarkModel[0])
 	orderChars := s.remarkModel[1:]
 	orders := map[byte]string{
 		'i': "",
 		'e': "",
 		'o': "",
+		's': "",
 	}
 	if len(email) > 0 {
 		orders['e'] = email
@@ -896,6 +914,9 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 	}
 	if len(extra) > 0 {
 		orders['o'] = extra
+	}
+	if len(serverName) > 0 {
+		orders['s'] = serverName
 	}
 
 	var remark []string

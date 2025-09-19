@@ -115,3 +115,12 @@ type VLESSSettings struct {
 	Encryption string   `json:"encryption"`
 	Fallbacks  []any    `json:"fallbacks"`
 }
+
+type Server struct {
+	Id      int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Name    string `json:"name" gorm:"unique;not null"`
+	Address string `json:"address" gorm:"not null"`
+	Port    int    `json:"port" gorm:"not null"`
+	APIKey  string `json:"apiKey" gorm:"not null"`
+	Enable  bool   `json:"enable" gorm:"default:true"`
+}
