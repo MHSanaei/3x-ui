@@ -3,45 +3,10 @@
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
-<style>
-  @media (min-width: 769px) {
-    .ant-layout-content {
-      margin: 24px 16px;
-    }
-  }
-
-  @media (max-width: 768px) {
-    .ant-tabs-nav .ant-tabs-tab {
-      margin: 0;
-      padding: 12px .5rem;
-    }
-
-    .ant-table-thead>tr>th,
-    .ant-table-tbody>tr>td {
-      padding: 10px 0px;
-    }
-  }
-
-  .ant-tabs-bar {
-    margin: 0;
-  }
-
-  .ant-list-item {
-    display: block;
-  }
-
-  .ant-list-item>li {
-    padding: 10px 20px !important;
-  }
-
-  .ant-collapse-content-box .ant-alert {
-    margin-block-end: 12px;
-  }
-</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' xray-page'">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
@@ -181,8 +146,9 @@
     { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
     {
       title: '{{ i18n "pages.xray.rules.source"}}', children: [
-        { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true }]
+        { title: 'IP', dataIndex: "sourceIP", align: 'center', width: 20, ellipsis: true },
+        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true },
+        { title: 'VLESS Route', dataIndex: 'vlessRoute', align: 'center', width: 15, ellipsis: true }]
     },
     {
       title: '{{ i18n "pages.inbounds.network"}}', children: [
@@ -569,7 +535,9 @@
         switch (o.protocol) {
           case Protocols.VMess:
           case Protocols.VLESS:
-            serverObj = o.settings.vnext;
+            if (o.settings && o.settings.address && o.settings.port) {
+              return [o.settings.address + ':' + o.settings.port];
+            }
             break;
           case Protocols.HTTP:
           case Protocols.Mixed:

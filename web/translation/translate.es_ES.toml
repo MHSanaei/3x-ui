@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "No hay proxies inversos añadidos."
 "somethingWentWrong" = "Algo salió mal"
 
+[subscription]
+"title" = "Información de suscripción"
+"subId" = "ID de suscripción"
+"status" = "Estado"
+"downloaded" = "Descargado"
+"uploaded" = "Subido"
+"expiry" = "Caducidad"
+"totalQuota" = "Cuota total"
+"individualLinks" = "Enlaces individuales"
+"active" = "Activo"
+"inactive" = "Inactivo"
+"unlimited" = "Ilimitado"
+"noExpiry" = "Sin caducidad"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Oscuro"
@@ -230,6 +244,9 @@
 "exportInbound" = "Exportación entrante"
 "import" = "Importar"
 "importInbound" = "Importar un entrante"
+"periodicTrafficResetTitle" = "Reset de Tráfico"
+"periodicTrafficResetDesc" = "Reiniciar automáticamente el contador de tráfico en intervalos especificados"
+"lastReset" = "Último reinicio"
 
 [pages.client]
 "add" = "Agregar Cliente"
@@ -248,6 +265,12 @@
 "days" = "Día(s)"
 "renew" = "Renovación automática"
 "renewDesc" = "Renovación automática después de la expiración. (0 = desactivar) (unidad: día)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Nunca"
+"daily" = "Diariamente"
+"weekly" = "Semanalmente"
+"monthly" = "Mensualmente"
 
 [pages.inbounds.toasts]
 "obtain" = "Recibir"
@@ -348,6 +371,7 @@
 "subSettings" = "Suscripción"
 "subEnable" = "Habilitar Servicio"
 "subEnableDesc" = "Función de suscripción con configuración separada."
+"subJsonEnable" = "Habilitar/Deshabilitar el endpoint de suscripción JSON de forma independiente."
 "subTitle" = "Título de la Suscripción"
 "subTitleDesc" = "Título mostrado en el cliente de VPN"
 "subListen" = "Listening IP"

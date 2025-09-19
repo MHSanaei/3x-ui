@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Không có proxy ngược nào được thêm."
 "somethingWentWrong" = "Đã xảy ra lỗi"
 
+[subscription]
+"title" = "Thông tin đăng ký"
+"subId" = "ID đăng ký"
+"status" = "Trạng thái"
+"downloaded" = "Đã tải xuống"
+"uploaded" = "Đã tải lên"
+"expiry" = "Hết hạn"
+"totalQuota" = "Tổng hạn mức"
+"individualLinks" = "Liên kết riêng lẻ"
+"active" = "Hoạt động"
+"inactive" = "Không hoạt động"
+"unlimited" = "Không giới hạn"
+"noExpiry" = "Không hết hạn"
+
 [menu]
 "theme" = "Chủ đề"
 "dark" = "Tối"
@@ -230,6 +244,9 @@
 "exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
+"periodicTrafficResetTitle" = "Đặt lại lưu lượng"
+"periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
+"lastReset" = "Đặt lại lần cuối"
 
 [pages.client]
 "add" = "Thêm người dùng"
@@ -248,6 +265,12 @@
 "days" = "ngày"
 "renew" = "Tự động gia hạn"
 "renewDesc" = "Tự động gia hạn sau khi hết hạn. (0 = tắt)(đơn vị: ngày)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Không bao giờ"
+"daily" = "Hàng ngày"
+"weekly" = "Hàng tuần"
+"monthly" = "Hàng tháng"
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"
@@ -348,6 +371,7 @@
 "subSettings" = "Gói đăng ký"
 "subEnable" = "Bật dịch vụ"
 "subEnableDesc" = "Tính năng gói đăng ký với cấu hình riêng"
+"subJsonEnable" = "Bật/Tắt điểm cuối đăng ký JSON độc lập."
 "subTitle" = "Tiêu đề Đăng ký"
 "subTitleDesc" = "Tiêu đề hiển thị trong ứng dụng VPN"
 "subListen" = "Listening IP"

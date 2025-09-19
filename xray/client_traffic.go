@@ -5,6 +5,7 @@ type ClientTraffic struct {
 	InboundId  int    `json:"inboundId" form:"inboundId"`
 	Enable     bool   `json:"enable" form:"enable"`
 	Email      string `json:"email" form:"email" gorm:"unique"`
+	SubId      string `json:"subId" form:"subId" gorm:"-"`
 	Up         int64  `json:"up" form:"up"`
 	Down       int64  `json:"down" form:"down"`
 	AllTime    int64  `json:"allTime" form:"allTime"`

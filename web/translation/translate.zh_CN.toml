@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "未添加反向代理。"
 "somethingWentWrong" = "出了点问题"
 
+[subscription]
+"title" = "订阅信息"
+"subId" = "订阅 ID"
+"status" = "状态"
+"downloaded" = "已下载"
+"uploaded" = "已上传"
+"expiry" = "到期"
+"totalQuota" = "总配额"
+"individualLinks" = "单独链接"
+"active" = "启用"
+"inactive" = "停用"
+"unlimited" = "无限制"
+"noExpiry" = "无到期"
+
 [menu]
 "theme" = "主题"
 "dark" = "暗色"
@@ -230,6 +244,9 @@
 "exportInbound" = "导出入站规则"
 "import"="导入"
 "importInbound" = "导入入站规则"
+"periodicTrafficResetTitle" = "流量重置"
+"periodicTrafficResetDesc" = "按指定间隔自动重置流量计数器"
+"lastReset" = "上次重置"
 
 [pages.client]
 "add" = "添加客户端"
@@ -248,6 +265,12 @@
 "days" = "天"
 "renew" = "自动续订"
 "renewDesc" = "到期后自动续订。(0 = 禁用)(单位: 天)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "从不"
+"daily" = "每日"
+"weekly" = "每周"
+"monthly" = "每月"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"
@@ -348,6 +371,7 @@
 "subSettings" = "订阅设置"
 "subEnable" = "启用订阅服务"
 "subEnableDesc" = "启用订阅服务功能"
+"subJsonEnable" = "单独启用/禁用 JSON 订阅端点。"
 "subTitle" = "订阅标题"
 "subTitleDesc" = "在VPN客户端中显示的标题"
 "subListen" = "监听 IP"

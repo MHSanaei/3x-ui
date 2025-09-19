@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "مفيش بروكسي عكسي مضاف."
 "somethingWentWrong" = "حدث خطأ ما"
 
+[subscription]
+"title" = "معلومات الاشتراك"
+"subId" = "معرّف الاشتراك"
+"status" = "الحالة"
+"downloaded" = "التنزيل"
+"uploaded" = "الرفع"
+"expiry" = "تاريخ الانتهاء"
+"totalQuota" = "الحصة الإجمالية"
+"individualLinks" = "روابط فردية"
+"active" = "نشط"
+"inactive" = "غير نشط"
+"unlimited" = "غير محدود"
+"noExpiry" = "بدون انتهاء"
+
 [menu]
 "theme" = "الثيم"
 "dark" = "داكن"
@@ -230,6 +244,9 @@
 "exportInbound" = "تصدير الإدخال"
 "import" = "استيراد"
 "importInbound" = "استيراد إدخال"
+"periodicTrafficResetTitle" = "إعادة تعيين حركة المرور"
+"periodicTrafficResetDesc" = "إعادة تعيين عداد حركة المرور تلقائيًا في فترات محددة"
+"lastReset" = "آخر إعادة تعيين"
 
 [pages.client]
 "add" = "أضف عميل"
@@ -248,6 +265,12 @@
 "days" = "يوم/أيام"
 "renew" = "تجديد تلقائي"
 "renewDesc" = "تجديد تلقائي بعد انتهاء الصلاحية. (0 = تعطيل)(الوحدة: يوم)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "أبداً"
+"daily" = "يومياً"
+"weekly" = "أسبوعياً"
+"monthly" = "شهرياً"
 
 [pages.inbounds.toasts]
 "obtain" = "تم الحصول عليه"
@@ -348,6 +371,7 @@
 "subSettings" = "الاشتراك"
 "subEnable" = "تفعيل خدمة الاشتراك"
 "subEnableDesc" = "يفعل خدمة الاشتراك."
+"subJsonEnable" = "تمكين/تعطيل نقطة نهاية اشتراك JSON بشكل مستقل."
 "subTitle" = "عنوان الاشتراك"
 "subTitleDesc" = "العنوان اللي هيظهر في عميل VPN"
 "subListen" = "IP الاستماع"

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Нет добавленных реверс-прокси."
 "somethingWentWrong" = "Что-то пошло не так"
 
+[subscription]
+"title" = "Информация о подписке"
+"subId" = "ID подписки"
+"status" = "Статус"
+"downloaded" = "Загружено"
+"uploaded" = "Отправлено"
+"expiry" = "Срок действия"
+"totalQuota" = "Общий лимит"
+"individualLinks" = "Индивидуальные ссылки"
+"active" = "Активна"
+"inactive" = "Неактивна"
+"unlimited" = "Безлимит"
+"noExpiry" = "Без срока"
+
 [menu]
 "theme" = "Тема"
 "dark" = "Темная"
@@ -230,6 +244,9 @@
 "exportInbound" = "Экспорт инбаундов"
 "import" = "Импортировать"
 "importInbound" = "Импорт инбаундов"
+"periodicTrafficResetTitle" = "Сброс трафика"
+"periodicTrafficResetDesc" = "Автоматический сброс счетчика трафика через указанные интервалы"
+"lastReset" = "Последний сброс"
 
 [pages.client]
 "add" = "Создать клиента"
@@ -248,6 +265,12 @@
 "days" = "дней"
 "renew" = "Автопродление"
 "renewDesc" = "Автопродление после истечения срока действия. (0 = отключить)(единица: день)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Никогда"
+"daily" = "Ежедневно"
+"weekly" = "Еженедельно"
+"monthly" = "Ежемесячно"
 
 [pages.inbounds.toasts]
 "obtain" = "Получить"
@@ -348,6 +371,7 @@
 "subSettings" = "Подписка"
 "subEnable" = "Включить подписку"
 "subEnableDesc" = "Функция подписки с отдельной конфигурацией"
+"subJsonEnable" = "Включить/отключить JSON-эндпоинт подписки независимо."
 "subTitle" = "Заголовок подписки"
 "subTitleDesc" = "Название подписки, которое видит клиент в VPN клиенте"
 "subListen" = "Прослушивание IP"

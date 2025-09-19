@@ -2,8 +2,9 @@ package session
 
 import (
 	"encoding/gob"
+	"net/http"
 
-	"x-ui/database/model"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -32,6 +33,7 @@ func SetMaxAge(c *gin.Context, maxAge int) {
 		Path:     defaultPath,
 		MaxAge:   maxAge,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -61,5 +63,6 @@ func ClearSession(c *gin.Context) {
 		Path:     defaultPath,
 		MaxAge:   -1,
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	})
 }

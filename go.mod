@@ -1,4 +1,4 @@
-module x-ui
+module github.com/mhsanaei/3x-ui/v2
 
 go 1.25.1
 
@@ -15,11 +15,13 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shirou/gopsutil/v4 v4.25.8
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasthttp v1.65.0
 	github.com/xlzd/gotp v0.1.0
 	github.com/xtls/xray-core v1.250911.0
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.42.0
+	golang.org/x/sys v0.36.0
 	golang.org/x/text v0.29.0
 	google.golang.org/grpc v1.75.1
 	gorm.io/driver/sqlite v1.6.0
@@ -89,7 +91,6 @@ require (
 	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/time v0.13.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect

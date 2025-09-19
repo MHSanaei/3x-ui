@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Немає доданих зворотних проксі."
 "somethingWentWrong" = "Щось пішло не так"
 
+[subscription]
+"title" = "Інформація про підписку"
+"subId" = "ID підписки"
+"status" = "Статус"
+"downloaded" = "Завантажено"
+"uploaded" = "Відвантажено"
+"expiry" = "Термін дії"
+"totalQuota" = "Загальна квота"
+"individualLinks" = "Окремі посилання"
+"active" = "Активна"
+"inactive" = "Неактивна"
+"unlimited" = "Безліміт"
+"noExpiry" = "Без строку"
+
 [menu]
 "theme" = "Тема"
 "dark" = "Темна"
@@ -230,6 +244,9 @@
 "exportInbound" = "Експортувати вхідні"
 "import" = "Імпорт"
 "importInbound" = "Імпортувати вхідний"
+"periodicTrafficResetTitle" = "Скидання трафіку"
+"periodicTrafficResetDesc" = "Автоматично скидати лічильник трафіку через певні проміжки часу"
+"lastReset" = "Останнє скидання"
 
 [pages.client]
 "add" = "Додати клієнта"
@@ -248,6 +265,12 @@
 "days" = "Дні(в)"
 "renew" = "Автоматичне оновлення"
 "renewDesc" = "Автоматичне поновлення після закінчення терміну дії. (0 = вимкнено)(одиниця: день)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Ніколи"
+"daily" = "Щодня"
+"weekly" = "Щотижня"
+"monthly" = "Щомісяця"
 
 [pages.inbounds.toasts]
 "obtain" = "Отримати"
@@ -348,6 +371,7 @@
 "subSettings" = "Підписка"
 "subEnable" = "Увімкнути службу підписки"
 "subEnableDesc" = "Вмикає службу підписки."
+"subJsonEnable" = "Увімкнути/вимкнути JSON-кінець підписки незалежно."
 "subTitle" = "Назва Підписки"
 "subTitleDesc" = "Назва, яка відображається у VPN-клієнті"
 "subListen" = "Слухати IP"

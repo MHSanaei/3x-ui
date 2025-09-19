@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Eklenmiş ters proxy yok."
 "somethingWentWrong" = "Bir şeyler yanlış gitti"
 
+[subscription]
+"title" = "Abonelik Bilgisi"
+"subId" = "Abonelik Kimliği"
+"status" = "Durum"
+"downloaded" = "İndirilen"
+"uploaded" = "Yüklenen"
+"expiry" = "Son Kullanma"
+"totalQuota" = "Toplam Kota"
+"individualLinks" = "Bireysel Bağlantılar"
+"active" = "Aktif"
+"inactive" = "Pasif"
+"unlimited" = "Sınırsız"
+"noExpiry" = "Süresiz"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Koyu"
@@ -230,6 +244,9 @@
 "exportInbound" = "Geleni Dışa Aktar"
 "import" = "İçe Aktar"
 "importInbound" = "Bir Gelen İçe Aktar"
+"periodicTrafficResetTitle" = "Trafik Sıfırlama"
+"periodicTrafficResetDesc" = "Belirtilen aralıklarla trafik sayacını otomatik olarak sıfırla"
+"lastReset" = "Son Sıfırlama"
 
 [pages.client]
 "add" = "Müşteri Ekle"
@@ -248,6 +265,12 @@
 "days" = "Gün"
 "renew" = "Otomatik Yenile"
 "renewDesc" = "Süresi dolduktan sonra otomatik yenileme. (0 = devre dışı)(birim: gün)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Asla"
+"daily" = "Günlük"
+"weekly" = "Haftalık"
+"monthly" = "Aylık"
 
 [pages.inbounds.toasts]
 "obtain" = "Elde Et"
@@ -348,6 +371,7 @@
 "subSettings" = "Abonelik"
 "subEnable" = "Abonelik Hizmetini Etkinleştir"
 "subEnableDesc" = "Abonelik hizmetini etkinleştirir."
+"subJsonEnable" = "JSON abonelik uç noktasını bağımsız olarak Etkinleştir/Devre Dışı bırak."
 "subTitle" = "Abonelik Başlığı"
 "subTitleDesc" = "VPN istemcisinde gösterilen başlık"
 "subListen" = "Dinleme IP"

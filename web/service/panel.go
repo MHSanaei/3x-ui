@@ -5,7 +5,7 @@ import (
 	"syscall"
 	"time"
 
-	"x-ui/logger"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 )
 
 type PanelService struct{}

@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
 "somethingWentWrong" = "Terjadi kesalahan"
 
+[subscription]
+"title" = "Info langganan"
+"subId" = "ID langganan"
+"status" = "Status"
+"downloaded" = "Diunduh"
+"uploaded" = "Diunggah"
+"expiry" = "Kedaluwarsa"
+"totalQuota" = "Kuota total"
+"individualLinks" = "Tautan individual"
+"active" = "Aktif"
+"inactive" = "Nonaktif"
+"unlimited" = "Tanpa batas"
+"noExpiry" = "Tanpa kedaluwarsa"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Gelap"
@@ -230,6 +244,9 @@
 "exportInbound" = "Ekspor Masuk"
 "import" = "Impor"
 "importInbound" = "Impor Masuk"
+"periodicTrafficResetTitle" = "Reset Trafik Berkala"
+"periodicTrafficResetDesc" = "Reset otomatis penghitung trafik pada interval tertentu"
+"lastReset" = "Reset Terakhir"
 
 [pages.client]
 "add" = "Tambah Klien"
@@ -248,6 +265,12 @@
 "days" = "Hari"
 "renew" = "Perpanjang Otomatis"
 "renewDesc" = "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif)(unit: hari)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Tidak Pernah"
+"daily" = "Harian"
+"weekly" = "Mingguan"
+"monthly" = "Bulanan"
 
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"
@@ -348,6 +371,7 @@
 "subSettings" = "Langganan"
 "subEnable" = "Aktifkan Layanan Langganan"
 "subEnableDesc" = "Mengaktifkan layanan langganan."
+"subJsonEnable" = "Aktifkan/Nonaktifkan endpoint langganan JSON secara mandiri."
 "subTitle" = "Judul Langganan"
 "subTitleDesc" = "Judul yang ditampilkan di klien VPN"
 "subListen" = "IP Pendengar"

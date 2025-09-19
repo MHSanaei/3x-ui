@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "Nenhum proxy reverso adicionado."
 "somethingWentWrong" = "Algo deu errado"
 
+[subscription]
+"title" = "Informações da assinatura"
+"subId" = "ID da assinatura"
+"status" = "Status"
+"downloaded" = "Baixado"
+"uploaded" = "Enviado"
+"expiry" = "Validade"
+"totalQuota" = "Cota total"
+"individualLinks" = "Links individuais"
+"active" = "Ativo"
+"inactive" = "Inativo"
+"unlimited" = "Ilimitado"
+"noExpiry" = "Sem validade"
+
 [menu]
 "theme" = "Tema"
 "dark" = "Escuro"
@@ -230,6 +244,9 @@
 "exportInbound" = "Exportar Inbound"
 "import" = "Importar"
 "importInbound" = "Importar um Inbound"
+"periodicTrafficResetTitle" = "Reset de Tráfego"
+"periodicTrafficResetDesc" = "Reinicia automaticamente o contador de tráfego em intervalos especificados"
+"lastReset" = "Último Reset"
 
 [pages.client]
 "add" = "Adicionar Cliente"
@@ -248,6 +265,12 @@
 "days" = "Dia(s)"
 "renew" = "Renovação Automática"
 "renewDesc" = "Renovação automática após expiração. (0 = desativado)(unidade: dia)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Nunca"
+"daily" = "Diariamente"
+"weekly" = "Semanalmente"
+"monthly" = "Mensalmente"
 
 [pages.inbounds.toasts]
 "obtain" = "Obter"
@@ -348,6 +371,7 @@
 "subSettings" = "Assinatura"
 "subEnable" = "Ativar Serviço de Assinatura"
 "subEnableDesc" = "Ativa o serviço de assinatura."
+"subJsonEnable" = "Ativar/Desativar o endpoint de assinatura JSON de forma independente."
 "subTitle" = "Título da Assinatura"
 "subTitleDesc" = "Título exibido no cliente VPN"
 "subListen" = "IP de Escuta"

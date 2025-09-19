@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "No added reverse proxies."
 "somethingWentWrong" = "Something went wrong"
 
+[subscription]
+"title" = "Subscription info"
+"subId" = "Subscription ID"
+"status" = "Status"
+"downloaded" = "Downloaded"
+"uploaded" = "Uploaded"
+"expiry" = "Expiry"
+"totalQuota" = "Total quota"
+"individualLinks" = "Individual links"
+"active" = "Active"
+"inactive" = "Inactive"
+"unlimited" = "Unlimited"
+"noExpiry" = "No expiry"
+
 [menu]
 "theme" = "Theme"
 "dark" = "Dark"
@@ -230,6 +244,9 @@
 "exportInbound" = "Export Inbound"
 "import" = "Import"
 "importInbound" = "Import an Inbound"
+"periodicTrafficResetTitle" = "Traffic Reset"
+"periodicTrafficResetDesc" = "Automatically reset traffic counter at specified intervals"
+"lastReset" = "Last Reset"
 
 [pages.client]
 "add" = "Add Client"
@@ -248,6 +265,12 @@
 "days" = "Day(s)"
 "renew" = "Auto Renew"
 "renewDesc" = "Auto-renewal after expiration. (0 = disable)(unit: day)"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "Never"
+"daily" = "Daily"
+"weekly" = "Weekly"
+"monthly" = "Monthly"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"
@@ -346,8 +369,9 @@
 "timeZone" = "Time Zone"
 "timeZoneDesc" = "Scheduled tasks will run based on this time zone."
 "subSettings" = "Subscription"
-"subEnable" = "Enable Subscription Service"
-"subEnableDesc" = "Enables the subscription service."
+"subEnable" = "Subscription Service"
+"subEnableDesc" = "Enable/Disable the subscription service."
+"subJsonEnable" = "Enable/Disable the JSON subscription endpoint independently."
 "subTitle" = "Subscription Title"
 "subTitleDesc" = "Title shown in VPN client"
 "subListen" = "Listen IP"

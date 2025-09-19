@@ -72,6 +72,20 @@
 "emptyReverseDesc" = "追加されたリバースプロキシはありません。"
 "somethingWentWrong" = "エラーが発生しました"
 
+[subscription]
+"title" = "サブスクリプション情報"
+"subId" = "サブスクリプションID"
+"status" = "ステータス"
+"downloaded" = "ダウンロード"
+"uploaded" = "アップロード"
+"expiry" = "有効期限"
+"totalQuota" = "合計クォータ"
+"individualLinks" = "個別リンク"
+"active" = "有効"
+"inactive" = "無効"
+"unlimited" = "無制限"
+"noExpiry" = "期限なし"
+
 [menu]
 "theme" = "テーマ"
 "dark" = "ダーク"
@@ -230,6 +244,9 @@
 "exportInbound" = "インバウンドルールをエクスポート"
 "import" = "インポート"
 "importInbound" = "インバウンドルールをインポート"
+"periodicTrafficResetTitle" = "トラフィックリセット"
+"periodicTrafficResetDesc" = "指定された間隔でトラフィックカウンタを自動的にリセット"
+"lastReset" = "最後のリセット"
 
 [pages.client]
 "add" = "クライアント追加"
@@ -248,6 +265,12 @@
 "days" = "日"
 "renew" = "自動更新"
 "renewDesc" = "期限が切れた後に自動更新。（0 = 無効）（単位：日）"
+
+[pages.inbounds.periodicTrafficReset]
+"never" = "なし"
+"daily" = "毎日"
+"weekly" = "毎週"
+"monthly" = "毎月"
 
 [pages.inbounds.toasts]
 "obtain" = "取得"
@@ -348,6 +371,7 @@
 "subSettings" = "サブスクリプション設定"
 "subEnable" = "サブスクリプションサービスを有効にする"
 "subEnableDesc" = "サブスクリプションサービス機能を有効にする"
+"subJsonEnable" = "JSON サブスクリプションのエンドポイントを個別に有効/無効にする。"
 "subTitle" = "サブスクリプションタイトル"
 "subTitleDesc" = "VPNクライアントに表示されるタイトル"
 "subListen" = "監視IP"

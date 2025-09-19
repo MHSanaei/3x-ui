@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"os"
 	"time"
-	"x-ui/logger"
-	"x-ui/util/common"
+
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
 )
 
 type WarpService struct {

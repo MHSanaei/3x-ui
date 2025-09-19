@@ -14,15 +14,15 @@ import (
 	"strings"
 	"time"
 
-	"x-ui/config"
-	"x-ui/logger"
-	"x-ui/util/common"
-	"x-ui/web/controller"
-	"x-ui/web/job"
-	"x-ui/web/locale"
-	"x-ui/web/middleware"
-	"x-ui/web/network"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/v2/config"
+	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/web/controller"
+	"github.com/mhsanaei/3x-ui/v2/web/job"
+	"github.com/mhsanaei/3x-ui/v2/web/locale"
+	"github.com/mhsanaei/3x-ui/v2/web/middleware"
+	"github.com/mhsanaei/3x-ui/v2/web/network"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
@@ -31,7 +31,7 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-//go:embed assets/*
+//go:embed assets
 var assetsFS embed.FS
 
 //go:embed html/*
@@ -76,6 +76,15 @@ type wrapAssetsFileInfo struct {
 
 func (f *wrapAssetsFileInfo) ModTime() time.Time {
 	return startTime
+}
+
+// Expose embedded resources for reuse by other servers (e.g., sub server)
+func EmbeddedHTML() embed.FS {
+	return htmlFS
+}
+
+func EmbeddedAssets() embed.FS {
+	return assetsFS
 }
 
 type Server struct {
@@ -180,6 +189,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	assetsBasePath := basePath + "assets/"
 
 	store := cookie.NewStore(secret)
+	// Configure default session cookie options, including expiration (MaxAge)
+	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
+		store.Options(sessions.Options{
+			Path:     "/",
+			MaxAge:   sessionMaxAge * 60, // minutes -> seconds
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		})
+	}
 	engine.Use(sessions.Sessions("3x-ui", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
@@ -201,7 +219,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	i18nWebFunc := func(key string, params ...string) string {
 		return locale.I18n(locale.Web, key, params...)
 	}
-	engine.FuncMap["i18n"] = i18nWebFunc
+	// Register template functions before loading templates
+	funcMap := template.FuncMap{
+		"i18n": i18nWebFunc,
+	}
+	engine.SetFuncMap(funcMap)
 	engine.Use(locale.LocalizerMiddleware())
 
 	// set static files and template
@@ -211,11 +233,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		if err != nil {
 			return nil, err
 		}
+		// Use the registered func map with the loaded templates
 		engine.LoadHTMLFiles(files...)
 		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/assets")))
 	} else {
 		// for production
-		template, err := s.getHtmlTemplate(engine.FuncMap)
+		template, err := s.getHtmlTemplate(funcMap)
 		if err != nil {
 			return nil, err
 		}
@@ -265,6 +288,14 @@ func (s *Server) startTask() {
 
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
+
+	// Inbound traffic reset jobs
+	// Run once a day, midnight
+	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
+	// Run once a week, midnight between Sat/Sun
+	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
+	// Run once a month, midnight, first of month
+	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
