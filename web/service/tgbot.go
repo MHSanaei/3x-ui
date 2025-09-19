@@ -856,7 +856,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				if len(dataArray) == 3 {
 					days, err := strconv.Atoi(dataArray[2])
 					if err == nil {
-						var date int64 = 0
+						var date int64
 						if days > 0 {
 							traffic, err := t.inboundService.GetClientTrafficByEmail(email)
 							if err != nil {
@@ -960,7 +960,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 			case "add_client_reset_exp_c":
 				client_ExpiryTime = 0
 				days, _ := strconv.Atoi(dataArray[1])
-				var date int64 = 0
+				var date int64
 				if client_ExpiryTime > 0 {
 					if client_ExpiryTime-time.Now().Unix()*1000 < 0 {
 						date = -int64(days * 24 * 60 * 60000)
