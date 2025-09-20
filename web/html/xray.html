@@ -534,13 +534,11 @@
         serverObj = null;
         switch (o.protocol) {
           case Protocols.VMess:
-          case Protocols.VLESS:
-            if (o.settings && o.settings.address && o.settings.port) {
-              return [o.settings.address + ':' + o.settings.port];
-            }
+            serverObj = o.settings.vnext;
             break;
+          case Protocols.VLESS:
           case Protocols.HTTP:
-          case Protocols.Mixed:
+          case Protocols.Socks:
           case Protocols.Shadowsocks:
           case Protocols.Trojan:
             serverObj = o.settings.servers;

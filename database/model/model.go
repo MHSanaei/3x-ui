@@ -119,11 +119,3 @@ type Client struct {
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
 }
-
-// VLESSSettings contains VLESS protocol-specific configuration settings.
-type VLESSSettings struct {
-	Clients    []Client `json:"clients"`    // List of VLESS clients
-	Decryption string   `json:"decryption"` // Decryption method
-	Encryption string   `json:"encryption"` // Encryption method (usually "none" for VLESS)
-	Fallbacks  []any    `json:"fallbacks"`  // Fallback configurations
-}
