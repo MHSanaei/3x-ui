@@ -8,14 +8,17 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/logger"
 )
 
+// NewLogWriter returns a new LogWriter for processing Xray log output.
 func NewLogWriter() *LogWriter {
 	return &LogWriter{}
 }
 
+// LogWriter processes and filters log output from the Xray process, handling crash detection and message filtering.
 type LogWriter struct {
 	lastLine string
 }
 
+// Write processes and filters log output from the Xray process, handling crash detection and message filtering.
 func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	crashRegex := regexp.MustCompile(`(?i)(panic|exception|stack trace|fatal error)`)
 

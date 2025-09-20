@@ -12,6 +12,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 )
 
+// WarpService provides business logic for Cloudflare WARP integration.
+// It manages WARP configuration and connectivity settings.
 type WarpService struct {
 	SettingService
 }

@@ -4,23 +4,26 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 )
 
+// LoginStatus represents the status of a login attempt.
 type LoginStatus byte
 
 const (
-	LoginSuccess LoginStatus = 1
-	LoginFail    LoginStatus = 0
+	LoginSuccess LoginStatus = 1 // Successful login
+	LoginFail    LoginStatus = 0 // Failed login attempt
 )
 
+// StatsNotifyJob sends periodic statistics reports via Telegram bot.
 type StatsNotifyJob struct {
 	xrayService  service.XrayService
 	tgbotService service.Tgbot
 }
 
+// NewStatsNotifyJob creates a new statistics notification job instance.
 func NewStatsNotifyJob() *StatsNotifyJob {
 	return new(StatsNotifyJob)
 }
 
-// Here run is a interface method of Job interface
+// Run sends a statistics report via Telegram bot if Xray is running.
 func (j *StatsNotifyJob) Run() {
 	if !j.xrayService.IsXrayRunning() {
 		return

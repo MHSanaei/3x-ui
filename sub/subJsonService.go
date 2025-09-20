@@ -17,6 +17,7 @@ import (
 //go:embed default.json
 var defaultJson string
 
+// SubJsonService handles JSON subscription configuration generation and management.
 type SubJsonService struct {
 	configJson       map[string]any
 	defaultOutbounds []json_util.RawMessage
@@ -28,6 +29,7 @@ type SubJsonService struct {
 	SubService     *SubService
 }
 
+// NewSubJsonService creates a new JSON subscription service with the given configuration.
 func NewSubJsonService(fragment string, noises string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
@@ -67,6 +69,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 	}
 }
 
+// GetJson generates a JSON subscription configuration for the given subscription ID and host.
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
 	if err != nil || len(inbounds) == 0 {

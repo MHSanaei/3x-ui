@@ -75,6 +75,8 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformURI":    "",
 }
 
+// SettingService provides business logic for application settings management.
+// It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
 
 func (s *SettingService) GetDefaultJsonConfig() (any, error) {

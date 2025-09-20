@@ -35,14 +35,18 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 )
 
+// ProcessState represents the current state of a system process.
 type ProcessState string
 
+// Process state constants
 const (
-	Running ProcessState = "running"
-	Stop    ProcessState = "stop"
-	Error   ProcessState = "error"
+	Running ProcessState = "running" // Process is running normally
+	Stop    ProcessState = "stop"    // Process is stopped
+	Error   ProcessState = "error"   // Process is in error state
 )
 
+// Status represents comprehensive system and application status information.
+// It includes CPU, memory, disk, network statistics, and Xray process status.
 type Status struct {
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
@@ -89,10 +93,13 @@ type Status struct {
 	} `json:"appStats"`
 }
 
+// Release represents information about a software release from GitHub.
 type Release struct {
-	TagName string `json:"tag_name"`
+	TagName string `json:"tag_name"` // The tag name of the release
 }
 
+// ServerService provides business logic for server monitoring and management.
+// It handles system status collection, IP detection, and application statistics.
 type ServerService struct {
 	xrayService        XrayService
 	inboundService     InboundService

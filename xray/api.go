@@ -1,3 +1,6 @@
+// Package xray provides integration with the Xray proxy core.
+// It includes API client functionality, configuration management, traffic monitoring,
+// and process control for Xray instances.
 package xray
 
 import (
@@ -25,6 +28,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+// XrayAPI is a gRPC client for managing Xray core configuration, inbounds, outbounds, and statistics.
 type XrayAPI struct {
 	HandlerServiceClient *command.HandlerServiceClient
 	StatsServiceClient   *statsService.StatsServiceClient
@@ -32,6 +36,7 @@ type XrayAPI struct {
 	isConnected          bool
 }
 
+// Init connects to the Xray API server and initializes handler and stats service clients.
 func (x *XrayAPI) Init(apiPort int) error {
 	if apiPort <= 0 || apiPort > math.MaxUint16 {
 		return fmt.Errorf("invalid Xray API port: %d", apiPort)
@@ -55,6 +60,7 @@ func (x *XrayAPI) Init(apiPort int) error {
 	return nil
 }
 
+// Close closes the gRPC connection and resets the XrayAPI client state.
 func (x *XrayAPI) Close() {
 	if x.grpcClient != nil {
 		x.grpcClient.Close()
@@ -64,6 +70,7 @@ func (x *XrayAPI) Close() {
 	x.isConnected = false
 }
 
+// AddInbound adds a new inbound configuration to the Xray core via gRPC.
 func (x *XrayAPI) AddInbound(inbound []byte) error {
 	client := *x.HandlerServiceClient
 
@@ -85,6 +92,7 @@ func (x *XrayAPI) AddInbound(inbound []byte) error {
 	return err
 }
 
+// DelInbound removes an inbound configuration from the Xray core by tag.
 func (x *XrayAPI) DelInbound(tag string) error {
 	client := *x.HandlerServiceClient
 	_, err := client.RemoveInbound(context.Background(), &command.RemoveInboundRequest{
@@ -93,6 +101,7 @@ func (x *XrayAPI) DelInbound(tag string) error {
 	return err
 }
 
+// AddUser adds a user to an inbound in the Xray core using the specified protocol and user data.
 func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]any) error {
 	var account *serial.TypedMessage
 	switch Protocol {
@@ -153,6 +162,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 	return err
 }
 
+// RemoveUser removes a user from an inbound in the Xray core by email.
 func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -171,6 +181,7 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	return nil
 }
 
+// GetTraffic queries traffic statistics from the Xray core, optionally resetting counters.
 func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
@@ -205,6 +216,7 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
 }
 
+// processTraffic aggregates a traffic stat into trafficMap using regex matches and value.
 func processTraffic(matches []string, value int64, trafficMap map[string]*Traffic) {
 	isInbound := matches[1] == "inbound"
 	tag := matches[2]
@@ -231,6 +243,7 @@ func processTraffic(matches []string, value int64, trafficMap map[string]*Traffi
 	}
 }
 
+// processClientTraffic updates clientTrafficMap with upload/download values for a client email.
 func processClientTraffic(matches []string, value int64, clientTrafficMap map[string]*ClientTraffic) {
 	email := matches[1]
 	isDown := matches[2] == "downlink"
@@ -248,6 +261,7 @@ func processClientTraffic(matches []string, value int64, clientTrafficMap map[st
 	}
 }
 
+// mapToSlice converts a map of pointers to a slice of pointers.
 func mapToSlice[T any](m map[string]*T) []*T {
 	result := make([]*T, 0, len(m))
 	for _, v := range m {

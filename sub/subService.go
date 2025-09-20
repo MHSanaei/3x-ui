@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
+// SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
 	showInfo       bool
@@ -29,6 +30,7 @@ type SubService struct {
 	settingService service.SettingService
 }
 
+// NewSubService creates a new subscription service with the given configuration.
 func NewSubService(showInfo bool, remarkModel string) *SubService {
 	return &SubService{
 		showInfo:    showInfo,
@@ -36,6 +38,7 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
+// GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
 	s.address = host
 	var result []string
@@ -1008,6 +1011,7 @@ func searchHost(headers any) string {
 }
 
 // PageData is a view model for subpage.html
+// PageData contains data for rendering the subscription information page.
 type PageData struct {
 	Host         string
 	BasePath     string
@@ -1029,6 +1033,7 @@ type PageData struct {
 }
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
+// ResolveRequest extracts scheme, host, and header information from an HTTP request.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
 	// scheme
 	scheme = "http"
@@ -1072,6 +1077,7 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 }
 
 // BuildURLs constructs absolute subscription and json URLs.
+// BuildURLs constructs subscription and JSON subscription URLs for a given subscription ID.
 func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
 	if strings.HasSuffix(subPath, "/") {
 		subURL = scheme + "://" + hostWithPort + subPath + subId
@@ -1087,6 +1093,7 @@ func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId
 }
 
 // BuildPageData parses header and prepares the template view model.
+// BuildPageData constructs page data for rendering the subscription information page.
 func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)

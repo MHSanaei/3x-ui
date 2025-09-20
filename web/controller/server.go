@@ -15,6 +15,7 @@ import (
 
 var filenameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 
+// ServerController handles server management and status-related operations.
 type ServerController struct {
 	BaseController
 
@@ -27,6 +28,7 @@ type ServerController struct {
 	lastGetVersionsTime int64 // unix seconds
 }
 
+// NewServerController creates a new ServerController, initializes routes, and starts background tasks.
 func NewServerController(g *gin.RouterGroup) *ServerController {
 	a := &ServerController{}
 	a.initRouter(g)
@@ -34,6 +36,7 @@ func NewServerController(g *gin.RouterGroup) *ServerController {
 	return a
 }
 
+// initRouter sets up the routes for server status, Xray management, and utility endpoints.
 func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/status", a.status)
@@ -58,6 +61,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/getNewEchCert", a.getNewEchCert)
 }
 
+// refreshStatus updates the cached server status and collects CPU history.
 func (a *ServerController) refreshStatus() {
 	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
 	// collect cpu history when status is fresh
@@ -66,6 +70,7 @@ func (a *ServerController) refreshStatus() {
 	}
 }
 
+// startTask initiates background tasks for continuous status monitoring.
 func (a *ServerController) startTask() {
 	webServer := global.GetWebServer()
 	c := webServer.GetCron()
@@ -76,8 +81,10 @@ func (a *ServerController) startTask() {
 	})
 }
 
+// status returns the current server status information.
 func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.lastStatus, nil) }
 
+// getCpuHistoryBucket retrieves aggregated CPU usage history based on the specified time bucket.
 func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 	bucketStr := c.Param("bucket")
 	bucket, err := strconv.Atoi(bucketStr)
@@ -101,6 +108,7 @@ func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 	jsonObj(c, points, nil)
 }
 
+// getXrayVersion retrieves available Xray versions, with caching for 1 minute.
 func (a *ServerController) getXrayVersion(c *gin.Context) {
 	now := time.Now().Unix()
 	if now-a.lastGetVersionsTime <= 60 { // 1 minute cache
@@ -120,18 +128,21 @@ func (a *ServerController) getXrayVersion(c *gin.Context) {
 	jsonObj(c, versions, nil)
 }
 
+// installXray installs or updates Xray to the specified version.
 func (a *ServerController) installXray(c *gin.Context) {
 	version := c.Param("version")
 	err := a.serverService.UpdateXray(version)
 	jsonMsg(c, I18nWeb(c, "pages.index.xraySwitchVersionPopover"), err)
 }
 
+// updateGeofile updates the specified geo file for Xray.
 func (a *ServerController) updateGeofile(c *gin.Context) {
 	fileName := c.Param("fileName")
 	err := a.serverService.UpdateGeofile(fileName)
 	jsonMsg(c, I18nWeb(c, "pages.index.geofileUpdatePopover"), err)
 }
 
+// stopXrayService stops the Xray service.
 func (a *ServerController) stopXrayService(c *gin.Context) {
 	err := a.serverService.StopXrayService()
 	if err != nil {
@@ -141,6 +152,7 @@ func (a *ServerController) stopXrayService(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.xray.stopSuccess"), err)
 }
 
+// restartXrayService restarts the Xray service.
 func (a *ServerController) restartXrayService(c *gin.Context) {
 	err := a.serverService.RestartXrayService()
 	if err != nil {
@@ -150,6 +162,7 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.xray.restartSuccess"), err)
 }
 
+// getLogs retrieves the application logs based on count, level, and syslog filters.
 func (a *ServerController) getLogs(c *gin.Context) {
 	count := c.Param("count")
 	level := c.PostForm("level")
@@ -158,6 +171,7 @@ func (a *ServerController) getLogs(c *gin.Context) {
 	jsonObj(c, logs, nil)
 }
 
+// getXrayLogs retrieves Xray logs with filtering options for direct, blocked, and proxy traffic.
 func (a *ServerController) getXrayLogs(c *gin.Context) {
 	count := c.Param("count")
 	filter := c.PostForm("filter")
@@ -202,6 +216,7 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 	jsonObj(c, logs, nil)
 }
 
+// getConfigJson retrieves the Xray configuration as JSON.
 func (a *ServerController) getConfigJson(c *gin.Context) {
 	configJson, err := a.serverService.GetConfigJson()
 	if err != nil {
@@ -211,6 +226,7 @@ func (a *ServerController) getConfigJson(c *gin.Context) {
 	jsonObj(c, configJson, nil)
 }
 
+// getDb downloads the database file.
 func (a *ServerController) getDb(c *gin.Context) {
 	db, err := a.serverService.GetDb()
 	if err != nil {
@@ -238,6 +254,7 @@ func isValidFilename(filename string) bool {
 	return filenameRegex.MatchString(filename)
 }
 
+// importDB imports a database file and restarts the Xray service.
 func (a *ServerController) importDB(c *gin.Context) {
 	// Get the file from the request body
 	file, _, err := c.Request.FormFile("db")
@@ -258,6 +275,7 @@ func (a *ServerController) importDB(c *gin.Context) {
 	jsonObj(c, I18nWeb(c, "pages.index.importDatabaseSuccess"), nil)
 }
 
+// getNewX25519Cert generates a new X25519 certificate.
 func (a *ServerController) getNewX25519Cert(c *gin.Context) {
 	cert, err := a.serverService.GetNewX25519Cert()
 	if err != nil {
@@ -267,6 +285,7 @@ func (a *ServerController) getNewX25519Cert(c *gin.Context) {
 	jsonObj(c, cert, nil)
 }
 
+// getNewmldsa65 generates a new ML-DSA-65 key.
 func (a *ServerController) getNewmldsa65(c *gin.Context) {
 	cert, err := a.serverService.GetNewmldsa65()
 	if err != nil {
@@ -276,6 +295,7 @@ func (a *ServerController) getNewmldsa65(c *gin.Context) {
 	jsonObj(c, cert, nil)
 }
 
+// getNewEchCert generates a new ECH certificate for the given SNI.
 func (a *ServerController) getNewEchCert(c *gin.Context) {
 	sni := c.PostForm("sni")
 	cert, err := a.serverService.GetNewEchCert(sni)
@@ -286,6 +306,7 @@ func (a *ServerController) getNewEchCert(c *gin.Context) {
 	jsonObj(c, cert, nil)
 }
 
+// getNewVlessEnc generates a new VLESS encryption key.
 func (a *ServerController) getNewVlessEnc(c *gin.Context) {
 	out, err := a.serverService.GetNewVlessEnc()
 	if err != nil {
@@ -295,6 +316,7 @@ func (a *ServerController) getNewVlessEnc(c *gin.Context) {
 	jsonObj(c, out, nil)
 }
 
+// getNewUUID generates a new UUID.
 func (a *ServerController) getNewUUID(c *gin.Context) {
 	uuidResp, err := a.serverService.GetNewUUID()
 	if err != nil {
@@ -305,6 +327,7 @@ func (a *ServerController) getNewUUID(c *gin.Context) {
 	jsonObj(c, uuidResp, nil)
 }
 
+// getNewmlkem768 generates a new ML-KEM-768 key.
 func (a *ServerController) getNewmlkem768(c *gin.Context) {
 	out, err := a.serverService.GetNewmlkem768()
 	if err != nil {

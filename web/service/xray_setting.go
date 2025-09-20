@@ -8,6 +8,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
+// XraySettingService provides business logic for Xray configuration management.
+// It handles validation and storage of Xray template configurations.
 type XraySettingService struct {
 	SettingService
 }

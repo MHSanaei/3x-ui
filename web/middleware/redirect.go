@@ -7,6 +7,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// RedirectMiddleware returns a Gin middleware that handles URL redirections.
+// It provides backward compatibility by redirecting old '/xui' paths to new '/panel' paths,
+// including API endpoints. The middleware performs permanent redirects (301) for SEO purposes.
 func RedirectMiddleware(basePath string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Redirect from old '/xui' path to '/panel'

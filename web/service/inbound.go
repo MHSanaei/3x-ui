@@ -1,3 +1,5 @@
+// Package service provides business logic services for the 3x-ui web panel,
+// including inbound/outbound management, user administration, settings, and Xray integration.
 package service
 
 import (
@@ -17,10 +19,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// InboundService provides business logic for managing Xray inbound configurations.
+// It handles CRUD operations for inbounds, client management, traffic monitoring,
+// and integration with the Xray API for real-time updates.
 type InboundService struct {
 	xrayApi xray.XrayAPI
 }
 
+// GetInbounds retrieves all inbounds for a specific user.
+// Returns a slice of inbound models with their associated client statistics.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -31,6 +38,8 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+// GetAllInbounds retrieves all inbounds from the database.
+// Returns a slice of all inbound models with their associated client statistics.
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -163,6 +172,10 @@ func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (stri
 	return "", nil
 }
 
+// AddInbound creates a new inbound configuration.
+// It validates port uniqueness, client email uniqueness, and required fields,
+// then saves the inbound to the database and optionally adds it to the running Xray instance.
+// Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, 0)
 	if err != nil {
@@ -269,6 +282,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	return inbound, needRestart, err
 }
 
+// DelInbound deletes an inbound configuration by ID.
+// It removes the inbound from the database and the running Xray instance if active.
+// Returns whether Xray needs restart and any error.
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	db := database.GetDB()
 
@@ -322,6 +338,9 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
+// UpdateInbound modifies an existing inbound configuration.
+// It validates changes, updates the database, and syncs with the running Xray instance.
+// Returns the updated inbound, whether Xray needs restart, and any error.
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, inbound.Id)
 	if err != nil {

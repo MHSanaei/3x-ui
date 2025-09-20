@@ -1,3 +1,5 @@
+// Package sub provides subscription server functionality for the 3x-ui panel,
+// including HTTP/HTTPS servers for serving subscription links and JSON configurations.
 package sub
 
 import (
@@ -39,6 +41,7 @@ func setEmbeddedTemplates(engine *gin.Engine) error {
 	return nil
 }
 
+// Server represents the subscription server that serves subscription links and JSON configurations.
 type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
@@ -50,6 +53,7 @@ type Server struct {
 	cancel context.CancelFunc
 }
 
+// NewServer creates a new subscription server instance with a cancellable context.
 func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
@@ -58,6 +62,8 @@ func NewServer() *Server {
 	}
 }
 
+// initRouter configures the subscription server's Gin engine, middleware,
+// templates and static assets and returns the ready-to-use engine.
 func (s *Server) initRouter() (*gin.Engine, error) {
 	// Always run in release mode for the subscription server
 	gin.DefaultWriter = io.Discard
@@ -222,6 +228,7 @@ func (s *Server) getHtmlFiles() ([]string, error) {
 	return files, nil
 }
 
+// Start initializes and starts the subscription server with configured settings.
 func (s *Server) Start() (err error) {
 	// This is an anonymous function, no function name
 	defer func() {
@@ -295,6 +302,7 @@ func (s *Server) Start() (err error) {
 	return nil
 }
 
+// Stop gracefully shuts down the subscription server and closes the listener.
 func (s *Server) Stop() error {
 	s.cancel()
 
@@ -309,6 +317,7 @@ func (s *Server) Stop() error {
 	return common.Combine(err1, err2)
 }
 
+// GetCtx returns the server's context for cancellation and deadline management.
 func (s *Server) GetCtx() context.Context {
 	return s.ctx
 }

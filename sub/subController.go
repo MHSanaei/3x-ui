@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
 	subTitle       string
 	subPath        string
@@ -22,6 +23,7 @@ type SUBController struct {
 	subJsonService *SubJsonService
 }
 
+// NewSUBController creates a new subscription controller with the given configuration.
 func NewSUBController(
 	g *gin.RouterGroup,
 	subPath string,
@@ -53,6 +55,8 @@ func NewSUBController(
 	return a
 }
 
+// initRouter registers HTTP routes for subscription links and JSON endpoints
+// on the provided router group.
 func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	gLink := g.Group(a.subPath)
 	gLink.GET(":subid", a.subs)
@@ -62,6 +66,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 	}
 }
 
+// subs handles HTTP requests for subscription links, returning either HTML page or base64-encoded subscription data.
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
@@ -119,6 +124,7 @@ func (a *SUBController) subs(c *gin.Context) {
 	}
 }
 
+// subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
 	_, host, _, _ := a.subService.ResolveRequest(c)
@@ -134,6 +140,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	}
 }
 
+// ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
 func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
