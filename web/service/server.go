@@ -1008,7 +1008,19 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
 		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
 	}
-
+	// Strict allowlist check to avoid writing uncontrolled files
+	if fileName != "" {
+		isAllowed := false
+		for _, file := range files {
+			if fileName == file.FileName {
+				isAllowed = true
+				break
+			}
+		}
+		if !isAllowed {
+			return common.NewErrorf("Invalid geofile name: %s", fileName)
+		}
+	}
 	downloadFile := func(url, destPath string) error {
 		resp, err := http.Get(url)
 		if err != nil {
