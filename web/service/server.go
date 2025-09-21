@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -996,6 +997,35 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	return nil
 }
 
+// IsValidGeofileName validates that the filename is safe for geofile operations.
+// It checks for path traversal attempts and ensures the filename contains only safe characters.
+func (s *ServerService) IsValidGeofileName(filename string) bool {
+	if filename == "" {
+		return false
+	}
+
+	// Check for path traversal attempts
+	if strings.Contains(filename, "..") {
+		return false
+	}
+
+	// Check for path separators (both forward and backward slash)
+	if strings.ContainsAny(filename, `/\`) {
+		return false
+	}
+
+	// Check for absolute path indicators
+	if filepath.IsAbs(filename) {
+		return false
+	}
+
+	// Additional security: only allow alphanumeric, dots, underscores, and hyphens
+	// This is stricter than the general filename regex
+	validGeofilePattern := `^[a-zA-Z0-9._-]+\.dat$`
+	matched, _ := regexp.MatchString(validGeofilePattern, filename)
+	return matched
+}
+
 func (s *ServerService) UpdateGeofile(fileName string) error {
 	files := []struct {
 		URL      string
@@ -1008,8 +1038,15 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
 		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
 	}
+
 	// Strict allowlist check to avoid writing uncontrolled files
 	if fileName != "" {
+		// Use the centralized validation function
+		if !s.IsValidGeofileName(fileName) {
+			return common.NewErrorf("Invalid geofile name: contains unsafe path characters: %s", fileName)
+		}
+
+		// Ensure the filename matches exactly one from our allowlist
 		isAllowed := false
 		for _, file := range files {
 			if fileName == file.FileName {
@@ -1018,7 +1055,7 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			}
 		}
 		if !isAllowed {
-			return common.NewErrorf("Invalid geofile name: %s", fileName)
+			return common.NewErrorf("Invalid geofile name: %s not in allowlist", fileName)
 		}
 	}
 	downloadFile := func(url, destPath string) error {
@@ -1046,14 +1083,17 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 	if fileName == "" {
 		for _, file := range files {
-			destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), file.FileName)
+			// Sanitize the filename from our allowlist as an extra precaution
+			destPath := filepath.Join(config.GetBinFolderPath(), filepath.Base(file.FileName))
 
 			if err := downloadFile(file.URL, destPath); err != nil {
 				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
 			}
 		}
 	} else {
-		destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), fileName)
+		// Use filepath.Base to ensure we only get the filename component, no path traversal
+		safeName := filepath.Base(fileName)
+		destPath := filepath.Join(config.GetBinFolderPath(), safeName)
 
 		var fileURL string
 		for _, file := range files {
@@ -1065,10 +1105,10 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 		if fileURL == "" {
 			errorMessages = append(errorMessages, fmt.Sprintf("File '%s' not found in the list of Geofiles", fileName))
-		}
-
-		if err := downloadFile(fileURL, destPath); err != nil {
-			errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
+		} else {
+			if err := downloadFile(fileURL, destPath); err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
+			}
 		}
 	}
 

@@ -138,6 +138,14 @@ func (a *ServerController) installXray(c *gin.Context) {
 // updateGeofile updates the specified geo file for Xray.
 func (a *ServerController) updateGeofile(c *gin.Context) {
 	fileName := c.Param("fileName")
+
+	// Validate the filename for security (prevent path traversal attacks)
+	if fileName != "" && !a.serverService.IsValidGeofileName(fileName) {
+		jsonMsg(c, I18nWeb(c, "pages.index.geofileUpdatePopover"),
+			fmt.Errorf("invalid filename: contains unsafe characters or path traversal patterns"))
+		return
+	}
+
 	err := a.serverService.UpdateGeofile(fileName)
 	jsonMsg(c, I18nWeb(c, "pages.index.geofileUpdatePopover"), err)
 }
