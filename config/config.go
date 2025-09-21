@@ -23,11 +23,11 @@ type LogLevel string
 
 // Logging level constants
 const (
-	Debug  LogLevel = "debug"
-	Info   LogLevel = "info"
-	Notice LogLevel = "notice"
-	Warn   LogLevel = "warn"
-	Error  LogLevel = "error"
+	Debug   LogLevel = "debug"
+	Info    LogLevel = "info"
+	Notice  LogLevel = "notice"
+	Warning LogLevel = "warning"
+	Error   LogLevel = "error"
 )
 
 // GetVersion returns the version string of the 3x-ui application.

@@ -697,14 +697,39 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	var lines []string
 
 	if syslog == "true" {
-		cmdArgs := []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count, "-p", level}
-		// Run the command
-		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		// Check if running on Windows - journalctl is not available
+		if runtime.GOOS == "windows" {
+			return []string{"Syslog is not supported on Windows. Please use application logs instead by unchecking the 'Syslog' option."}
+		}
+
+		// Validate and sanitize count parameter
+		countInt, err := strconv.Atoi(count)
+		if err != nil || countInt < 1 || countInt > 10000 {
+			return []string{"Invalid count parameter - must be a number between 1 and 10000"}
+		}
+
+		// Validate level parameter - only allow valid syslog levels
+		validLevels := map[string]bool{
+			"0": true, "emerg": true,
+			"1": true, "alert": true,
+			"2": true, "crit": true,
+			"3": true, "err": true,
+			"4": true, "warning": true,
+			"5": true, "notice": true,
+			"6": true, "info": true,
+			"7": true, "debug": true,
+		}
+		if !validLevels[level] {
+			return []string{"Invalid level parameter - must be a valid syslog level"}
+		}
+
+		// Use hardcoded command with validated parameters
+		cmd := exec.Command("journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
-		err := cmd.Run()
+		err = cmd.Run()
 		if err != nil {
-			return []string{"Failed to run journalctl command!"}
+			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
 		}
 		lines = strings.Split(out.String(), "\n")
 	} else {
