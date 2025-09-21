@@ -736,7 +736,7 @@
       refreshing: false,
       refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
       subSettings: {
-        enable: true,
+        enable: false,
         subTitle: '',
         subURI: '',
         subJsonURI: '',
@@ -747,7 +747,7 @@
       tgBotEnable: false,
       showAlert: false,
       ipLimitEnable: false,
-      pageSize: 50,
+      pageSize: 0,
     },
     methods: {
       loading(spinning = true) {
