@@ -686,14 +686,7 @@ class Outbound extends CommonClass {
             if (this.stream?.sockopt)
                 stream = { sockopt: this.stream.sockopt.toJson() };
         }
-        // For VMess/VLESS, emit settings as a flat object
         let settingsOut = this.settings instanceof CommonClass ? this.settings.toJson() : this.settings;
-        // Remove undefined/null keys
-        if (settingsOut && typeof settingsOut === 'object') {
-            Object.keys(settingsOut).forEach(k => {
-                if (settingsOut[k] === undefined || settingsOut[k] === null) delete settingsOut[k];
-            });
-        }
         return {
             protocol: this.protocol,
             settings: settingsOut,
@@ -1031,21 +1024,28 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 
     static fromJson(json = {}) {
-        if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VmessSettings();
-        return new Outbound.VmessSettings(
-            json.address,
-            json.port,
-            json.id,
-            json.security,
-        );
+        if (!ObjectUtil.isArrEmpty(json.vnext)) {
+            const v = json.vnext[0] || {};
+            const u = ObjectUtil.isArrEmpty(v.users) ? {} : v.users[0];
+            return new Outbound.VmessSettings(
+                v.address,
+                v.port,
+                u.id,
+                u.security,
+            );
+        }
     }
 
     toJson() {
         return {
-            address: this.address,
-            port: this.port,
-            id: this.id,
-            security: this.security,
+            vnext: [{
+                address: this.address,
+                port: this.port,
+                users: [{
+                    id: this.id,
+                    security: this.security
+                }]
+            }]
         };
     }
 };

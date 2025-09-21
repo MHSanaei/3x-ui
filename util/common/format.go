@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// FormatTraffic formats traffic bytes into human-readable units (B, KB, MB, GB, TB, PB).
 func FormatTraffic(trafficBytes int64) string {
 	units := []string{"B", "KB", "MB", "GB", "TB", "PB"}
 	unitIndex := 0

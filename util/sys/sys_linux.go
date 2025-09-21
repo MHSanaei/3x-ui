@@ -45,6 +45,8 @@ func getLinesNum(filename string) (int, error) {
 	return sum, nil
 }
 
+// GetTCPCount returns the number of active TCP connections by reading
+// /proc/net/tcp and /proc/net/tcp6 when available.
 func GetTCPCount() (int, error) {
 	root := HostProc()
 
@@ -75,6 +77,8 @@ func GetUDPCount() (int, error) {
 	return udp4 + udp6, nil
 }
 
+// safeGetLinesNum returns 0 if the file does not exist, otherwise forwards
+// to getLinesNum to count the number of lines.
 func safeGetLinesNum(path string) (int, error) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return 0, nil

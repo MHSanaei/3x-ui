@@ -1,10 +1,13 @@
 package xray
 
+// ClientTraffic represents traffic statistics and limits for a specific client.
+// It tracks upload/download usage, expiry times, and online status for inbound clients.
 type ClientTraffic struct {
 	Id         int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
 	InboundId  int    `json:"inboundId" form:"inboundId"`
 	Enable     bool   `json:"enable" form:"enable"`
 	Email      string `json:"email" form:"email" gorm:"unique"`
+	UUID       string `json:"uuid" form:"uuid" gorm:"-"`
 	SubId      string `json:"subId" form:"subId" gorm:"-"`
 	Up         int64  `json:"up" form:"up"`
 	Down       int64  `json:"down" form:"down"`

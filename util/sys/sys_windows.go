@@ -12,6 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 )
 
+// GetConnectionCount returns the number of active connections for the specified protocol ("tcp" or "udp").
 func GetConnectionCount(proto string) (int, error) {
 	if proto != "tcp" && proto != "udp" {
 		return 0, errors.New("invalid protocol")
@@ -24,10 +25,12 @@ func GetConnectionCount(proto string) (int, error) {
 	return len(stats), nil
 }
 
+// GetTCPCount returns the number of active TCP connections.
 func GetTCPCount() (int, error) {
 	return GetConnectionCount("tcp")
 }
 
+// GetUDPCount returns the number of active UDP connections.
 func GetUDPCount() (int, error) {
 	return GetConnectionCount("udp")
 }
@@ -50,6 +53,8 @@ type filetime struct {
 	HighDateTime uint32
 }
 
+// ftToUint64 converts a Windows FILETIME-like struct to a uint64 for
+// arithmetic and delta calculations used by CPUPercentRaw.
 func ftToUint64(ft filetime) uint64 {
 	return (uint64(ft.HighDateTime) << 32) | uint64(ft.LowDateTime)
 }

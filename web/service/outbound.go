@@ -9,6 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
+// OutboundService provides business logic for managing Xray outbound configurations.
+// It handles outbound traffic monitoring and statistics.
 type OutboundService struct{}
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {

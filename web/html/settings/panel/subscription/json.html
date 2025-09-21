@@ -5,7 +5,13 @@
             <template #title>{{ i18n "pages.settings.subPath"}}</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
             <template #control>
-                <a-input type="text" v-model="allSetting.subJsonPath"></a-input>
+                <a-input
+                    type="text"
+                    v-model="allSetting.subJsonPath"
+                    @input="allSetting.subJsonPath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
+                    @blur="allSetting.subJsonPath = (p => { p = p || '/'; if (!p.startsWith('/')) p='/' + p; if (!p.endsWith('/')) p += '/'; return p.replace(/\/+/g,'/'); })(allSetting.subJsonPath)"
+                    placeholder="/json/"
+                ></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">

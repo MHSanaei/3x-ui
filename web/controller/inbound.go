@@ -13,17 +13,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// InboundController handles HTTP requests related to Xray inbounds management.
 type InboundController struct {
 	inboundService service.InboundService
 	xrayService    service.XrayService
 }
 
+// NewInboundController creates a new InboundController and sets up its routes.
 func NewInboundController(g *gin.RouterGroup) *InboundController {
 	a := &InboundController{}
 	a.initRouter(g)
 	return a
 }
 
+// initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
 	g.GET("/list", a.getInbounds)
@@ -50,6 +53,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/:id/delClientByEmail/:email", a.delInboundClientByEmail)
 }
 
+// getInbounds retrieves the list of inbounds for the logged-in user.
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
@@ -60,6 +64,7 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 	jsonObj(c, inbounds, nil)
 }
 
+// getInbound retrieves a specific inbound by its ID.
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -74,6 +79,7 @@ func (a *InboundController) getInbound(c *gin.Context) {
 	jsonObj(c, inbound, nil)
 }
 
+// getClientTraffics retrieves client traffic information by email.
 func (a *InboundController) getClientTraffics(c *gin.Context) {
 	email := c.Param("email")
 	clientTraffics, err := a.inboundService.GetClientTrafficByEmail(email)
@@ -84,6 +90,7 @@ func (a *InboundController) getClientTraffics(c *gin.Context) {
 	jsonObj(c, clientTraffics, nil)
 }
 
+// getClientTrafficsById retrieves client traffic information by inbound ID.
 func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 	id := c.Param("id")
 	clientTraffics, err := a.inboundService.GetClientTrafficByID(id)
@@ -94,6 +101,7 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 	jsonObj(c, clientTraffics, nil)
 }
 
+// addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
@@ -120,6 +128,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	}
 }
 
+// delInbound deletes an inbound configuration by its ID.
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -137,6 +146,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	}
 }
 
+// updateInbound updates an existing inbound configuration.
 func (a *InboundController) updateInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -162,6 +172,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	}
 }
 
+// getClientIps retrieves the IP addresses associated with a client by email.
 func (a *InboundController) getClientIps(c *gin.Context) {
 	email := c.Param("email")
 
@@ -174,6 +185,7 @@ func (a *InboundController) getClientIps(c *gin.Context) {
 	jsonObj(c, ips, nil)
 }
 
+// clearClientIps clears the IP addresses for a client by email.
 func (a *InboundController) clearClientIps(c *gin.Context) {
 	email := c.Param("email")
 
@@ -185,6 +197,7 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.logCleanSuccess"), nil)
 }
 
+// addInboundClient adds a new client to an existing inbound.
 func (a *InboundController) addInboundClient(c *gin.Context) {
 	data := &model.Inbound{}
 	err := c.ShouldBind(data)
@@ -204,6 +217,7 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 	}
 }
 
+// delInboundClient deletes a client from an inbound by inbound ID and client ID.
 func (a *InboundController) delInboundClient(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -223,6 +237,7 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 	}
 }
 
+// updateInboundClient updates a client's configuration in an inbound.
 func (a *InboundController) updateInboundClient(c *gin.Context) {
 	clientId := c.Param("clientId")
 
@@ -244,6 +259,7 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 	}
 }
 
+// resetClientTraffic resets the traffic counter for a specific client in an inbound.
 func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -263,6 +279,7 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	}
 }
 
+// resetAllTraffics resets all traffic counters across all inbounds.
 func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	err := a.inboundService.ResetAllTraffics()
 	if err != nil {
@@ -274,6 +291,7 @@ func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllTrafficSuccess"), nil)
 }
 
+// resetAllClientTraffics resets traffic counters for all clients in a specific inbound.
 func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -291,6 +309,7 @@ func (a *InboundController) resetAllClientTraffics(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.resetAllClientTrafficSuccess"), nil)
 }
 
+// importInbound imports an inbound configuration from provided data.
 func (a *InboundController) importInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := json.Unmarshal([]byte(c.PostForm("data")), inbound)
@@ -320,6 +339,7 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	}
 }
 
+// delDepletedClients deletes clients in an inbound who have exhausted their traffic limits.
 func (a *InboundController) delDepletedClients(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -334,15 +354,18 @@ func (a *InboundController) delDepletedClients(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.delDepletedClientsSuccess"), nil)
 }
 
+// onlines retrieves the list of currently online clients.
 func (a *InboundController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
 
+// lastOnline retrieves the last online timestamps for clients.
 func (a *InboundController) lastOnline(c *gin.Context) {
 	data, err := a.inboundService.GetClientsLastOnline()
 	jsonObj(c, data, err)
 }
 
+// updateClientTraffic updates the traffic statistics for a client by email.
 func (a *InboundController) updateClientTraffic(c *gin.Context) {
 	email := c.Param("email")
 
@@ -368,6 +391,7 @@ func (a *InboundController) updateClientTraffic(c *gin.Context) {
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientUpdateSuccess"), nil)
 }
 
+// delInboundClientByEmail deletes a client from an inbound by email address.
 func (a *InboundController) delInboundClientByEmail(c *gin.Context) {
 	inboundId, err := strconv.Atoi(c.Param("id"))
 	if err != nil {

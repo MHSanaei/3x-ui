@@ -18,6 +18,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
+// CheckClientIpJob monitors client IP addresses from access logs and manages IP blocking based on configured limits.
 type CheckClientIpJob struct {
 	lastClear     int64
 	disAllowedIps []string
@@ -25,6 +26,7 @@ type CheckClientIpJob struct {
 
 var job *CheckClientIpJob
 
+// NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
 	job = new(CheckClientIpJob)
 	return job

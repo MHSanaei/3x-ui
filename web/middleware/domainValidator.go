@@ -1,3 +1,5 @@
+// Package middleware provides HTTP middleware functions for the 3x-ui web panel,
+// including domain validation and URL redirection utilities.
 package middleware
 
 import (
@@ -8,6 +10,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// DomainValidatorMiddleware returns a Gin middleware that validates the request domain.
+// It extracts the host from the request, strips any port number, and compares it
+// against the configured domain. Requests from unauthorized domains are rejected
+// with HTTP 403 Forbidden status.
 func DomainValidatorMiddleware(domain string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		host := c.Request.Host

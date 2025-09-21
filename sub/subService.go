@@ -20,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
+// SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
 	showInfo       bool
@@ -29,6 +30,7 @@ type SubService struct {
 	settingService service.SettingService
 }
 
+// NewSubService creates a new subscription service with the given configuration.
 func NewSubService(showInfo bool, remarkModel string) *SubService {
 	return &SubService{
 		showInfo:    showInfo,
@@ -36,6 +38,7 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
+// GetSubs retrieves subscription links for a given subscription ID and host.
 func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
 	s.address = host
 	var result []string
@@ -335,9 +338,6 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, server *
 	if inbound.Protocol != model.VLESS {
 		return ""
 	}
-	var vlessSettings model.VLESSSettings
-	_ = json.Unmarshal([]byte(inbound.Settings), &vlessSettings)
-
 	var stream map[string]any
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	clients, _ := s.inboundService.GetClients(inbound)
@@ -352,10 +352,14 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, server *
 	port := inbound.Port
 	streamNetwork := stream["network"].(string)
 	params := make(map[string]string)
-	if vlessSettings.Encryption != "" {
-		params["encryption"] = vlessSettings.Encryption
-	}
 	params["type"] = streamNetwork
+
+	// Add encryption parameter for VLESS from inbound settings
+	var settings map[string]any
+	json.Unmarshal([]byte(inbound.Settings), &settings)
+	if encryption, ok := settings["encryption"].(string); ok {
+		params["encryption"] = encryption
+	}
 
 	switch streamNetwork {
 	case "tcp":
@@ -1029,6 +1033,7 @@ func searchHost(headers any) string {
 }
 
 // PageData is a view model for subpage.html
+// PageData contains data for rendering the subscription information page.
 type PageData struct {
 	Host         string
 	BasePath     string
@@ -1050,6 +1055,7 @@ type PageData struct {
 }
 
 // ResolveRequest extracts scheme and host info from request/headers consistently.
+// ResolveRequest extracts scheme, host, and header information from an HTTP request.
 func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
 	// scheme
 	scheme = "http"
@@ -1092,22 +1098,77 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 	return
 }
 
-// BuildURLs constructs absolute subscription and json URLs.
+// BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
+// It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
 func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
-	if strings.HasSuffix(subPath, "/") {
-		subURL = scheme + "://" + hostWithPort + subPath + subId
-	} else {
-		subURL = scheme + "://" + hostWithPort + strings.TrimRight(subPath, "/") + "/" + subId
+	// Input validation
+	if subId == "" {
+		return "", ""
 	}
-	if strings.HasSuffix(subJsonPath, "/") {
-		subJsonURL = scheme + "://" + hostWithPort + subJsonPath + subId
-	} else {
-		subJsonURL = scheme + "://" + hostWithPort + strings.TrimRight(subJsonPath, "/") + "/" + subId
+
+	// Get configured URIs first (highest priority)
+	configuredSubURI, _ := s.settingService.GetSubURI()
+	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
+
+	// Determine base scheme and host (cached to avoid duplicate calls)
+	var baseScheme, baseHostWithPort string
+	if configuredSubURI == "" || configuredSubJsonURI == "" {
+		baseScheme, baseHostWithPort = s.getBaseSchemeAndHost(scheme, hostWithPort)
 	}
-	return
+
+	// Build subscription URL
+	subURL = s.buildSingleURL(configuredSubURI, baseScheme, baseHostWithPort, subPath, subId)
+
+	// Build JSON subscription URL
+	subJsonURL = s.buildSingleURL(configuredSubJsonURI, baseScheme, baseHostWithPort, subJsonPath, subId)
+
+	return subURL, subJsonURL
+}
+
+// getBaseSchemeAndHost determines the base scheme and host from settings or falls back to request values
+func (s *SubService) getBaseSchemeAndHost(requestScheme, requestHostWithPort string) (string, string) {
+	subDomain, err := s.settingService.GetSubDomain()
+	if err != nil || subDomain == "" {
+		return requestScheme, requestHostWithPort
+	}
+
+	// Get port and TLS settings
+	subPort, _ := s.settingService.GetSubPort()
+	subKeyFile, _ := s.settingService.GetSubKeyFile()
+	subCertFile, _ := s.settingService.GetSubCertFile()
+
+	// Determine scheme from TLS configuration
+	scheme := "http"
+	if subKeyFile != "" && subCertFile != "" {
+		scheme = "https"
+	}
+
+	// Build host:port, always include port for clarity
+	hostWithPort := fmt.Sprintf("%s:%d", subDomain, subPort)
+
+	return scheme, hostWithPort
+}
+
+// buildSingleURL constructs a single URL using configured URI or base components
+func (s *SubService) buildSingleURL(configuredURI, baseScheme, baseHostWithPort, basePath, subId string) string {
+	if configuredURI != "" {
+		return s.joinPathWithID(configuredURI, subId)
+	}
+
+	baseURL := fmt.Sprintf("%s://%s", baseScheme, baseHostWithPort)
+	return s.joinPathWithID(baseURL+basePath, subId)
+}
+
+// joinPathWithID safely joins a base path with a subscription ID
+func (s *SubService) joinPathWithID(basePath, subId string) string {
+	if strings.HasSuffix(basePath, "/") {
+		return basePath + subId
+	}
+	return basePath + "/" + subId
 }
 
 // BuildPageData parses header and prepares the template view model.
+// BuildPageData constructs page data for rendering the subscription information page.
 func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
@@ -1116,10 +1177,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 	remained := ""
 	if traffic.Total > 0 {
 		total = common.FormatTraffic(traffic.Total)
-		left := traffic.Total - (traffic.Up + traffic.Down)
-		if left < 0 {
-			left = 0
-		}
+		left := max(traffic.Total-(traffic.Up+traffic.Down), 0)
 		remained = common.FormatTraffic(left)
 	}
 

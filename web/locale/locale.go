@@ -1,3 +1,5 @@
+// Package locale provides internationalization (i18n) support for the 3x-ui web panel,
+// including translation loading, localization, and middleware for web and bot interfaces.
 package locale
 
 import (
@@ -20,17 +22,20 @@ var (
 	LocalizerBot *i18n.Localizer
 )
 
+// I18nType represents the type of interface for internationalization.
 type I18nType string
 
 const (
-	Bot I18nType = "bot"
-	Web I18nType = "web"
+	Bot I18nType = "bot" // Bot interface type
+	Web I18nType = "web" // Web interface type
 )
 
+// SettingService interface defines methods for accessing locale settings.
 type SettingService interface {
 	GetTgLang() (string, error)
 }
 
+// InitLocalizer initializes the internationalization system with embedded translation files.
 func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	// set default bundle to english
 	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
@@ -49,6 +54,7 @@ func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
 	return nil
 }
 
+// createTemplateData creates a template data map from parameters with optional separator.
 func createTemplateData(params []string, separator ...string) map[string]any {
 	var sep string = "=="
 	if len(separator) > 0 {
@@ -64,6 +70,9 @@ func createTemplateData(params []string, separator ...string) map[string]any {
 	return templateData
 }
 
+// I18n retrieves a localized message for the given key and type.
+// It supports both bot and web contexts, with optional template parameters.
+// Returns the localized message or an empty string if localization fails.
 func I18n(i18nType I18nType, key string, params ...string) string {
 	var localizer *i18n.Localizer
 
@@ -96,6 +105,7 @@ func I18n(i18nType I18nType, key string, params ...string) string {
 	return msg
 }
 
+// initTGBotLocalizer initializes the bot localizer with the configured language.
 func initTGBotLocalizer(settingService SettingService) error {
 	botLang, err := settingService.GetTgLang()
 	if err != nil {
@@ -106,6 +116,10 @@ func initTGBotLocalizer(settingService SettingService) error {
 	return nil
 }
 
+// LocalizerMiddleware returns a Gin middleware that sets up localization for web requests.
+// It determines the user's language from cookies or Accept-Language header,
+// creates a localizer instance, and stores it in the Gin context for use in handlers.
+// Also provides the I18n function in the context for template rendering.
 func LocalizerMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Ensure bundle is initialized so creating a Localizer won't panic
@@ -152,6 +166,7 @@ func loadTranslationsFromDisk(bundle *i18n.Bundle) error {
 	})
 }
 
+// parseTranslationFiles parses embedded translation files and adds them to the i18n bundle.
 func parseTranslationFiles(i18nFS embed.FS, i18nBundle *i18n.Bundle) error {
 	err := fs.WalkDir(i18nFS, "translation",
 		func(path string, d fs.DirEntry, err error) error {

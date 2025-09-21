@@ -2,21 +2,21 @@
 <template slot="actions" slot-scope="text, client, index">
   <a-tooltip>
     <template slot="title">{{ i18n "qrCode" }}</template>
-    <a-icon :style="{ fontSize: '24px' }" class="normal-icon" type="qrcode" v-if="record.hasLink()" @click="showQrcode(record.id,client);"></a-icon>
+    <a-icon :style="{ fontSize: '22px', marginInlineStart: '14px' }" class="normal-icon" type="qrcode" v-if="record.hasLink()" @click="showQrcode(record.id,client);"></a-icon>
   </a-tooltip>
   <a-tooltip>
     <template slot="title">{{ i18n "pages.client.edit" }}</template>
-    <a-icon :style="{ fontSize: '24px' }" class="normal-icon" type="edit" @click="openEditClient(record.id,client);"></a-icon>
+    <a-icon :style="{ fontSize: '22px' }" class="normal-icon" type="edit" @click="openEditClient(record.id,client);"></a-icon>
   </a-tooltip>
   <a-tooltip>
     <template slot="title">{{ i18n "info" }}</template>
-    <a-icon :style="{ fontSize: '24px' }" class="normal-icon" type="info-circle" @click="showInfo(record.id,client);"></a-icon>
+    <a-icon :style="{ fontSize: '22px' }" class="normal-icon" type="info-circle" @click="showInfo(record.id,client);"></a-icon>
   </a-tooltip>
   <a-tooltip>
     <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
     <a-popconfirm @confirm="resetClientTraffic(client,record.id,false)" title='{{ i18n "pages.inbounds.resetTrafficContent"}}' :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}' cancel-text='{{ i18n "cancel"}}'>
       <a-icon slot="icon" type="question-circle-o" :style="{ color: 'var(--color-primary-100)'}"></a-icon>
-      <a-icon :style="{ fontSize: '24px', cursor: 'pointer' }" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
+      <a-icon :style="{ fontSize: '22px', cursor: 'pointer' }" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
     </a-popconfirm>
   </a-tooltip>
   <a-tooltip>
@@ -25,7 +25,7 @@
     </template>
     <a-popconfirm @confirm="delClient(record.id,client,false)" title='{{ i18n "pages.inbounds.deleteClientContent"}}' :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "delete"}}' ok-type="danger" cancel-text='{{ i18n "cancel"}}'>
       <a-icon slot="icon" type="question-circle-o" :style="{ color: '#e04141' }"></a-icon>
-      <a-icon :style="{ fontSize: '24px', cursor: 'pointer' }" class="delete-icon" type="delete" v-if="isRemovable(record.id)"></a-icon>
+      <a-icon :style="{ fontSize: '22px', cursor: 'pointer' }" class="delete-icon" type="delete" v-if="isRemovable(record.id)"></a-icon>
     </a-popconfirm>
   </a-tooltip>
 </template>

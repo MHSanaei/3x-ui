@@ -1,3 +1,5 @@
+// Package service provides business logic services for the 3x-ui web panel,
+// including inbound/outbound management, user administration, settings, and Xray integration.
 package service
 
 import (
@@ -20,10 +22,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// InboundService provides business logic for managing Xray inbound configurations.
+// It handles CRUD operations for inbounds, client management, traffic monitoring,
+// and integration with the Xray API for real-time updates.
 type InboundService struct {
 	xrayApi xray.XrayAPI
 }
 
+// GetInbounds retrieves all inbounds for a specific user.
+// Returns a slice of inbound models with their associated client statistics.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -34,6 +41,8 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	return inbounds, nil
 }
 
+// GetAllInbounds retrieves all inbounds from the database.
+// Returns a slice of all inbound models with their associated client statistics.
 func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	db := database.GetDB()
 	var inbounds []*model.Inbound
@@ -166,6 +175,10 @@ func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (stri
 	return "", nil
 }
 
+// AddInbound creates a new inbound configuration.
+// It validates port uniqueness, client email uniqueness, and required fields,
+// then saves the inbound to the database and optionally adds it to the running Xray instance.
+// Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, 0)
 	if err != nil {
@@ -272,6 +285,9 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	return inbound, needRestart, err
 }
 
+// DelInbound deletes an inbound configuration by ID.
+// It removes the inbound from the database and the running Xray instance if active.
+// Returns whether Xray needs restart and any error.
 func (s *InboundService) DelInbound(id int) (bool, error) {
 	db := database.GetDB()
 
@@ -325,6 +341,9 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	return inbound, nil
 }
 
+// UpdateInbound modifies an existing inbound configuration.
+// It validates changes, updates the database, and syncs with the running Xray instance.
+// Returns the updated inbound, whether Xray needs restart, and any error.
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
 	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, inbound.Id)
 	if err != nil {
@@ -1959,6 +1978,15 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		return nil, err
 	}
 
+	// Populate UUID and other client data for each traffic record
+	for i := range traffics {
+		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
+			traffics[i].Enable = client.Enable
+			traffics[i].UUID = client.ID
+			traffics[i].SubId = client.SubID
+		}
+	}
+
 	return traffics, nil
 }
 
@@ -1971,6 +1999,7 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 	}
 	if t != nil && client != nil {
 		t.Enable = client.Enable
+		t.UUID = client.ID
 		t.SubId = client.SubID
 		return t, nil
 	}
@@ -2012,6 +2041,7 @@ func (s *InboundService) GetClientTrafficByID(id string) ([]xray.ClientTraffic, 
 	for i := range traffics {
 		if ct, client, e := s.GetClientByEmail(traffics[i].Email); e == nil && ct != nil && client != nil {
 			traffics[i].Enable = client.Enable
+			traffics[i].UUID = client.ID
 			traffics[i].SubId = client.SubID
 		}
 	}
@@ -2110,6 +2140,9 @@ func (s *InboundService) MigrationRequirements() {
 	defer func() {
 		if err == nil {
 			tx.Commit()
+			if dbErr := db.Exec(`VACUUM "main"`).Error; dbErr != nil {
+				logger.Warningf("VACUUM failed: %v", dbErr)
+			}
 		} else {
 			tx.Rollback()
 		}

@@ -17,6 +17,7 @@ import (
 //go:embed default.json
 var defaultJson string
 
+// SubJsonService handles JSON subscription configuration generation and management.
 type SubJsonService struct {
 	configJson       map[string]any
 	defaultOutbounds []json_util.RawMessage
@@ -28,6 +29,7 @@ type SubJsonService struct {
 	SubService     *SubService
 }
 
+// NewSubJsonService creates a new JSON subscription service with the given configuration.
 func NewSubJsonService(fragment string, noises string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]any
 	var defaultOutbounds []json_util.RawMessage
@@ -67,6 +69,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 	}
 }
 
+// GetJson generates a JSON subscription configuration for the given subscription ID and host.
 func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
 	if err != nil || len(inbounds) == 0 {
@@ -171,12 +174,12 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 		case "tls":
 			if newStream["security"] != "tls" {
 				newStream["security"] = "tls"
-				newStream["tslSettings"] = map[string]any{}
+				newStream["tlsSettings"] = map[string]any{}
 			}
 		case "none":
 			if newStream["security"] != "none" {
 				newStream["security"] = "none"
-				delete(newStream, "tslSettings")
+				delete(newStream, "tlsSettings")
 			}
 		}
 		streamSettings, _ := json.MarshalIndent(newStream, "", "  ")
@@ -185,13 +188,9 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 
 		switch inbound.Protocol {
 		case "vmess":
-			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client, ""))
+			newOutbounds = append(newOutbounds, s.genVnext(inbound, streamSettings, client))
 		case "vless":
-			var vlessSettings model.VLESSSettings
-			_ = json.Unmarshal([]byte(inbound.Settings), &vlessSettings)
-
-			newOutbounds = append(newOutbounds,
-				s.genVnext(inbound, streamSettings, client, vlessSettings.Encryption))
+			newOutbounds = append(newOutbounds, s.genVless(inbound, streamSettings, client))
 		case "trojan", "shadowsocks":
 			newOutbounds = append(newOutbounds, s.genServer(inbound, streamSettings, client))
 		}
@@ -290,7 +289,35 @@ func (s *SubJsonService) realityData(rData map[string]any) map[string]any {
 	return rltyData
 }
 
-func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client, encryption string) json_util.RawMessage {
+func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
+	outbound := Outbound{}
+	usersData := make([]UserVnext, 1)
+
+	usersData[0].ID = client.ID
+	usersData[0].Email = client.Email
+	usersData[0].Security = client.Security
+	vnextData := make([]VnextSetting, 1)
+	vnextData[0] = VnextSetting{
+		Address: inbound.Listen,
+		Port:    inbound.Port,
+		Users:   usersData,
+	}
+
+	outbound.Protocol = string(inbound.Protocol)
+	outbound.Tag = "proxy"
+	if s.mux != "" {
+		outbound.Mux = json_util.RawMessage(s.mux)
+	}
+	outbound.StreamSettings = streamSettings
+	outbound.Settings = map[string]any{
+		"vnext": vnextData,
+	}
+
+	result, _ := json.MarshalIndent(outbound, "", "  ")
+	return result
+}
+
+func (s *SubJsonService) genVless(inbound *model.Inbound, streamSettings json_util.RawMessage, client model.Client) json_util.RawMessage {
 	outbound := Outbound{}
 	outbound.Protocol = string(inbound.Protocol)
 	outbound.Tag = "proxy"
@@ -298,20 +325,22 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 		outbound.Mux = json_util.RawMessage(s.mux)
 	}
 	outbound.StreamSettings = streamSettings
-	// Emit flattened settings inside Settings to match new Xray format
 	settings := make(map[string]any)
 	settings["address"] = inbound.Listen
 	settings["port"] = inbound.Port
 	settings["id"] = client.ID
-	if inbound.Protocol == model.VLESS {
+	if client.Flow != "" {
 		settings["flow"] = client.Flow
+	}
+
+	// Add encryption for VLESS outbound from inbound settings
+	var inboundSettings map[string]any
+	json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+	if encryption, ok := inboundSettings["encryption"].(string); ok {
 		settings["encryption"] = encryption
 	}
-	if inbound.Protocol == model.VMESS {
-		settings["security"] = client.Security
-	}
-	outbound.Settings = settings
 
+	outbound.Settings = settings
 	result, _ := json.MarshalIndent(outbound, "", "  ")
 	return result
 }
@@ -363,7 +392,17 @@ type Outbound struct {
 	Settings       map[string]any       `json:"settings,omitempty"`
 }
 
-// Legacy vnext-related structs removed for flattened schema
+type VnextSetting struct {
+	Address string      `json:"address"`
+	Port    int         `json:"port"`
+	Users   []UserVnext `json:"users"`
+}
+
+type UserVnext struct {
+	ID       string `json:"id"`
+	Email    string `json:"email,omitempty"`
+	Security string `json:"security,omitempty"`
+}
 
 type ServerSetting struct {
 	Password string `json:"password"`

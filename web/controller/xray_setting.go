@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// XraySettingController handles Xray configuration and settings operations.
 type XraySettingController struct {
 	XraySettingService service.XraySettingService
 	SettingService     service.SettingService
@@ -15,12 +16,14 @@ type XraySettingController struct {
 	WarpService        service.WarpService
 }
 
+// NewXraySettingController creates a new XraySettingController and initializes its routes.
 func NewXraySettingController(g *gin.RouterGroup) *XraySettingController {
 	a := &XraySettingController{}
 	a.initRouter(g)
 	return a
 }
 
+// initRouter sets up the routes for Xray settings management.
 func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/xray")
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
@@ -33,6 +36,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 }
 
+// getXraySetting retrieves the Xray configuration template and inbound tags.
 func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	xraySetting, err := a.SettingService.GetXrayConfigTemplate()
 	if err != nil {
@@ -48,12 +52,14 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	jsonObj(c, xrayResponse, nil)
 }
 
+// updateSetting updates the Xray configuration settings.
 func (a *XraySettingController) updateSetting(c *gin.Context) {
 	xraySetting := c.PostForm("xraySetting")
 	err := a.XraySettingService.SaveXraySetting(xraySetting)
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
 }
 
+// getDefaultXrayConfig retrieves the default Xray configuration.
 func (a *XraySettingController) getDefaultXrayConfig(c *gin.Context) {
 	defaultJsonConfig, err := a.SettingService.GetDefaultXrayConfig()
 	if err != nil {
@@ -63,10 +69,12 @@ func (a *XraySettingController) getDefaultXrayConfig(c *gin.Context) {
 	jsonObj(c, defaultJsonConfig, nil)
 }
 
+// getXrayResult retrieves the current Xray service result.
 func (a *XraySettingController) getXrayResult(c *gin.Context) {
 	jsonObj(c, a.XrayService.GetXrayResult(), nil)
 }
 
+// warp handles Warp-related operations based on the action parameter.
 func (a *XraySettingController) warp(c *gin.Context) {
 	action := c.Param("action")
 	var resp string
@@ -90,6 +98,7 @@ func (a *XraySettingController) warp(c *gin.Context) {
 	jsonObj(c, resp, err)
 }
 
+// getOutboundsTraffic retrieves the traffic statistics for outbounds.
 func (a *XraySettingController) getOutboundsTraffic(c *gin.Context) {
 	outboundsTraffic, err := a.OutboundService.GetOutboundsTraffic()
 	if err != nil {
@@ -99,6 +108,7 @@ func (a *XraySettingController) getOutboundsTraffic(c *gin.Context) {
 	jsonObj(c, outboundsTraffic, nil)
 }
 
+// resetOutboundsTraffic resets the traffic statistics for the specified outbound tag.
 func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 	tag := c.PostForm("tag")
 	err := a.OutboundService.ResetOutboundTraffic(tag)

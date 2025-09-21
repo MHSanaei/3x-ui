@@ -12,10 +12,14 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserService provides business logic for user management and authentication.
+// It handles user creation, login, password management, and 2FA operations.
 type UserService struct {
 	settingService SettingService
 }
 
+// GetFirstUser retrieves the first user from the database.
+// This is typically used for initial setup or when there's only one admin user.
 func (s *UserService) GetFirstUser() (*model.User, error) {
 	db := database.GetDB()
 

@@ -1,7 +1,9 @@
+// Package random provides utilities for generating random strings and numbers.
 package random
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 )
 
 var (
@@ -13,6 +15,8 @@ var (
 	allSeq      [62]rune
 )
 
+// init initializes the character sequences used for random string generation.
+// It sets up arrays for numbers, lowercase letters, uppercase letters, and combinations.
 func init() {
 	for i := 0; i < 10; i++ {
 		numSeq[i] = rune('0' + i)
@@ -33,14 +37,25 @@ func init() {
 	copy(allSeq[len(numSeq)+len(lowerSeq):], upperSeq[:])
 }
 
+// Seq generates a random string of length n containing alphanumeric characters (numbers, lowercase and uppercase letters).
 func Seq(n int) string {
 	runes := make([]rune, n)
 	for i := 0; i < n; i++ {
-		runes[i] = allSeq[rand.Intn(len(allSeq))]
+		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(allSeq))))
+		if err != nil {
+			panic("crypto/rand failed: " + err.Error())
+		}
+		runes[i] = allSeq[idx.Int64()]
 	}
 	return string(runes)
 }
 
+// Num generates a random integer between 0 and n-1.
 func Num(n int) int {
-	return rand.Intn(n)
+	bn := big.NewInt(int64(n))
+	r, err := rand.Int(rand.Reader, bn)
+	if err != nil {
+		panic("crypto/rand failed: " + err.Error())
+	}
+	return int(r.Int64())
 }

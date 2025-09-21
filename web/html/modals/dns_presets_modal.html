@@ -3,22 +3,29 @@
   :mask-closable="false" :footer="null" :class="themeSwitcher.currentTheme">
   <a-list class="ant-dns-presets-list" bordered :style="{ width: '100%' }">
     <a-list-item v-for="dns in dnsPresetsDatabase" :style="{ padding: '12px 16px' }">
-      <a-row justify="space-between" align="middle">
-        <a-col :span="12">
-          <a-space direction="vertical" size="small">
-            <span class="ant-dns-presets-list-name">[[ dns.name ]]</span>
-            <a-tag :color="dns.family ? 'purple' : 'green'">[[ dns.family ? '{{ i18n "pages.xray.dns.dnsPresetFamily" }}' : 'DNS' ]]</a-tag>
-          </a-space>
-        </a-col>
-        <a-col :span="12" :style="{ textAlign: 'right' }">
-          <a-button type="primary" @click="dnsPresetsModal.install(dns.data)">{{ i18n "install" }}</a-button>
-        </a-col>
-      </a-row>
+      <div class="ant-dns-presets-line">
+        <a-space direction="horizontal" size="small" align="center">
+          <a-tag :color="dns.family ? 'purple' : 'green'">[[ dns.family ? '{{ i18n "pages.xray.dns.dnsPresetFamily" }}' : 'DNS' ]]</a-tag>
+          <span class="ant-dns-presets-list-name">[[ dns.name ]]</span>
+        </a-space>
+        <a-button class="ant-dns-presets-install" type="primary" @click="dnsPresetsModal.install(dns.data)">{{ i18n "install" }}</a-button>
+      </div>
     </a-list-item>
   </a-list>
 </a-modal>
 
 <style>
+  .ant-dns-presets-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .ant-dns-presets-install {
+    margin-left: auto;
+  }
+
   .dark .ant-dns-presets-list {
     border-color: var(--dark-color-stroke)
   }
