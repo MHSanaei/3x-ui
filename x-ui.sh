@@ -402,32 +402,54 @@ disable() {
 }
 
 show_log() {
-    echo -e "${green}\t1.${plain} Debug Log"
-    echo -e "${green}\t2.${plain} Clear All logs"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -rp "Choose an option: " choice
+    if [[ $release == "alpine" ]]; then
+        echo -e "${green}\t1.${plain} Debug Log"
+        echo -e "${green}\t0.${plain} Back to Main Menu"
+        read -rp "Choose an option: " choice
 
-    case "$choice" in
-    0)
-        show_menu
-        ;;
-    1)
-        journalctl -u x-ui -e --no-pager -f -p debug
-        if [[ $# == 0 ]]; then
-            before_show_menu
-        fi
-        ;;
-    2)
-        sudo journalctl --rotate
-        sudo journalctl --vacuum-time=1s
-        echo "All Logs cleared."
-        restart
-        ;;
-    *)
-        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-        show_log
-        ;;
-    esac
+        case "$choice" in
+        0)
+            show_menu
+            ;;
+        1)
+            grep -F 'x-ui[' /var/log/messages
+            if [[ $# == 0 ]]; then
+                before_show_menu
+            fi
+            ;;
+        *)
+            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+            show_log
+            ;;
+        esac
+    else
+        echo -e "${green}\t1.${plain} Debug Log"
+        echo -e "${green}\t2.${plain} Clear All logs"
+        echo -e "${green}\t0.${plain} Back to Main Menu"
+        read -rp "Choose an option: " choice
+
+        case "$choice" in
+        0)
+            show_menu
+            ;;
+        1)
+            journalctl -u x-ui -e --no-pager -f -p debug
+            if [[ $# == 0 ]]; then
+                before_show_menu
+            fi
+            ;;
+        2)
+            sudo journalctl --rotate
+            sudo journalctl --vacuum-time=1s
+            echo "All Logs cleared."
+            restart
+            ;;
+        *)
+            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+            show_log
+            ;;
+        esac
+    fi
 }
 
 bbr_menu() {
