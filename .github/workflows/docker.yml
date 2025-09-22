@@ -1,4 +1,7 @@
 name: Release 3X-UI for Docker
+permissions:
+  contents: read
+  packages: write
 on:
   workflow_dispatch:
   push:

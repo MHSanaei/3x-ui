@@ -35,7 +35,7 @@ func runWebServer() {
 		logger.InitLogger(logging.INFO)
 	case config.Notice:
 		logger.InitLogger(logging.NOTICE)
-	case config.Warn:
+	case config.Warning:
 		logger.InitLogger(logging.WARNING)
 	case config.Error:
 		logger.InitLogger(logging.ERROR)

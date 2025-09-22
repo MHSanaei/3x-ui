@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -697,14 +698,39 @@ func (s *ServerService) GetLogs(count string, level string, syslog string) []str
 	var lines []string
 
 	if syslog == "true" {
-		cmdArgs := []string{"journalctl", "-u", "x-ui", "--no-pager", "-n", count, "-p", level}
-		// Run the command
-		cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
+		// Check if running on Windows - journalctl is not available
+		if runtime.GOOS == "windows" {
+			return []string{"Syslog is not supported on Windows. Please use application logs instead by unchecking the 'Syslog' option."}
+		}
+
+		// Validate and sanitize count parameter
+		countInt, err := strconv.Atoi(count)
+		if err != nil || countInt < 1 || countInt > 10000 {
+			return []string{"Invalid count parameter - must be a number between 1 and 10000"}
+		}
+
+		// Validate level parameter - only allow valid syslog levels
+		validLevels := map[string]bool{
+			"0": true, "emerg": true,
+			"1": true, "alert": true,
+			"2": true, "crit": true,
+			"3": true, "err": true,
+			"4": true, "warning": true,
+			"5": true, "notice": true,
+			"6": true, "info": true,
+			"7": true, "debug": true,
+		}
+		if !validLevels[level] {
+			return []string{"Invalid level parameter - must be a valid syslog level"}
+		}
+
+		// Use hardcoded command with validated parameters
+		cmd := exec.Command("journalctl", "-u", "x-ui", "--no-pager", "-n", strconv.Itoa(countInt), "-p", level)
 		var out bytes.Buffer
 		cmd.Stdout = &out
-		err := cmd.Run()
+		err = cmd.Run()
 		if err != nil {
-			return []string{"Failed to run journalctl command!"}
+			return []string{"Failed to run journalctl command! Make sure systemd is available and x-ui service is registered."}
 		}
 		lines = strings.Split(out.String(), "\n")
 	} else {
@@ -971,6 +997,35 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	return nil
 }
 
+// IsValidGeofileName validates that the filename is safe for geofile operations.
+// It checks for path traversal attempts and ensures the filename contains only safe characters.
+func (s *ServerService) IsValidGeofileName(filename string) bool {
+	if filename == "" {
+		return false
+	}
+
+	// Check for path traversal attempts
+	if strings.Contains(filename, "..") {
+		return false
+	}
+
+	// Check for path separators (both forward and backward slash)
+	if strings.ContainsAny(filename, `/\`) {
+		return false
+	}
+
+	// Check for absolute path indicators
+	if filepath.IsAbs(filename) {
+		return false
+	}
+
+	// Additional security: only allow alphanumeric, dots, underscores, and hyphens
+	// This is stricter than the general filename regex
+	validGeofilePattern := `^[a-zA-Z0-9._-]+\.dat$`
+	matched, _ := regexp.MatchString(validGeofilePattern, filename)
+	return matched
+}
+
 func (s *ServerService) UpdateGeofile(fileName string) error {
 	files := []struct {
 		URL      string
@@ -984,6 +1039,25 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
 	}
 
+	// Strict allowlist check to avoid writing uncontrolled files
+	if fileName != "" {
+		// Use the centralized validation function
+		if !s.IsValidGeofileName(fileName) {
+			return common.NewErrorf("Invalid geofile name: contains unsafe path characters: %s", fileName)
+		}
+
+		// Ensure the filename matches exactly one from our allowlist
+		isAllowed := false
+		for _, file := range files {
+			if fileName == file.FileName {
+				isAllowed = true
+				break
+			}
+		}
+		if !isAllowed {
+			return common.NewErrorf("Invalid geofile name: %s not in allowlist", fileName)
+		}
+	}
 	downloadFile := func(url, destPath string) error {
 		resp, err := http.Get(url)
 		if err != nil {
@@ -1009,14 +1083,17 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 	if fileName == "" {
 		for _, file := range files {
-			destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), file.FileName)
+			// Sanitize the filename from our allowlist as an extra precaution
+			destPath := filepath.Join(config.GetBinFolderPath(), filepath.Base(file.FileName))
 
 			if err := downloadFile(file.URL, destPath); err != nil {
 				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
 			}
 		}
 	} else {
-		destPath := fmt.Sprintf("%s/%s", config.GetBinFolderPath(), fileName)
+		// Use filepath.Base to ensure we only get the filename component, no path traversal
+		safeName := filepath.Base(fileName)
+		destPath := filepath.Join(config.GetBinFolderPath(), safeName)
 
 		var fileURL string
 		for _, file := range files {
@@ -1028,10 +1105,10 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 
 		if fileURL == "" {
 			errorMessages = append(errorMessages, fmt.Sprintf("File '%s' not found in the list of Geofiles", fileName))
-		}
-
-		if err := downloadFile(fileURL, destPath); err != nil {
-			errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
+		} else {
+			if err := downloadFile(fileURL, destPath); err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
+			}
 		}
 	}
 
