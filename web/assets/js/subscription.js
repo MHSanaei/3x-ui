@@ -142,7 +142,10 @@
       },
       npvtunUrl() {
         return this.app.subUrl; 
-      }
+      },
+	  happUrl() {
+		return `happ://add/${encodeURIComponent(this.app.subUrl)}`;
+	  }
     },
     methods: {
       renderLink,
