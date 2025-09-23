@@ -19,7 +19,7 @@
     </template>
     <a-input :style="{ width: '30%' }" v-model.trim="row.dest" placeholder='{{ i18n "host" }}'></a-input>
     <a-tooltip title='{{ i18n "pages.inbounds.port" }}'>
-      <a-input-number :style="{ width: '15%' }" v-model.number="row.port" min="1" max="65 535"></a-input-number>
+      <a-input-number :style="{ width: '15%' }" v-model.number="row.port" min="1" max="65535"></a-input-number>
     </a-tooltip>
     <a-input :style="{ width: '30%', top: '0' }" v-model.trim="row.remark" placeholder='{{ i18n "remark" }}'>
       <template slot="addonAfter">

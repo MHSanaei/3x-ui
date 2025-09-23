@@ -40,7 +40,7 @@
             <template #title>{{ i18n "pages.settings.subPort"}}</template>
             <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
             <template #control>
-                <a-input-number v-model="allSetting.subPort" :min="1" :min="65 535"
+                <a-input-number v-model="allSetting.subPort" :min="1" :min="65535"
                     :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
