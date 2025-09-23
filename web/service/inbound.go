@@ -35,6 +35,25 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
+	// Enrich client stats with UUID/SubId from inbound settings
+	for _, inbound := range inbounds {
+		clients, _ := s.GetClients(inbound)
+		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
+			continue
+		}
+		// Build a map email -> client
+		cMap := make(map[string]model.Client, len(clients))
+		for _, c := range clients {
+			cMap[strings.ToLower(c.Email)] = c
+		}
+		for i := range inbound.ClientStats {
+			email := strings.ToLower(inbound.ClientStats[i].Email)
+			if c, ok := cMap[email]; ok {
+				inbound.ClientStats[i].UUID = c.ID
+				inbound.ClientStats[i].SubId = c.SubID
+			}
+		}
+	}
 	return inbounds, nil
 }
 
@@ -46,6 +65,24 @@ func (s *InboundService) GetAllInbounds() ([]*model.Inbound, error) {
 	err := db.Model(model.Inbound{}).Preload("ClientStats").Find(&inbounds).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
+	}
+	// Enrich client stats with UUID/SubId from inbound settings
+	for _, inbound := range inbounds {
+		clients, _ := s.GetClients(inbound)
+		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
+			continue
+		}
+		cMap := make(map[string]model.Client, len(clients))
+		for _, c := range clients {
+			cMap[strings.ToLower(c.Email)] = c
+		}
+		for i := range inbound.ClientStats {
+			email := strings.ToLower(inbound.ClientStats[i].Email)
+			if c, ok := cMap[email]; ok {
+				inbound.ClientStats[i].UUID = c.ID
+				inbound.ClientStats[i].SubId = c.SubID
+			}
+		}
 	}
 	return inbounds, nil
 }
