@@ -39,7 +39,7 @@
             <template #title>{{ i18n "pages.settings.panelPort"}}</template>
             <template #description>{{ i18n "pages.settings.panelPortDesc"}}</template>
             <template #control>
-                <a-input-number :min="1" :min="65531" v-model="allSetting.webPort" :style="{ width: '100%' }"></a-input>
+                <a-input-number :min="1" :min="65535" v-model="allSetting.webPort" :style="{ width: '100%' }"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -137,7 +137,8 @@
             <template #title>{{ i18n "pages.settings.datepicker"}}</template>
             <template #description>{{ i18n "pages.settings.datepickerDescription"}}</template>
             <template #control>
-                <a-select :style="{ width: '100%' }" :dropdown-class-name="themeSwitcher.currentTheme" v-model="datepicker">
+                <a-select :style="{ width: '100%' }" :dropdown-class-name="themeSwitcher.currentTheme"
+                    v-model="datepicker">
                     <a-select-option v-for="item in datepickerList" :value="item.value">
                         <span v-text="item.name"></span>
                     </a-select-option>
