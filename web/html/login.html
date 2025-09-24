@@ -4,7 +4,7 @@
 {{ template "page/body_start" .}}
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' login-app'">
   <transition name="list" appear>
-  <a-layout-content class="under min-h-0">
+    <a-layout-content class="under min-h-0">
       <div class="waves-header">
         <div class="waves-inner-header"></div>
         <svg class="waves" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -20,7 +20,7 @@
           </g>
         </svg>
       </div>
-  <a-row type="flex" justify="center" align="middle" class="h-100 overflow-y-auto overflow-x-hidden">
+      <a-row type="flex" justify="center" align="middle" class="h-100 overflow-y-auto overflow-x-hidden">
         <a-col :xs="22" :sm="12" :md="10" :lg="8" :xl="6" :xxl="5" id="login" class="my-3rem">
           <template v-if="!loadingStates.fetched">
             <div class="text-center">
@@ -35,8 +35,8 @@
                   <a-space direction="vertical" :size="10">
                     <a-theme-switch-login></a-theme-switch-login>
                     <span>{{ i18n "pages.settings.language" }}</span>
-                    <a-select ref="selectLang" class="w-100" v-model="lang"
-                      @change="LanguageManager.setLanguage(lang)" :dropdown-class-name="themeSwitcher.currentTheme">
+                    <a-select ref="selectLang" class="w-100" v-model="lang" @change="LanguageManager.setLanguage(lang)"
+                      :dropdown-class-name="themeSwitcher.currentTheme">
                       <a-select-option :value="l.value" label="English" v-for="l in LanguageManager.supportedLanguages">
                         <span role="img" aria-label="l.name" v-text="l.icon"></span>
                         &nbsp;&nbsp;<span v-text="l.name"></span>
@@ -68,7 +68,7 @@
                       </a-input>
                     </a-form-item>
                     <a-form-item>
-                      <a-input-password autocomplete="password" name="password" v-model.trim="user.password"
+                      <a-input-password autocomplete="current-password" name="password" v-model.trim="user.password"
                         placeholder='{{ i18n "password" }}' required>
                         <a-icon slot="prefix" type="lock" class="fs-1rem"></a-icon>
                       </a-input-password>
@@ -81,7 +81,8 @@
                     </a-form-item>
                     <a-form-item>
                       <a-row justify="center" class="centered">
-                        <div class="wave-btn-bg wave-btn-bg-cl h-50px mt-1rem" :style="loadingStates.spinning ? 'width: 52px' : 'display: inline-block'">
+                        <div class="wave-btn-bg wave-btn-bg-cl h-50px mt-1rem"
+                          :style="loadingStates.spinning ? 'width: 52px' : 'display: inline-block'">
                           <a-button class="ant-btn-primary-login" type="primary" :loading="loadingStates.spinning"
                             :icon="loadingStates.spinning ? 'poweroff' : undefined" html-type="submit">
                             [[ loadingStates.spinning ? '' : '{{ i18n "login" }}' ]]
