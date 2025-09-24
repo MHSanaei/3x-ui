@@ -46,22 +46,22 @@ var (
 	hashStorage *global.HashStorage
 
 	// Performance improvements
-	messageWorkerPool chan struct{} // Semaphore for limiting concurrent message processing
-	optimizedHTTPClient *http.Client // HTTP client with connection pooling and timeouts
-	
+	messageWorkerPool   chan struct{} // Semaphore for limiting concurrent message processing
+	optimizedHTTPClient *http.Client  // HTTP client with connection pooling and timeouts
+
 	// Simple cache for frequently accessed data
 	statusCache struct {
 		data      *Status
 		timestamp time.Time
 		mutex     sync.RWMutex
 	}
-	
+
 	serverStatsCache struct {
 		data      string
 		timestamp time.Time
 		mutex     sync.RWMutex
 	}
-	
+
 	// clients data to adding new client
 	receiver_inbound_ID int
 	client_Id           string
@@ -122,7 +122,7 @@ func (t *Tgbot) GetHashStorage() *global.HashStorage {
 func (t *Tgbot) getCachedStatus() (*Status, bool) {
 	statusCache.mutex.RLock()
 	defer statusCache.mutex.RUnlock()
-	
+
 	if statusCache.data != nil && time.Since(statusCache.timestamp) < 5*time.Second {
 		return statusCache.data, true
 	}
@@ -133,7 +133,7 @@ func (t *Tgbot) getCachedStatus() (*Status, bool) {
 func (t *Tgbot) setCachedStatus(status *Status) {
 	statusCache.mutex.Lock()
 	defer statusCache.mutex.Unlock()
-	
+
 	statusCache.data = status
 	statusCache.timestamp = time.Now()
 }
@@ -142,7 +142,7 @@ func (t *Tgbot) setCachedStatus(status *Status) {
 func (t *Tgbot) getCachedServerStats() (string, bool) {
 	serverStatsCache.mutex.RLock()
 	defer serverStatsCache.mutex.RUnlock()
-	
+
 	if serverStatsCache.data != "" && time.Since(serverStatsCache.timestamp) < 10*time.Second {
 		return serverStatsCache.data, true
 	}
@@ -153,7 +153,7 @@ func (t *Tgbot) getCachedServerStats() (string, bool) {
 func (t *Tgbot) setCachedServerStats(stats string) {
 	serverStatsCache.mutex.Lock()
 	defer serverStatsCache.mutex.Unlock()
-	
+
 	serverStatsCache.data = stats
 	serverStatsCache.timestamp = time.Now()
 }
@@ -171,7 +171,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 
 	// Initialize worker pool for concurrent message processing (max 10 concurrent handlers)
 	messageWorkerPool = make(chan struct{}, 10)
-	
+
 	// Initialize optimized HTTP client with connection pooling
 	optimizedHTTPClient = &http.Client{
 		Timeout: 15 * time.Second,
@@ -359,9 +359,9 @@ func (t *Tgbot) OnReceive() {
 	botHandler.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 		// Use goroutine with worker pool for concurrent command processing
 		go func() {
-			messageWorkerPool <- struct{}{} // Acquire worker
+			messageWorkerPool <- struct{}{}        // Acquire worker
 			defer func() { <-messageWorkerPool }() // Release worker
-			
+
 			delete(userStates, message.Chat.ID)
 			t.answerCommand(&message, message.Chat.ID, checkAdmin(message.From.ID))
 		}()
@@ -371,9 +371,9 @@ func (t *Tgbot) OnReceive() {
 	botHandler.HandleCallbackQuery(func(ctx *th.Context, query telego.CallbackQuery) error {
 		// Use goroutine with worker pool for concurrent callback processing
 		go func() {
-			messageWorkerPool <- struct{}{} // Acquire worker
+			messageWorkerPool <- struct{}{}        // Acquire worker
 			defer func() { <-messageWorkerPool }() // Release worker
-			
+
 			delete(userStates, query.Message.GetChat().ID)
 			t.answerCallback(&query, checkAdmin(query.From.ID))
 		}()
@@ -2537,7 +2537,7 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	if cachedStats, found := t.getCachedServerStats(); found {
 		return cachedStats
 	}
-	
+
 	info, ipv4, ipv6 := "", "", ""
 
 	// get latest status of server with caching
@@ -2588,10 +2588,10 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 	info += t.I18nBot("tgbot.messages.udpCount", "Count=="+strconv.Itoa(t.lastStatus.UdpCount))
 	info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Sent+t.lastStatus.NetTraffic.Recv)), "Upload=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Sent)), "Download=="+common.FormatTraffic(int64(t.lastStatus.NetTraffic.Recv)))
 	info += t.I18nBot("tgbot.messages.xrayStatus", "State=="+fmt.Sprint(t.lastStatus.Xray.State))
-	
+
 	// Cache the complete server stats
 	t.setCachedServerStats(info)
-	
+
 	return info
 }
 

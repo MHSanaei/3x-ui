@@ -87,7 +87,20 @@ func (a *SUBController) subs(c *gin.Context) {
 			if !a.jsonEnabled {
 				subJsonURL = ""
 			}
-			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL)
+			// Get base_path from context (set by middleware)
+			basePath, exists := c.Get("base_path")
+			if !exists {
+				basePath = "/"
+			}
+			// Add subId to base_path for asset URLs
+			basePathStr := basePath.(string)
+			if basePathStr == "/" {
+				basePathStr = "/" + subId + "/"
+			} else {
+				// Remove trailing slash if exists, add subId, then add trailing slash
+				basePathStr = strings.TrimRight(basePathStr, "/") + "/" + subId + "/"
+			}
+			page := a.subService.BuildPageData(subId, hostHeader, traffic, lastOnline, subs, subURL, subJsonURL, basePathStr)
 			c.HTML(200, "subpage.html", gin.H{
 				"title":        "subscription.title",
 				"cur_ver":      config.GetVersion(),

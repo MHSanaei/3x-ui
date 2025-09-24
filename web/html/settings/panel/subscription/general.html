@@ -40,7 +40,7 @@
             <template #title>{{ i18n "pages.settings.subPort"}}</template>
             <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
             <template #control>
-                <a-input-number v-model="allSetting.subPort" :min="1" :min="65531"
+                <a-input-number v-model="allSetting.subPort" :min="1" :min="65535"
                     :style="{ width: '100%' }"></a-input-number>
             </template>
         </a-setting-list-item>
@@ -48,13 +48,10 @@
             <template #title>{{ i18n "pages.settings.subPath"}}</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
             <template #control>
-                <a-input
-                    type="text"
-                    v-model="allSetting.subPath"
+                <a-input type="text" v-model="allSetting.subPath"
                     @input="allSetting.subPath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
                     @blur="allSetting.subPath = (p => { p = p || '/'; if (!p.startsWith('/')) p='/' + p; if (!p.endsWith('/')) p += '/'; return p.replace(/\/+/g,'/'); })(allSetting.subPath)"
-                    placeholder="/sub/"
-                ></a-input>
+                    placeholder="/sub/"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">

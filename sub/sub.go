@@ -98,8 +98,14 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Set base_path based on LinksPath for template rendering
+	// Ensure LinksPath ends with "/" for proper asset URL generation
+	basePath := LinksPath
+	if basePath != "/" && !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+	logger.Debug("sub: Setting base_path to:", basePath)
 	engine.Use(func(c *gin.Context) {
-		c.Set("base_path", LinksPath)
+		c.Set("base_path", basePath)
 	})
 
 	Encrypt, err := s.settingService.GetSubEncrypt()
@@ -179,19 +185,45 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		linksPathForAssets = strings.TrimRight(LinksPath, "/") + "/assets"
 	}
 
+	// Mount assets in multiple paths to handle different URL patterns
+	var assetsFS http.FileSystem
 	if _, err := os.Stat("web/assets"); err == nil {
-		engine.StaticFS("/assets", http.FS(os.DirFS("web/assets")))
-		if linksPathForAssets != "/assets" {
-			engine.StaticFS(linksPathForAssets, http.FS(os.DirFS("web/assets")))
-		}
+		assetsFS = http.FS(os.DirFS("web/assets"))
 	} else {
 		if subFS, err := fs.Sub(webpkg.EmbeddedAssets(), "assets"); err == nil {
-			engine.StaticFS("/assets", http.FS(subFS))
-			if linksPathForAssets != "/assets" {
-				engine.StaticFS(linksPathForAssets, http.FS(subFS))
-			}
+			assetsFS = http.FS(subFS)
 		} else {
 			logger.Error("sub: failed to mount embedded assets:", err)
+		}
+	}
+
+	if assetsFS != nil {
+		engine.StaticFS("/assets", assetsFS)
+		if linksPathForAssets != "/assets" {
+			engine.StaticFS(linksPathForAssets, assetsFS)
+		}
+
+		// Add middleware to handle dynamic asset paths with subid
+		if LinksPath != "/" {
+			engine.Use(func(c *gin.Context) {
+				path := c.Request.URL.Path
+				// Check if this is an asset request with subid pattern: /sub/path/{subid}/assets/...
+				pathPrefix := strings.TrimRight(LinksPath, "/") + "/"
+				if strings.HasPrefix(path, pathPrefix) && strings.Contains(path, "/assets/") {
+					// Extract the asset path after /assets/
+					assetsIndex := strings.Index(path, "/assets/")
+					if assetsIndex != -1 {
+						assetPath := path[assetsIndex+8:] // +8 to skip "/assets/"
+						if assetPath != "" {
+							// Serve the asset file
+							c.FileFromFS(assetPath, assetsFS)
+							c.Abort()
+							return
+						}
+					}
+				}
+				c.Next()
+			})
 		}
 	}
 

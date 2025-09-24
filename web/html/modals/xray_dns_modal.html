@@ -7,12 +7,13 @@
       <a-input v-model.trim="dnsModal.dnsServer.address"></a-input>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
-      <a-input-number v-model.number="dnsModal.dnsServer.port" :min="1" :max="65531"></a-input-number>
+      <a-input-number v-model.number="dnsModal.dnsServer.port" :min="1" :max="65535"></a-input-number>
     </a-form-item>
     <a-form-item label='{{ i18n "pages.xray.dns.strategy" }}'>
       <a-select v-model="dnsModal.dnsServer.queryStrategy" :style="{ width: '100%' }"
         :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option :value="l" :label="l" v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]] </a-select-option>
+        <a-select-option :value="l" :label="l" v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']"> [[ l ]]
+        </a-select-option>
       </a-select>
     </a-form-item>
     <a-divider :style="{ margin: '5px 0' }"></a-divider>
@@ -75,7 +76,7 @@
     isEdit: false,
     confirm: null,
     dnsServer: { ...defaultDnsObject },
-    ok() {      
+    ok() {
       ObjectUtil.execute(dnsModal.confirm, { ...dnsModal.dnsServer });
     },
     show({
@@ -106,7 +107,7 @@
         }
       } else {
         this.dnsServer = { ...defaultDnsObject };
-      
+
         this.dnsServer.domains = [];
         this.dnsServer.expectIPs = [];
         this.dnsServer.unexpectedIPs = [];

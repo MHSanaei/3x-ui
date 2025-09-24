@@ -1,0 +1,13 @@
+#!/sbin/openrc-run
+
+command="/usr/local/x-ui/x-ui"
+command_background=true
+pidfile="/run/x-ui.pid"
+description="x-ui Service"
+procname="x-ui"
+depend() {
+    need net
+}
+start_pre(){
+    cd /usr/local/x-ui
+}

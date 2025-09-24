@@ -95,10 +95,9 @@ type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
 
-	index  *controller.IndexController
-	server *controller.ServerController
-	panel  *controller.XUIController
-	api    *controller.APIController
+	index *controller.IndexController
+	panel *controller.XUIController
+	api   *controller.APIController
 
 	xrayService    service.XrayService
 	settingService service.SettingService
@@ -264,7 +263,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group(basePath)
 
 	s.index = controller.NewIndexController(g)
-	s.server = controller.NewMultiServerController(g)
 	s.panel = controller.NewXUIController(g)
 	s.api = controller.NewAPIController(g)
 

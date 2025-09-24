@@ -12,13 +12,14 @@
     <a-layout-content>
       <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
         <transition name="list" appear>
-          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }" message='{{ i18n "secAlertTitle" }}'
-            color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
+            message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
           </a-alert>
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+            <a-card
+              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
               <a-spin tip='{{ i18n "loading" }}'></a-spin>
             </a-card>
           </a-row>
@@ -37,7 +38,8 @@
                       <a-popover v-if="restartResult" :overlay-class-name="themeSwitcher.currentTheme">
                         <span slot="title">{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
                         <template slot="content">
-                          <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</span>
+                          <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line
+                            ]]</span>
                         </template>
                         <a-icon type="question-circle"></a-icon>
                       </a-popover>
@@ -537,6 +539,7 @@
             serverObj = o.settings.vnext;
             break;
           case Protocols.VLESS:
+            return [o.settings?.address + ':' + o.settings?.port];
           case Protocols.HTTP:
           case Protocols.Socks:
           case Protocols.Shadowsocks:
