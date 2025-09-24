@@ -95,9 +95,9 @@ type Server struct {
 	httpServer *http.Server
 	listener   net.Listener
 
-	index  *controller.IndexController
-	panel  *controller.XUIController
-	api    *controller.APIController
+	index *controller.IndexController
+	panel *controller.XUIController
+	api   *controller.APIController
 
 	xrayService    service.XrayService
 	settingService service.SettingService
