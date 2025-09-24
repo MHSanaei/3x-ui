@@ -1148,7 +1148,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string, basePath string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -1167,7 +1167,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 
 	return PageData{
 		Host:         hostHeader,
-		BasePath:     "/", // kept as "/"; templates now use context base_path injected from router
+		BasePath:     basePath,
 		SId:          subId,
 		Download:     download,
 		Upload:       upload,
