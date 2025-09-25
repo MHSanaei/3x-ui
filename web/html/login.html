@@ -108,17 +108,11 @@
     el: '#app',
     data: {
       themeSwitcher,
-      loadingStates: {
-        fetched: false,
-        spinning: false
-      },
-      user: {
-        username: "",
-        password: "",
-        twoFactorCode: ""
-      },
+      loadingStates: { fetched: false, spinning: false },
+      user: { username: "", password: "", twoFactorCode: "" },
       twoFactorEnable: false,
-      lang: ""
+      lang: "",
+      animationStarted: false
     },
     async mounted() {
       this.lang = LanguageManager.getLanguage();
@@ -127,63 +121,50 @@
     methods: {
       async login() {
         this.loadingStates.spinning = true;
-
         const msg = await HttpUtil.post('/login', this.user);
-
         if (msg.success) {
           location.href = basePath + 'panel/';
         }
-
         this.loadingStates.spinning = false;
       },
       async getTwoFactorEnable() {
         const msg = await HttpUtil.post('/getTwoFactorEnable');
-
         if (msg.success) {
           this.twoFactorEnable = msg.obj;
           this.loadingStates.fetched = true;
-
+          this.$nextTick(() => {
+            if (!this.animationStarted) {
+              this.animationStarted = true;
+              this.initHeadline();
+            }
+          });
           return msg.obj;
         }
       },
+      initHeadline() {
+        const animationDelay = 2000;
+        const headlines = this.$el.querySelectorAll('.headline');
+        headlines.forEach((headline) => {
+          const first = headline.querySelector('.is-visible');
+          if (!first) return;
+          setTimeout(() => this.hideWord(first, animationDelay), animationDelay);
+        });
+      },
+      hideWord(word, delay) {
+        const nextWord = this.takeNext(word);
+        this.switchWord(word, nextWord);
+        setTimeout(() => this.hideWord(nextWord, delay), delay);
+      },
+      takeNext(word) {
+        return word.nextElementSibling || word.parentElement.firstElementChild;
+      },
+      switchWord(oldWord, newWord) {
+        oldWord.classList.remove('is-visible');
+        oldWord.classList.add('is-hidden');
+        newWord.classList.remove('is-hidden');
+        newWord.classList.add('is-visible');
+      }
     },
-  });
-
-  document.addEventListener("DOMContentLoaded", function () {
-    var animationDelay = 2000;
-    initHeadline();
-
-    function initHeadline() {
-      animateHeadline(document.querySelectorAll('.headline'));
-    }
-
-    function animateHeadline(headlines) {
-      var duration = animationDelay;
-      headlines.forEach(function (headline) {
-        setTimeout(function () {
-          hideWord(headline.querySelector('.is-visible'));
-        }, duration);
-      });
-    }
-
-    function hideWord(word) {
-      var nextWord = takeNext(word);
-      switchWord(word, nextWord);
-      setTimeout(function () {
-        hideWord(nextWord);
-      }, animationDelay);
-    }
-
-    function takeNext(word) {
-      return word.nextElementSibling ? word.nextElementSibling : word.parentElement.firstElementChild;
-    }
-
-    function switchWord(oldWord, newWord) {
-      oldWord.classList.remove('is-visible');
-      oldWord.classList.add('is-hidden');
-      newWord.classList.remove('is-hidden');
-      newWord.classList.add('is-visible');
-    }
   });
 
   const pm_input_selector = 'input.ant-input, textarea.ant-input';
