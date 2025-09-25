@@ -8,8 +8,6 @@ import (
 type XUIController struct {
 	BaseController
 
-	inboundController     *InboundController
-	serverController      *ServerController
 	settingController     *SettingController
 	xraySettingController *XraySettingController
 }
@@ -31,8 +29,6 @@ func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g.GET("/settings", a.settings)
 	g.GET("/xray", a.xraySettings)
 
-	a.inboundController = NewInboundController(g)
-	a.serverController = NewServerController(g)
 	a.settingController = NewSettingController(g)
 	a.xraySettingController = NewXraySettingController(g)
 }

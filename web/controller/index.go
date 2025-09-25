@@ -39,8 +39,9 @@ func NewIndexController(g *gin.RouterGroup) *IndexController {
 // initRouter sets up the routes for index, login, logout, and two-factor authentication.
 func (a *IndexController) initRouter(g *gin.RouterGroup) {
 	g.GET("/", a.index)
-	g.POST("/login", a.login)
 	g.GET("/logout", a.logout)
+
+	g.POST("/login", a.login)
 	g.POST("/getTwoFactorEnable", a.getTwoFactorEnable)
 }
 
