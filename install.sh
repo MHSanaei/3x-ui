@@ -161,10 +161,6 @@ install_x-ui() {
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
-                exit 1
-            fi
         fi
     else
         tag_version=$1
@@ -182,20 +178,12 @@ install_x-ui() {
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
             exit 1
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
-                exit 1
-            fi
         fi
     fi
     wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
-        if [[ $? -ne 0 ]]; then
-            echo -e "${red}Failed to download x-ui.sh${plain}"
-            exit 1
-        fi
     fi
 
     # Stop x-ui service and remove old resources
@@ -233,10 +221,6 @@ install_x-ui() {
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Failed to download x-ui.rc${plain}"
-                exit 1
-            fi
         fi
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
