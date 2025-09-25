@@ -63,7 +63,7 @@ arch() {
 	armv6* | armv6) echo 'armv6' ;;
 	armv5* | armv5) echo 'armv5' ;;
 	s390x) echo 's390x' ;;
-	*) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+	*) rm -f ${cur_dir}/update.sh && _fail "Unsupported CPU architecture!";;
 	esac
 }
 
@@ -128,12 +128,12 @@ update_x-ui() {
 	if [ $# == 0 ]; then
 		tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 		if [[ ! -n "$tag_version" ]]; then
-			_fail "Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
+			_fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
 		fi
 		echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
 		${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
 		if [[ $? -ne 0 ]]; then
-			_fail "Downloading x-ui failed, please be sure that your server can access GitHub"
+			_fail "ERROR: Downloading x-ui failed, please be sure that your server can access GitHub"
 		fi
 	else
 		tag_version=$1
@@ -141,14 +141,14 @@ update_x-ui() {
 		min_version="2.3.5"
 
 		if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
-			_fail "Please use a newer version (at least v2.3.5). Exiting installation."
+			_fail "ERROR: Please use a newer version (at least v2.3.5). Exiting installation."
 		fi
 
 		url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
 		echo -e "Beginning to install x-ui $1"
 		${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz ${url} >/dev/null 2>&1
 		if [[ $? -ne 0 ]]; then
-			_fail "Download x-ui $1 failed, please check if the version exists."
+			_fail "ERROR: Download x-ui $1 failed, please check if the version exists."
 		fi
 	fi
 
@@ -162,7 +162,7 @@ update_x-ui() {
 				rm -f /etc/init.d/x-ui >/dev/null 2>&1
 			else
 				rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
-				_fail "x-ui service unit not installed"
+				_fail "ERROR: x-ui service unit not installed."
 			fi
 		else
 			if [ -f "/etc/systemd/system/x-ui.service" ]; then
@@ -173,7 +173,7 @@ update_x-ui() {
 				systemctl daemon-reload >/dev/null 2>&1
 			else
 				rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
-				_fail "x-ui systemd unit not installed"
+				_fail "ERROR: x-ui systemd unit not installed."
 			fi
 		fi
 		echo -e "${green}Remove old x-ui version...${plain}"
@@ -211,7 +211,7 @@ update_x-ui() {
 		chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
 		chmod +x /usr/bin/x-ui >/dev/null 2>&1
 	else
-		_fail "Failed to download x-ui.sh script."
+		_fail "ERROR: Failed to download x-ui.sh script."
 	fi
 
 	echo -e "${green}Change owner...${plain}"
@@ -231,7 +231,7 @@ update_x-ui() {
 			rc-update add x-ui >/dev/null 2>&1
 			rc-service x-ui start >/dev/null 2>&1
 		else
-			_fail "Failed to download startup unit."
+			_fail "ERROR: Failed to download startup unit."
 		fi
 	else
 		echo -e "${green}Install systemd unit...${plain}"
