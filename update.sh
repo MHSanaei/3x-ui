@@ -158,7 +158,7 @@ update_x-ui() {
 			if [ -f "/etc/init.d/x-ui" ]; then
 				rc-service x-ui stop >/dev/null 2>&1
 				rc-update del x-ui >/dev/null 2>&1
-				echo -e "${green}Remove old service unit version...${plain}"
+				echo -e "${green}Removing old service unit version...${plain}"
 				rm -f /etc/init.d/x-ui >/dev/null 2>&1
 			else
 				rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
@@ -168,7 +168,7 @@ update_x-ui() {
 			if [ -f "/etc/systemd/system/x-ui.service" ]; then
 				systemctl stop x-ui >/dev/null 2>&1
 				systemctl disable x-ui >/dev/null 2>&1
-				echo -e "${green}Remove old systemd unit version...${plain}"
+				echo -e "${green}Removing old systemd unit version...${plain}"
 				rm /etc/systemd/system/x-ui.service -f >/dev/null 2>&1
 				systemctl daemon-reload >/dev/null 2>&1
 			else
@@ -176,14 +176,14 @@ update_x-ui() {
 				_fail "ERROR: x-ui systemd unit not installed."
 			fi
 		fi
-		echo -e "${green}Remove old x-ui version...${plain}"
+		echo -e "${green}Removing old x-ui version...${plain}"
 		rm /usr/bin/x-ui -f >/dev/null 2>&1
 		rm /usr/local/x-ui/x-ui.service -f >/dev/null 2>&1
 		rm /usr/local/x-ui/x-ui -f >/dev/null 2>&1
 		rm /usr/local/x-ui/x-ui.sh -f >/dev/null 2>&1
-		echo -e "${green}Remove old xray version...${plain}"
+		echo -e "${green}Removing old xray version...${plain}"
 		rm /usr/local/x-ui/bin/xray-linux-amd64 -f >/dev/null 2>&1
-		echo -e "${green}Remove old README and LICENSE file...${plain}"
+		echo -e "${green}Removing old README and LICENSE file...${plain}"
 		rm /usr/local/x-ui/bin/README.md -f >/dev/null 2>&1
 		rm /usr/local/x-ui/bin/LICENSE -f >/dev/null 2>&1
 	else
@@ -214,7 +214,7 @@ update_x-ui() {
 		_fail "ERROR: Failed to download x-ui.sh script."
 	fi
 
-	echo -e "${green}Change owner...${plain}"
+	echo -e "${green}Changing owner...${plain}"
 	chown -R root:root /usr/local/x-ui >/dev/null 2>&1
 
 	if [ -f "/usr/local/x-ui/bin/config.json" ]; then
@@ -234,7 +234,7 @@ update_x-ui() {
 			_fail "ERROR: Failed to download startup unit."
 		fi
 	else
-		echo -e "${green}Install systemd unit...${plain}"
+		echo -e "${green}Installing systemd unit...${plain}"
 		cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
 		chown root:root /etc/systemd/system/x-ui.service >/dev/null 2>&1
 		systemctl daemon-reload >/dev/null 2>&1
