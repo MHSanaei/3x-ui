@@ -63,7 +63,7 @@ arch() {
 	armv6* | armv6) echo 'armv6' ;;
 	armv5* | armv5) echo 'armv5' ;;
 	s390x) echo 's390x' ;;
-	*) rm -f ${cur_dir}/update.sh && _fail "Unsupported CPU architecture!";;
+	*) rm -f ${cur_dir}/update.sh && _fail "Unsupported CPU architecture!" ;;
 	esac
 }
 
@@ -125,30 +125,22 @@ update_x-ui() {
 	fi
 
 	echo -e "${green}Downloading new x-ui version...${plain}"
-	if [ $# == 0 ]; then
-		tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+
+	tag_version=$(${curl_bin} -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" 2>/dev/null | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+	if [[ ! -n "$tag_version" ]]; then
+		echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
+		tag_version=$(${curl_bin} -4 -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 		if [[ ! -n "$tag_version" ]]; then
 			_fail "ERROR: Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later"
 		fi
-		echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-		${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+	fi
+	echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
+	${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+	if [[ $? -ne 0 ]]; then
+		echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
+		${wget_bin} --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
 		if [[ $? -ne 0 ]]; then
-			_fail "ERROR: Downloading x-ui failed, please be sure that your server can access GitHub"
-		fi
-	else
-		tag_version=$1
-		tag_version_numeric=${tag_version#v}
-		min_version="2.3.5"
-
-		if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
-			_fail "ERROR: Please use a newer version (at least v2.3.5). Exiting installation."
-		fi
-
-		url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
-		echo -e "Beginning to install x-ui $1"
-		${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz ${url} >/dev/null 2>&1
-		if [[ $? -ne 0 ]]; then
-			_fail "ERROR: Download x-ui $1 failed, please check if the version exists."
+			_fail "ERROR: Failed to downloading x-ui, please be sure that your server can access GitHub"
 		fi
 	fi
 
@@ -207,12 +199,16 @@ update_x-ui() {
 
 	echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
 	${wget_bin} -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
-		chmod +x /usr/bin/x-ui >/dev/null 2>&1
-	else
-		_fail "ERROR: Failed to download x-ui.sh script."
+	if [[ $? -ne 0 ]]; then
+		echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
+		${wget_bin} --inet4-only -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
+		if [[ $? -ne 0 ]]; then
+			_fail "ERROR: Failed to downloading x-ui.sh script, please be sure that your server can access GitHub"
+		fi
 	fi
+
+	chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
+	chmod +x /usr/bin/x-ui >/dev/null 2>&1
 
 	echo -e "${green}Changing owner...${plain}"
 	chown -R root:root /usr/local/x-ui >/dev/null 2>&1
@@ -223,16 +219,18 @@ update_x-ui() {
 	fi
 
 	if [[ $release == "alpine" ]]; then
-		echo -e "${green}Downloading and installing startup unit...${plain}"
+		echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
 		${wget_bin} -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
-		if [ $? -eq 0 ]; then
-			chmod +x /etc/init.d/x-ui >/dev/null 2>&1
-			chown root:root /etc/init.d/x-ui >/dev/null 2>&1
-			rc-update add x-ui >/dev/null 2>&1
-			rc-service x-ui start >/dev/null 2>&1
-		else
-			_fail "ERROR: Failed to download startup unit."
+		if [[ $? -ne 0 ]]; then
+			${wget_bin} --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
+			if [[ $? -ne 0 ]]; then
+				_fail "ERROR: Failed to downloading startup unit x-ui.rc, please be sure that your server can access GitHub"
+			fi
 		fi
+		chmod +x /etc/init.d/x-ui >/dev/null 2>&1
+		chown root:root /etc/init.d/x-ui >/dev/null 2>&1
+		rc-update add x-ui >/dev/null 2>&1
+		rc-service x-ui start >/dev/null 2>&1
 	else
 		echo -e "${green}Installing systemd unit...${plain}"
 		cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
