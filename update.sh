@@ -244,7 +244,7 @@ update_x-ui() {
 
 	config_after_update
 
-	echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
+	echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
 	echo -e ""
 	echo -e "┌───────────────────────────────────────────────────────┐
 │  ${blue}x-ui control menu usages (subcommands):${plain}              │
