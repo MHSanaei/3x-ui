@@ -69,18 +69,6 @@ arch() {
 
 echo "Arch: $(arch)"
 
-check_glibc_version() {
-	glibc_version=$(ldd --version | head -n1 | awk '{print $NF}')
-
-	required_version="2.32"
-	if [[ "$(printf '%s\n' "$required_version" "$glibc_version" | sort -V | head -n1)" != "$required_version" ]]; then
-		echo -e "${red}GLIBC version $glibc_version is too old! Required: 2.32 or higher${plain}"
-		_fail "Please upgrade to a newer version of your operating system to get a higher GLIBC version."
-	fi
-	echo "GLIBC version: $glibc_version (meets requirement of 2.32+)"
-}
-check_glibc_version
-
 install_base() {
 	echo -e "${green}Updating and install dependency packages...${plain}"
 	case "${release}" in
@@ -246,7 +234,7 @@ update_x-ui() {
 	echo -e ""
 	echo -e "┌───────────────────────────────────────────────────────┐
 │  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                       │
+│                                                       │	
 │  ${blue}x-ui${plain}              - Admin Management Script          │
 │  ${blue}x-ui start${plain}        - Start                            │
 │  ${blue}x-ui stop${plain}         - Stop                             │
