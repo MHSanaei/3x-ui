@@ -3,8 +3,9 @@ package service
 import (
 	"os"
 	"testing"
-	"x-ui/database"
-	"x-ui/database/model"
+
+	"github.com/mhsanaei/3x-ui/v2/database"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
 
 	"github.com/stretchr/testify/assert"
 )

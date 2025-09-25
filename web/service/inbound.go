@@ -2419,7 +2419,8 @@ func (s *InboundService) syncWithSlaves(method string, path string, body io.Read
 			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
 		}
 	}
-  
+}
+
 func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (bool, error) {
 	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
