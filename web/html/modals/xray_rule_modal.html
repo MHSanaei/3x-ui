@@ -1,6 +1,11 @@
 {{define "modals/ruleModal"}}
 <a-modal id="rule-modal" v-model="ruleModal.visible" :title="ruleModal.title" @ok="ruleModal.ok" :confirm-loading="ruleModal.confirmLoading" :closable="true" :mask-closable="false" :ok-text="ruleModal.okText" cancel-text='{{ i18n "close" }}' :class="themeSwitcher.currentTheme">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label='Domain Matcher'>
+      <a-select v-model="ruleModal.rule.domainMatcher" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option v-for="dm in ['','hybrid','linear']" :value="dm">[[ dm ]]</a-select-option>
+      </a-select>
+    </a-form-item>
     <a-form-item>
       <template slot="label">
         <a-tooltip>
@@ -9,7 +14,7 @@
           </template> Source IPs <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.sourceIP" placeholder="e.g. 0.0.0.0/8, fc00::/7, geoip:ir"></a-input>
+      <a-input v-model.trim="ruleModal.rule.source"></a-input>
     </a-form-item>
     <a-form-item>
       <template slot="label">
@@ -19,17 +24,7 @@
           </template> Source Port <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.sourcePort" placeholder="e.g. 53,443,1000-2000"></a-input>
-    </a-form-item>
-    <a-form-item>
-      <template slot="label">
-        <a-tooltip>
-          <template slot="title">
-            <span>{{ i18n "pages.xray.rules.useComma" }}</span>
-          </template> VLESS Route <a-icon type="question-circle"></a-icon>
-        </a-tooltip>
-      </template>
-      <a-input v-model.trim="ruleModal.rule.vlessRoute" placeholder="e.g. 53,443,1000-2000"></a-input>
+      <a-input v-model.trim="ruleModal.rule.sourcePort"></a-input>
     </a-form-item>
     <a-form-item label='Network'>
       <a-select v-model="ruleModal.rule.network" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -62,7 +57,7 @@
           </template> IP <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.ip" placeholder="e.g. 0.0.0.0/8, fc00::/7, geoip:ir"></a-input>
+      <a-input v-model.trim="ruleModal.rule.ip"></a-input>
     </a-form-item>
     <a-form-item>
       <template slot="label">
@@ -72,7 +67,7 @@
           </template> Domain <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.domain" placeholder="e.g. google.com, geosite:cn"></a-input>
+      <a-input v-model.trim="ruleModal.rule.domain"></a-input>
     </a-form-item>
     <a-form-item>
       <template slot="label">
@@ -82,7 +77,7 @@
           </template> User <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.user" placeholder="e.g. email address"></a-input>
+      <a-input v-model.trim="ruleModal.rule.user"></a-input>
     </a-form-item>
     <a-form-item>
       <template slot="label">
@@ -92,7 +87,7 @@
           </template> Port <a-icon type="question-circle"></a-icon>
         </a-tooltip>
       </template>
-      <a-input v-model.trim="ruleModal.rule.port" placeholder="e.g. 53,443,1000-2000"></a-input>
+      <a-input v-model.trim="ruleModal.rule.port"></a-input>
     </a-form-item>
     <a-form-item label='Inbound Tags'>
       <a-select v-model="ruleModal.rule.inboundTag" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -128,13 +123,13 @@
     confirm: null,
     rule: {
       type: "field",
+      domainMatcher: "",
       domain: "",
       ip: "",
       port: "",
       sourcePort: "",
-      vlessRoute: "",
       network: "",
-      sourceIP: "",
+      source: "",
       user: "",
       inboundTag: [],
       protocol: [],
@@ -162,13 +157,13 @@
       this.confirm = confirm;
       this.visible = true;
       if (isEdit) {
+        this.rule.domainMatcher = rule.domainMatcher;
         this.rule.domain = rule.domain ? rule.domain.join(',') : [];
         this.rule.ip = rule.ip ? rule.ip.join(',') : [];
         this.rule.port = rule.port;
         this.rule.sourcePort = rule.sourcePort;
-        this.rule.vlessRoute = rule.vlessRoute;
         this.rule.network = rule.network;
-        this.rule.sourceIP = rule.sourceIP ? rule.sourceIP.join(',') : [];
+        this.rule.source = rule.source ? rule.source.join(',') : [];
         this.rule.user = rule.user ? rule.user.join(',') : [];
         this.rule.inboundTag = rule.inboundTag;
         this.rule.protocol = rule.protocol;
@@ -177,13 +172,13 @@
         this.rule.balancerTag = rule.balancerTag ? rule.balancerTag : "";
       } else {
         this.rule = {
+          domainMatcher: "",
           domain: "",
           ip: "",
           port: "",
           sourcePort: "",
-          vlessRoute: "",
           network: "",
-          sourceIP: "",
+          source: "",
           user: "",
           inboundTag: [],
           protocol: [],
@@ -219,13 +214,13 @@
       rule = {};
       newRule = {};
       rule.type = "field";
+      rule.domainMatcher = value.domainMatcher;
       rule.domain = value.domain.length > 0 ? value.domain.split(',') : [];
       rule.ip = value.ip.length > 0 ? value.ip.split(',') : [];
       rule.port = value.port;
       rule.sourcePort = value.sourcePort;
-      rule.vlessRoute = value.vlessRoute;
       rule.network = value.network;
-      rule.sourceIP = value.sourceIP.length > 0 ? value.sourceIP.split(',') : [];
+      rule.source = value.source.length > 0 ? value.source.split(',') : [];
       rule.user = value.user.length > 0 ? value.user.split(',') : [];
       rule.inboundTag = value.inboundTag;
       rule.protocol = value.protocol;

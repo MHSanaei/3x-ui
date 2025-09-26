@@ -1,8 +1,67 @@
 {{ template "page/head_start" .}}
+<style>
+  @media (min-width: 769px) {
+    .ant-layout-content {
+      margin: 24px 16px;
+    }
+  }
+  @media (max-width: 768px) {
+    .ant-tabs-nav .ant-tabs-tab {
+      margin: 0;
+      padding: 12px .5rem;
+    }
+  }
+  .ant-tabs-bar {
+    margin: 0;
+  }
+  .ant-list-item {
+    display: block;
+  }
+  .alert-msg {
+    color: rgb(194, 117, 18);
+    font-weight: normal;
+    font-size: 16px;
+    padding: .5rem 1rem;
+    text-align: center;
+    background: rgb(255 145 0 / 15%);
+    margin: 1.5rem 2.5rem 0rem;
+    border-radius: .5rem;
+    transition: all 0.5s;
+    animation: signal 3s cubic-bezier(0.18, 0.89, 0.32, 1.28) infinite;
+  }
+  .alert-msg:hover {
+    cursor: default;
+    transition-duration: .3s;
+    animation: signal 0.9s ease infinite;
+  }
+  @keyframes signal {
+    0% {
+      box-shadow: 0 0 0 0 rgba(194, 118, 18, 0.5);
+    }
+
+    50% {
+      box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
+    }
+
+    100% {
+      box-shadow: 0 0 0 6px rgba(0, 0, 0, 0);
+    }
+  }
+  .alert-msg>i {
+    color: inherit;
+    font-size: 24px;
+  }
+  .dark .ant-input-password-icon {
+    color: var(--dark-color-text-primary);
+  }
+  .ant-collapse-content-box .ant-alert {
+    margin-block-end: 12px;
+  }
+</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' settings-page'">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
@@ -79,7 +138,7 @@
                     </template>
                     {{ template "settings/panel/subscription/general" . }}
                   </a-tab-pane>
-                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable" :style="{ paddingTop: '20px' }">
+                  <a-tab-pane key="5" v-if="allSetting.subEnable" :style="{ paddingTop: '20px' }">
                     <template #tab>
                       <a-icon type="code"></a-icon>
                       <span>{{ i18n "pages.settings.subSettings" }} (JSON)</span>
@@ -119,6 +178,7 @@
       saveBtnDisable: true,
       user: {},
       lang: LanguageManager.getLanguage(),
+      inboundOptions: [],
       remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
       datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
@@ -148,7 +208,7 @@
         settings: {
           domainStrategy: "AsIs",
           noises: [
-            { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" },
+            { type: "rand", packet: "10-20", delay: "10-16" },
           ],
         },
       },
@@ -240,6 +300,17 @@
           this.allSetting = new AllSetting(msg.obj);
           app.changeRemarkSample();
           this.saveBtnDisable = true;
+        }
+      },
+      async loadInboundTags() {
+        const msg = await HttpUtil.post("/panel/inbound/list");
+        if (msg && msg.success && Array.isArray(msg.obj)) {
+          this.inboundOptions = msg.obj.map(ib => ({
+            label: `${ib.tag} (${ib.protocol}@${ib.port})`,
+            value: ib.tag,
+          }));
+        } else {
+          this.inboundOptions = [];
         }
       },
       async updateAllSetting() {
@@ -338,7 +409,7 @@
         }
       },
       addNoise() {
-        const newNoise = { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" };
+        const newNoise = { type: "rand", packet: "10-20", delay: "10-16" };
         this.noisesArray = [...this.noisesArray, newNoise];
       },
       removeNoise(index) {
@@ -361,13 +432,17 @@
         updatedNoises[index] = { ...updatedNoises[index], delay: value };
         this.noisesArray = updatedNoises;
       },
-      updateNoiseApplyTo(index, value) {
-        const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], applyTo: value };
-        this.noisesArray = updatedNoises;
-      },
     },
     computed: {
+      ldapInboundTagList: {
+        get: function() {
+          const csv = this.allSetting.ldapInboundTags || "";
+          return csv.length ? csv.split(',').map(s => s.trim()).filter(Boolean) : [];
+        },
+        set: function(list) {
+          this.allSetting.ldapInboundTags = Array.isArray(list) ? list.join(',') : '';
+        }
+      },
       fragment: {
         get: function () { return this.allSetting?.subJsonFragment != ""; },
         set: function (v) {
@@ -523,8 +598,6 @@
           if (this.allSetting.subEnable) {
             subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
             if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
-          }
-          if (this.allSetting.subJsonEnable) {
             subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
             if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
           }
@@ -534,6 +607,7 @@
     },
     async mounted() {
       await this.getAllSetting();
+      await this.loadInboundTags();
 
       while (true) {
         await PromiseUtil.sleep(1000);

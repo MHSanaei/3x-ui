@@ -50,7 +50,6 @@
 "fail" = "Falló"
 "comment" = "Comentario"
 "success" = "Éxito"
-"lastOnline" = "Última conexión"
 "getVersion" = "Obtener versión"
 "install" = "Instalar"
 "clients" = "Clientes"
@@ -72,20 +71,6 @@
 "emptyReverseDesc" = "No hay proxies inversos añadidos."
 "somethingWentWrong" = "Algo salió mal"
 
-[subscription]
-"title" = "Información de suscripción"
-"subId" = "ID de suscripción"
-"status" = "Estado"
-"downloaded" = "Descargado"
-"uploaded" = "Subido"
-"expiry" = "Caducidad"
-"totalQuota" = "Cuota total"
-"individualLinks" = "Enlaces individuales"
-"active" = "Activo"
-"inactive" = "Inactivo"
-"unlimited" = "Ilimitado"
-"noExpiry" = "Sin caducidad"
-
 [menu]
 "theme" = "Tema"
 "dark" = "Oscuro"
@@ -106,7 +91,7 @@
 "invalidFormData" = "El formato de los datos de entrada es inválido."
 "emptyUsername" = "Por favor ingresa el nombre de usuario."
 "emptyPassword" = "Por favor ingresa la contraseña."
-"wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."
+"wrongUsernameOrPassword" = "Nombre de usuario, contraseña o código de dos factores incorrecto."  
 "successLogin" = "Has iniciado sesión en tu cuenta correctamente."
 
 [pages.index]
@@ -166,8 +151,6 @@
 "getConfigError" = "Ocurrió un error al obtener el archivo de configuración"
 
 [pages.inbounds]
-"allTimeTraffic" = "Tráfico Total"
-"allTimeTrafficUsage" = "Uso total de todos los tiempos"
 "title" = "Entradas"
 "totalDownUp" = "Subidas/Descargas Totales"
 "totalUsage" = "Uso Total"
@@ -182,8 +165,6 @@
 "details" = "Detalles"
 "transportConfig" = "Transporte"
 "expireDate" = "Fecha de Expiración"
-"createdAt" = "Creado"
-"updatedAt" = "Actualizado"
 "resetTraffic" = "Restablecer Tráfico"
 "addInbound" = "Agregar Entrada"
 "generalActions" = "Acciones Generales"
@@ -244,9 +225,6 @@
 "exportInbound" = "Exportación entrante"
 "import" = "Importar"
 "importInbound" = "Importar un entrante"
-"periodicTrafficResetTitle" = "Reset de Tráfico"
-"periodicTrafficResetDesc" = "Reiniciar automáticamente el contador de tráfico en intervalos especificados"
-"lastReset" = "Último reinicio"
 
 [pages.client]
 "add" = "Agregar Cliente"
@@ -266,12 +244,6 @@
 "renew" = "Renovación automática"
 "renewDesc" = "Renovación automática después de la expiración. (0 = desactivar) (unidad: día)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "Nunca"
-"daily" = "Diariamente"
-"weekly" = "Semanalmente"
-"monthly" = "Mensualmente"
-
 [pages.inbounds.toasts]
 "obtain" = "Recibir"
 "updateSuccess" = "La actualización fue exitosa"
@@ -290,7 +262,6 @@
 "trafficGetError" = "Error al obtener los tráficos"
 "getNewX25519CertError" = "Error al obtener el certificado X25519."
 "getNewmldsa65Error" = "Error al obtener el certificado mldsa65."
-"getNewVlessEncError" = "Error al obtener el certificado VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Pedido"
@@ -371,7 +342,6 @@
 "subSettings" = "Suscripción"
 "subEnable" = "Habilitar Servicio"
 "subEnableDesc" = "Función de suscripción con configuración separada."
-"subJsonEnable" = "Habilitar/Deshabilitar el endpoint de suscripción JSON de forma independiente."
 "subTitle" = "Título de la Suscripción"
 "subTitleDesc" = "Título mostrado en el cliente de VPN"
 "subListen" = "Listening IP"
@@ -565,9 +535,9 @@
 
 [pages.settings.security]
 "admin" = "Credenciales de administrador"
-"twoFactor" = "Autenticación de dos factores"
-"twoFactorEnable" = "Habilitar 2FA"
-"twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."
+"twoFactor" = "Autenticación de dos factores"  
+"twoFactorEnable" = "Habilitar 2FA"  
+"twoFactorEnableDesc" = "Añade una capa adicional de autenticación para mayor seguridad."  
 "twoFactorModalSetTitle" = "Activar autenticación de dos factores"
 "twoFactorModalDeleteTitle" = "Desactivar autenticación de dos factores"
 "twoFactorModalSteps" = "Para configurar la autenticación de dos factores, sigue estos pasos:"
@@ -591,24 +561,23 @@
 "resetOutboundTrafficError" = "Error al reiniciar el tráfico saliente"
 
 [tgbot]
-"keyboardClosed" = "❌ Teclado cerrado!"
-"noResult" = "❗ ¡No hay resultados!"
-"noQuery" = "❌ ¡Consulta no encontrada! ¡Por favor, use el comando de nuevo!"
+"keyboardClosed" = "❌ ¡Teclado personalizado cerrado!"
+"noResult" = "❗ ¡Sin resultados!"
+"noQuery" = "❌ ¡Consulta no encontrada! ¡Por favor utiliza el comando nuevamente!"
 "wentWrong" = "❌ ¡Algo salió mal!"
-"noIpRecord" = "❗ ¡No hay registro de IP!"
+"noIpRecord" = "❗ ¡Sin Registro de IP!"
 "noInbounds" = "❗ ¡No se encontraron entradas!"
-"unlimited" = "♾ Ilimitado (Restablecer)"
-"add" = "Añadir"
+"unlimited" = "♾ Ilimitado"
+"add" = "Agregar"
 "month" = "Mes"
 "months" = "Meses"
 "day" = "Día"
 "days" = "Días"
 "hours" = "Horas"
-"minutes" = "Minutos"
 "unknown" = "Desconocido"
 "inbounds" = "Entradas"
 "clients" = "Clientes"
-"offline" = "🔴 Desconectado"
+"offline" = "🔴 Sin conexión"
 "online" = "🟢 En línea"
 
 [tgbot.commands]

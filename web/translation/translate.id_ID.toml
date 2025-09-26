@@ -50,7 +50,6 @@
 "fail" = "Gagal"
 "comment" = "Komentar"
 "success" = "Berhasil"
-"lastOnline" = "Terakhir online"
 "getVersion" = "Dapatkan Versi"
 "install" = "Instal"
 "clients" = "Klien"
@@ -71,20 +70,6 @@
 "emptyBalancersDesc" = "Tidak ada penyeimbang yang ditambahkan."
 "emptyReverseDesc" = "Tidak ada proxy terbalik yang ditambahkan."
 "somethingWentWrong" = "Terjadi kesalahan"
-
-[subscription]
-"title" = "Info langganan"
-"subId" = "ID langganan"
-"status" = "Status"
-"downloaded" = "Diunduh"
-"uploaded" = "Diunggah"
-"expiry" = "Kedaluwarsa"
-"totalQuota" = "Kuota total"
-"individualLinks" = "Tautan individual"
-"active" = "Aktif"
-"inactive" = "Nonaktif"
-"unlimited" = "Tanpa batas"
-"noExpiry" = "Tanpa kedaluwarsa"
 
 [menu]
 "theme" = "Tema"
@@ -166,8 +151,6 @@
 "getConfigError" = "Terjadi kesalahan saat mengambil file konfigurasi"
 
 [pages.inbounds]
-"allTimeTraffic" = "Total Lalu Lintas"
-"allTimeTrafficUsage" = "Total Penggunaan Sepanjang Waktu"
 "title" = "Masuk"
 "totalDownUp" = "Total Terkirim/Diterima"
 "totalUsage" = "Penggunaan Total"
@@ -182,8 +165,6 @@
 "details" = "Rincian"
 "transportConfig" = "Transport"
 "expireDate" = "Durasi"
-"createdAt" = "Dibuat"
-"updatedAt" = "Diperbarui"
 "resetTraffic" = "Reset Traffic"
 "addInbound" = "Tambahkan Masuk"
 "generalActions" = "Tindakan Umum"
@@ -244,9 +225,6 @@
 "exportInbound" = "Ekspor Masuk"
 "import" = "Impor"
 "importInbound" = "Impor Masuk"
-"periodicTrafficResetTitle" = "Reset Trafik Berkala"
-"periodicTrafficResetDesc" = "Reset otomatis penghitung trafik pada interval tertentu"
-"lastReset" = "Reset Terakhir"
 
 [pages.client]
 "add" = "Tambah Klien"
@@ -266,12 +244,6 @@
 "renew" = "Perpanjang Otomatis"
 "renewDesc" = "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif)(unit: hari)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "Tidak Pernah"
-"daily" = "Harian"
-"weekly" = "Mingguan"
-"monthly" = "Bulanan"
-
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"
 "updateSuccess" = "Pembaruan berhasil"
@@ -290,7 +262,6 @@
 "trafficGetError" = "Gagal mendapatkan data lalu lintas"
 "getNewX25519CertError" = "Terjadi kesalahan saat mendapatkan sertifikat X25519."
 "getNewmldsa65Error" = "Terjadi kesalahan saat mendapatkan sertifikat mldsa65."
-"getNewVlessEncError" = "Terjadi kesalahan saat mendapatkan sertifikat VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Permintaan"
@@ -371,7 +342,6 @@
 "subSettings" = "Langganan"
 "subEnable" = "Aktifkan Layanan Langganan"
 "subEnableDesc" = "Mengaktifkan layanan langganan."
-"subJsonEnable" = "Aktifkan/Nonaktifkan endpoint langganan JSON secara mandiri."
 "subTitle" = "Judul Langganan"
 "subTitleDesc" = "Judul yang ditampilkan di klien VPN"
 "subListen" = "IP Pendengar"
@@ -591,22 +561,21 @@
 "resetOutboundTrafficError" = "Gagal mereset lalu lintas keluar"
 
 [tgbot]
-"keyboardClosed" = "❌ Keyboard ditutup!"
+"keyboardClosed" = "❌ Papan ketik kustom ditutup!"
 "noResult" = "❗ Tidak ada hasil!"
-"noQuery" = "❌ Kueri tidak ditemukan! Silakan gunakan perintah lagi!"
-"wentWrong" = "❌ Terjadi kesalahan!"
+"noQuery" = "❌ Permintaan tidak ditemukan! Harap gunakan perintah lagi!"
+"wentWrong" = "❌ Ada yang salah!"
 "noIpRecord" = "❗ Tidak ada Catatan IP!"
-"noInbounds" = "❗ Tidak ada inbound yang ditemukan!"
-"unlimited" = "♾ Tidak terbatas (Reset)"
+"noInbounds" = "❗ Tidak ada masuk ditemukan!"
+"unlimited" = "♾ Tak terbatas"
 "add" = "Tambah"
 "month" = "Bulan"
 "months" = "Bulan"
 "day" = "Hari"
 "days" = "Hari"
 "hours" = "Jam"
-"minutes" = "Menit"
 "unknown" = "Tidak diketahui"
-"inbounds" = "Inbound"
+"inbounds" = "Masuk"
 "clients" = "Klien"
 "offline" = "🔴 Offline"
 "online" = "🟢 Online"

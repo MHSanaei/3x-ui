@@ -1,22 +1,18 @@
-// Package database provides database initialization, migration, and management utilities
-// for the 3x-ui panel using GORM with SQLite.
 package database
 
 import (
 	"bytes"
+	"fmt"
 	"io"
-	"io/fs"
 	"log"
 	"os"
-	"path"
-	"slices"
 
-	"github.com/mhsanaei/3x-ui/v2/config"
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/util/crypto"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"x-ui/config"
+	"x-ui/database/model"
+	"x-ui/util/crypto"
+	"x-ui/xray"
 
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
@@ -47,7 +43,6 @@ func initModels() error {
 	return nil
 }
 
-// initUser creates a default admin user if the users table is empty.
 func initUser() error {
 	empty, err := isTableEmpty("users")
 	if err != nil {
@@ -71,7 +66,15 @@ func initUser() error {
 	return nil
 }
 
-// runSeeders migrates user passwords to bcrypt and records seeder execution to prevent re-running.
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return s == item
+		}
+	}
+	return false
+}
+
 func runSeeders(isUsersEmpty bool) error {
 	empty, err := isTableEmpty("history_of_seeders")
 	if err != nil {
@@ -88,7 +91,7 @@ func runSeeders(isUsersEmpty bool) error {
 		var seedersHistory []string
 		db.Model(&model.HistoryOfSeeders{}).Pluck("seeder_name", &seedersHistory)
 
-		if !slices.Contains(seedersHistory, "UserPasswordHash") && !isUsersEmpty {
+		if !contains(seedersHistory, "UserPasswordHash") && !isUsersEmpty {
 			var users []model.User
 			db.Find(&users)
 
@@ -111,21 +114,13 @@ func runSeeders(isUsersEmpty bool) error {
 	return nil
 }
 
-// isTableEmpty returns true if the named table contains zero rows.
 func isTableEmpty(tableName string) (bool, error) {
 	var count int64
 	err := db.Table(tableName).Count(&count).Error
 	return count == 0, err
 }
 
-// InitDB sets up the database connection, migrates models, and runs seeders.
 func InitDB(dbPath string) error {
-	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, fs.ModePerm)
-	if err != nil {
-		return err
-	}
-
 	var gormLogger logger.Interface
 
 	if config.IsDebug() {
@@ -134,12 +129,25 @@ func InitDB(dbPath string) error {
 		gormLogger = logger.Discard
 	}
 
-	c := &gorm.Config{
-		Logger: gormLogger,
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbName := os.Getenv("DB_NAME")
+	dbUser := os.Getenv("DB_USER")
+	dbPass := os.Getenv("DB_PASSWORD")
+
+	if dbHost == "" || dbPort == "" || dbName == "" || dbUser == "" || dbPass == "" {
+		return fmt.Errorf("missing database configuration environment variables")
 	}
-	db, err = gorm.Open(sqlite.Open(dbPath), c)
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbUser, dbPass, dbHost, dbPort, dbName)
+
+	var err error
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: gormLogger,
+	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
 	if err := initModels(); err != nil {
@@ -154,10 +162,10 @@ func InitDB(dbPath string) error {
 	if err := initUser(); err != nil {
 		return err
 	}
+	
 	return runSeeders(isUsersEmpty)
 }
 
-// CloseDB closes the database connection if it exists.
 func CloseDB() error {
 	if db != nil {
 		sqlDB, err := db.DB()
@@ -169,17 +177,14 @@ func CloseDB() error {
 	return nil
 }
 
-// GetDB returns the global GORM database instance.
 func GetDB() *gorm.DB {
 	return db
 }
 
-// IsNotFound checks if the given error is a GORM record not found error.
 func IsNotFound(err error) bool {
 	return err == gorm.ErrRecordNotFound
 }
 
-// IsSQLiteDB checks if the given file is a valid SQLite database by reading its signature.
 func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	signature := []byte("SQLite format 3\x00")
 	buf := make([]byte, len(signature))
@@ -190,12 +195,7 @@ func IsSQLiteDB(file io.ReaderAt) (bool, error) {
 	return bytes.Equal(buf, signature), nil
 }
 
-// Checkpoint performs a WAL checkpoint on the SQLite database to ensure data consistency.
 func Checkpoint() error {
-	// Update WAL
-	err := db.Exec("PRAGMA wal_checkpoint;").Error
-	if err != nil {
-		return err
-	}
+	// MariaDB doesn't need WAL checkpoint
 	return nil
 }

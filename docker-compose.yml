@@ -1,16 +1,131 @@
+# services:
+#   # mysql1:
+#   #   image: mysql:8.0
+#   #   container_name: 3xui1_db
+#   #   environment:
+#   #     MYSQL_ROOT_PASSWORD: your_root_password
+#   #     MYSQL_DATABASE: x_ui_db
+#   #     MYSQL_USER: x_ui_user
+#   #     MYSQL_PASSWORD: your_password
+#   #   volumes:
+#   #     - mysql_data:/var/lib/mysql
+#   #   restart: unless-stopped
+#   #   ports:
+#   #     - "3307:3306"
+
+#   3xui1:
+#     build:
+#       context: .
+#       dockerfile: ./Dockerfile
+#     container_name: 3xui1_app
+#     volumes:
+#       - $PWD/cert/:/root/cert/
+#     environment:
+#       XRAY_VMESS_AEAD_FORCED: "false"
+#       XUI_ENABLE_FAIL2BAN: "true"
+#       DB_HOST: 
+#       DB_PORT: 3306
+#       DB_NAME: x_ui_db
+#       DB_USER: x_ui_user
+#       DB_PASSWORD: your_password
+#     tty: true
+#     # depends_on:
+#     #   - mysql
+#     networks:
+#       - default
+
+#     ports:
+#       - "20531:2053"
+#       - "20541:2054"
+#     restart: unless-stopped
+
+# volumes:
+#   mysql_data:
+
+
+# networks:
+#   default:
+#     driver: bridge
+version: "3.9"
+
 services:
-  3xui:
+  mysql1:
+    image: mysql:8.0
+    container_name: 3xui1_db
+    environment:
+      MYSQL_ROOT_PASSWORD: your_root_password
+      MYSQL_DATABASE: x_ui_db
+      MYSQL_USER: x_ui_user
+      MYSQL_PASSWORD: your_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    networks:
+      - default
+
+  3xui1:
     build:
       context: .
       dockerfile: ./Dockerfile
-    container_name: 3xui_app
-    # hostname: yourhostname <- optional
+    container_name: 3xui1_app
     volumes:
-      - $PWD/db/:/etc/x-ui/
-      - $PWD/cert/:/root/cert/
+      - ./cert/:/root/cert/
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      DB_HOST: mysql1
+      DB_PORT: 3306
+      DB_NAME: x_ui_db
+      DB_USER: x_ui_user
+      DB_PASSWORD: your_password
     tty: true
-    network_mode: host
+    depends_on:
+      - mysql1
+    networks:
+      - default
+    ports:
+      - "20531:2053"
+      - "20541:2054"
     restart: unless-stopped
+
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: ldap_server
+    environment:
+      LDAP_ORGANISATION: "TestOrg"
+      LDAP_DOMAIN: "test.local"
+      LDAP_ADMIN_PASSWORD: admin
+    ports:
+      - "389:389"
+      - "636:636"
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+    restart: unless-stopped
+    networks:
+      - default
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: ldap_admin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: ldap
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "8080:80"
+    depends_on:
+      - ldap
+    restart: unless-stopped
+    networks:
+      - default
+
+volumes:
+  mysql_data:
+  ldap_data:
+  ldap_config:
+
+networks:
+  default:
+    driver: bridge

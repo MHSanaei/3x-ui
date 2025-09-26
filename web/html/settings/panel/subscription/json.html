@@ -5,13 +5,7 @@
             <template #title>{{ i18n "pages.settings.subPath"}}</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
             <template #control>
-                <a-input
-                    type="text"
-                    v-model="allSetting.subJsonPath"
-                    @input="allSetting.subJsonPath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
-                    @blur="allSetting.subJsonPath = (p => { p = p || '/'; if (!p.startsWith('/')) p='/' + p; if (!p.endsWith('/')) p += '/'; return p.replace(/\/+/g,'/'); })(allSetting.subJsonPath)"
-                    placeholder="/json/"
-                ></a-input>
+                <a-input type="text" v-model="allSetting.subJsonPath"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -94,18 +88,6 @@
                             <a-input type="text" :value="noise.delay"
                                 @input="(value) => updateNoiseDelay(index, event.target.value)"
                                 placeholder="10-20"></a-input>
-                        </template>
-                    </a-setting-list-item>
-                    <a-setting-list-item paddings="small">
-                        <template #title>ApplyTo</template>
-                        <template #control>
-                            <a-select :value="noise.applyTo" :style="{ width: '100%' }"
-                                :dropdown-class-name="themeSwitcher.currentTheme"
-                                @change="(value) => updateNoiseApplyTo(index, value)">
-                                <a-select-option :value="p" :label="p" v-for="p in ['ip', 'ipv4', 'ipv6']" :key="p">
-                                    <span>[[ p ]]</span>
-                                </a-select-option>
-                            </a-select>
                         </template>
                     </a-setting-list-item>
                     <a-space direction="horizontal" :style="{ padding: '10px 20px' }">

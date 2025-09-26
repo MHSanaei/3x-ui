@@ -2,34 +2,24 @@ package xray
 
 import (
 	"regexp"
-	"runtime"
 	"strings"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
+	"x-ui/logger"
 )
 
-// NewLogWriter returns a new LogWriter for processing Xray log output.
 func NewLogWriter() *LogWriter {
 	return &LogWriter{}
 }
 
-// LogWriter processes and filters log output from the Xray process, handling crash detection and message filtering.
 type LogWriter struct {
 	lastLine string
 }
 
-// Write processes and filters log output from the Xray process, handling crash detection and message filtering.
 func (lw *LogWriter) Write(m []byte) (n int, err error) {
 	crashRegex := regexp.MustCompile(`(?i)(panic|exception|stack trace|fatal error)`)
 
 	// Convert the data to a string
 	message := strings.TrimSpace(string(m))
-	msgLowerAll := strings.ToLower(message)
-
-	// Suppress noisy Windows process-kill signal that surfaces as exit status 1
-	if runtime.GOOS == "windows" && strings.Contains(msgLowerAll, "exit status 1") {
-		return len(m), nil
-	}
 
 	// Check if the message contains a crash
 	if crashRegex.MatchString(message) {

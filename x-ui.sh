@@ -153,19 +153,11 @@ uninstall() {
         fi
         return 0
     fi
-
-    if [[ $release == "alpine" ]]; then
-        rc-service x-ui stop
-        rc-update del x-ui
-        rm /etc/init.d/x-ui -f
-    else
-        systemctl stop x-ui
-        systemctl disable x-ui
-        rm /etc/systemd/system/x-ui.service -f
-        systemctl daemon-reload
-        systemctl reset-failed
-    fi
-
+    systemctl stop x-ui
+    systemctl disable x-ui
+    rm /etc/systemd/system/x-ui.service -f
+    systemctl daemon-reload
+    systemctl reset-failed
     rm /etc/x-ui/ -rf
     rm /usr/local/x-ui/ -rf
 
@@ -294,11 +286,7 @@ start() {
         echo ""
         LOGI "Panel is running, No need to start again, If you need to restart, please select restart"
     else
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui start
-        else
-            systemctl start x-ui
-        fi
+        systemctl start x-ui
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
@@ -319,11 +307,7 @@ stop() {
         echo ""
         LOGI "Panel stopped, No need to stop again!"
     else
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop
-        else
-            systemctl stop x-ui
-        fi
+        systemctl stop x-ui
         sleep 2
         check_status
         if [[ $? == 1 ]]; then
@@ -339,11 +323,7 @@ stop() {
 }
 
 restart() {
-    if [[ $release == "alpine" ]]; then
-        rc-service x-ui restart
-    else
-        systemctl restart x-ui
-    fi
+    systemctl restart x-ui
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
@@ -357,22 +337,14 @@ restart() {
 }
 
 status() {
-    if [[ $release == "alpine" ]]; then
-        rc-service x-ui status
-    else
-        systemctl status x-ui -l
-    fi
+    systemctl status x-ui -l
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 enable() {
-    if [[ $release == "alpine" ]]; then
-        rc-update add x-ui
-    else
-        systemctl enable x-ui
-    fi
+    systemctl enable x-ui
     if [[ $? == 0 ]]; then
         LOGI "x-ui Set to boot automatically on startup successfully"
     else
@@ -385,11 +357,7 @@ enable() {
 }
 
 disable() {
-    if [[ $release == "alpine" ]]; then
-        rc-update del x-ui
-    else
-        systemctl disable x-ui
-    fi
+    systemctl disable x-ui
     if [[ $? == 0 ]]; then
         LOGI "x-ui Autostart Cancelled successfully"
     else
@@ -402,54 +370,63 @@ disable() {
 }
 
 show_log() {
-    if [[ $release == "alpine" ]]; then
-        echo -e "${green}\t1.${plain} Debug Log"
-        echo -e "${green}\t0.${plain} Back to Main Menu"
-        read -rp "Choose an option: " choice
+    echo -e "${green}\t1.${plain} Debug Log"
+    echo -e "${green}\t2.${plain} Clear All logs"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " choice
 
-        case "$choice" in
-        0)
-            show_menu
-            ;;
-        1)
-            grep -F 'x-ui[' /var/log/messages
-            if [[ $# == 0 ]]; then
-                before_show_menu
-            fi
-            ;;
-        *)
-            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-            show_log
-            ;;
-        esac
-    else
-        echo -e "${green}\t1.${plain} Debug Log"
-        echo -e "${green}\t2.${plain} Clear All logs"
-        echo -e "${green}\t0.${plain} Back to Main Menu"
-        read -rp "Choose an option: " choice
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        journalctl -u x-ui -e --no-pager -f -p debug
+        if [[ $# == 0 ]]; then
+            before_show_menu
+        fi
+        ;;
+    2)
+        sudo journalctl --rotate
+        sudo journalctl --vacuum-time=1s
+        echo "All Logs cleared."
+        restart
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        show_log
+        ;;
+    esac
+}
 
-        case "$choice" in
-        0)
-            show_menu
-            ;;
-        1)
-            journalctl -u x-ui -e --no-pager -f -p debug
-            if [[ $# == 0 ]]; then
-                before_show_menu
-            fi
-            ;;
-        2)
-            sudo journalctl --rotate
-            sudo journalctl --vacuum-time=1s
-            echo "All Logs cleared."
-            restart
-            ;;
-        *)
-            echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-            show_log
-            ;;
-        esac
+show_banlog() {
+    local system_log="/var/log/fail2ban.log"
+
+    echo -e "${green}Checking ban logs...${plain}\n"
+
+    if ! systemctl is-active --quiet fail2ban; then
+        echo -e "${red}Fail2ban service is not running!${plain}\n"
+        return 1
     fi
+
+    if [[ -f "$system_log" ]]; then
+        echo -e "${green}Recent system ban activities from fail2ban.log:${plain}"
+        grep "3x-ipl" "$system_log" | grep -E "Ban|Unban" | tail -n 10 || echo -e "${yellow}No recent system ban activities found${plain}"
+        echo ""
+    fi
+
+    if [[ -f "${iplimit_banned_log_path}" ]]; then
+        echo -e "${green}3X-IPL ban log entries:${plain}"
+        if [[ -s "${iplimit_banned_log_path}" ]]; then
+            grep -v "INIT" "${iplimit_banned_log_path}" | tail -n 10 || echo -e "${yellow}No ban entries found${plain}"
+        else
+            echo -e "${yellow}Ban log file is empty${plain}"
+        fi
+    else
+        echo -e "${red}Ban log file not found at: ${iplimit_banned_log_path}${plain}"
+    fi
+
+    echo -e "\n${green}Current jail status:${plain}"
+    fail2ban-client status 3x-ipl || echo -e "${yellow}Unable to get jail status${plain}"
 }
 
 bbr_menu() {
@@ -518,9 +495,6 @@ enable_bbr() {
     arch | manjaro | parch)
         pacman -Sy --noconfirm ca-certificates
         ;;
-    alpine)
-        apk add ca-certificates
-        ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
         exit 1
@@ -557,42 +531,23 @@ update_shell() {
 
 # 0: running, 1: not running, 2: not installed
 check_status() {
-    if [[ $release == "alpine" ]]; then
-        if [[ ! -f /etc/init.d/x-ui ]]; then
-            return 2
-        fi
-        if [[ $(rc-service x-ui status | grep -F 'status: started' -c) == 1 ]]; then
-            return 0
-        else
-            return 1
-        fi
+    if [[ ! -f /etc/systemd/system/x-ui.service ]]; then
+        return 2
+    fi
+    temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
+    if [[ "${temp}" == "running" ]]; then
+        return 0
     else
-        if [[ ! -f /etc/systemd/system/x-ui.service ]]; then
-            return 2
-        fi
-        temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-        if [[ "${temp}" == "running" ]]; then
-            return 0
-        else
-            return 1
-        fi
+        return 1
     fi
 }
 
 check_enabled() {
-    if [[ $release == "alpine" ]]; then
-        if [[ $(rc-update show | grep -F 'x-ui' | grep default -c) == 1 ]]; then
-            return 0
-        else
-            return 1
-        fi
+    temp=$(systemctl is-enabled x-ui)
+    if [[ "${temp}" == "enabled" ]]; then
+        return 0
     else
-        temp=$(systemctl is-enabled x-ui)
-        if [[ "${temp}" == "enabled" ]]; then
-            return 0
-        else
-            return 1
-        fi
+        return 1
     fi
 }
 
@@ -874,11 +829,7 @@ update_geo() {
         show_menu
         ;;
     1)
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop
-        else
-            systemctl stop x-ui
-        fi
+        systemctl stop x-ui
         rm -f geoip.dat geosite.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
@@ -886,11 +837,7 @@ update_geo() {
         restart
         ;;
     2)
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop
-        else
-            systemctl stop x-ui
-        fi
+        systemctl stop x-ui
         rm -f geoip_IR.dat geosite_IR.dat
         wget -O geoip_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
@@ -898,11 +845,7 @@ update_geo() {
         restart
         ;;
     3)
-        if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop
-        else
-            systemctl stop x-ui
-        fi
+        systemctl stop x-ui
         rm -f geoip_RU.dat geosite_RU.dat
         wget -O geoip_RU.dat -N https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -O geosite_RU.dat -N https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
@@ -1062,7 +1005,7 @@ ssl_cert_issue() {
     # install socat second
     case "${release}" in
     ubuntu | debian | armbian)
-        apt-get update && apt-get install socat -y
+        apt update && apt install socat -y
         ;;
     centos | rhel | almalinux | rocky | ol)
         yum -y update && yum -y install socat
@@ -1072,9 +1015,6 @@ ssl_cert_issue() {
         ;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
-        ;;
-    alpine)
-        apk add socat
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
@@ -1390,311 +1330,6 @@ run_speedtest() {
     speedtest
 }
 
-
-
-ip_validation() {
-    ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
-    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
-}
-
-iplimit_main() {
-    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
-    echo -e "${green}\t2.${plain} Change Ban Duration"
-    echo -e "${green}\t3.${plain} Unban Everyone"
-    echo -e "${green}\t4.${plain} Ban Logs"
-    echo -e "${green}\t5.${plain} Ban an IP Address"
-    echo -e "${green}\t6.${plain} Unban an IP Address"
-    echo -e "${green}\t7.${plain} Real-Time Logs"
-    echo -e "${green}\t8.${plain} Service Status"
-    echo -e "${green}\t9.${plain} Service Restart"
-    echo -e "${green}\t10.${plain} Uninstall Fail2ban and IP Limit"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -rp "Choose an option: " choice
-    case "$choice" in
-    0)
-        show_menu
-        ;;
-    1)
-        confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
-        if [[ $? == 0 ]]; then
-            install_iplimit
-        else
-            iplimit_main
-        fi
-        ;;
-    2)
-        read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
-        if [[ $NUM =~ ^[0-9]+$ ]]; then
-            create_iplimit_jails ${NUM}
-            if [[ $release == "alpine" ]]; then
-                rc-service fail2ban restart
-            else
-                systemctl restart fail2ban
-            fi
-        else
-            echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
-        fi
-        iplimit_main
-        ;;
-    3)
-        confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
-        if [[ $? == 0 ]]; then
-            fail2ban-client reload --restart --unban 3x-ipl
-            truncate -s 0 "${iplimit_banned_log_path}"
-            echo -e "${green}All users Unbanned successfully.${plain}"
-            iplimit_main
-        else
-            echo -e "${yellow}Cancelled.${plain}"
-        fi
-        iplimit_main
-        ;;
-    4)
-        show_banlog
-        iplimit_main
-        ;;
-    5)
-        read -rp "Enter the IP address you want to ban: " ban_ip
-        ip_validation
-        if [[ $ban_ip =~ $ipv4_regex || $ban_ip =~ $ipv6_regex ]]; then
-            fail2ban-client set 3x-ipl banip "$ban_ip"
-            echo -e "${green}IP Address ${ban_ip} has been banned successfully.${plain}"
-        else
-            echo -e "${red}Invalid IP address format! Please try again.${plain}"
-        fi
-        iplimit_main
-        ;;
-    6)
-        read -rp "Enter the IP address you want to unban: " unban_ip
-        ip_validation
-        if [[ $unban_ip =~ $ipv4_regex || $unban_ip =~ $ipv6_regex ]]; then
-            fail2ban-client set 3x-ipl unbanip "$unban_ip"
-            echo -e "${green}IP Address ${unban_ip} has been unbanned successfully.${plain}"
-        else
-            echo -e "${red}Invalid IP address format! Please try again.${plain}"
-        fi
-        iplimit_main
-        ;;
-    7)
-        tail -f /var/log/fail2ban.log
-        iplimit_main
-        ;;
-    8)
-        service fail2ban status
-        iplimit_main
-        ;;
-    9)
-        if [[ $release == "alpine" ]]; then
-            rc-service fail2ban restart
-        else
-            systemctl restart fail2ban
-        fi
-        iplimit_main
-        ;;
-    10)
-        remove_iplimit
-        iplimit_main
-        ;;
-    *)
-        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-        iplimit_main
-        ;;
-    esac
-}
-
-install_iplimit() {
-    if ! command -v fail2ban-client &>/dev/null; then
-        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
-
-        # Check the OS and install necessary packages
-        case "${release}" in
-        ubuntu)
-            apt-get update
-            if [[ "${os_version}" -ge 24 ]]; then
-                apt-get install python3-pip -y
-                python3 -m pip install pyasynchat --break-system-packages
-            fi
-            apt-get install fail2ban -y
-            ;;
-        debian)
-            apt-get update
-            if [ "$os_version" -ge 12 ]; then
-                apt-get install -y python3-systemd
-            fi
-            apt-get install -y fail2ban
-            ;;
-        armbian)
-            apt-get update && apt-get install fail2ban -y
-            ;;
-        centos | rhel | almalinux | rocky | ol)
-            yum update -y && yum install epel-release -y
-            yum -y install fail2ban
-            ;;
-        fedora | amzn | virtuozzo)
-            dnf -y update && dnf -y install fail2ban
-            ;;
-        arch | manjaro | parch)
-            pacman -Syu --noconfirm fail2ban
-            ;;
-        alpine)
-            apk add fail2ban
-            ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1
-            ;;
-        esac
-
-        if ! command -v fail2ban-client &>/dev/null; then
-            echo -e "${red}Fail2ban installation failed.${plain}\n"
-            exit 1
-        fi
-
-        echo -e "${green}Fail2ban installed successfully!${plain}\n"
-    else
-        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
-    fi
-
-    echo -e "${green}Configuring IP Limit...${plain}\n"
-
-    # make sure there's no conflict for jail files
-    iplimit_remove_conflicts
-
-    # Check if log file exists
-    if ! test -f "${iplimit_banned_log_path}"; then
-        touch ${iplimit_banned_log_path}
-    fi
-
-    # Check if service log file exists so fail2ban won't return error
-    if ! test -f "${iplimit_log_path}"; then
-        touch ${iplimit_log_path}
-    fi
-
-    # Create the iplimit jail files
-    # we didn't pass the bantime here to use the default value
-    create_iplimit_jails
-
-    # Launching fail2ban
-    if [[ $release == "alpine" ]]; then
-        if [[ $(rc-service fail2ban status | grep -F 'status: started' -c) == 0 ]]; then
-            rc-service fail2ban start
-        else
-            rc-service fail2ban restart
-        fi
-        rc-update add fail2ban
-    else
-        if ! systemctl is-active --quiet fail2ban; then
-            systemctl start fail2ban
-        else
-            systemctl restart fail2ban
-        fi
-        systemctl enable fail2ban
-    fi
-
-    echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
-    before_show_menu
-}
-
-remove_iplimit() {
-    echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
-    echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
-    echo -e "${green}\t0.${plain} Back to Main Menu"
-    read -rp "Choose an option: " num
-    case "$num" in
-    1)
-        rm -f /etc/fail2ban/filter.d/3x-ipl.conf
-        rm -f /etc/fail2ban/action.d/3x-ipl.conf
-        rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-        if [[ $release == "alpine" ]]; then
-            rc-service fail2ban restart
-        else
-            systemctl restart fail2ban
-        fi
-        echo -e "${green}IP Limit removed successfully!${plain}\n"
-        before_show_menu
-        ;;
-    2)
-        rm -rf /etc/fail2ban
-        if [[ $release == "alpine" ]]; then
-            rc-service fail2ban stop
-        else
-            systemctl stop fail2ban
-        fi
-        case "${release}" in
-        ubuntu | debian | armbian)
-            apt-get remove -y fail2ban
-            apt-get purge -y fail2ban -y
-            apt-get autoremove -y
-            ;;
-        centos | rhel | almalinux | rocky | ol)
-            yum remove fail2ban -y
-            yum autoremove -y
-            ;;
-        fedora | amzn | virtuozzo)
-            dnf remove fail2ban -y
-            dnf autoremove -y
-            ;;
-        arch | manjaro | parch)
-            pacman -Rns --noconfirm fail2ban
-            ;;
-        alpine)
-            apk del fail2ban
-            ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
-            exit 1
-            ;;
-        esac
-        echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
-        before_show_menu
-        ;;
-    0)
-        show_menu
-        ;;
-    *)
-        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
-        remove_iplimit
-        ;;
-    esac
-}
-
-show_banlog() {
-    local system_log="/var/log/fail2ban.log"
-
-    echo -e "${green}Checking ban logs...${plain}\n"
-
-    if [[ $release == "alpine" ]]; then
-        if [[ $(rc-service fail2ban status | grep -F 'status: started' -c) == 0 ]]; then
-            echo -e "${red}Fail2ban service is not running!${plain}\n"
-            return 1
-        fi
-    else
-        if ! systemctl is-active --quiet fail2ban; then
-            echo -e "${red}Fail2ban service is not running!${plain}\n"
-            return 1
-        fi
-    fi
-
-    if [[ -f "$system_log" ]]; then
-        echo -e "${green}Recent system ban activities from fail2ban.log:${plain}"
-        grep "3x-ipl" "$system_log" | grep -E "Ban|Unban" | tail -n 10 || echo -e "${yellow}No recent system ban activities found${plain}"
-        echo ""
-    fi
-
-    if [[ -f "${iplimit_banned_log_path}" ]]; then
-        echo -e "${green}3X-IPL ban log entries:${plain}"
-        if [[ -s "${iplimit_banned_log_path}" ]]; then
-            grep -v "INIT" "${iplimit_banned_log_path}" | tail -n 10 || echo -e "${yellow}No ban entries found${plain}"
-        else
-            echo -e "${yellow}Ban log file is empty${plain}"
-        fi
-    else
-        echo -e "${red}Ban log file not found at: ${iplimit_banned_log_path}${plain}"
-    fi
-
-    echo -e "\n${green}Current jail status:${plain}"
-    fail2ban-client status 3x-ipl || echo -e "${yellow}Unable to get jail status${plain}"
-}
-
 create_iplimit_jails() {
     # Use default bantime if not passed => 30 minutes
     local bantime="${1:-30}"
@@ -1771,22 +1406,237 @@ iplimit_remove_conflicts() {
     done
 }
 
-SSH_port_forwarding() {
-    local URL_lists=(
-        "https://api4.ipify.org"
-		"https://ipv4.icanhazip.com"
-		"https://v4.api.ipinfo.io/ip"
-		"https://ipv4.myexternalip.com/raw"
-		"https://4.ident.me"
-		"https://check-host.net/ip"
-    )
-    local server_ip=""
-    for ip_address in "${URL_lists[@]}"; do
-        server_ip=$(curl -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
-        if [[ -n "${server_ip}" ]]; then
-            break
+ip_validation() {
+    ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
+    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
+}
+
+iplimit_main() {
+    echo -e "\n${green}\t1.${plain} Install Fail2ban and configure IP Limit"
+    echo -e "${green}\t2.${plain} Change Ban Duration"
+    echo -e "${green}\t3.${plain} Unban Everyone"
+    echo -e "${green}\t4.${plain} Ban Logs"
+    echo -e "${green}\t5.${plain} Ban an IP Address"
+    echo -e "${green}\t6.${plain} Unban an IP Address"
+    echo -e "${green}\t7.${plain} Real-Time Logs"
+    echo -e "${green}\t8.${plain} Service Status"
+    echo -e "${green}\t9.${plain} Service Restart"
+    echo -e "${green}\t10.${plain} Uninstall Fail2ban and IP Limit"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " choice
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        confirm "Proceed with installation of Fail2ban & IP Limit?" "y"
+        if [[ $? == 0 ]]; then
+            install_iplimit
+        else
+            iplimit_main
         fi
-    done
+        ;;
+    2)
+        read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
+        if [[ $NUM =~ ^[0-9]+$ ]]; then
+            create_iplimit_jails ${NUM}
+            systemctl restart fail2ban
+        else
+            echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
+        fi
+        iplimit_main
+        ;;
+    3)
+        confirm "Proceed with Unbanning everyone from IP Limit jail?" "y"
+        if [[ $? == 0 ]]; then
+            fail2ban-client reload --restart --unban 3x-ipl
+            truncate -s 0 "${iplimit_banned_log_path}"
+            echo -e "${green}All users Unbanned successfully.${plain}"
+            iplimit_main
+        else
+            echo -e "${yellow}Cancelled.${plain}"
+        fi
+        iplimit_main
+        ;;
+    4)
+        show_banlog
+        iplimit_main
+        ;;
+    5)
+        read -rp "Enter the IP address you want to ban: " ban_ip
+        ip_validation
+        if [[ $ban_ip =~ $ipv4_regex || $ban_ip =~ $ipv6_regex ]]; then
+            fail2ban-client set 3x-ipl banip "$ban_ip"
+            echo -e "${green}IP Address ${ban_ip} has been banned successfully.${plain}"
+        else
+            echo -e "${red}Invalid IP address format! Please try again.${plain}"
+        fi
+        iplimit_main
+        ;;
+    6)
+        read -rp "Enter the IP address you want to unban: " unban_ip
+        ip_validation
+        if [[ $unban_ip =~ $ipv4_regex || $unban_ip =~ $ipv6_regex ]]; then
+            fail2ban-client set 3x-ipl unbanip "$unban_ip"
+            echo -e "${green}IP Address ${unban_ip} has been unbanned successfully.${plain}"
+        else
+            echo -e "${red}Invalid IP address format! Please try again.${plain}"
+        fi
+        iplimit_main
+        ;;
+    7)
+        tail -f /var/log/fail2ban.log
+        iplimit_main
+        ;;
+    8)
+        service fail2ban status
+        iplimit_main
+        ;;
+    9)
+        systemctl restart fail2ban
+        iplimit_main
+        ;;
+    10)
+        remove_iplimit
+        iplimit_main
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        iplimit_main
+        ;;
+    esac
+}
+
+install_iplimit() {
+    if ! command -v fail2ban-client &>/dev/null; then
+        echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
+
+        # Check the OS and install necessary packages
+        case "${release}" in
+        ubuntu)
+            if [[ "${os_version}" -ge 24 ]]; then
+                apt update && apt install python3-pip -y
+                python3 -m pip install pyasynchat --break-system-packages
+            fi
+            apt update && apt install fail2ban -y
+            ;;
+        debian | armbian)
+            apt update && apt install fail2ban -y
+            ;;
+        centos | rhel | almalinux | rocky | ol)
+            yum update -y && yum install epel-release -y
+            yum -y install fail2ban
+            ;;
+        fedora | amzn | virtuozzo)
+            dnf -y update && dnf -y install fail2ban
+            ;;
+        arch | manjaro | parch)
+            pacman -Syu --noconfirm fail2ban
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
+            exit 1
+            ;;
+        esac
+
+        if ! command -v fail2ban-client &>/dev/null; then
+            echo -e "${red}Fail2ban installation failed.${plain}\n"
+            exit 1
+        fi
+
+        echo -e "${green}Fail2ban installed successfully!${plain}\n"
+    else
+        echo -e "${yellow}Fail2ban is already installed.${plain}\n"
+    fi
+
+    echo -e "${green}Configuring IP Limit...${plain}\n"
+
+    # make sure there's no conflict for jail files
+    iplimit_remove_conflicts
+
+    # Check if log file exists
+    if ! test -f "${iplimit_banned_log_path}"; then
+        touch ${iplimit_banned_log_path}
+    fi
+
+    # Check if service log file exists so fail2ban won't return error
+    if ! test -f "${iplimit_log_path}"; then
+        touch ${iplimit_log_path}
+    fi
+
+    # Create the iplimit jail files
+    # we didn't pass the bantime here to use the default value
+    create_iplimit_jails
+
+    # Launching fail2ban
+    if ! systemctl is-active --quiet fail2ban; then
+        systemctl start fail2ban
+    else
+        systemctl restart fail2ban
+    fi
+    systemctl enable fail2ban
+
+    echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
+    before_show_menu
+}
+
+remove_iplimit() {
+    echo -e "${green}\t1.${plain} Only remove IP Limit configurations"
+    echo -e "${green}\t2.${plain} Uninstall Fail2ban and IP Limit"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " num
+    case "$num" in
+    1)
+        rm -f /etc/fail2ban/filter.d/3x-ipl.conf
+        rm -f /etc/fail2ban/action.d/3x-ipl.conf
+        rm -f /etc/fail2ban/jail.d/3x-ipl.conf
+        systemctl restart fail2ban
+        echo -e "${green}IP Limit removed successfully!${plain}\n"
+        before_show_menu
+        ;;
+    2)
+        rm -rf /etc/fail2ban
+        systemctl stop fail2ban
+        case "${release}" in
+        ubuntu | debian | armbian)
+            apt-get remove -y fail2ban
+            apt-get purge -y fail2ban -y
+            apt-get autoremove -y
+            ;;
+        centos | rhel | almalinux | rocky | ol)
+            yum remove fail2ban -y
+            yum autoremove -y
+            ;;
+        fedora | amzn | virtuozzo)
+            dnf remove fail2ban -y
+            dnf autoremove -y
+            ;;
+        arch | manjaro | parch)
+            pacman -Rns --noconfirm fail2ban
+            ;;
+        *)
+            echo -e "${red}Unsupported operating system. Please uninstall Fail2ban manually.${plain}\n"
+            exit 1
+            ;;
+        esac
+        echo -e "${green}Fail2ban and IP Limit removed successfully!${plain}\n"
+        before_show_menu
+        ;;
+    0)
+        show_menu
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        remove_iplimit
+        ;;
+    esac
+}
+
+SSH_port_forwarding() {
+    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
+    if [ -z "$server_ip" ]; then
+        server_ip=$(curl -s --max-time 3 https://4.ident.me)
+    fi
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_listenIP=$(/usr/local/x-ui/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')

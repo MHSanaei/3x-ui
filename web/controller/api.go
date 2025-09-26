@@ -1,58 +1,60 @@
 package controller
 
 import (
-	"net/http"
-
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/web/session"
+	"x-ui/web/service"
 
 	"github.com/gin-gonic/gin"
 )
 
-// APIController handles the main API routes for the 3x-ui panel, including inbounds and server management.
 type APIController struct {
 	BaseController
 	inboundController *InboundController
-	serverController  *ServerController
 	Tgbot             service.Tgbot
 }
 
-// NewAPIController creates a new APIController instance and initializes its routes.
 func NewAPIController(g *gin.RouterGroup) *APIController {
 	a := &APIController{}
 	a.initRouter(g)
 	return a
 }
 
-// checkAPIAuth is a middleware that returns 404 for unauthenticated API requests
-// to hide the existence of API endpoints from unauthorized users
-func (a *APIController) checkAPIAuth(c *gin.Context) {
-	if !session.IsLogin(c) {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
-	}
-	c.Next()
-}
-
-// initRouter sets up the API routes for inbounds, server, and other endpoints.
 func (a *APIController) initRouter(g *gin.RouterGroup) {
-	// Main API group
-	api := g.Group("/panel/api")
-	api.Use(a.checkAPIAuth)
+	g = g.Group("/panel/api/inbounds")
+	g.Use(a.checkLogin)
 
-	// Inbounds API
-	inbounds := api.Group("/inbounds")
-	a.inboundController = NewInboundController(inbounds)
+	a.inboundController = NewInboundController(g)
 
-	// Server API
-	server := api.Group("/server")
-	a.serverController = NewServerController(server)
+	inboundRoutes := []struct {
+		Method  string
+		Path    string
+		Handler gin.HandlerFunc
+	}{
+		{"GET", "/createbackup", a.createBackup},
+		{"GET", "/list", a.inboundController.getInbounds},
+		{"GET", "/get/:id", a.inboundController.getInbound},
+		{"GET", "/getClientTraffics/:email", a.inboundController.getClientTraffics},
+		{"GET", "/getClientTrafficsById/:id", a.inboundController.getClientTrafficsById},
+		{"POST", "/add", a.inboundController.addInbound},
+		{"POST", "/del/:id", a.inboundController.delInbound},
+		{"POST", "/update/:id", a.inboundController.updateInbound},
+		{"POST", "/clientIps/:email", a.inboundController.getClientIps},
+		{"POST", "/clearClientIps/:email", a.inboundController.clearClientIps},
+		{"POST", "/addClient", a.inboundController.addInboundClient},
+		{"POST", "/:id/delClient/:clientId", a.inboundController.delInboundClient},
+		{"POST", "/updateClient/:clientId", a.inboundController.updateInboundClient},
+		{"POST", "/:id/resetClientTraffic/:email", a.inboundController.resetClientTraffic},
+		{"POST", "/resetAllTraffics", a.inboundController.resetAllTraffics},
+		{"POST", "/resetAllClientTraffics/:id", a.inboundController.resetAllClientTraffics},
+		{"POST", "/delDepletedClients/:id", a.inboundController.delDepletedClients},
+		{"POST", "/onlines", a.inboundController.onlines},
+		{"POST", "/updateClientTraffic/:email", a.inboundController.updateClientTraffic},
+	}
 
-	// Extra routes
-	api.GET("/backuptotgbot", a.BackuptoTgbot)
+	for _, route := range inboundRoutes {
+		g.Handle(route.Method, route.Path, route.Handler)
+	}
 }
 
-// BackuptoTgbot sends a backup of the panel data to Telegram bot admins.
-func (a *APIController) BackuptoTgbot(c *gin.Context) {
+func (a *APIController) createBackup(c *gin.Context) {
 	a.Tgbot.SendBackupToAdmins()
 }

@@ -3,23 +3,57 @@
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
+<style>
+  @media (min-width: 769px) {
+    .ant-layout-content {
+      margin: 24px 16px;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .ant-tabs-nav .ant-tabs-tab {
+      margin: 0;
+      padding: 12px .5rem;
+    }
+
+    .ant-table-thead>tr>th,
+    .ant-table-tbody>tr>td {
+      padding: 10px 0px;
+    }
+  }
+
+  .ant-tabs-bar {
+    margin: 0;
+  }
+
+  .ant-list-item {
+    display: block;
+  }
+
+  .ant-list-item>li {
+    padding: 10px 20px !important;
+  }
+
+  .ant-collapse-content-box .ant-alert {
+    margin-block-end: 12px;
+  }
+</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' xray-page'">
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
       <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
         <transition name="list" appear>
-          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
-            message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }" message='{{ i18n "secAlertTitle" }}'
+            color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
           </a-alert>
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card
-              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+            <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
               <a-spin tip='{{ i18n "loading" }}'></a-spin>
             </a-card>
           </a-row>
@@ -38,8 +72,7 @@
                       <a-popover v-if="restartResult" :overlay-class-name="themeSwitcher.currentTheme">
                         <span slot="title">{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
                         <template slot="content">
-                          <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line
-                            ]]</span>
+                          <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line ]]</span>
                         </template>
                         <a-icon type="question-circle"></a-icon>
                       </a-popover>
@@ -148,9 +181,8 @@
     { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
     {
       title: '{{ i18n "pages.xray.rules.source"}}', children: [
-        { title: 'IP', dataIndex: "sourceIP", align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true },
-        { title: 'VLESS Route', dataIndex: 'vlessRoute', align: 'center', width: 15, ellipsis: true }]
+        { title: 'IP', dataIndex: "source", align: 'center', width: 20, ellipsis: true },
+        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true }]
     },
     {
       title: '{{ i18n "pages.inbounds.network"}}', children: [
@@ -319,7 +351,7 @@
           { label: '🇨🇳 China', value: 'geosite:cn' },
           { label: '🇨🇳 .cn', value: 'regexp:.*\\.cn$' },
           { label: '🇷🇺 Russia', value: 'ext:geosite_RU.dat:ru-available-only-inside' },
-          { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru$' },
+          { label: '🇷🇺 .ru', value: 'regexp:.*\\.ru' },
           { label: '🇷🇺 .su', value: 'regexp:.*\\.su$' },
           { label: '🇷🇺 .рф', value: 'regexp:.*\\.xn--p1ai$' },
           { label: '🇻🇳 .vn', value: 'regexp:.*\\.vn$' },
@@ -388,7 +420,7 @@
       },
       async restartXray() {
         this.loading(true);
-        const msg = await HttpUtil.post("/panel/api/server/restartXrayService");
+        const msg = await HttpUtil.post("server/restartXrayService");
         this.loading(false);
         if (msg.success) {
           await PromiseUtil.sleep(500);
@@ -536,10 +568,9 @@
         serverObj = null;
         switch (o.protocol) {
           case Protocols.VMess:
+          case Protocols.VLESS:
             serverObj = o.settings.vnext;
             break;
-          case Protocols.VLESS:
-            return [o.settings?.address + ':' + o.settings?.port];
           case Protocols.HTTP:
           case Protocols.Socks:
           case Protocols.Shadowsocks:

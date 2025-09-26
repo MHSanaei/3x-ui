@@ -42,9 +42,6 @@
           <a-form-item label='Interval'>
             <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
-          <a-form-item label='Max Split'>
-            <a-input v-model.trim="outbound.settings.fragment.maxSplit"></a-input>
-          </a-form-item>
         </template>
 
         <!-- Switch for Noises -->
@@ -78,11 +75,6 @@
             <a-form-item label='Delay'>
               <a-input v-model.trim="noise.delay"></a-input>
             </a-form-item>
-            <a-form-item label='Apply To'>
-              <a-select v-model="noise.applyTo" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['ip','ipv4','ipv6']" :value="s">[[ s ]]</a-select-option>
-              </a-select>
-            </a-form-item>
           </a-form>
         </template>
       </template>
@@ -105,7 +97,7 @@
         </a-form-item>
         <a-form-item label='non-IP queries'>
           <a-select v-model="outbound.settings.nonIPQuery" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in ['reject','drop','skip']" :value="s">[[ s ]]</a-select-option>
+            <a-select-option v-for="s in ['drop','skip']" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types' >
@@ -210,7 +202,7 @@
         </a-form-item>
       </template>
 
-  <!-- VLESS/VMess user settings -->
+      <!-- Vnext (vless/vmess) settings -->
       <template v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>
@@ -226,11 +218,6 @@
         </template>
 
         <!-- vless settings -->
-        <template v-if="outbound.protocol === Protocols.VLESS">
-          <a-form-item label='encryption'>
-            <a-input v-model.trim="outbound.settings.encryption"></a-input>
-          </a-form-item>
-        </template>
         <template v-if="outbound.canEnableTlsFlow()">
           <a-form-item label='Flow'>
             <a-select v-model="outbound.settings.flow" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -440,9 +427,6 @@
             <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" v-model="outbound.stream.tls.alpn">
               <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
             </a-select>
-          </a-form-item>
-          <a-form-item label="ECH Config List">
-            <a-input v-model.trim="outbound.stream.tls.echConfigList"></a-input>
           </a-form-item>
           <a-form-item label="Allow Insecure">
             <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>

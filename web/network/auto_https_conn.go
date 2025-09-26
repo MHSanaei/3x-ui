@@ -1,5 +1,3 @@
-// Package network provides network utilities for the 3x-ui web panel,
-// including automatic HTTP to HTTPS redirection functionality.
 package network
 
 import (
@@ -11,9 +9,6 @@ import (
 	"sync"
 )
 
-// AutoHttpsConn wraps a net.Conn to provide automatic HTTP to HTTPS redirection.
-// It intercepts the first read to detect HTTP requests and responds with a 307 redirect
-// to the HTTPS equivalent URL. Subsequent reads work normally for HTTPS connections.
 type AutoHttpsConn struct {
 	net.Conn
 
@@ -23,8 +18,6 @@ type AutoHttpsConn struct {
 	readRequestOnce sync.Once
 }
 
-// NewAutoHttpsConn creates a new AutoHttpsConn that wraps the given connection.
-// It enables automatic redirection of HTTP requests to HTTPS.
 func NewAutoHttpsConn(conn net.Conn) net.Conn {
 	return &AutoHttpsConn{
 		Conn: conn,
@@ -56,9 +49,6 @@ func (c *AutoHttpsConn) readRequest() bool {
 	return true
 }
 
-// Read implements the net.Conn Read method with automatic HTTPS redirection.
-// On the first read, it checks if the request is HTTP and redirects to HTTPS if so.
-// Subsequent reads work normally.
 func (c *AutoHttpsConn) Read(buf []byte) (int, error) {
 	c.readRequestOnce.Do(func() {
 		c.readRequest()

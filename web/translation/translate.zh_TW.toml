@@ -50,7 +50,6 @@
 "fail" = "失敗"
 "comment" = "評論"
 "success" = "成功"
-"lastOnline" = "上次上線"
 "getVersion" = "獲取版本"
 "install" = "安裝"
 "clients" = "客戶端"
@@ -71,20 +70,6 @@
 "emptyBalancersDesc" = "未添加負載平衡器。"
 "emptyReverseDesc" = "未添加反向代理。"
 "somethingWentWrong" = "發生錯誤"
-
-[subscription]
-"title" = "訂閱資訊"
-"subId" = "訂閱 ID"
-"status" = "狀態"
-"downloaded" = "已下載"
-"uploaded" = "已上傳"
-"expiry" = "到期"
-"totalQuota" = "總配額"
-"individualLinks" = "個別連結"
-"active" = "啟用"
-"inactive" = "停用"
-"unlimited" = "無限制"
-"noExpiry" = "無到期"
 
 [menu]
 "theme" = "主題"
@@ -166,8 +151,6 @@
 "getConfigError" = "檢索設定檔時發生錯誤"
 
 [pages.inbounds]
-"allTimeTraffic" = "累計總流量"
-"allTimeTrafficUsage" = "所有时间总使用量"
 "title" = "入站列表"
 "totalDownUp" = "總上傳 / 下載"
 "totalUsage" = "總用量"
@@ -182,8 +165,6 @@
 "details" = "詳細資訊"
 "transportConfig" = "傳輸配置"
 "expireDate" = "到期時間"
-"createdAt" = "建立時間"
-"updatedAt" = "更新時間"
 "resetTraffic" = "重置流量"
 "addInbound" = "新增入站"
 "generalActions" = "通用操作"
@@ -244,9 +225,6 @@
 "exportInbound" = "匯出入站規則"
 "import"="匯入"
 "importInbound" = "匯入入站規則"
-"periodicTrafficResetTitle" = "流量重置"
-"periodicTrafficResetDesc" = "按指定間隔自動重置流量計數器"
-"lastReset" = "上次重置"
 
 [pages.client]
 "add" = "新增客戶端"
@@ -266,12 +244,6 @@
 "renew" = "自動續訂"
 "renewDesc" = "到期後自動續訂。(0 = 禁用)(單位: 天)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "從不"
-"daily" = "每日"
-"weekly" = "每週"
-"monthly" = "每月"
-
 [pages.inbounds.toasts]
 "obtain" = "獲取"
 "updateSuccess" = "更新成功"
@@ -290,7 +262,6 @@
 "trafficGetError" = "取得流量資料時發生錯誤"
 "getNewX25519CertError" = "取得X25519憑證時發生錯誤。"
 "getNewmldsa65Error" = "取得mldsa65憑證時發生錯誤。"
-"getNewVlessEncError" = "取得VlessEnc憑證時發生錯誤。"
 
 [pages.inbounds.stream.general]
 "request" = "請求"
@@ -371,7 +342,6 @@
 "subSettings" = "訂閱設定"
 "subEnable" = "啟用訂閱服務"
 "subEnableDesc" = "啟用訂閱服務功能"
-"subJsonEnable" = "獨立啟用/停用 JSON 訂閱端點。"
 "subTitle" = "訂閱標題"
 "subTitleDesc" = "在VPN客戶端中顯示的標題"
 "subListen" = "監聽 IP"
@@ -593,23 +563,22 @@
 [tgbot]
 "keyboardClosed" = "❌ 自定義鍵盤已關閉！"
 "noResult" = "❗ 沒有結果！"
-"noQuery" = "❌ 未找到查詢！請再次使用該命令！"
+"noQuery" = "❌ 未找到查詢！請重新使用命令！"
 "wentWrong" = "❌ 出了點問題！"
-"noIpRecord" = "❗ 沒有IP記錄！"
-"noInbounds" = "❗ 未找到入站！"
-"unlimited" = "♾ 無限（重置）"
-"add" = "添加"
+"noIpRecord" = "❗ 沒有 IP 記錄！"
+"noInbounds" = "❗ 沒有找到入站連線！"
+"unlimited" = "♾ 無限制"
+"add" = "新增"
 "month" = "月"
 "months" = "月"
 "day" = "天"
 "days" = "天"
 "hours" = "小時"
-"minutes" = "分鐘"
 "unknown" = "未知"
-"inbounds" = "入站"
+"inbounds" = "入站連線"
 "clients" = "客戶端"
 "offline" = "🔴 離線"
-"online" = "🟢 在線"
+"online" = "🟢 線上"
 
 [tgbot.commands]
 "unknown" = "❗ 未知命令"

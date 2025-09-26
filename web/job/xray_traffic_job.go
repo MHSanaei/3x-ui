@@ -2,15 +2,13 @@ package job
 
 import (
 	"encoding/json"
-
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"x-ui/logger"
+	"x-ui/web/service"
+	"x-ui/xray"
 
 	"github.com/valyala/fasthttp"
 )
 
-// XrayTrafficJob collects and processes traffic statistics from Xray, updating the database and optionally informing external APIs.
 type XrayTrafficJob struct {
 	settingService  service.SettingService
 	xrayService     service.XrayService
@@ -18,12 +16,10 @@ type XrayTrafficJob struct {
 	outboundService service.OutboundService
 }
 
-// NewXrayTrafficJob creates a new traffic collection job instance.
 func NewXrayTrafficJob() *XrayTrafficJob {
 	return new(XrayTrafficJob)
 }
 
-// Run collects traffic statistics from Xray and updates the database, triggering restart if needed.
 func (j *XrayTrafficJob) Run() {
 	if !j.xrayService.IsXrayRunning() {
 		return

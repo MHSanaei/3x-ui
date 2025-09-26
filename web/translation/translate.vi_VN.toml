@@ -50,7 +50,6 @@
 "fail" = "Thất bại"
 "comment" = "Bình luận"
 "success" = "Thành công"
-"lastOnline" = "Lần online gần nhất"
 "getVersion" = "Lấy phiên bản"
 "install" = "Cài đặt"
 "clients" = "Các khách hàng"
@@ -72,20 +71,6 @@
 "emptyReverseDesc" = "Không có proxy ngược nào được thêm."
 "somethingWentWrong" = "Đã xảy ra lỗi"
 
-[subscription]
-"title" = "Thông tin đăng ký"
-"subId" = "ID đăng ký"
-"status" = "Trạng thái"
-"downloaded" = "Đã tải xuống"
-"uploaded" = "Đã tải lên"
-"expiry" = "Hết hạn"
-"totalQuota" = "Tổng hạn mức"
-"individualLinks" = "Liên kết riêng lẻ"
-"active" = "Hoạt động"
-"inactive" = "Không hoạt động"
-"unlimited" = "Không giới hạn"
-"noExpiry" = "Không hết hạn"
-
 [menu]
 "theme" = "Chủ đề"
 "dark" = "Tối"
@@ -106,7 +91,7 @@
 "invalidFormData" = "Dạng dữ liệu nhập không hợp lệ."
 "emptyUsername" = "Vui lòng nhập tên người dùng."
 "emptyPassword" = "Vui lòng nhập mật khẩu."
-"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."
+"wrongUsernameOrPassword" = "Tên người dùng, mật khẩu hoặc mã xác thực hai yếu tố không hợp lệ."  
 "successLogin" = "Bạn đã đăng nhập vào tài khoản thành công."
 
 [pages.index]
@@ -166,8 +151,6 @@
 "getConfigError" = "Lỗi xảy ra khi truy xuất tệp cấu hình"
 
 [pages.inbounds]
-"allTimeTraffic" = "Tổng Lưu Lượng"
-"allTimeTrafficUsage" = "Tổng mức sử dụng mọi lúc"
 "title" = "Điểm vào (Inbounds)"
 "totalDownUp" = "Tổng tải lên/tải xuống"
 "totalUsage" = "Tổng sử dụng"
@@ -182,8 +165,6 @@
 "details" = "Chi tiết"
 "transportConfig" = "Giao vận"
 "expireDate" = "Ngày hết hạn"
-"createdAt" = "Tạo lúc"
-"updatedAt" = "Cập nhật"
 "resetTraffic" = "Đặt lại lưu lượng"
 "addInbound" = "Thêm điểm vào"
 "generalActions" = "Hành động chung"
@@ -244,9 +225,6 @@
 "exportInbound" = "Xuất nhập khẩu"
 "import" = "Nhập"
 "importInbound" = "Nhập inbound"
-"periodicTrafficResetTitle" = "Đặt lại lưu lượng"
-"periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
-"lastReset" = "Đặt lại lần cuối"
 
 [pages.client]
 "add" = "Thêm người dùng"
@@ -266,12 +244,6 @@
 "renew" = "Tự động gia hạn"
 "renewDesc" = "Tự động gia hạn sau khi hết hạn. (0 = tắt)(đơn vị: ngày)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "Không bao giờ"
-"daily" = "Hàng ngày"
-"weekly" = "Hàng tuần"
-"monthly" = "Hàng tháng"
-
 [pages.inbounds.toasts]
 "obtain" = "Nhận"
 "updateSuccess" = "Cập nhật thành công"
@@ -289,8 +261,7 @@
 "resetInboundClientTrafficSuccess" = "Đã đặt lại lưu lượng"
 "trafficGetError" = "Lỗi khi lấy thông tin lưu lượng"
 "getNewX25519CertError" = "Lỗi khi lấy chứng chỉ X25519."
-"getNewmldsa65Error" = "Lỗi khi lấy chứng chỉ mldsa65."
-"getNewVlessEncError" = "Lỗi khi lấy chứng chỉ VlessEnc."
+"getNewmldsa65Error" = "Lỗi khi lấy chúng tôi mldsa65."
 
 [pages.inbounds.stream.general]
 "request" = "Lời yêu cầu"
@@ -371,7 +342,6 @@
 "subSettings" = "Gói đăng ký"
 "subEnable" = "Bật dịch vụ"
 "subEnableDesc" = "Tính năng gói đăng ký với cấu hình riêng"
-"subJsonEnable" = "Bật/Tắt điểm cuối đăng ký JSON độc lập."
 "subTitle" = "Tiêu đề Đăng ký"
 "subTitleDesc" = "Tiêu đề hiển thị trong ứng dụng VPN"
 "subListen" = "Listening IP"
@@ -565,9 +535,9 @@
 
 [pages.settings.security]
 "admin" = "Thông tin đăng nhập quản trị viên"
-"twoFactor" = "Xác thực hai yếu tố"
-"twoFactorEnable" = "Bật 2FA"
-"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."
+"twoFactor" = "Xác thực hai yếu tố"  
+"twoFactorEnable" = "Bật 2FA"  
+"twoFactorEnableDesc" = "Thêm một lớp bảo mật bổ sung để tăng cường an toàn."  
 "twoFactorModalSetTitle" = "Bật xác thực hai yếu tố"
 "twoFactorModalDeleteTitle" = "Tắt xác thực hai yếu tố"
 "twoFactorModalSteps" = "Để thiết lập xác thực hai yếu tố, hãy thực hiện các bước sau:"
@@ -591,23 +561,22 @@
 "resetOutboundTrafficError" = "Lỗi khi đặt lại lưu lượng truy cập đi"
 
 [tgbot]
-"keyboardClosed" = "❌ Bàn phím đã đóng!"
+"keyboardClosed" = "❌ Bàn phím tùy chỉnh đã đóng!"
 "noResult" = "❗ Không có kết quả!"
-"noQuery" = "❌ Không tìm thấy truy vấn! Vui lòng sử dụng lại lệnh!"
+"noQuery" = "❌ Không tìm thấy truy vấn! Vui lòng sử dụng lệnh lại!"
 "wentWrong" = "❌ Đã xảy ra lỗi!"
 "noIpRecord" = "❗ Không có bản ghi IP!"
 "noInbounds" = "❗ Không tìm thấy inbound!"
-"unlimited" = "♾ Không giới hạn (Đặt lại)"
+"unlimited" = "♾ Không giới hạn"
 "add" = "Thêm"
 "month" = "Tháng"
 "months" = "Tháng"
 "day" = "Ngày"
 "days" = "Ngày"
 "hours" = "Giờ"
-"minutes" = "Phút"
-"unknown" = "Không xác định"
-"inbounds" = "Inbound"
-"clients" = "Client"
+"unknown" = "Không rõ"
+"inbounds" = "Vào"
+"clients" = "Các người dùng"
 "offline" = "🔴 Ngoại tuyến"
 "online" = "🟢 Trực tuyến"
 

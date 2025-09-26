@@ -3,11 +3,9 @@ package xray
 import (
 	"bytes"
 
-	"github.com/mhsanaei/3x-ui/v2/util/json_util"
+	"x-ui/util/json_util"
 )
 
-// Config represents the complete Xray configuration structure.
-// It contains all sections of an Xray config file including inbounds, outbounds, routing, etc.
 type Config struct {
 	LogConfig        json_util.RawMessage `json:"log"`
 	RouterConfig     json_util.RawMessage `json:"routing"`
@@ -25,7 +23,6 @@ type Config struct {
 	Metrics          json_util.RawMessage `json:"metrics"`
 }
 
-// Equals compares two Config instances for deep equality.
 func (c *Config) Equals(other *Config) bool {
 	if len(c.InboundConfigs) != len(other.InboundConfigs) {
 		return false

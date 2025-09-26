@@ -5,11 +5,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
+	"x-ui/logger"
 )
 
-// PanelService provides business logic for panel management operations.
-// It handles panel restart, updates, and system-level panel controls.
 type PanelService struct{}
 
 func (s *PanelService) RestartPanel(delay time.Duration) error {

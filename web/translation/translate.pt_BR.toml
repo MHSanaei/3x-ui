@@ -50,7 +50,6 @@
 "fail" = "Falhou"
 "comment" = "Comentário"
 "success" = "Com Sucesso"
-"lastOnline" = "Última vez online"
 "getVersion" = "Obter Versão"
 "install" = "Instalar"
 "clients" = "Clientes"
@@ -71,20 +70,6 @@
 "emptyBalancersDesc" = "Nenhum balanceador adicionado."
 "emptyReverseDesc" = "Nenhum proxy reverso adicionado."
 "somethingWentWrong" = "Algo deu errado"
-
-[subscription]
-"title" = "Informações da assinatura"
-"subId" = "ID da assinatura"
-"status" = "Status"
-"downloaded" = "Baixado"
-"uploaded" = "Enviado"
-"expiry" = "Validade"
-"totalQuota" = "Cota total"
-"individualLinks" = "Links individuais"
-"active" = "Ativo"
-"inactive" = "Inativo"
-"unlimited" = "Ilimitado"
-"noExpiry" = "Sem validade"
 
 [menu]
 "theme" = "Tema"
@@ -166,8 +151,6 @@
 "getConfigError" = "Ocorreu um erro ao recuperar o arquivo de configuração"
 
 [pages.inbounds]
-"allTimeTraffic" = "Tráfego Total"
-"allTimeTrafficUsage" = "Uso total de todos os tempos"
 "title" = "Inbounds"
 "totalDownUp" = "Total Enviado/Recebido"
 "totalUsage" = "Uso Total"
@@ -182,8 +165,6 @@
 "details" = "Detalhes"
 "transportConfig" = "Transporte"
 "expireDate" = "Duração"
-"createdAt" = "Criado"
-"updatedAt" = "Atualizado"
 "resetTraffic" = "Redefinir Tráfego"
 "addInbound" = "Adicionar Inbound"
 "generalActions" = "Ações Gerais"
@@ -244,9 +225,6 @@
 "exportInbound" = "Exportar Inbound"
 "import" = "Importar"
 "importInbound" = "Importar um Inbound"
-"periodicTrafficResetTitle" = "Reset de Tráfego"
-"periodicTrafficResetDesc" = "Reinicia automaticamente o contador de tráfego em intervalos especificados"
-"lastReset" = "Último Reset"
 
 [pages.client]
 "add" = "Adicionar Cliente"
@@ -266,12 +244,6 @@
 "renew" = "Renovação Automática"
 "renewDesc" = "Renovação automática após expiração. (0 = desativado)(unidade: dia)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "Nunca"
-"daily" = "Diariamente"
-"weekly" = "Semanalmente"
-"monthly" = "Mensalmente"
-
 [pages.inbounds.toasts]
 "obtain" = "Obter"
 "updateSuccess" = "A atualização foi bem-sucedida"
@@ -290,7 +262,6 @@
 "trafficGetError" = "Erro ao obter tráfegos"
 "getNewX25519CertError" = "Erro ao obter o certificado X25519."
 "getNewmldsa65Error" = "Erro ao obter o certificado mldsa65."
-"getNewVlessEncError" = "Erro ao obter o certificado VlessEnc."
 
 [pages.inbounds.stream.general]
 "request" = "Requisição"
@@ -371,7 +342,6 @@
 "subSettings" = "Assinatura"
 "subEnable" = "Ativar Serviço de Assinatura"
 "subEnableDesc" = "Ativa o serviço de assinatura."
-"subJsonEnable" = "Ativar/Desativar o endpoint de assinatura JSON de forma independente."
 "subTitle" = "Título da Assinatura"
 "subTitleDesc" = "Título exibido no cliente VPN"
 "subListen" = "IP de Escuta"
@@ -591,22 +561,21 @@
 "resetOutboundTrafficError" = "Erro ao redefinir tráfego de saída"
 
 [tgbot]
-"keyboardClosed" = "❌ Teclado fechado!"
+"keyboardClosed" = "❌ Teclado personalizado fechado!"
 "noResult" = "❗ Nenhum resultado!"
 "noQuery" = "❌ Consulta não encontrada! Por favor, use o comando novamente!"
 "wentWrong" = "❌ Algo deu errado!"
 "noIpRecord" = "❗ Nenhum registro de IP!"
-"noInbounds" = "❗ Nenhum inbound encontrado!"
-"unlimited" = "♾ Ilimitado (Reset)"
+"noInbounds" = "❗ Nenhuma entrada encontrada!"
+"unlimited" = "♾ Ilimitado (Reiniciar)"
 "add" = "Adicionar"
 "month" = "Mês"
 "months" = "Meses"
 "day" = "Dia"
 "days" = "Dias"
 "hours" = "Horas"
-"minutes" = "Minutos"
 "unknown" = "Desconhecido"
-"inbounds" = "Inbounds"
+"inbounds" = "Entradas"
 "clients" = "Clientes"
 "offline" = "🔴 Offline"
 "online" = "🟢 Online"

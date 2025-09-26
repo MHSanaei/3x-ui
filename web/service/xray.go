@@ -6,8 +6,8 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"x-ui/logger"
+	"x-ui/xray"
 
 	"go.uber.org/atomic"
 )
@@ -20,20 +20,16 @@ var (
 	result            string
 )
 
-// XrayService provides business logic for Xray process management.
-// It handles starting, stopping, restarting Xray, and managing its configuration.
 type XrayService struct {
 	inboundService InboundService
 	settingService SettingService
 	xrayAPI        xray.XrayAPI
 }
 
-// IsXrayRunning checks if the Xray process is currently running.
 func (s *XrayService) IsXrayRunning() bool {
 	return p != nil && p.IsRunning()
 }
 
-// GetXrayErr returns the error from the Xray process, if any.
 func (s *XrayService) GetXrayErr() error {
 	if p == nil {
 		return nil
@@ -50,7 +46,6 @@ func (s *XrayService) GetXrayErr() error {
 	return err
 }
 
-// GetXrayResult returns the result string from the Xray process.
 func (s *XrayService) GetXrayResult() string {
 	if result != "" {
 		return result
@@ -73,7 +68,6 @@ func (s *XrayService) GetXrayResult() string {
 	return result
 }
 
-// GetXrayVersion returns the version of the running Xray process.
 func (s *XrayService) GetXrayVersion() string {
 	if p == nil {
 		return "Unknown"
@@ -81,13 +75,10 @@ func (s *XrayService) GetXrayVersion() string {
 	return p.GetVersion()
 }
 
-// RemoveIndex removes an element at the specified index from a slice.
-// Returns a new slice with the element removed.
 func RemoveIndex(s []any, index int) []any {
 	return append(s[:index], s[index+1:]...)
 }
 
-// GetXrayConfig retrieves and builds the Xray configuration from settings and inbounds.
 func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	templateConfig, err := s.settingService.GetXrayConfigTemplate()
 	if err != nil {
@@ -191,7 +182,6 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	return xrayConfig, nil
 }
 
-// GetXrayTraffic fetches the current traffic statistics from the running Xray process.
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	if !s.IsXrayRunning() {
 		err := errors.New("xray is not running")
@@ -210,7 +200,6 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 	return traffic, clientTraffic, nil
 }
 
-// RestartXray restarts the Xray process, optionally forcing a restart even if config unchanged.
 func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -240,7 +229,6 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	return nil
 }
 
-// StopXray stops the running Xray process.
 func (s *XrayService) StopXray() error {
 	lock.Lock()
 	defer lock.Unlock()
@@ -252,17 +240,15 @@ func (s *XrayService) StopXray() error {
 	return errors.New("xray is not running")
 }
 
-// SetToNeedRestart marks that Xray needs to be restarted.
 func (s *XrayService) SetToNeedRestart() {
 	isNeedXrayRestart.Store(true)
 }
 
-// IsNeedRestartAndSetFalse checks if restart is needed and resets the flag to false.
 func (s *XrayService) IsNeedRestartAndSetFalse() bool {
 	return isNeedXrayRestart.CompareAndSwap(true, false)
 }
 
-// DidXrayCrash checks if Xray crashed by verifying it's not running and wasn't manually stopped.
+// Check if Xray is not running and wasn't stopped manually, i.e. crashed
 func (s *XrayService) DidXrayCrash() bool {
 	return !s.IsXrayRunning() && !isManuallyStopped.Load()
 }

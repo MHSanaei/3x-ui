@@ -13,7 +13,7 @@
   "inbounds": [
     {
       "port": 10808,
-      "protocol": "mixed",
+      "protocol": "socks",
       "settings": {
         "auth": "noauth",
         "udp": true,
@@ -28,7 +28,7 @@
         ],
         "enabled": true
       },
-      "tag": "mixed"
+      "tag": "socks"
     },
     {
       "port": 10809,

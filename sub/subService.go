@@ -3,24 +3,21 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
-	"net"
 	"net/url"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
-	"github.com/goccy/go-json"
+	"x-ui/database"
+	"x-ui/database/model"
+	"x-ui/logger"
+	"x-ui/util/common"
+	"x-ui/util/random"
+	"x-ui/web/service"
+	"x-ui/xray"
 
-	"github.com/mhsanaei/3x-ui/v2/database"
-	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/logger"
-	"github.com/mhsanaei/3x-ui/v2/util/common"
-	"github.com/mhsanaei/3x-ui/v2/util/random"
-	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"github.com/mhsanaei/3x-ui/v2/xray"
+	"github.com/goccy/go-json"
 )
 
-// SubService provides business logic for generating subscription links and managing subscription data.
 type SubService struct {
 	address        string
 	showInfo       bool
@@ -30,7 +27,6 @@ type SubService struct {
 	settingService service.SettingService
 }
 
-// NewSubService creates a new subscription service with the given configuration.
 func NewSubService(showInfo bool, remarkModel string) *SubService {
 	return &SubService{
 		showInfo:    showInfo,
@@ -38,20 +34,19 @@ func NewSubService(showInfo bool, remarkModel string) *SubService {
 	}
 }
 
-// GetSubs retrieves subscription links for a given subscription ID and host.
-func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.ClientTraffic, error) {
+func (s *SubService) GetSubs(subId string, host string) ([]string, string, error) {
 	s.address = host
 	var result []string
+	var header string
 	var traffic xray.ClientTraffic
-	var lastOnline int64
 	var clientTraffics []xray.ClientTraffic
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
-		return nil, 0, traffic, err
+		return nil, "", err
 	}
 
 	if len(inbounds) == 0 {
-		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
+		return nil, "", common.NewError("No inbounds found with ", subId)
 	}
 
 	s.datepicker, err = s.settingService.GetDatepicker()
@@ -78,11 +73,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			if client.Enable && client.SubID == subId {
 				link := s.getLink(inbound, client.Email)
 				result = append(result, link)
-				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
-				clientTraffics = append(clientTraffics, ct)
-				if ct.LastOnline > lastOnline {
-					lastOnline = ct.LastOnline
-				}
+				clientTraffics = append(clientTraffics, s.getClientTraffics(inbound.ClientStats, client.Email))
 			}
 		}
 	}
@@ -109,7 +100,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
-	return result, lastOnline, traffic, nil
+	header = fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
+	return result, header, nil
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
@@ -336,13 +328,6 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	streamNetwork := stream["network"].(string)
 	params := make(map[string]string)
 	params["type"] = streamNetwork
-
-	// Add encryption parameter for VLESS from inbound settings
-	var settings map[string]any
-	json.Unmarshal([]byte(inbound.Settings), &settings)
-	if encryption, ok := settings["encryption"].(string); ok {
-		params["encryption"] = encryption
-	}
 
 	switch streamNetwork {
 	case "tcp":
@@ -1009,190 +994,4 @@ func searchHost(headers any) string {
 	}
 
 	return ""
-}
-
-// PageData is a view model for subpage.html
-// PageData contains data for rendering the subscription information page.
-type PageData struct {
-	Host         string
-	BasePath     string
-	SId          string
-	Download     string
-	Upload       string
-	Total        string
-	Used         string
-	Remained     string
-	Expire       int64
-	LastOnline   int64
-	Datepicker   string
-	DownloadByte int64
-	UploadByte   int64
-	TotalByte    int64
-	SubUrl       string
-	SubJsonUrl   string
-	Result       []string
-}
-
-// ResolveRequest extracts scheme and host info from request/headers consistently.
-// ResolveRequest extracts scheme, host, and header information from an HTTP request.
-func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string, hostWithPort string, hostHeader string) {
-	// scheme
-	scheme = "http"
-	if c.Request.TLS != nil || strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
-		scheme = "https"
-	}
-
-	// base host (no port)
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil && h != "" {
-		host = h
-	}
-	if host == "" {
-		host = c.GetHeader("X-Real-IP")
-	}
-	if host == "" {
-		var err error
-		host, _, err = net.SplitHostPort(c.Request.Host)
-		if err != nil {
-			host = c.Request.Host
-		}
-	}
-
-	// host:port for URLs
-	hostWithPort = c.GetHeader("X-Forwarded-Host")
-	if hostWithPort == "" {
-		hostWithPort = c.Request.Host
-	}
-	if hostWithPort == "" {
-		hostWithPort = host
-	}
-
-	// header display host
-	hostHeader = c.GetHeader("X-Forwarded-Host")
-	if hostHeader == "" {
-		hostHeader = c.GetHeader("X-Real-IP")
-	}
-	if hostHeader == "" {
-		hostHeader = host
-	}
-	return
-}
-
-// BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
-// It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
-	// Input validation
-	if subId == "" {
-		return "", ""
-	}
-
-	// Get configured URIs first (highest priority)
-	configuredSubURI, _ := s.settingService.GetSubURI()
-	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
-
-	// Determine base scheme and host (cached to avoid duplicate calls)
-	var baseScheme, baseHostWithPort string
-	if configuredSubURI == "" || configuredSubJsonURI == "" {
-		baseScheme, baseHostWithPort = s.getBaseSchemeAndHost(scheme, hostWithPort)
-	}
-
-	// Build subscription URL
-	subURL = s.buildSingleURL(configuredSubURI, baseScheme, baseHostWithPort, subPath, subId)
-
-	// Build JSON subscription URL
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, baseScheme, baseHostWithPort, subJsonPath, subId)
-
-	return subURL, subJsonURL
-}
-
-// getBaseSchemeAndHost determines the base scheme and host from settings or falls back to request values
-func (s *SubService) getBaseSchemeAndHost(requestScheme, requestHostWithPort string) (string, string) {
-	subDomain, err := s.settingService.GetSubDomain()
-	if err != nil || subDomain == "" {
-		return requestScheme, requestHostWithPort
-	}
-
-	// Get port and TLS settings
-	subPort, _ := s.settingService.GetSubPort()
-	subKeyFile, _ := s.settingService.GetSubKeyFile()
-	subCertFile, _ := s.settingService.GetSubCertFile()
-
-	// Determine scheme from TLS configuration
-	scheme := "http"
-	if subKeyFile != "" && subCertFile != "" {
-		scheme = "https"
-	}
-
-	// Build host:port, always include port for clarity
-	hostWithPort := fmt.Sprintf("%s:%d", subDomain, subPort)
-
-	return scheme, hostWithPort
-}
-
-// buildSingleURL constructs a single URL using configured URI or base components
-func (s *SubService) buildSingleURL(configuredURI, baseScheme, baseHostWithPort, basePath, subId string) string {
-	if configuredURI != "" {
-		return s.joinPathWithID(configuredURI, subId)
-	}
-
-	baseURL := fmt.Sprintf("%s://%s", baseScheme, baseHostWithPort)
-	return s.joinPathWithID(baseURL+basePath, subId)
-}
-
-// joinPathWithID safely joins a base path with a subscription ID
-func (s *SubService) joinPathWithID(basePath, subId string) string {
-	if strings.HasSuffix(basePath, "/") {
-		return basePath + subId
-	}
-	return basePath + "/" + subId
-}
-
-// BuildPageData parses header and prepares the template view model.
-// BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string, basePath string) PageData {
-	download := common.FormatTraffic(traffic.Down)
-	upload := common.FormatTraffic(traffic.Up)
-	total := "∞"
-	used := common.FormatTraffic(traffic.Up + traffic.Down)
-	remained := ""
-	if traffic.Total > 0 {
-		total = common.FormatTraffic(traffic.Total)
-		left := max(traffic.Total-(traffic.Up+traffic.Down), 0)
-		remained = common.FormatTraffic(left)
-	}
-
-	datepicker := s.datepicker
-	if datepicker == "" {
-		datepicker = "gregorian"
-	}
-
-	return PageData{
-		Host:         hostHeader,
-		BasePath:     basePath,
-		SId:          subId,
-		Download:     download,
-		Upload:       upload,
-		Total:        total,
-		Used:         used,
-		Remained:     remained,
-		Expire:       traffic.ExpiryTime / 1000,
-		LastOnline:   lastOnline,
-		Datepicker:   datepicker,
-		DownloadByte: traffic.Down,
-		UploadByte:   traffic.Up,
-		TotalByte:    traffic.Total,
-		SubUrl:       subURL,
-		SubJsonUrl:   subJsonURL,
-		Result:       subs,
-	}
-}
-
-func getHostFromXFH(s string) (string, error) {
-	if strings.Contains(s, ":") {
-		realHost, _, err := net.SplitHostPort(s)
-		if err != nil {
-			return "", err
-		}
-		return realHost, nil
-	}
-	return s, nil
 }

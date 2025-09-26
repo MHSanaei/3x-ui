@@ -91,6 +91,9 @@
           <a-textarea v-model="cert.key"></a-textarea>
         </a-form-item>
       </template>
+      <a-form-item label='OCSP stapling'>
+        <a-input-number v-model.number="cert.ocspStapling" :min="0"></a-input-number>
+      </a-form-item>
       <a-form-item label="One Time Loading">
         <a-switch v-model="cert.oneTimeLoading"></a-switch>
       </a-form-item>
@@ -116,10 +119,7 @@
         </a-select>
     </a-form-item>
     <a-form-item label=" ">
-      <a-space>
         <a-button type="primary" icon="import" @click="getNewEchCert">Get New ECH Cert</a-button>
-        <a-button danger @click="clearEchCert">Clear</a-button>
-      </a-space>
     </a-form-item>
   </template>
 

@@ -28,7 +28,7 @@
     </a-form-item>
 
     <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
-        <a-input-number v-model.number="inbound.port" :min="1" :max="65535"></a-input-number>
+        <a-input-number v-model.number="inbound.port" :min="1" :max="65531"></a-input-number>
     </a-form-item>
 
     <a-form-item>
@@ -42,31 +42,6 @@
             </a-tooltip>
         </template>
         <a-input-number v-model.number="dbInbound.totalGB" :min="0"></a-input-number>
-    </a-form-item>
-
-    <a-form-item>
-        <template slot="label">
-            <a-tooltip>
-                <template slot="title">
-                    <span>{{ i18n "pages.inbounds.periodicTrafficResetDesc" }}</span>
-                    <br v-if="dbInbound.lastTrafficResetTime && dbInbound.lastTrafficResetTime > 0">
-                    <span v-if="dbInbound.lastTrafficResetTime && dbInbound.lastTrafficResetTime > 0">
-                        <strong>{{ i18n "pages.inbounds.lastReset" }}:</strong>
-                        <span v-if="datepicker == 'gregorian'">[[
-                            moment(dbInbound.lastTrafficResetTime).format('YYYY-MM-DD HH:mm:ss') ]]</span>
-                        <span v-else>[[ DateUtil.convertToJalalian(moment(dbInbound.lastTrafficResetTime)) ]]</span>
-                    </span>
-                </template>
-                {{ i18n "pages.inbounds.periodicTrafficResetTitle" }}
-                <a-icon type="question-circle"></a-icon>
-            </a-tooltip>
-        </template>
-        <a-select v-model="dbInbound.trafficReset" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="never">{{ i18n "pages.inbounds.periodicTrafficReset.never" }}</a-select-option>
-            <a-select-option value="daily">{{ i18n "pages.inbounds.periodicTrafficReset.daily" }}</a-select-option>
-            <a-select-option value="weekly">{{ i18n "pages.inbounds.periodicTrafficReset.weekly" }}</a-select-option>
-            <a-select-option value="monthly">{{ i18n "pages.inbounds.periodicTrafficReset.monthly" }}</a-select-option>
-        </a-select>
     </a-form-item>
 
     <a-form-item>
@@ -108,14 +83,14 @@
     {{template "form/shadowsocks"}}
 </template>
 
-<!-- tunnel -->
-<template v-if="inbound.protocol === Protocols.TUNNEL">
-    {{template "form/tunnel"}}
+<!-- dokodemo-door -->
+<template v-if="inbound.protocol === Protocols.DOKODEMO">
+    {{template "form/dokodemo"}}
 </template>
 
-<!-- mixed -->
-<template v-if="inbound.protocol === Protocols.MIXED">
-    {{template "form/mixed"}}
+<!-- socks -->
+<template v-if="inbound.protocol === Protocols.SOCKS">
+    {{template "form/socks"}}
 </template>
 
 <!-- http -->
@@ -145,5 +120,14 @@
         {{template "form/sniffing"}}
     </a-collapse-panel>
 </a-collapse>
+
+<!-- allocate -->
+<!-- Temporarily disabled until we accepts range for port allocation
+<a-collapse>
+    <a-collapse-panel header='Allocate'>
+        {{template "form/allocate"}}
+    </a-collapse-panel>
+</a-collapse>
+-->
 
 {{end}}

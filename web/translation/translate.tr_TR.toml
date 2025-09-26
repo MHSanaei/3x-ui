@@ -50,7 +50,6 @@
 "fail" = "Başarısız"
 "comment" = "Yorum"
 "success" = "Başarılı"
-"lastOnline" = "Son çevrimiçi"
 "getVersion" = "Sürümü Al"
 "install" = "Yükle"
 "clients" = "Müşteriler"
@@ -71,20 +70,6 @@
 "emptyBalancersDesc" = "Eklenmiş dengeleyici yok."
 "emptyReverseDesc" = "Eklenmiş ters proxy yok."
 "somethingWentWrong" = "Bir şeyler yanlış gitti"
-
-[subscription]
-"title" = "Abonelik Bilgisi"
-"subId" = "Abonelik Kimliği"
-"status" = "Durum"
-"downloaded" = "İndirilen"
-"uploaded" = "Yüklenen"
-"expiry" = "Son Kullanma"
-"totalQuota" = "Toplam Kota"
-"individualLinks" = "Bireysel Bağlantılar"
-"active" = "Aktif"
-"inactive" = "Pasif"
-"unlimited" = "Sınırsız"
-"noExpiry" = "Süresiz"
 
 [menu]
 "theme" = "Tema"
@@ -166,8 +151,6 @@
 "getConfigError" = "Yapılandırma dosyası alınırken bir hata oluştu"
 
 [pages.inbounds]
-"allTimeTraffic" = "Toplam Trafik"
-"allTimeTrafficUsage" = "Tüm Zamanların Toplam Kullanımı"
 "title" = "Gelenler"
 "totalDownUp" = "Toplam Gönderilen/Alınan"
 "totalUsage" = "Toplam Kullanım"
@@ -182,8 +165,6 @@
 "details" = "Detaylar"
 "transportConfig" = "Taşıma"
 "expireDate" = "Süre"
-"createdAt" = "Oluşturuldu"
-"updatedAt" = "Güncellendi"
 "resetTraffic" = "Trafiği Sıfırla"
 "addInbound" = "Gelen Ekle"
 "generalActions" = "Genel Eylemler"
@@ -244,9 +225,6 @@
 "exportInbound" = "Geleni Dışa Aktar"
 "import" = "İçe Aktar"
 "importInbound" = "Bir Gelen İçe Aktar"
-"periodicTrafficResetTitle" = "Trafik Sıfırlama"
-"periodicTrafficResetDesc" = "Belirtilen aralıklarla trafik sayacını otomatik olarak sıfırla"
-"lastReset" = "Son Sıfırlama"
 
 [pages.client]
 "add" = "Müşteri Ekle"
@@ -266,12 +244,6 @@
 "renew" = "Otomatik Yenile"
 "renewDesc" = "Süresi dolduktan sonra otomatik yenileme. (0 = devre dışı)(birim: gün)"
 
-[pages.inbounds.periodicTrafficReset]
-"never" = "Asla"
-"daily" = "Günlük"
-"weekly" = "Haftalık"
-"monthly" = "Aylık"
-
 [pages.inbounds.toasts]
 "obtain" = "Elde Et"
 "updateSuccess" = "Güncelleme başarılı oldu"
@@ -290,7 +262,6 @@
 "trafficGetError" = "Trafik bilgisi alınırken hata oluştu"
 "getNewX25519CertError" = "X25519 sertifikası alınırken hata oluştu."
 "getNewmldsa65Error" = "mldsa65 sertifikası alınırken hata oluştu."
-"getNewVlessEncError" = "VlessEnc sertifikası alınırken hata oluştu."
 
 [pages.inbounds.stream.general]
 "request" = "İstek"
@@ -371,7 +342,6 @@
 "subSettings" = "Abonelik"
 "subEnable" = "Abonelik Hizmetini Etkinleştir"
 "subEnableDesc" = "Abonelik hizmetini etkinleştirir."
-"subJsonEnable" = "JSON abonelik uç noktasını bağımsız olarak Etkinleştir/Devre Dışı bırak."
 "subTitle" = "Abonelik Başlığı"
 "subTitleDesc" = "VPN istemcisinde gösterilen başlık"
 "subListen" = "Dinleme IP"
@@ -591,23 +561,22 @@
 "resetOutboundTrafficError" = "Giden trafik sıfırlanırken hata"
 
 [tgbot]
-"keyboardClosed" = "❌ Klavye kapatıldı!"
+"keyboardClosed" = "❌ Özel klavye kapalı!"
 "noResult" = "❗ Sonuç yok!"
 "noQuery" = "❌ Sorgu bulunamadı! Lütfen komutu tekrar kullanın!"
 "wentWrong" = "❌ Bir şeyler yanlış gitti!"
-"noIpRecord" = "❗ IP Kaydı Yok!"
-"noInbounds" = "❗ Gelen bağlantı bulunamadı!"
-"unlimited" = "♾ Sınırsız (Sıfırla)"
+"noIpRecord" = "❗ IP Kaydı yok!"
+"noInbounds" = "❗ Gelen bulunamadı!"
+"unlimited" = "♾ Sınırsız(Sıfırla)"
 "add" = "Ekle"
 "month" = "Ay"
 "months" = "Aylar"
 "day" = "Gün"
 "days" = "Günler"
 "hours" = "Saatler"
-"minutes" = "Dakika"
-"unknown" = "Bilinmeyen"
+"unknown" = "Bilinmiyor"
 "inbounds" = "Gelenler"
-"clients" = "İstemciler"
+"clients" = "Müşteriler"
 "offline" = "🔴 Çevrimdışı"
 "online" = "🟢 Çevrimiçi"
 

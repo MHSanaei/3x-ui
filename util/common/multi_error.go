@@ -4,10 +4,8 @@ import (
 	"strings"
 )
 
-// multiError represents a collection of errors.
 type multiError []error
 
-// Error returns a string representation of all errors joined with " | ".
 func (e multiError) Error() string {
 	var r strings.Builder
 	r.WriteString("multierr: ")
@@ -18,7 +16,6 @@ func (e multiError) Error() string {
 	return r.String()
 }
 
-// Combine combines multiple errors into a single error, filtering out nil errors.
 func Combine(maybeError ...error) error {
 	var errs multiError
 	for _, err := range maybeError {
