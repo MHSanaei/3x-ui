@@ -119,6 +119,7 @@
       saveBtnDisable: true,
       user: {},
       lang: LanguageManager.getLanguage(),
+      inboundOptions: [],
       remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
       datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
@@ -240,6 +241,17 @@
           this.allSetting = new AllSetting(msg.obj);
           app.changeRemarkSample();
           this.saveBtnDisable = true;
+        }
+      },
+      async loadInboundTags() {
+        const msg = await HttpUtil.get("/panel/api/inbounds/list");
+        if (msg && msg.success && Array.isArray(msg.obj)) {
+          this.inboundOptions = msg.obj.map(ib => ({
+            label: `${ib.tag} (${ib.protocol}@${ib.port})`,
+            value: ib.tag,
+          }));
+        } else {
+          this.inboundOptions = [];
         }
       },
       async updateAllSetting() {
@@ -368,6 +380,15 @@
       },
     },
     computed: {
+      ldapInboundTagList: {
+        get: function() {
+          const csv = this.allSetting.ldapInboundTags || "";
+          return csv.length ? csv.split(',').map(s => s.trim()).filter(Boolean) : [];
+        },
+        set: function(list) {
+          this.allSetting.ldapInboundTags = Array.isArray(list) ? list.join(',') : '';
+        }
+      },
       fragment: {
         get: function () { return this.allSetting?.subJsonFragment != ""; },
         set: function (v) {
@@ -534,7 +555,7 @@
     },
     async mounted() {
       await this.getAllSetting();
-
+      await this.loadInboundTags();
       while (true) {
         await PromiseUtil.sleep(1000);
         this.saveBtnDisable = this.oldAllSetting.equals(this.allSetting);

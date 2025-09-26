@@ -316,23 +316,13 @@ class ObjectUtil {
     }
 
     static equals(a, b) {
-        for (const key in a) {
-            if (!a.hasOwnProperty(key)) {
-                continue;
-            }
-            if (!b.hasOwnProperty(key)) {
-                return false;
-            } else if (a[key] !== b[key]) {
-                return false;
-            }
-        }
-        for (const key in b) {
-            if (!b.hasOwnProperty(key)) {
-                continue;
-            }
-            if (!a.hasOwnProperty(key)) {
-                return false;
-            }
+        // shallow, symmetric comparison so newly added fields also affect equality
+        const aKeys = Object.keys(a);
+        const bKeys = Object.keys(b);
+        if (aKeys.length !== bKeys.length) return false;
+        for (const key of aKeys) {
+            if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+            if (a[key] !== b[key]) return false;
         }
         return true;
     }

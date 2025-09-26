@@ -314,6 +314,18 @@ func (s *Server) startTask() {
 	// Run once a month, midnight, first of month
 	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
 
+    // LDAP sync scheduling
+    if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {
+        runtime, err := s.settingService.GetLdapSyncCron()
+        if err != nil || runtime == "" {
+            runtime = "@every 1m"
+        }
+        j := job.NewLdapSyncJob()
+        // job has zero-value services with method receivers that read settings on demand
+        s.cron.AddJob(runtime, j)
+    }
+
+
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
