@@ -1569,6 +1569,23 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, bo
 	return !clientOldEnabled, needRestart, nil
 }
 
+
+// SetClientEnableByEmail sets client enable state to desired value; returns (changed, needRestart, error)
+func (s *InboundService) SetClientEnableByEmail(clientEmail string, enable bool) (bool, bool, error) {
+    current, err := s.checkIsEnabledByEmail(clientEmail)
+    if err != nil {
+        return false, false, err
+    }
+    if current == enable {
+        return false, false, nil
+    }
+    newEnabled, needRestart, err := s.ToggleClientEnableByEmail(clientEmail)
+    if err != nil {
+        return false, needRestart, err
+    }
+    return newEnabled == enable, needRestart, nil
+}
+
 func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int) (bool, error) {
 	_, inbound, err := s.GetClientInboundByEmail(clientEmail)
 	if err != nil {

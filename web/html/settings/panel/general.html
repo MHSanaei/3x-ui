@@ -146,5 +146,135 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
+    <a-collapse-panel key="6" header='LDAP'>
+        <a-setting-list-item paddings="small">
+            <template #title>Enable LDAP sync</template>
+            <template #control>
+                <a-switch v-model="allSetting.ldapEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>LDAP Host</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapHost"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>LDAP Port</template>
+            <template #control>
+                <a-input-number :min="1" :max="65535" v-model="allSetting.ldapPort" :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Use TLS (LDAPS)</template>
+            <template #control>
+                <a-switch v-model="allSetting.ldapUseTLS"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Bind DN</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapBindDN"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Password</template>
+            <template #control>
+                <a-input type="password" v-model="allSetting.ldapPassword"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Base DN</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapBaseDN"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>User filter</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapUserFilter"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>User attribute (username/email)</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapUserAttr"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>VLESS flag attribute</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapVlessField"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Generic flag attribute (optional)</template>
+            <template #description>If set, overrides VLESS flag; e.g. shadowInactive</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapFlagField"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Truthy values</template>
+            <template #description>Comma-separated; default: true,1,yes,on</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapTruthyValues"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Invert flag</template>
+            <template #description>Enable when attribute means disabled (e.g., shadowInactive)</template>
+            <template #control>
+                <a-switch v-model="allSetting.ldapInvertFlag"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Sync schedule</template>
+            <template #description>cron-like string, e.g. @every 1m</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.ldapSyncCron"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Inbound tags</template>
+            <template #description>Select inbounds to manage (auto create/delete)</template>
+            <template #control>
+                <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }" v-model="ldapInboundTagList">
+                    <a-select-option v-for="opt in inboundOptions" :key="opt.value" :value="opt.value">[[ opt.label ]]</a-select-option>
+                </a-select>
+                <div v-if="inboundOptions.length==0" style="margin-top:6px;color:#999">No inbounds found. Please create one in Inbounds.</div>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Auto create clients</template>
+            <template #control>
+                <a-switch v-model="allSetting.ldapAutoCreate"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Auto delete clients</template>
+            <template #control>
+                <a-switch v-model="allSetting.ldapAutoDelete"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Default total (GB)</template>
+            <template #control>
+                <a-input-number :min="0" v-model="allSetting.ldapDefaultTotalGB" :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Default expiry (days)</template>
+            <template #control>
+                <a-input-number :min="0" v-model="allSetting.ldapDefaultExpiryDays" :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>Default Limit IP</template>
+            <template #control>
+                <a-input-number :min="0" v-model="allSetting.ldapDefaultLimitIP" :style="{ width: '100%' }"></a-input-number>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
 </a-collapse>
 {{end}}
