@@ -104,7 +104,7 @@ require (
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
 
-// Локальные подмены модулей
+// Local module replacements
 replace github.com/mhsanaei/3x-ui/v2/util/ldap => ./util/ldap
 replace github.com/mhsanaei/3x-ui/v2/web/service => ./web/service
 replace github.com/mhsanaei/3x-ui/v2/web/job => ./web/job

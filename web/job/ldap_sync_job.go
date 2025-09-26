@@ -13,13 +13,15 @@ import (
     "strconv"
 )
 
+var DefaultTruthyValues = []string{"true", "1", "yes", "on"}
+
 type LdapSyncJob struct {
     settingService service.SettingService
     inboundService service.InboundService
     xrayService    service.XrayService
 }
 
-// --- Вспомогательные функции для mustGet ---
+// --- Helper functions for mustGet ---
 func mustGetString(fn func() (string, error)) string {
     v, err := fn()
     if err != nil {
@@ -172,7 +174,7 @@ func (j *LdapSyncJob) Run() {
 
 func splitCsv(s string) []string {
     if s == "" {
-        return []string{"true", "1", "yes", "on"}
+        return DefaultTruthyValues
     }
     parts := strings.Split(s, ",")
     out := make([]string, 0, len(parts))
@@ -186,7 +188,7 @@ func splitCsv(s string) []string {
 }
 
 
-// buildClient собирает нового клиента для auto-create
+// buildClient creates a new client for auto-create
 func (j *LdapSyncJob) buildClient(ib *model.Inbound, email string, defGB, defExpiryDays, defLimitIP int) model.Client {
     c := model.Client{
         Email:   email,
@@ -206,7 +208,7 @@ func (j *LdapSyncJob) buildClient(ib *model.Inbound, email string, defGB, defExp
     return c
 }
 
-// batchSetEnable массово включает/выключает клиентов через один вызов
+// batchSetEnable enables/disables clients in batch through a single call
 func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable bool) {
     if len(emails) == 0 {
         return
@@ -226,7 +228,7 @@ func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable 
         Settings: j.clientsToJSON(clients),
     }
 
-    // Используем один вызов AddInboundClient для обновления enable
+    // Use a single AddInboundClient call to update enable
     if _, err := j.inboundService.AddInboundClient(payload); err != nil {
         logger.Warningf("Batch set enable failed for inbound %s: %v", ib.Tag, err)
         return
@@ -236,7 +238,7 @@ func (j *LdapSyncJob) batchSetEnable(ib *model.Inbound, emails []string, enable 
     j.xrayService.SetToNeedRestart()
 }
 
-// deleteClientsNotInLDAP массовое удаление клиентов, которых нет в LDAP
+// deleteClientsNotInLDAP performs batch deletion of clients not in LDAP
 func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[string]struct{}) {
     inbounds, err := j.inboundService.GetAllInbounds()
     if err != nil {
@@ -257,7 +259,7 @@ func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[s
         toDelete := []model.Client{}
         for _, c := range clients {
             if _, ok := ldapEmails[c.Email]; !ok {
-                // В зависимости от протокола используем нужное поле
+                // Use appropriate field depending on protocol
                 client := model.Client{Email: c.Email, ID: c.ID, Password: c.Password}
                 toDelete = append(toDelete, client)
             }
@@ -353,41 +355,6 @@ func (j *LdapSyncJob) ensureClientExists(inboundTag string, email string, defGB 
         logger.Infof("LDAP auto-create: %s in %s", email, inboundTag)
     }
 }
-
-// deleteClientsNotInLDAP removes clients from inbound tag that are not in ldapEmails
-// func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[string]struct{}) {
-//     inbounds, err := j.inboundService.GetAllInbounds()
-//     if err != nil {
-//         return
-//     }
-//     for _, ib := range inbounds {
-//         if ib.Tag != inboundTag {
-//             continue
-//         }
-//         clients, err := j.inboundService.GetClients(ib)
-//         if err != nil {
-//             continue
-//         }
-//         for _, c := range clients {
-//             if _, ok := ldapEmails[c.Email]; !ok {
-//                 // determine clientId per protocol
-//                 clientId := c.ID
-//                 if ib.Protocol == model.Trojan {
-//                     clientId = c.Password
-//                 } else if ib.Protocol == model.Shadowsocks {
-//                     clientId = c.Email
-//                 }
-//                 needRestart, err := j.inboundService.DelInboundClient(ib.Id, clientId)
-//                 if err == nil {
-//                     if needRestart {
-//                         j.xrayService.SetToNeedRestart()
-//                     }
-//                     logger.Infof("LDAP auto-delete: %s from %s", c.Email, inboundTag)
-//                 }
-//             }
-//         }
-//     }
-// }
 
 // clientToJSON serializes minimal client fields to JSON object string without extra deps
 func (j *LdapSyncJob) clientToJSON(c model.Client) string {

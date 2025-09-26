@@ -27,7 +27,7 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
     var conn *ldap.Conn
     var err error
     if cfg.UseTLS {
-        conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: true})
+        conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: false})
     } else {
         conn, err = ldap.Dial("tcp", addr)
     }
@@ -94,7 +94,7 @@ func AuthenticateUser(cfg Config, username, password string) (bool, error) {
     var conn *ldap.Conn
     var err error
     if cfg.UseTLS {
-        conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: true})
+        conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: false})
     } else {
         conn, err = ldap.Dial("tcp", addr)
     }
