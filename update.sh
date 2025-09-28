@@ -64,7 +64,7 @@ arch() {
 	armv6* | armv6) echo 'armv6' ;;
 	armv5* | armv5) echo 'armv5' ;;
 	s390x) echo 's390x' ;;
-	*) echo -e "${red}Unsupported CPU architecture!${plain}" && rm -f "${cur_dir}/${script_name}" >/dev/null 2>&1 ;;
+	*) echo -e "${red}Unsupported CPU architecture!${plain}" && rm -f "${cur_dir}/${script_name}" >/dev/null 2>&1 && exit 2;;
 	esac
 }
 
