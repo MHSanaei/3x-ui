@@ -14,6 +14,7 @@ while [ -h "$b_source" ]; do
 	[[ $b_source != /* ]] && b_source="$b_dir/$b_source"
 done
 cur_dir="$(cd -P "$(dirname "$b_source")" && pwd)"
+script_name=$(basename "$0")
 
 # Check command exist function
 _command_exists() {
@@ -63,7 +64,7 @@ arch() {
 	armv6* | armv6) echo 'armv6' ;;
 	armv5* | armv5) echo 'armv5' ;;
 	s390x) echo 's390x' ;;
-	*) rm -f ${cur_dir}/update.sh && _fail "Unsupported CPU architecture!" ;;
+	*) echo -e "${red}Unsupported CPU architecture!${plain}" && rm -f "${cur_dir}/${script_name}" >/dev/null 2>&1 ;;
 	esac
 }
 
