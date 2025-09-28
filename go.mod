@@ -103,10 +103,3 @@ require (
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
-
-// Local module replacements
-replace github.com/mhsanaei/3x-ui/v2/util/ldap => ./util/ldap
-replace github.com/mhsanaei/3x-ui/v2/web/service => ./web/service
-replace github.com/mhsanaei/3x-ui/v2/web/job => ./web/job
-replace github.com/mhsanaei/3x-ui/v2/web/controller => ./web/controller
-replace github.com/mhsanaei/3x-ui/v2/util/common => ./util/common
