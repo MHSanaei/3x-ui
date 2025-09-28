@@ -50,6 +50,28 @@ class AllSetting {
 
         this.timeLocation = "Local";
 
+        // LDAP settings
+        this.ldapEnable = false;
+        this.ldapHost = "";
+        this.ldapPort = 389;
+        this.ldapUseTLS = false;
+        this.ldapBindDN = "";
+        this.ldapPassword = "";
+        this.ldapBaseDN = "";
+        this.ldapUserFilter = "(objectClass=person)";
+        this.ldapUserAttr = "mail";
+        this.ldapVlessField = "vless_enabled";
+        this.ldapSyncCron = "@every 1m";
+        this.ldapFlagField = "";
+        this.ldapTruthyValues = "true,1,yes,on";
+        this.ldapInvertFlag = false;
+        this.ldapInboundTags = "";
+        this.ldapAutoCreate = false;
+        this.ldapAutoDelete = false;
+        this.ldapDefaultTotalGB = 0;
+        this.ldapDefaultExpiryDays = 0;
+        this.ldapDefaultLimitIP = 0;
+
         if (data == null) {
             return
         }
