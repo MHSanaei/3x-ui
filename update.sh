@@ -129,7 +129,7 @@ update_x-ui() {
 		echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
 		${wget_bin} --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
 		if [[ $? -ne 0 ]]; then
-			_fail "ERROR: Failed to downloading x-ui, please be sure that your server can access GitHub"
+			_fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
 		fi
 	fi
 
@@ -192,7 +192,7 @@ update_x-ui() {
 		echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
 		${wget_bin} --inet4-only -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
 		if [[ $? -ne 0 ]]; then
-			_fail "ERROR: Failed to downloading x-ui.sh script, please be sure that your server can access GitHub"
+			_fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
 		fi
 	fi
 
@@ -213,7 +213,7 @@ update_x-ui() {
 		if [[ $? -ne 0 ]]; then
 			${wget_bin} --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
 			if [[ $? -ne 0 ]]; then
-				_fail "ERROR: Failed to downloading startup unit x-ui.rc, please be sure that your server can access GitHub"
+				_fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
 			fi
 		fi
 		chmod +x /etc/init.d/x-ui >/dev/null 2>&1
