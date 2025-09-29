@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"net/http"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/gin-gonic/gin"
 )
 

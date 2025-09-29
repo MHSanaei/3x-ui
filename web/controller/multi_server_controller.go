@@ -3,8 +3,8 @@ package controller
 import (
 	"strconv"
 
-	"x-ui/database/model"
-	"x-ui/web/service"
+	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
 )
