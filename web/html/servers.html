@@ -89,7 +89,24 @@
     const app = new Vue({
         el: '#app',
         data: {
-            servers: [],
+            servers: [
+                {
+                    id: 1,
+                    name: 'Server 1',
+                    address: '127.0.0.1',
+                    port: 8080,
+                    apiKey: '1234567890',
+                    enable: true
+                },
+                {
+                    id: 2,
+                    name: 'Server 2',
+                    address: 'example.com',
+                    port: 8081,
+                    apiKey: '0987654321',
+                    enable: false
+                }
+            ],
             modal: {
                 title: '',
                 server: {
@@ -102,15 +119,6 @@
             }
         },
         methods: {
-            loadServers() {
-                axios.get('{{.base_path}}server/list')
-                    .then(response => {
-                        this.servers = response.data.obj;
-                    })
-                    .catch(error => {
-                        alert(error.response.data.msg);
-                    });
-            },
             showAddModal() {
                 this.modal.title = 'Add Server';
                 this.modal.server = {
@@ -163,3 +171,4 @@
 </script>
 
 {{template "footer" .}}
+
