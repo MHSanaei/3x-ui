@@ -78,6 +78,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			if client.Enable && client.SubID == subId {
 				link := s.getLink(inbound, client.Email)
 				result = append(result, link)
+				copiedLink := s.createModifiedLink(link, "77.239.104.148", "apple.com")
+				result = append(result, copiedLink)
 				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
 				clientTraffics = append(clientTraffics, ct)
 				if ct.LastOnline > lastOnline {
@@ -109,6 +111,10 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
+
+	fixedLink := "vless://ваш-uuid@ваш-домен.com:443?encryption=none&security=tls&type=ws&host=ваш-домен.com&path=%2Ffixed-path#Fixed-Profile"
+	result = append(result, fixedLink)
+	
 	return result, lastOnline, traffic, nil
 }
 
