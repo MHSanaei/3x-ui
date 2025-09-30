@@ -111,9 +111,6 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
-
-	fixedLink := "vless://ваш-uuid@ваш-домен.com:443?encryption=none&security=tls&type=ws&host=ваш-домен.com&path=%2Ffixed-path#Fixed-Profile"
-	result = append(result, fixedLink)
 	
 	return result, lastOnline, traffic, nil
 }
