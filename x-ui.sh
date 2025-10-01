@@ -187,7 +187,7 @@ reset_user() {
         fi
         return 0
     fi
-	
+    
     read -rp "Please set the login username [default is a random username]: " config_account
     [[ -z $config_account ]] && config_account=$(gen_random_string 10)
     read -rp "Please set the login password [default is a random password]: " config_password
