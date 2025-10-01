@@ -110,6 +110,7 @@ type ServerService struct {
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
 	hasLastCPUSample   bool
+	hasNativeCPUSample bool
 	emaCPU             float64
 	cpuHistory         []CPUSample
 	cachedCpuSpeedMhz  float64
@@ -432,23 +433,27 @@ func (s *ServerService) AppendCpuSample(t time.Time, v float64) {
 }
 
 func (s *ServerService) sampleCPUUtilization() (float64, error) {
-	// Prefer native Windows API to avoid external deps for CPU percent
-	if runtime.GOOS == "windows" {
-		if pct, err := sys.CPUPercentRaw(); err == nil {
-			s.mu.Lock()
-			// Smooth with EMA
-			const alpha = 0.3
-			if s.emaCPU == 0 {
-				s.emaCPU = pct
-			} else {
-				s.emaCPU = alpha*pct + (1-alpha)*s.emaCPU
-			}
-			val := s.emaCPU
+	// Try native platform-specific CPU implementation first (Windows, Linux, macOS)
+	if pct, err := sys.CPUPercentRaw(); err == nil {
+		s.mu.Lock()
+		// First call to native method returns 0 (initializes baseline)
+		if !s.hasNativeCPUSample {
+			s.hasNativeCPUSample = true
 			s.mu.Unlock()
-			return val, nil
+			return 0, nil
 		}
-		// If native call fails, fall back to gopsutil times
+		// Smooth with EMA
+		const alpha = 0.3
+		if s.emaCPU == 0 {
+			s.emaCPU = pct
+		} else {
+			s.emaCPU = alpha*pct + (1-alpha)*s.emaCPU
+		}
+		val := s.emaCPU
+		s.mu.Unlock()
+		return val, nil
 	}
+	// If native call fails, fall back to gopsutil times
 	// Read aggregate CPU times (all CPUs combined)
 	times, err := cpu.Times(false)
 	if err != nil {
@@ -471,17 +476,16 @@ func (s *ServerService) sampleCPUUtilization() (float64, error) {
 	}
 
 	// Compute busy and total deltas
+	// Note: Guest and GuestNice times are already included in User and Nice respectively,
+	// so we exclude them to avoid double-counting (Linux kernel accounting)
 	idleDelta := cur.Idle - s.lastCPUTimes.Idle
-	// Sum of busy deltas (exclude Idle)
 	busyDelta := (cur.User - s.lastCPUTimes.User) +
 		(cur.System - s.lastCPUTimes.System) +
 		(cur.Nice - s.lastCPUTimes.Nice) +
 		(cur.Iowait - s.lastCPUTimes.Iowait) +
 		(cur.Irq - s.lastCPUTimes.Irq) +
 		(cur.Softirq - s.lastCPUTimes.Softirq) +
-		(cur.Steal - s.lastCPUTimes.Steal) +
-		(cur.Guest - s.lastCPUTimes.Guest) +
-		(cur.GuestNice - s.lastCPUTimes.GuestNice)
+		(cur.Steal - s.lastCPUTimes.Steal)
 
 	totalDelta := busyDelta + idleDelta
 
