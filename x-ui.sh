@@ -187,11 +187,10 @@ reset_user() {
         fi
         return 0
     fi
-    
     read -rp "Please set the login username [default is a random username]: " config_account
-    [[ -z $config_account ]] && config_account=$(date +%s%N | md5sum | cut -c 1-8)
+    [[ -z $config_account ]] && config_account=$(gen_random_string 10)
     read -rp "Please set the login password [default is a random password]: " config_password
-    [[ -z $config_password ]] && config_password=$(date +%s%N | md5sum | cut -c 1-8)
+    [[ -z $config_password ]] && config_password=$(gen_random_string 16)
 
     read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
     if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
