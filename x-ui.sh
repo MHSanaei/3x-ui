@@ -518,6 +518,9 @@ enable_bbr() {
     arch | manjaro | parch)
         pacman -Sy --noconfirm ca-certificates
         ;;
+	opensuse-tumbleweed | opensuse-leap)
+        zypper refresh && zypper -q install -y ca-certificates
+        ;;
     alpine)
         apk add ca-certificates
         ;;
@@ -1072,6 +1075,9 @@ ssl_cert_issue() {
         ;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
+        ;;
+	opensuse-tumbleweed | opensuse-leap)
+        zypper refresh && zypper -q install -y socat
         ;;
     alpine)
         apk add socat

@@ -76,7 +76,7 @@ install_base() {
 	ubuntu | debian | armbian)
 		apt-get update >/dev/null 2>&1 && apt-get install -y -q wget curl tar tzdata >/dev/null 2>&1
 		;;
-	centos | almalinux | rocky | ol)
+	centos | rhel | almalinux | rocky | ol)
 		yum -y update >/dev/null 2>&1 && yum install -y -q wget curl tar tzdata >/dev/null 2>&1
 		;;
 	fedora | amzn | virtuozzo)
@@ -85,7 +85,7 @@ install_base() {
 	arch | manjaro | parch)
 		pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm wget curl tar tzdata >/dev/null 2>&1
 		;;
-	opensuse-tumbleweed)
+	opensuse-tumbleweed | opensuse-leap)
 		zypper refresh >/dev/null 2>&1 && zypper -q install -y wget curl tar timezone >/dev/null 2>&1
 		;;
 	alpine)
