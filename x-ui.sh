@@ -1073,6 +1073,9 @@ ssl_cert_issue() {
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
         ;;
+	opensuse-tumbleweed | opensuse-leap)
+        zypper refresh && zypper -q install -y socat
+        ;;
     alpine)
         apk add socat
         ;;
