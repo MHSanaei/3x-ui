@@ -99,7 +99,7 @@
 
 [pages.login]
 "hello" = "Привет!"
-"title" = "Приветствие!"
+"title" = "Добро пожаловать!"
 "loginAgain" = "Сессия истекла. Войдите в систему снова"
 
 [pages.login.toasts]
