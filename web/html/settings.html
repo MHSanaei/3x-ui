@@ -9,19 +9,20 @@
       <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
         <transition name="list" appear>
           <a-alert type="error" v-if="confAlerts.length>0 && loadingStates.fetched" :style="{ marginBottom: '10px' }"
-              message='{{ i18n "secAlertTitle" }}'
-              color="red"
-              show-icon closable>
+            message='{{ i18n "secAlertTitle" }}' color="red" show-icon closable>
             <template slot="description">
               <b>{{ i18n "secAlertConf" }}</b>
-              <ul><li v-for="a in confAlerts">[[ a ]]</li></ul>
+              <ul>
+                <li v-for="a in confAlerts">[[ a ]]</li>
+              </ul>
             </template>
           </a-alert>
         </transition>
         <transition name="list" appear>
           <template>
             <a-row v-if="!loadingStates.fetched">
-              <a-card :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+              <a-card
+                :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
                 <a-spin tip='{{ i18n "loading" }}'></a-spin>
               </a-card>
             </a-row>
@@ -31,17 +32,19 @@
                   <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
                     <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
                       <a-space direction="horizontal">
-                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n "pages.settings.save" }}</a-button>
-                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n "pages.settings.restartPanel" }}</a-button>
+                        <a-button type="primary" :disabled="saveBtnDisable" @click="updateAllSetting">{{ i18n
+                          "pages.settings.save" }}</a-button>
+                        <a-button type="danger" :disabled="!saveBtnDisable" @click="restartPanel">{{ i18n
+                          "pages.settings.restartPanel" }}</a-button>
                       </a-space>
                     </a-col>
                     <a-col :xs="24" :sm="14">
                       <template>
                         <div>
-                          <a-back-top :target="() => document.getElementById('content-layout')" visibility-height="200"></a-back-top>
+                          <a-back-top :target="() => document.getElementById('content-layout')"
+                            visibility-height="200"></a-back-top>
                           <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }"
-                            message='{{ i18n "pages.settings.infoDesc" }}'
-                            show-icon>
+                            message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
                           </a-alert>
                         </div>
                       </template>
@@ -132,7 +135,8 @@
           fragment: {
             packets: "tlshello",
             length: "100-200",
-            interval: "10-20"
+            interval: "10-20",
+            maxSplit: "300-400"
           }
         },
         streamSettings: {
@@ -381,11 +385,11 @@
     },
     computed: {
       ldapInboundTagList: {
-        get: function() {
+        get: function () {
           const csv = this.allSetting.ldapInboundTags || "";
           return csv.length ? csv.split(',').map(s => s.trim()).filter(Boolean) : [];
         },
-        set: function(list) {
+        set: function (list) {
           this.allSetting.ldapInboundTags = Array.isArray(list) ? list.join(',') : '';
         }
       },
@@ -421,6 +425,16 @@
           if (v != "") {
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.settings.fragment.interval = v;
+            this.allSetting.subJsonFragment = JSON.stringify(newFragment);
+          }
+        }
+      },
+      fragmentMaxSplit: {
+        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).settings.fragment.maxSplit : ""; },
+        set: function (v) {
+          if (v != "") {
+            newFragment = JSON.parse(this.allSetting.subJsonFragment);
+            newFragment.settings.fragment.maxSplit = v;
             this.allSetting.subJsonFragment = JSON.stringify(newFragment);
           }
         }
