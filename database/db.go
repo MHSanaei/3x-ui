@@ -2,9 +2,7 @@ package database
 
 import (
 	"errors"
-	"io/fs"
-	"os"
-	"path"
+	"fmt"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"golang.org/x/crypto/bcrypt"
@@ -14,30 +12,20 @@ import (
 
 var db *gorm.DB
 
-// GetDB returns the global GORM database instance.
-func GetDB() *gorm.DB { return db }
-
-// InitDB sets up the database connection, migrates models, and runs seeders.
+// InitDB открывает sqlite и выполняет миграции / начальное заполнение.
 func InitDB(dbPath string) error {
-	// ensure dir exists
-	dir := path.Dir(dbPath)
-	if err := os.MkdirAll(dir, fs.ModePerm); err != nil {
-		return err
-	}
-
-	// open SQLite (dev)
 	database, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		return err
 	}
 	db = database
 
-	// migrations
+	// миграции
 	if err := AutoMigrate(); err != nil {
 		return err
 	}
 
-	// seed admin
+	// seed admin (один раз создаём дефолтного админа при отсутствии)
 	if err := SeedAdmin(); err != nil {
 		return err
 	}
@@ -45,14 +33,38 @@ func InitDB(dbPath string) error {
 	return nil
 }
 
-// AutoMigrate applies schema migrations.
+// GetDB возвращает активное соединение GORM.
+func GetDB() *gorm.DB {
+	return db
+}
+
+// IsNotFound — хелпер для проверки "запись не найдена".
+func IsNotFound(err error) bool {
+	return errors.Is(err, gorm.ErrRecordNotFound)
+}
+
+// Checkpoint — безопасный чекпоинт WAL для sqlite.
+// Для других СУБД — no-op.
+func Checkpoint() error {
+	if db == nil {
+		return fmt.Errorf("database is not initialized")
+	}
+	if db.Dialector.Name() != "sqlite" {
+		return nil
+	}
+	// TRUNCATE обычно полезнее, чтобы подрезать WAL-файл.
+	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
+}
+
+// AutoMigrate применяет миграции схемы.
 func AutoMigrate() error {
 	return db.AutoMigrate(
-		&model.User{}, // User{ Id, Username, PasswordHash, Role }
+		&model.User{},
+		&model.Setting{}, // таблица настроек
 	)
 }
 
-// SeedAdmin creates a default admin if it doesn't exist.
+// SeedAdmin создаёт дефолтного админа, если его нет.
 func SeedAdmin() error {
 	var count int64
 	if err := db.Model(&model.User{}).
@@ -71,28 +83,4 @@ func SeedAdmin() error {
 		Role:         "admin",
 	}
 	return db.Create(&admin).Error
-}
-
-// IsNotFound reports whether err is gorm's record-not-found.
-func IsNotFound(err error) bool {
-	return errors.Is(err, gorm.ErrRecordNotFound)
-}
-
-// IsSQLiteDB reports whether current DB dialector is sqlite.
-func IsSQLiteDB() bool {
-	if db == nil {
-		return false
-	}
-	return db.Dialector.Name() == "sqlite"
-}
-
-// Checkpoint runs WAL checkpoint for SQLite to compact the WAL file.
-// No-op for non-SQLite databases.
-func Checkpoint() error {
-	if !IsSQLiteDB() {
-		return nil
-	}
-	// FULL/TRUNCATE — в зависимости от нужной семантики.
-	// TRUNCATE чаще используется, чтобы обрезать WAL-файл.
-	return db.Exec("PRAGMA wal_checkpoint(TRUNCATE);").Error
 }

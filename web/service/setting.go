@@ -110,6 +110,26 @@ var defaultValueMap = map[string]string{
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
 
+// getValue читает ключ из БД (таблица settings). Если записи нет — вернёт дефолт.
+func (s *SettingService) getValue(key string) (string, error) {
+	db := database.GetDB()
+	if db != nil {
+		var rec model.Setting
+		err := db.First(&rec, "key = ?", key).Error
+		if err == nil {
+			return rec.Value, nil
+		}
+		// если записи нет — идём в дефолты; если другая ошибка — пробрасываем
+		if !database.IsNotFound(err) {
+			return "", err
+		}
+	}
+	if v, ok := defaultValueMap[key]; ok {
+		return v, nil
+	}
+	return "", fmt.Errorf("setting %q not found", key)
+}
+
 // OIDCConfig defines OpenID Connect settings for external authentication.
 type OIDCConfig struct {
 	Enabled      bool
