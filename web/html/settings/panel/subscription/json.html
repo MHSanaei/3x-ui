@@ -5,13 +5,10 @@
             <template #title>{{ i18n "pages.settings.subPath"}}</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
             <template #control>
-                <a-input
-                    type="text"
-                    v-model="allSetting.subJsonPath"
+                <a-input type="text" v-model="allSetting.subJsonPath"
                     @input="allSetting.subJsonPath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
                     @blur="allSetting.subJsonPath = (p => { p = p || '/'; if (!p.startsWith('/')) p='/' + p; if (!p.endsWith('/')) p += '/'; return p.replace(/\/+/g,'/'); })(allSetting.subJsonPath)"
-                    placeholder="/json/"
-                ></a-input>
+                    placeholder="/json/"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
@@ -53,6 +50,12 @@
                             <a-input type="text" v-model="fragmentInterval" placeholder="10-20"></a-input>
                         </template>
                     </a-setting-list-item>
+                    <a-setting-list-item paddings="small">
+                        <template #title>MaxSplit</template>
+                        <template #control>
+                            <a-input type="text" v-model="fragmentMaxSplit" placeholder="300-400"></a-input>
+                        </template>
+                    </a-setting-list-item>
                 </a-collapse-panel>
             </a-collapse>
         </a-list-item>
@@ -74,7 +77,8 @@
                             <a-select :value="noise.type" :style="{ width: '100%' }"
                                 :dropdown-class-name="themeSwitcher.currentTheme"
                                 @change="(value) => updateNoiseType(index, value)">
-                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']" :key="p">
+                                <a-select-option :value="p" :label="p" v-for="p in ['rand', 'base64', 'str', 'hex']"
+                                    :key="p">
                                     <span>[[ p ]]</span>
                                 </a-select-option>
                             </a-select>
