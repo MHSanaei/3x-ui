@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"embed"
 	"html/template"
@@ -26,6 +27,8 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-contrib/gzip"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
 )
@@ -161,6 +164,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 
+	// получаем домен и секрет/базовый путь из настроек
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
 		return nil, err
@@ -169,16 +173,28 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		engine.Use(middleware.DomainValidatorMiddleware(webDomain))
 	}
 
-	// Keep secret read to maintain behavior; silence unused warning.
-	if secret, err := s.settingService.GetSecret(); err == nil {
-		_ = secret
+	// вот ЭТО должно быть раньше, чем блок с сессиями:
+	secret, err := s.settingService.GetSecret()
+	if err != nil {
+		return nil, err
 	}
 
-	// Base path for all routes and assets (e.g. "/")
 	basePath, err := s.settingService.GetBasePath()
 	if err != nil {
-		return nil, err // или basePath = "/" и продолжаем
+		return nil, err
 	}
+
+	// cookie-сессии на базе секретного ключа
+	key := sha256.Sum256([]byte(secret))
+	store := cookie.NewStore(key[:])
+	store.Options(sessions.Options{
+		Path:     basePath,
+		HttpOnly: true,
+		Secure:   false, // если HTTPS — поставить true
+		SameSite: http.SameSiteLaxMode,
+	})
+	engine.Use(sessions.Sessions("xui_sess", store))
+
 	// gzip, excluding API path to avoid double-compressing JSON where needed
 	engine.Use(gzip.Gzip(
 		gzip.DefaultCompression,
