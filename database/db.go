@@ -120,11 +120,10 @@ func isTableEmpty(tableName string) (bool, error) {
 
 // InitDB sets up the database connection, migrates models, and runs seeders.
 func InitDB(dbPath string) error {
-	dir := path.Dir(dbPath)
-	err := os.MkdirAll(dir, fs.ModePerm)
-	if err != nil {
-		return err
-	}
+    dir := path.Dir(dbPath)
+    if err := os.MkdirAll(dir, fs.ModePerm); err != nil { return err }
+    // ...
+}
 
 	var gormLogger logger.Interface
 
@@ -170,9 +169,7 @@ func CloseDB() error {
 }
 
 // GetDB returns the global GORM database instance.
-func GetDB() *gorm.DB {
-	return db
-}
+func GetDB() *gorm.DB { return db }
 
 // IsNotFound checks if the given error is a GORM record not found error.
 func IsNotFound(err error) bool {
