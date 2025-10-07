@@ -74,30 +74,30 @@ type AllSetting struct {
 	SubJsonFragment             string `json:"subJsonFragment" form:"subJsonFragment"`                         // JSON subscription fragment configuration
 	SubJsonNoises               string `json:"subJsonNoises" form:"subJsonNoises"`                             // JSON subscription noise configuration
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
-	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`    
-	
+	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
+
 	// LDAP settings
-	LdapEnable                  bool   `json:"ldapEnable" form:"ldapEnable"`
-	LdapHost                    string `json:"ldapHost" form:"ldapHost"`
-	LdapPort                    int    `json:"ldapPort" form:"ldapPort"`
-	LdapUseTLS                  bool   `json:"ldapUseTLS" form:"ldapUseTLS"`
-	LdapBindDN                  string `json:"ldapBindDN" form:"ldapBindDN"`
-	LdapPassword                string `json:"ldapPassword" form:"ldapPassword"`
-	LdapBaseDN                  string `json:"ldapBaseDN" form:"ldapBaseDN"`
-	LdapUserFilter              string `json:"ldapUserFilter" form:"ldapUserFilter"`
-	LdapUserAttr                string `json:"ldapUserAttr" form:"ldapUserAttr"` // e.g., mail or uid
-	LdapVlessField              string `json:"ldapVlessField" form:"ldapVlessField"`
-	LdapSyncCron                string `json:"ldapSyncCron" form:"ldapSyncCron"`
+	LdapEnable     bool   `json:"ldapEnable" form:"ldapEnable"`
+	LdapHost       string `json:"ldapHost" form:"ldapHost"`
+	LdapPort       int    `json:"ldapPort" form:"ldapPort"`
+	LdapUseTLS     bool   `json:"ldapUseTLS" form:"ldapUseTLS"`
+	LdapBindDN     string `json:"ldapBindDN" form:"ldapBindDN"`
+	LdapPassword   string `json:"ldapPassword" form:"ldapPassword"`
+	LdapBaseDN     string `json:"ldapBaseDN" form:"ldapBaseDN"`
+	LdapUserFilter string `json:"ldapUserFilter" form:"ldapUserFilter"`
+	LdapUserAttr   string `json:"ldapUserAttr" form:"ldapUserAttr"` // e.g., mail or uid
+	LdapVlessField string `json:"ldapVlessField" form:"ldapVlessField"`
+	LdapSyncCron   string `json:"ldapSyncCron" form:"ldapSyncCron"`
 	// Generic flag configuration
-	LdapFlagField               string `json:"ldapFlagField" form:"ldapFlagField"`
-	LdapTruthyValues            string `json:"ldapTruthyValues" form:"ldapTruthyValues"`
-	LdapInvertFlag              bool   `json:"ldapInvertFlag" form:"ldapInvertFlag"`
-	LdapInboundTags             string `json:"ldapInboundTags" form:"ldapInboundTags"`
-	LdapAutoCreate              bool   `json:"ldapAutoCreate" form:"ldapAutoCreate"`
-	LdapAutoDelete              bool   `json:"ldapAutoDelete" form:"ldapAutoDelete"`
-	LdapDefaultTotalGB          int    `json:"ldapDefaultTotalGB" form:"ldapDefaultTotalGB"`
-	LdapDefaultExpiryDays       int    `json:"ldapDefaultExpiryDays" form:"ldapDefaultExpiryDays"`
-	LdapDefaultLimitIP          int    `json:"ldapDefaultLimitIP" form:"ldapDefaultLimitIP"`
+	LdapFlagField         string `json:"ldapFlagField" form:"ldapFlagField"`
+	LdapTruthyValues      string `json:"ldapTruthyValues" form:"ldapTruthyValues"`
+	LdapInvertFlag        bool   `json:"ldapInvertFlag" form:"ldapInvertFlag"`
+	LdapInboundTags       string `json:"ldapInboundTags" form:"ldapInboundTags"`
+	LdapAutoCreate        bool   `json:"ldapAutoCreate" form:"ldapAutoCreate"`
+	LdapAutoDelete        bool   `json:"ldapAutoDelete" form:"ldapAutoDelete"`
+	LdapDefaultTotalGB    int    `json:"ldapDefaultTotalGB" form:"ldapDefaultTotalGB"`
+	LdapDefaultExpiryDays int    `json:"ldapDefaultExpiryDays" form:"ldapDefaultExpiryDays"`
+	LdapDefaultLimitIP    int    `json:"ldapDefaultLimitIP" form:"ldapDefaultLimitIP"`
 	// JSON subscription routing rules
 }
 
