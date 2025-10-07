@@ -94,11 +94,73 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+	// OIDC defaults
+	"oidcEnable":       "false",
+	"oidcIssuer":       "",
+	"oidcClientID":     "",
+	"oidcClientSecret": "",
+	"oidcRedirectURL":  "",
+	"oidcScopes":       "openid,profile,email",
+	"oidcEmailDomain":  "",
+	"oidcAdminEmails":  "",
+	"oidcDefaultRole":  "reader",
 }
 
 // SettingService provides business logic for application settings management.
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
+
+// OIDCConfig defines OpenID Connect settings for external authentication.
+type OIDCConfig struct {
+	Enabled      bool
+	Issuer       string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Scopes       []string
+	EmailDomain  string
+	AdminEmails  []string
+	DefaultRole  string
+}
+
+// GetOIDCConfig loads OIDC settings from the database.
+func (s *SettingService) GetOIDCConfig() (OIDCConfig, error) {
+	var cfg OIDCConfig
+	var err error
+
+	enabledStr, _ := s.getValue("oidcEnable")
+	cfg.Enabled = strings.ToLower(enabledStr) == "true"
+
+	cfg.Issuer, _ = s.getValue("oidcIssuer")
+	cfg.ClientID, _ = s.getValue("oidcClientID")
+	cfg.ClientSecret, _ = s.getValue("oidcClientSecret")
+	cfg.RedirectURL, _ = s.getValue("oidcRedirectURL")
+
+	scopesStr, _ := s.getValue("oidcScopes")
+	if scopesStr == "" {
+		cfg.Scopes = []string{"openid", "profile", "email"}
+	} else {
+		cfg.Scopes = strings.Split(scopesStr, ",")
+	}
+
+	cfg.EmailDomain, _ = s.getValue("oidcEmailDomain")
+
+	adminStr, _ := s.getValue("oidcAdminEmails")
+	if adminStr != "" {
+		admins := []string{}
+		for _, a := range strings.Split(adminStr, ",") {
+			a = strings.TrimSpace(a)
+			if a != "" {
+				admins = append(admins, a)
+			}
+		}
+		cfg.AdminEmails = admins
+	}
+
+	cfg.DefaultRole, _ = s.getValue("oidcDefaultRole")
+
+	return cfg, err
+}
 
 func (s *SettingService) GetDefaultJsonConfig() (any, error) {
 	var jsonData any
