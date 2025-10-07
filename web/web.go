@@ -175,8 +175,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	// Base path for all routes and assets (e.g. "/")
-	basePath := s.settingService.GetBasePath()
-
+	basePath, err := s.settingService.GetBasePath()
+	if err != nil {
+		return nil, err // или basePath = "/" и продолжаем
+	}
 	// gzip, excluding API path to avoid double-compressing JSON where needed
 	engine.Use(gzip.Gzip(
 		gzip.DefaultCompression,
@@ -210,7 +212,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	// API
 	api := engine.Group(basePath + "panel/api")
 	{
-		controller.NewAuthController(api)
+		// controller.NewAuthController(api)
 		controller.NewUserAdminController(api)
 	}
 
