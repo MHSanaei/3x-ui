@@ -53,7 +53,7 @@ install_base() {
     arch | manjaro | parch)
         pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
-    opensuse-tumbleweed)
+    opensuse-tumbleweed | opensuse-leap)
         zypper refresh && zypper -q install -y wget curl tar timezone
         ;;
     alpine)
