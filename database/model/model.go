@@ -23,13 +23,6 @@ const (
 	WireGuard   Protocol = "wireguard"
 )
 
-// User represents a user account in the 3x-ui panel.
-type User struct {
-	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
 	Id                   int                  `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`                                                    // Unique identifier
