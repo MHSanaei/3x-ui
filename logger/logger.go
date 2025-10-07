@@ -5,13 +5,16 @@ package logger
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
+	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/op/go-logging"
 )
 
 var (
-	logger *logging.Logger
+	logger  *logging.Logger
+	logFile *os.File
 
 	// addToBuffer appends a log entry into the in-memory ring buffer used for
 	// retrieving recent logs via the web UI. It keeps the buffer bounded to avoid
@@ -27,31 +30,66 @@ func init() {
 	InitLogger(logging.INFO)
 }
 
-// InitLogger initializes the logger with the specified logging level.
+// InitLogger initializes the logger backends with the specified logging level.
 func InitLogger(level logging.Level) {
 	newLogger := logging.MustGetLogger("x-ui")
-	var err error
-	var backend logging.Backend
-	var format logging.Formatter
-	ppid := os.Getppid()
+	backends := make([]logging.Backend, 0, 2)
 
-	backend, err = logging.NewSyslogBackend("")
-	if err != nil {
-		println(err)
-		backend = logging.NewLogBackend(os.Stderr, "", 0)
+	if defaultBackend := initDefaultBackend(); defaultBackend != nil {
+		backends = append(backends, defaultBackend)
 	}
-	if ppid > 0 && err != nil {
-		format = logging.MustStringFormatter(`%{time:2006/01/02 15:04:05} %{level} - %{message}`)
-	} else {
-		format = logging.MustStringFormatter(`%{level} - %{message}`)
+	if fileBackend := initFileBackend(); fileBackend != nil {
+		backends = append(backends, fileBackend)
 	}
 
-	backendFormatter := logging.NewBackendFormatter(backend, format)
-	backendLeveled := logging.AddModuleLevel(backendFormatter)
-	backendLeveled.SetLevel(level, "x-ui")
-	newLogger.SetBackend(backendLeveled)
+	multiBackend := logging.MultiLogger(backends...)
+	multiBackend.SetLevel(level, "x-ui")
 
+	newLogger.SetBackend(multiBackend)
 	logger = newLogger
+}
+
+func initDefaultBackend() logging.Backend {
+	backendSyslog, err := logging.NewSyslogBackend("")
+	var backend logging.Backend = backendSyslog
+	includeTime := false
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "syslog backend disabled: %v\n", err)
+		ppid := os.Getppid()
+		backend = logging.NewLogBackend(os.Stderr, "", 0)
+		includeTime = ppid > 0
+	}
+	return logging.NewBackendFormatter(backend, newFormatter(includeTime))
+}
+
+func initFileBackend() logging.Backend {
+	logDir := config.GetLogFolder()
+	if err := os.MkdirAll(logDir, 0o750); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to create log folder %s: %v\n", logDir, err)
+		return nil
+	}
+
+	logPath := filepath.Join(logDir, "3xui.log")
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o660)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to open log file %s: %v\n", logPath, err)
+		return nil
+	}
+
+	if logFile != nil {
+		_ = logFile.Close()
+	}
+	logFile = file
+
+	backend := logging.NewLogBackend(file, "", 0)
+	return logging.NewBackendFormatter(backend, newFormatter(true))
+}
+
+func newFormatter(withTime bool) logging.Formatter {
+	if withTime {
+		return logging.MustStringFormatter(`%{time:2006/01/02 15:04:05} %{level} - %{message}`)
+	}
+	return logging.MustStringFormatter(`%{level} - %{message}`)
 }
 
 // Debug logs a debug message and adds it to the log buffer.
