@@ -4,11 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/glebarez/sqlite"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"golang.org/x/crypto/bcrypt"
-
-	// "gorm.io/driver/sqlite"
-	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
