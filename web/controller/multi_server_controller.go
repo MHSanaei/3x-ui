@@ -20,7 +20,6 @@ func NewMultiServerController(g *gin.RouterGroup) *MultiServerController {
 }
 
 func (c *MultiServerController) initRouter(g *gin.RouterGroup) {
-	g = g.Group("/server")
 
 	g.GET("/list", c.getServers)
 	g.POST("/add", c.addServer)

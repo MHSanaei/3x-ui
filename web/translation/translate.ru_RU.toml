@@ -72,6 +72,9 @@
 "emptyReverseDesc" = "Нет добавленных реверс-прокси."
 "somethingWentWrong" = "Что-то пошло не так"
 
+"Server" = "Сервер"
+"Servers" = "Серверы"
+
 [subscription]
 "title" = "Информация о подписке"
 "subId" = "ID подписки"

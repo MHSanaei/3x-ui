@@ -121,10 +121,10 @@ type Client struct {
 }
 
 type Server struct {
-	Id      int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Name    string `json:"name" gorm:"unique;not null"`
-	Address string `json:"address" gorm:"not null"`
-	Port    int    `json:"port" gorm:"not null"`
-	APIKey  string `json:"apiKey" gorm:"not null"`
-	Enable  bool   `json:"enable" gorm:"default:true"`
+	Id      int    `json:"id" gorm:"primaryKey;autoIncrement" form:"id"`
+	Name    string `json:"name" gorm:"unique;not null" form:"name"`
+	Address string `json:"address" gorm:"not null" form:"address"`
+	Port    int    `json:"port" gorm:"not null" form:"port"`
+	APIKey  string `json:"apiKey" gorm:"not null" form:"apiKey"`
+	Enable  bool   `json:"enable" gorm:"default:true" form:"enable"`
 }
