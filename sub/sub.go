@@ -103,7 +103,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if basePath != "/" && !strings.HasSuffix(basePath, "/") {
 		basePath += "/"
 	}
-	logger.Debug("sub: Setting base_path to:", basePath)
+	// logger.Debug("sub: Setting base_path to:", basePath)
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
 	})
