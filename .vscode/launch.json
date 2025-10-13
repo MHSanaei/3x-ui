@@ -25,7 +25,7 @@
         // Set to true to serve assets/templates directly from disk for development
         "XUI_DEBUG": "true",
         // Uncomment to override DB folder location (by default uses working dir on Windows when debug)
-        // "XUI_DB_FOLDER": "${workspaceFolder}",
+        "XUI_DB_FOLDER": "..\\debug",
         // Example: override log level (debug|info|notice|warn|error)
         // "XUI_LOG_LEVEL": "debug"
       },

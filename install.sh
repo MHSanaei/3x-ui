@@ -147,6 +147,7 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
+           # bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/install.sh)
            # wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.rc
         tag_version=$(curl -Ls "https://api.github.com/repos/dimasmir03/3x-ui/feature/multi-server-support/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
