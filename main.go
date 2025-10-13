@@ -145,6 +145,11 @@ func showSetting(show bool) {
 			fmt.Println("get webBasePath failed, error info:", err)
 		}
 
+		apikey, err :=settingService.GetAPIKey()
+		if err != nil {
+			fmt.Println("get apikey failed, error info:", err)
+		}
+
 		certFile, err := settingService.GetCertFile()
 		if err != nil {
 			fmt.Println("get cert file failed, error info:", err)
@@ -178,6 +183,7 @@ func showSetting(show bool) {
 		fmt.Println("hasDefaultCredential:", hasDefaultCredential)
 		fmt.Println("port:", port)
 		fmt.Println("webBasePath:", webBasePath)
+		fmt.Println("apikey:", apikey)
 	}
 }
 
