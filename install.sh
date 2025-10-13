@@ -53,7 +53,7 @@ install_base() {
     arch | manjaro | parch)
         pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
-    opensuse-tumbleweed)
+    opensuse-tumbleweed | opensuse-leap)
         zypper refresh && zypper -q install -y wget curl tar timezone
         ;;
     alpine)
@@ -140,28 +140,48 @@ config_after_install() {
     fi
 
     /usr/local/x-ui/x-ui migrate
-
-    local existing_apiKey=$(/usr/local/x-ui/x-ui setting -show true | grep -oP 'ApiKey: \K.*')
-    if [[ -z "$existing_apiKey" ]]; then
-        local config_apiKey=$(gen_random_string 32)
-        /usr/local/x-ui/x-ui setting -apiKey "${config_apiKey}"
-        echo -e "${green}Generated random API Key: ${config_apiKey}${plain}"
-    fi
 }
 
 install_x-ui() {
     cd /usr/local/
 
     # Download resources
-    
-        
-        wget --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/dimasmir03/3x-ui/actions/runs/18462891009/artifacts/4253483659
+    if [ $# == 0 ]; then
+           # wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.rc
+        tag_version=$(curl -Ls "https://api.github.com/repos/dimasmir03/3x-ui/feature/multi-server-support/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [[ ! -n "$tag_version" ]]; then
+            echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
+            tag_version=$(curl -4 -Ls "https://api.github.com/repos/dimasmir03/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            if [[ ! -n "$tag_version" ]]; then
+                echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
+                exit 1
+            fi
+        fi
+        echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
+        wget --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/dimasmir03/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
             exit 1
         fi
-    
-    wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.sh
+    else
+        tag_version=$1
+        tag_version_numeric=${tag_version#v}
+        min_version="2.3.5"
+
+        if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
+            echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
+            exit 1
+        fi
+
+        url="https://github.com/dimasmir03/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        echo -e "Beginning to install x-ui $1"
+        wget --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz ${url}
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
+            exit 1
+        fi
+    fi
+    wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/dimasmir03/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -198,7 +218,7 @@ install_x-ui() {
     config_after_install
 
     if [[ $release == "alpine" ]]; then
-        wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.rc
+        wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/main/x-ui.rc
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
