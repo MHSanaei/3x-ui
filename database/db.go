@@ -4,6 +4,7 @@ package database
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"io/fs"
 	"log"
@@ -196,6 +197,32 @@ func Checkpoint() error {
 	err := db.Exec("PRAGMA wal_checkpoint;").Error
 	if err != nil {
 		return err
+	}
+	return nil
+}
+
+// ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection
+// and runs a PRAGMA integrity_check to ensure the file is structurally sound.
+// It does not mutate global state or run migrations.
+func ValidateSQLiteDB(dbPath string) error {
+	if _, err := os.Stat(dbPath); err != nil { // file must exist
+		return err
+	}
+	gdb, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{Logger: logger.Discard})
+	if err != nil {
+		return err
+	}
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+	var res string
+	if err := gdb.Raw("PRAGMA integrity_check;").Scan(&res).Error; err != nil {
+		return err
+	}
+	if res != "ok" {
+		return errors.New("sqlite integrity check failed: " + res)
 	}
 	return nil
 }
