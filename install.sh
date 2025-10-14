@@ -140,6 +140,13 @@ config_after_install() {
     fi
 
     /usr/local/x-ui/x-ui migrate
+
+    local existing_apiKey=$(/usr/local/x-ui/x-ui setting -show true | grep -oP 'ApiKey: \K.*')
+    if [[ -z "$existing_apiKey" ]]; then
+        local config_apiKey=$(gen_random_string 32)
+        /usr/local/x-ui/x-ui setting -apiKey "${config_apiKey}"
+        echo -e "${green}Generated random API Key: ${config_apiKey}${plain}"
+    fi
 }
 
 install_x-ui() {
@@ -149,7 +156,7 @@ install_x-ui() {
     if [ $# == 0 ]; then
            # bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/install.sh)
            # wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.rc
-        tag_version=$(curl -Ls "https://api.github.com/repos/dimasmir03/3x-ui/feature/multi-server-support/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(curl -Ls "https://api.github.com/repos/dimasmir03/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
             tag_version=$(curl -4 -Ls "https://api.github.com/repos/dimasmir03/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
