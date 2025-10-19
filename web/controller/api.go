@@ -27,11 +27,23 @@ func NewAPIController(g *gin.RouterGroup) *APIController {
 
 // checkAPIAuth is a middleware that returns 404 for unauthenticated API requests
 // to hide the existence of API endpoints from unauthorized users
+// have second type of authentication - APIKEY for remote and multiserver access
 func (a *APIController) checkAPIAuth(c *gin.Context) {
 	if !session.IsLogin(c) {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		apiKey := c.GetHeader("X-API-KEY")
+		if apiKey == "" {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}
+
+		settingService := service.SettingService{}
+		panelAPIKey, err := settingService.GetAPIKey()
+		if err != nil || panelAPIKey == "" || apiKey != panelAPIKey {
+			c.AbortWithStatus(http.StatusNotFound)
+			return
+		}  
 	}
+
 	c.Next()
 }
 
