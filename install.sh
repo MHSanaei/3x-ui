@@ -262,7 +262,7 @@ install_x-ui() {
 │  ${blue}x-ui uninstall${plain}    - Uninstall                        │
 └───────────────────────────────────────────────────────┘"
 }
-
+# bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/install.sh)
 echo -e "${green}Running...${plain}"
 install_base
 install_x-ui $1
