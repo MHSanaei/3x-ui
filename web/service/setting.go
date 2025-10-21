@@ -74,26 +74,26 @@ var defaultValueMap = map[string]string{
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	// LDAP defaults
-	"ldapEnable":                  "false",
-	"ldapHost":                    "",
-	"ldapPort":                    "389",
-	"ldapUseTLS":                  "false",
-	"ldapBindDN":                  "",
-	"ldapPassword":                "",
-	"ldapBaseDN":                  "",
-	"ldapUserFilter":              "(objectClass=person)",
-	"ldapUserAttr":                "mail",
-	"ldapVlessField":              "vless_enabled",
-	"ldapSyncCron":                "@every 1m",
-	"ldapFlagField":               "",
-	"ldapTruthyValues":            "true,1,yes,on",
-	"ldapInvertFlag":              "false",
-	"ldapInboundTags":             "",
-	"ldapAutoCreate":              "false",
-	"ldapAutoDelete":              "false",
-	"ldapDefaultTotalGB":          "0",
-	"ldapDefaultExpiryDays":       "0",
-	"ldapDefaultLimitIP":          "0",
+	"ldapEnable":            "false",
+	"ldapHost":              "",
+	"ldapPort":              "389",
+	"ldapUseTLS":            "false",
+	"ldapBindDN":            "",
+	"ldapPassword":          "",
+	"ldapBaseDN":            "",
+	"ldapUserFilter":        "(objectClass=person)",
+	"ldapUserAttr":          "mail",
+	"ldapVlessField":        "vless_enabled",
+	"ldapSyncCron":          "@every 1m",
+	"ldapFlagField":         "",
+	"ldapTruthyValues":      "true,1,yes,on",
+	"ldapInvertFlag":        "false",
+	"ldapInboundTags":       "",
+	"ldapAutoCreate":        "false",
+	"ldapAutoDelete":        "false",
+	"ldapDefaultTotalGB":    "0",
+	"ldapDefaultExpiryDays": "0",
+	"ldapDefaultLimitIP":    "0",
 }
 
 // SettingService provides business logic for application settings management.
@@ -565,83 +565,83 @@ func (s *SettingService) GetIpLimitEnable() (bool, error) {
 
 // LDAP exported getters
 func (s *SettingService) GetLdapEnable() (bool, error) {
-    return s.getBool("ldapEnable")
+	return s.getBool("ldapEnable")
 }
 
 func (s *SettingService) GetLdapHost() (string, error) {
-    return s.getString("ldapHost")
+	return s.getString("ldapHost")
 }
 
 func (s *SettingService) GetLdapPort() (int, error) {
-    return s.getInt("ldapPort")
+	return s.getInt("ldapPort")
 }
 
 func (s *SettingService) GetLdapUseTLS() (bool, error) {
-    return s.getBool("ldapUseTLS")
+	return s.getBool("ldapUseTLS")
 }
 
 func (s *SettingService) GetLdapBindDN() (string, error) {
-    return s.getString("ldapBindDN")
+	return s.getString("ldapBindDN")
 }
 
 func (s *SettingService) GetLdapPassword() (string, error) {
-    return s.getString("ldapPassword")
+	return s.getString("ldapPassword")
 }
 
 func (s *SettingService) GetLdapBaseDN() (string, error) {
-    return s.getString("ldapBaseDN")
+	return s.getString("ldapBaseDN")
 }
 
 func (s *SettingService) GetLdapUserFilter() (string, error) {
-    return s.getString("ldapUserFilter")
+	return s.getString("ldapUserFilter")
 }
 
 func (s *SettingService) GetLdapUserAttr() (string, error) {
-    return s.getString("ldapUserAttr")
+	return s.getString("ldapUserAttr")
 }
 
 func (s *SettingService) GetLdapVlessField() (string, error) {
-    return s.getString("ldapVlessField")
+	return s.getString("ldapVlessField")
 }
 
 func (s *SettingService) GetLdapSyncCron() (string, error) {
-    return s.getString("ldapSyncCron")
+	return s.getString("ldapSyncCron")
 }
 
 func (s *SettingService) GetLdapFlagField() (string, error) {
-    return s.getString("ldapFlagField")
+	return s.getString("ldapFlagField")
 }
 
 func (s *SettingService) GetLdapTruthyValues() (string, error) {
-    return s.getString("ldapTruthyValues")
+	return s.getString("ldapTruthyValues")
 }
 
 func (s *SettingService) GetLdapInvertFlag() (bool, error) {
-    return s.getBool("ldapInvertFlag")
+	return s.getBool("ldapInvertFlag")
 }
 
 func (s *SettingService) GetLdapInboundTags() (string, error) {
-    return s.getString("ldapInboundTags")
+	return s.getString("ldapInboundTags")
 }
 
 func (s *SettingService) GetLdapAutoCreate() (bool, error) {
-    return s.getBool("ldapAutoCreate")
+	return s.getBool("ldapAutoCreate")
 }
 
 func (s *SettingService) GetLdapAutoDelete() (bool, error) {
-    return s.getBool("ldapAutoDelete")
+	return s.getBool("ldapAutoDelete")
 }
 
 func (s *SettingService) GetLdapDefaultTotalGB() (int, error) {
-    return s.getInt("ldapDefaultTotalGB")
+	return s.getInt("ldapDefaultTotalGB")
 }
 
 func (s *SettingService) GetLdapDefaultExpiryDays() (int, error) {
-    return s.getInt("ldapDefaultExpiryDays")
+	return s.getInt("ldapDefaultExpiryDays")
 }
 
 func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
-    return s.getInt("ldapDefaultLimitIP")
+	return s.getInt("ldapDefaultLimitIP")
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
