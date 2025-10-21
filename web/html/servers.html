@@ -200,9 +200,9 @@
                 modal.show();
             },
             saveServer() {
-                let url = "{{.base_path}}panel/api/servers/add";
+                let url = "/panel/api/servers/add";
                 if (this.modal.server.id) {
-                    url = `{{.base_path}}panel/api/servers/update/${this.modal.server.id}`;
+                    url = `/panel/api/servers/update/${this.modal.server.id}`;
                 }
 
                 console.log(this.modal.server);
@@ -226,7 +226,7 @@
                     return;
                 }
                 axios
-                    .post(`{{.base_path}}panel/api/servers/del/${id}`)
+                    .post(`/panel/api/servers/del/${id}`)
                     .then((response) => {
                         alert(response.data.msg);
                         this.loadServers();
