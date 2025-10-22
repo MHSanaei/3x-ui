@@ -100,6 +100,12 @@
                                                 <input type="number" class="form-control"
                                                     v-model.number="modal.server.port" />
                                             </div>
+                                            <!-- secert web path -->
+                                            <div class="form-group">
+                                                <label>Secret Web Path</label>
+                                                <input type="text" class="form-control"
+                                                    v-model="modal.server.secretWebPath" />
+                                            </div>
                                             <div class="form-group">
                                                 <label>API Key</label>
                                                 <input type="text" class="form-control" v-model="modal.server.apiKey" />
@@ -158,6 +164,7 @@
                     name: "",
                     address: "",
                     port: 0,
+                    secretWebPath: "",
                     apiKey: "",
                     enable: true,
                 },
@@ -183,6 +190,7 @@
                     name: "",
                     address: "",
                     port: 0,
+                    secretWebPath: "",
                     apiKey: "",
                     enable: true,
                 };

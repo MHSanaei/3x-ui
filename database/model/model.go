@@ -125,6 +125,7 @@ type Server struct {
 	Name    string `json:"name" gorm:"unique;not null" form:"name"`
 	Address string `json:"address" gorm:"not null" form:"address"`
 	Port    int    `json:"port" gorm:"not null" form:"port"`
+	SecretWebPath string `json:"secretWebPath" gorm:"not null" form:"secretWebPath"`
 	APIKey  string `json:"apiKey" gorm:"not null" form:"apiKey"`
 	Enable  bool   `json:"enable" gorm:"default:true" form:"enable"`
 }
