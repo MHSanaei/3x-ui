@@ -189,7 +189,7 @@ install_x-ui() {
             exit 1
         fi
     fi
-    wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/dimasmir03/3x-ui/main/x-ui.sh
+    wget --inet4-only -O /usr/bin/x-ui-temp https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
@@ -226,7 +226,7 @@ install_x-ui() {
     config_after_install
 
     if [[ $release == "alpine" ]]; then
-        wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/main/x-ui.rc
+        wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.rc
         if [[ $? -ne 0 ]]; then
             echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
