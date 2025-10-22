@@ -319,6 +319,13 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		s.xrayApi.Close()
 	}
 
+	body, err := json.Marshal(inbound)
+	if err != nil {
+		return inbound, false, err
+	}
+
+	s.syncWithSlaves("POST", "/panel/api/inbounds/add", bytes.NewReader(body))
+
 	return inbound, needRestart, err
 }
 
