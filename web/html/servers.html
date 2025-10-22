@@ -166,7 +166,7 @@
         methods: {
             loadServers() {
 
-                axios.get('{{.base_path}}panel/api/servers/list')
+                axios.get('/panel/api/servers/list')
                     .then(response => {
                         this.servers = response.data.obj;
                         if (this.servers.length == 0) {
