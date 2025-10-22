@@ -1871,7 +1871,8 @@ SSH_port_forwarding() {
 }
 
 show_version() {
-    echo -e "x-ui Version: ${/usr/local/x-ui/x-ui -v}"
+    local version=$(bash /usr/local/x-ui/x-ui -v)
+    echo -e "x-ui Version: ${version}"
     before_show_menu
 }
 
