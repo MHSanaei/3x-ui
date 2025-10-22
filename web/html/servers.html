@@ -38,6 +38,7 @@
                                                 <th>Name</th>
                                                 <th>Address</th>
                                                 <th>Port</th>
+                                                <th>Status</th>
                                                 <th>Enabled</th>
                                                 <th>Actions</th>
                                             </tr>
@@ -212,7 +213,13 @@
                 if (this.modal.server.id) {
                     url = `/panel/api/servers/update/${this.modal.server.id}`;
                 }
-
+                let secretWebPath = this.modal.server.secretWebPath;
+                if (!secretWebPath.startsWith('/')) {
+                    secretWebPath = '/' + secretWebPath.slice(1);
+                }
+                if (!secretWebPath.endsWith('/')) {
+                    secretWebPath = secretWebPath.slice(0, -1) + '/';
+                }
                 console.log(this.modal.server);
                 axios
                     .post(url, this.modal.server)

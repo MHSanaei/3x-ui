@@ -2411,7 +2411,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 			continue
 		}
 
-		urlStr := fmt.Sprintf("http://%s:%d%s", server.Address, server.Port, path)
+		urlStr := fmt.Sprintf("http://%s:%d/%s%s", server.Address, server.Port, server.SecretWebPath, path)
 
 		if len(params) > 0 {
 			urlStr = fmt.Sprintf("%s/%s", urlStr, strings.Join(params, "/"))
