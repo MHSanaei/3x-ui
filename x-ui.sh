@@ -1870,6 +1870,11 @@ SSH_port_forwarding() {
     esac
 }
 
+show_version() {
+    echo -e "x-ui Version: ${/usr/local/x-ui/x-ui -v}"
+    before_show_menu
+}
+
 show_usage() {
     echo -e "┌───────────────────────────────────────────────────────┐
 │  ${blue}x-ui control menu usages (subcommands):${plain}              │
@@ -2058,6 +2063,9 @@ if [[ $# > 0 ]]; then
         ;;
     "uninstall")
         check_install 0 && uninstall 0
+        ;;
+    "v")
+        check_install 0 && show_version 0
         ;;
     *) show_usage ;;
     esac
