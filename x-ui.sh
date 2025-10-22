@@ -1894,6 +1894,7 @@ show_usage() {
 │  ${blue}x-ui legacy${plain}       - legacy version                   │
 │  ${blue}x-ui install${plain}      - Install                          │
 │  ${blue}x-ui uninstall${plain}    - Uninstall                        │
+│  ${blue}x-ui v${plain}            - Show x-ui version                │
 └───────────────────────────────────────────────────────┘"
 }
 
