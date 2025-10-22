@@ -25,6 +25,7 @@ func (c *MultiServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/add", c.addServer)
 	g.POST("/del/:id", c.delServer)
 	g.POST("/update/:id", c.updateServer)
+	g.GET("/onlines", c.getOnlineClients)
 }
 
 func (c *MultiServerController) getServers(ctx *gin.Context) {
@@ -34,6 +35,15 @@ func (c *MultiServerController) getServers(ctx *gin.Context) {
 		return
 	}
 	jsonObj(ctx, servers, nil)
+}
+
+func (c *MultiServerController) getOnlineClients(ctx *gin.Context) {
+	clients, err := c.multiServerService.GetOnlineClients()
+	if err != nil {
+		jsonMsg(ctx, "Failed to get online clients", err)
+		return
+	}
+	jsonObj(ctx, clients, nil)
 }
 
 func (c *MultiServerController) addServer(ctx *gin.Context) {

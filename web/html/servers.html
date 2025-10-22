@@ -29,6 +29,37 @@
                                     <div class="card-tools">
                                         <button class="btn btn-primary" @click="showAddModal">Add Server</button>
                                     </div>
+                                    <div class="card-tools">
+                                        <template #extra>
+                                            <a-button-group>
+                                                <a-button icon="sync" @click="manualRefresh"
+                                                    :loading="refreshing"></a-button>
+                                                <a-popover placement="bottomRight" trigger="click"
+                                                    :overlay-class-name="themeSwitcher.currentTheme">
+                                                    <template #title>
+                                                        <div class="ant-custom-popover-title">
+                                                            <a-switch v-model="isRefreshEnabled" @change="toggleRefresh"
+                                                                size="small"></a-switch>
+                                                            <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
+                                                        </div>
+                                                    </template>
+                                                    <template #content>
+                                                        <a-space direction="vertical">
+                                                            <span>{{ i18n "pages.inbounds.autoRefreshInterval" }}</span>
+                                                            <a-select v-model="refreshInterval"
+                                                                :disabled="!isRefreshEnabled" :style="{ width: '100%' }"
+                                                                @change="changeRefreshInterval"
+                                                                :dropdown-class-name="themeSwitcher.currentTheme">
+                                                                <a-select-option v-for="key in [5,10,30,60]"
+                                                                    :value="key*1000">[[ key ]]s</a-select-option>
+                                                            </a-select>
+                                                        </a-space>
+                                                    </template>
+                                                    <a-button icon="down"></a-button>
+                                                </a-popover>
+                                            </a-button-group>
+                                        </template>
+                                    </div>
                                 </div>
                                 <div class="card-body">
                                     <table class="table table-bordered">
@@ -50,6 +81,31 @@
                                                     <td>[[ server.name ]]</td>
                                                     <td>[[ server.address ]]</td>
                                                     <td>[[ server.port ]]</td>
+                                                    <td>
+                                                        <a-col :sm="12" :md="5">
+                                                            <a-custom-statistic
+                                                                title='{{ i18n "pages.inbounds.onlineClients" }}'
+                                                                :value="onlineClients.length"
+                                                                :style="{ marginTop: isMobile ? '10px' : 0 }">
+                                                                <template #prefix>
+                                                                    <a-icon type="team"></a-icon>
+                                                                </template>
+                                                                <template #suffix>
+                                                                    <a-popover title='{{ i18n "online" }}'
+                                                                        :overlay-class-name="themeSwitcher.currentTheme">
+                                                                        <template slot="content">
+                                                                            <div v-for="clientEmail in onlineClients">
+                                                                                <span>[[ clientEmail ]]</span>
+                                                                            </div>
+                                                                        </template>
+                                                                        <a-tag color="blue"
+                                                                            v-if="onlineClients.length">[[
+                                                                            onlineClients.length ]]</a-tag>
+                                                                    </a-popover>
+                                                                </template>
+                                                            </a-custom-statistic>
+                                                        </a-col>
+                                                    </td>
                                                     <td><span v-if="server.enable"
                                                             class="badge bg-success">Yes</span><span v-else
                                                             class="badge bg-danger">No</span>
@@ -154,6 +210,10 @@
         el: "#app",
         data: {
             themeSwitcher,
+            onlineClients: [],
+            isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
+            refreshing: false,
+            refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
             loadingStates: {
                 fetched: false,
                 spinning: false,
@@ -173,17 +233,41 @@
         },
         methods: {
             loadServers() {
-
                 axios.get('/panel/api/servers/list')
                     .then(response => {
                         this.servers = response.data.obj;
+                        this.servers = servers.map(s => {
+                            s.status = 'Checking...';
+                            return s;
+                        });
                         if (this.servers.length == 0) {
 
                         }
+                        this.checkStatuses();
                     })
                     .catch(error => {
                         alert(error);
                     });
+            },
+            async manualRefresh() {
+                await this.getOnlineUsers();
+            },
+
+            async getOnlineUsers() {
+                const msg = await HttpUtil.post('/panel/api/servers/onlines');
+                if (!msg.success) {
+                    return;
+                }
+                this.onlineClients = msg.obj != null ? msg.obj : [];
+            },
+            toggleRefresh() {
+                localStorage.setItem("isRefreshEnabled", this.isRefreshEnabled);
+                if (this.isRefreshEnabled) {
+                    this.startDataRefreshLoop();
+                }
+            },
+            changeRefreshInterval() {
+                localStorage.setItem("refreshInterval", this.refreshInterval);
             },
             showAddModal() {
                 this.modal.title = "Add Server";
@@ -207,6 +291,16 @@
                 const modalEl = document.getElementById('serverModal');
                 const modal = new bootstrap.Modal(modalEl);
                 modal.show();
+            },
+            async startDataRefreshLoop() {
+                while (this.isRefreshEnabled) {
+                    try {
+                        await this.getOnlineUsers();
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    await PromiseUtil.sleep(this.refreshInterval);
+                }
             },
             saveServer() {
                 let url = "/panel/api/servers/add";
@@ -286,6 +380,12 @@
 
         mounted() {
             this.loadServers();
+            if (this.isRefreshEnabled) {
+                this.startDataRefreshLoop();
+            }
+            else {
+                this.getDBInbounds();
+            }
         },
     });
 </script>
