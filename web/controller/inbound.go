@@ -103,6 +103,16 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
+	body := c.Request.PostForm.Encode()
+	defer func() {
+		err := c.Request.Body.Close()
+		if err != nil {
+			logger.Errorf("error closing request body: %v", err)
+		}
+	}()
+
+	logger.Debugf("debug request body: %v", body)
+
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
