@@ -314,6 +314,7 @@
                 if (!secretWebPath.endsWith('/')) {
                     secretWebPath = secretWebPath + '/';
                 }
+                this.modal.server.secretWebPath = secretWebPath;
                 console.log(this.modal.server)
                 axios
                     .post(url, this.modal.server)
