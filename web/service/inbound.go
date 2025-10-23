@@ -2446,7 +2446,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 						form.Set(key, fmt.Sprintf("%v", value))
 					}
 				default:
-					logger.Warningf("Unsupported body type for form encoding on server %s", server.Name)
+					logger.Warningf("Unsupported body type: %T for form encoding on server %s", v, server.Name)
 					continue
 				}
 				bodyReader = strings.NewReader(form.Encode())
