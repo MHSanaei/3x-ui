@@ -371,7 +371,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	// The reason why we pass an empty string as the third parameter is that the third parameter
 	// is used to specify the HTTP body of the request, but in this case, we don't need to send
 	// any body in the request.
-	s.syncWithSlaves("POST", "panel/api/inbounds/del/:id", "", nil, nil, strconv.Itoa(id)) //
+	s.syncWithSlaves("POST", "panel/api/inbounds/del", "", nil, nil, strconv.Itoa(id)) //
 
 	return needRestart, db.Delete(model.Inbound{}, id).Error
 }
