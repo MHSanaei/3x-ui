@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
-
 	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 
@@ -131,6 +131,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 // delInbound deletes an inbound configuration by its ID.
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
+	defer logger.Debugf("debug err", err)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), err)
 		return
