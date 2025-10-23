@@ -2495,6 +2495,16 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 		}
 		defer resp.Body.Close()
 
+		logger.Debugf("Request URL: %s", req.URL.String())
+		if req.Body != nil {
+			bodyBytes, err := io.ReadAll(req.Body)
+			if err != nil {
+				logger.Warningf("Failed to read request body: %v", err)
+			} else {
+				logger.Debugf("Request body: %s", string(bodyBytes))
+			}
+		}
+
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
 			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
