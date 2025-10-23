@@ -254,7 +254,7 @@
             },
 
             async getOnlineUsers() {
-                const msg = await HttpUtil.post('/panel/api/servers/onlines');
+                const msg = await HttpUtil.get('/panel/api/servers/onlines');
                 if (!msg.success) {
                     return;
                 }
