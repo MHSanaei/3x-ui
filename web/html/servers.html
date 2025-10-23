@@ -243,7 +243,7 @@
                         if (this.servers.length == 0) {
 
                         }
-                        this.checkStatuses();
+                        this.getOnlineUsers();
                     })
                     .catch(error => {
                         alert(error);
@@ -314,7 +314,7 @@
                 if (!secretWebPath.endsWith('/')) {
                     secretWebPath = secretWebPath + '/';
                 }
-                
+                console.log(this.modal.server)
                 axios
                     .post(url, this.modal.server)
                     .then((response) => {
