@@ -236,7 +236,7 @@
                 axios.get('/panel/api/servers/list')
                     .then(response => {
                         this.servers = response.data.obj;
-                        this.servers = servers.map(s => {
+                        this.servers = this.servers.map(s => {
                             s.status = 'Checking...';
                             return s;
                         });
@@ -314,7 +314,7 @@
                 if (!secretWebPath.endsWith('/')) {
                     secretWebPath = secretWebPath + '/';
                 }
-                console.log(this.modal.server);
+                
                 axios
                     .post(url, this.modal.server)
                     .then((response) => {
