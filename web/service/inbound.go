@@ -319,7 +319,7 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		s.xrayApi.Close()
 	}
 
-	s.syncWithSlaves("POST", "/panel/api/inbounds/add", "application/x-www-form-urlencoded", inbound, nil)
+	s.syncWithSlaves("POST", "panel/api/inbounds/add", "application/x-www-form-urlencoded", inbound, nil)
 
 	return inbound, needRestart, err
 }
@@ -371,7 +371,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	// The reason why we pass an empty string as the third parameter is that the third parameter
 	// is used to specify the HTTP body of the request, but in this case, we don't need to send
 	// any body in the request.
-	s.syncWithSlaves("POST", "/panel/api/inbounds/del/:id", "", nil, nil, strconv.Itoa(id)) //
+	s.syncWithSlaves("POST", "panel/api/inbounds/del/:id", "", nil, nil, strconv.Itoa(id)) //
 
 	return needRestart, db.Delete(model.Inbound{}, id).Error
 }
@@ -521,7 +521,7 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	s.xrayApi.Close()
 
-	s.syncWithSlaves("POST", "/panel/api/inbounds/update", "application/x-www-form-urlencoded", inbound, nil, strconv.Itoa(inbound.Id))
+	s.syncWithSlaves("POST", "panel/api/inbounds/update", "application/x-www-form-urlencoded", inbound, nil, strconv.Itoa(inbound.Id))
 
 	return inbound, needRestart, tx.Save(oldInbound).Error
 }
@@ -686,7 +686,7 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 	s.xrayApi.Close()
 
-	s.syncWithSlaves("POST", "/panel/inbounds/api/addClient", "application/www-form-urlencoded", data, nil)
+	s.syncWithSlaves("POST", "panel/inbounds/api/addClient", "application/www-form-urlencoded", data, nil)
 
 	return needRestart, tx.Save(oldInbound).Error
 }
@@ -777,7 +777,7 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		}
 	}
 
-	s.syncWithSlaves(http.MethodPost, "/panel/inbounds/api", "application/www-form-urlencoded", nil, nil, strconv.Itoa(inboundId), "delClient", clientId)
+	s.syncWithSlaves(http.MethodPost, "panel/inbounds/api", "application/www-form-urlencoded", nil, nil, strconv.Itoa(inboundId), "delClient", clientId)
 
 	return needRestart, db.Save(oldInbound).Error
 }
@@ -955,7 +955,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		needRestart = true
 	}
 
-	s.syncWithSlaves("POST", "/panel/inbounds/api/updateClient", "application/www-form-urlencoded", data, nil, clientId)
+	s.syncWithSlaves("POST", "panel/inbounds/api/updateClient", "application/www-form-urlencoded", data, nil, clientId)
 
 	return needRestart, tx.Save(oldInbound).Error
 }
@@ -2411,7 +2411,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 			continue
 		}
 
-		urlStr := fmt.Sprintf("http://%s:%d/%s%s", server.Address, server.Port, server.SecretWebPath, path)
+		urlStr := fmt.Sprintf("http://%s:%d%s%s", server.Address, server.Port, server.SecretWebPath, path)
 
 		if len(params) > 0 {
 			urlStr = fmt.Sprintf("%s/%s", urlStr, strings.Join(params, "/"))
