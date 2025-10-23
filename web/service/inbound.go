@@ -2488,6 +2488,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 		req.Header.Set("X-API-KEY", server.APIKey)
 
 		client := &http.Client{}
+		logger.Debug("debug req", req)
 		resp, err := client.Do(req)
 		if err != nil {
 			logger.Warningf("Failed to send request to server %s: %v", server.Name, err)
