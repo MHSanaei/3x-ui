@@ -2436,6 +2436,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 
 			case "application/x-www-form-urlencoded":
 				form := url.Values{}
+
 				switch v := bodyData.(type) {
 				case map[string]string:
 					for key, value := range v {
@@ -2445,10 +2446,27 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 					for key, value := range v {
 						form.Set(key, fmt.Sprintf("%v", value))
 					}
+				case *model.Inbound:
+					// Try to marshal the struct to a map through JSON
+					// This is a universal way to convert struct to form
+					tmp := make(map[string]interface{})
+					data, err := json.Marshal(v)
+					if err != nil {
+						logger.Warningf("Failed to marshal struct to JSON for form encoding: %v", err)
+						continue
+					}
+					if err := json.Unmarshal(data, &tmp); err != nil {
+						logger.Warningf("Failed to unmarshal JSON to map for form encoding: %v", err)
+						continue
+					}
+					for key, value := range tmp {
+						form.Set(key, fmt.Sprintf("%v", value))
+					}
 				default:
 					logger.Warningf("Unsupported body type: %T for form encoding on server %s", v, server.Name)
 					continue
 				}
+
 				bodyReader = strings.NewReader(form.Encode())
 
 			default:
@@ -2481,6 +2499,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 			bodyBytes, _ := io.ReadAll(resp.Body)
 			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
 		}
+		logger.Infof("Synced inbound %v to server %v (%v)", bodyData.(*model.Inbound).Tag, server.Name, resp.Status)
 	}
 }
 
