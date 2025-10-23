@@ -309,10 +309,10 @@
                 }
                 let secretWebPath = this.modal.server.secretWebPath;
                 if (!secretWebPath.startsWith('/')) {
-                    secretWebPath = '/' + secretWebPath.slice(1);
+                    secretWebPath = '/' + secretWebPath;
                 }
                 if (!secretWebPath.endsWith('/')) {
-                    secretWebPath = secretWebPath.slice(0, -1) + '/';
+                    secretWebPath = secretWebPath + '/';
                 }
                 console.log(this.modal.server);
                 axios
