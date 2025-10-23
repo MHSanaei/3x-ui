@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
@@ -103,15 +105,21 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
-	body := c.Request.PostForm.Encode()
-	defer func() {
-		err := c.Request.Body.Close()
-		if err != nil {
-			logger.Errorf("error closing request body: %v", err)
-		}
-	}()
+	// Заголовки
+	logger.Debug("=== REQUEST INFO ===")
+	logger.Debug(fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()))
+	logger.Debug("Headers:")
+	for k, v := range c.Request.Header {
+		logger.Debug(fmt.Sprintf("  %s: %v", k, v))
+	}
 
-	logger.Debugf("debug request body: %v", body)
+	// Тело (прочитаем и восстановим)
+	bodyBytes, _ := io.ReadAll(c.Request.Body)
+	logger.Debug(fmt.Sprintf("\nBody:\n%s\n", string(bodyBytes)))
+	logger.Debug("====================")
+
+	// Обязательно восстановить тело, чтобы Gin потом смог его обработать
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
