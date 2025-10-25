@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime/debug"
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
@@ -30,6 +31,15 @@ func NewInboundController(g *gin.RouterGroup) *InboundController {
 
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
+	g.Use(func(c *gin.Context) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				logger.Errorf("PANIC: %v\nStack: %s", rec, debug.Stack())
+				c.AbortWithStatusJSON(500, gin.H{"msg": fmt.Sprintf("panic: %v", rec)})
+			}
+		}()
+		c.Next()
+	})
 
 	g.GET("/list", a.getInbounds)
 	g.GET("/get/:id", a.getInbound)
