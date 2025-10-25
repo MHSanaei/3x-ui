@@ -141,7 +141,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 		return
 	}
 	user := session.GetLoginUser(c)
-	inbound.UserId = user.Id
+	// since the request came through the API without a login and session, we don't know what to do with the UserId here
+	// and it's unclear why it's needed in this place anyway
+	if user != nil {
+		inbound.UserId = user.Id
+	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
