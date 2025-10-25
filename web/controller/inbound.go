@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 // InboundController handles HTTP requests related to Xray inbounds management.
@@ -122,7 +123,8 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
 	inbound := &model.Inbound{}
-	err := c.ShouldBind(inbound)
+	err := c.ShouldBindWith(inbound, binding.Form)
+	// err := c.ShouldBind(inbound)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
