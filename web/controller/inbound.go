@@ -41,6 +41,25 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 		c.Next()
 	})
 
+	g.Use(func(c *gin.Context) {
+		// Заголовки
+		logger.Debug("=== REQUEST INFO ===")
+		logger.Debug(fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()))
+		logger.Debug("Headers:")
+		for k, v := range c.Request.Header {
+			logger.Debug(fmt.Sprintf("  %s: %v", k, v))
+		}
+
+		// Тело (прочитаем и восстановим)
+		bodyBytes, _ := io.ReadAll(c.Request.Body)
+		logger.Debug(fmt.Sprintf("\nBody:\n%s\n", string(bodyBytes)))
+		logger.Debug("====================")
+
+		// Обязательно восстановить тело, чтобы Gin потом смог его обработать
+		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+
+	})
+
 	g.GET("/list", a.getInbounds)
 	g.GET("/get/:id", a.getInbound)
 	g.GET("/getClientTraffics/:email", a.getClientTraffics)
@@ -115,27 +134,8 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
-	// Заголовки
-	logger.Debug("=== REQUEST INFO ===")
-	logger.Debug(fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()))
-	logger.Debug("Headers:")
-	for k, v := range c.Request.Header {
-		logger.Debug(fmt.Sprintf("  %s: %v", k, v))
-	}
-
-	// Тело (прочитаем и восстановим)
-	bodyBytes, _ := io.ReadAll(c.Request.Body)
-	logger.Debug(fmt.Sprintf("\nBody:\n%s\n", string(bodyBytes)))
-	logger.Debug("====================")
-
-	// Обязательно восстановить тело, чтобы Gin потом смог его обработать
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
-
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
-	defer func() {
-		logger.Debugf("debug err: %v", err)
-	}()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
@@ -170,7 +170,6 @@ func (a *InboundController) addInbound(c *gin.Context) {
 // delInbound deletes an inbound configuration by its ID.
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
-	defer logger.Debugf("debug err", err)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundDeleteSuccess"), err)
 		return
@@ -359,7 +358,12 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	}
 	user := session.GetLoginUser(c)
 	inbound.Id = 0
-	inbound.UserId = user.Id
+	// again, if the request is from the API with an API key, then user == nil and set it to 1
+	if user == nil {
+		inbound.UserId = 1
+	} else {
+		inbound.UserId = user.Id
+	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
 		inbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
 	} else {
