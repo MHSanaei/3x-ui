@@ -123,6 +123,9 @@ func (a *InboundController) addInbound(c *gin.Context) {
 
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
+	defer func() {
+		logger.Debugf("debug err: %v", err)
+	}()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
