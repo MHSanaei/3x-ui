@@ -2460,7 +2460,18 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 						continue
 					}
 					for key, value := range tmp {
-						form.Set(key, fmt.Sprintf("%v", value))
+						if value == nil { // skip nil fields
+							continue
+						}
+
+						// if the field is a slice or a map, marshal it to JSON
+						switch vv := value.(type) {
+						case map[string]interface{}, []interface{}:
+							jsonVal, _ := json.Marshal(vv)
+							form.Set(key, string(jsonVal))
+						default:
+							form.Set(key, fmt.Sprintf("%v", value))
+						}
 					}
 				default:
 					logger.Warningf("Unsupported body type: %T for form encoding on server %s", v, server.Name)
