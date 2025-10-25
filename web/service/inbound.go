@@ -2519,7 +2519,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s, Message: %s", server.Name, resp.Status, string(bodyBytes), resp.Msg)
+			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes), resp)
 		}
 		//logger.Infof("Synced inbound %v to server %v (%v)", bodyData.(*model.Inbound).Tag, server.Name, resp.Status)
 	}
