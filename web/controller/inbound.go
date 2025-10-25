@@ -143,7 +143,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	// since the request came through the API without a login and session, we don't know what to do with the UserId here
 	// and it's unclear why it's needed in this place anyway
-	if user != nil {
+	// so we just set it to 1 to only 1 user only first user
+	if user == nil {
+		inbound.UserId = 1
+	} else {
+
 		inbound.UserId = user.Id
 	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
