@@ -34,7 +34,7 @@ func (s *MultiServerService) GetOnlineClients() (map[int][]string, error) {
 		return nil, err
 	}
 
-	var clients map[int][]string
+	 clients := make( map[int][]string)
 	for _, server := range servers {
 		var onlineResp struct {
 			Success bool     `json:"success"`

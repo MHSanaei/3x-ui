@@ -777,7 +777,7 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 		}
 	}
 
-	s.syncWithSlaves(http.MethodPost, "panel/inbounds/api", "application/x-www-form-urlencoded", nil, nil, strconv.Itoa(inboundId), "delClient", clientId)
+	s.syncWithSlaves(http.MethodPost, "panel/api/inbounds", "application/x-www-form-urlencoded", nil, nil, strconv.Itoa(inboundId), "delClient", clientId)
 
 	return needRestart, db.Save(oldInbound).Error
 }
@@ -2519,7 +2519,7 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 
 		if resp.StatusCode != http.StatusOK {
 			bodyBytes, _ := io.ReadAll(resp.Body)
-			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes), resp)
+			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
 		}
 		//logger.Infof("Synced inbound %v to server %v (%v)", bodyData.(*model.Inbound).Tag, server.Name, resp.Status)
 	}
