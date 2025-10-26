@@ -686,7 +686,7 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 	s.xrayApi.Close()
 
-	s.syncWithSlaves("POST", "panel/inbounds/api/addClient", "application/x-www-form-urlencoded", data, nil)
+	s.syncWithSlaves("POST", "panel/api/inbounds/addClient", "application/x-www-form-urlencoded", data, nil)
 
 	return needRestart, tx.Save(oldInbound).Error
 }
@@ -955,7 +955,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		needRestart = true
 	}
 
-	s.syncWithSlaves("POST", "panel/inbounds/api/updateClient", "application/x-www-form-urlencoded", data, nil, clientId)
+	s.syncWithSlaves("POST", "panel/api/inbounds/updateClient", "application/x-www-form-urlencoded", data, nil, clientId)
 
 	return needRestart, tx.Save(oldInbound).Error
 }
