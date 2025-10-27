@@ -90,7 +90,7 @@
 "theme" = "Тема"
 "dark" = "Темная"
 "ultraDark" = "Очень темная"
-"dashboard" = "Обзор"
+"dashboard" = "Дашборд"
 "inbounds" = "Подключения"
 "settings" = "Настройки"
 "xray" = "Настройки Xray"
@@ -100,7 +100,7 @@
 [pages.login]
 "hello" = "Привет!"
 "title" = "Добро пожаловать!"
-"loginAgain" = "Сессия завершена. Пожалуйста, войдите снова."
+"loginAgain" = "Сессия истекла. Войдите в систему снова"
 
 [pages.login.toasts]
 "invalidFormData" = "Недопустимый формат данных"
@@ -110,12 +110,12 @@
 "successLogin" = "Вход выполнен успешно"
 
 [pages.index]
-"title" = "Обзор"
+"title" = "Дашборд"
 "cpu" = "ЦП"
 "logicalProcessors" = "Логические процессоры"
 "frequency" = "Частота"
 "swap" = "Файл подкачки"
-"storage" = "Хранилище"
+"storage" = "Диск"
 "memory" = "ОЗУ"
 "threads" = "Потоки"
 "xrayStatus" = "Xray"
