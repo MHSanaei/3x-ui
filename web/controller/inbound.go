@@ -88,6 +88,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	if user == nil {
+		user = &model.User{}
 		user.Id = 1
 	}
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
