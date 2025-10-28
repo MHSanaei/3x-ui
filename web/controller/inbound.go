@@ -87,6 +87,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 // getInbounds retrieves the list of inbounds for the logged-in user.
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
+	// TODO: need to rethink how to check the user in this place and other likes or leave it as is @MHSanaei
 	if user == nil {
 		user = &model.User{}
 		user.Id = 1
@@ -151,7 +152,6 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if user == nil {
 		inbound.UserId = 1
 	} else {
-
 		inbound.UserId = user.Id
 	}
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
