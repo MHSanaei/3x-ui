@@ -3,7 +3,6 @@
 <link rel="stylesheet" href="{{ .base_path }}assets/bootstrap/bootstrap.min.css">
 {{ template "page/head_end" .}} {{ template
 "page/body_start" .}}
-
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' settings-page'">
     <a-sidebar></a-sidebar>
     <a-layout id="content-layout">
@@ -111,9 +110,11 @@
                                                             class="badge bg-danger">No</span>
                                                     </td>
                                                     <td><button class="btn btn-info btn-sm"
-                                                            @click="showEditModal(server)">Edit</button><button
-                                                            class="btn btn-danger btn-sm"
-                                                            @click="deleteServer(server.id)">Delete</button></td>
+                                                            @click="showEditModal(server)">Edit</button>
+                                                            <button class="btn btn-danger btn-sm"
+                                                            @click="deleteServer(server.id)">Delete</button>
+                                                        <button class="btn btn-sm btn-secondary"
+                                                        @click="syncServer(server)">Sync</button></td>
                                                 </tr>
                                             </template>
                                             <tr v-else>
@@ -326,6 +327,19 @@
                         modal.hide();
 
                         this.loadServers();
+                    })
+                    .catch((error) => {
+                        alert(error.response.data.msg);
+                    });
+            },
+            syncServer(server) {
+                if (!confirm("Are you sure you want to sync inbounds with server \"" + server.name + "\" server?")) {
+                    return;
+                }
+                axios
+                    .post(`/panel/api/servers/sync/${server.id}`)
+                    .then((response) => {
+                        alert(response.data.msg);
                     })
                     .catch((error) => {
                         alert(error.response.data.msg);

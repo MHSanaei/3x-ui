@@ -26,6 +26,7 @@ func (c *MultiServerController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:id", c.delServer)
 	g.POST("/update/:id", c.updateServer)
 	g.GET("/onlines", c.getOnlineClients)
+	g.POST("/sync/:id", c.syncServer)
 }
 
 func (c *MultiServerController) getServers(ctx *gin.Context) {
@@ -95,4 +96,18 @@ func (c *MultiServerController) updateServer(ctx *gin.Context) {
 		return
 	}
 	jsonMsg(ctx, "Server updated successfully", nil)
+}
+
+func (c *MultiServerController) syncServer(ctx *gin.Context) {
+	id, err := strconv.Atoi(ctx.Param("id"))
+	if err != nil {
+		jsonMsg(ctx, "Invalid ID", err)
+		return
+	}
+	err = c.multiServerService.SyncServer(id)
+	if err != nil {
+		jsonMsg(ctx, "Failed to sync server", err)
+		return
+	}
+	jsonMsg(ctx, "Server synced successfully", nil)
 }
