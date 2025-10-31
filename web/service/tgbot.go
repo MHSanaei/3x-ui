@@ -44,6 +44,8 @@ var (
 	botCancel	context.CancelFunc
 	// tgBotMutex protects concurrent access to botCancel variable
 	tgBotMutex sync.Mutex
+	// botWG waits for the OnReceive Long Polling goroutine to finish.
+	botWG sync.WaitGroup
 	
 	botHandler  *th.BotHandler
 	adminIds    []int64
@@ -343,7 +345,7 @@ func StopBot() {
 
 		botCancel = nil
 		// Giving the goroutine a small delay to exit cleanly.
-		time.Sleep(1 * time.Second)
+		botWG.Wait()
 		logger.Info("Telegram bot successfully stopped.")
 	}
 }
@@ -377,9 +379,6 @@ func (t *Tgbot) OnReceive() {
 	params := telego.GetUpdatesParams{
 		Timeout: 30, // Increased timeout to reduce API calls
 	}
-
-//	updates, _ := bot.UpdatesViaLongPolling(context.Background(), &params)
-
 // --- GRACEFUL SHUTDOWN FIX: Context creation ---
 	tgBotMutex.Lock()
 	
@@ -400,7 +399,10 @@ func (t *Tgbot) OnReceive() {
 
 	// Get updates channel using the context.
 	updates, _ := bot.UpdatesViaLongPolling(ctx, &params)
-
+	botWG.Add(1)
+	go func() {
+		defer botWG.Done()
+	
 	botHandler, _ = th.NewBotHandler(bot, updates)
 	botHandler.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 		delete(userStates, message.Chat.ID)
