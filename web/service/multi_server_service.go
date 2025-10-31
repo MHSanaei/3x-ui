@@ -167,7 +167,7 @@ func (s *MultiServerService) SyncServer(id int) error {
 				Success bool   `json:"success"`
 				Msg     string `json:"msg"`
 			}
-			if err := json.NewDecoder(httpResp.Body).Decode(&updateResp); err != nil {
+			if err := json.NewDecoder(resp.Body).Decode(&updateResp); err != nil {
 				logger.Error("failed to decode update inbounds response", "err", err)
 				return fmt.Errorf("decode update inbounds: %w", err)
 			}
@@ -191,7 +191,7 @@ func (s *MultiServerService) SyncServer(id int) error {
 				Success bool   `json:"success"`
 				Msg     string `json:"msg"`
 			}
-			if err := json.NewDecoder(httpResp.Body).Decode(&addResp); err != nil {
+			if err := json.NewDecoder(resp.Body).Decode(&addResp); err != nil {
 				logger.Error("failed to decode add inbounds response", "err", err)
 				return fmt.Errorf("decode add inbounds: %w", err)
 			}
