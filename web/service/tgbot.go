@@ -42,6 +42,8 @@ var (
 	
 	// botCancel stores the function to cancel the context, stopping Long Polling gracefully.
 	botCancel	context.CancelFunc
+	// tgBotMutex protects concurrent access to botCancel variable
+	tgBotMutex sync.Mutex
 	
 	botHandler  *th.BotHandler
 	adminIds    []int64
@@ -328,6 +330,9 @@ func (t *Tgbot) Stop() {
 // StopBot safely stops the Telegram bot's Long Polling operation by cancelling its context.
 // This is the global function called from main.go's signal handler and t.Stop().
 func StopBot() {
+	tgBotMutex.Lock()
+	defer tgBotMutex.Unlock()
+	
 	if botCancel != nil {
 		logger.Info("Sending cancellation signal to Telegram bot...")
 
@@ -376,16 +381,27 @@ func (t *Tgbot) OnReceive() {
 //	updates, _ := bot.UpdatesViaLongPolling(context.Background(), &params)
 
 // --- GRACEFUL SHUTDOWN FIX: Context creation ---
-// Create a context with cancellation and store the cancel function.
+	tgBotMutex.Lock()
+	
+	// Create a context with cancellation and store the cancel function.
 	var ctx context.Context
-	ctx, botCancel = context.WithCancel(context.Background())
-// --------------------------------------------------
 
-// Get updates channel using the created context. This channel will close when ctx is cancelled.
-	updates, _ := bot.UpdatesViaLongPolling(ctx, &params) // <<<
+	// Check if botCancel is already set (to prevent race condition overwrite and goroutine leak)
+	if botCancel == nil {
+		ctx, botCancel = context.WithCancel(context.Background())
+	} else {
+		// If botCancel is already set, use a non-cancellable context for this redundant call.
+		// This prevents overwriting the active botCancel and causing a goroutine leak from the previous call.
+		logger.Warning("TgBot OnReceive called concurrently. Using background context for redundant call.")
+		ctx = context.Background() // <<< ИЗМЕНЕНИЕ
+	}
+
+	tgBotMutex.Unlock()
+
+	// Get updates channel using the context.
+	updates, _ := bot.UpdatesViaLongPolling(ctx, &params)
 
 	botHandler, _ = th.NewBotHandler(bot, updates)
-
 	botHandler.HandleMessage(func(ctx *th.Context, message telego.Message) error {
 		delete(userStates, message.Chat.ID)
 		t.SendMsgToTgbot(message.Chat.ID, t.I18nBot("tgbot.keyboardClosed"), tu.ReplyKeyboardRemove())
