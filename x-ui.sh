@@ -74,7 +74,7 @@ before_show_menu() {
 }
 
 install() {
-    bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         if [[ $# == 0 ]]; then
             start
@@ -93,13 +93,12 @@ update() {
         fi
         return 0
     fi
-    bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/install.sh)
+    bash <(curl -Ls https://raw.githubusercontent.com/MHSanaei/3x-ui/main/install.sh)
     if [[ $? == 0 ]]; then
         LOGI "Update is complete, Panel has automatically restarted "
         before_show_menu
     fi
 }
-
 
 update_menu() {
     echo -e "${yellow}Updating Menu${plain}"
@@ -112,7 +111,7 @@ update_menu() {
         return 0
     fi
 
-    wget -O /usr/bin/x-ui https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.sh
+    wget -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     chmod +x /usr/local/x-ui/x-ui.sh
     chmod +x /usr/bin/x-ui
 
@@ -134,7 +133,7 @@ legacy_version() {
         exit 1
     fi
     # Use the entered panel version in the download link
-    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/dimasmir03/3x-ui/v$tag_version/install.sh") v$tag_version"
+    install_command="bash <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/v$tag_version/install.sh") v$tag_version"
 
     echo "Downloading and installing panel version $tag_version..."
     eval $install_command
@@ -173,7 +172,7 @@ uninstall() {
     echo ""
     echo -e "Uninstalled Successfully.\n"
     echo "If you need to install this panel again, you can use below command:"
-    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/install.sh)${plain}"
+    echo -e "${green}bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)${plain}"
     echo ""
     # Trap the SIGTERM signal
     trap delete_script SIGTERM
@@ -352,13 +351,6 @@ restart() {
     else
         LOGE "Panel restart failed, Probably because it takes longer than two seconds to start, Please check the log information later"
     fi
-    if [[ $# == 0 ]]; then
-        before_show_menu
-    fi
-}
-
-apikey() {
-    /usr/local/x-ui/x-ui setting -apiKey
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
@@ -551,7 +543,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N https://raw.githubusercontent.com/dimasmir03/3x-ui/feature/multi-server-support/x-ui.sh
+    wget -O /usr/bin/x-ui -N https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -1870,23 +1862,16 @@ SSH_port_forwarding() {
     esac
 }
 
-show_version() {
-    version=$(/usr/local/x-ui/x-ui -v true)
-    echo -e "x-ui Version: ${version}"
-    before_show_menu
-}
-
 show_usage() {
     echo -e "┌───────────────────────────────────────────────────────┐
 │  ${blue}x-ui control menu usages (subcommands):${plain}              │
-│                                                                      │
+│                                                       │
 │  ${blue}x-ui${plain}              - Admin Management Script          │
 │  ${blue}x-ui start${plain}        - Start                            │
 │  ${blue}x-ui stop${plain}         - Stop                             │
 │  ${blue}x-ui restart${plain}      - Restart                          │
 │  ${blue}x-ui status${plain}       - Current Status                   │
 │  ${blue}x-ui settings${plain}     - Current Settings                 │
-│  ${blue}x-ui apikey${plain}       - Current API Key                  │
 │  ${blue}x-ui enable${plain}       - Enable Autostart on OS Startup   │
 │  ${blue}x-ui disable${plain}      - Disable Autostart on OS Startup  │
 │  ${blue}x-ui log${plain}          - Check logs                       │
@@ -1895,7 +1880,6 @@ show_usage() {
 │  ${blue}x-ui legacy${plain}       - legacy version                   │
 │  ${blue}x-ui install${plain}      - Install                          │
 │  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-│  ${blue}x-ui v${plain}            - Show x-ui version                │
 └───────────────────────────────────────────────────────┘"
 }
 
@@ -2065,9 +2049,6 @@ if [[ $# > 0 ]]; then
         ;;
     "uninstall")
         check_install 0 && uninstall 0
-        ;;
-    "v")
-        check_install 0 && show_version 0
         ;;
     *) show_usage ;;
     esac

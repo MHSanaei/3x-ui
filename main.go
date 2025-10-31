@@ -183,7 +183,7 @@ func showSetting(show bool) {
 		fmt.Println("hasDefaultCredential:", hasDefaultCredential)
 		fmt.Println("port:", port)
 		fmt.Println("webBasePath:", webBasePath)
-		fmt.Println("apikey:", apikey)
+		fmt.Println("apiKey:", apikey)
 	}
 }
 
