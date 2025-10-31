@@ -39,6 +39,10 @@ import (
 
 var (
 	bot         *telego.Bot
+	
+	// botCancel stores the function to cancel the context, stopping Long Polling gracefully.
+	botCancel	context.CancelFunc
+	
 	botHandler  *th.BotHandler
 	adminIds    []int64
 	isRunning   bool
@@ -306,14 +310,37 @@ func (t *Tgbot) SetHostname() {
 	hostname = host
 }
 
-// Stop stops the Telegram bot and cleans up resources.
+// Stop safely stops the Telegram bot's Long Polling operation.
+// This method now calls the global StopBot function and cleans up other resources.
 func (t *Tgbot) Stop() {
+	// Call the global StopBot function to gracefully shut down Long Polling
+	StopBot()
+
+	// Stop the bot handler (in case the goroutine hasn't exited yet)
 	if botHandler != nil {
 		botHandler.Stop()
 	}
 	logger.Info("Stop Telegram receiver ...")
 	isRunning = false
 	adminIds = nil
+}
+
+// StopBot safely stops the Telegram bot's Long Polling operation by cancelling its context.
+// This is the global function called from main.go's signal handler and t.Stop().
+func StopBot() {
+	if botCancel != nil {
+		logger.Info("Sending cancellation signal to Telegram bot...")
+
+		// Calling botCancel() cancels the context passed to UpdatesViaLongPolling,
+		// which stops the Long Polling operation and closes the updates channel,
+		// allowing the th.Start() goroutine to exit cleanly.
+		botCancel()
+
+		botCancel = nil
+		// Giving the goroutine a small delay to exit cleanly.
+		time.Sleep(1 * time.Second)
+		logger.Info("Telegram bot successfully stopped.")
+	}
 }
 
 // encodeQuery encodes the query string if it's longer than 64 characters.
@@ -346,7 +373,16 @@ func (t *Tgbot) OnReceive() {
 		Timeout: 30, // Increased timeout to reduce API calls
 	}
 
-	updates, _ := bot.UpdatesViaLongPolling(context.Background(), &params)
+//	updates, _ := bot.UpdatesViaLongPolling(context.Background(), &params)
+
+// --- GRACEFUL SHUTDOWN FIX: Context creation ---
+// Create a context with cancellation and store the cancel function.
+	var ctx context.Context
+	ctx, botCancel = context.WithCancel(context.Background())
+// --------------------------------------------------
+
+// Get updates channel using the created context. This channel will close when ctx is cancelled.
+	updates, _ := bot.UpdatesViaLongPolling(ctx, &params) // <<<
 
 	botHandler, _ = th.NewBotHandler(bot, updates)
 
