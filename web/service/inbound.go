@@ -2521,7 +2521,6 @@ func (s *InboundService) syncWithSlaves(method string, path string, contentType 
 			bodyBytes, _ := io.ReadAll(resp.Body)
 			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
 		}
-		//logger.Infof("Synced inbound %v to server %v (%v)", bodyData.(*model.Inbound).Tag, server.Name, resp.Status)
 	}
 }
 

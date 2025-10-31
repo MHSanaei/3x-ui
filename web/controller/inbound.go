@@ -1,15 +1,11 @@
 package controller
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"runtime/debug"
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
-	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 
@@ -31,34 +27,34 @@ func NewInboundController(g *gin.RouterGroup) *InboundController {
 
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
-	g.Use(func(c *gin.Context) {
-		defer func() {
-			if rec := recover(); rec != nil {
-				logger.Errorf("PANIC: %v\nStack: %s", rec, debug.Stack())
-				c.AbortWithStatusJSON(500, gin.H{"msg": fmt.Sprintf("panic: %v", rec)})
-			}
-		}()
-		c.Next()
-	})
+	// g.Use(func(c *gin.Context) {
+	// 	defer func() {
+	// 		if rec := recover(); rec != nil {
+	// 			logger.Errorf("PANIC: %v\nStack: %s", rec, debug.Stack())
+	// 			c.AbortWithStatusJSON(500, gin.H{"msg": fmt.Sprintf("panic: %v", rec)})
+	// 		}
+	// 	}()
+	// 	c.Next()
+	// })
 
-	g.Use(func(c *gin.Context) {
-		// Заголовки
-		logger.Debug("=== REQUEST INFO ===")
-		logger.Debug(fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()))
-		logger.Debug("Headers:")
-		for k, v := range c.Request.Header {
-			logger.Debug(fmt.Sprintf("  %s: %v", k, v))
-		}
+	// g.Use(func(c *gin.Context) {
+	// 	// Заголовки
+	// 	logger.Debug("=== REQUEST INFO ===")
+	// 	logger.Debug(fmt.Sprintf("%s %s", c.Request.Method, c.Request.URL.String()))
+	// 	logger.Debug("Headers:")
+	// 	for k, v := range c.Request.Header {
+	// 		logger.Debug(fmt.Sprintf("  %s: %v", k, v))
+	// 	}
 
-		// Тело (прочитаем и восстановим)
-		bodyBytes, _ := io.ReadAll(c.Request.Body)
-		logger.Debug(fmt.Sprintf("\nBody:\n%s\n", string(bodyBytes)))
-		logger.Debug("====================")
+	// 	// Тело (прочитаем и восстановим)
+	// 	bodyBytes, _ := io.ReadAll(c.Request.Body)
+	// 	logger.Debug(fmt.Sprintf("\nBody:\n%s\n", string(bodyBytes)))
+	// 	logger.Debug("====================")
 
-		// Обязательно восстановить тело, чтобы Gin потом смог его обработать
-		c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+	// 	// Обязательно восстановить тело, чтобы Gin потом смог его обработать
+	// 	c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
 
-	})
+	// })
 
 	g.GET("/list", a.getInbounds)
 	g.GET("/get/:id", a.getInbound)
