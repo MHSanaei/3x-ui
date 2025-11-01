@@ -741,12 +741,12 @@ class RealityStreamSettings extends XrayCommonClass {
     ) {
         super();
         // If target/serverNames are not provided, use random values
-        if (!target || !serverNames) {
-            const randomTarget = typeof getRandomRealityTarget !== 'undefined' 
-                ? getRandomRealityTarget() 
+        if (!target && !serverNames) {
+            const randomTarget = typeof getRandomRealityTarget !== 'undefined'
+                ? getRandomRealityTarget()
                 : { target: 'google.com:443', sni: 'google.com,www.google.com' };
-            target = target || randomTarget.target;
-            serverNames = serverNames || randomTarget.sni;
+            target = randomTarget.target;
+            serverNames = randomTarget.sni;
         }
         this.show = show;
         this.xver = xver;
