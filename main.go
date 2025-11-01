@@ -321,6 +321,20 @@ func updateCert(publicKey string, privateKey string) {
 		} else {
 			fmt.Println("set certificate private key success")
 		}
+
+		err = settingService.SetSubCertFile(publicKey)
+		if err != nil {
+			fmt.Println("set certificate for subscription public key failed:", err)
+		} else {
+			fmt.Println("set certificate for subscription public key success")
+		}
+
+		err = settingService.SetSubKeyFile(privateKey)
+		if err != nil {
+			fmt.Println("set certificate for subscription private key failed:", err)
+		} else {
+			fmt.Println("set certificate for subscription private key success")
+		}
 	} else {
 		fmt.Println("both public and private key should be entered.")
 	}
