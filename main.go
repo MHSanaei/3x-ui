@@ -78,6 +78,10 @@ func runWebServer() {
 		case syscall.SIGHUP:
 			logger.Info("Received SIGHUP signal. Restarting servers...")
 
+			// --- FIX FOR TELEGRAM BOT CONFLICT (409): Stop bot before restart ---
+			service.StopBot()
+			// --			
+			
 			err := server.Stop()
 			if err != nil {
 				logger.Debug("Error stopping web server:", err)
@@ -106,6 +110,10 @@ func runWebServer() {
 			log.Println("Sub server restarted successfully.")
 
 		default:
+			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---
+			service.StopBot()
+			// ------------------------------------------------------------
+			
 			server.Stop()
 			subServer.Stop()
 			log.Println("Shutting down servers.")
