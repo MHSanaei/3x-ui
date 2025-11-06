@@ -247,7 +247,7 @@ update_x-ui() {
 │  ${blue}x-ui log${plain}          - Check logs                       │
 │  ${blue}x-ui banlog${plain}       - Check Fail2ban ban logs          │
 │  ${blue}x-ui update${plain}       - Update                           │
-│  ${blue}x-ui legacy${plain}       - legacy version                   │
+│  ${blue}x-ui legacy${plain}       - Legacy version                   │
 │  ${blue}x-ui install${plain}      - Install                          │
 │  ${blue}x-ui uninstall${plain}    - Uninstall                        │
 └───────────────────────────────────────────────────────┘"

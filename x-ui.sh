@@ -887,7 +887,6 @@ update_geo() {
         show_menu
         ;;
     1)
-        rm -f geoip.dat geosite.dat
         wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
 
