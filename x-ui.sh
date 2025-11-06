@@ -863,7 +863,7 @@ delete_ports() {
     fi
 }
 
-update_all_geo() {
+update_all_geofiles() {
         wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
         wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
@@ -908,9 +908,9 @@ update_geo() {
         restart
         ;;
     4)
-        update_all_geo
+        update_all_geofiles
 
-        echo -e "${green}All geofiles have been updated successfully!${plain}"
+        echo -e "${green}All geo files have been updated successfully!${plain}"
         restart
         ;;
     *)
@@ -1884,7 +1884,7 @@ show_usage() {
 │  ${blue}x-ui log${plain}                   - Check logs                       │
 │  ${blue}x-ui banlog${plain}                - Check Fail2ban ban logs          │
 │  ${blue}x-ui update${plain}                - Update                           │
-│  ${blue}x-ui update-all-geofiles${plain}   - Update GEO files                 │
+│  ${blue}x-ui update-all-geofiles${plain}   - Update all geo files             │
 │  ${blue}x-ui legacy${plain}                - Legacy version                   │
 │  ${blue}x-ui install${plain}               - Install                          │
 │  ${blue}x-ui uninstall${plain}             - Uninstall                        │
@@ -2059,7 +2059,7 @@ if [[ $# > 0 ]]; then
         check_install 0 && uninstall 0
         ;;
     "update-all-geofiles")
-        check_install 0 && update_all_geo 0 && restart 0
+        check_install 0 && update_all_geofiles 0 && restart 0
         ;;
     *) show_usage ;;
     esac
