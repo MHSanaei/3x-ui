@@ -864,10 +864,22 @@ delete_ports() {
 }
 
 update_all_geofiles() {
+        update_main_geofiles
+        update_ir_geofiles
+        update_ru_geofiles
+}
+
+update_main_geofiles() {
         wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+}
+
+update_ir_geofiles() {
         wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
         wget -O geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+}
+
+update_ru_geofiles() {
         wget -O geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
         wget -O geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
 }
@@ -887,29 +899,22 @@ update_geo() {
         show_menu
         ;;
     1)
-        wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-
+        update_main_geofiles
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
         restart
         ;;
     2)
-        wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        wget -O geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-
+        update_ir_geofiles
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
         restart
         ;;
     3)
-        wget -O geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
-
+        update_ru_geofiles
         echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
         restart
         ;;
     4)
         update_all_geofiles
-
         echo -e "${green}All geo files have been updated successfully!${plain}"
         restart
         ;;
