@@ -1,8 +1,6 @@
 services:
   3xui:
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    image: xidahuang/3xuidash:main
     container_name: 3xui_app
     # hostname: yourhostname <- optional
     volumes:
