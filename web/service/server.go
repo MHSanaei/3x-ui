@@ -802,9 +802,9 @@ func (s *ServerService) GetXrayLogs(
 			}
 
 			if part == "from" {
-				entry.FromAddress = parts[i+1]
+				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if part == "accepted" {
-				entry.ToAddress = parts[i+1]
+				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if strings.HasPrefix(part, "[") {
 				entry.Inbound = part[1:]
 			} else if strings.HasSuffix(part, "]") {
