@@ -112,6 +112,12 @@ func GetLogFolder() string {
 	return "/var/log"
 }
 
+// ShouldTruncateAccessLog returns false when XUI_KEEP_ACCESS_LOG is set to "true",
+// allowing administrators to preserve the access log without periodic truncation.
+func ShouldTruncateAccessLog() bool {
+	return os.Getenv("XUI_KEEP_ACCESS_LOG") != "true"
+}
+
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {

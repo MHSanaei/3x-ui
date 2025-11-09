@@ -11,6 +11,7 @@ services:
       TZ: Asia/Shanghai
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      XUI_KEEP_ACCESS_LOG: "true"
     tty: true
     network_mode: host
     restart: unless-stopped
