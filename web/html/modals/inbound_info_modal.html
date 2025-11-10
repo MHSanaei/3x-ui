@@ -199,12 +199,7 @@
           <td>{{ i18n "pages.inbounds.createdAt" }}</td>
           <td>
             <template v-if="infoModal.clientSettings && infoModal.clientSettings.created_at">
-              <template v-if="app.datepicker === 'gregorian'">
-                <a-tag>[[ DateUtil.formatMillis(infoModal.clientSettings.created_at) ]]</a-tag>
-              </template>
-              <template v-else>
-                <a-tag>[[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.created_at)) ]]</a-tag>
-              </template>
+              <a-tag>[[ IntlUtil.formatDate(infoModal.clientSettings.created_at) ]]</a-tag>
             </template>
             <template v-else>
               <a-tag>-</a-tag>
@@ -215,12 +210,7 @@
           <td>{{ i18n "pages.inbounds.updatedAt" }}</td>
           <td>
             <template v-if="infoModal.clientSettings && infoModal.clientSettings.updated_at">
-              <template v-if="app.datepicker === 'gregorian'">
-                <a-tag>[[ DateUtil.formatMillis(infoModal.clientSettings.updated_at) ]]</a-tag>
-              </template>
-              <template v-else>
-                <a-tag>[[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.updated_at)) ]]</a-tag>
-              </template>
+              <a-tag>[[ IntlUtil.formatDate(infoModal.clientSettings.updated_at) ]]</a-tag>
             </template>
             <template v-else>
               <a-tag>-</a-tag>
@@ -282,12 +272,7 @@
           <td>
             <template v-if="infoModal.clientSettings.expiryTime > 0">
               <a-tag :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, infoModal.clientSettings.expiryTime)"> 
-                <template v-if="app.datepicker === 'gregorian'">
-                  [[ DateUtil.formatMillis(infoModal.clientSettings.expiryTime) ]]
-                </template>
-                <template v-else>
-                  [[ DateUtil.convertToJalalian(moment(infoModal.clientSettings.expiryTime)) ]]
-                </template>
+                [[ IntlUtil.formatDate(infoModal.clientSettings.expiryTime) ]]
               </a-tag>
             </template>
             <a-tag v-else-if="infoModal.clientSettings.expiryTime < 0" color="green">[[ infoModal.clientSettings.expiryTime / -86400000 ]] {{ i18n "pages.client.days" }}
