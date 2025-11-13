@@ -76,10 +76,7 @@ install_base() {
 	ubuntu | debian | armbian)
 		apt-get update >/dev/null 2>&1 && apt-get install -y -q wget curl tar tzdata >/dev/null 2>&1
 		;;
-	centos | rhel | almalinux | rocky | ol)
-		yum -y update >/dev/null 2>&1 && yum install -y -q wget curl tar tzdata >/dev/null 2>&1
-		;;
-	fedora | amzn | virtuozzo)
+	fedora | amzn | virtuozzo | centos-stream | rhel | almalinux | rocky | ol)
 		dnf -y update >/dev/null 2>&1 && dnf install -y -q wget curl tar tzdata >/dev/null 2>&1
 		;;
 	arch | manjaro | parch)

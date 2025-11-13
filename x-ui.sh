@@ -509,10 +509,7 @@ enable_bbr() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
         ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum -y install ca-certificates
-        ;;
-    fedora | amzn | virtuozzo)
+    fedora | amzn | virtuozzo | centos-stream | rhel | almalinux | rocky | ol)
         dnf -y update && dnf -y install ca-certificates
         ;;
     arch | manjaro | parch)
@@ -1073,10 +1070,7 @@ ssl_cert_issue() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install socat -y
         ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum -y install socat
-        ;;
-    fedora | amzn | virtuozzo)
+    fedora | amzn | virtuozzo | centos-stream | rhel | almalinux | rocky | ol)
         dnf -y update && dnf -y install socat
         ;;
     arch | manjaro | parch)
