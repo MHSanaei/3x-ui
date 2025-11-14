@@ -118,6 +118,15 @@ func ShouldTruncateAccessLog() bool {
 	return os.Getenv("XUI_KEEP_ACCESS_LOG") != "true"
 }
 
+// GetSiteName returns the site name used in UI titles, defaulting to "3xui".
+func GetSiteName() string {
+	siteName := strings.TrimSpace(os.Getenv("XUI_SITE_NAME"))
+	if siteName == "" {
+		return "3xui"
+	}
+	return siteName
+}
+
 func copyFile(src, dst string) error {
 	in, err := os.Open(src)
 	if err != nil {
