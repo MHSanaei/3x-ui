@@ -111,20 +111,12 @@
   <template v-if="client.expiryTime !=0 && client.reset >0">
     <a-popover :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="content">
-        <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}
-        </span>
-        <span v-else>
-          <template v-if="app.datepicker === 'gregorian'">
-            [[ DateUtil.formatMillis(client._expiryTime) ]]
-          </template>
-          <template v-else>
-            [[ DateUtil.convertToJalalian(moment(client._expiryTime)) ]]
-          </template>
-        </span>
+        <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
+        <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
       <table>
         <tr class="tr-table-box">
-          <td class="tr-table-rt"> [[ remainedDays(client.expiryTime) ]] </td>
+          <td class="tr-table-rt"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </td>
           <td class="infinite-bar tr-table-bar">
             <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
           </td>
@@ -136,18 +128,10 @@
   <template v-else>
     <a-popover v-if="client.expiryTime != 0" :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="content">
-        <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}
-        </span>
-        <span v-else>
-          <template v-if="app.datepicker === 'gregorian'">
-            [[ DateUtil.formatMillis(client._expiryTime) ]]
-          </template>
-          <template v-else>
-            [[ DateUtil.convertToJalalian(moment(client._expiryTime)) ]]
-          </template>
-        </span>
+        <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
+        <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
-      <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ remainedDays(client.expiryTime) ]] </a-tag>
+      <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </a-tag>
     </a-popover>
     <a-tag v-else :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)" :style="{ border: 'none' }" class="infinite-tag">
       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -232,20 +216,12 @@
         </tr>
         <tr>
           <template v-if="client.expiryTime !=0 && client.reset >0">
-            <td width="80px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[ remainedDays(client.expiryTime) ]] </td>
+            <td width="80px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </td>
             <td width="120px" class="infinite-bar">
               <a-popover :overlay-class-name="themeSwitcher.currentTheme">
                 <template slot="content">
-                  <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}
-                  </span>
-                  <span v-else>
-                    <template v-if="app.datepicker === 'gregorian'">
-                      [[ DateUtil.formatMillis(client._expiryTime) ]]
-                    </template>
-                    <template v-else>
-                      [[ DateUtil.convertToJalalian(moment(client._expiryTime)) ]]
-                    </template>
-                  </span>
+                  <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
+                  <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
                 </template>
                 <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
               </a-popover>
@@ -256,18 +232,10 @@
             <td colspan="3" :style="{ textAlign: 'center' }">
               <a-popover v-if="client.expiryTime != 0" :overlay-class-name="themeSwitcher.currentTheme">
                 <template slot="content">
-                  <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}
-                  </span>
-                  <span v-else>
-                    <template v-if="app.datepicker === 'gregorian'">
-                      [[ DateUtil.formatMillis(client._expiryTime) ]]
-                    </template>
-                    <template v-else>
-                      [[ DateUtil.convertToJalalian(moment(client._expiryTime)) ]]
-                    </template>
-                  </span>
+                  <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
+                  <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
                 </template>
-                <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ remainedDays(client.expiryTime) ]] </a-tag>
+                <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </a-tag>
               </a-popover>
               <a-tag v-else :color="client.enable ? 'purple' : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'" class="infinite-tag">
                 <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -289,12 +257,7 @@
 </template>
 <template slot="createdAt" slot-scope="text, client, index">
   <template v-if="client.created_at">
-    <template v-if="app.datepicker === 'gregorian'">
-      [[ DateUtil.formatMillis(client.created_at) ]]
-    </template>
-    <template v-else>
-      [[ DateUtil.convertToJalalian(moment(client.created_at)) ]]
-    </template>
+    [[ IntlUtil.formatDate(client.created_at) ]]
   </template>
   <template v-else>
     -
@@ -302,12 +265,7 @@
 </template>
 <template slot="updatedAt" slot-scope="text, client, index">
   <template v-if="client.updated_at">
-    <template v-if="app.datepicker === 'gregorian'">
-      [[ DateUtil.formatMillis(client.updated_at) ]]
-    </template>
-    <template v-else>
-      [[ DateUtil.convertToJalalian(moment(client.updated_at)) ]]
-    </template>
+    [[ IntlUtil.formatDate(client.updated_at) ]]
   </template>
   <template v-else>
     -

@@ -52,9 +52,7 @@
                     <br v-if="dbInbound.lastTrafficResetTime && dbInbound.lastTrafficResetTime > 0">
                     <span v-if="dbInbound.lastTrafficResetTime && dbInbound.lastTrafficResetTime > 0">
                         <strong>{{ i18n "pages.inbounds.lastReset" }}:</strong>
-                        <span v-if="datepicker == 'gregorian'">[[
-                            moment(dbInbound.lastTrafficResetTime).format('YYYY-MM-DD HH:mm:ss') ]]</span>
-                        <span v-else>[[ DateUtil.convertToJalalian(moment(dbInbound.lastTrafficResetTime)) ]]</span>
+                        <span>[[ IntlUtil.formatDate(dbInbound.lastTrafficResetTime) ]]</span>
                     </span>
                 </template>
                 {{ i18n "pages.inbounds.periodicTrafficResetTitle" }}

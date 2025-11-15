@@ -384,15 +384,12 @@
                     </template>
                     <template slot="expiryTime" slot-scope="text, dbInbound">
                       <a-popover v-if="dbInbound.expiryTime > 0" :overlay-class-name="themeSwitcher.currentTheme">
-                        <template slot="content" v-if="app.datepicker === 'gregorian'">
-                          [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
-                        </template>
-                        <template v-else slot="content">
-                          [[ DateUtil.convertToJalalian(moment(dbInbound.expiryTime)) ]]
+                        <template slot="content">
+                          [[ IntlUtil.formatDate(dbInbound.expiryTime) ]]
                         </template>
                         <a-tag :style="{ minWidth: '50px' }"
                           :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
-                          [[ remainedDays(dbInbound._expiryTime) ]]
+                          [[ IntlUtil.formatRelativeTime(dbInbound.expiryTime) ]]
                         </a-tag>
                       </a-popover>
                       <a-tag v-else color="purple" class="infinite-tag">
@@ -549,12 +546,7 @@
                               <td>
                                 <a-tag :style="{ minWidth: '50px', textAlign: 'center' }"
                                   v-if="dbInbound.expiryTime > 0" :color="dbInbound.isExpiry? 'red': 'blue'">
-                                  <template v-if="app.datepicker === 'gregorian'">
-                                    [[ DateUtil.formatMillis(dbInbound.expiryTime) ]]
-                                  </template>
-                                  <template v-else>
-                                    [[ DateUtil.convertToJalalian(moment(dbInbound.expiryTime)) ]]
-                                  </template>
+                                  [[ IntlUtil.formatDate(dbInbound.expiryTime) ]]
                                 </a-tag>
                                 <a-tag v-else :style="{ textAlign: 'center' }" color="purple" class="infinite-tag">
                                   <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
@@ -1407,13 +1399,6 @@
         if (remainedSeconds >= resetSeconds) return 0;
         return 100 * (1 - (remainedSeconds / resetSeconds));
       },
-      remainedDays(expTime) {
-        if (expTime == 0) return null;
-        if (expTime < 0) return TimeFormatter.formatSecond(expTime / -1000);
-        now = new Date().getTime();
-        if (expTime < now) return '{{ i18n "depleted" }}';
-        return TimeFormatter.formatSecond((expTime - now) / 1000);
-      },
       statsExpColor(dbInbound, email) {
         if (email.length == 0) return '#7a316f';
         clientStats = dbInbound.clientStats.find(stats => stats.email === email);
@@ -1458,10 +1443,7 @@
       formatLastOnline(email) {
         const ts = this.getLastOnline(email)
         if (!ts) return '-'
-        if (this.datepicker === 'gregorian') {
-          return DateUtil.formatMillis(ts)
-        }
-        return DateUtil.convertToJalalian(moment(ts))
+        return IntlUtil.formatDate(ts)
       },
       isRemovable(dbInboundId) {
         return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;
