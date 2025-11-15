@@ -389,7 +389,7 @@
                         </template>
                         <a-tag :style="{ minWidth: '50px' }"
                           :color="ColorUtils.usageColor(new Date().getTime(), app.expireDiff, dbInbound._expiryTime)">
-                          [[ IntlUtil.formatRelativeTime(dbInbound._expiryTime) ]]
+                          [[ IntlUtil.formatRelativeTime(dbInbound.expiryTime) ]]
                         </a-tag>
                       </a-popover>
                       <a-tag v-else color="purple" class="infinite-tag">

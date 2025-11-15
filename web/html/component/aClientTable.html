@@ -112,7 +112,7 @@
     <a-popover :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="content">
         <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
-        <span v-else>[[ IntlUtil.formatDate(client._expiryTime) ]]</span>
+        <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
       <table>
         <tr class="tr-table-box">
@@ -129,7 +129,7 @@
     <a-popover v-if="client.expiryTime != 0" :overlay-class-name="themeSwitcher.currentTheme">
       <template slot="content">
         <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
-        <span v-else>[[ IntlUtil.formatDate(client._expiryTime) ]]</span>
+        <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
       <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </a-tag>
     </a-popover>
@@ -221,7 +221,7 @@
               <a-popover :overlay-class-name="themeSwitcher.currentTheme">
                 <template slot="content">
                   <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
-                  <span v-else>[[ IntlUtil.formatDate(client._expiryTime) ]]</span>
+                  <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
                 </template>
                 <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
               </a-popover>
@@ -233,7 +233,7 @@
               <a-popover v-if="client.expiryTime != 0" :overlay-class-name="themeSwitcher.currentTheme">
                 <template slot="content">
                   <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
-                  <span v-else>[[ IntlUtil.formatDate(client._expiryTime) ]]</span>
+                  <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
                 </template>
                 <a-tag :style="{ minWidth: '50px', border: 'none' }" :color="ColorUtils.userExpiryColor(app.expireDiff, client, themeSwitcher.isDarkTheme)"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </a-tag>
               </a-popover>
