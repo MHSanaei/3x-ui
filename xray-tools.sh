@@ -38,7 +38,7 @@ update_geodata_in_docker() {
 }
 
 
-update_xray_core() {
+install_xray_core() {
     TARGETARCH="$1"
     WORKDIR="$2"
     XRAY_VERSION="$3"
@@ -46,7 +46,7 @@ update_xray_core() {
     OLD_DIR=$(pwd)
     trap 'cd "$OLD_DIR"' EXIT
 
-    echo "[$(date)] Running update_xray_core"
+    echo "[$(date)] Running install_xray_core"
 
     case $1 in
       amd64)
@@ -94,9 +94,9 @@ if [ "${0##*/}" = "xray-tools.sh" ]; then
   shift || true
 
   case "$cmd" in
-    update_xray_core)
+    install_xray_core)
       # args: TARGETARCH WORKDIR XRAY_VERSION
-      update_xray_core "$@"
+      install_xray_core "$@"
       ;;
     update_geodata_in_docker)
       # args: WORKDIR
@@ -104,7 +104,7 @@ if [ "${0##*/}" = "xray-tools.sh" ]; then
       ;;
     ""|help|-h|--help)
       echo "Usage:"
-      echo "  $0 update_xray_core TARGETARCH WORKDIR XRAY_VERSION"
+      echo "  $0 install_xray_core TARGETARCH WORKDIR XRAY_VERSION"
       echo "  $0 update_geodata_in_docker WORKDIR"
       exit 1
       ;;

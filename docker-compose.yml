@@ -2,13 +2,15 @@ services:
   3xui:
     build:
       context: .
-      dockerfile: ./Dockerfile
+      args:
+        XRAY_VERSION: "v25.10.15"
+        GEOUPDATE_CRON_SCHEDULE: "0 */6 * * *"
     container_name: 3xui_app
-    # hostname: yourhostname <- optional
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
     environment:
+      TZ: "Asia/Tehran"
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
     tty: true
