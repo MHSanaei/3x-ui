@@ -2,38 +2,56 @@
 # Stage: Builder
 # ========================================================
 FROM golang:1.25-alpine AS builder
-WORKDIR /app
-ARG TARGETARCH
 
-RUN apk --no-cache --update add \
+WORKDIR /app
+
+RUN apk add --no-cache \
   build-base \
-  gcc \
-  wget \
-  unzip
+  gcc
+
+# docker CACHE
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -ldflags "-w -s" -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+
+# ========================================================
+# Stage: Xray downloader
+# ========================================================
+FROM alpine AS xray-downloader
+
+ARG TARGETARCH
+ARG XRAY_VERSION
+
+WORKDIR /app
+RUN apk add --no-cache wget unzip && mkdir -p /app/bin
+
+COPY xray-tools.sh .
+RUN chmod +x /app/xray-tools.sh &&  \
+    ./xray-tools.sh install_xray_core "$TARGETARCH" "/app/bin" "$XRAY_VERSION" && \
+    ./xray-tools.sh update_geodata_in_docker "/app/bin"
 
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
 FROM alpine
-ENV TZ=Asia/Tehran
+
 WORKDIR /app
 
-RUN apk add --no-cache --update \
+RUN apk add --no-cache \
   ca-certificates \
   tzdata \
   fail2ban \
   bash
 
+COPY DockerEntrypoint.sh /app/
 COPY --from=builder /app/build/ /app/
-COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
+COPY --from=xray-downloader /app/bin /app/bin
 
 
 # Configure fail2ban
@@ -51,5 +69,5 @@ RUN chmod +x \
 ENV XUI_ENABLE_FAIL2BAN="true"
 EXPOSE 2053
 VOLUME [ "/etc/x-ui" ]
-CMD [ "./x-ui" ]
+
 ENTRYPOINT [ "/app/DockerEntrypoint.sh" ]
