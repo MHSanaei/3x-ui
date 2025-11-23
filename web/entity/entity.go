@@ -61,6 +61,7 @@ type AllSetting struct {
 	SubPort                     int    `json:"subPort" form:"subPort"`                                         // Subscription server port
 	SubPath                     string `json:"subPath" form:"subPath"`                                         // Base path for subscription URLs
 	SubDomain                   string `json:"subDomain" form:"subDomain"`                                     // Domain for subscription server validation
+	SubVlessDomain              string `json:"subVlessDomain" form:"subVlessDomain"`                           // Domain for VLESS protocol in subscriptions
 	SubCertFile                 string `json:"subCertFile" form:"subCertFile"`                                 // SSL certificate file for subscription server
 	SubKeyFile                  string `json:"subKeyFile" form:"subKeyFile"`                                   // SSL private key file for subscription server
 	SubUpdates                  int    `json:"subUpdates" form:"subUpdates"`                                   // Subscription update interval in minutes
@@ -75,6 +76,7 @@ type AllSetting struct {
 	SubJsonNoises               string `json:"subJsonNoises" form:"subJsonNoises"`                             // JSON subscription noise configuration
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
 	SubJsonRules                string `json:"subJsonRules" form:"subJsonRules"`
+	SubRemoteServers            string `json:"subRemoteServers" form:"subRemoteServers"`                     // JSON array of remote server URLs for subscription aggregation
 
 	// LDAP settings
 	LdapEnable     bool   `json:"ldapEnable" form:"ldapEnable"`

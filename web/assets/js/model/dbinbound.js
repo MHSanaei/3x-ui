@@ -20,6 +20,7 @@ class DBInbound {
         this.streamSettings = "";
         this.tag = "";
         this.sniffing = "";
+        this.vlessDomain = "";
         this.clientStats = ""
         if (data == null) {
             return;

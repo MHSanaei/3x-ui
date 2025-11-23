@@ -123,6 +123,7 @@
       user: {},
       lang: LanguageManager.getLanguage(),
       inboundOptions: [],
+      subRemoteServersInput: '',
       remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
       datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
@@ -243,8 +244,59 @@
 
           this.oldAllSetting = new AllSetting(msg.obj);
           this.allSetting = new AllSetting(msg.obj);
+          // Initialize subRemoteServersInput from JSON
+          this.updateSubRemoteServersInput();
           app.changeRemarkSample();
           this.saveBtnDisable = true;
+        }
+      },
+      updateSubRemoteServersInput() {
+        const remoteServers = this.allSetting.subRemoteServers;
+        if (!remoteServers || typeof remoteServers !== 'string' || remoteServers.trim() === '') {
+          this.subRemoteServersInput = '';
+          return;
+        }
+        
+        try {
+          const servers = JSON.parse(remoteServers);
+          if (Array.isArray(servers) && servers.length > 0) {
+            this.subRemoteServersInput = servers.join(', ');
+          } else {
+            this.subRemoteServersInput = '';
+          }
+        } catch (e) {
+          // If not valid JSON, treat as comma-separated string (backward compatibility)
+          this.subRemoteServersInput = remoteServers;
+        }
+      },
+      convertRemoteServersToJson() {
+        const input = this.subRemoteServersInput;
+        if (!input || input.trim() === '') {
+          this.allSetting.subRemoteServers = '';
+          return;
+        }
+        
+        // Split by comma (handle both ", " and ","), filter empty strings, trim each
+        const servers = input
+          .split(/\s*,\s*/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0)
+          .map(server => {
+            server = server.trim();
+            // Only add https:// if no protocol specified
+            if (!server.startsWith('http://') && !server.startsWith('https://')) {
+              server = 'https://' + server;
+            }
+            return server;
+          });
+        
+        // Convert to JSON array
+        try {
+          this.allSetting.subRemoteServers = JSON.stringify(servers);
+          console.log('Converted remote servers to JSON:', this.allSetting.subRemoteServers);
+        } catch (e) {
+          console.error('Failed to convert remote servers to JSON:', e);
+          this.allSetting.subRemoteServers = JSON.stringify([]);
         }
       },
       async loadInboundTags() {
@@ -259,6 +311,8 @@
         }
       },
       async updateAllSetting() {
+        // Convert remote servers input to JSON before saving
+        this.convertRemoteServersToJson();
         this.loading(true);
         const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
         this.loading(false);
@@ -565,6 +619,17 @@
           }
           return alerts
         }
+      }
+    },
+    watch: {
+      'allSetting.subRemoteServers': {
+        handler(newVal, oldVal) {
+          // Only update if value actually changed
+          if (newVal !== oldVal) {
+            this.updateSubRemoteServersInput();
+          }
+        },
+        immediate: true
       }
     },
     async mounted() {

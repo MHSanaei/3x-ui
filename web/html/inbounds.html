@@ -1076,6 +1076,7 @@
           port: inbound.port,
           protocol: inbound.protocol,
           settings: inbound.settings.toString(),
+          vlessDomain: dbInbound.vlessDomain || "",
         };
         if (inbound.canEnableStream()) {
           data.streamSettings = inbound.stream.toString();
@@ -1101,6 +1102,7 @@
           port: inbound.port,
           protocol: inbound.protocol,
           settings: inbound.settings.toString(),
+          vlessDomain: dbInbound.vlessDomain || "",
         };
         if (inbound.canEnableStream()) {
           data.streamSettings = inbound.stream.toString();

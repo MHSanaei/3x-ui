@@ -53,6 +53,7 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+	VlessDomain    string   `json:"vlessDomain" form:"vlessDomain"` // Domain for VLESS protocol in subscriptions
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.

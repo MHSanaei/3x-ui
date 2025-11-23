@@ -57,6 +57,7 @@ var defaultValueMap = map[string]string{
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
 	"subDomain":                   "",
+	"subVlessDomain":              "",
 	"subCertFile":                 "",
 	"subKeyFile":                  "",
 	"subUpdates":                  "12",
@@ -69,6 +70,7 @@ var defaultValueMap = map[string]string{
 	"subJsonNoises":               "",
 	"subJsonMux":                  "",
 	"subJsonRules":                "",
+	"subRemoteServers":            "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
 	"externalTrafficInformEnable": "false",
@@ -479,6 +481,14 @@ func (s *SettingService) GetSubDomain() (string, error) {
 	return s.getString("subDomain")
 }
 
+func (s *SettingService) GetSubVlessDomain() (string, error) {
+	return s.getString("subVlessDomain")
+}
+
+func (s *SettingService) SetSubVlessDomain(subVlessDomain string) error {
+	return s.setString("subVlessDomain", subVlessDomain)
+}
+
 func (s *SettingService) SetSubCertFile(subCertFile string) error {
 	return s.setString("subCertFile", subCertFile)
 }
@@ -533,6 +543,14 @@ func (s *SettingService) GetSubJsonMux() (string, error) {
 
 func (s *SettingService) GetSubJsonRules() (string, error) {
 	return s.getString("subJsonRules")
+}
+
+func (s *SettingService) GetSubRemoteServers() (string, error) {
+	return s.getString("subRemoteServers")
+}
+
+func (s *SettingService) SetSubRemoteServers(servers string) error {
+	return s.setString("subRemoteServers", servers)
 }
 
 func (s *SettingService) GetDatepicker() (string, error) {

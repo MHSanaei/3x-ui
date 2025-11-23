@@ -34,6 +34,7 @@ class AllSetting {
         this.subPath = "/sub/";
         this.subJsonPath = "/json/";
         this.subDomain = "";
+        this.subVlessDomain = "";
         this.externalTrafficInformEnable = false;
         this.externalTrafficInformURI = "";
         this.subCertFile = "";
@@ -47,6 +48,7 @@ class AllSetting {
         this.subJsonNoises = "";
         this.subJsonMux = "";
         this.subJsonRules = "";
+        this.subRemoteServers = "";
 
         this.timeLocation = "Local";
 

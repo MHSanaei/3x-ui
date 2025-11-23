@@ -3,7 +3,9 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -50,9 +52,8 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		return nil, 0, traffic, err
 	}
 
-	if len(inbounds) == 0 {
-		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
-	}
+	// Allow empty inbounds if we have remote servers configured
+	hasLocalInbounds := len(inbounds) > 0
 
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
@@ -109,7 +110,137 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
+
+	// Get subscriptions from remote servers
+	remoteSubs, err := s.getRemoteSubscriptions(subId)
+	if err != nil {
+		logger.Warning("Failed to get remote subscriptions:", err)
+	} else {
+		result = append(result, remoteSubs...)
+	}
+
+	// If no local inbounds and no remote subscriptions, return error
+	if !hasLocalInbounds && len(remoteSubs) == 0 {
+		return nil, 0, traffic, common.NewError("No inbounds found with ", subId)
+	}
+
 	return result, lastOnline, traffic, nil
+}
+
+// getRemoteSubscriptions fetches subscription links from configured remote servers.
+func (s *SubService) getRemoteSubscriptions(subId string) ([]string, error) {
+	remoteServers, err := s.settingService.GetSubRemoteServers()
+	if err != nil || remoteServers == "" {
+		return nil, nil
+	}
+
+	var serverURLs []string
+	if err := json.Unmarshal([]byte(remoteServers), &serverURLs); err != nil {
+		logger.Warning("Failed to parse remote servers JSON:", err)
+		return nil, err
+	}
+
+	if len(serverURLs) == 0 {
+		return nil, nil
+	}
+
+	var allSubs []string
+	subPath, err := s.settingService.GetSubPath()
+	if err != nil {
+		subPath = "/sub/"
+	}
+
+	// Ensure subPath ends with /
+	if !strings.HasSuffix(subPath, "/") {
+		subPath += "/"
+	}
+
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	for _, serverURL := range serverURLs {
+		if serverURL == "" {
+			continue
+		}
+
+		// Parse URL to check if it contains a path
+		parsedURL, err := url.Parse(serverURL)
+		if err != nil {
+			logger.Warningf("Failed to parse server URL %s: %v", serverURL, err)
+			continue
+		}
+
+		var subURL string
+		// If URL already has a path, use it and append subId
+		if parsedURL.Path != "" && parsedURL.Path != "/" {
+			// URL has a path, use it as base and append subId
+			basePath := strings.TrimRight(parsedURL.Path, "/")
+			// Preserve query and fragment if present
+			subURL = fmt.Sprintf("%s://%s%s/%s", parsedURL.Scheme, parsedURL.Host, basePath, subId)
+			if parsedURL.RawQuery != "" {
+				subURL += "?" + parsedURL.RawQuery
+			}
+			if parsedURL.Fragment != "" {
+				subURL += "#" + parsedURL.Fragment
+			}
+		} else {
+			// No path specified, use default subPath
+			serverURL = strings.TrimRight(serverURL, "/")
+			subURL = serverURL + subPath + subId
+		}
+
+		req, err := http.NewRequest("GET", subURL, nil)
+		if err != nil {
+			logger.Warningf("Failed to create request for %s: %v", subURL, err)
+			continue
+		}
+
+		// Set User-Agent to identify as subscription client
+		req.Header.Set("User-Agent", "3x-ui-subscription-client/1.0")
+
+		resp, err := client.Do(req)
+		if err != nil {
+			logger.Warningf("Failed to fetch subscription from %s: %v", subURL, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			logger.Warningf("Remote server %s returned status %d", subURL, resp.StatusCode)
+			continue
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			logger.Warningf("Failed to read response from %s: %v", subURL, err)
+			continue
+		}
+
+		// Check if response is base64 encoded (check Subscription-Userinfo header)
+		content := string(body)
+		if resp.Header.Get("Subscription-Userinfo") != "" {
+			// Try to decode base64
+			decoded, err := base64.StdEncoding.DecodeString(content)
+			if err == nil {
+				content = string(decoded)
+			}
+		}
+
+		// Split by newlines and add non-empty lines
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" && (strings.HasPrefix(line, "vless://") || 
+				strings.HasPrefix(line, "vmess://") || 
+				strings.HasPrefix(line, "trojan://") || 
+				strings.HasPrefix(line, "ss://")) {
+				allSubs = append(allSubs, line)
+			}
+		}
+	}
+
+	return allSubs, nil
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
@@ -318,6 +449,12 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	address := s.address
+	// Priority: 1) inbound-specific domain, 2) global VLESS domain setting, 3) default address
+	if inbound.VlessDomain != "" {
+		address = inbound.VlessDomain
+	} else if vlessDomain, err := s.settingService.GetSubVlessDomain(); err == nil && vlessDomain != "" {
+		address = vlessDomain
+	}
 	if inbound.Protocol != model.VLESS {
 		return ""
 	}

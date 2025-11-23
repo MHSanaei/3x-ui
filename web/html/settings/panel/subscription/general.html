@@ -37,6 +37,13 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subVlessDomain"}}</template>
+            <template #description>{{ i18n "pages.settings.subVlessDomainDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subVlessDomain"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subPort"}}</template>
             <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
             <template #control>
@@ -60,6 +67,15 @@
             <template #control>
                 <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
                     v-model="allSetting.subURI"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subRemoteServers"}}</template>
+            <template #description>{{ i18n "pages.settings.subRemoteServersDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder='server1.com, http://serv2.com/config/sub, https://server3.com'
+                    v-model="subRemoteServersInput"
+                    @blur="convertRemoteServersToJson"></a-input>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
