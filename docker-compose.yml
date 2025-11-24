@@ -1,14 +1,14 @@
 services:
-  3xui:
+  3x-ui:
     build:
       context: .
       args:
         XRAY_VERSION: "v25.10.15"
-        GEOUPDATE_CRON_SCHEDULE: "0 */6 * * *"
     container_name: 3xui_app
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
+      - $PWD/geodata/:/opt/geodata/
     environment:
       TZ: "Asia/Tehran"
       XRAY_VMESS_AEAD_FORCED: "false"
@@ -16,3 +16,43 @@ services:
     tty: true
     network_mode: host
     restart: unless-stopped
+    depends_on:
+      - geodata-cron
+
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: docker_proxy
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - POST=1
+      - ALLOW_RESTARTS=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-internal
+
+  geodata-cron:
+    build:
+      context: docker-cron-runner
+    container_name: geodata_cron
+    restart: unless-stopped
+    depends_on:
+      - docker-proxy
+    environment:
+      DOCKER_PROXY_URL: "http://docker-proxy:2375"
+      TARGET_CONTAINER_NAME: "3xui_app"
+      # Расписание в формате crond (пример: каждые 6 часов)
+      #      CRON_SCHEDULE: "0 */6 * * *"
+#      CRON_SCHEDULE: "*/1 * * * *"
+      CRON_SCHEDULE: "0 */6 * * *"
+      SHARED_VOLUME_PATH: "/opt/geodata"
+    volumes:
+      - $PWD/geodata/:/opt/geodata/
+      - ./xray-tools.sh:/usr/local/bin/xray-tools.sh:ro
+    networks:
+      - docker-internal
+
+networks:
+  docker-internal:
+    driver: bridge

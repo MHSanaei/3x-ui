@@ -30,7 +30,7 @@ ARG XRAY_VERSION
 WORKDIR /app
 RUN apk add --no-cache wget unzip && mkdir -p /app/bin
 
-COPY xray-tools.sh .
+COPY docker-cron-runner/xray-tools.sh .
 RUN chmod +x /app/xray-tools.sh &&  \
     ./xray-tools.sh install_xray_core "$TARGETARCH" "/app/bin" "$XRAY_VERSION" && \
     ./xray-tools.sh update_geodata_in_docker "/app/bin"

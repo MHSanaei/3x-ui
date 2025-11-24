@@ -6,7 +6,7 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
-source xray-tools.sh
+source docker-cron-runner/xray-tools.sh
 
 #Add some basic function here
 function LOGD() {
