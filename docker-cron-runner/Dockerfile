@@ -1,15 +1,29 @@
 FROM alpine:3.20
 
-WORKDIR app
-COPY xray-tools.sh .
-# Нужные утилиты: curl + bash (если xray-tools.sh написан под bash)
-RUN apk add --no-cache curl bash ca-certificates tzdata
+ARG TARGETARCH
+ARG XRAY_VERSION
+ARG XRAY_BUILD_DIR
 
-# Копируем entrypoint
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-RUN chmod +x xray-tools.sh
+WORKDIR /app
+
+RUN apk add --no-cache  \
+    wget  \
+    unzip  \
+    curl \
+    bash \
+    ca-certificates  \
+    tzdata
 
 
-# cron внутри alpine использует crond (busybox)
-CMD ["/entrypoint.sh"]
+COPY xray-tools.sh entrypoint.sh cron-job-script.sh ./
+
+#RUN mkdir -p "$XRAY_BUILD_DIR"
+RUN chmod +x /app/xray-tools.sh /app/entrypoint.sh /app/cron-job-script.sh \
+    && mkdir -p "$XRAY_BUILD_DIR" \
+    && ./xray-tools.sh install_xray_core "$TARGETARCH" "$XRAY_BUILD_DIR" "$XRAY_VERSION" \
+    && ./xray-tools.sh update_geodata_in_docker "$XRAY_BUILD_DIR"
+
+ENV XRAY_BUILD_DIR=${XRAY_BUILD_DIR}
+
+#CMD ["/app/entrypoint.sh"] \
+ENTRYPOINT ["/app/entrypoint.sh"]

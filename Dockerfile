@@ -20,22 +20,6 @@ ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -ldflags "-w -s" -o build/x-ui main.go
 
 # ========================================================
-# Stage: Xray downloader
-# ========================================================
-FROM alpine AS xray-downloader
-
-ARG TARGETARCH
-ARG XRAY_VERSION
-
-WORKDIR /app
-RUN apk add --no-cache wget unzip && mkdir -p /app/bin
-
-COPY docker-cron-runner/xray-tools.sh .
-RUN chmod +x /app/xray-tools.sh &&  \
-    ./xray-tools.sh install_xray_core "$TARGETARCH" "/app/bin" "$XRAY_VERSION" && \
-    ./xray-tools.sh update_geodata_in_docker "/app/bin"
-
-# ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
 FROM alpine
@@ -51,8 +35,6 @@ RUN apk add --no-cache \
 COPY DockerEntrypoint.sh /app/
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
-COPY --from=xray-downloader /app/bin /app/bin
-
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
