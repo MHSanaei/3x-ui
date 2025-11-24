@@ -794,17 +794,17 @@ func (s *ServerService) GetXrayLogs(
 		for i, part := range parts {
 
 			if i == 0 {
-				dateTime, err := time.Parse("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1])
+				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
 				if err != nil {
 					continue
 				}
-				entry.DateTime = dateTime
+				entry.DateTime = dateTime.UTC()
 			}
 
 			if part == "from" {
-				entry.FromAddress = parts[i+1]
+				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if part == "accepted" {
-				entry.ToAddress = parts[i+1]
+				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if strings.HasPrefix(part, "[") {
 				entry.Inbound = part[1:]
 			} else if strings.HasSuffix(part, "]") {
