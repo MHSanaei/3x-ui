@@ -2,8 +2,8 @@
 
 update_all_geofiles() {
         update_main_geofiles
-        update_ir_geofiles
-        update_ru_geofiles
+#        update_ir_geofiles
+#        update_ru_geofiles
 }
 
 update_main_geofiles() {
@@ -22,16 +22,16 @@ update_ru_geofiles() {
 }
 
 update_geodata_in_docker() {
-    WORKDIR="$1"
+    XRAYDIR="$1"
     OLD_DIR=$(pwd)
     trap 'cd "$OLD_DIR"' EXIT
 
     echo "[$(date)] Running update_geodata"
 
-    if [ ! -d "$WORKDIR" ]; then
-      mkdir -p "$WORKDIR"
+    if [ ! -d "$XRAYDIR" ]; then
+      mkdir -p "$XRAYDIR"
     fi
-    cd "$WORKDIR"
+    cd "$XRAYDIR"
 
     update_all_geofiles
     echo "[$(date)] All geo files have been updated successfully!"
@@ -40,7 +40,7 @@ update_geodata_in_docker() {
 
 install_xray_core() {
     TARGETARCH="$1"
-    WORKDIR="$2"
+    XRAYDIR="$2"
     XRAY_VERSION="$3"
 
     OLD_DIR=$(pwd)
@@ -75,10 +75,10 @@ install_xray_core() {
           ;;
     esac
 
-    if [ ! -d "$WORKDIR" ]; then
-      mkdir -p "$WORKDIR"
+    if [ ! -d "$XRAYDIR" ]; then
+      mkdir -p "$XRAYDIR"
     fi
-    cd "$WORKDIR"
+    cd "$XRAYDIR"
 
     wget -q "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${ARCH}.zip"
     unzip "Xray-linux-${ARCH}.zip" -d ./xray-unzip
@@ -95,17 +95,17 @@ if [ "${0##*/}" = "xray-tools.sh" ]; then
 
   case "$cmd" in
     install_xray_core)
-      # args: TARGETARCH WORKDIR XRAY_VERSION
+      # args: TARGETARCH XRAYDIR XRAY_VERSION
       install_xray_core "$@"
       ;;
     update_geodata_in_docker)
-      # args: WORKDIR
+      # args: XRAYDIR
       update_geodata_in_docker "$@"
       ;;
     ""|help|-h|--help)
       echo "Usage:"
-      echo "  $0 install_xray_core TARGETARCH WORKDIR XRAY_VERSION"
-      echo "  $0 update_geodata_in_docker WORKDIR"
+      echo "  $0 install_xray_core TARGETARCH XRAYDIR XRAY_VERSION"
+      echo "  $0 update_geodata_in_docker XRAYDIR"
       exit 1
       ;;
     *)

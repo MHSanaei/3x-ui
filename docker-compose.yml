@@ -42,11 +42,12 @@ services:
     depends_on:
       - docker-proxy
     environment:
+      ENABLE_CRON_UPDATE: "true"
       TZ: "UTC"
       DOCKER_PROXY_URL: "http://docker-proxy:2375"
       TARGET_CONTAINER_NAME: "3xui_app"
-#      CRON_SCHEDULE: "*/5 * * * *"
-      CRON_SCHEDULE: "0 */6 * * *"
+      CRON_SCHEDULE: "*/1 * * * *"
+#      CRON_SCHEDULE: "0 */6 * * *"
       SHARED_VOLUME_PATH: "/app/bin"
     volumes:
       - $PWD/geodata/:/app/bin/
