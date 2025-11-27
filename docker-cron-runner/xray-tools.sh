@@ -128,8 +128,6 @@ install_xray_core() {
     rm "Xray-linux-${ARCH}.zip"
  }
 
-# --- dispatcher: вызываем функции по имени ТОЛЬКО если скрипт запущен как файл ---
-# Предполагаем, что файл называется xray-updates.sh
 if [ "${0##*/}" = "xray-tools.sh" ]; then
   cmd="$1"
   shift || true
