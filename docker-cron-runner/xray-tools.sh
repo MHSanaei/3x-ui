@@ -1,24 +1,65 @@
 #!/bin/sh
 
+safe_download_and_update() {
+    url="$1"
+    dest="$2"
+
+    # Create a temporary file
+    tmp=$(mktemp "${dest}.XXXXXX") || return 1
+
+    # Download file into a temporary location
+    if wget -q -O "$tmp" "$url"; then
+        # Check that the downloaded file is not empty
+        if [ -s "$tmp" ]; then
+            # Atomically replace the destination file
+            mv "$tmp" "$dest"
+            echo "[OK] Downloaded: $dest"
+        else
+            echo "[ERR] Downloaded file is empty: $url"
+            rm -f "$tmp"
+            return 1
+        fi
+    else
+        echo "[ERR] Failed to download: $url"
+        rm -f "$tmp"
+        return 1
+    fi
+}
+
 update_all_geofiles() {
         update_main_geofiles
-#        update_ir_geofiles
-#        update_ru_geofiles
+        update_ir_geofiles
+        update_ru_geofiles
 }
 
 update_main_geofiles() {
-        wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+    safe_download_and_update \
+        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat" \
+        "geoip.dat"
+
+    safe_download_and_update \
+        "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat" \
+        "geosite.dat"
 }
 
 update_ir_geofiles() {
-        wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        wget -O geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+    safe_download_and_update \
+        "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat" \
+        "geoip_IR.dat"
+
+    safe_download_and_update \
+        "https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat" \
+        "geosite_IR.dat"
 }
 
 update_ru_geofiles() {
-        wget -O geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+    safe_download_and_update \
+        "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat" \
+        "geoip_RU.dat"
+
+    safe_download_and_update \
+        "https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat" \
+        "geosite_RU.dat"
 }
 
 update_geodata_in_docker() {
@@ -101,6 +142,9 @@ if [ "${0##*/}" = "xray-tools.sh" ]; then
     update_geodata_in_docker)
       # args: XRAYDIR
       update_geodata_in_docker "$@"
+      ;;
+    update_all_geofiles)
+      update_all_geofiles
       ;;
     ""|help|-h|--help)
       echo "Usage:"
