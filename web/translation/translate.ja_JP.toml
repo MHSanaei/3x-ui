@@ -106,7 +106,7 @@
 "invalidFormData" = "データ形式エラー"
 "emptyUsername" = "ユーザー名を入力してください"
 "emptyPassword" = "パスワードを入力してください"
-"wrongUsernameOrPassword" = "ユーザー名、パスワード、または二段階認証コードが無効です。"  
+"wrongUsernameOrPassword" = "ユーザー名、パスワード、または二段階認証コードが無効です。"
 "successLogin" = "アカウントに正常にログインしました。"
 
 [pages.index]
@@ -565,9 +565,9 @@
 
 [pages.settings.security]
 "admin" = "管理者の資格情報"
-"twoFactor" = "二段階認証"  
-"twoFactorEnable" = "2FAを有効化"  
-"twoFactorEnableDesc" = "セキュリティを強化するために追加の認証層を追加します。"  
+"twoFactor" = "二段階認証"
+"twoFactorEnable" = "2FAを有効化"
+"twoFactorEnableDesc" = "セキュリティを強化するために追加の認証層を追加します。"
 "twoFactorModalSetTitle" = "二段階認証を有効にする"
 "twoFactorModalDeleteTitle" = "二段階認証を無効にする"
 "twoFactorModalSteps" = "二段階認証を設定するには、次の手順を実行してください:"
@@ -663,6 +663,7 @@
 "active" = "💡 有効：{{ .Enable }}\r\n"
 "enabled" = "🚨 有効化済み：{{ .Enable }}\r\n"
 "online" = "🌐 接続ステータス：{{ .Status }}\r\n"
+"lastOnline" = "🔙 最終オンライン: {{ .Time }}\r\n"
 "email" = "📧 メール：{{ .Email }}\r\n"
 "upload" = "🔼 アップロード↑：{{ .Upload }}\r\n"
 "download" = "🔽 ダウンロード↓：{{ .Download }}\r\n"
@@ -688,9 +689,9 @@
 "inbound_client_data_id" = "🔄 インバウンド: {{ .InboundRemark }}\n\n🔑 ID: {{ .ClientId }}\n📧 メール: {{ .ClientEmail }}\n📊 トラフィック: {{ .ClientTraffic }}\n📅 有効期限: {{ .ClientExp }}\n🌐 IP制限: {{ .IpLimit }}\n💬 コメント: {{ .ClientComment }}\n\n今すぐこのクライアントをインバウンドに追加できます！"
 "inbound_client_data_pass" = "🔄 インバウンド: {{ .InboundRemark }}\n\n🔑 パスワード: {{ .ClientPass }}\n📧 メール: {{ .ClientEmail }}\n📊 トラフィック: {{ .ClientTraffic }}\n📅 有効期限: {{ .ClientExp }}\n🌐 IP制限: {{ .IpLimit }}\n💬 コメント: {{ .ClientComment }}\n\n今すぐこのクライアントをインバウンドに追加できます！"
 "cancel" = "❌ プロセスがキャンセルされました！\n\nいつでも /start で再開できます。 🔄"
-"error_add_client"  = "⚠️ エラー:\n\n {{ .error }}"
-"using_default_value"  = "わかりました、デフォルト値を使用します。 😊"
-"incorrect_input" ="入力が無効です。\nフレーズはスペースなしで続けて入力してください。\n正しい例: aaaaaa\n間違った例: aaa aaa 🚫"
+"error_add_client" = "⚠️ エラー:\n\n {{ .error }}"
+"using_default_value" = "わかりました、デフォルト値を使用します。 😊"
+"incorrect_input" = "入力が無効です。\nフレーズはスペースなしで続けて入力してください。\n正しい例: aaaaaa\n間違った例: aaa aaa 🚫"
 "AreYouSure" = "本当にいいですか？🤔"
 "SuccessResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
 "FailedResetTraffic" = "📧 メール: {{ .ClientEmail }}\n🏁 結果: ❌ 失敗 \n\n🛠️ エラー: [ {{ .ErrorMessage }} ]"
