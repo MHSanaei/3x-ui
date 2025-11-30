@@ -323,7 +323,9 @@
         const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
 
         if (!this.entryIsIP) {
+          const base = webBasePath ? webBasePath.replace(/^\//, "") : "";
           const url = new URL(window.location.href);
+          url.pathname = `/${base}panel/settings`;
           window.location.replace(url.toString());
           return;
         }
