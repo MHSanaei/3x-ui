@@ -322,8 +322,9 @@
         const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = this.allSetting;
         const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
 
+        const base = webBasePath ? webBasePath.replace(/^\//, "") : "";
+
         if (!this.entryIsIP) {
-          const base = webBasePath ? webBasePath.replace(/^\//, "") : "";
           const url = new URL(window.location.href);
           url.pathname = `/${base}panel/settings`;
           window.location.replace(url.toString());
@@ -340,8 +341,6 @@
         if (webPort && Number(webPort) !== Number(this.entryPort)) {
           finalPort = String(webPort);
         }
-
-        const base = webBasePath ? webBasePath.replace(/^\//, "") : "";
 
         const url = new URL(`${newProtocol}//${finalHost}`);
         if (finalPort) url.port = finalPort;
