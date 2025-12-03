@@ -844,11 +844,9 @@
             text = `<td>${log.Email}</td>`;
           }
 
-          const { locale, timeZone } = Intl.DateTimeFormat().resolvedOptions();
-
           formattedLogs += `
 <tr ${outboundColor}>
-    <td><b>${new Date(log.DateTime).toLocaleString(locale, { timeZone })}</b></td>
+    <td><b>${IntlUtil.formatDate(log.DateTime)}</b></td>
     <td>${log.FromAddress}</td>
     <td>${log.ToAddress}</td>
     <td>${log.Inbound}</td>
