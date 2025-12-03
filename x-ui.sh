@@ -1080,7 +1080,7 @@ ssl_cert_issue() {
         zypper refresh && zypper -q install -y socat
         ;;
     alpine)
-        apk add socat
+        apk add socat curl openssl
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
