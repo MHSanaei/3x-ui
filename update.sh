@@ -254,7 +254,7 @@ update_x-ui() {
 │  ${blue}x-ui legacy${plain}       - Legacy version                   │
 │  ${blue}x-ui install${plain}      - Install                          │
 │  ${blue}x-ui uninstall${plain}    - Uninstall                        │
-    └───────────────────────────────────────────────────────┘"
+└───────────────────────────────────────────────────────┘"
 }
 
 echo -e "${green}Running...${plain}"
