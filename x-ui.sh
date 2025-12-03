@@ -1086,6 +1086,7 @@ ssl_cert_issue() {
             else
                 dnf -y update && dnf -y install socat
             fi
+	;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
         ;;
