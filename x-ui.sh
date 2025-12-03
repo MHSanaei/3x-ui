@@ -6,6 +6,8 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
+source docker-cron-runner/xray-tools.sh
+
 #Add some basic function here
 function LOGD() {
     echo -e "${yellow}[DEG] $* ${plain}"
@@ -44,7 +46,7 @@ iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
 confirm() {
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
         echo && read -rp "$1 [Default $2]: " temp
         if [[ "${temp}" == "" ]]; then
             temp=$2
@@ -865,27 +867,6 @@ delete_ports() {
         echo "${red}Error:${plain} Invalid choice. Please enter 1 or 2." >&2
         exit 1
     fi
-}
-
-update_all_geofiles() {
-        update_main_geofiles
-        update_ir_geofiles
-        update_ru_geofiles
-}
-
-update_main_geofiles() {
-        wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-}
-
-update_ir_geofiles() {
-        wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        wget -O geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-}
-
-update_ru_geofiles() {
-        wget -O geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
 }
 
 update_geo() {
@@ -2038,7 +2019,7 @@ show_menu() {
     esac
 }
 
-if [[ $# > 0 ]]; then
+if [[ $# -gt 0 ]]; then
     case $1 in
     "start")
         check_install 0 && start 0
