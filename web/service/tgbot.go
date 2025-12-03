@@ -906,7 +906,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "add_client_limit_traffic_c":
 				limitTraffic, _ := strconv.ParseInt(dataArray[1], 10, 64)
-				client_TotalGB = int64(limitTraffic) * 1024 * 1024 * 1024
+				client_TotalGB = limitTraffic * 1024 * 1024 * 1024
 				messageId := callbackQuery.Message.GetMessageID()
 				inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
 				if err != nil {
