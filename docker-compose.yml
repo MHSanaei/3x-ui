@@ -35,7 +35,7 @@ services:
     build:
       context: docker-cron-runner
       args:
-        XRAY_VERSION: "v25.10.15"
+        XRAY_VERSION: "${XRAY_VERSION:-v25.10.15}"
         XRAY_BUILD_DIR: "/app/xray"
     container_name: geodata_cron
     restart: unless-stopped
