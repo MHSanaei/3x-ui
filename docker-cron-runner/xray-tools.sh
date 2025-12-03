@@ -144,6 +144,7 @@ install_xray_core() {
     cp ./xray-unzip/xray ./"xray-linux-${FNAME}"
     rm -r xray-unzip
     rm "Xray-linux-${ARCH}.zip"
+}
 
 if [ "${0##*/}" = "xray-tools.sh" ]; then
   cmd="$1"
