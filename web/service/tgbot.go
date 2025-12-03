@@ -2952,10 +2952,12 @@ func (t *Tgbot) clientInfoMsg(
 	}
 
 	status := t.I18nBot("tgbot.offline")
+	isOnline := false
 	if p.IsRunning() {
 		for _, online := range p.GetOnlineClients() {
 			if online == traffic.Email {
 				status = t.I18nBot("tgbot.online")
+				isOnline = true
 				break
 			}
 		}
@@ -2968,6 +2970,9 @@ func (t *Tgbot) clientInfoMsg(
 	}
 	if printOnline {
 		output += t.I18nBot("tgbot.messages.online", "Status=="+status)
+		if !isOnline && traffic.LastOnline > 0 {
+			output += t.I18nBot("tgbot.messages.lastOnline", "Time=="+time.UnixMilli(traffic.LastOnline).Format("2006-01-02 15:04:05"))
+		}
 	}
 	if printActive {
 		output += t.I18nBot("tgbot.messages.active", "Enable=="+active)
