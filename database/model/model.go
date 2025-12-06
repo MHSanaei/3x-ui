@@ -3,6 +3,7 @@ package model
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/util/json_util"
 	"github.com/mhsanaei/3x-ui/v2/xray"
@@ -22,13 +23,6 @@ const (
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
 )
-
-// User represents a user account in the 3x-ui panel.
-type User struct {
-	Id       int    `json:"id" gorm:"primaryKey;autoIncrement"`
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
 
 // Inbound represents an Xray inbound configuration with traffic statistics and settings.
 type Inbound struct {
@@ -118,4 +112,18 @@ type Client struct {
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
+}
+
+// AuditLog represents an audit log entry for tracking user actions
+type AuditLog struct {
+	ID         int       `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID     int       `json:"user_id" gorm:"index"`
+	Username   string    `json:"username"`
+	Action     string    `json:"action" gorm:"index"`   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, etc.
+	Resource   string    `json:"resource" gorm:"index"` // inbound, client, setting, etc.
+	ResourceID int       `json:"resource_id"`
+	IP         string    `json:"ip"`
+	UserAgent  string    `json:"user_agent"`
+	Details    string    `json:"details" gorm:"type:text"` // JSON string with additional details
+	Timestamp  time.Time `json:"timestamp" gorm:"index"`
 }
