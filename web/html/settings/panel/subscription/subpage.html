@@ -4,7 +4,6 @@
 <script src="{{ .base_path }}assets/vue/vue.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/ant-design-vue/antd.min.js"></script>
 <script src="{{ .base_path }}assets/js/util/index.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/js/util/date-util.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 {{ template "page/head_end" .}}
 
@@ -141,17 +140,7 @@
                                 <a-descriptions-item
                                     label='{{ i18n "lastOnline" }}'>
                                     <template v-if="app.lastOnlineMs > 0">
-                                        <template
-                                            v-if="app.datepicker === 'gregorian'">
-                                            [[
-                                            DateUtil.formatMillis(app.lastOnlineMs)
-                                            ]]
-                                        </template>
-                                        <template v-else>
-                                            [[
-                                            DateUtil.convertToJalalian(moment(app.lastOnlineMs))
-                                            ]]
-                                        </template>
+                                        [[ IntlUtil.formatDate(app.lastOnlineMs) ]]
                                     </template>
                                     <template v-else>
                                         <span>-</span>
@@ -163,17 +152,7 @@
                                         {{ i18n "subscription.noExpiry" }}
                                     </template>
                                     <template v-else>
-                                        <template
-                                            v-if="app.datepicker === 'gregorian'">
-                                            [[
-                                            DateUtil.formatMillis(app.expireMs)
-                                            ]]
-                                        </template>
-                                        <template v-else>
-                                            [[
-                                            DateUtil.convertToJalalian(moment(app.expireMs))
-                                            ]]
-                                        </template>
+                                        [[ IntlUtil.formatDate(app.expireMs) ]]
                                     </template>
                                 </a-descriptions-item>
                             </a-descriptions>

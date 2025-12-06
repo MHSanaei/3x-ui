@@ -794,17 +794,17 @@ func (s *ServerService) GetXrayLogs(
 		for i, part := range parts {
 
 			if i == 0 {
-				dateTime, err := time.Parse("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1])
+				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
 				if err != nil {
 					continue
 				}
-				entry.DateTime = dateTime
+				entry.DateTime = dateTime.UTC()
 			}
 
 			if part == "from" {
-				entry.FromAddress = parts[i+1]
+				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if part == "accepted" {
-				entry.ToAddress = parts[i+1]
+				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if strings.HasPrefix(part, "[") {
 				entry.Inbound = part[1:]
 			} else if strings.HasSuffix(part, "]") {
@@ -941,13 +941,26 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error saving db: %v", err)
 	}
 
-	// Check if we can init the db or not
-	if err = database.InitDB(tempPath); err != nil {
-		return common.NewErrorf("Error checking db: %v", err)
+	// Close temp file before opening via sqlite
+	if err = tempFile.Close(); err != nil {
+		return common.NewErrorf("Error closing temporary db file: %v", err)
+	}
+	tempFile = nil
+
+	// Validate integrity (no migrations / side effects)
+	if err = database.ValidateSQLiteDB(tempPath); err != nil {
+		return common.NewErrorf("Invalid or corrupt db file: %v", err)
 	}
 
-	// Stop Xray
-	s.StopXrayService()
+	// Stop Xray (ignore error but log)
+	if errStop := s.StopXrayService(); errStop != nil {
+		logger.Warningf("Failed to stop Xray before DB import: %v", errStop)
+	}
+
+	// Close existing DB to release file locks (especially on Windows)
+	if errClose := database.CloseDB(); errClose != nil {
+		logger.Warningf("Failed to close existing DB before replacement: %v", errClose)
+	}
 
 	// Backup the current database for fallback
 	fallbackPath := fmt.Sprintf("%s.backup", config.GetDBPath())
@@ -982,7 +995,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 		return common.NewErrorf("Error moving db file: %v", err)
 	}
 
-	// Migrate DB
+	// Open & migrate new DB
 	if err = database.InitDB(config.GetDBPath()); err != nil {
 		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
 			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)

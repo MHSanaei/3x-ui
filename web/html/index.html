@@ -846,7 +846,7 @@
 
           formattedLogs += `
 <tr ${outboundColor}>
-    <td><b>${new Date(log.DateTime).toLocaleString()}</b></td>
+    <td><b>${IntlUtil.formatDate(log.DateTime)}</b></td>
     <td>${log.FromAddress}</td>
     <td>${log.ToAddress}</td>
     <td>${log.Inbound}</td>

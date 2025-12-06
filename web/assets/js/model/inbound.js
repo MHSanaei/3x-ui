@@ -729,8 +729,8 @@ class RealityStreamSettings extends XrayCommonClass {
     constructor(
         show = false,
         xver = 0,
-        target = 'google.com:443',
-        serverNames = 'google.com,www.google.com',
+        target = '',
+        serverNames = '',
         privateKey = '',
         minClientVer = '',
         maxClientVer = '',
@@ -740,6 +740,14 @@ class RealityStreamSettings extends XrayCommonClass {
         settings = new RealityStreamSettings.Settings()
     ) {
         super();
+        // If target/serverNames are not provided, use random values
+        if (!target && !serverNames) {
+            const randomTarget = typeof getRandomRealityTarget !== 'undefined'
+                ? getRandomRealityTarget()
+                : { target: 'www.apple.com:443', sni: 'www.apple.com,apple.com' };
+            target = randomTarget.target;
+            serverNames = randomTarget.sni;
+        }
         this.show = show;
         this.xver = xver;
         this.target = target;

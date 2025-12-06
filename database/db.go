@@ -3,11 +3,13 @@ package database
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/glebarez/sqlite"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
@@ -36,6 +38,18 @@ func InitDB(dbPath string) error {
 // GetDB возвращает активное соединение GORM.
 func GetDB() *gorm.DB {
 	return db
+}
+
+// CloseDB закрывает соединение с БД.
+func CloseDB() error {
+	if db == nil {
+		return nil
+	}
+	sqlDB, err := db.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }
 
 // IsNotFound — хелпер для проверки "запись не найдена".
@@ -83,4 +97,30 @@ func SeedAdmin() error {
 		Role:         "admin",
 	}
 	return db.Create(&admin).Error
+}
+
+// ValidateSQLiteDB opens the provided sqlite DB path with a throw-away connection
+// and runs a PRAGMA integrity_check to ensure the file is structurally sound.
+// It does not mutate global state or run migrations.
+func ValidateSQLiteDB(dbPath string) error {
+	if _, err := os.Stat(dbPath); err != nil { // file must exist
+		return err
+	}
+	gdb, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	if err != nil {
+		return err
+	}
+	sqlDB, err := gdb.DB()
+	if err != nil {
+		return err
+	}
+	defer sqlDB.Close()
+	var res string
+	if err := gdb.Raw("PRAGMA integrity_check;").Scan(&res).Error; err != nil {
+		return err
+	}
+	if res != "ok" {
+		return errors.New("sqlite integrity check failed: " + res)
+	}
+	return nil
 }
