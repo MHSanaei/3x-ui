@@ -3,14 +3,16 @@ package job
 import (
 	"time"
 
+	"strings"
+
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	ldaputil "github.com/mhsanaei/3x-ui/v2/util/ldap"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
-	"strings"
+
+	"strconv"
 
 	"github.com/google/uuid"
-	"strconv"
 )
 
 var DefaultTruthyValues = []string{"true", "1", "yes", "on"}
@@ -25,7 +27,8 @@ type LdapSyncJob struct {
 func mustGetString(fn func() (string, error)) string {
 	v, err := fn()
 	if err != nil {
-		panic(err)
+		logger.Warning("Failed to get string setting:", err)
+		return ""
 	}
 	return v
 }
@@ -33,7 +36,8 @@ func mustGetString(fn func() (string, error)) string {
 func mustGetInt(fn func() (int, error)) int {
 	v, err := fn()
 	if err != nil {
-		panic(err)
+		logger.Warning("Failed to get int setting:", err)
+		return 0
 	}
 	return v
 }
@@ -41,7 +45,8 @@ func mustGetInt(fn func() (int, error)) int {
 func mustGetBool(fn func() (bool, error)) bool {
 	v, err := fn()
 	if err != nil {
-		panic(err)
+		logger.Warning("Failed to get bool setting:", err)
+		return false
 	}
 	return v
 }
@@ -55,26 +60,46 @@ func mustGetStringOr(fn func() (string, error), fallback string) string {
 }
 
 func NewLdapSyncJob() *LdapSyncJob {
-	return new(LdapSyncJob)
+	return &LdapSyncJob{
+		settingService: service.SettingService{},
+		inboundService: service.InboundService{},
+		xrayService:    service.XrayService{},
+	}
 }
 
 func (j *LdapSyncJob) Run() {
 	logger.Info("LDAP sync job started")
 
 	enabled, err := j.settingService.GetLdapEnable()
-	if err != nil || !enabled {
-		logger.Warning("LDAP disabled or failed to fetch flag")
+	if err != nil {
+		logger.Warning("Failed to get LDAP enable setting:", err)
+		return
+	}
+	if !enabled {
+		logger.Debug("LDAP sync is disabled")
 		return
 	}
 
 	// --- LDAP fetch ---
+	host := mustGetString(j.settingService.GetLdapHost)
+	if host == "" {
+		logger.Warning("LDAP host is not configured")
+		return
+	}
+
+	baseDN := mustGetString(j.settingService.GetLdapBaseDN)
+	if baseDN == "" {
+		logger.Warning("LDAP base DN is not configured")
+		return
+	}
+
 	cfg := ldaputil.Config{
-		Host:       mustGetString(j.settingService.GetLdapHost),
+		Host:       host,
 		Port:       mustGetInt(j.settingService.GetLdapPort),
 		UseTLS:     mustGetBool(j.settingService.GetLdapUseTLS),
 		BindDN:     mustGetString(j.settingService.GetLdapBindDN),
 		Password:   mustGetString(j.settingService.GetLdapPassword),
-		BaseDN:     mustGetString(j.settingService.GetLdapBaseDN),
+		BaseDN:     baseDN,
 		UserFilter: mustGetString(j.settingService.GetLdapUserFilter),
 		UserAttr:   mustGetString(j.settingService.GetLdapUserAttr),
 		FlagField:  mustGetStringOr(j.settingService.GetLdapFlagField, mustGetString(j.settingService.GetLdapVlessField)),
@@ -84,16 +109,27 @@ func (j *LdapSyncJob) Run() {
 
 	flags, err := ldaputil.FetchVlessFlags(cfg)
 	if err != nil {
-		logger.Warning("LDAP fetch failed:", err)
+		logger.Warningf("LDAP fetch failed: %v", err)
 		return
 	}
 	logger.Infof("Fetched %d LDAP flags", len(flags))
 
 	// --- Load all inbounds and all clients once ---
-	inboundTags := splitCsv(mustGetString(j.settingService.GetLdapInboundTags))
+	inboundTagsStr := mustGetString(j.settingService.GetLdapInboundTags)
+	if inboundTagsStr == "" {
+		logger.Debug("LDAP inbound tags not configured, skipping sync")
+		return
+	}
+
+	inboundTags := splitCsv(inboundTagsStr)
+	if len(inboundTags) == 0 {
+		logger.Debug("No LDAP inbound tags configured, skipping sync")
+		return
+	}
+
 	inbounds, err := j.inboundService.GetAllInbounds()
 	if err != nil {
-		logger.Warning("Failed to get inbounds:", err)
+		logger.Warningf("Failed to get inbounds: %v", err)
 		return
 	}
 

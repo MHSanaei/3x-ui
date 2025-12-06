@@ -16,9 +16,13 @@ import (
 	"strconv"
 	"time"
 
+	"fmt"
+
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+
+	"github.com/mhsanaei/3x-ui/v2/util/redis"
 	"github.com/mhsanaei/3x-ui/v2/web/controller"
 	"github.com/mhsanaei/3x-ui/v2/web/job"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
@@ -94,6 +98,7 @@ type Server struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	tgbotService   service.Tgbot
+	wsService      *service.WebSocketService
 
 	cron *cron.Cron
 
@@ -195,6 +200,48 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	})
 	engine.Use(sessions.Sessions("xui_sess", store))
 
+	// Initialize Redis (in-memory fallback)
+	redis.Init("", "", 0) // Uses in-memory fallback
+
+	// Security middlewares (configurable)
+	rateLimitEnabled, _ := s.settingService.GetRateLimitEnabled()
+	if rateLimitEnabled {
+		rateLimitRequests, _ := s.settingService.GetRateLimitRequests()
+		if rateLimitRequests <= 0 {
+			rateLimitRequests = 60
+		}
+		rateLimitBurst, _ := s.settingService.GetRateLimitBurst()
+		if rateLimitBurst <= 0 {
+			rateLimitBurst = 10
+		}
+		config := middleware.RateLimitConfig{
+			RequestsPerMinute: rateLimitRequests,
+			BurstSize:         rateLimitBurst,
+			KeyFunc: func(c *gin.Context) string {
+				return c.ClientIP()
+			},
+			SkipPaths: []string{basePath + "assets/", "/favicon.ico"},
+		}
+		engine.Use(middleware.RateLimitMiddleware(config))
+	}
+
+	ipFilterEnabled, _ := s.settingService.GetIPFilterEnabled()
+	if ipFilterEnabled {
+		whitelistEnabled, _ := s.settingService.GetIPWhitelistEnabled()
+		blacklistEnabled, _ := s.settingService.GetIPBlacklistEnabled()
+		engine.Use(middleware.IPFilterMiddleware(middleware.IPFilterConfig{
+			WhitelistEnabled: whitelistEnabled,
+			BlacklistEnabled: blacklistEnabled,
+			GeoIPEnabled:     false, // TODO: Add GeoIP config
+			SkipPaths:        []string{basePath + "assets/", "/favicon.ico"},
+		}))
+	}
+
+	engine.Use(middleware.SessionSecurityMiddleware())
+
+	// Audit logging middleware (after session check)
+	engine.Use(middleware.AuditMiddleware())
+
 	// gzip, excluding API path to avoid double-compressing JSON where needed
 	engine.Use(gzip.Gzip(
 		gzip.DefaultCompression,
@@ -230,6 +277,13 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	{
 		// controller.NewAuthController(api)
 		controller.NewUserAdminController(api)
+
+		// New feature controllers
+		controller.NewAuditController(api)
+		controller.NewAnalyticsController(api)
+		controller.NewQuotaController(api)
+		controller.NewOnboardingController(api)
+		controller.NewReportsController(api)
 	}
 
 	// Redirects (/xui -> /panel etc.)
@@ -240,6 +294,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	s.api = controller.NewAPIController(g)
+
+	// WebSocket for real-time updates
+	s.wsService = service.NewWebSocketService(s.xrayService)
+	go s.wsService.Run()
+	controller.NewWebSocketController(g, s.wsService)
 
 	// Chrome DevTools endpoint for debugging web apps
 	engine.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c *gin.Context) {
@@ -295,6 +354,29 @@ func (s *Server) startTask() {
 		}
 		s.cron.AddJob(runtime, job.NewLdapSyncJob())
 	}
+
+	// Quota check (configurable interval)
+	quotaInterval, err := s.settingService.GetQuotaCheckInterval()
+	if err != nil || quotaInterval <= 0 {
+		quotaInterval = 5 // Default 5 minutes
+	}
+	s.cron.AddJob(fmt.Sprintf("@every %dm", quotaInterval), job.NewQuotaCheckJob())
+
+	// Weekly reports every Monday at 9 AM
+	s.cron.AddJob("0 9 * * 1", job.NewReportsJob())
+
+	// Monthly reports on 1st of month at 9 AM
+	s.cron.AddFunc("0 9 1 * *", func() {
+		job.NewReportsJob().RunMonthly()
+	})
+
+	// Audit log cleanup daily at 2 AM
+	s.cron.AddJob("0 2 * * *", job.NewAuditCleanupJob())
+
+	// Clean expired Redis entries hourly
+	s.cron.AddFunc("@hourly", func() {
+		redis.CleanExpired()
+	})
 
 	// Telegram bot related jobs
 	if isTgbotenabled, err := s.settingService.GetTgbotEnabled(); (err == nil) && isTgbotenabled {

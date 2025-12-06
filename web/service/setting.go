@@ -94,6 +94,16 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+	// Security & Performance defaults
+	"rateLimitEnabled":      "true",
+	"rateLimitRequests":     "60",
+	"rateLimitBurst":        "10",
+	"ipFilterEnabled":       "false",
+	"ipWhitelistEnabled":    "false",
+	"ipBlacklistEnabled":    "true",
+	"sessionMaxDevices":     "5",
+	"auditLogRetentionDays": "90",
+	"quotaCheckInterval":    "5",
 	// OIDC defaults
 	"oidcEnable":       "false",
 	"oidcIssuer":       "",
@@ -724,6 +734,43 @@ func (s *SettingService) GetLdapDefaultExpiryDays() (int, error) {
 
 func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
+}
+
+// Security & Performance settings getters
+func (s *SettingService) GetRateLimitEnabled() (bool, error) {
+	return s.getBool("rateLimitEnabled")
+}
+
+func (s *SettingService) GetRateLimitRequests() (int, error) {
+	return s.getInt("rateLimitRequests")
+}
+
+func (s *SettingService) GetRateLimitBurst() (int, error) {
+	return s.getInt("rateLimitBurst")
+}
+
+func (s *SettingService) GetIPFilterEnabled() (bool, error) {
+	return s.getBool("ipFilterEnabled")
+}
+
+func (s *SettingService) GetIPWhitelistEnabled() (bool, error) {
+	return s.getBool("ipWhitelistEnabled")
+}
+
+func (s *SettingService) GetIPBlacklistEnabled() (bool, error) {
+	return s.getBool("ipBlacklistEnabled")
+}
+
+func (s *SettingService) GetSessionMaxDevices() (int, error) {
+	return s.getInt("sessionMaxDevices")
+}
+
+func (s *SettingService) GetAuditLogRetentionDays() (int, error) {
+	return s.getInt("auditLogRetentionDays")
+}
+
+func (s *SettingService) GetQuotaCheckInterval() (int, error) {
+	return s.getInt("quotaCheckInterval")
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
