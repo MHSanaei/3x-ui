@@ -238,7 +238,29 @@
         this.loadingStates.spinning = spinning;
       },
       _isIp(h) {
-        return /^[0-9.]+$/.test(h) || /^[0-9a-fA-F:]+$/.test(h);
+        if (typeof h !== "string") return false;
+
+        // IPv4: four dot-separated octets 0-255
+        const v4 = h.split(".");
+        if (
+          v4.length === 4 &&
+          v4.every(p => /^\d{1,3}$/.test(p) && Number(p) <= 255)
+        ) return true;
+
+        // IPv6: hex groups, optional single :: compression
+        if (!h.includes(":") || h.includes(":::")) return false;
+        const parts = h.split("::");
+        if (parts.length > 2) return false;
+
+        const splitGroups = s => (s ? s.split(":").filter(Boolean) : []);
+        const head = splitGroups(parts[0]);
+        const tail = splitGroups(parts[1]);
+        const validGroup = seg => /^[0-9a-fA-F]{1,4}$/.test(seg);
+
+        if (![...head, ...tail].every(validGroup)) return false;
+        const groups = head.length + tail.length;
+
+        return parts.length === 2 ? groups < 8 : groups === 8;
       },
       async getAllSetting() {
         const msg = await HttpUtil.post("/panel/setting/all");
@@ -322,11 +344,13 @@
         const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = this.allSetting;
         const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
 
-        const base = webBasePath ? webBasePath.replace(/^\//, "") : "";
+        let base = webBasePath ? webBasePath.replace(/^\//, "") : "";
+        if (base && !base.endsWith("/")) base += "/";
 
         if (!this.entryIsIP) {
           const url = new URL(window.location.href);
           url.pathname = `/${base}panel/settings`;
+          url.protocol = newProtocol;
           window.location.replace(url.toString());
           return;
         }
