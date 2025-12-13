@@ -87,6 +87,16 @@
                 }
             }
         },
+        watch: {
+            'inModal.inbound.stream.security'(newVal, oldVal) {
+                // Clear flow when security changes from reality/tls to none
+                if (inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
+                    inModal.inbound.settings.vlesses.forEach(client => {
+                        client.flow = "";
+                    });
+                }
+            }
+        },
         methods: {
             streamNetworkChange() {
                 if (!inModal.inbound.canEnableTls()) {
