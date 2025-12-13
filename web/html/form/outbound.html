@@ -259,14 +259,6 @@
                 <a-input-number v-model.number="outbound.settings.testseed[3]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="256" addon-before="[3]"></a-input-number>
               </a-col>
             </a-row>
-            <a-space :size="8" :style="{ marginTop: '8px' }">
-              <a-button type="primary" @click="outbound.settings.testseed = [900, 500, 900, 256]">
-                Default
-              </a-button>
-              <a-button @click="outbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)]">
-                Random
-              </a-button>
-            </a-space>
           </a-form-item>
         </template>
       </template>
