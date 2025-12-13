@@ -126,24 +126,20 @@ install_xray_core() {
     # Validate the downloaded zip file
     if [ ! -f "Xray-linux-${ARCH}.zip" ] || [ ! -s "Xray-linux-${ARCH}.zip" ]; then
         echo "[ERR] Failed to download Xray-core zip or file is empty"
-        cd "$OLD_DIR"
-        return 1
+        exit 1
     fi
 
     unzip -q "Xray-linux-${ARCH}.zip" -d ./xray-unzip
 
     # Validate the extracted xray binary
-    if [ ! -f "./xray-unzip/xray" ] || [ ! -s "./xray-unzip/xray" ]; then
-        echo "[ERR] Failed to extract xray binary"
-        rm -rf ./xray-unzip
-        rm -f "Xray-linux-${ARCH}.zip"
-        cd "$OLD_DIR"
-        return 1
+    if [ -f "./xray-unzip/xray" ]; then
+      cp ./xray-unzip/xray ./"xray-linux-${FNAME}"
+      rm -r xray-unzip
+      rm "Xray-linux-${ARCH}.zip"
+    else
+      echo "[ERR] Failed to extract xray binary"
+      exit 1
     fi
-
-    cp ./xray-unzip/xray ./"xray-linux-${FNAME}"
-    rm -r xray-unzip
-    rm "Xray-linux-${ARCH}.zip"
 }
 
 if [ "${0##*/}" = "xray-tools.sh" ]; then
