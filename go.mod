@@ -19,7 +19,7 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/valyala/fasthttp v1.68.0
 	github.com/xlzd/gotp v0.1.0
-	github.com/xtls/xray-core v1.251202.0
+	github.com/xtls/xray-core v1.251208.0
 	go.uber.org/atomic v1.11.0
 	golang.org/x/crypto v0.45.0
 	golang.org/x/sys v0.38.0

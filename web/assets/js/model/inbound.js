@@ -857,6 +857,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         V6Only = false,
         tcpWindowClamp = 600,
         interfaceName = "",
+        trustedXForwardedFor = [],
     ) {
         super();
         this.acceptProxyProtocol = acceptProxyProtocol;
@@ -875,6 +876,7 @@ class SockoptStreamSettings extends XrayCommonClass {
         this.V6Only = V6Only;
         this.tcpWindowClamp = tcpWindowClamp;
         this.interfaceName = interfaceName;
+        this.trustedXForwardedFor = trustedXForwardedFor;
     }
 
     static fromJson(json = {}) {
@@ -896,11 +898,12 @@ class SockoptStreamSettings extends XrayCommonClass {
             json.V6Only,
             json.tcpWindowClamp,
             json.interface,
+            json.trustedXForwardedFor || [],
         );
     }
 
     toJson() {
-        return {
+        const result = {
             acceptProxyProtocol: this.acceptProxyProtocol,
             tcpFastOpen: this.tcpFastOpen,
             mark: this.mark,
@@ -918,6 +921,10 @@ class SockoptStreamSettings extends XrayCommonClass {
             tcpWindowClamp: this.tcpWindowClamp,
             interface: this.interfaceName,
         };
+        if (this.trustedXForwardedFor && this.trustedXForwardedFor.length > 0) {
+            result.trustedXForwardedFor = this.trustedXForwardedFor;
+        }
+        return result;
     }
 }
 
@@ -1870,6 +1877,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         encryption = "none",
         fallbacks = [],
         selectedAuth = undefined,
+        testseed = [900, 500, 900, 256],
     ) {
         super(protocol);
         this.vlesses = vlesses;
@@ -1877,6 +1885,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.encryption = encryption;
         this.fallbacks = fallbacks;
         this.selectedAuth = selectedAuth;
+        this.testseed = testseed;
     }
 
     addFallback() {
@@ -1894,7 +1903,8 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
             json.decryption,
             json.encryption,
             Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || []),
-            json.selectedAuth
+            json.selectedAuth,
+            json.testseed && json.testseed.length >= 4 ? json.testseed : [900, 500, 900, 256]
         );
         return obj;
     }
@@ -1918,6 +1928,10 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         }
         if (this.selectedAuth) {
             json.selectedAuth = this.selectedAuth;
+        }
+
+        if (this.testseed && this.testseed.length >= 4) {
+            json.testseed = this.testseed;
         }
 
         return json;
