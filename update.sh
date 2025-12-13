@@ -6,6 +6,9 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
+xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
+xui_service="${XUI_SERVICE:=/etc/systemd/system}"
+
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
 while [ -h "$b_source" ]; do
@@ -103,15 +106,15 @@ install_base() {
 
 config_after_update() {
     echo -e "${yellow}x-ui settings:${plain}"
-    /usr/local/x-ui/x-ui setting -show true
-    /usr/local/x-ui/x-ui migrate
+    ${xui_folder}/x-ui setting -show true
+    ${xui_folder}/x-ui migrate
 }
 
 update_x-ui() {
-    cd /usr/local/
+    cd ${xui_folder%/x-ui}/
     
-    if [ -f "/usr/local/x-ui/x-ui" ]; then
-        current_xui_version=$(/usr/local/x-ui/x-ui -v)
+    if [ -f "${xui_folder}/x-ui" ]; then
+        current_xui_version=$(${xui_folder}/x-ui -v)
         echo -e "${green}Current x-ui version: ${current_xui_version}${plain}"
     else
         _fail "ERROR: Current x-ui version: unknown"
@@ -128,16 +131,16 @@ update_x-ui() {
         fi
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+    ${wget_bin} -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${wget_bin} --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+        ${wget_bin} --inet4-only -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
         if [[ $? -ne 0 ]]; then
             _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
         fi
     fi
     
-    if [[ -e /usr/local/x-ui/ ]]; then
+    if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
         if [[ $release == "alpine" ]]; then
             if [ -f "/etc/init.d/x-ui" ]; then
@@ -150,11 +153,11 @@ update_x-ui() {
                 _fail "ERROR: x-ui service unit not installed."
             fi
         else
-            if [ -f "/etc/systemd/system/x-ui.service" ]; then
+            if [ -f "${xui_service}/x-ui.service" ]; then
                 systemctl stop x-ui >/dev/null 2>&1
                 systemctl disable x-ui >/dev/null 2>&1
                 echo -e "${green}Removing old systemd unit version...${plain}"
-                rm /etc/systemd/system/x-ui.service -f >/dev/null 2>&1
+                rm ${xui_service}/x-ui.service -f >/dev/null 2>&1
                 systemctl daemon-reload >/dev/null 2>&1
             else
                 rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
@@ -163,14 +166,14 @@ update_x-ui() {
         fi
         echo -e "${green}Removing old x-ui version...${plain}"
         rm /usr/bin/x-ui -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui.service -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui.sh -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.service -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.sh -f >/dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
-        rm /usr/local/x-ui/bin/xray-linux-amd64 -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/xray-linux-amd64 -f >/dev/null 2>&1
         echo -e "${green}Removing old README and LICENSE file...${plain}"
-        rm /usr/local/x-ui/bin/README.md -f >/dev/null 2>&1
-        rm /usr/local/x-ui/bin/LICENSE -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/README.md -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/LICENSE -f >/dev/null 2>&1
     else
         rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
         _fail "ERROR: x-ui not installed."
@@ -200,15 +203,15 @@ update_x-ui() {
         fi
     fi
     
-    chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
+    chmod +x ${xui_folder}/x-ui.sh >/dev/null 2>&1
     chmod +x /usr/bin/x-ui >/dev/null 2>&1
     
     echo -e "${green}Changing owner...${plain}"
-    chown -R root:root /usr/local/x-ui >/dev/null 2>&1
+    chown -R root:root ${xui_folder} >/dev/null 2>&1
     
-    if [ -f "/usr/local/x-ui/bin/config.json" ]; then
+    if [ -f "${xui_folder}/bin/config.json" ]; then
         echo -e "${green}Changing on config file permissions...${plain}"
-        chmod 640 /usr/local/x-ui/bin/config.json >/dev/null 2>&1
+        chmod 640 ${xui_folder}/bin/config.json >/dev/null 2>&1
     fi
     
     if [[ $release == "alpine" ]]; then
@@ -226,8 +229,8 @@ update_x-ui() {
         rc-service x-ui start >/dev/null 2>&1
     else
         echo -e "${green}Installing systemd unit...${plain}"
-        cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
-        chown root:root /etc/systemd/system/x-ui.service >/dev/null 2>&1
+        cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+        chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
         systemctl daemon-reload >/dev/null 2>&1
         systemctl enable x-ui >/dev/null 2>&1
         systemctl start x-ui >/dev/null 2>&1
