@@ -60,16 +60,20 @@
     <a-form-item label="VerifyPeerCertInNames">
       <a-input v-model.trim="inbound.stream.tls.verifyPeerCertInNames"></a-input>
     </a-form-item>
+    <a-divider :style="{ margin: '3px 0' }"></a-divider>
     <template v-for="cert,index in inbound.stream.tls.certs">
       <a-form-item label='{{ i18n "certificate" }}'>
-        <a-radio-group v-model="cert.useFile" button-style="solid">
-          <a-radio-button :value="true">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
-          <a-radio-button :value="false">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+        <a-radio-group v-model="cert.useFile" button-style="solid" :style="{ display: 'inline-flex', whiteSpace: 'nowrap', maxWidth: '100%' }">
+          <a-radio-button :value="true" :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+          <a-radio-button :value="false" :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
         </a-radio-group>
-        <a-button icon="plus" v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()"
-          :style="{ marginLeft: '10px' }"></a-button>
-        <a-button icon="minus" v-if="inbound.stream.tls.certs.length>1" type="primary" size="small"
-          @click="inbound.stream.tls.removeCert(index)" :style="{ marginLeft: '10px' }"></a-button>
+      </a-form-item>
+      <a-form-item label=" ">
+        <a-space>
+          <a-button icon="plus" v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()"></a-button>
+          <a-button icon="minus" v-if="inbound.stream.tls.certs.length>1" type="primary" size="small"
+            @click="inbound.stream.tls.removeCert(index)"></a-button>
+        </a-space>
       </a-form-item>
       <template v-if="cert.useFile">
         <a-form-item label='{{ i18n "pages.inbounds.publicKey" }}'>
