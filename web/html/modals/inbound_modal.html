@@ -52,28 +52,34 @@
         },
         // Vision Seed methods - always available regardless of Vue context
         updateTestseed(index, value) {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
             // Ensure testseed is initialized
-            if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed)) {
-                this.inbound.settings.testseed = [900, 500, 900, 256];
+            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed)) {
+                inModal.inbound.settings.testseed = [900, 500, 900, 256];
             }
             // Ensure array has enough elements
-            while (this.inbound.settings.testseed.length <= index) {
-                this.inbound.settings.testseed.push(0);
+            while (inModal.inbound.settings.testseed.length <= index) {
+                inModal.inbound.settings.testseed.push(0);
             }
             // Update value
-            this.inbound.settings.testseed[index] = value;
+            inModal.inbound.settings.testseed[index] = value;
         },
         setRandomTestseed() {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
             // Ensure testseed is initialized
-            if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4) {
-                this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
+                inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
             }
             // Create new array with random values
-            this.inbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+            inModal.inbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
         },
         resetTestseed() {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
             // Reset testseed to default values
-            this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+            inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
         }
     };
 
@@ -263,6 +269,16 @@
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
             },
+            // Wrapper methods for Vision Seed - delegate to inModal methods
+            updateTestseed(index, value) {
+                inModal.updateTestseed(index, value);
+            },
+            setRandomTestseed() {
+                inModal.setRandomTestseed();
+            },
+            resetTestseed() {
+                inModal.resetTestseed();
+            }
         },
     });
 
