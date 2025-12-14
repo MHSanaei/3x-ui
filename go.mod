@@ -9,6 +9,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/goccy/go-json v0.10.5
 	github.com/google/uuid v1.6.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
 	github.com/mymmrac/telego v1.3.1
 	github.com/nicksnyder/go-i18n/v2 v2.6.0
@@ -51,7 +52,6 @@ require (
 	github.com/gorilla/context v1.1.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/sessions v1.4.0 // indirect
-	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grbit/go-json v0.11.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect

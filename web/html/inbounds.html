@@ -1567,13 +1567,97 @@
       }
       this.loading();
       this.getDefaultSettings();
-      if (this.isRefreshEnabled) {
-        this.startDataRefreshLoop();
+      
+      // Initial data fetch
+      this.getDBInbounds().then(() => {
+        this.loading(false);
+      });
+
+      // Setup WebSocket for real-time updates
+      if (window.wsClient) {
+        window.wsClient.connect();
+        
+        // Listen for inbounds updates
+        window.wsClient.on('inbounds', (payload) => {
+          if (payload && Array.isArray(payload)) {
+            // Use setInbounds to properly convert to DBInbound objects with methods
+            this.setInbounds(payload);
+            this.searchInbounds(this.searchKey);
+          }
+        });
+
+        // Listen for traffic updates
+        window.wsClient.on('traffic', (payload) => {
+          if (payload && payload.clientTraffics) {
+            // Update client traffic statistics
+            payload.clientTraffics.forEach(clientTraffic => {
+              const dbInbound = this.dbInbounds.find(ib => {
+                const clients = this.getInboundClients(ib);
+                return clients && clients.some(c => c.email === clientTraffic.email);
+              });
+              if (dbInbound && dbInbound.clientStats) {
+                const stats = dbInbound.clientStats.find(s => s.email === clientTraffic.email);
+                if (stats) {
+                  stats.up = clientTraffic.up || stats.up;
+                  stats.down = clientTraffic.down || stats.down;
+                  stats.total = clientTraffic.total || stats.total;
+                }
+              }
+            });
+          }
+          
+          // Update online clients list in real-time
+          if (payload && Array.isArray(payload.onlineClients)) {
+            this.onlineClients = payload.onlineClients;
+            // Recalculate client counts to update online status
+            this.dbInbounds.forEach(dbInbound => {
+              const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
+              if (inbound && this.clientCount[dbInbound.id]) {
+                this.clientCount[dbInbound.id] = this.getClientCounts(dbInbound, inbound);
+              }
+            });
+          }
+          
+          // Update last online map in real-time
+          if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
+            this.lastOnlineMap = { ...this.lastOnlineMap, ...payload.lastOnlineMap };
+          }
+        });
+
+        // Listen for notifications
+        window.wsClient.on('notification', (payload) => {
+          if (payload && payload.title) {
+            const type = payload.level || 'info';
+            this.$notification[type]({
+              message: payload.title,
+              description: payload.message || '',
+              duration: 4.5,
+            });
+          }
+        });
+
+        // Fallback to polling if WebSocket fails
+        window.wsClient.on('error', () => {
+          console.warn('WebSocket connection failed, falling back to polling');
+          if (this.isRefreshEnabled) {
+            this.startDataRefreshLoop();
+          }
+        });
+
+        window.wsClient.on('disconnected', () => {
+          if (window.wsClient.reconnectAttempts >= window.wsClient.maxReconnectAttempts) {
+            console.warn('WebSocket reconnection failed, falling back to polling');
+            if (this.isRefreshEnabled) {
+              this.startDataRefreshLoop();
+            }
+          }
+        });
+      } else {
+        // Fallback to polling if WebSocket is not available
+        if (this.isRefreshEnabled) {
+          this.startDataRefreshLoop();
+        }
       }
-      else {
-        this.getDBInbounds();
-      }
-      this.loading(false);
     },
     computed: {
       total() {
