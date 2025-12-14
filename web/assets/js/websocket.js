@@ -19,7 +19,14 @@ class WebSocketClient {
     }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}${this.basePath}ws`;
+    // Ensure basePath ends with '/' for proper URL construction
+    let basePath = this.basePath || '';
+    if (basePath && !basePath.endsWith('/')) {
+      basePath += '/';
+    }
+    const wsUrl = `${protocol}//${window.location.host}${basePath}ws`;
+    
+    console.log('WebSocket connecting to:', wsUrl, 'basePath:', this.basePath);
     
     try {
       this.ws = new WebSocket(wsUrl);
