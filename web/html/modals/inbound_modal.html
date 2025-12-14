@@ -26,17 +26,12 @@
             } else {
                 this.inbound = new Inbound();
             }
-            // Ensure testseed is initialized for VLESS protocol with vision flow
-            // Use Vue.set to ensure reactivity
-            if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings && this.inbound.settings.vlesses) {
-                const hasVisionFlow = this.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
-                if (hasVisionFlow && (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4)) {
-                    // Use Vue.set to ensure the array is reactive
-                    if (typeof this.$set === 'function') {
-                        this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
-                    } else {
-                        this.inbound.settings.testseed = [900, 500, 900, 256];
-                    }
+            // Always ensure testseed is initialized for VLESS protocol (even if vision flow is not set yet)
+            // This ensures Vue reactivity works properly
+            if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings) {
+                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4) {
+                    // Create a new array to ensure Vue reactivity
+                    this.inbound.settings.testseed = [900, 500, 900, 256].slice();
                 }
             }
             if (dbInbound) {
@@ -240,17 +235,34 @@
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
             },
+            updateTestseed(index, value) {
+                // Ensure testseed is initialized
+                if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed)) {
+                    inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                }
+                // Ensure array has enough elements
+                while (inModal.inbound.settings.testseed.length <= index) {
+                    inModal.inbound.settings.testseed.push(0);
+                }
+                // Update value using Vue.set for reactivity
+                if (this.$set) {
+                    this.$set(inModal.inbound.settings.testseed, index, value);
+                } else {
+                    inModal.inbound.settings.testseed[index] = value;
+                }
+            },
             setRandomTestseed() {
                 // Ensure testseed is initialized
                 if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
-                    inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                    inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
                 }
+                // Create new array to ensure Vue reactivity
                 const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
-                inModal.inbound.settings.testseed = newSeed;
+                inModal.inbound.settings.testseed = newSeed.slice();
             },
             resetTestseed() {
-                // Reset testseed to default values
-                inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                // Reset testseed to default values - create new array for Vue reactivity
+                inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
             }
         }
     });
