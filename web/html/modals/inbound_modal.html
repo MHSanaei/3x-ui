@@ -50,9 +50,37 @@
         loading(loading = true) {
             inModal.confirmLoading = loading;
         },
+        // Vision Seed methods - always available regardless of Vue context
+        updateTestseed(index, value) {
+            // Ensure testseed is initialized
+            if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed)) {
+                this.inbound.settings.testseed = [900, 500, 900, 256];
+            }
+            // Ensure array has enough elements
+            while (this.inbound.settings.testseed.length <= index) {
+                this.inbound.settings.testseed.push(0);
+            }
+            // Update value
+            this.inbound.settings.testseed[index] = value;
+        },
+        setRandomTestseed() {
+            // Ensure testseed is initialized
+            if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4) {
+                this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+            }
+            // Create new array with random values
+            this.inbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+        },
+        resetTestseed() {
+            // Reset testseed to default values
+            this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+        }
     };
 
-    new Vue({
+    // Store Vue instance globally to ensure methods are always accessible
+    let inboundModalVueInstance = null;
+    
+    inboundModalVueInstance = new Vue({
         delimiters: ['[[', ']]'],
         el: '#inbound-modal',
         data: {
@@ -235,36 +263,7 @@
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
             },
-            updateTestseed(index, value) {
-                // Ensure testseed is initialized
-                if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed)) {
-                    inModal.inbound.settings.testseed = [900, 500, 900, 256];
-                }
-                // Ensure array has enough elements
-                while (inModal.inbound.settings.testseed.length <= index) {
-                    inModal.inbound.settings.testseed.push(0);
-                }
-                // Update value using Vue.set for reactivity
-                if (this.$set) {
-                    this.$set(inModal.inbound.settings.testseed, index, value);
-                } else {
-                    inModal.inbound.settings.testseed[index] = value;
-                }
-            },
-            setRandomTestseed() {
-                // Ensure testseed is initialized
-                if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
-                    inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
-                }
-                // Create new array to ensure Vue reactivity
-                const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
-                inModal.inbound.settings.testseed = newSeed.slice();
-            },
-            resetTestseed() {
-                // Reset testseed to default values - create new array for Vue reactivity
-                inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
-            }
-        }
+        },
     });
 
 </script>
