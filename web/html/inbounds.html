@@ -1645,17 +1645,7 @@
           }
         });
 
-        // Listen for notifications
-        window.wsClient.on('notification', (payload) => {
-          if (payload && payload.title) {
-            const type = payload.level || 'info';
-            this.$notification[type]({
-              message: payload.title,
-              description: payload.message || '',
-              duration: 4.5,
-            });
-          }
-        });
+        // Notifications disabled - white notifications are not needed
 
         // Fallback to polling if WebSocket fails
         window.wsClient.on('error', () => {
