@@ -171,53 +171,10 @@ func (w *WebSocketController) writePump(client *websocket.Client, conn *ws.Conn)
 				return
 			}
 
-			writer, err := conn.NextWriter(ws.TextMessage)
-			if err != nil {
+			// Send each message individually (no batching)
+			// This ensures each JSON message is sent separately and can be parsed correctly
+			if err := conn.WriteMessage(ws.TextMessage, message); err != nil {
 				logger.Debugf("WebSocket write error for client %s: %v", client.ID, err)
-				return
-			}
-			writer.Write(message)
-
-			// Optimization: message batching with smart limit
-			// Process accumulated messages but limit to prevent delays
-			n := len(client.Send)
-			maxQueued := 20 // Increased from 10 to 20 for better throughput
-			if n > maxQueued {
-				// Skip old messages, keep only the latest for relevance
-				skipped := n - maxQueued
-				for i := 0; i < skipped; i++ {
-					select {
-					case <-client.Send:
-						// Skip old message
-					default:
-						// Channel closed or empty, stop skipping
-						goto skipDone
-					}
-				}
-			skipDone:
-				n = len(client.Send) // Update count after skipping
-			}
-
-			// Batching: send multiple messages in one frame
-			// Safe reading with channel close check
-			for i := 0; i < n; i++ {
-				select {
-				case msg, ok := <-client.Send:
-					if !ok {
-						// Channel closed, exit
-						return
-					}
-					writer.Write([]byte{'\n'})
-					writer.Write(msg)
-				default:
-					// No more messages in queue, stop batching
-					goto batchDone
-				}
-			}
-		batchDone:
-
-			if err := writer.Close(); err != nil {
-				logger.Debugf("WebSocket writer close error for client %s: %v", client.ID, err)
 				return
 			}
 
