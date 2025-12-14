@@ -1128,8 +1128,11 @@
       },
       openEditClient(dbInboundId, client) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) return;
         clients = this.getInboundClients(dbInbound);
+        if (!clients || !Array.isArray(clients)) return;
         index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+        if (index < 0) return;
         clientModal.show({
           title: '{{ i18n "pages.client.edit"}}',
           okText: '{{ i18n "pages.client.submitEdit"}}',
@@ -1144,11 +1147,14 @@
         });
       },
       findIndexOfClient(protocol, clients, client) {
+        if (!clients || !Array.isArray(clients) || !client) {
+          return -1;
+        }
         switch (protocol) {
           case Protocols.TROJAN:
           case Protocols.SHADOWSOCKS:
-            return clients.findIndex(item => item.password === client.password && item.email === client.email);
-          default: return clients.findIndex(item => item.id === client.id && item.email === client.email);
+            return clients.findIndex(item => item && item.password === client.password && item.email === client.email);
+          default: return clients.findIndex(item => item && item.id === client.id && item.email === client.email);
         }
       },
       async addClient(clients, dbInboundId, modal) {
@@ -1271,11 +1277,15 @@
       },
       showInfo(dbInboundId, client) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) return;
         index = 0;
         if (dbInbound.isMultiUser()) {
           inbound = dbInbound.toInbound();
-          clients = inbound.clients;
-          index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+          clients = inbound && inbound.clients ? inbound.clients : null;
+          if (clients && Array.isArray(clients)) {
+            index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+            if (index < 0) index = 0;
+          }
         }
         newDbInbound = this.checkFallback(dbInbound);
         infoModal.show(newDbInbound, index);
@@ -1288,9 +1298,12 @@
       async switchEnableClient(dbInboundId, client) {
         this.loading()
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) return;
         inbound = dbInbound.toInbound();
-        clients = inbound.clients;
+        clients = inbound && inbound.clients ? inbound.clients : null;
+        if (!clients || !Array.isArray(clients)) return;
         index = this.findIndexOfClient(dbInbound.protocol, clients, client);
+        if (index < 0 || !clients[index]) return;
         clients[index].enable = !clients[index].enable;
         clientId = this.getClientId(dbInbound.protocol, clients[index]);
         await this.updateClient(clients[index], dbInboundId, clientId);
@@ -1303,7 +1316,9 @@
         }
       },
       getInboundClients(dbInbound) {
-        return dbInbound.toInbound().clients;
+        if (!dbInbound) return null;
+        const inbound = dbInbound.toInbound();
+        return inbound && inbound.clients ? inbound.clients : null;
       },
       resetClientTraffic(client, dbInboundId, confirmation = true) {
         if (confirmation) {
@@ -1588,15 +1603,16 @@
 
         // Listen for traffic updates
         window.wsClient.on('traffic', (payload) => {
-          if (payload && payload.clientTraffics) {
+          if (payload && payload.clientTraffics && Array.isArray(payload.clientTraffics)) {
             // Update client traffic statistics
             payload.clientTraffics.forEach(clientTraffic => {
               const dbInbound = this.dbInbounds.find(ib => {
+                if (!ib) return false;
                 const clients = this.getInboundClients(ib);
-                return clients && clients.some(c => c.email === clientTraffic.email);
+                return clients && Array.isArray(clients) && clients.some(c => c && c.email === clientTraffic.email);
               });
-              if (dbInbound && dbInbound.clientStats) {
-                const stats = dbInbound.clientStats.find(s => s.email === clientTraffic.email);
+              if (dbInbound && dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
+                const stats = dbInbound.clientStats.find(s => s && s.email === clientTraffic.email);
                 if (stats) {
                   stats.up = clientTraffic.up || stats.up;
                   stats.down = clientTraffic.down || stats.down;

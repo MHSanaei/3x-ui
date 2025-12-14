@@ -26,6 +26,13 @@
             } else {
                 this.inbound = new Inbound();
             }
+            // Ensure testseed is initialized for VLESS protocol with vision flow
+            if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings && this.inbound.settings.vlesses) {
+                const hasVisionFlow = this.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
+                if (hasVisionFlow && (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4)) {
+                    this.inbound.settings.testseed = [900, 500, 900, 256];
+                }
+            }
             if (dbInbound) {
                 this.dbInbound = new DBInbound(dbInbound);
             } else {
@@ -60,7 +67,7 @@
                 return inModal.isEdit;
             },
             get client() {
-                return inModal.inbound.clients[0];
+                return inModal.inbound && inModal.inbound.clients && inModal.inbound.clients.length > 0 ? inModal.inbound.clients[0] : null;
             },
             get datepicker() {
                 return app.datepicker;

@@ -73,7 +73,7 @@
 <template v-if="inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443')">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
     <a-form-item label="Vision Seed">
-      <a-row :gutter="8">
+      <a-row :gutter="8" v-if="inbound.settings.testseed && inbound.settings.testseed.length >= 4">
         <a-col :span="6">
           <a-input-number v-model.number="inbound.settings.testseed[0]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="900" addon-before="[0]"></a-input-number>
         </a-col>
