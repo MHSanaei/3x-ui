@@ -6,7 +6,8 @@
 </a-modal>
 <script>
 
-    const inModal = {
+    // Make inModal globally available to ensure it works with any base path
+    const inModal = window.inModal = {
         title: '',
         visible: false,
         confirmLoading: false,
