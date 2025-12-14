@@ -270,15 +270,27 @@
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
             },
-            // Wrapper methods for Vision Seed - delegate to inModal methods
+            // Vision Seed methods - must be in Vue methods for proper binding
             updateTestseed(index, value) {
-                inModal.updateTestseed(index, value);
+                // Ensure testseed is initialized
+                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed)) {
+                    this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
+                }
+                // Ensure array has enough elements
+                while (this.inbound.settings.testseed.length <= index) {
+                    this.inbound.settings.testseed.push(0);
+                }
+                // Update value using Vue.set for reactivity
+                this.$set(this.inbound.settings.testseed, index, value);
             },
             setRandomTestseed() {
-                inModal.setRandomTestseed();
+                // Create new array with random values and use Vue.set for reactivity
+                const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+                this.$set(this.inbound.settings, 'testseed', newSeed);
             },
             resetTestseed() {
-                inModal.resetTestseed();
+                // Reset testseed to default values using Vue.set for reactivity
+                this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
             }
         },
     });
