@@ -1458,7 +1458,12 @@
       formatLastOnline(email) {
         const ts = this.getLastOnline(email)
         if (!ts) return '-'
-        return IntlUtil.formatDate(ts)
+        // Check if IntlUtil is available (may not be loaded yet)
+        if (typeof IntlUtil !== 'undefined' && IntlUtil.formatDate) {
+          return IntlUtil.formatDate(ts)
+        }
+        // Fallback to simple date formatting if IntlUtil is not available
+        return new Date(ts).toLocaleString()
       },
       isRemovable(dbInboundId) {
         return this.getInboundClients(this.dbInbounds.find(row => row.id === dbInboundId)).length > 1;
