@@ -30,8 +30,8 @@ const (
 )
 
 var upgrader = ws.Upgrader{
-	ReadBufferSize:  4096, // Увеличено с 1024 для лучшей производительности
-	WriteBufferSize: 4096, // Увеличено с 1024 для лучшей производительности
+	ReadBufferSize:  4096, // Increased from 1024 for better performance
+	WriteBufferSize: 4096, // Increased from 1024 for better performance
 	CheckOrigin: func(r *http.Request) bool {
 		// Check origin for security
 		origin := r.Header.Get("Origin")
@@ -99,7 +99,7 @@ func (w *WebSocketController) HandleWebSocket(c *gin.Context) {
 	client := &websocket.Client{
 		ID:     clientID,
 		Hub:    w.hub,
-		Send:   make(chan []byte, 512), // Увеличено с 256 до 512 для предотвращения переполнения
+		Send:   make(chan []byte, 512), // Increased from 256 to 512 to prevent overflow
 		Topics: make(map[websocket.MessageType]bool),
 	}
 
@@ -178,39 +178,39 @@ func (w *WebSocketController) writePump(client *websocket.Client, conn *ws.Conn)
 			}
 			writer.Write(message)
 
-			// Оптимизация: батчинг сообщений с умным ограничением
-			// Обрабатываем накопленные сообщения, но ограничиваем для предотвращения задержек
+			// Optimization: message batching with smart limit
+			// Process accumulated messages but limit to prevent delays
 			n := len(client.Send)
-			maxQueued := 20 // Увеличено с 10 до 20 для лучшей пропускной способности
+			maxQueued := 20 // Increased from 10 to 20 for better throughput
 			if n > maxQueued {
-				// Пропускаем старые сообщения, оставляем только последние для актуальности
+				// Skip old messages, keep only the latest for relevance
 				skipped := n - maxQueued
 				for i := 0; i < skipped; i++ {
 					select {
 					case <-client.Send:
-						// Пропускаем старое сообщение
+						// Skip old message
 					default:
-						// Канал закрыт или пуст, прекращаем пропуск
+						// Channel closed or empty, stop skipping
 						goto skipDone
 					}
 				}
 			skipDone:
-				n = len(client.Send) // Обновляем количество после пропуска
+				n = len(client.Send) // Update count after skipping
 			}
 
-			// Батчинг: отправляем несколько сообщений в одном фрейме
-			// Безопасное чтение с проверкой закрытия канала
+			// Batching: send multiple messages in one frame
+			// Safe reading with channel close check
 			for i := 0; i < n; i++ {
 				select {
 				case msg, ok := <-client.Send:
 					if !ok {
-						// Канал закрыт, выходим
+						// Channel closed, exit
 						return
 					}
 					writer.Write([]byte{'\n'})
 					writer.Write(msg)
 				default:
-					// Больше нет сообщений в очереди, прекращаем батчинг
+					// No more messages in queue, stop batching
 					goto batchDone
 				}
 			}

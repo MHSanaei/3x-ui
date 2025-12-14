@@ -78,9 +78,9 @@ func NewHub() *Hub {
 
 	return &Hub{
 		clients:        make(map[*Client]bool),
-		broadcast:      make(chan []byte, 2048), // Увеличено с 256 до 2048 для высокой нагрузки
-		register:       make(chan *Client, 100), // Буферизованный канал для быстрой регистрации
-		unregister:     make(chan *Client, 100), // Буферизованный канал для быстрой отмены регистрации
+		broadcast:      make(chan []byte, 2048), // Increased from 256 to 2048 for high load
+		register:       make(chan *Client, 100), // Buffered channel for fast registration
+		unregister:     make(chan *Client, 100), // Buffered channel for fast unregistration
 		ctx:            ctx,
 		cancel:         cancel,
 		workerPoolSize: workerPoolSize,
@@ -159,7 +159,7 @@ func (h *Hub) Run() {
 			if message == nil {
 				continue
 			}
-			// Оптимизация: быстро копируем список клиентов и освобождаем блокировку
+			// Optimization: quickly copy client list and release lock
 			h.mu.RLock()
 			clientCount := len(h.clients)
 			if clientCount == 0 {
@@ -167,26 +167,26 @@ func (h *Hub) Run() {
 				continue
 			}
 
-			// Предварительно выделяем память для списка клиентов
+			// Pre-allocate memory for client list
 			clients := make([]*Client, 0, clientCount)
 			for client := range h.clients {
 				clients = append(clients, client)
 			}
 			h.mu.RUnlock()
 
-			// Параллельная рассылка с использованием worker pool
+			// Parallel broadcast using worker pool
 			h.broadcastParallel(clients, message)
 		}
 	}
 }
 
-// broadcastParallel отправляет сообщение всем клиентам параллельно для максимальной производительности
+// broadcastParallel sends message to all clients in parallel for maximum performance
 func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 	if len(clients) == 0 {
 		return
 	}
 
-	// Для небольшого количества клиентов используем простую параллельную отправку
+	// For small number of clients, use simple parallel sending
 	if len(clients) < h.workerPoolSize {
 		var wg sync.WaitGroup
 		for _, client := range clients {
@@ -195,7 +195,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 				defer wg.Done()
 				defer func() {
 					if r := recover(); r != nil {
-						// Канал может быть закрыт, безопасно игнорируем
+						// Channel may be closed, safely ignore
 						logger.Debugf("WebSocket broadcast panic recovered for client %s: %v", c.ID, r)
 					}
 				}()
@@ -212,14 +212,14 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 		return
 	}
 
-	// Для большого количества клиентов используем worker pool для оптимальной производительности
+	// For large number of clients, use worker pool for optimal performance
 	clientChan := make(chan *Client, len(clients))
 	for _, client := range clients {
 		clientChan <- client
 	}
 	close(clientChan)
 
-	// Запускаем воркеров для параллельной обработки
+	// Start workers for parallel processing
 	h.broadcastWg.Add(h.workerPoolSize)
 	for i := 0; i < h.workerPoolSize; i++ {
 		go func() {
@@ -228,7 +228,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 				func() {
 					defer func() {
 						if r := recover(); r != nil {
-							// Канал может быть закрыт, безопасно игнорируем
+							// Channel may be closed, safely ignore
 							logger.Debugf("WebSocket broadcast panic recovered for client %s: %v", client.ID, r)
 						}
 					}()
@@ -244,7 +244,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 		}()
 	}
 
-	// Ждем завершения всех воркеров
+	// Wait for all workers to finish
 	h.broadcastWg.Wait()
 }
 
@@ -277,7 +277,7 @@ func (h *Hub) Broadcast(messageType MessageType, payload interface{}) {
 		return
 	}
 
-	// Неблокирующая отправка с таймаутом для предотвращения задержек
+	// Non-blocking send with timeout to prevent delays
 	select {
 	case h.broadcast <- data:
 	case <-time.After(100 * time.Millisecond):
@@ -317,7 +317,7 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload interface{}) {
 	}
 
 	h.mu.RLock()
-	// Фильтруем клиентов по топикам и быстро освобождаем блокировку
+	// Filter clients by topics and quickly release lock
 	subscribedClients := make([]*Client, 0)
 	for client := range h.clients {
 		if len(client.Topics) == 0 || client.Topics[messageType] {
@@ -326,7 +326,7 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload interface{}) {
 	}
 	h.mu.RUnlock()
 
-	// Параллельная отправка подписанным клиентам
+	// Parallel send to subscribed clients
 	if len(subscribedClients) > 0 {
 		h.broadcastParallel(subscribedClients, data)
 	}
