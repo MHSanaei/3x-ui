@@ -27,10 +27,16 @@
                 this.inbound = new Inbound();
             }
             // Ensure testseed is initialized for VLESS protocol with vision flow
+            // Use Vue.set to ensure reactivity
             if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings && this.inbound.settings.vlesses) {
                 const hasVisionFlow = this.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
                 if (hasVisionFlow && (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4)) {
-                    this.inbound.settings.testseed = [900, 500, 900, 256];
+                    // Use Vue.set to ensure the array is reactive
+                    if (typeof this.$set === 'function') {
+                        this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
+                    } else {
+                        this.inbound.settings.testseed = [900, 500, 900, 256];
+                    }
                 }
             }
             if (dbInbound) {
@@ -102,6 +108,18 @@
                         client.flow = "";
                     });
                 }
+            },
+            // Ensure testseed is always initialized when vision flow is enabled
+            'inModal.inbound.settings.vlesses': {
+                handler() {
+                    if (inModal.inbound.protocol === Protocols.VLESS && inModal.inbound.settings && inModal.inbound.settings.vlesses) {
+                        const hasVisionFlow = inModal.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
+                        if (hasVisionFlow && (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4)) {
+                            inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                        }
+                    }
+                },
+                deep: true
             }
         },
         methods: {
@@ -221,9 +239,20 @@
                 this.inbound.settings.decryption = 'none';
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
+            },
+            setRandomTestseed() {
+                // Ensure testseed is initialized
+                if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
+                    inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                }
+                const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+                inModal.inbound.settings.testseed = newSeed;
+            },
+            resetTestseed() {
+                // Reset testseed to default values
+                inModal.inbound.settings.testseed = [900, 500, 900, 256];
             }
-
-        },
+        }
     });
 
 </script>
