@@ -162,7 +162,7 @@ if [ "${0##*/}" = "xray-tools.sh" ]; then
       echo "Usage:"
       echo "  $0 install_xray_core TARGETARCH XRAYDIR XRAY_VERSION"
       echo "  $0 update_geodata_in_docker XRAYDIR"
-      exit 1
+      exit 0
       ;;
     *)
       echo "Unknown command: $cmd" >&2
