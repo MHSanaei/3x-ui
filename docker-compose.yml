@@ -12,6 +12,7 @@ services:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
       GEODATA_DIR: "/app/bin"
+      MAX_GEODATA_DIR_WAIT: 300 #5 minutes
     tty: true
     network_mode: host
     restart: unless-stopped
