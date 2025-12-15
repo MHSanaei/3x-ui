@@ -1,5 +1,15 @@
 #!/bin/sh
 
+if [ -z "$GEODATA_DIR" ]; then
+  echo "ERROR: GEODATA_DIR environment variable is not set"
+  exit 1
+fi
+
+if [ -z "$MAX_GEODATA_DIR_WAIT" ]; then
+  echo "WARNING: MAX_GEODATA_DIR_WAIT environment variable is not set, using default MAX_GEODATA_DIR_WAIT=300"
+  MAX_GEODATA_DIR_WAIT=300
+fi
+
 FINISH_FILE="$GEODATA_DIR/cron-job-finished.txt"
 
 ELAPSED=0
