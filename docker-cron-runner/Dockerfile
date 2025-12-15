@@ -17,7 +17,6 @@ RUN apk add --no-cache  \
 
 COPY xray-tools.sh entrypoint.sh cron-job-script.sh ./
 
-#RUN mkdir -p "$XRAY_BUILD_DIR"
 RUN chmod +x /app/xray-tools.sh /app/entrypoint.sh /app/cron-job-script.sh \
     && mkdir -p "$XRAY_BUILD_DIR" \
     && ./xray-tools.sh install_xray_core "$TARGETARCH" "$XRAY_BUILD_DIR" "$XRAY_VERSION" \
