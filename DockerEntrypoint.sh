@@ -1,24 +1,18 @@
 #!/bin/sh
 
-if [ -z "$GEODATA_DIR" ]; then
-  echo "ERROR: GEODATA_DIR environment variable is not set"
-  exit 1
-fi
+set -eu
 
-if [ -z "$MAX_GEODATA_DIR_WAIT" ]; then
-  echo "WARNING: MAX_GEODATA_DIR_WAIT environment variable is not set, using default MAX_GEODATA_DIR_WAIT=300"
-  MAX_GEODATA_DIR_WAIT=300
-fi
+: "${MAX_GEODATA_DIR_WAIT:=30}"
+: "${WAIT_INTERVAL:=10}"
+: "${GEODATA_DIR:?GEODATA_DIR is required}"
 
 FINISH_FILE="$GEODATA_DIR/cron-job-finished.txt"
-
 ELAPSED=0
-INTERVAL=10
 
 while [ ! -f "$FINISH_FILE" ] && [ "$ELAPSED" -lt "$MAX_GEODATA_DIR_WAIT" ]; do
   echo "Waiting for geodata initialization... ($ELAPSED/$MAX_GEODATA_DIR_WAIT seconds)"
-  sleep $INTERVAL
-  ELAPSED=$((ELAPSED + INTERVAL))
+  sleep $WAIT_INTERVAL
+  ELAPSED=$((ELAPSED + WAIT_INTERVAL))
 done
 
 if [ ! -f "$FINISH_FILE" ]; then
