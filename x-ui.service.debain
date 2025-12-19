@@ -8,7 +8,7 @@ EnvironmentFile=-/etc/default/x-ui
 Environment="XRAY_VMESS_AEAD_FORCED=false"
 Type=simple
 WorkingDirectory=/usr/local/x-ui/
-ExecStart=/usr/local/x-ui/x-ui $ARGS
+ExecStart=/usr/local/x-ui/x-ui
 Restart=on-failure
 RestartSec=5s
 
