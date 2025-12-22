@@ -235,10 +235,10 @@ install_x-ui() {
         else
             case "${release}" in
                 ubuntu | debian | armbian)
-                    cp -f x-ui.service.debian /etc/systemd/system/
+                    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service
                 ;;
                 *)
-                    cp -f x-ui.service.rhel /etc/systemd/system/
+                    cp -f x-ui.service.rhel /etc/systemd/system/x-ui.service
                 ;;
             esac
         fi

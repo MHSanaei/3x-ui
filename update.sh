@@ -234,11 +234,11 @@ update_x-ui() {
             case "${release}" in
                 ubuntu | debian | armbian)
                     echo -e "${green}Installing debian-like systemd unit...${plain}"
-                    cp -f x-ui.service.debian /etc/systemd/system/ >/dev/null 2>&1
+                    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service >/dev/null 2>&1
                 ;;
                 *)
                     echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                    cp -f x-ui.service.rhel /etc/systemd/system/ >/dev/null 2>&1
+                    cp -f x-ui.service.rhel /etc/systemd/system/x-ui.service >/dev/null 2>&1
                 ;;
             esac
         fi
