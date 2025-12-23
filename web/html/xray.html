@@ -527,10 +527,10 @@
       findOutboundTraffic(o) {
         for (const otraffic of this.outboundsTraffic) {
           if (otraffic.tag == o.tag) {
-            return SizeFormatter.sizeFormat(otraffic.up) + ' / ' + SizeFormatter.sizeFormat(otraffic.down);
+            return `↑ ${SizeFormatter.sizeFormat(otraffic.up)} / ${SizeFormatter.sizeFormat(otraffic.down)} ↓`
           }
         }
-        return SizeFormatter.sizeFormat(0) + ' / ' + SizeFormatter.sizeFormat(0);
+        return `${SizeFormatter.sizeFormat(0)} / ${SizeFormatter.sizeFormat(0)}`
       },
       findOutboundAddress(o) {
         serverObj = null;
