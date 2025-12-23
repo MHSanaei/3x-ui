@@ -157,7 +157,6 @@ func (j *LdapSyncJob) Run() {
 	for tag, emails := range clientsToDisable {
 		j.batchSetEnable(inboundMap[tag], emails, false)
 	}
-
 	// --- Auto delete clients not in LDAP ---
 	autoDelete := mustGetBool(j.settingService.GetLdapAutoDelete)
 	if autoDelete {

@@ -891,20 +891,19 @@ func (s *ServerService) GetDb() ([]byte, error) {
 	return fileContents, nil
 }
 
+// ImportDB загружает SQLite-базу, валидирует заголовок и подменяет текущий файл БД.
 func (s *ServerService) ImportDB(file multipart.File) error {
-	// Check if the file is a SQLite database
-	isValidDb, err := database.IsSQLiteDB(file)
-	if err != nil {
-		return common.NewErrorf("Error checking db file format: %v", err)
+	// ---- Проверка, что файл действительно SQLite ----
+	header := make([]byte, 16)
+	if _, err := io.ReadFull(file, header); err != nil {
+		return common.NewErrorf("error reading db header: %v", err)
 	}
-	if !isValidDb {
-		return common.NewError("Invalid db file format")
+	if string(header) != "SQLite format 3\x00" {
+		return common.NewErrorf("invalid db file format")
 	}
-
-	// Reset the file reader to the beginning
-	_, err = file.Seek(0, 0)
-	if err != nil {
-		return common.NewErrorf("Error resetting file reader: %v", err)
+	// вернуть курсор в начало для последующего копирования
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		return common.NewErrorf("error resetting file reader: %v", err)
 	}
 
 	// Save the file as a temporary file
