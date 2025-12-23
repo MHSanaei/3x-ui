@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Отключает резервные DNS-запросы"
 "disableFallbackIfMatch" = "Отключить резервный DNS при совпадении"
 "disableFallbackIfMatchDesc" = "Отключает резервные DNS-запросы при совпадении списка доменов DNS-сервера"
+"enableParallelQuery" = "Включить параллельные запросы"
+"enableParallelQueryDesc" = "Включить параллельные DNS-запросы к нескольким серверам для более быстрого разрешения"
 "strategy" = "Стратегия запроса"
 "strategyDesc" = "Общая стратегия разрешения доменных имен"
 "add" = "Создать DNS"

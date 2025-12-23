@@ -39,6 +39,7 @@
       </a-space>
     </a-form-item>
   </a-form>
+  <a-divider v-if="inbound.settings.selectedAuth" :style="{ margin: '5px 0' }"></a-divider>
 </template>
 <template v-if="inbound.isTcp && !inbound.settings.selectedAuth">
   <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
@@ -65,6 +66,35 @@
     </a-form-item>
     <a-form-item label='xVer'>
       <a-input-number v-model.number="fallback.xver" :min="0" :max="2"></a-input-number>
+    </a-form-item>
+  </a-form>
+  <a-divider :style="{ margin: '5px 0' }"></a-divider>
+</template>
+<template v-if="inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443')">
+  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="Vision Seed">
+      <a-row :gutter="8">
+        <a-col :span="6">
+          <a-input-number :value="(inbound.settings.testseed && inbound.settings.testseed[0] !== undefined) ? inbound.settings.testseed[0] : 900" @change="(val) => updateTestseed(0, val)" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="900" addon-before="[0]"></a-input-number>
+        </a-col>
+        <a-col :span="6">
+          <a-input-number :value="(inbound.settings.testseed && inbound.settings.testseed[1] !== undefined) ? inbound.settings.testseed[1] : 500" @change="(val) => updateTestseed(1, val)" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="500" addon-before="[1]"></a-input-number>
+        </a-col>
+        <a-col :span="6">
+          <a-input-number :value="(inbound.settings.testseed && inbound.settings.testseed[2] !== undefined) ? inbound.settings.testseed[2] : 900" @change="(val) => updateTestseed(2, val)" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="900" addon-before="[2]"></a-input-number>
+        </a-col>
+        <a-col :span="6">
+          <a-input-number :value="(inbound.settings.testseed && inbound.settings.testseed[3] !== undefined) ? inbound.settings.testseed[3] : 256" @change="(val) => updateTestseed(3, val)" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="256" addon-before="[3]"></a-input-number>
+        </a-col>
+      </a-row>
+      <a-space :size="8" :style="{ marginTop: '8px' }">
+        <a-button type="primary" @click="setRandomTestseed">
+          Rand
+        </a-button>
+        <a-button @click="resetTestseed">
+          Reset
+        </a-button>
+      </a-space>
     </a-form-item>
   </a-form>
   <a-divider :style="{ margin: '5px 0' }"></a-divider>

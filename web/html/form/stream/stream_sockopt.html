@@ -61,6 +61,15 @@
         <a-form-item label="Interface Name">
             <a-input v-model="inbound.stream.sockopt.interfaceName"></a-input>
         </a-form-item>
+        <a-form-item label="Trusted X-Forwarded-For">
+            <a-select mode="tags" v-model="inbound.stream.sockopt.trustedXForwardedFor" :style="{ width: '100%' }"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
+                <a-select-option value="X-Real-IP">X-Real-IP</a-select-option>
+                <a-select-option value="True-Client-IP">True-Client-IP</a-select-option>
+                <a-select-option value="X-Client-IP">X-Client-IP</a-select-option>
+            </a-select>
+        </a-form-item>
     </template>
 </a-form>
 {{end}}

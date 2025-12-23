@@ -9,6 +9,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/web/global"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -67,6 +68,8 @@ func (a *ServerController) refreshStatus() {
 	// collect cpu history when status is fresh
 	if a.lastStatus != nil {
 		a.serverService.AppendCpuSample(time.Now(), a.lastStatus.Cpu)
+		// Broadcast status update via WebSocket
+		websocket.BroadcastStatus(a.lastStatus)
 	}
 }
 
@@ -155,9 +158,16 @@ func (a *ServerController) stopXrayService(c *gin.Context) {
 	err := a.serverService.StopXrayService()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.xray.stopError"), err)
+		websocket.BroadcastXrayState("error", err.Error())
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.xray.stopSuccess"), err)
+	websocket.BroadcastXrayState("stop", "")
+	websocket.BroadcastNotification(
+		I18nWeb(c, "pages.xray.stopSuccess"),
+		"Xray service has been stopped",
+		"warning",
+	)
 }
 
 // restartXrayService restarts the Xray service.
@@ -165,9 +175,16 @@ func (a *ServerController) restartXrayService(c *gin.Context) {
 	err := a.serverService.RestartXrayService()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.xray.restartError"), err)
+		websocket.BroadcastXrayState("error", err.Error())
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.xray.restartSuccess"), err)
+	websocket.BroadcastXrayState("running", "")
+	websocket.BroadcastNotification(
+		I18nWeb(c, "pages.xray.restartSuccess"),
+		"Xray service has been restarted successfully",
+		"success",
+	)
 }
 
 // getLogs retrieves the application logs based on count, level, and syslog filters.

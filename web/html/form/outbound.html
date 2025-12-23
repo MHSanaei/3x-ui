@@ -239,6 +239,28 @@
             </a-select>
           </a-form-item>
         </template>
+        <!-- XTLS Vision Advanced Settings -->
+        <template v-if="outbound.protocol === Protocols.VLESS && (outbound.settings.flow === 'xtls-rprx-vision' || outbound.settings.flow === 'xtls-rprx-vision-udp443')">
+          <a-form-item label="Vision Pre-Connect">
+            <a-input-number v-model.number="outbound.settings.testpre" :min="0" :max="10" :style="{ width: '100%' }" placeholder="0"></a-input-number>
+          </a-form-item>
+          <a-form-item label="Vision Seed">
+            <a-row :gutter="8">
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[0]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="900" addon-before="[0]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[1]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="500" addon-before="[1]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[2]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="900" addon-before="[2]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[3]" :min="0" :max="9999" :style="{ width: '100%' }" placeholder="256" addon-before="[3]"></a-input-number>
+              </a-col>
+            </a-row>
+          </a-form-item>
+        </template>
       </template>
 
       <!-- Servers (trojan/shadowsocks/socks/http) settings -->
@@ -500,6 +522,15 @@
         </a-form-item>
         <a-form-item label="Penetrate">
           <a-switch v-model="outbound.stream.sockopt.penetrate"></a-switch>
+        </a-form-item>
+        <a-form-item label="Trusted X-Forwarded-For">
+          <a-select mode="tags" v-model="outbound.stream.sockopt.trustedXForwardedFor" :style="{ width: '100%' }"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
+              <a-select-option value="X-Real-IP">X-Real-IP</a-select-option>
+              <a-select-option value="True-Client-IP">True-Client-IP</a-select-option>
+              <a-select-option value="X-Client-IP">X-Client-IP</a-select-option>
+          </a-select>
         </a-form-item>
       </template>
 

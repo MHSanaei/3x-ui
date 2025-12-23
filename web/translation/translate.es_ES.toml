@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Desactiva las consultas DNS de respaldo"
 "disableFallbackIfMatch" = "Desactivar respaldo si coincide"
 "disableFallbackIfMatchDesc" = "Desactiva las consultas DNS de respaldo cuando se acierta en la lista de dominios coincidentes del servidor DNS"
+"enableParallelQuery" = "Habilitar consulta paralela"
+"enableParallelQueryDesc" = "Habilitar consultas DNS paralelas a múltiples servidores para una resolución más rápida"
 "strategy" = "Estrategia de Consulta"
 "strategyDesc" = "Estrategia general para resolver nombres de dominio"
 "add" = "Agregar Servidor"

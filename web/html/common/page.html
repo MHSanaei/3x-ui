@@ -49,6 +49,7 @@
   const basePath = '{{ .base_path }}';
   axios.defaults.baseURL = basePath;
 </script>
+<script src="{{ .base_path }}assets/js/websocket.js?{{ .cur_ver }}"></script>
 {{ end }}
   
 {{ define "page/body_end" }}

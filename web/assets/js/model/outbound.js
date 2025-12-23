@@ -432,6 +432,7 @@ class SockoptStreamSettings extends CommonClass {
         tcpMptcp = false,
         penetrate = false,
         addressPortStrategy = Address_Port_Strategy.NONE,
+        trustedXForwardedFor = [],
     ) {
         super();
         this.dialerProxy = dialerProxy;
@@ -440,6 +441,7 @@ class SockoptStreamSettings extends CommonClass {
         this.tcpMptcp = tcpMptcp;
         this.penetrate = penetrate;
         this.addressPortStrategy = addressPortStrategy;
+        this.trustedXForwardedFor = trustedXForwardedFor;
     }
 
     static fromJson(json = {}) {
@@ -450,12 +452,13 @@ class SockoptStreamSettings extends CommonClass {
             json.tcpKeepAliveInterval,
             json.tcpMptcp,
             json.penetrate,
-            json.addressPortStrategy
+            json.addressPortStrategy,
+            json.trustedXForwardedFor || []
         );
     }
 
     toJson() {
-        return {
+        const result = {
             dialerProxy: this.dialerProxy,
             tcpFastOpen: this.tcpFastOpen,
             tcpKeepAliveInterval: this.tcpKeepAliveInterval,
@@ -463,6 +466,10 @@ class SockoptStreamSettings extends CommonClass {
             penetrate: this.penetrate,
             addressPortStrategy: this.addressPortStrategy
         };
+        if (this.trustedXForwardedFor && this.trustedXForwardedFor.length > 0) {
+            result.trustedXForwardedFor = this.trustedXForwardedFor;
+        }
+        return result;
     }
 }
 
@@ -1050,13 +1057,15 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption) {
+    constructor(address, port, id, flow, encryption, testpre = 0, testseed = [900, 500, 900, 256]) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
         this.encryption = encryption;
+        this.testpre = testpre;
+        this.testseed = testseed;
     }
 
     static fromJson(json = {}) {
@@ -1066,18 +1075,27 @@ Outbound.VLESSSettings = class extends CommonClass {
             json.port,
             json.id,
             json.flow,
-            json.encryption
+            json.encryption,
+            json.testpre || 0,
+            json.testseed && json.testseed.length >= 4 ? json.testseed : [900, 500, 900, 256]
         );
     }
 
     toJson() {
-        return {
+        const result = {
             address: this.address,
             port: this.port,
             id: this.id,
             flow: this.flow,
             encryption: this.encryption,
         };
+        if (this.testpre > 0) {
+            result.testpre = this.testpre;
+        }
+        if (this.testseed && this.testseed.length >= 4) {
+            result.testseed = this.testseed;
+        }
+        return result;
     }
 };
 Outbound.TrojanSettings = class extends CommonClass {

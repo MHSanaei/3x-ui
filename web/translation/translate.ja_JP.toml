@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "フォールバックDNSクエリを無効にします"
 "disableFallbackIfMatch" = "一致した場合にフォールバックを無効にする"
 "disableFallbackIfMatchDesc" = "DNSサーバーの一致するドメインリストにヒットした場合、フォールバックDNSクエリを無効にします"
+"enableParallelQuery" = "並列クエリを有効にする"
+"enableParallelQueryDesc" = "複数のサーバーへの並列DNSクエリを有効にして、より高速な解決を実現"
 "strategy" = "クエリ戦略"
 "strategyDesc" = "ドメイン名解決の全体的な戦略"
 "add" = "サーバー追加"

@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "بيعطل استعلامات DNS الاحتياطية"
 "disableFallbackIfMatch" = "تعطيل النسخ الاحتياطي عند التطابق"
 "disableFallbackIfMatchDesc" = "بيعطل استعلامات DNS الاحتياطية لما يتحقق تطابق مع قائمة الدومينات"
+"enableParallelQuery" = "تفعيل الاستعلام المتوازي"
+"enableParallelQueryDesc" = "تفعيل استعلامات DNS المتوازية لعدة خوادم لحل أسرع"
 "strategy" = "استراتيجية الاستعلام"
 "strategyDesc" = "الاستراتيجية العامة لحل أسماء الدومين"
 "add" = "أضف سيرفر"
