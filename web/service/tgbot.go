@@ -210,7 +210,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	// Parse admin IDs from comma-separated string
 	if tgBotID != "" {
 		for _, adminID := range strings.Split(tgBotID, ",") {
-			id, err := strconv.Atoi(adminID)
+			id, err := strconv.ParseInt(adminID, 10, 64)
 			if err != nil {
 				logger.Warning("Failed to parse admin ID from Telegram bot chat ID:", err)
 				return err
@@ -905,8 +905,8 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.sendCallbackAnswerTgBot(callbackQuery.ID, t.I18nBot("tgbot.answers.errorOperation"))
 				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "add_client_limit_traffic_c":
-				limitTraffic, _ := strconv.Atoi(dataArray[1])
-				client_TotalGB = int64(limitTraffic) * 1024 * 1024 * 1024
+				limitTraffic, _ := strconv.ParseInt(dataArray[1], 10, 64)
+				client_TotalGB = limitTraffic * 1024 * 1024 * 1024
 				messageId := callbackQuery.Message.GetMessageID()
 				inbound, err := t.inboundService.GetInbound(receiver_inbound_ID)
 				if err != nil {
@@ -1010,7 +1010,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.editMessageCallbackTgBot(chatId, callbackQuery.Message.GetMessageID(), inlineKeyboard)
 			case "reset_exp_c":
 				if len(dataArray) == 3 {
-					days, err := strconv.Atoi(dataArray[2])
+					days, err := strconv.ParseInt(dataArray[2], 10, 64)
 					if err == nil {
 						var date int64
 						if days > 0 {
@@ -1115,7 +1115,7 @@ func (t *Tgbot) answerCallback(callbackQuery *telego.CallbackQuery, isAdmin bool
 				t.searchClient(chatId, email, callbackQuery.Message.GetMessageID())
 			case "add_client_reset_exp_c":
 				client_ExpiryTime = 0
-				days, _ := strconv.Atoi(dataArray[1])
+				days, _ := strconv.ParseInt(dataArray[1], 10, 64)
 				var date int64
 				if client_ExpiryTime > 0 {
 					if client_ExpiryTime-time.Now().Unix()*1000 < 0 {
@@ -2952,10 +2952,12 @@ func (t *Tgbot) clientInfoMsg(
 	}
 
 	status := t.I18nBot("tgbot.offline")
+	isOnline := false
 	if p.IsRunning() {
 		for _, online := range p.GetOnlineClients() {
 			if online == traffic.Email {
 				status = t.I18nBot("tgbot.online")
+				isOnline = true
 				break
 			}
 		}
@@ -2968,6 +2970,9 @@ func (t *Tgbot) clientInfoMsg(
 	}
 	if printOnline {
 		output += t.I18nBot("tgbot.messages.online", "Status=="+status)
+		if !isOnline && traffic.LastOnline > 0 {
+			output += t.I18nBot("tgbot.messages.lastOnline", "Time=="+time.UnixMilli(traffic.LastOnline).Format("2006-01-02 15:04:05"))
+		}
 	}
 	if printActive {
 		output += t.I18nBot("tgbot.messages.active", "Enable=="+active)

@@ -106,7 +106,7 @@
 "invalidFormData" = "Girdi verisi formatı geçersiz."
 "emptyUsername" = "Kullanıcı adı gerekli"
 "emptyPassword" = "Şifre gerekli"
-"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu."  
+"wrongUsernameOrPassword" = "Geçersiz kullanıcı adı, şifre veya iki adımlı doğrulama kodu."
 "successLogin" = "Hesabınıza başarıyla giriş yaptınız."
 
 [pages.index]
@@ -565,9 +565,9 @@
 
 [pages.settings.security]
 "admin" = "Yönetici kimlik bilgileri"
-"twoFactor" = "İki adımlı doğrulama"  
-"twoFactorEnable" = "2FA'yı Etkinleştir"  
-"twoFactorEnableDesc" = "Daha fazla güvenlik için ek bir doğrulama katmanı ekler."  
+"twoFactor" = "İki adımlı doğrulama"
+"twoFactorEnable" = "2FA'yı Etkinleştir"
+"twoFactorEnableDesc" = "Daha fazla güvenlik için ek bir doğrulama katmanı ekler."
 "twoFactorModalSetTitle" = "İki adımlı doğrulamayı etkinleştir"
 "twoFactorModalDeleteTitle" = "İki adımlı doğrulamayı devre dışı bırak"
 "twoFactorModalSteps" = "İki adımlı doğrulamayı ayarlamak için şu adımları izleyin:"
@@ -663,6 +663,7 @@
 "active" = "💡 Aktif: {{ .Enable }}\r\n"
 "enabled" = "🚨 Etkin: {{ .Enable }}\r\n"
 "online" = "🌐 Bağlantı durumu: {{ .Status }}\r\n"
+"lastOnline" = "🔙 Son çevrimiçi: {{ .Time }}\r\n"
 "email" = "📧 E-posta: {{ .Email }}\r\n"
 "upload" = "🔼 Yükleme: ↑{{ .Upload }}\r\n"
 "download" = "🔽 İndirme: ↓{{ .Download }}\r\n"
@@ -688,9 +689,9 @@
 "inbound_client_data_id" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 Kimlik: {{ .ClientId }}\n📧 E-posta: {{ .ClientEmail }}\n📊 Trafik: {{ .ClientTraffic }}\n📅 Bitiş Tarihi: {{ .ClientExp }}\n🌐 IP Sınırı: {{ .IpLimit }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık bu müşteriyi girişe ekleyebilirsin!"
 "inbound_client_data_pass" = "🔄 Giriş: {{ .InboundRemark }}\n\n🔑 Şifre: {{ .ClientPass }}\n📧 E-posta: {{ .ClientEmail }}\n📊 Trafik: {{ .ClientTraffic }}\n📅 Bitiş Tarihi: {{ .ClientExp }}\n🌐 IP Sınırı: {{ .IpLimit }}\n💬 Yorum: {{ .ClientComment }}\n\nArtık bu müşteriyi girişe ekleyebilirsin!"
 "cancel" = "❌ İşlem iptal edildi! \n\nİstediğiniz zaman /start ile yeniden başlayabilirsiniz. 🔄"
-"error_add_client"  = "⚠️ Hata:\n\n {{ .error }}"
-"using_default_value"  = "Tamam, varsayılan değeri kullanacağım. 😊"
-"incorrect_input" ="Girdiğiniz değer geçerli değil.\nKelime öbekleri boşluk olmadan devam etmelidir.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫"
+"error_add_client" = "⚠️ Hata:\n\n {{ .error }}"
+"using_default_value" = "Tamam, varsayılan değeri kullanacağım. 😊"
+"incorrect_input" = "Girdiğiniz değer geçerli değil.\nKelime öbekleri boşluk olmadan devam etmelidir.\nDoğru örnek: aaaaaa\nYanlış örnek: aaa aaa 🚫"
 "AreYouSure" = "Emin misin? 🤔"
 "SuccessResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ✅ Başarılı"
 "FailedResetTraffic" = "📧 E-posta: {{ .ClientEmail }}\n🏁 Sonuç: ❌ Başarısız \n\n🛠️ Hata: [ {{ .ErrorMessage }} ]"

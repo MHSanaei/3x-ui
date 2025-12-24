@@ -509,11 +509,15 @@ enable_bbr() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
         ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum -y install ca-certificates
-        ;;
-    fedora | amzn | virtuozzo)
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
         dnf -y update && dnf -y install ca-certificates
+        ;;
+    centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum -y update && yum -y install ca-certificates
+            else
+                dnf -y update && dnf -y install ca-certificates
+            fi
         ;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm ca-certificates
@@ -1073,11 +1077,15 @@ ssl_cert_issue() {
     ubuntu | debian | armbian)
         apt-get update && apt-get install socat -y
         ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum -y install socat
-        ;;
-    fedora | amzn | virtuozzo)
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
         dnf -y update && dnf -y install socat
+        ;;
+    centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum -y update && yum -y install socat
+            else
+                dnf -y update && dnf -y install socat
+            fi
         ;;
     arch | manjaro | parch)
         pacman -Sy --noconfirm socat
@@ -1086,7 +1094,7 @@ ssl_cert_issue() {
         zypper refresh && zypper -q install -y socat
         ;;
     alpine)
-        apk add socat
+        apk add socat curl openssl
         ;;
     *)
         echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
@@ -1537,12 +1545,16 @@ install_iplimit() {
         armbian)
             apt-get update && apt-get install fail2ban -y
             ;;
-        centos | rhel | almalinux | rocky | ol)
-            yum update -y && yum install epel-release -y
-            yum -y install fail2ban
-            ;;
-        fedora | amzn | virtuozzo)
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
             dnf -y update && dnf -y install fail2ban
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum update -y && yum install epel-release -y
+                yum -y install fail2ban
+            else
+                dnf -y update && dnf -y install fail2ban
+            fi
             ;;
         arch | manjaro | parch)
             pacman -Syu --noconfirm fail2ban
@@ -1637,13 +1649,18 @@ remove_iplimit() {
             apt-get purge -y fail2ban -y
             apt-get autoremove -y
             ;;
-        centos | rhel | almalinux | rocky | ol)
-            yum remove fail2ban -y
-            yum autoremove -y
-            ;;
-        fedora | amzn | virtuozzo)
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
             dnf remove fail2ban -y
             dnf autoremove -y
+            ;;
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then    
+                yum remove fail2ban -y
+                yum autoremove -y
+            else
+                dnf remove fail2ban -y
+                dnf autoremove -y
+            fi
             ;;
         arch | manjaro | parch)
             pacman -Rns --noconfirm fail2ban

@@ -15,7 +15,7 @@ cur_dir=$(pwd)
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
-elif [[ -f /usr/lib/os-release ]]; then
+    elif [[ -f /usr/lib/os-release ]]; then
     source /usr/lib/os-release
     release=$ID
 else
@@ -26,14 +26,14 @@ echo "The OS release is: $release"
 
 arch() {
     case "$(uname -m)" in
-    x86_64 | x64 | amd64) echo 'amd64' ;;
-    i*86 | x86) echo '386' ;;
-    armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
-    armv7* | armv7 | arm) echo 'armv7' ;;
-    armv6* | armv6) echo 'armv6' ;;
-    armv5* | armv5) echo 'armv5' ;;
-    s390x) echo 's390x' ;;
-    *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
+        x86_64 | x64 | amd64) echo 'amd64' ;;
+        i*86 | x86) echo '386' ;;
+        armv8* | armv8 | arm64 | aarch64) echo 'arm64' ;;
+        armv7* | armv7 | arm) echo 'armv7' ;;
+        armv6* | armv6) echo 'armv6' ;;
+        armv5* | armv5) echo 'armv5' ;;
+        s390x) echo 's390x' ;;
+        *) echo -e "${green}Unsupported CPU architecture! ${plain}" && rm -f install.sh && exit 1 ;;
     esac
 }
 
@@ -41,26 +41,30 @@ echo "Arch: $(arch)"
 
 install_base() {
     case "${release}" in
-    ubuntu | debian | armbian)
-        apt-get update && apt-get install -y -q wget curl tar tzdata
+        ubuntu | debian | armbian)
+            apt-get update && apt-get install -y -q wget curl tar tzdata
         ;;
-    centos | rhel | almalinux | rocky | ol)
-        yum -y update && yum install -y -q wget curl tar tzdata
+        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+            dnf -y update && dnf install -y -q wget curl tar tzdata
         ;;
-    fedora | amzn | virtuozzo)
-        dnf -y update && dnf install -y -q wget curl tar tzdata
+        centos)
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
+                yum -y update && yum install -y wget curl tar tzdata
+            else
+                dnf -y update && dnf install -y -q wget curl tar tzdata
+            fi
         ;;
-    arch | manjaro | parch)
-        pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
+        arch | manjaro | parch)
+            pacman -Syu && pacman -Syu --noconfirm wget curl tar tzdata
         ;;
-    opensuse-tumbleweed | opensuse-leap)
-        zypper refresh && zypper -q install -y wget curl tar timezone
+        opensuse-tumbleweed | opensuse-leap)
+            zypper refresh && zypper -q install -y wget curl tar timezone
         ;;
-    alpine)
-        apk update && apk add wget curl tar tzdata
+        alpine)
+            apk update && apk add wget curl tar tzdata
         ;;
-    *)
-        apt-get update && apt-get install -y -q wget curl tar tzdata
+        *)
+            apt-get update && apt-get install -y -q wget curl tar tzdata
         ;;
     esac
 }
@@ -77,11 +81,11 @@ config_after_install() {
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     local URL_lists=(
         "https://api4.ipify.org"
-		"https://ipv4.icanhazip.com"
-		"https://v4.api.ipinfo.io/ip"
-		"https://ipv4.myexternalip.com/raw"
-		"https://4.ident.me"
-		"https://check-host.net/ip"
+        "https://ipv4.icanhazip.com"
+        "https://v4.api.ipinfo.io/ip"
+        "https://ipv4.myexternalip.com/raw"
+        "https://4.ident.me"
+        "https://check-host.net/ip"
     )
     local server_ip=""
     for ip_address in "${URL_lists[@]}"; do
@@ -90,13 +94,13 @@ config_after_install() {
             break
         fi
     done
-
+    
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_webBasePath=$(gen_random_string 18)
             local config_username=$(gen_random_string 10)
             local config_password=$(gen_random_string 10)
-
+            
             read -rp "Would you like to customize the Panel Port settings? (If not, a random port will be applied) [y/n]: " config_confirm
             if [[ "${config_confirm}" == "y" || "${config_confirm}" == "Y" ]]; then
                 read -rp "Please set up the panel port: " config_port
@@ -105,7 +109,7 @@ config_after_install() {
                 local config_port=$(shuf -i 1024-62000 -n 1)
                 echo -e "${yellow}Generated random port: ${config_port}${plain}"
             fi
-
+            
             /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
             echo -e "This is a fresh installation, generating random login info for security concerns:"
             echo -e "###############################################"
@@ -126,7 +130,7 @@ config_after_install() {
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_username=$(gen_random_string 10)
             local config_password=$(gen_random_string 10)
-
+            
             echo -e "${yellow}Default credentials detected. Security update required...${plain}"
             /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}"
             echo -e "Generated new random login credentials:"
@@ -138,13 +142,13 @@ config_after_install() {
             echo -e "${green}Username, Password, and WebBasePath are properly set. Exiting...${plain}"
         fi
     fi
-
+    
     /usr/local/x-ui/x-ui migrate
 }
 
 install_x-ui() {
     cd /usr/local/
-
+    
     # Download resources
     if [ $# == 0 ]; then
         tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
@@ -166,12 +170,12 @@ install_x-ui() {
         tag_version=$1
         tag_version_numeric=${tag_version#v}
         min_version="2.3.5"
-
+        
         if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
             echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
             exit 1
         fi
-
+        
         url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
         echo -e "Beginning to install x-ui $1"
         wget --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz ${url}
@@ -185,7 +189,7 @@ install_x-ui() {
         echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
     fi
-
+    
     # Stop x-ui service and remove old resources
     if [[ -e /usr/local/x-ui/ ]]; then
         if [[ $release == "alpine" ]]; then
@@ -195,7 +199,7 @@ install_x-ui() {
         fi
         rm /usr/local/x-ui/ -rf
     fi
-
+    
     # Extract resources and set permissions
     tar zxvf x-ui-linux-$(arch).tar.gz
     rm x-ui-linux-$(arch).tar.gz -f
@@ -203,19 +207,19 @@ install_x-ui() {
     cd x-ui
     chmod +x x-ui
     chmod +x x-ui.sh
-
+    
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
         mv bin/xray-linux-$(arch) bin/xray-linux-arm
         chmod +x bin/xray-linux-arm
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
-
+    
     # Update x-ui cli and se set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
     config_after_install
-
+    
     if [[ $release == "alpine" ]]; then
         wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
         if [[ $? -ne 0 ]]; then
@@ -231,7 +235,7 @@ install_x-ui() {
         systemctl enable x-ui
         systemctl start x-ui
     fi
-
+    
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
