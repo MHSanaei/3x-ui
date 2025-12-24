@@ -7,6 +7,7 @@ services:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
       - ./access.log:/app/access.log
+      - ./error.log:/app/error.log
     environment:
       TZ: Asia/Shanghai
       XRAY_VMESS_AEAD_FORCED: "false"
