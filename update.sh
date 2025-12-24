@@ -164,6 +164,8 @@ update_x-ui() {
         echo -e "${green}Removing old x-ui version...${plain}"
         rm /usr/bin/x-ui -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui.service -f >/dev/null 2>&1
+        rm /usr/local/x-ui/x-ui.service.debain -f >/dev/null 2>&1
+        rm /usr/local/x-ui/x-ui.service.rhel -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui.sh -f >/dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
@@ -225,8 +227,21 @@ update_x-ui() {
         rc-update add x-ui >/dev/null 2>&1
         rc-service x-ui start >/dev/null 2>&1
     else
-        echo -e "${green}Installing systemd unit...${plain}"
-        cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
+        if [ -f "x-ui.service" ]; then
+            echo -e "${green}Installing systemd unit...${plain}"
+            cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
+        else
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    echo -e "${green}Installing debian-like systemd unit...${plain}"
+                    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service >/dev/null 2>&1
+                ;;
+                *)
+                    echo -e "${green}Installing rhel-like systemd unit...${plain}"
+                    cp -f x-ui.service.rhel /etc/systemd/system/x-ui.service >/dev/null 2>&1
+                ;;
+            esac
+        fi
         chown root:root /etc/systemd/system/x-ui.service >/dev/null 2>&1
         systemctl daemon-reload >/dev/null 2>&1
         systemctl enable x-ui >/dev/null 2>&1
