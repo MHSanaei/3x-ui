@@ -529,6 +529,18 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	}
 	defer resp.Body.Close()
 
+	// Check HTTP status code - GitHub API returns object instead of array on error
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		var errorResponse struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(bodyBytes, &errorResponse) == nil && errorResponse.Message != "" {
+			return nil, fmt.Errorf("GitHub API error: %s", errorResponse.Message)
+		}
+		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
+	}
+
 	buffer := bytes.NewBuffer(make([]byte, bufferSize))
 	buffer.Reset()
 	if _, err := buffer.ReadFrom(resp.Body); err != nil {
