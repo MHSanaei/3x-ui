@@ -101,10 +101,216 @@ install_base() {
     esac
 }
 
+install_acme() {
+    echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
+    cd ~ || return 1
+    curl -s https://get.acme.sh | sh >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "${red}Failed to install acme.sh${plain}"
+        return 1
+    else
+        echo -e "${green}acme.sh installed successfully${plain}"
+    fi
+    return 0
+}
+
+setup_ssl_certificate() {
+    local domain="$1"
+    local server_ip="$2"
+    local existing_port="$3"
+    local existing_webBasePath="$4"
+    
+    echo -e "${green}Setting up SSL certificate...${plain}"
+    
+    # Check if acme.sh is installed
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        install_acme
+        if [ $? -ne 0 ]; then
+            echo -e "${yellow}Failed to install acme.sh, skipping SSL setup${plain}"
+            return 1
+        fi
+    fi
+    
+    # Install socat
+    echo -e "${green}Installing socat...${plain}"
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update >/dev/null 2>&1 && apt-get install socat -y >/dev/null 2>&1
+        ;;
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+        dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        ;;
+    centos)
+        if [[ "${VERSION_ID}" =~ ^7 ]]; then
+            yum -y update >/dev/null 2>&1 && yum -y install socat >/dev/null 2>&1
+        else
+            dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        fi
+        ;;
+    arch | manjaro | parch)
+        pacman -Sy --noconfirm socat >/dev/null 2>&1
+        ;;
+    opensuse-tumbleweed | opensuse-leap)
+        zypper refresh >/dev/null 2>&1 && zypper -q install -y socat >/dev/null 2>&1
+        ;;
+    alpine)
+        apk add socat curl openssl >/dev/null 2>&1
+        ;;
+    esac
+    
+    # Create certificate directory
+    local certPath="/root/cert/${domain}"
+    mkdir -p "$certPath"
+    
+    # Issue certificate
+    echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
+    echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
+    
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport 80 --force
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
+        echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
+        rm -rf ~/.acme.sh/${domain} 2>/dev/null
+        rm -rf "$certPath" 2>/dev/null
+        return 1
+    fi
+    
+    # Install certificate
+    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+        --key-file /root/cert/${domain}/privkey.pem \
+        --fullchain-file /root/cert/${domain}/fullchain.pem \
+        --reloadcmd "systemctl restart x-ui" >/dev/null 2>&1
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${yellow}Failed to install certificate${plain}"
+        return 1
+    fi
+    
+    # Enable auto-renew
+    ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
+    chmod 755 $certPath/* 2>/dev/null
+    
+    # Set certificate for panel
+    local webCertFile="/root/cert/${domain}/fullchain.pem"
+    local webKeyFile="/root/cert/${domain}/privkey.pem"
+    
+    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
+        /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
+        echo -e "${green}SSL certificate installed and configured successfully!${plain}"
+        return 0
+    else
+        echo -e "${yellow}Certificate files not found${plain}"
+        return 1
+    fi
+}
+
 config_after_update() {
     echo -e "${yellow}x-ui settings:${plain}"
     /usr/local/x-ui/x-ui setting -show true
     /usr/local/x-ui/x-ui migrate
+    
+    # Check if SSL certificate is configured
+    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true 2>/dev/null | grep -Eo 'cert: .+' | awk '{print $2}')
+    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    
+    if [[ -z "$existing_cert" ]]; then
+        echo ""
+        echo -e "${red}═══════════════════════════════════════════${plain}"
+        echo -e "${red}      ⚠ NO SSL CERTIFICATE DETECTED ⚠     ${plain}"
+        echo -e "${red}═══════════════════════════════════════════${plain}"
+        echo -e "${yellow}For security, SSL certificate is MANDATORY for all panels.${plain}"
+        echo -e "${yellow}Let's Encrypt supports both domain and IP certificates.${plain}"
+        echo ""
+        
+        # Get server IP
+        local URL_lists=(
+            "https://api4.ipify.org"
+            "https://ipv4.icanhazip.com"
+            "https://v4.api.ipinfo.io/ip"
+            "https://4.ident.me"
+        )
+        local server_ip=""
+        for ip_address in "${URL_lists[@]}"; do
+            server_ip=$(${curl_bin} -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
+            if [[ -n "${server_ip}" ]]; then
+                break
+            fi
+        done
+        
+        if [[ -z "${server_ip}" ]]; then
+            echo -e "${red}Failed to detect server IP${plain}"
+            echo -e "${yellow}Please configure SSL manually using: x-ui${plain}"
+            return
+        fi
+        
+        local ssl_success=false
+        local ssl_domain=""
+        
+        # Loop until SSL is successfully configured
+        while [[ "$ssl_success" == false ]]; do
+            read -rp "Enter your domain name (or press Enter to use server IP ${server_ip}): " ssl_domain
+            if [[ -z "${ssl_domain}" ]]; then
+                ssl_domain="${server_ip}"
+                echo -e "${yellow}Using server IP: ${ssl_domain}${plain}"
+            else
+                echo -e "${green}Using domain: ${ssl_domain}${plain}"
+            fi
+            
+            echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
+            read -rp "Press Enter to continue with SSL certificate generation..."
+            
+            # Stop panel
+            if [[ $release == "alpine" ]]; then
+                rc-service x-ui stop >/dev/null 2>&1
+            else
+                systemctl stop x-ui >/dev/null 2>&1
+            fi
+            
+            setup_ssl_certificate "${ssl_domain}" "${server_ip}" "${existing_port}" "${existing_webBasePath}"
+            
+            if [ $? -eq 0 ]; then
+                ssl_success=true
+                echo -e "${green}✓ SSL certificate configured successfully!${plain}"
+            else
+                echo ""
+                echo -e "${red}✗ SSL certificate setup failed${plain}"
+                echo -e "${yellow}Please check:${plain}"
+                echo -e "  - Port 80 is open and not in use"
+                echo -e "  - Server is accessible from the internet"
+                echo -e "  - Domain DNS is correctly configured (if using domain)"
+                echo ""
+                read -rp "Press Enter to retry SSL setup..."
+            fi
+        done
+        
+        # Start panel only after SSL is configured
+        if [[ $release == "alpine" ]]; then
+            rc-service x-ui start >/dev/null 2>&1
+        else
+            systemctl start x-ui >/dev/null 2>&1
+        fi
+        
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Access Information              ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Access URL: https://${ssl_domain}:${existing_port}${existing_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+    else
+        echo -e "${green}SSL certificate is already configured${plain}"
+        # Show access URL with existing certificate
+        local cert_domain=$(basename "$(dirname "$existing_cert")")
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Access Information              ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Access URL: https://${cert_domain}:${existing_port}${existing_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+    fi
 }
 
 update_x-ui() {

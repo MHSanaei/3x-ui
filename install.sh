@@ -39,6 +39,20 @@ arch() {
 
 echo "Arch: $(arch)"
 
+# Simple helpers
+is_ipv4() {
+    [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
+}
+is_ipv6() {
+    [[ "$1" =~ : ]] && return 0 || return 1
+}
+is_ip() {
+    is_ipv4 "$1" || is_ipv6 "$1"
+}
+is_domain() {
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+[A-Za-z]{2,}$ ]] && return 0 || return 1
+}
+
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
@@ -75,10 +89,196 @@ gen_random_string() {
     echo "$random_string"
 }
 
+install_acme() {
+    echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
+    cd ~ || return 1
+    curl -s https://get.acme.sh | sh >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "${red}Failed to install acme.sh${plain}"
+        return 1
+    else
+        echo -e "${green}acme.sh installed successfully${plain}"
+    fi
+    return 0
+}
+
+setup_ssl_certificate() {
+    local domain="$1"
+    local server_ip="$2"
+    local existing_port="$3"
+    local existing_webBasePath="$4"
+    
+    echo -e "${green}Setting up SSL certificate...${plain}"
+    
+    # Check if acme.sh is installed
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        install_acme
+        if [ $? -ne 0 ]; then
+            echo -e "${yellow}Failed to install acme.sh, skipping SSL setup${plain}"
+            return 1
+        fi
+    fi
+    
+    # Install socat
+    echo -e "${green}Installing socat...${plain}"
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update >/dev/null 2>&1 && apt-get install socat -y >/dev/null 2>&1
+        ;;
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+        dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        ;;
+    centos)
+        if [[ "${VERSION_ID}" =~ ^7 ]]; then
+            yum -y update >/dev/null 2>&1 && yum -y install socat >/dev/null 2>&1
+        else
+            dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        fi
+        ;;
+    arch | manjaro | parch)
+        pacman -Sy --noconfirm socat >/dev/null 2>&1
+        ;;
+    opensuse-tumbleweed | opensuse-leap)
+        zypper refresh >/dev/null 2>&1 && zypper -q install -y socat >/dev/null 2>&1
+        ;;
+    alpine)
+        apk add socat curl openssl >/dev/null 2>&1
+        ;;
+    esac
+    
+    # Create certificate directory
+    local certPath="/root/cert/${domain}"
+    mkdir -p "$certPath"
+    
+    # Issue certificate
+    echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
+    echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
+    
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport 80 --force
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${yellow}Failed to issue certificate for ${domain}${plain}"
+        echo -e "${yellow}Please ensure port 80 is open and try again later with: x-ui${plain}"
+        rm -rf ~/.acme.sh/${domain} 2>/dev/null
+        rm -rf "$certPath" 2>/dev/null
+        return 1
+    fi
+    
+    # Install certificate
+    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+        --key-file /root/cert/${domain}/privkey.pem \
+        --fullchain-file /root/cert/${domain}/fullchain.pem \
+        --reloadcmd "systemctl restart x-ui" >/dev/null 2>&1
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${yellow}Failed to install certificate${plain}"
+        return 1
+    fi
+    
+    # Enable auto-renew
+    ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
+    chmod 755 $certPath/* 2>/dev/null
+    
+    # Set certificate for panel
+    local webCertFile="/root/cert/${domain}/fullchain.pem"
+    local webKeyFile="/root/cert/${domain}/privkey.pem"
+    
+    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
+        /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
+        echo -e "${green}SSL certificate installed and configured successfully!${plain}"
+        return 0
+    else
+        echo -e "${yellow}Certificate files not found${plain}"
+        return 1
+    fi
+}
+
+# Fallback: generate a self-signed certificate (not publicly trusted)
+setup_self_signed_certificate() {
+    local name="$1"   # domain or IP to place in SAN
+    local certDir="/root/cert/selfsigned"
+
+    echo -e "${yellow}Generating a self-signed certificate (not publicly trusted)...${plain}"
+
+    # Ensure openssl is available
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update >/dev/null 2>&1 && apt-get install -y openssl >/dev/null 2>&1
+        ;;
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+        dnf -y update >/dev/null 2>&1 && dnf -y install openssl >/dev/null 2>&1
+        ;;
+    centos)
+        if [[ "${VERSION_ID}" =~ ^7 ]]; then
+            yum -y update >/dev/null 2>&1 && yum -y install openssl >/dev/null 2>&1
+        else
+            dnf -y update >/dev/null 2>&1 && dnf -y install openssl >/dev/null 2>&1
+        fi
+        ;;
+    arch | manjaro | parch)
+        pacman -Sy --noconfirm openssl >/dev/null 2>&1
+        ;;
+    opensuse-tumbleweed | opensuse-leap)
+        zypper refresh >/dev/null 2>&1 && zypper -q install -y openssl >/dev/null 2>&1
+        ;;
+    alpine)
+        apk add openssl >/dev/null 2>&1
+        ;;
+    esac
+
+    mkdir -p "$certDir"
+
+    local sanExt=""
+    if is_ip "$name"; then
+        sanExt="IP:${name}"
+    else
+        sanExt="DNS:${name}"
+    fi
+
+    # Use -addext if supported; fallback to config file if needed
+    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+        -keyout "${certDir}/privkey.pem" \
+        -out "${certDir}/fullchain.pem" \
+        -subj "/CN=${name}" \
+        -addext "subjectAltName=${sanExt}" >/dev/null 2>&1
+
+    if [[ $? -ne 0 ]]; then
+        # Fallback via temporary config file (for older OpenSSL versions)
+        local tmpCfg="${certDir}/openssl.cnf"
+        cat > "$tmpCfg" <<EOF
+[req]
+distinguished_name=req_distinguished_name
+req_extensions=v3_req
+[req_distinguished_name]
+[v3_req]
+subjectAltName=${sanExt}
+EOF
+        openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+            -keyout "${certDir}/privkey.pem" \
+            -out "${certDir}/fullchain.pem" \
+            -subj "/CN=${name}" \
+            -config "$tmpCfg" -extensions v3_req >/dev/null 2>&1
+        rm -f "$tmpCfg"
+    fi
+
+    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
+        echo -e "${red}Failed to generate self-signed certificate${plain}"
+        return 1
+    fi
+
+    chmod 755 ${certDir}/* 2>/dev/null
+    /usr/local/x-ui/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
+    echo -e "${yellow}Self-signed certificate configured. Browsers will show a warning.${plain}"
+    return 0
+}
+
 config_after_install() {
     local existing_hasDefaultCredential=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    # Properly detect empty cert by checking if cert: line exists and has content after it
+    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     local URL_lists=(
         "https://api4.ipify.org"
         "https://ipv4.icanhazip.com"
@@ -111,20 +311,98 @@ config_after_install() {
             fi
             
             /usr/local/x-ui/x-ui setting -username "${config_username}" -password "${config_password}" -port "${config_port}" -webBasePath "${config_webBasePath}"
-            echo -e "This is a fresh installation, generating random login info for security concerns:"
-            echo -e "###############################################"
-            echo -e "${green}Username: ${config_username}${plain}"
-            echo -e "${green}Password: ${config_password}${plain}"
-            echo -e "${green}Port: ${config_port}${plain}"
+            
+            echo ""
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}     SSL Certificate Setup (MANDATORY)     ${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${yellow}For security, SSL certificate is required for all panels.${plain}"
+            echo -e "${yellow}Let's Encrypt requires a domain name (IP certificates are not issued).${plain}"
+            echo ""
+
+            local ssl_success=false
+            local ssl_domain=""
+
+            # Prompt on fresh install as well
+            while [[ "$ssl_success" == false ]]; do
+                echo -e "${yellow}Write your domain address or press Enter for self-signed (not trusted).${plain}"
+                read -rp "Domain (leave empty for self-signed): " ssl_domain
+
+                if [[ -z "${ssl_domain}" ]]; then
+                    ssl_domain="self"
+                fi
+
+                if [[ "${ssl_domain}" == "self" || "${ssl_domain}" == "SELF" ]]; then
+                    echo -e "${yellow}Using server IP for self-signed certificate: ${server_ip}${plain}"
+                    setup_self_signed_certificate "${server_ip}"
+                    if [ $? -eq 0 ]; then
+                        ssl_domain="${server_ip}"
+                        ssl_success=true
+                        echo -e "${green}✓ Self-signed SSL configured successfully${plain}"
+                    else
+                        echo -e "${red}✗ Self-signed SSL setup failed${plain}"
+                        read -rp "Press Enter to retry SSL setup..."
+                    fi
+                    continue
+                fi
+
+                if is_ip "${ssl_domain}"; then
+                    echo -e "${red}Let's Encrypt does not issue certificates for IP addresses.${plain}"
+                    echo -e "${yellow}Please provide a domain, or type 'self' for a self-signed certificate.${plain}"
+                    continue
+                fi
+                if ! is_domain "${ssl_domain}"; then
+                    echo -e "${red}Input does not look like a valid domain.${plain}"
+                    continue
+                fi
+
+                echo -e "${green}Using domain: ${ssl_domain}${plain}"
+                echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
+                read -rp "Press Enter to continue with SSL certificate generation..."
+
+                setup_ssl_certificate "${ssl_domain}" "${server_ip}" "${config_port}" "/${config_webBasePath}"
+
+                if [ $? -eq 0 ]; then
+                    ssl_success=true
+                    echo -e "${green}✓ SSL certificate configured successfully!${plain}"
+                else
+                    echo ""
+                    echo -e "${red}✗ SSL certificate setup failed${plain}"
+                    echo -e "${yellow}Please check:${plain}"
+                    echo -e "  - Port 80 is open and not in use"
+                    echo -e "  - Server is accessible from the internet"
+                    echo -e "  - Domain DNS is correctly configured (A/AAAA record)"
+                    echo ""
+                    read -rp "Press Enter to retry SSL setup..."
+                fi
+            done
+            
+            # Start panel only after SSL is configured
+            if [[ $release == "alpine" ]]; then
+                rc-service x-ui start >/dev/null 2>&1
+            else
+                systemctl start x-ui >/dev/null 2>&1
+            fi
+            
+            # Display final credentials and access information
+            echo ""
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}     Panel Installation Complete!         ${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}Username:    ${config_username}${plain}"
+            echo -e "${green}Password:    ${config_password}${plain}"
+            echo -e "${green}Port:        ${config_port}${plain}"
             echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
-            echo -e "${green}Access URL: http://${server_ip}:${config_port}/${config_webBasePath}${plain}"
-            echo -e "###############################################"
+            echo -e "${green}Access URL:  https://${ssl_domain}:${config_port}/${config_webBasePath}${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${yellow}⚠ IMPORTANT: Save these credentials securely!${plain}"
+            echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
         else
             local config_webBasePath=$(gen_random_string 18)
             echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
             /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
             echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
-            echo -e "${green}Access URL: http://${server_ip}:${existing_port}/${config_webBasePath}${plain}"
+            echo -e "${green}Access URL: https://${server_ip}:${existing_port}/${config_webBasePath}${plain}"
         fi
     else
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
@@ -139,7 +417,99 @@ config_after_install() {
             echo -e "${green}Password: ${config_password}${plain}"
             echo -e "###############################################"
         else
-            echo -e "${green}Username, Password, and WebBasePath are properly set. Exiting...${plain}"
+            echo -e "${green}Username, Password, and WebBasePath are properly set.${plain}"
+        fi
+
+        # Existing install: if no cert configured, prompt user to set domain or self-signed
+        # Properly detect empty cert by checking if cert: line exists and has content after it
+        existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+        if [[ -z "$existing_cert" ]]; then
+            echo ""
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${green}     SSL Certificate Setup (RECOMMENDED)   ${plain}"
+            echo -e "${green}═══════════════════════════════════════════${plain}"
+            echo -e "${yellow}Let's Encrypt requires a domain name (IP certificates are not issued).${plain}"
+            echo ""
+
+            local ssl_success=false
+            local ssl_domain=""
+
+            while [[ "$ssl_success" == false ]]; do
+                echo -e "${yellow}Write your domain address or press Enter for self-signed (not trusted).${plain}"
+                read -rp "Domain (leave empty for self-signed): " ssl_domain
+
+                if [[ -z "${ssl_domain}" ]]; then
+                    ssl_domain="self"
+                fi
+
+                if [[ "${ssl_domain}" == "self" || "${ssl_domain}" == "SELF" ]]; then
+                    # Stop panel if running
+                    if [[ $release == "alpine" ]]; then
+                        rc-service x-ui stop >/dev/null 2>&1
+                    else
+                        systemctl stop x-ui >/dev/null 2>&1
+                    fi
+                    echo -e "${yellow}Using server IP for self-signed certificate: ${server_ip}${plain}"
+                    setup_self_signed_certificate "${server_ip}"
+                    if [ $? -eq 0 ]; then
+                        ssl_domain="${server_ip}"
+                        ssl_success=true
+                        echo -e "${green}✓ Self-signed SSL configured successfully${plain}"
+                    else
+                        echo -e "${red}✗ Self-signed SSL setup failed${plain}"
+                        read -rp "Press Enter to retry SSL setup..."
+                    fi
+                    continue
+                fi
+
+                if is_ip "${ssl_domain}"; then
+                    echo -e "${red}Let's Encrypt does not issue certificates for IP addresses.${plain}"
+                    echo -e "${yellow}Please provide a domain, or type 'self' for a self-signed certificate.${plain}"
+                    continue
+                fi
+                if ! is_domain "${ssl_domain}"; then
+                    echo -e "${red}Input does not look like a valid domain.${plain}"
+                    continue
+                fi
+
+                echo -e "${green}Using domain: ${ssl_domain}${plain}"
+                echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
+                read -rp "Press Enter to continue with SSL certificate generation..."
+
+                # Stop panel if running
+                if [[ $release == "alpine" ]]; then
+                    rc-service x-ui stop >/dev/null 2>&1
+                else
+                    systemctl stop x-ui >/dev/null 2>&1
+                fi
+
+                setup_ssl_certificate "${ssl_domain}" "${server_ip}" "${existing_port}" "/${existing_webBasePath}"
+
+                if [ $? -eq 0 ]; then
+                    ssl_success=true
+                    echo -e "${green}✓ SSL certificate configured successfully!${plain}"
+                else
+                    echo ""
+                    echo -e "${red}✗ SSL certificate setup failed${plain}"
+                    echo -e "${yellow}Please check:${plain}"
+                    echo -e "  - Port 80 is open and not in use"
+                    echo -e "  - Server is accessible from the internet"
+                    echo -e "  - Domain DNS is correctly configured (A/AAAA record)"
+                    echo ""
+                    read -rp "Press Enter to retry SSL setup..."
+                fi
+            done
+
+            # Start panel after SSL is configured
+            if [[ $release == "alpine" ]]; then
+                rc-service x-ui start >/dev/null 2>&1
+            else
+                systemctl start x-ui >/dev/null 2>&1
+            fi
+
+            echo -e "${green}Access URL:  https://${ssl_domain}:${existing_port}/${existing_webBasePath}${plain}"
+        else
+            echo -e "${green}SSL certificate already configured. No action needed.${plain}"
         fi
     fi
     
