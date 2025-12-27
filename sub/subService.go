@@ -317,7 +317,13 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
-	address := s.address
+	var address string
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		address = s.address
+	} else {
+		address = inbound.Listen
+	}
+
 	if inbound.Protocol != model.VLESS {
 		return ""
 	}
