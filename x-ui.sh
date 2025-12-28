@@ -19,6 +19,20 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
+# Simple helpers for domain/IP validation
+is_ipv4() {
+    [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
+}
+is_ipv6() {
+    [[ "$1" =~ : ]] && return 0 || return 1
+}
+is_ip() {
+    is_ipv4 "$1" || is_ipv6 "$1"
+}
+is_domain() {
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+[A-Za-z]{2,}$ ]] && return 0 || return 1
+}
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
