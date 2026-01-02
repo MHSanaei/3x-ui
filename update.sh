@@ -64,33 +64,53 @@ arch() {
 
 echo "Arch: $(arch)"
 
+# Simple helpers
+is_ipv4() {
+    [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
+}
+is_ipv6() {
+    [[ "$1" =~ : ]] && return 0 || return 1
+}
+is_ip() {
+    is_ipv4 "$1" || is_ipv6 "$1"
+}
+is_domain() {
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+[A-Za-z]{2,}$ ]] && return 0 || return 1
+}
+
+gen_random_string() {
+    local length="$1"
+    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
+    echo "$random_string"
+}
+
 install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata >/dev/null 2>&1
+            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata >/dev/null 2>&1
+                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
             else
-                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata >/dev/null 2>&1
+                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata >/dev/null 2>&1
+            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone >/dev/null 2>&1
+            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone openssl socat >/dev/null 2>&1
         ;;
         alpine)
-            apk update >/dev/null 2>&1 && apk add curl tar tzdata >/dev/null 2>&1
+            apk update >/dev/null 2>&1 && apk add curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         *)
-            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
     esac
 }
@@ -99,6 +119,75 @@ config_after_update() {
     echo -e "${yellow}x-ui settings:${plain}"
     /usr/local/x-ui/x-ui setting -show true
     /usr/local/x-ui/x-ui migrate
+    
+    # Properly detect empty cert by checking if cert: line exists and has content after it
+    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true 2>/dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
+    
+    # Get server IP
+    local URL_lists=(
+        "https://api4.ipify.org"
+        "https://ipv4.icanhazip.com"
+        "https://v4.api.ipinfo.io/ip"
+        "https://ipv4.myexternalip.com/raw"
+        "https://4.ident.me"
+        "https://check-host.net/ip"
+    )
+    local server_ip=""
+    for ip_address in "${URL_lists[@]}"; do
+        server_ip=$(${curl_bin} -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
+        if [[ -n "${server_ip}" ]]; then
+            break
+        fi
+    done
+    
+    # Handle missing/short webBasePath
+    if [[ ${#existing_webBasePath} -lt 4 ]]; then
+        echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
+        local config_webBasePath=$(gen_random_string 18)
+        /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
+        existing_webBasePath="${config_webBasePath}"
+        echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
+    fi
+    
+    # Check and prompt for SSL if missing
+    if [[ -z "$existing_cert" ]]; then
+        echo ""
+        echo -e "${red}═══════════════════════════════════════════${plain}"
+        echo -e "${red}      ⚠ NO SSL CERTIFICATE DETECTED ⚠     ${plain}"
+        echo -e "${red}═══════════════════════════════════════════${plain}"
+        echo -e "${yellow}For security, SSL certificate is MANDATORY for all panels.${plain}"
+        echo -e "${yellow}Let's Encrypt requires a domain name; IP certs are not issued. Use self-signed for IP.${plain}"
+        echo ""
+        
+        if [[ -z "${server_ip}" ]]; then
+            echo -e "${red}Failed to detect server IP${plain}"
+            echo -e "${yellow}Please configure SSL manually using: x-ui${plain}"
+            return
+        fi
+        
+        # Prompt and setup SSL (domain or self-signed)
+        prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
+        
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Access Information              ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Access URL: https://${SSL_HOST}:${existing_port}/${existing_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${yellow}⚠ SSL Certificate: Enabled and configured${plain}"
+    else
+        echo -e "${green}SSL certificate is already configured${plain}"
+        # Show access URL with existing certificate
+        local cert_domain=$(basename "$(dirname "$existing_cert")")
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Access Information              ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Access URL: https://${cert_domain}:${existing_port}/${existing_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+    fi
 }
 
 update_x-ui() {
