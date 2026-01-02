@@ -109,7 +109,7 @@ func GetLogFolder() string {
 	if runtime.GOOS == "windows" {
 		return filepath.Join(".", "log")
 	}
-	return "/var/log"
+	return "/var/log/x-ui"
 }
 
 func copyFile(src, dst string) error {

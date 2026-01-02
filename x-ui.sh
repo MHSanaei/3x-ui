@@ -53,7 +53,8 @@ os_version=""
 os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
 
 # Declare Variables
-log_folder="${XUI_LOG_FOLDER:=/var/log}"
+log_folder="${XUI_LOG_FOLDER:=/var/log/x-ui}"
+mkdir -p "${log_folder}"
 iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
