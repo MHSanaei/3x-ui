@@ -3,8 +3,11 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -673,6 +676,11 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 	s.xrayApi.Close()
 
+	if err == nil {
+		body, _ := json.Marshal(data)
+		s.syncWithSlaves("POST", "/panel/inbound/api/addClient", bytes.NewReader(body))
+	}
+
 	return needRestart, tx.Save(oldInbound).Error
 }
 
@@ -761,6 +769,11 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 			s.xrayApi.Close()
 		}
 	}
+
+	if err == nil {
+		s.syncWithSlaves("POST", fmt.Sprintf("/panel/inbound/api/%d/delClient/%s", inboundId, clientId), nil)
+	}
+
 	return needRestart, db.Save(oldInbound).Error
 }
 
@@ -936,6 +949,12 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		logger.Debug("Client old email not found")
 		needRestart = true
 	}
+
+	if err == nil {
+		body, _ := json.Marshal(data)
+		s.syncWithSlaves("POST", fmt.Sprintf("/panel/inbound/api/updateClient/%s", clientId), bytes.NewReader(body))
+	}
+
 	return needRestart, tx.Save(oldInbound).Error
 }
 
@@ -2379,6 +2398,44 @@ func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, [
 
 	return validEmails, extraEmails, nil
 }
+
+func (s *InboundService) syncWithSlaves(method string, path string, body io.Reader) {
+	serverService := MultiServerService{}
+	servers, err := serverService.GetServers()
+	if err != nil {
+		logger.Warning("Failed to get servers for syncing:", err)
+		return
+	}
+
+	for _, server := range servers {
+		if !server.Enable {
+			continue
+		}
+
+		url := fmt.Sprintf("http://%s:%d%s", server.Address, server.Port, path)
+		req, err := http.NewRequest(method, url, body)
+		if err != nil {
+			logger.Warningf("Failed to create request for server %s: %v", server.Name, err)
+			continue
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Api-Key", server.APIKey)
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			logger.Warningf("Failed to send request to server %s: %v", server.Name, err)
+			continue
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			logger.Warningf("Failed to sync with server %s. Status: %s, Body: %s", server.Name, resp.Status, string(bodyBytes))
+		}
+	}
+  
 func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (bool, error) {
 	oldInbound, err := s.GetInbound(inboundId)
 	if err != nil {
@@ -2470,4 +2527,5 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 	}
 
 	return needRestart, db.Save(oldInbound).Error
+
 }
