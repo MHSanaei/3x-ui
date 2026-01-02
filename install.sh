@@ -641,6 +641,7 @@ install_x-ui() {
     # Update x-ui cli and se set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
+    mkdir -p /var/log/x-ui
     config_after_install
     
     if [[ $release == "alpine" ]]; then
