@@ -6,6 +6,9 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
+xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
+xui_service="${XUI_SERVICE:=/etc/systemd/system}"
+
 # Don't edit this config
 b_source="${BASH_SOURCE[0]}"
 while [ -h "$b_source" ]; do
@@ -190,7 +193,7 @@ setup_ssl_certificate() {
     local webKeyFile="/root/cert/${domain}/privkey.pem"
     
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
+        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
         echo -e "${green}SSL certificate installed and configured successfully!${plain}"
         return 0
     else
@@ -246,14 +249,14 @@ EOF
     fi
 
     chmod 755 ${certDir}/* 2>/dev/null
-    /usr/local/x-ui/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
+    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
     echo -e "${yellow}Self-signed certificate configured. Browsers will show a warning.${plain}"
     return 0
 }
 # Comprehensive manual SSL certificate issuance via acme.sh
 ssl_cert_issue() {
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
@@ -396,7 +399,7 @@ ssl_cert_issue() {
         local webKeyFile="/root/cert/${domain}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
             echo -e "${green}Certificate paths set for the panel${plain}"
             echo -e "${green}Certificate File: $webCertFile${plain}"
             echo -e "${green}Private Key File: $webKeyFile${plain}"
@@ -485,13 +488,13 @@ prompt_and_setup_ssl() {
 
 config_after_update() {
     echo -e "${yellow}x-ui settings:${plain}"
-    /usr/local/x-ui/x-ui setting -show true
-    /usr/local/x-ui/x-ui migrate
+    ${xui_folder}/x-ui setting -show true
+    ${xui_folder}/x-ui migrate
     
     # Properly detect empty cert by checking if cert: line exists and has content after it
-    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true 2>/dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
+    local existing_cert=$(${xui_folder}/x-ui setting -getCert true 2>/dev/null | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
     
     # Get server IP
     local URL_lists=(
@@ -514,7 +517,7 @@ config_after_update() {
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         echo -e "${yellow}WebBasePath is missing or too short. Generating a new one...${plain}"
         local config_webBasePath=$(gen_random_string 18)
-        /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}"
+        ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
         existing_webBasePath="${config_webBasePath}"
         echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
     fi
@@ -559,10 +562,10 @@ config_after_update() {
 }
 
 update_x-ui() {
-    cd /usr/local/
+    cd ${xui_folder%/x-ui}/
     
-    if [ -f "/usr/local/x-ui/x-ui" ]; then
-        current_xui_version=$(/usr/local/x-ui/x-ui -v)
+    if [ -f "${xui_folder}/x-ui" ]; then
+        current_xui_version=$(${xui_folder}/x-ui -v)
         echo -e "${green}Current x-ui version: ${current_xui_version}${plain}"
     else
         _fail "ERROR: Current x-ui version: unknown"
@@ -579,16 +582,16 @@ update_x-ui() {
         fi
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${wget_bin} -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+    ${wget_bin} -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${wget_bin} --inet4-only -N -O /usr/local/x-ui-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+        ${wget_bin} --inet4-only -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
         if [[ $? -ne 0 ]]; then
             _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
         fi
     fi
     
-    if [[ -e /usr/local/x-ui/ ]]; then
+    if [[ -e ${xui_folder}/ ]]; then
         echo -e "${green}Stopping x-ui...${plain}"
         if [[ $release == "alpine" ]]; then
             if [ -f "/etc/init.d/x-ui" ]; then
@@ -601,11 +604,11 @@ update_x-ui() {
                 _fail "ERROR: x-ui service unit not installed."
             fi
         else
-            if [ -f "/etc/systemd/system/x-ui.service" ]; then
+            if [ -f "${xui_service}/x-ui.service" ]; then
                 systemctl stop x-ui >/dev/null 2>&1
                 systemctl disable x-ui >/dev/null 2>&1
                 echo -e "${green}Removing old systemd unit version...${plain}"
-                rm /etc/systemd/system/x-ui.service -f >/dev/null 2>&1
+                rm ${xui_service}/x-ui.service -f >/dev/null 2>&1
                 systemctl daemon-reload >/dev/null 2>&1
             else
                 rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
@@ -613,15 +616,17 @@ update_x-ui() {
             fi
         fi
         echo -e "${green}Removing old x-ui version...${plain}"
-        rm /usr/bin/x-ui -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui.service -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui.sh -f >/dev/null 2>&1
+        rm ${xui_folder} -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.service -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.service.debian -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.service.rhel -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.sh -f >/dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
-        rm /usr/local/x-ui/bin/xray-linux-amd64 -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/xray-linux-amd64 -f >/dev/null 2>&1
         echo -e "${green}Removing old README and LICENSE file...${plain}"
-        rm /usr/local/x-ui/bin/README.md -f >/dev/null 2>&1
-        rm /usr/local/x-ui/bin/LICENSE -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/README.md -f >/dev/null 2>&1
+        rm ${xui_folder}/bin/LICENSE -f >/dev/null 2>&1
     else
         rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
         _fail "ERROR: x-ui not installed."
@@ -651,16 +656,16 @@ update_x-ui() {
         fi
     fi
     
-    chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
+    chmod +x ${xui_folder}/x-ui.sh >/dev/null 2>&1
     chmod +x /usr/bin/x-ui >/dev/null 2>&1
     mkdir -p /var/log/x-ui >/dev/null 2>&1
     
     echo -e "${green}Changing owner...${plain}"
-    chown -R root:root /usr/local/x-ui >/dev/null 2>&1
+    chown -R root:root ${xui_folder} >/dev/null 2>&1
     
-    if [ -f "/usr/local/x-ui/bin/config.json" ]; then
+    if [ -f "${xui_folder}/bin/config.json" ]; then
         echo -e "${green}Changing on config file permissions...${plain}"
-        chmod 640 /usr/local/x-ui/bin/config.json >/dev/null 2>&1
+        chmod 640 ${xui_folder}/bin/config.json >/dev/null 2>&1
     fi
     
     if [[ $release == "alpine" ]]; then
@@ -677,9 +682,22 @@ update_x-ui() {
         rc-update add x-ui >/dev/null 2>&1
         rc-service x-ui start >/dev/null 2>&1
     else
-        echo -e "${green}Installing systemd unit...${plain}"
-        cp -f x-ui.service /etc/systemd/system/ >/dev/null 2>&1
-        chown root:root /etc/systemd/system/x-ui.service >/dev/null 2>&1
+        if [ -f "x-ui.service" ]; then
+            echo -e "${green}Installing systemd unit...${plain}"
+            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+        else
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    echo -e "${green}Installing debian-like systemd unit...${plain}"
+                    cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                ;;
+                *)
+                    echo -e "${green}Installing rhel-like systemd unit...${plain}"
+                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                ;;
+            esac
+        fi
+        chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
         systemctl daemon-reload >/dev/null 2>&1
         systemctl enable x-ui >/dev/null 2>&1
         systemctl start x-ui >/dev/null 2>&1

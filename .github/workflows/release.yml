@@ -17,7 +17,8 @@ on:
       - '**.go'
       - 'go.mod'
       - 'go.sum'
-      - 'x-ui.service'
+      - 'x-ui.service.debian'
+      - 'x-ui.service.rhel'
 
 jobs:
   build:
@@ -78,7 +79,8 @@ jobs:
           
           mkdir x-ui
           cp xui-release x-ui/
-          cp x-ui.service x-ui/
+          cp x-ui.service.debian x-ui/
+          cp x-ui.service.rhel x-ui/
           cp x-ui.sh x-ui/
           mv x-ui/xui-release x-ui/x-ui
           mkdir x-ui/bin
