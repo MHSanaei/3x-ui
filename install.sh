@@ -671,21 +671,70 @@ install_x-ui() {
         rc-update add x-ui
         rc-service x-ui start
     else
+        # Install systemd service file
+        service_installed=false
+        
         if [ -f "x-ui.service" ]; then
-            cp -f x-ui.service ${xui_service}/
-        else
+            echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
+            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+            if [[ $? -eq 0 ]]; then
+                service_installed=true
+            fi
+        fi
+        
+        if [ "$service_installed" = false ]; then
             case "${release}" in
                 ubuntu | debian | armbian)
-                    cp -f x-ui.service.debian ${xui_service}/x-ui.service
+                    if [ -f "x-ui.service.debian" ]; then
+                        echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
+                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
                 *)
-                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service
+                    if [ -f "x-ui.service.rhel" ]; then
+                        echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
+                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
             esac
         fi
-        systemctl daemon-reload
-        systemctl enable x-ui
-        systemctl start x-ui
+        
+        # If service file not found in tar.gz, download from GitHub
+        if [ "$service_installed" = false ]; then
+            echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                ;;
+                *)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
+                ;;
+            esac
+            
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                exit 1
+            fi
+            service_installed=true
+        fi
+        
+        if [ "$service_installed" = true ]; then
+            echo -e "${green}Setting up systemd unit...${plain}"
+            chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
+            chmod 644 ${xui_service}/x-ui.service >/dev/null 2>&1
+            systemctl daemon-reload
+            systemctl enable x-ui
+            systemctl start x-ui
+        else
+            echo -e "${red}Failed to install x-ui.service file${plain}"
+            exit 1
+        fi
     fi
     
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."

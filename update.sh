@@ -679,19 +679,53 @@ update_x-ui() {
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Installing systemd unit...${plain}"
             cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to copy x-ui.service${plain}"
+                exit 1
+            fi
         else
+            service_installed=false
             case "${release}" in
                 ubuntu | debian | armbian)
-                    echo -e "${green}Installing debian-like systemd unit...${plain}"
-                    cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                    if [ -f "x-ui.service.debian" ]; then
+                        echo -e "${green}Installing debian-like systemd unit...${plain}"
+                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
                 *)
-                    echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                    if [ -f "x-ui.service.rhel" ]; then
+                        echo -e "${green}Installing rhel-like systemd unit...${plain}"
+                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
                 ;;
             esac
+            
+            # If service file not found in tar.gz, download from GitHub
+            if [ "$service_installed" = false ]; then
+                echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
+                case "${release}" in
+                    ubuntu | debian | armbian)
+                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                    ;;
+                    *)
+                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
+                    ;;
+                esac
+                
+                if [[ $? -ne 0 ]]; then
+                    echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                    exit 1
+                fi
+            fi
         fi
         chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
+        chmod 644 ${xui_service}/x-ui.service >/dev/null 2>&1
         systemctl daemon-reload >/dev/null 2>&1
         systemctl enable x-ui >/dev/null 2>&1
         systemctl start x-ui >/dev/null 2>&1
