@@ -653,6 +653,7 @@ update_x-ui() {
     
     chmod +x /usr/local/x-ui/x-ui.sh >/dev/null 2>&1
     chmod +x /usr/bin/x-ui >/dev/null 2>&1
+    mkdir -p /var/log/x-ui >/dev/null 2>&1
     
     echo -e "${green}Changing owner...${plain}"
     chown -R root:root /usr/local/x-ui >/dev/null 2>&1
