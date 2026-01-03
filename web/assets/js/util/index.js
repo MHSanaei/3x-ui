@@ -142,7 +142,7 @@ class RandomUtil {
         let length = 32;
 
         if ([SSMethods.BLAKE3_AES_128_GCM].includes(method)) {
-            length = 16; 
+            length = 16;
         }
 
         const array = new Uint8Array(length);
@@ -154,28 +154,28 @@ class RandomUtil {
 
     static randomBase32String(length = 16) {
         const array = new Uint8Array(length);
-        
+
         window.crypto.getRandomValues(array);
-        
+
         const base32Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         let result = '';
         let bits = 0;
         let buffer = 0;
-        
+
         for (let i = 0; i < array.length; i++) {
             buffer = (buffer << 8) | array[i];
             bits += 8;
-            
+
             while (bits >= 5) {
                 bits -= 5;
                 result += base32Chars[(buffer >>> bits) & 0x1F];
             }
         }
-        
+
         if (bits > 0) {
             result += base32Chars[(buffer << (5 - bits)) & 0x1F];
         }
-        
+
         return result;
     }
 }
@@ -908,7 +908,10 @@ class IntlUtil {
         const language = LanguageManager.getLanguage()
         const now = new Date()
 
-        const diff = Math.round((date - now) / (1000 * 60 * 60 * 24))
+        // Handle delayed start (negative expiryTime values)
+        const diff = date < 0
+            ? Math.round(date / (1000 * 60 * 60 * 24))
+            : Math.round((date - now) / (1000 * 60 * 60 * 24))
         const formatter = new Intl.RelativeTimeFormat(language, { numeric: 'auto' })
 
         return formatter.format(diff, 'day');
