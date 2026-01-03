@@ -164,7 +164,7 @@ update_x-ui() {
         echo -e "${green}Removing old x-ui version...${plain}"
         rm /usr/bin/x-ui -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui.service -f >/dev/null 2>&1
-        rm /usr/local/x-ui/x-ui.service.debain -f >/dev/null 2>&1
+        rm /usr/local/x-ui/x-ui.service.debian -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui.service.rhel -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui -f >/dev/null 2>&1
         rm /usr/local/x-ui/x-ui.sh -f >/dev/null 2>&1
