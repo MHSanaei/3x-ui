@@ -34,12 +34,6 @@ _fail() {
 # check root
 [[ $EUID -ne 0 ]] && _fail "FATAL ERROR: Please run this script with root privilege."
 
-if _command_exists wget; then
-    wget_bin=$(which wget)
-else
-    _fail "ERROR: Command 'wget' not found."
-fi
-
 if _command_exists curl; then
     curl_bin=$(which curl)
 else
@@ -97,29 +91,29 @@ install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update >/dev/null 2>&1 && apt-get install -y -q wget curl tar tzdata openssl socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update >/dev/null 2>&1 && dnf install -y -q wget curl tar tzdata openssl socat >/dev/null 2>&1
+            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update >/dev/null 2>&1 && yum install -y -q wget curl tar tzdata openssl socat >/dev/null 2>&1
+                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
             else
-                dnf -y update >/dev/null 2>&1 && dnf install -y -q wget curl tar tzdata openssl socat >/dev/null 2>&1
+                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm wget curl tar tzdata openssl socat >/dev/null 2>&1
+            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh >/dev/null 2>&1 && zypper -q install -y wget curl tar timezone openssl socat >/dev/null 2>&1
+            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone openssl socat >/dev/null 2>&1
         ;;
         alpine)
-            apk update >/dev/null 2>&1 && apk add wget curl tar tzdata openssl socat >/dev/null 2>&1
+            apk update >/dev/null 2>&1 && apk add curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
         *)
-            apt-get update >/dev/null 2>&1 && apt install -y -q wget curl tar tzdata openssl socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
         ;;
     esac
 }
@@ -582,10 +576,10 @@ update_x-ui() {
         fi
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${wget_bin} -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${wget_bin} --inet4-only -N -O ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
         if [[ $? -ne 0 ]]; then
             _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
         fi
@@ -647,10 +641,10 @@ update_x-ui() {
     chmod +x x-ui bin/xray-linux-$(arch) >/dev/null 2>&1
     
     echo -e "${green}Downloading and installing x-ui.sh script...${plain}"
-    ${wget_bin} -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
+    ${curl_bin} -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch x-ui with IPv4...${plain}"
-        ${wget_bin} --inet4-only -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
+        ${curl_bin} -4fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
             _fail "ERROR: Failed to download x-ui.sh script, please be sure that your server can access GitHub"
         fi
@@ -670,9 +664,9 @@ update_x-ui() {
     
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${wget_bin} -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
+        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            ${wget_bin} --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
+            ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
             if [[ $? -ne 0 ]]; then
                 _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
             fi
