@@ -276,7 +276,7 @@ EOF
     fi
 
     chmod 755 ${certDir}/* >/dev/null 2>&1
-    /usr/local/x-ui/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
+    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
     LOGI "Self-signed certificate configured. Browsers will show a warning."
     return 0
 }
@@ -1156,8 +1156,8 @@ ssl_cert_issue_main() {
 ssl_cert_issue_for_ip() {
     LOGI "Starting automatic SSL certificate generation for server IP..."
     
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     
     # Get server IP
     local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
@@ -1267,7 +1267,7 @@ ssl_cert_issue_for_ip() {
     local webKeyFile="/root/cert/${server_ip}/privkey.pem"
     
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
         LOGI "Certificate configured for panel"
         LOGI "  - Certificate File: $webCertFile"
         LOGI "  - Private Key File: $webKeyFile"

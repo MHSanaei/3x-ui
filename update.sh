@@ -193,7 +193,7 @@ setup_ssl_certificate() {
     local webKeyFile="/root/cert/${domain}/privkey.pem"
     
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-        /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
+        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile" >/dev/null 2>&1
         echo -e "${green}SSL certificate installed and configured successfully!${plain}"
         return 0
     else
@@ -249,14 +249,14 @@ EOF
     fi
 
     chmod 755 ${certDir}/* 2>/dev/null
-    /usr/local/x-ui/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
+    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
     echo -e "${yellow}Self-signed certificate configured. Browsers will show a warning.${plain}"
     return 0
 }
 # Comprehensive manual SSL certificate issuance via acme.sh
 ssl_cert_issue() {
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep 'port:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
@@ -399,7 +399,7 @@ ssl_cert_issue() {
         local webKeyFile="/root/cert/${domain}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
             echo -e "${green}Certificate paths set for the panel${plain}"
             echo -e "${green}Certificate File: $webCertFile${plain}"
             echo -e "${green}Private Key File: $webKeyFile${plain}"
