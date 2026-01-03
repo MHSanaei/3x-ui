@@ -1221,6 +1221,14 @@ class Inbound extends XrayCommonClass {
         return false;
     }
 
+    // Vision seed applies only when vision flow is selected
+    canEnableVisionSeed() {
+        if (!this.canEnableTlsFlow()) return false;
+        const clients = this.settings?.vlesses;
+        if (!Array.isArray(clients)) return false;
+        return clients.some(c => c?.flow === TLS_FLOW_CONTROL.VISION || c?.flow === TLS_FLOW_CONTROL.VISION_UDP443);
+    }
+
     canEnableReality() {
         if (![Protocols.VLESS, Protocols.TROJAN].includes(this.protocol)) return false;
         return ["tcp", "http", "grpc", "xhttp"].includes(this.network);
@@ -1902,7 +1910,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         if (json.testseed && Array.isArray(json.testseed) && json.testseed.length >= 4) {
             testseed = json.testseed;
         }
-        
+
         const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
             (json.clients || []).map(client => Inbound.VLESSSettings.VLESS.fromJson(client)),

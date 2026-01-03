@@ -621,6 +621,13 @@ class Outbound extends CommonClass {
         return false;
     }
 
+    // Vision seed applies only when vision flow is selected
+    canEnableVisionSeed() {
+        if (!this.canEnableTlsFlow()) return false;
+        const flow = this.settings?.flow;
+        return flow === TLS_FLOW_CONTROL.VISION || flow === TLS_FLOW_CONTROL.VISION_UDP443;
+    }
+
     canEnableReality() {
         if (![Protocols.VLESS, Protocols.Trojan].includes(this.protocol)) return false;
         return ["tcp", "http", "grpc", "xhttp"].includes(this.stream.network);
