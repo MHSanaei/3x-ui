@@ -668,7 +668,18 @@ install_x-ui() {
         rc-update add x-ui
         rc-service x-ui start
     else
-        cp -f x-ui.service /etc/systemd/system/
+        if [ -f "x-ui.service" ]; then
+            cp -f x-ui.service /etc/systemd/system/
+        else
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    cp -f x-ui.service.debian /etc/systemd/system/x-ui.service
+                ;;
+                *)
+                    cp -f x-ui.service.rhel /etc/systemd/system/x-ui.service
+                ;;
+            esac
+        fi
         systemctl daemon-reload
         systemctl enable x-ui
         systemctl start x-ui
