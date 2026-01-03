@@ -51,19 +51,34 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 
 	// If LDAP enabled and local password check fails, attempt LDAP auth
 	if !crypto.CheckPasswordHash(user.Password, password) {
-		ldapEnabled, _ := s.settingService.GetLdapEnable()
-		if !ldapEnabled {
+		ldapEnabled, err := s.settingService.GetLdapEnable()
+		if err != nil || !ldapEnabled {
 			return nil
 		}
 
-		host, _ := s.settingService.GetLdapHost()
-		port, _ := s.settingService.GetLdapPort()
+		host, err := s.settingService.GetLdapHost()
+		if err != nil || host == "" {
+			return nil
+		}
+
+		port, err := s.settingService.GetLdapPort()
+		if err != nil {
+			return nil
+		}
+
 		useTLS, _ := s.settingService.GetLdapUseTLS()
 		bindDN, _ := s.settingService.GetLdapBindDN()
 		ldapPass, _ := s.settingService.GetLdapPassword()
-		baseDN, _ := s.settingService.GetLdapBaseDN()
+		baseDN, err := s.settingService.GetLdapBaseDN()
+		if err != nil || baseDN == "" {
+			return nil
+		}
+
 		userFilter, _ := s.settingService.GetLdapUserFilter()
-		userAttr, _ := s.settingService.GetLdapUserAttr()
+		userAttr, err := s.settingService.GetLdapUserAttr()
+		if err != nil || userAttr == "" {
+			return nil
+		}
 
 		cfg := ldaputil.Config{
 			Host:       host,
@@ -76,10 +91,15 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 			UserAttr:   userAttr,
 		}
 		ok, err := ldaputil.AuthenticateUser(cfg, username, password)
-		if err != nil || !ok {
+		if err != nil {
+			logger.Debugf("LDAP authentication error for user %s: %v", username, err)
+			return nil
+		}
+		if !ok {
 			return nil
 		}
 		// On successful LDAP auth, continue 2FA checks below
+		logger.Debugf("LDAP authentication successful for user %s", username)
 	}
 
 	twoFactorEnable, err := s.settingService.GetTwoFactorEnable()

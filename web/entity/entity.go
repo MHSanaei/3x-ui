@@ -168,5 +168,36 @@ func (s *AllSetting) CheckValid() error {
 		return common.NewError("time location not exist:", s.TimeLocation)
 	}
 
+	// LDAP settings validation
+	if s.LdapEnable {
+		if s.LdapHost == "" {
+			return common.NewError("LDAP host is required when LDAP is enabled")
+		}
+		if s.LdapPort <= 0 || s.LdapPort > math.MaxUint16 {
+			return common.NewError("LDAP port is not a valid port:", s.LdapPort)
+		}
+		if s.LdapBaseDN == "" {
+			return common.NewError("LDAP base DN is required when LDAP is enabled")
+		}
+		if s.LdapUserAttr == "" {
+			return common.NewError("LDAP user attribute is required when LDAP is enabled")
+		}
+		if s.LdapSyncCron != "" {
+			// Basic validation for cron-like strings
+			if !strings.HasPrefix(s.LdapSyncCron, "@") && !strings.Contains(s.LdapSyncCron, " ") {
+				return common.NewError("LDAP sync cron format is invalid")
+			}
+		}
+		if s.LdapDefaultTotalGB < 0 {
+			return common.NewError("LDAP default total GB cannot be negative")
+		}
+		if s.LdapDefaultExpiryDays < 0 {
+			return common.NewError("LDAP default expiry days cannot be negative")
+		}
+		if s.LdapDefaultLimitIP < 0 {
+			return common.NewError("LDAP default limit IP cannot be negative")
+		}
+	}
+
 	return nil
 }

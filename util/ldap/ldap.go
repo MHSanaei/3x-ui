@@ -65,7 +65,6 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	result := make(map[string]bool, len(res.Entries))
 	for _, e := range res.Entries {
 		user := e.GetAttributeValue(cfg.UserAttr)
@@ -90,6 +89,16 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 
 // AuthenticateUser searches user by cfg.UserAttr and attempts to bind with provided password.
 func AuthenticateUser(cfg Config, username, password string) (bool, error) {
+	if cfg.BaseDN == "" {
+		return false, fmt.Errorf("LDAP base DN is required")
+	}
+	if username == "" {
+		return false, fmt.Errorf("username is required")
+	}
+	if password == "" {
+		return false, fmt.Errorf("password is required")
+	}
+
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
 	var conn *ldap.Conn
 	var err error
@@ -99,17 +108,20 @@ func AuthenticateUser(cfg Config, username, password string) (bool, error) {
 		conn, err = ldap.Dial("tcp", addr)
 	}
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to connect to LDAP server %s: %w", addr, err)
 	}
 	defer conn.Close()
 
 	// Optional initial bind for search
 	if cfg.BindDN != "" {
 		if err := conn.Bind(cfg.BindDN, cfg.Password); err != nil {
-			return false, err
+			return false, fmt.Errorf("failed to bind with DN %s: %w", cfg.BindDN, err)
 		}
 	}
 
+	if cfg.UserFilter == "" {
+		cfg.UserFilter = "(objectClass=person)"
+	}
 	if cfg.UserFilter == "" {
 		cfg.UserFilter = "(objectClass=person)"
 	}

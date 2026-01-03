@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"embed"
 	"html/template"
@@ -13,12 +14,15 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
+
+	"fmt"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+
+	"github.com/mhsanaei/3x-ui/v2/util/redis"
 	"github.com/mhsanaei/3x-ui/v2/web/controller"
 	"github.com/mhsanaei/3x-ui/v2/web/job"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
@@ -53,9 +57,7 @@ func (f *wrapAssetsFS) Open(name string) (fs.File, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &wrapAssetsFile{
-		File: file,
-	}, nil
+	return &wrapAssetsFile{File: file}, nil
 }
 
 type wrapAssetsFile struct {
@@ -67,9 +69,7 @@ func (f *wrapAssetsFile) Stat() (fs.FileInfo, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &wrapAssetsFileInfo{
-		FileInfo: info,
-	}, nil
+	return &wrapAssetsFileInfo{FileInfo: info}, nil
 }
 
 type wrapAssetsFileInfo struct {
@@ -81,14 +81,10 @@ func (f *wrapAssetsFileInfo) ModTime() time.Time {
 }
 
 // EmbeddedHTML returns the embedded HTML templates filesystem for reuse by other servers.
-func EmbeddedHTML() embed.FS {
-	return htmlFS
-}
+func EmbeddedHTML() embed.FS { return htmlFS }
 
 // EmbeddedAssets returns the embedded assets filesystem for reuse by other servers.
-func EmbeddedAssets() embed.FS {
-	return assetsFS
-}
+func EmbeddedAssets() embed.FS { return assetsFS }
 
 // Server represents the main web server for the 3x-ui panel with controllers, services, and scheduled jobs.
 type Server struct {
@@ -102,6 +98,7 @@ type Server struct {
 	xrayService    service.XrayService
 	settingService service.SettingService
 	tgbotService   service.Tgbot
+	wsService      *service.WebSocketService
 
 	cron *cron.Cron
 
@@ -112,10 +109,7 @@ type Server struct {
 // NewServer creates a new web server instance with a cancellable context.
 func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Server{
-		ctx:    ctx,
-		cancel: cancel,
-	}
+	return &Server{ctx: ctx, cancel: cancel}
 }
 
 // getHtmlFiles walks the local `web/html` directory and returns a list of
@@ -139,20 +133,17 @@ func (s *Server) getHtmlFiles() ([]string, error) {
 	return files, nil
 }
 
-// getHtmlTemplate parses embedded HTML templates from the bundled `htmlFS`
-// using the provided template function map and returns the resulting
-// template set for production usage.
+// getHtmlTemplate parses embedded HTML templates from the bundled `htmlFS`.
 func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, error) {
 	t := template.New("").Funcs(funcMap)
 	err := fs.WalkDir(htmlFS, "html", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-
 		if d.IsDir() {
 			newT, err := t.ParseFS(htmlFS, path+"/*.html")
 			if err != nil {
-				// ignore
+				// ignore folders without matches
 				return nil
 			}
 			t = newT
@@ -165,8 +156,8 @@ func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, 
 	return t, nil
 }
 
-// initRouter initializes Gin, registers middleware, templates, static
-// assets, controllers and returns the configured engine.
+// initRouter initializes Gin, registers middleware, templates, static assets,
+// controllers and returns the configured engine.
 func (s *Server) initRouter() (*gin.Engine, error) {
 	if config.IsDebug() {
 		gin.SetMode(gin.DebugMode)
@@ -178,15 +169,16 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	engine := gin.Default()
 
+	// получаем домен и секрет/базовый путь из настроек
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
 		return nil, err
 	}
-
 	if webDomain != "" {
 		engine.Use(middleware.DomainValidatorMiddleware(webDomain))
 	}
 
+	// вот ЭТО должно быть раньше, чем блок с сессиями:
 	secret, err := s.settingService.GetSecret()
 	if err != nil {
 		return nil, err
@@ -196,82 +188,124 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{basePath + "panel/api/"})))
-	assetsBasePath := basePath + "assets/"
 
-	store := cookie.NewStore(secret)
-	// Configure default session cookie options, including expiration (MaxAge)
-	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
-		store.Options(sessions.Options{
-			Path:     "/",
-			MaxAge:   sessionMaxAge * 60, // minutes -> seconds
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
-	}
-	engine.Use(sessions.Sessions("3x-ui", store))
-	engine.Use(func(c *gin.Context) {
-		c.Set("base_path", basePath)
+	// cookie-сессии на базе секретного ключа
+	key := sha256.Sum256([]byte(secret))
+	store := cookie.NewStore(key[:])
+	store.Options(sessions.Options{
+		Path:     basePath,
+		HttpOnly: true,
+		Secure:   false, // если HTTPS — поставить true
+		SameSite: http.SameSiteLaxMode,
 	})
-	engine.Use(func(c *gin.Context) {
-		uri := c.Request.RequestURI
-		if strings.HasPrefix(uri, assetsBasePath) {
-			c.Header("Cache-Control", "max-age=31536000")
+	engine.Use(sessions.Sessions("xui_sess", store))
+
+	// Initialize Redis (in-memory fallback)
+	redis.Init("", "", 0) // Uses in-memory fallback
+
+	// Security middlewares (configurable)
+	rateLimitEnabled, _ := s.settingService.GetRateLimitEnabled()
+	if rateLimitEnabled {
+		rateLimitRequests, _ := s.settingService.GetRateLimitRequests()
+		if rateLimitRequests <= 0 {
+			rateLimitRequests = 60
 		}
-	})
-
-	// init i18n
-	err = locale.InitLocalizer(i18nFS, &s.settingService)
-	if err != nil {
-		return nil, err
+		rateLimitBurst, _ := s.settingService.GetRateLimitBurst()
+		if rateLimitBurst <= 0 {
+			rateLimitBurst = 10
+		}
+		config := middleware.RateLimitConfig{
+			RequestsPerMinute: rateLimitRequests,
+			BurstSize:         rateLimitBurst,
+			KeyFunc: func(c *gin.Context) string {
+				return c.ClientIP()
+			},
+			SkipPaths: []string{basePath + "assets/", "/favicon.ico"},
+		}
+		engine.Use(middleware.RateLimitMiddleware(config))
 	}
 
-	// Apply locale middleware for i18n
+	ipFilterEnabled, _ := s.settingService.GetIPFilterEnabled()
+	if ipFilterEnabled {
+		whitelistEnabled, _ := s.settingService.GetIPWhitelistEnabled()
+		blacklistEnabled, _ := s.settingService.GetIPBlacklistEnabled()
+		engine.Use(middleware.IPFilterMiddleware(middleware.IPFilterConfig{
+			WhitelistEnabled: whitelistEnabled,
+			BlacklistEnabled: blacklistEnabled,
+			GeoIPEnabled:     false, // TODO: Add GeoIP config
+			SkipPaths:        []string{basePath + "assets/", "/favicon.ico"},
+		}))
+	}
+
+	engine.Use(middleware.SessionSecurityMiddleware())
+
+	// Audit logging middleware (after session check)
+	engine.Use(middleware.AuditMiddleware())
+
+	// gzip, excluding API path to avoid double-compressing JSON where needed
+	engine.Use(gzip.Gzip(
+		gzip.DefaultCompression,
+		gzip.WithExcludedPaths([]string{basePath + "panel/api/"}),
+	))
+
+	// i18n in templates
 	i18nWebFunc := func(key string, params ...string) string {
 		return locale.I18n(locale.Web, key, params...)
 	}
-	// Register template functions before loading templates
-	funcMap := template.FuncMap{
-		"i18n": i18nWebFunc,
-	}
+	funcMap := template.FuncMap{"i18n": i18nWebFunc}
 	engine.SetFuncMap(funcMap)
-	engine.Use(locale.LocalizerMiddleware())
 
-	// set static files and template
+	// Static files & templates
 	if config.IsDebug() {
-		// for development
 		files, err := s.getHtmlFiles()
 		if err != nil {
 			return nil, err
 		}
-		// Use the registered func map with the loaded templates
 		engine.LoadHTMLFiles(files...)
 		engine.StaticFS(basePath+"assets", http.FS(os.DirFS("web/assets")))
 	} else {
-		// for production
-		template, err := s.getHtmlTemplate(funcMap)
+		tpl, err := s.getHtmlTemplate(funcMap)
 		if err != nil {
 			return nil, err
 		}
-		engine.SetHTMLTemplate(template)
+		engine.SetHTMLTemplate(tpl)
 		engine.StaticFS(basePath+"assets", http.FS(&wrapAssetsFS{FS: assetsFS}))
 	}
 
-	// Apply the redirect middleware (`/xui` to `/panel`)
+	// API
+	api := engine.Group(basePath + "panel/api")
+	{
+		// controller.NewAuthController(api)
+		controller.NewUserAdminController(api)
+
+		// New feature controllers
+		controller.NewAuditController(api)
+		controller.NewAnalyticsController(api)
+		controller.NewQuotaController(api)
+		controller.NewOnboardingController(api)
+		controller.NewReportsController(api)
+	}
+
+	// Redirects (/xui -> /panel etc.)
 	engine.Use(middleware.RedirectMiddleware(basePath))
 
+	// Web UI groups
 	g := engine.Group(basePath)
-
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	s.api = controller.NewAPIController(g)
+
+	// WebSocket for real-time updates
+	s.wsService = service.NewWebSocketService(s.xrayService)
+	go s.wsService.Run()
+	controller.NewWebSocketController(g, s.wsService)
 
 	// Chrome DevTools endpoint for debugging web apps
 	engine.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{})
 	})
 
-	// Add a catch-all route to handle undefined paths and return 404
+	// 404 handler
 	engine.NoRoute(func(c *gin.Context) {
 		c.AbortWithStatus(http.StatusNotFound)
 	})
@@ -279,92 +313,95 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	return engine, nil
 }
 
-// startTask schedules background jobs (Xray checks, traffic jobs, cron
-// jobs) which the panel relies on for periodic maintenance and monitoring.
+// startTask schedules background jobs (Xray checks, traffic jobs, cron jobs).
 func (s *Server) startTask() {
-	err := s.xrayService.RestartXray(true)
-	if err != nil {
+	if err := s.xrayService.RestartXray(true); err != nil {
 		logger.Warning("start xray failed:", err)
 	}
+
 	// Check whether xray is running every second
 	s.cron.AddJob("@every 1s", job.NewCheckXrayRunningJob())
 
 	// Check if xray needs to be restarted every 30 seconds
 	s.cron.AddFunc("@every 30s", func() {
 		if s.xrayService.IsNeedRestartAndSetFalse() {
-			err := s.xrayService.RestartXray(false)
-			if err != nil {
+			if err := s.xrayService.RestartXray(false); err != nil {
 				logger.Error("restart xray failed:", err)
 			}
 		}
 	})
 
+	// Traffic stats every 10s (with initial 5s delay)
 	go func() {
-		time.Sleep(time.Second * 5)
-		// Statistics every 10 seconds, start the delay for 5 seconds for the first time, and staggered with the time to restart xray
+		time.Sleep(5 * time.Second)
 		s.cron.AddJob("@every 10s", job.NewXrayTrafficJob())
 	}()
 
-	// check client ips from log file every 10 sec
+	// Client IP checks & maintenance
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
-
-	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
-	// Inbound traffic reset jobs
-	// Run once a day, midnight
+	// Periodic traffic resets
 	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
-	// Run once a week, midnight between Sat/Sun
 	s.cron.AddJob("@weekly", job.NewPeriodicTrafficResetJob("weekly"))
-	// Run once a month, midnight, first of month
 	s.cron.AddJob("@monthly", job.NewPeriodicTrafficResetJob("monthly"))
 
-	// LDAP sync scheduling
+	// LDAP sync
 	if ldapEnabled, _ := s.settingService.GetLdapEnable(); ldapEnabled {
 		runtime, err := s.settingService.GetLdapSyncCron()
 		if err != nil || runtime == "" {
 			runtime = "@every 1m"
 		}
-		j := job.NewLdapSyncJob()
-		// job has zero-value services with method receivers that read settings on demand
-		s.cron.AddJob(runtime, j)
+		s.cron.AddJob(runtime, job.NewLdapSyncJob())
 	}
 
-	// Make a traffic condition every day, 8:30
-	var entry cron.EntryID
-	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
-	if (err == nil) && (isTgbotenabled) {
+	// Quota check (configurable interval)
+	quotaInterval, err := s.settingService.GetQuotaCheckInterval()
+	if err != nil || quotaInterval <= 0 {
+		quotaInterval = 5 // Default 5 minutes
+	}
+	s.cron.AddJob(fmt.Sprintf("@every %dm", quotaInterval), job.NewQuotaCheckJob())
+
+	// Weekly reports every Monday at 9 AM
+	s.cron.AddJob("0 9 * * 1", job.NewReportsJob())
+
+	// Monthly reports on 1st of month at 9 AM
+	s.cron.AddFunc("0 9 1 * *", func() {
+		job.NewReportsJob().RunMonthly()
+	})
+
+	// Audit log cleanup daily at 2 AM
+	s.cron.AddJob("0 2 * * *", job.NewAuditCleanupJob())
+
+	// Clean expired Redis entries hourly
+	s.cron.AddFunc("@hourly", func() {
+		redis.CleanExpired()
+	})
+
+	// Telegram bot related jobs
+	if isTgbotenabled, err := s.settingService.GetTgbotEnabled(); (err == nil) && isTgbotenabled {
 		runtime, err := s.settingService.GetTgbotRuntime()
 		if err != nil || runtime == "" {
 			logger.Errorf("Add NewStatsNotifyJob error[%s], Runtime[%s] invalid, will run default", err, runtime)
 			runtime = "@daily"
 		}
-		logger.Infof("Tg notify enabled,run at %s", runtime)
-		_, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob())
-		if err != nil {
+		logger.Infof("Tg notify enabled, run at %s", runtime)
+		if _, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob()); err != nil {
 			logger.Warning("Add NewStatsNotifyJob error", err)
-			return
 		}
-
-		// check for Telegram bot callback query hash storage reset
 		s.cron.AddJob("@every 2m", job.NewCheckHashStorageJob())
 
-		// Check CPU load and alarm to TgBot if threshold passes
-		cpuThreshold, err := s.settingService.GetTgCpu()
-		if (err == nil) && (cpuThreshold > 0) {
+		if cpuThreshold, err := s.settingService.GetTgCpu(); (err == nil) && (cpuThreshold > 0) {
 			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
 		}
-	} else {
-		s.cron.Remove(entry)
 	}
 }
 
-// Start initializes and starts the web server with configured settings, routes, and background jobs.
+// Start initializes and starts the web server.
 func (s *Server) Start() (err error) {
-	// This is an anonymous function, no function name
 	defer func() {
 		if err != nil {
-			s.Stop()
+			_ = s.Stop()
 		}
 	}()
 
@@ -396,19 +433,18 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
+
 	listenAddr := net.JoinHostPort(listen, strconv.Itoa(port))
 	listener, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return err
 	}
+
 	if certFile != "" || keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err == nil {
-			c := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
+		if cert, err := tls.LoadX509KeyPair(certFile, keyFile); err == nil {
+			cfg := &tls.Config{Certificates: []tls.Certificate{cert}}
 			listener = network.NewAutoHttpsListener(listener)
-			listener = tls.NewListener(listener, c)
+			listener = tls.NewListener(listener, cfg)
 			logger.Info("Web server running HTTPS on", listener.Addr())
 		} else {
 			logger.Error("Error loading certificates:", err)
@@ -417,20 +453,17 @@ func (s *Server) Start() (err error) {
 	} else {
 		logger.Info("Web server running HTTP on", listener.Addr())
 	}
-	s.listener = listener
 
-	s.httpServer = &http.Server{
-		Handler: engine,
-	}
+	s.listener = listener
+	s.httpServer = &http.Server{Handler: engine}
 
 	go func() {
-		s.httpServer.Serve(listener)
+		_ = s.httpServer.Serve(listener)
 	}()
 
 	s.startTask()
 
-	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
-	if (err == nil) && (isTgbotenabled) {
+	if isTgbotenabled, err := s.settingService.GetTgbotEnabled(); (err == nil) && isTgbotenabled {
 		tgBot := s.tgbotService.NewTgbot()
 		tgBot.Start(i18nFS)
 	}
@@ -448,8 +481,7 @@ func (s *Server) Stop() error {
 	if s.tgbotService.IsRunning() {
 		s.tgbotService.Stop()
 	}
-	var err1 error
-	var err2 error
+	var err1, err2 error
 	if s.httpServer != nil {
 		err1 = s.httpServer.Shutdown(s.ctx)
 	}
@@ -459,12 +491,8 @@ func (s *Server) Stop() error {
 	return common.Combine(err1, err2)
 }
 
-// GetCtx returns the server's context for cancellation and deadline management.
-func (s *Server) GetCtx() context.Context {
-	return s.ctx
-}
+// GetCtx returns the server's context.
+func (s *Server) GetCtx() context.Context { return s.ctx }
 
 // GetCron returns the server's cron scheduler instance.
-func (s *Server) GetCron() *cron.Cron {
-	return s.cron
-}
+func (s *Server) GetCron() *cron.Cron { return s.cron }
