@@ -1,6 +1,7 @@
 {{define "form/outbound"}}
 <!-- base -->
-<a-tabs :active-key="outModal.activeKey" :style="{ padding: '0', backgroundColor: 'transparent' }" @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
+<a-tabs :active-key="outModal.activeKey" :style="{ padding: '0', backgroundColor: 'transparent' }"
+  @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
   <a-tab-pane key="1" tab="Form">
     <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
       <a-form-item label='{{ i18n "protocol" }}'>
@@ -8,8 +9,10 @@
           <a-select-option v-for="x,y in Protocols" :value="x">[[ y ]]</a-select-option>
         </a-select>
       </a-form-item>
-      <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}' has-feedback :validate-status="outModal.duplicateTag? 'warning' : 'success'">
-        <a-input v-model.trim="outbound.tag" @change="outModal.check()" placeholder='{{ i18n "pages.xray.outbound.tagDesc" }}'></a-input>
+      <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}' has-feedback
+        :validate-status="outModal.duplicateTag? 'warning' : 'success'">
+        <a-input v-model.trim="outbound.tag" @change="outModal.check()"
+          placeholder='{{ i18n "pages.xray.outbound.tagDesc" }}'></a-input>
       </a-form-item>
       <a-form-item label='{{ i18n "pages.xray.outbound.sendThrough" }}'>
         <a-input v-model="outbound.sendThrough"></a-input>
@@ -59,12 +62,13 @@
           <a-form-item label="Noises">
             <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addNoise()"></a-button>
           </a-form-item>
-        
-        <!-- Noise Configurations -->
-          <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false" :label-col="{ md: {span:8} }"
-            :wrapper-col="{ md: {span:14} }">
+
+          <!-- Noise Configurations -->
+          <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false"
+            :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
             <a-divider :style="{ margin: '0' }"> Noise [[ index + 1 ]]
-              <a-icon v-if="outbound.settings.noises.length > 1" type="delete" @click="() => outbound.settings.delNoise(index)"
+              <a-icon v-if="outbound.settings.noises.length > 1" type="delete"
+                @click="() => outbound.settings.delNoise(index)"
                 :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
             </a-divider>
             <a-form-item label='Type'>
@@ -108,7 +112,7 @@
             <a-select-option v-for="s in ['reject','drop','skip']" :value="s">[[ s ]]</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types' >
+        <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types'>
           <a-input v-model.number="outbound.settings.blockTypes"></a-input>
         </a-form-item>
       </template>
@@ -129,21 +133,21 @@
         </a-form-item>
         <a-form-item>
           <template slot="label">
-              <a-tooltip>
-                  <template slot="title">
-                      <span>{{ i18n "reset" }}</span>
-                  </template>
-                  {{ i18n "pages.xray.wireguard.secretKey" }}
-                  <a-icon type="sync"
-                      @click="[outbound.settings.pubKey, outbound.settings.secretKey] = Object.values(Wireguard.generateKeypair())">
-                  </a-icon>
-              </a-tooltip>
+            <a-tooltip>
+              <template slot="title">
+                <span>{{ i18n "reset" }}</span>
+              </template>
+              {{ i18n "pages.xray.wireguard.secretKey" }}
+              <a-icon type="sync"
+                @click="[outbound.settings.pubKey, outbound.settings.secretKey] = Object.values(Wireguard.generateKeypair())">
+              </a-icon>
+            </a-tooltip>
           </template>
           <a-input v-model.trim="outbound.settings.secretKey"></a-input>
-      </a-form-item>
-      <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.xray.wireguard.publicKey" }}'>
           <a-input disabled v-model="outbound.settings.pubKey"></a-input>
-      </a-form-item>
+        </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.wireguard.domainStrategy" }}'>
           <a-select v-model="outbound.settings.domainStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="wds in ['', ...WireguardDomainStrategy]" :value="wds">[[ wds ]]</a-select-option>
@@ -171,8 +175,11 @@
         <a-form-item label="Peers">
           <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addPeer()"></a-button>
         </a-form-item>
-        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-          <a-divider :style="{ margin: '0' }"> Peer [[ index + 1 ]] <a-icon v-if="outbound.settings.peers.length>1" type="delete" @click="() => outbound.settings.delPeer(index)" :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }"
+          :wrapper-col="{ md: {span:14} }">
+          <a-divider :style="{ margin: '0' }"> Peer [[ index + 1 ]] <a-icon v-if="outbound.settings.peers.length>1"
+              type="delete" @click="() => outbound.settings.delPeer(index)"
+              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
           </a-divider>
           <a-form-item label='{{ i18n "pages.xray.wireguard.endpoint" }}'>
             <a-input v-model.trim="peer.endpoint"></a-input>
@@ -190,7 +197,8 @@
             </template>
             <template v-for="(aip, index) in peer.allowedIPs" :style="{ marginBottom: '10px' }">
               <a-input v-model.trim="peer.allowedIPs[index]">
-                <a-button icon="minus" v-if="peer.allowedIPs.length>1" slot="addonAfter" size="small" @click="peer.allowedIPs.splice(index, 1)"></a-button>
+                <a-button icon="minus" v-if="peer.allowedIPs.length>1" slot="addonAfter" size="small"
+                  @click="peer.allowedIPs.splice(index, 1)"></a-button>
               </a-input>
             </template>
           </a-form-item>
@@ -210,7 +218,7 @@
         </a-form-item>
       </template>
 
-  <!-- VLESS/VMess user settings -->
+      <!-- VLESS/VMess user settings -->
       <template v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>
@@ -239,6 +247,33 @@
             </a-select>
           </a-form-item>
         </template>
+        <!-- XTLS Vision Advanced Settings -->
+        <template v-if="outbound.canEnableVisionSeed()">
+          <a-form-item label="Vision Pre-Connect">
+            <a-input-number v-model.number="outbound.settings.testpre" :min="0" :max="10" :style="{ width: '100%' }"
+              placeholder="0"></a-input-number>
+          </a-form-item>
+          <a-form-item label="Vision Seed">
+            <a-row :gutter="8">
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[0]" :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="900" addon-before="[0]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[1]" :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="500" addon-before="[1]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[2]" :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="900" addon-before="[2]"></a-input-number>
+              </a-col>
+              <a-col :span="6">
+                <a-input-number v-model.number="outbound.settings.testseed[3]" :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="256" addon-before="[3]"></a-input-number>
+              </a-col>
+            </a-row>
+          </a-form-item>
+        </template>
       </template>
 
       <!-- Servers (trojan/shadowsocks/socks/http) settings -->
@@ -264,7 +299,8 @@
         <template v-if="outbound.protocol === Protocols.Shadowsocks">
           <a-form-item label='{{ i18n "encryption" }}'>
             <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="(method, method_name) in SSMethods" :value="method">[[ method_name ]]</a-select-option>
+              <a-select-option v-for="(method, method_name) in SSMethods" :value="method">[[ method_name
+                ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label='UDP over TCP'>
@@ -279,7 +315,8 @@
       <!-- stream settings -->
       <template v-if="outbound.canEnableStream()">
         <a-form-item label='{{ i18n "transmission" }}'>
-          <a-select v-model="outbound.stream.network" @change="streamNetworkChange" :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
+            :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
             <a-select-option value="ws">WebSocket</a-select-option>
@@ -290,7 +327,8 @@
         </a-form-item>
         <template v-if="outbound.stream.network === 'tcp'">
           <a-form-item label='HTTP {{ i18n "camouflage" }}'>
-            <a-switch :checked="outbound.stream.tcp.type === 'http'" @change="checked => outbound.stream.tcp.type = checked ? 'http' : 'none'"></a-switch>
+            <a-switch :checked="outbound.stream.tcp.type === 'http'"
+              @change="checked => outbound.stream.tcp.type = checked ? 'http' : 'none'"></a-switch>
           </a-form-item>
           <template v-if="outbound.stream.tcp.type == 'http'">
             <a-form-item label='{{ i18n "host" }}'>
@@ -353,7 +391,7 @@
             <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
           </a-form-item>
         </template>
-        
+
         <!-- grpc -->
         <template v-if="outbound.stream.network === 'grpc'">
           <a-form-item label='Service Name'>
@@ -390,7 +428,8 @@
               <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="No gRPC Header" v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
+          <a-form-item label="No gRPC Header"
+            v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
             <a-switch v-model="outbound.stream.xhttp.noGRPCHeader"></a-switch>
           </a-form-item>
           <a-form-item label="Min Upload Interval (Ms)" v-if="outbound.stream.xhttp.mode === 'packet-up'">
@@ -437,7 +476,8 @@
             </a-select>
           </a-form-item>
           <a-form-item label="ALPN">
-            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" v-model="outbound.stream.tls.alpn">
+            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+              v-model="outbound.stream.tls.alpn">
               <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
             </a-select>
           </a-form-item>
@@ -485,7 +525,8 @@
           </a-select>
         </a-form-item>
         <a-form-item label='Address Port Strategy'>
-          <a-select v-model="outbound.stream.sockopt.addressPortStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select v-model="outbound.stream.sockopt.addressPortStrategy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option v-for="key in Address_Port_Strategy" :value="key">[[ key ]]</a-select-option>
           </a-select>
         </a-form-item>
@@ -500,6 +541,15 @@
         </a-form-item>
         <a-form-item label="Penetrate">
           <a-switch v-model="outbound.stream.sockopt.penetrate"></a-switch>
+        </a-form-item>
+        <a-form-item label="Trusted X-Forwarded-For">
+          <a-select mode="tags" v-model="outbound.stream.sockopt.trustedXForwardedFor" :style="{ width: '100%' }"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
+            <a-select-option value="X-Real-IP">X-Real-IP</a-select-option>
+            <a-select-option value="True-Client-IP">True-Client-IP</a-select-option>
+            <a-select-option value="X-Client-IP">X-Client-IP</a-select-option>
+          </a-select>
         </a-form-item>
       </template>
 
@@ -526,7 +576,8 @@
   </a-tab-pane>
   <a-tab-pane key="2" tab="JSON" force-render="true">
     <a-space direction="vertical" :size="10" :style="{ marginTop: '10px' }">
-      <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}' v-model.trim="outModal.link" placeholder="vmess:// vless:// trojan:// ss://">
+      <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}' v-model.trim="outModal.link"
+        placeholder="vmess:// vless:// trojan:// ss://">
         <a-icon slot="addonAfter" type="form" @click="convertLink"></a-icon>
       </a-input>
       <textarea :style="{ position: 'absolute', left: '-800px' }" id="outboundJson"></textarea>
