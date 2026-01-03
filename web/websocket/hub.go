@@ -128,7 +128,7 @@ func (h *Hub) Run() {
 			h.clients[client] = true
 			count := len(h.clients)
 			h.mu.Unlock()
-			logger.Infof("WebSocket client connected: %s (total: %d)", client.ID, count)
+			logger.Debugf("WebSocket client connected: %s (total: %d)", client.ID, count)
 
 		case client := <-h.unregister:
 			if client == nil {
@@ -153,7 +153,7 @@ func (h *Hub) Run() {
 			}
 			count := len(h.clients)
 			h.mu.Unlock()
-			logger.Infof("WebSocket client disconnected: %s (total: %d)", client.ID, count)
+			logger.Debugf("WebSocket client disconnected: %s (total: %d)", client.ID, count)
 
 		case message := <-h.broadcast:
 			if message == nil {

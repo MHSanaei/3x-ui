@@ -105,7 +105,7 @@ func (w *WebSocketController) HandleWebSocket(c *gin.Context) {
 
 	// Register client
 	w.hub.Register(client)
-	logger.Infof("WebSocket client %s registered from %s", clientID, getRemoteIp(c))
+	logger.Debugf("WebSocket client %s registered from %s", clientID, getRemoteIp(c))
 
 	// Start goroutines for reading and writing
 	go w.writePump(client, conn)
