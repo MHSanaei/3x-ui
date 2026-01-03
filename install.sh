@@ -646,6 +646,20 @@ install_x-ui() {
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
     config_after_install
+
+    # Etckeeper compatibility
+    if [ -d "/etc/.git" ]; then
+        if [ -f "/etc/.gitignore" ]; then
+            if ! grep -q "x-ui/x-ui.db" "/etc/.gitignore"; then
+                echo "" >> "/etc/.gitignore"
+                echo "x-ui/x-ui.db" >> "/etc/.gitignore"
+                echo -e "${green}Added x-ui.db to /etc/.gitignore for etckeeper${plain}"
+            fi
+        else
+            echo "x-ui/x-ui.db" > "/etc/.gitignore"
+            echo -e "${green}Created /etc/.gitignore and added x-ui.db for etckeeper${plain}"
+        fi
+    fi
     
     if [[ $release == "alpine" ]]; then
         wget --inet4-only -O /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
@@ -657,7 +671,18 @@ install_x-ui() {
         rc-update add x-ui
         rc-service x-ui start
     else
-        cp -f x-ui.service ${xui_service}/
+        if [ -f "x-ui.service" ]; then
+            cp -f x-ui.service /etc/systemd/system/
+        else
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    cp -f x-ui.service.debian ${xui_service}/x-ui.service
+                ;;
+                *)
+                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service
+                ;;
+            esac
+        fi
         systemctl daemon-reload
         systemctl enable x-ui
         systemctl start x-ui
