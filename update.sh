@@ -684,7 +684,7 @@ update_x-ui() {
     else
         if [ -f "x-ui.service" ]; then
             echo -e "${green}Installing systemd unit...${plain}"
-            cp -f x-ui.service ${xui_service} >/dev/null 2>&1
+            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
         else
             case "${release}" in
                 ubuntu | debian | armbian)

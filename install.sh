@@ -672,7 +672,7 @@ install_x-ui() {
         rc-service x-ui start
     else
         if [ -f "x-ui.service" ]; then
-            cp -f x-ui.service /etc/systemd/system/
+            cp -f x-ui.service ${xui_service}/
         else
             case "${release}" in
                 ubuntu | debian | armbian)
