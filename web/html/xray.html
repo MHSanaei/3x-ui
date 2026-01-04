@@ -968,6 +968,17 @@
       await this.getXraySetting();
       await this.getXrayResult();
       await this.getOutboundsTraffic();
+
+      if (window.wsClient) {
+          window.wsClient.connect();
+          window.wsClient.on('outbounds', (payload) => {
+            if (payload) {
+              this.outboundsTraffic = payload;
+              this.$forceUpdate();
+            }
+          });
+      }
+
       while (true) {
         await PromiseUtil.sleep(800);
         this.saveBtnDisable = this.oldXraySetting === this.xraySetting;

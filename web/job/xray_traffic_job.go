@@ -65,6 +65,11 @@ func (j *XrayTrafficJob) Run() {
 		logger.Warning("get all inbounds for websocket failed:", err)
 	}
 
+	updatedOutbounds, err := j.outboundService.GetOutboundsTraffic()
+	if err != nil {
+		logger.Warning("get all outbounds for websocket failed:", err)
+	}
+
 	// Broadcast traffic update via WebSocket with accumulated values from database
 	trafficUpdate := map[string]interface{}{
 		"traffics":       traffics,
@@ -77,6 +82,10 @@ func (j *XrayTrafficJob) Run() {
 	// Broadcast full inbounds update for real-time UI refresh
 	if updatedInbounds != nil {
 		websocket.BroadcastInbounds(updatedInbounds)
+	}
+
+	if updatedOutbounds != nil {
+		websocket.BroadcastOutbounds(updatedOutbounds)
 	}
 
 }
