@@ -59,7 +59,7 @@ func (j *XrayTrafficJob) Run() {
 	}
 
 	// Broadcast traffic update via WebSocket
-	trafficUpdate := map[string]interface{}{
+	trafficUpdate := map[string]any{
 		"traffics":       traffics,
 		"clientTraffics": clientTraffics,
 		"onlineClients":  onlineClients,
