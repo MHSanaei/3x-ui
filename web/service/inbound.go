@@ -1010,12 +1010,12 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	if len(traffics) == 0 {
 		// Empty onlineUsers
 		if p != nil {
-			p.SetOnlineClients(nil)
+			p.SetOnlineClients(make([]string, 0))
 		}
 		return nil
 	}
 
-	var onlineClients []string
+	onlineClients := make([]string, 0)
 
 	emails := make([]string, 0, len(traffics))
 	for _, traffic := range traffics {
