@@ -1205,7 +1205,7 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 	return keyPair, nil
 }
 
-func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
+func (s *ServerService) GetNewEchCert(sni string) (any, error) {
 	// Run the command
 	cmd := exec.Command(xray.GetBinaryPath(), "tls", "ech", "--serverName", sni)
 	var out bytes.Buffer
@@ -1223,7 +1223,7 @@ func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
 	configList := lines[1]
 	serverKeys := lines[3]
 
-	return map[string]interface{}{
+	return map[string]any{
 		"echServerKeys": serverKeys,
 		"echConfigList": configList,
 	}, nil

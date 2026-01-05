@@ -7,7 +7,7 @@ import "reflect"
 func GetFields(t reflect.Type) []reflect.StructField {
 	num := t.NumField()
 	fields := make([]reflect.StructField, 0, num)
-	for i := 0; i < num; i++ {
+	for i := range num {
 		fields = append(fields, t.Field(i))
 	}
 	return fields
@@ -17,7 +17,7 @@ func GetFields(t reflect.Type) []reflect.StructField {
 func GetFieldValues(v reflect.Value) []reflect.Value {
 	num := v.NumField()
 	fields := make([]reflect.Value, 0, num)
-	for i := 0; i < num; i++ {
+	for i := range num {
 		fields = append(fields, v.Field(i))
 	}
 	return fields
