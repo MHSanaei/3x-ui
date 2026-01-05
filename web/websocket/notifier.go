@@ -48,6 +48,14 @@ func BroadcastInbounds(inbounds any) {
 	}
 }
 
+// BroadcastOutbounds broadcasts outbounds list update to all connected clients
+func BroadcastOutbounds(outbounds interface{}) {
+	hub := GetHub()
+	if hub != nil {
+		hub.Broadcast(MessageTypeOutbounds, outbounds)
+	}
+}
+
 // BroadcastNotification broadcasts a system notification to all connected clients
 func BroadcastNotification(title, message, level string) {
 	hub := GetHub()

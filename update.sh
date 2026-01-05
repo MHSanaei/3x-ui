@@ -91,29 +91,29 @@ install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata socat >/dev/null 2>&1
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
+            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat >/dev/null 2>&1
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
+                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata socat >/dev/null 2>&1
             else
-                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
+                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat >/dev/null 2>&1
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata openssl socat >/dev/null 2>&1
+            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata socat >/dev/null 2>&1
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone openssl socat >/dev/null 2>&1
+            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone socat >/dev/null 2>&1
         ;;
         alpine)
-            apk update >/dev/null 2>&1 && apk add curl tar tzdata openssl socat >/dev/null 2>&1
+            apk update >/dev/null 2>&1 && apk add curl tar tzdata socat >/dev/null 2>&1
         ;;
         *)
-            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata openssl socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata socat >/dev/null 2>&1
         ;;
     esac
 }
@@ -180,7 +180,8 @@ setup_ssl_certificate() {
     
     # Enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
-    chmod 755 $certPath/* 2>/dev/null
+    chmod 600 $certPath/privkey.pem 2>/dev/null
+    chmod 644 $certPath/fullchain.pem 2>/dev/null
     
     # Set certificate for panel
     local webCertFile="/root/cert/${domain}/fullchain.pem"
@@ -196,57 +197,119 @@ setup_ssl_certificate() {
     fi
 }
 
-# Fallback: generate a self-signed certificate (not publicly trusted)
-setup_self_signed_certificate() {
-    local name="$1"   # domain or IP to place in SAN
-    local certDir="/root/cert/selfsigned"
+# Issue Let's Encrypt IP certificate with shortlived profile (~6 days validity)
+# Requires acme.sh and port 80 open for HTTP-01 challenge
+setup_ip_certificate() {
+    local ipv4="$1"
+    local ipv6="$2"  # optional
 
-    echo -e "${yellow}Generating a self-signed certificate (not publicly trusted)...${plain}"
+    echo -e "${green}Setting up Let's Encrypt IP certificate (shortlived profile)...${plain}"
+    echo -e "${yellow}Note: IP certificates are valid for ~6 days and will auto-renew.${plain}"
+    echo -e "${yellow}Port 80 must be open and accessible from the internet.${plain}"
 
-    mkdir -p "$certDir"
-
-    local sanExt=""
-    if is_ip "$name"; then
-        sanExt="IP:${name}"
-    else
-        sanExt="DNS:${name}"
+    # Check for acme.sh
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        install_acme
+        if [ $? -ne 0 ]; then
+            echo -e "${red}Failed to install acme.sh${plain}"
+            return 1
+        fi
     fi
 
-    # Try -addext; fallback to config if not supported
-    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-        -keyout "${certDir}/privkey.pem" \
-        -out "${certDir}/fullchain.pem" \
-        -subj "/CN=${name}" \
-        -addext "subjectAltName=${sanExt}" >/dev/null 2>&1
-
-    if [[ $? -ne 0 ]]; then
-        local tmpCfg="${certDir}/openssl.cnf"
-        cat > "$tmpCfg" <<EOF
-[req]
-distinguished_name=req_distinguished_name
-req_extensions=v3_req
-[req_distinguished_name]
-[v3_req]
-subjectAltName=${sanExt}
-EOF
-        openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
-            -keyout "${certDir}/privkey.pem" \
-            -out "${certDir}/fullchain.pem" \
-            -subj "/CN=${name}" \
-            -config "$tmpCfg" -extensions v3_req >/dev/null 2>&1
-        rm -f "$tmpCfg"
-    fi
-
-    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
-        echo -e "${red}Failed to generate self-signed certificate${plain}"
+    # Validate IP address
+    if [[ -z "$ipv4" ]]; then
+        echo -e "${red}IPv4 address is required${plain}"
         return 1
     fi
 
-    chmod 755 ${certDir}/* 2>/dev/null
-    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
-    echo -e "${yellow}Self-signed certificate configured. Browsers will show a warning.${plain}"
+    if ! is_ipv4 "$ipv4"; then
+        echo -e "${red}Invalid IPv4 address: $ipv4${plain}"
+        return 1
+    fi
+
+    # Create certificate directory
+    local certDir="/root/cert/ip"
+    mkdir -p "$certDir"
+
+    # Build domain arguments
+    local domain_args="-d ${ipv4}"
+    if [[ -n "$ipv6" ]] && is_ipv6 "$ipv6"; then
+        domain_args="${domain_args} -d ${ipv6}"
+        echo -e "${green}Including IPv6 address: ${ipv6}${plain}"
+    fi
+
+    # Set reload command for auto-renewal (add || true so it doesn't fail if service stopped)
+    local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
+
+    # Issue certificate with shortlived profile
+    echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+    
+    ~/.acme.sh/acme.sh --issue \
+        ${domain_args} \
+        --standalone \
+        --server letsencrypt \
+        --certificate-profile shortlived \
+        --days 6 \
+        --httpport 80 \
+        --force
+
+    if [ $? -ne 0 ]; then
+        echo -e "${red}Failed to issue IP certificate${plain}"
+        echo -e "${yellow}Please ensure port 80 is open and accessible from the internet${plain}"
+        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
+        rm -rf ~/.acme.sh/${ipv4} 2>/dev/null
+        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2>/dev/null
+        rm -rf ${certDir} 2>/dev/null
+        return 1
+    fi
+
+    echo -e "${green}Certificate issued successfully, installing...${plain}"
+
+    # Install certificate
+    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
+    # but the cert files are still installed. We check for files instead of exit code.
+    ~/.acme.sh/acme.sh --installcert -d ${ipv4} \
+        --key-file "${certDir}/privkey.pem" \
+        --fullchain-file "${certDir}/fullchain.pem" \
+        --reloadcmd "${reloadCmd}" 2>&1 || true
+
+    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
+    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
+        echo -e "${red}Certificate files not found after installation${plain}"
+        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
+        rm -rf ~/.acme.sh/${ipv4} 2>/dev/null
+        [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2>/dev/null
+        rm -rf ${certDir} 2>/dev/null
+        return 1
+    fi
+    
+    echo -e "${green}Certificate files installed successfully${plain}"
+
+    # Enable auto-upgrade for acme.sh (ensures cron job runs)
+    ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
+
+    chmod 600 ${certDir}/privkey.pem 2>/dev/null
+    chmod 644 ${certDir}/fullchain.pem 2>/dev/null
+
+    # Configure panel to use the certificate
+    echo -e "${green}Setting certificate paths for the panel...${plain}"
+    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem"
+    if [ $? -ne 0 ]; then
+        echo -e "${yellow}Warning: Could not set certificate paths automatically.${plain}"
+        echo -e "${yellow}You may need to set them manually in the panel settings.${plain}"
+        echo -e "${yellow}Cert path: ${certDir}/fullchain.pem${plain}"
+        echo -e "${yellow}Key path: ${certDir}/privkey.pem${plain}"
+    else
+        echo -e "${green}Certificate paths set successfully!${plain}"
+    fi
+
+    echo -e "${green}IP certificate installed and configured successfully!${plain}"
+    echo -e "${green}Certificate valid for ~6 days, auto-renews via acme.sh cron job.${plain}"
+    echo -e "${yellow}Panel will automatically restart after each renewal.${plain}"
     return 0
 }
+
 # Comprehensive manual SSL certificate issuance via acme.sh
 ssl_cert_issue() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep 'webBasePath:' | awk -F': ' '{print $2}' | tr -d '[:space:]' | sed 's#^/##')
@@ -376,11 +439,13 @@ ssl_cert_issue() {
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Auto renew setup had issues, certificate details:${plain}"
         ls -lah /root/cert/${domain}/
-        chmod 755 $certPath/*
+        chmod 600 $certPath/privkey.pem
+        chmod 644 $certPath/fullchain.pem
     else
         echo -e "${green}Auto renew succeeded, certificate details:${plain}"
         ls -lah /root/cert/${domain}/
-        chmod 755 $certPath/*
+        chmod 600 $certPath/privkey.pem
+        chmod 644 $certPath/fullchain.pem
     fi
 
     # Restart panel
@@ -410,7 +475,7 @@ ssl_cert_issue() {
     
     return 0
 }
-# Unified interactive SSL setup (domain or self-signed)
+# Unified interactive SSL setup (domain or IP)
 # Sets global `SSL_HOST` to the chosen domain/IP
 prompt_and_setup_ssl() {
     local panel_port="$1"
@@ -420,12 +485,13 @@ prompt_and_setup_ssl() {
     local ssl_choice=""
 
     echo -e "${yellow}Choose SSL certificate setup method:${plain}"
-    echo -e "${green}1.${plain} Let's Encrypt (domain required, recommended)"
-    echo -e "${green}2.${plain} Self-signed certificate (for testing/local use)"
-    read -rp "Choose an option (default 2): " ssl_choice
+    echo -e "${green}1.${plain} Let's Encrypt for Domain (90-day validity, auto-renews)"
+    echo -e "${green}2.${plain} Let's Encrypt for IP Address (6-day validity, auto-renews)"
+    echo -e "${blue}Note:${plain} Both options require port 80 open. IP certs use shortlived profile."
+    read -rp "Choose an option (default 2 for IP): " ssl_choice
     ssl_choice="${ssl_choice// /}"  # Trim whitespace
     
-    # Default to 2 (self-signed) if not 1
+    # Default to 2 (IP cert) if not 1
     if [[ "$ssl_choice" != "1" ]]; then
         ssl_choice="2"
     fi
@@ -433,7 +499,7 @@ prompt_and_setup_ssl() {
     case "$ssl_choice" in
     1)
         # User chose Let's Encrypt domain option
-        echo -e "${green}Using ssl_cert_issue() for comprehensive domain setup...${plain}"
+        echo -e "${green}Using Let's Encrypt for domain certificate...${plain}"
         ssl_cert_issue
         # Extract the domain that was used from the certificate
         local cert_domain=$(~/.acme.sh/acme.sh --list 2>/dev/null | tail -1 | awk '{print $1}')
@@ -446,32 +512,36 @@ prompt_and_setup_ssl() {
         fi
         ;;
     2)
-        # User chose self-signed option
-        # Stop panel if running
+        # User chose Let's Encrypt IP certificate option
+        echo -e "${green}Using Let's Encrypt for IP certificate (shortlived profile)...${plain}"
+        
+        # Ask for optional IPv6
+        local ipv6_addr=""
+        read -rp "Do you have an IPv6 address to include? (leave empty to skip): " ipv6_addr
+        ipv6_addr="${ipv6_addr// /}"  # Trim whitespace
+        
+        # Stop panel if running (port 80 needed)
         if [[ $release == "alpine" ]]; then
             rc-service x-ui stop >/dev/null 2>&1
         else
             systemctl stop x-ui >/dev/null 2>&1
         fi
-        echo -e "${yellow}Using server IP for self-signed certificate: ${server_ip}${plain}"
-        setup_self_signed_certificate "${server_ip}"
+        
+        setup_ip_certificate "${server_ip}" "${ipv6_addr}"
         if [ $? -eq 0 ]; then
             SSL_HOST="${server_ip}"
-            echo -e "${green}✓ Self-signed SSL configured successfully${plain}"
+            echo -e "${green}✓ Let's Encrypt IP certificate configured successfully${plain}"
         else
-            echo -e "${red}✗ Self-signed SSL setup failed${plain}"
+            echo -e "${red}✗ IP certificate setup failed. Please check port 80 is open.${plain}"
             SSL_HOST="${server_ip}"
         fi
-        # Start panel after SSL is configured
+        
+        # Restart panel after SSL is configured (restart applies new cert settings)
         if [[ $release == "alpine" ]]; then
-            rc-service x-ui start >/dev/null 2>&1
+            rc-service x-ui restart >/dev/null 2>&1
         else
-            systemctl start x-ui >/dev/null 2>&1
+            systemctl restart x-ui >/dev/null 2>&1
         fi
-        ;;
-    0)
-        echo -e "${yellow}Skipping SSL setup${plain}"
-        SSL_HOST="${server_ip}"
         ;;
     *)
         echo -e "${red}Invalid option. Skipping SSL setup.${plain}"
@@ -523,7 +593,7 @@ config_after_update() {
         echo -e "${red}      ⚠ NO SSL CERTIFICATE DETECTED ⚠     ${plain}"
         echo -e "${red}═══════════════════════════════════════════${plain}"
         echo -e "${yellow}For security, SSL certificate is MANDATORY for all panels.${plain}"
-        echo -e "${yellow}Let's Encrypt requires a domain name; IP certs are not issued. Use self-signed for IP.${plain}"
+        echo -e "${yellow}Let's Encrypt now supports both domains and IP addresses!${plain}"
         echo ""
         
         if [[ -z "${server_ip}" ]]; then
@@ -532,7 +602,7 @@ config_after_update() {
             return
         fi
         
-        # Prompt and setup SSL (domain or self-signed)
+        # Prompt and setup SSL (domain or IP)
         prompt_and_setup_ssl "${existing_port}" "${existing_webBasePath}" "${server_ip}"
         
         echo ""
@@ -576,10 +646,10 @@ update_x-ui() {
         fi
     fi
     echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
-    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+    ${curl_bin} -fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
     if [[ $? -ne 0 ]]; then
         echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz -z ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
+        ${curl_bin} -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz 2>/dev/null
         if [[ $? -ne 0 ]]; then
             _fail "ERROR: Failed to download x-ui, please be sure that your server can access GitHub"
         fi
