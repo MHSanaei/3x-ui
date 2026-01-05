@@ -120,6 +120,10 @@
       oldAllSetting: new AllSetting(),
       allSetting: new AllSetting(),
       saveBtnDisable: true,
+      entryHost: null,
+      entryPort: null,
+      entryProtocol: null,
+      entryIsIP: false,
       user: {},
       lang: LanguageManager.getLanguage(),
       inboundOptions: [],
@@ -233,6 +237,31 @@
       loading(spinning = true) {
         this.loadingStates.spinning = spinning;
       },
+      _isIp(h) {
+        if (typeof h !== "string") return false;
+
+        // IPv4: four dot-separated octets 0-255
+        const v4 = h.split(".");
+        if (
+          v4.length === 4 &&
+          v4.every(p => /^\d{1,3}$/.test(p) && Number(p) <= 255)
+        ) return true;
+
+        // IPv6: hex groups, optional single :: compression
+        if (!h.includes(":") || h.includes(":::")) return false;
+        const parts = h.split("::");
+        if (parts.length > 2) return false;
+
+        const splitGroups = s => (s ? s.split(":").filter(Boolean) : []);
+        const head = splitGroups(parts[0]);
+        const tail = splitGroups(parts[1]);
+        const validGroup = seg => /^[0-9a-fA-F]{1,4}$/.test(seg);
+
+        if (![...head, ...tail].every(validGroup)) return false;
+        const groups = head.length + tail.length;
+
+        return parts.length === 2 ? groups < 8 : groups === 8;
+      },
       async getAllSetting() {
         const msg = await HttpUtil.post("/panel/setting/all");
 
@@ -307,16 +336,41 @@
         this.loading(true);
         const msg = await HttpUtil.post("/panel/setting/restartPanel");
         this.loading(false);
-        if (msg.success) {
-          this.loading(true);
-          await PromiseUtil.sleep(5000);
-          var { webCertFile, webKeyFile, webDomain: host, webPort: port, webBasePath: base } = this.allSetting;
-          if (host == this.oldAllSetting.webDomain) host = null;
-          if (port == this.oldAllSetting.webPort) port = null;
-          const isTLS = webCertFile !== "" || webKeyFile !== "";
-          const url = URLBuilder.buildURL({ host, port, isTLS, base, path: "panel/settings" });
-          window.location.replace(url);
+        if (!msg.success) return;
+
+        this.loading(true);
+        await PromiseUtil.sleep(5000);
+
+        const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = this.allSetting;
+        const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
+
+        let base = webBasePath ? webBasePath.replace(/^\//, "") : "";
+        if (base && !base.endsWith("/")) base += "/";
+
+        if (!this.entryIsIP) {
+          const url = new URL(window.location.href);
+          url.pathname = `/${base}panel/settings`;
+          url.protocol = newProtocol;
+          window.location.replace(url.toString());
+          return;
         }
+
+        let finalHost = this.entryHost;
+        let finalPort = this.entryPort || "";
+
+        if (webDomain && this._isIp(webDomain)) {
+          finalHost = webDomain;
+        }
+
+        if (webPort && Number(webPort) !== Number(this.entryPort)) {
+          finalPort = String(webPort);
+        }
+
+        const url = new URL(`${newProtocol}//${finalHost}`);
+        if (finalPort) url.port = finalPort;
+        url.pathname = `/${base}panel/settings`;
+
+        window.location.replace(url.toString());
       },
       toggleTwoFactor(newValue) {
         if (newValue) {
@@ -568,6 +622,10 @@
       }
     },
     async mounted() {
+      this.entryHost = window.location.hostname;
+      this.entryPort = window.location.port;
+      this.entryProtocol = window.location.protocol;
+      this.entryIsIP = this._isIp(this.entryHost);
       await this.getAllSetting();
       await this.loadInboundTags();
       while (true) {

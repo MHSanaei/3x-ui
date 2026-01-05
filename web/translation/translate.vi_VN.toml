@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Tắt các truy vấn DNS Fallback"
 "disableFallbackIfMatch" = "Tắt Fallback Nếu Khớp"
 "disableFallbackIfMatchDesc" = "Tắt các truy vấn DNS Fallback khi danh sách tên miền khớp của máy chủ DNS được kích hoạt"
+"enableParallelQuery" = "Bật Truy vấn Song song"
+"enableParallelQueryDesc" = "Bật truy vấn DNS song song đến nhiều máy chủ để phân giải nhanh hơn"
 "strategy" = "Chiến lược truy vấn"
 "strategyDesc" = "Chiến lược tổng thể để phân giải tên miền"
 "add" = "Thêm máy chủ"

@@ -179,9 +179,15 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VMESS {
 		return ""
 	}
+	var address string
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		address = s.address
+	} else {
+		address = inbound.Listen
+	}
 	obj := map[string]any{
 		"v":    "2",
-		"add":  s.address,
+		"add":  address,
 		"port": inbound.Port,
 		"type": "none",
 	}
@@ -317,7 +323,13 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
-	address := s.address
+	var address string
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		address = s.address
+	} else {
+		address = inbound.Listen
+	}
+
 	if inbound.Protocol != model.VLESS {
 		return ""
 	}
@@ -523,7 +535,12 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
-	address := s.address
+	var address string
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		address = s.address
+	} else {
+		address = inbound.Listen
+	}
 	if inbound.Protocol != model.Trojan {
 		return ""
 	}
@@ -719,7 +736,12 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
-	address := s.address
+	var address string
+	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+		address = s.address
+	} else {
+		address = inbound.Listen
+	}
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
 	}

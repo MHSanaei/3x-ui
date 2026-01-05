@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Disables fallback DNS queries"
 "disableFallbackIfMatch" = "Disable Fallback If Match"
 "disableFallbackIfMatchDesc" = "Disables fallback DNS queries when the matching domain list of the DNS server is hit"
+"enableParallelQuery" = "Enable Parallel Query"
+"enableParallelQueryDesc" = "Enable parallel DNS queries to multiple servers for faster resolution"
 "strategy" = "Query Strategy"
 "strategyDesc" = "Overall strategy to resolve domain names"
 "add" = "Add Server"

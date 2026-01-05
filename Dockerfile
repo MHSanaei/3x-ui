@@ -8,7 +8,7 @@ ARG TARGETARCH
 RUN apk --no-cache --update add \
   build-base \
   gcc \
-  wget \
+  curl \
   unzip
 
 COPY . .

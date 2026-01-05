@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "禁用回退DNS查询"
 "disableFallbackIfMatch" = "匹配时禁用回退"
 "disableFallbackIfMatchDesc" = "当DNS服务器的匹配域名列表命中时，禁用回退DNS查询"
+"enableParallelQuery" = "启用并行查询"
+"enableParallelQueryDesc" = "启用并行DNS查询到多个服务器以实现更快的解析"
 "strategy" = "查询策略"
 "strategyDesc" = "解析域名的总体策略"
 "add" = "添加服务器"

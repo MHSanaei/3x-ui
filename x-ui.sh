@@ -19,6 +19,20 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
+# Simple helpers for domain/IP validation
+is_ipv4() {
+    [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
+}
+is_ipv6() {
+    [[ "$1" =~ : ]] && return 0 || return 1
+}
+is_ip() {
+    is_ipv4 "$1" || is_ipv6 "$1"
+}
+is_domain() {
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+[A-Za-z]{2,}$ ]] && return 0 || return 1
+}
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
@@ -39,7 +53,10 @@ os_version=""
 os_version=$(grep "^VERSION_ID" /etc/os-release | cut -d '=' -f2 | tr -d '"' | tr -d '.')
 
 # Declare Variables
-log_folder="${XUI_LOG_FOLDER:=/var/log}"
+xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
+xui_service="${XUI_SERVICE:=/etc/systemd/system}"
+log_folder="${XUI_LOG_FOLDER:=/var/log/x-ui}"
+mkdir -p "${log_folder}"
 iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
@@ -111,8 +128,8 @@ update_menu() {
         return 0
     fi
 
-    wget -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    chmod +x /usr/local/x-ui/x-ui.sh
+    curl -fLRo /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    chmod +x ${xui_folder}/x-ui.sh
     chmod +x /usr/bin/x-ui
 
     if [[ $? == 0 ]]; then
@@ -161,13 +178,13 @@ uninstall() {
     else
         systemctl stop x-ui
         systemctl disable x-ui
-        rm /etc/systemd/system/x-ui.service -f
+        rm ${xui_service}/x-ui.service -f
         systemctl daemon-reload
         systemctl reset-failed
     fi
 
     rm /etc/x-ui/ -rf
-    rm /usr/local/x-ui/ -rf
+    rm ${xui_folder}/ -rf
 
     echo ""
     echo -e "Uninstalled Successfully.\n"
@@ -195,9 +212,9 @@ reset_user() {
 
     read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
     if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
-        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor false >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor false >/dev/null 2>&1
     else
-        /usr/local/x-ui/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor true >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor true >/dev/null 2>&1
         echo -e "Two factor authentication has been disabled."
     fi
     
@@ -213,6 +230,57 @@ gen_random_string() {
     echo "$random_string"
 }
 
+# Generate and configure a self-signed SSL certificate
+setup_self_signed_certificate() {
+    local name="$1"   # domain or IP to place in SAN
+    local certDir="/root/cert/selfsigned"
+
+    LOGI "Generating a self-signed certificate (not publicly trusted)..."
+
+    mkdir -p "$certDir"
+
+    local sanExt=""
+    if [[ "$name" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ || "$name" =~ : ]]; then
+        sanExt="IP:${name}"
+    else
+        sanExt="DNS:${name}"
+    fi
+
+    openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+        -keyout "${certDir}/privkey.pem" \
+        -out "${certDir}/fullchain.pem" \
+        -subj "/CN=${name}" \
+        -addext "subjectAltName=${sanExt}" >/dev/null 2>&1
+
+    if [[ $? -ne 0 ]]; then
+        local tmpCfg="${certDir}/openssl.cnf"
+        cat > "$tmpCfg" <<EOF
+[req]
+distinguished_name=req_distinguished_name
+req_extensions=v3_req
+[req_distinguished_name]
+[v3_req]
+subjectAltName=${sanExt}
+EOF
+        openssl req -x509 -nodes -newkey rsa:2048 -days 365 \
+            -keyout "${certDir}/privkey.pem" \
+            -out "${certDir}/fullchain.pem" \
+            -subj "/CN=${name}" \
+            -config "$tmpCfg" -extensions v3_req >/dev/null 2>&1
+        rm -f "$tmpCfg"
+    fi
+
+    if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
+        LOGE "Failed to generate self-signed certificate"
+        return 1
+    fi
+
+    chmod 755 ${certDir}/* >/dev/null 2>&1
+    ${xui_folder}/x-ui cert -webCert "${certDir}/fullchain.pem" -webCertKey "${certDir}/privkey.pem" >/dev/null 2>&1
+    LOGI "Self-signed certificate configured. Browsers will show a warning."
+    return 0
+}
+
 reset_webbasepath() {
     echo -e "${yellow}Resetting Web Base Path${plain}"
 
@@ -225,7 +293,7 @@ reset_webbasepath() {
     config_webBasePath=$(gen_random_string 18)
 
     # Apply the new web base path setting
-    /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
+    ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
 
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
     echo -e "${green}Please use the new web base path to access the panel.${plain}"
@@ -240,13 +308,13 @@ reset_config() {
         fi
         return 0
     fi
-    /usr/local/x-ui/x-ui setting -reset
+    ${xui_folder}/x-ui setting -reset
     echo -e "All panel settings have been reset to default."
     restart
 }
 
 check_config() {
-    local info=$(/usr/local/x-ui/x-ui setting -show true)
+    local info=$(${xui_folder}/x-ui setting -show true)
     if [[ $? != 0 ]]; then
         LOGE "get current settings error, please check logs"
         show_menu
@@ -256,7 +324,7 @@ check_config() {
 
     local existing_webBasePath=$(echo "$info" | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(echo "$info" | grep -Eo 'port: .+' | awk '{print $2}')
-    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
+    local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
     if [ -z "$server_ip" ]; then
         server_ip=$(curl -s --max-time 3 https://4.ident.me)
@@ -271,7 +339,22 @@ check_config() {
             echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
         fi
     else
-        echo -e "${green}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+        echo -e "${red}⚠ WARNING: No SSL certificate configured!${plain}"
+        read -rp "Generate a self-signed SSL certificate now? [y/N]: " gen_self
+        if [[ "$gen_self" == "y" || "$gen_self" == "Y" ]]; then
+            stop >/dev/null 2>&1
+            setup_self_signed_certificate "${server_ip}"
+            if [[ $? -eq 0 ]]; then
+                restart >/dev/null 2>&1
+                echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+            else
+                LOGE "Self-signed SSL setup failed."
+                echo -e "${yellow}You can try again via option 18 (SSL Certificate Management).${plain}"
+            fi
+        else
+            echo -e "${yellow}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+            echo -e "${yellow}For security, please configure SSL certificate using option 18 (SSL Certificate Management)${plain}"
+        fi
     fi
 }
 
@@ -282,7 +365,7 @@ set_port() {
         LOGD "Cancelled"
         before_show_menu
     else
-        /usr/local/x-ui/x-ui setting -port ${port}
+        ${xui_folder}/x-ui setting -port ${port}
         echo -e "The port is set, Please restart the panel now, and use the new port ${green}${port}${plain} to access web panel"
         confirm_restart
     fi
@@ -550,7 +633,7 @@ enable_bbr() {
 }
 
 update_shell() {
-    wget -O /usr/bin/x-ui -N https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
+    curl -fLRo /usr/bin/x-ui -z /usr/bin/x-ui https://github.com/MHSanaei/3x-ui/raw/main/x-ui.sh
     if [[ $? != 0 ]]; then
         echo ""
         LOGE "Failed to download script, Please check whether the machine can connect Github"
@@ -574,7 +657,7 @@ check_status() {
             return 1
         fi
     else
-        if [[ ! -f /etc/systemd/system/x-ui.service ]]; then
+        if [[ ! -f ${xui_service}/x-ui.service ]]; then
             return 2
         fi
         temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
@@ -874,18 +957,18 @@ update_all_geofiles() {
 }
 
 update_main_geofiles() {
-        wget -O geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+        curl -fLRo geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
+        curl -fLRo geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
 }
 
 update_ir_geofiles() {
-        wget -O geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        wget -O geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
+        curl -fLRo geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
+        curl -fLRo geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
 }
 
 update_ru_geofiles() {
-        wget -O geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        wget -O geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+        curl -fLRo geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
+        curl -fLRo geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
 }
 
 update_geo() {
@@ -896,7 +979,7 @@ update_geo() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
 
-    cd /usr/local/x-ui/bin
+    cd ${xui_folder}/bin
 
     case "$choice" in
     0)
@@ -958,6 +1041,7 @@ ssl_cert_issue_main() {
     echo -e "${green}\t3.${plain} Force Renew"
     echo -e "${green}\t4.${plain} Show Existing Domains"
     echo -e "${green}\t5.${plain} Set Cert paths for the panel"
+    echo -e "${green}\t6.${plain} Auto SSL for Server IP"
     echo -e "${green}\t0.${plain} Back to Main Menu"
 
     read -rp "Choose an option: " choice
@@ -1037,7 +1121,7 @@ ssl_cert_issue_main() {
                 local webKeyFile="/root/cert/${domain}/privkey.pem"
 
                 if [[ -f "${webCertFile}" && -f "${webKeyFile}" ]]; then
-                    /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                    ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
                     echo "Panel paths set for domain: $domain"
                     echo "  - Certificate File: $webCertFile"
                     echo "  - Private Key File: $webKeyFile"
@@ -1051,6 +1135,16 @@ ssl_cert_issue_main() {
         fi
         ssl_cert_issue_main
         ;;
+    6)
+        echo -e "${yellow}Automatic SSL Certificate for Server IP${plain}"
+        echo -e "This will automatically obtain and configure an SSL certificate for your server's IP address."
+        echo -e "${yellow}Note: Let's Encrypt supports IP certificates. Make sure port 80 is open.${plain}"
+        confirm "Do you want to proceed?" "y"
+        if [[ $? == 0 ]]; then
+            ssl_cert_issue_for_ip
+        fi
+        ssl_cert_issue_main
+        ;;
 
     *)
         echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
@@ -1059,9 +1153,137 @@ ssl_cert_issue_main() {
     esac
 }
 
+ssl_cert_issue_for_ip() {
+    LOGI "Starting automatic SSL certificate generation for server IP..."
+    
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    
+    # Get server IP
+    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
+    if [ -z "$server_ip" ]; then
+        server_ip=$(curl -s --max-time 3 https://4.ident.me)
+    fi
+    
+    if [ -z "$server_ip" ]; then
+        LOGE "Failed to get server IP address"
+        return 1
+    fi
+    
+    LOGI "Server IP detected: ${server_ip}"
+    
+    # check for acme.sh first
+    if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
+        LOGI "acme.sh not found, installing..."
+        install_acme
+        if [ $? -ne 0 ]; then
+            LOGE "Failed to install acme.sh"
+            return 1
+        fi
+    fi
+    
+    # install socat
+    case "${release}" in
+    ubuntu | debian | armbian)
+        apt-get update >/dev/null 2>&1 && apt-get install socat -y >/dev/null 2>&1
+        ;;
+    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
+        dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        ;;
+    centos)
+        if [[ "${VERSION_ID}" =~ ^7 ]]; then
+            yum -y update >/dev/null 2>&1 && yum -y install socat >/dev/null 2>&1
+        else
+            dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        fi
+        ;;
+    arch | manjaro | parch)
+        pacman -Sy --noconfirm socat >/dev/null 2>&1
+        ;;
+    opensuse-tumbleweed | opensuse-leap)
+        zypper refresh >/dev/null 2>&1 && zypper -q install -y socat >/dev/null 2>&1
+        ;;
+    alpine)
+        apk add socat curl openssl >/dev/null 2>&1
+        ;;
+    *)
+        LOGW "Unsupported OS for automatic socat installation"
+        ;;
+    esac
+    
+    # check if certificate already exists for this IP
+    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
+    if [ "${currentCert}" == "${server_ip}" ]; then
+        LOGI "Certificate already exists for IP: ${server_ip}"
+        certPath="/root/cert/${server_ip}"
+    else
+        # create directory for certificate
+        certPath="/root/cert/${server_ip}"
+        if [ ! -d "$certPath" ]; then
+            mkdir -p "$certPath"
+        else
+            rm -rf "$certPath"
+            mkdir -p "$certPath"
+        fi
+        
+        # Use port 80 for certificate issuance
+        local WebPort=80
+        LOGI "Using port ${WebPort} to issue certificate for IP: ${server_ip}"
+        LOGI "Make sure port ${WebPort} is open and not in use..."
+        
+        # issue the certificate for IP
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+        ~/.acme.sh/acme.sh --issue -d ${server_ip} --listen-v6 --standalone --httpport ${WebPort} --force
+        if [ $? -ne 0 ]; then
+            LOGE "Failed to issue certificate for IP: ${server_ip}"
+            LOGE "Make sure port ${WebPort} is open and the server is accessible from the internet"
+            rm -rf ~/.acme.sh/${server_ip}
+            return 1
+        else
+            LOGI "Certificate issued successfully for IP: ${server_ip}"
+        fi
+        
+        # install the certificate
+        ~/.acme.sh/acme.sh --installcert -d ${server_ip} \
+            --key-file /root/cert/${server_ip}/privkey.pem \
+            --fullchain-file /root/cert/${server_ip}/fullchain.pem \
+            --reloadcmd "x-ui restart"
+        
+        if [ $? -ne 0 ]; then
+            LOGE "Failed to install certificate"
+            rm -rf ~/.acme.sh/${server_ip}
+            return 1
+        else
+            LOGI "Certificate installed successfully"
+        fi
+        
+        # enable auto-renew
+        ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
+        chmod 755 $certPath/*
+    fi
+    
+    # Set certificate paths for the panel
+    local webCertFile="/root/cert/${server_ip}/fullchain.pem"
+    local webKeyFile="/root/cert/${server_ip}/privkey.pem"
+    
+    if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
+        ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+        LOGI "Certificate configured for panel"
+        LOGI "  - Certificate File: $webCertFile"
+        LOGI "  - Private Key File: $webKeyFile"
+        echo -e "${green}Access URL: https://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
+        LOGI "Panel will restart to apply SSL certificate..."
+        restart
+        return 0
+    else
+        LOGE "Certificate files not found after installation"
+        return 1
+    fi
+}
+
 ssl_cert_issue() {
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         echo "acme.sh could not be found. we will install it"
@@ -1072,33 +1294,32 @@ ssl_cert_issue() {
         fi
     fi
 
-    # install socat second
+    # install socat
     case "${release}" in
     ubuntu | debian | armbian)
-        apt-get update && apt-get install socat -y
+        apt-get update >/dev/null 2>&1 && apt-get install socat -y >/dev/null 2>&1
         ;;
     fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-        dnf -y update && dnf -y install socat
+        dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
         ;;
     centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum -y install socat
-            else
-                dnf -y update && dnf -y install socat
-            fi
+        if [[ "${VERSION_ID}" =~ ^7 ]]; then
+            yum -y update >/dev/null 2>&1 && yum -y install socat >/dev/null 2>&1
+        else
+            dnf -y update >/dev/null 2>&1 && dnf -y install socat >/dev/null 2>&1
+        fi
         ;;
     arch | manjaro | parch)
-        pacman -Sy --noconfirm socat
+        pacman -Sy --noconfirm socat >/dev/null 2>&1
         ;;
-	opensuse-tumbleweed | opensuse-leap)
-        zypper refresh && zypper -q install -y socat
+    opensuse-tumbleweed | opensuse-leap)
+        zypper refresh >/dev/null 2>&1 && zypper -q install -y socat >/dev/null 2>&1
         ;;
     alpine)
-        apk add socat curl openssl
+        apk add socat curl openssl >/dev/null 2>&1
         ;;
     *)
-        echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-        exit 1
+        LOGW "Unsupported OS for automatic socat installation"
         ;;
     esac
     if [ $? -ne 0 ]; then
@@ -1110,7 +1331,22 @@ ssl_cert_issue() {
 
     # get the domain here, and we need to verify it
     local domain=""
-    read -rp "Please enter your domain name: " domain
+    while true; do
+        read -rp "Please enter your domain name: " domain
+        domain="${domain// /}"  # Trim whitespace
+        
+        if [[ -z "$domain" ]]; then
+            LOGE "Domain name cannot be empty. Please try again."
+            continue
+        fi
+        
+        if ! is_domain "$domain"; then
+            LOGE "Invalid domain format: ${domain}. Please enter a valid domain name."
+            continue
+        fi
+        
+        break
+    done
     LOGD "Your domain is: ${domain}, checking it..."
 
     # check if there already exists a certificate
@@ -1212,7 +1448,7 @@ ssl_cert_issue() {
         local webKeyFile="/root/cert/${domain}/privkey.pem"
 
         if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-            /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+            ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
             LOGI "Panel paths set for domain: $domain"
             LOGI "  - Certificate File: $webCertFile"
             LOGI "  - Private Key File: $webKeyFile"
@@ -1227,8 +1463,8 @@ ssl_cert_issue() {
 }
 
 ssl_cert_issue_CF() {
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     LOGI "****** Instructions for Use ******"
     LOGI "Follow the steps below to complete the process:"
     LOGI "1. Cloudflare Registered E-mail."
@@ -1352,7 +1588,7 @@ ssl_cert_issue_CF() {
             local webKeyFile="${certPath}/privkey.pem"
 
             if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
-                /usr/local/x-ui/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
+                ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
                 LOGI "Panel paths set for domain: $CF_Domain"
                 LOGI "  - Certificate File: $webCertFile"
                 LOGI "  - Private Key File: $webKeyFile"
@@ -1816,11 +2052,11 @@ SSH_port_forwarding() {
             break
         fi
     done
-    local existing_webBasePath=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
-    local existing_port=$(/usr/local/x-ui/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    local existing_listenIP=$(/usr/local/x-ui/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')
-    local existing_cert=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
-    local existing_key=$(/usr/local/x-ui/x-ui setting -getCert true | grep -Eo 'key: .+' | awk '{print $2}')
+    local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
+    local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
+    local existing_listenIP=$(${xui_folder}/x-ui setting -getListen true | grep -Eo 'listenIP: .+' | awk '{print $2}')
+    local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep -Eo 'cert: .+' | awk '{print $2}')
+    local existing_key=$(${xui_folder}/x-ui setting -getCert true | grep -Eo 'key: .+' | awk '{print $2}')
 
     local config_listenIP=""
     local listen_choice=""
@@ -1861,7 +2097,7 @@ SSH_port_forwarding() {
             config_listenIP="127.0.0.1"
             [[ "$listen_choice" == "2" ]] && read -rp "Enter custom IP to listen on: " config_listenIP
 
-            /usr/local/x-ui/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
+            ${xui_folder}/x-ui setting -listenIP "${config_listenIP}" >/dev/null 2>&1
             echo -e "${green}listen IP has been set to ${config_listenIP}.${plain}"
             echo -e "\n${green}SSH Port Forwarding Configuration:${plain}"
             echo -e "Standard SSH command:"
@@ -1877,7 +2113,7 @@ SSH_port_forwarding() {
         fi
         ;;
     2)
-        /usr/local/x-ui/x-ui setting -listenIP 0.0.0.0 >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -listenIP 0.0.0.0 >/dev/null 2>&1
         echo -e "${green}Listen IP has been cleared.${plain}"
         restart
         ;;

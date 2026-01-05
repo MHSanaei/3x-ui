@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Menonaktifkan kueri DNS fallback"
 "disableFallbackIfMatch" = "Nonaktifkan Fallback Jika Cocok"
 "disableFallbackIfMatchDesc" = "Menonaktifkan kueri DNS fallback ketika daftar domain yang cocok dari server DNS terpenuhi"
+"enableParallelQuery" = "Aktifkan Kueri Paralel"
+"enableParallelQueryDesc" = "Aktifkan kueri DNS paralel ke beberapa server untuk resolusi yang lebih cepat"
 "strategy" = "Strategi Kueri"
 "strategyDesc" = "Strategi keseluruhan untuk menyelesaikan nama domain"
 "add" = "Tambahkan Server"

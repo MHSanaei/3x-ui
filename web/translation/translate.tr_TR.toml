@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "Yedek DNS sorgularını devre dışı bırakır"
 "disableFallbackIfMatch" = "Eşleşirse Yedeklemeyi Devre Dışı Bırak"
 "disableFallbackIfMatchDesc" = "DNS sunucusunun eşleşen alan adı listesi vurulduğunda yedek DNS sorgularını devre dışı bırakır"
+"enableParallelQuery" = "Paralel Sorguyu Etkinleştir"
+"enableParallelQueryDesc" = "Daha hızlı çözümleme için birden fazla sunucuya paralel DNS sorgularını etkinleştir"
 "strategy" = "Sorgu Stratejisi"
 "strategyDesc" = "Alan adlarını çözmek için genel strateji"
 "add" = "Sunucu Ekle"

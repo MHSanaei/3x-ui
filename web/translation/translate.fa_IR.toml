@@ -544,6 +544,8 @@
 "disableFallbackDesc" = "درخواست‌های DNS Fallback را غیرفعال می‌کند"
 "disableFallbackIfMatch" = "غیرفعال‌سازی Fallback در صورت تطابق"
 "disableFallbackIfMatchDesc" = "درخواست‌های DNS Fallback را زمانی که لیست دامنه‌های مطابقت‌یافته سرور DNS فعال است، غیرفعال می‌کند"
+"enableParallelQuery" = "فعال‌سازی پرس‌وجوی موازی"
+"enableParallelQueryDesc" = "فعال‌سازی پرس‌وجوهای DNS موازی به چندین سرور برای وضوح سریع‌تر"
 "strategy" = "استراتژی پرس‌وجو"
 "strategyDesc" = "استراتژی کلی برای حل نام دامنه"
 "add" = "افزودن سرور"

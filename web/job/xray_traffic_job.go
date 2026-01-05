@@ -5,6 +5,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"github.com/valyala/fasthttp"
@@ -48,6 +49,23 @@ func (j *XrayTrafficJob) Run() {
 	if needRestart0 || needRestart1 {
 		j.xrayService.SetToNeedRestart()
 	}
+
+	// Get online clients and last online map for real-time status updates
+	onlineClients := j.inboundService.GetOnlineClients()
+	lastOnlineMap, err := j.inboundService.GetClientsLastOnline()
+	if err != nil {
+		logger.Warning("get clients last online failed:", err)
+		lastOnlineMap = make(map[string]int64)
+	}
+
+	// Broadcast traffic update via WebSocket
+	trafficUpdate := map[string]interface{}{
+		"traffics":       traffics,
+		"clientTraffics": clientTraffics,
+		"onlineClients":  onlineClients,
+		"lastOnlineMap":  lastOnlineMap,
+	}
+	websocket.BroadcastTraffic(trafficUpdate)
 }
 
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {
