@@ -181,6 +181,20 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
+	engine.Use(func(c *gin.Context) {
+		upgrade := c.GetHeader("Upgrade")
+		connection := c.GetHeader("Connection")
+		if upgrade != "" || connection != "" {
+			logger.Infof("ws-check path=%s upgrade=%q connection=%q ua=%q remote=%s",
+				c.Request.URL.Path,
+				upgrade,
+				connection,
+				c.GetHeader("User-Agent"),
+				c.ClientIP(),
+			)
+		}
+		c.Next()
+	})
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
