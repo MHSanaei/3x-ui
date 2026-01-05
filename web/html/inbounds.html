@@ -1608,24 +1608,9 @@
 
         // Listen for traffic updates
         window.wsClient.on('traffic', (payload) => {
-          if (payload && payload.clientTraffics && Array.isArray(payload.clientTraffics)) {
-            // Update client traffic statistics
-            payload.clientTraffics.forEach(clientTraffic => {
-              const dbInbound = this.dbInbounds.find(ib => {
-                if (!ib) return false;
-                const clients = this.getInboundClients(ib);
-                return clients && Array.isArray(clients) && clients.some(c => c && c.email === clientTraffic.email);
-              });
-              if (dbInbound && dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
-                const stats = dbInbound.clientStats.find(s => s && s.email === clientTraffic.email);
-                if (stats) {
-                  stats.up = clientTraffic.up || stats.up;
-                  stats.down = clientTraffic.down || stats.down;
-                  stats.total = clientTraffic.total || stats.total;
-                }
-              }
-            });
-          }
+          // Note: Do NOT update total consumed traffic (stats.up, stats.down) from this event
+          // because clientTraffics contains delta/incremental values, not total accumulated values.
+          // Total traffic is updated via the 'inbounds' event which contains accumulated values from database.
           
           // Update online clients list in real-time
           if (payload && Array.isArray(payload.onlineClients)) {
@@ -1644,8 +1629,6 @@
             this.lastOnlineMap = { ...this.lastOnlineMap, ...payload.lastOnlineMap };
           }
         });
-
-        // Notifications disabled - white notifications are not needed
 
         // Fallback to polling if WebSocket fails
         window.wsClient.on('error', () => {
