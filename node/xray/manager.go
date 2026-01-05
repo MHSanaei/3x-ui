@@ -5,11 +5,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/util/json_util"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
+
+// NodeStats represents traffic and online clients statistics from a node.
+type NodeStats struct {
+	Traffic       []*xray.Traffic       `json:"traffic"`
+	ClientTraffic []*xray.ClientTraffic `json:"clientTraffic"`
+	OnlineClients []string               `json:"onlineClients"`
+}
 
 // Manager manages the XRAY Core process lifecycle.
 type Manager struct {
@@ -20,7 +29,99 @@ type Manager struct {
 
 // NewManager creates a new XRAY manager instance.
 func NewManager() *Manager {
-	return &Manager{}
+	m := &Manager{}
+	// Try to load config from file on startup
+	m.LoadConfigFromFile()
+	return m
+}
+
+// LoadConfigFromFile attempts to load XRAY configuration from config.json file.
+// It checks multiple possible locations: bin/config.json, config/config.json, and ./config.json
+func (m *Manager) LoadConfigFromFile() error {
+	// Possible config file paths (in order of priority)
+	configPaths := []string{
+		"bin/config.json",
+		"config/config.json",
+		"./config.json",
+		"/app/bin/config.json",
+		"/app/config/config.json",
+	}
+
+	var configData []byte
+	var configPath string
+
+	// Try each path until we find a valid config file
+	for _, path := range configPaths {
+		if _, statErr := os.Stat(path); statErr == nil {
+			var readErr error
+			configData, readErr = os.ReadFile(path)
+			if readErr == nil {
+				configPath = path
+				break
+			}
+		}
+	}
+
+	// If no config file found, that's okay - node will wait for config from panel
+	if configPath == "" {
+		logger.Debug("No config.json found, node will wait for configuration from panel")
+		return nil
+	}
+
+	// Validate JSON
+	var configJSON json.RawMessage
+	if err := json.Unmarshal(configData, &configJSON); err != nil {
+		logger.Warningf("Config file %s contains invalid JSON: %v", configPath, err)
+		return fmt.Errorf("invalid JSON in config file: %w", err)
+	}
+
+	// Parse full config
+	var config xray.Config
+	if err := json.Unmarshal(configData, &config); err != nil {
+		logger.Warningf("Failed to parse config from %s: %v", configPath, err)
+		return fmt.Errorf("failed to parse config: %w", err)
+	}
+
+	// Check if API inbound exists, if not add it
+	hasAPIInbound := false
+	for _, inbound := range config.InboundConfigs {
+		if inbound.Tag == "api" {
+			hasAPIInbound = true
+			break
+		}
+	}
+
+	// If no API inbound found, add a default one
+	if !hasAPIInbound {
+		logger.Debug("No API inbound found in config, adding default API inbound")
+		apiInbound := xray.InboundConfig{
+			Tag:      "api",
+			Port:     62789, // Default API port
+			Protocol: "tunnel",
+			Listen:   json_util.RawMessage(`"127.0.0.1"`),
+			Settings: json_util.RawMessage(`{"address":"127.0.0.1"}`),
+		}
+		// Add API inbound at the beginning
+		config.InboundConfigs = append([]xray.InboundConfig{apiInbound}, config.InboundConfigs...)
+		// Update configData with the new inbound
+		configData, _ = json.MarshalIndent(&config, "", "  ")
+	}
+
+	// Check if config has inbounds (after adding API inbound)
+	if len(config.InboundConfigs) == 0 {
+		logger.Debug("Config file found but no inbounds configured, skipping XRAY start")
+		return nil
+	}
+
+	// Apply the loaded config (this will start XRAY)
+	logger.Infof("Loading XRAY configuration from %s", configPath)
+	if err := m.ApplyConfig(configData); err != nil {
+		logger.Errorf("Failed to apply config from file: %v", err)
+		return fmt.Errorf("failed to apply config: %w", err)
+	}
+
+	logger.Info("XRAY started successfully from config file")
+	return nil
 }
 
 // IsRunning returns true if XRAY is currently running.
@@ -123,4 +224,64 @@ func (m *Manager) Stop() error {
 	}
 
 	return m.process.Stop()
+}
+
+// GetStats returns traffic and online clients statistics from XRAY.
+func (m *Manager) GetStats(reset bool) (*NodeStats, error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	if m.process == nil || !m.process.IsRunning() {
+		return nil, errors.New("XRAY is not running")
+	}
+
+	// Get API port from process
+	apiPort := m.process.GetAPIPort()
+	if apiPort == 0 {
+		return nil, errors.New("XRAY API port is not available")
+	}
+
+	// Create XrayAPI instance and initialize
+	xrayAPI := &xray.XrayAPI{}
+	if err := xrayAPI.Init(apiPort); err != nil {
+		return nil, fmt.Errorf("failed to initialize XrayAPI: %w", err)
+	}
+	defer xrayAPI.Close()
+
+	// Get traffic statistics
+	traffics, clientTraffics, err := xrayAPI.GetTraffic(reset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get traffic: %w", err)
+	}
+
+	// Get online clients from process
+	onlineClients := m.process.GetOnlineClients()
+
+	// Also check online clients from traffic (clients with traffic > 0)
+	onlineFromTraffic := make(map[string]bool)
+	for _, ct := range clientTraffics {
+		if ct.Up+ct.Down > 0 {
+			onlineFromTraffic[ct.Email] = true
+		}
+	}
+
+	// Merge online clients
+	onlineSet := make(map[string]bool)
+	for _, email := range onlineClients {
+		onlineSet[email] = true
+	}
+	for email := range onlineFromTraffic {
+		onlineSet[email] = true
+	}
+
+	onlineList := make([]string, 0, len(onlineSet))
+	for email := range onlineSet {
+		onlineList = append(onlineList, email)
+	}
+
+	return &NodeStats{
+		Traffic:       traffics,
+		ClientTraffic: clientTraffics,
+		OnlineClients: onlineList,
+	}, nil
 }

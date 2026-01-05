@@ -317,7 +317,21 @@ func (s *XrayService) restartXrayMultiMode(isForce bool) error {
 
 		// Build config for this node
 		nodeConfig := *baseConfig
+		// Preserve API inbound from template (if exists)
+		apiInbound := xray.InboundConfig{}
+		hasAPIInbound := false
+		for _, inbound := range baseConfig.InboundConfigs {
+			if inbound.Tag == "api" {
+				apiInbound = inbound
+				hasAPIInbound = true
+				break
+			}
+		}
 		nodeConfig.InboundConfigs = []xray.InboundConfig{}
+		// Add API inbound first if it exists
+		if hasAPIInbound {
+			nodeConfig.InboundConfigs = append(nodeConfig.InboundConfigs, apiInbound)
+		}
 
 		for _, inbound := range inbounds {
 			// Process clients (same logic as GetXrayConfig)

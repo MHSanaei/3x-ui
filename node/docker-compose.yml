@@ -12,10 +12,10 @@ services:
       - "8080:8080"
       - "44000:44000"
     volumes:
-      - ./config:/app/config
+      - ./bin/config.json:/app/bin/config.json
       - ./logs:/app/logs
-      # Note: ./bin volume is removed to preserve xray binary from image
-      # If you need to persist bin directory, use a different path or copy files manually
+      # Note: config.json is mounted directly for persistence
+      # If the file doesn't exist, it will be created when XRAY config is first applied
     networks:
       - xray-network
   node2:
@@ -31,10 +31,10 @@ services:
       - "8081:8080"
       - "44001:44000"
     volumes:
-      - ./config:/app/config
+      - ./bin/config.json:/app/bin/config.json
       - ./logs:/app/logs
-      # Note: ./bin volume is removed to preserve xray binary from image
-      # If you need to persist bin directory, use a different path or copy files manually
+      # Note: config.json is mounted directly for persistence
+      # If the file doesn't exist, it will be created when XRAY config is first applied
     networks:
       - xray-network
 
@@ -51,10 +51,10 @@ services:
       - "8082:8080"
       - "44002:44000"
     volumes:
-      - ./config:/app/config
+      - ./bin/config.json:/app/bin/config.json
       - ./logs:/app/logs
-      # Note: ./bin volume is removed to preserve xray binary from image
-      # If you need to persist bin directory, use a different path or copy files manually
+      # Note: config.json is mounted directly for persistence
+      # If the file doesn't exist, it will be created when XRAY config is first applied
     networks:
       - xray-network
 networks:

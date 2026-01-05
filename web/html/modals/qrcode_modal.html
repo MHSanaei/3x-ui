@@ -124,12 +124,25 @@
           });
         });
       } else {
-        this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
+        const links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client);
+        const hasMultipleNodes = links.length > 1 && links.some(l => l.nodeId !== null);
+        
+        links.forEach(l => {
+          // Use node name if multiple nodes, otherwise use remark
+          let displayRemark = l.remark;
+          if (hasMultipleNodes && l.nodeId !== null) {
+            const node = app.availableNodes && app.availableNodes.find(n => n.id === l.nodeId);
+            if (node && node.name) {
+              displayRemark = node.name;
+            }
+          }
+          
           this.qrcodes.push({
-            remark: l.remark,
+            remark: displayRemark,
             link: l.link,
             useIPv4: false,
-            originalLink: l.link
+            originalLink: l.link,
+            nodeId: l.nodeId
           });
         });
       }

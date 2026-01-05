@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
 // NodeService provides business logic for managing nodes in multi-node mode.
@@ -159,6 +161,183 @@ func (s *NodeService) GetInboundsForNode(nodeId int) ([]*model.Inbound, error) {
 		}
 	}
 	return inbounds, nil
+}
+
+// NodeStatsResponse represents the response from node stats API.
+type NodeStatsResponse struct {
+	Traffic       []*NodeTraffic       `json:"traffic"`
+	ClientTraffic []*NodeClientTraffic `json:"clientTraffic"`
+	OnlineClients []string              `json:"onlineClients"`
+}
+
+// NodeTraffic represents traffic statistics from a node.
+type NodeTraffic struct {
+	IsInbound  bool   `json:"isInbound"`
+	IsOutbound bool   `json:"isOutbound"`
+	Tag        string `json:"tag"`
+	Up         int64  `json:"up"`
+	Down       int64  `json:"down"`
+}
+
+// NodeClientTraffic represents client traffic statistics from a node.
+type NodeClientTraffic struct {
+	Email string `json:"email"`
+	Up    int64  `json:"up"`
+	Down  int64  `json:"down"`
+}
+
+// GetNodeStats retrieves traffic and online clients statistics from a node.
+func (s *NodeService) GetNodeStats(node *model.Node, reset bool) (*NodeStatsResponse, error) {
+	client := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/stats", node.Address)
+	if reset {
+		url += "?reset=true"
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+node.ApiKey)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to request node stats: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("node returned status code %d: %s", resp.StatusCode, string(body))
+	}
+
+	var stats NodeStatsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &stats, nil
+}
+
+// CollectNodeStats collects statistics from all nodes and aggregates them into the database.
+// This should be called periodically (e.g., via cron job).
+func (s *NodeService) CollectNodeStats() error {
+	// Check if multi-node mode is enabled
+	settingService := SettingService{}
+	multiMode, err := settingService.GetMultiNodeMode()
+	if err != nil || !multiMode {
+		return nil // Skip if multi-node mode is not enabled
+	}
+
+	nodes, err := s.GetAllNodes()
+	if err != nil {
+		return fmt.Errorf("failed to get nodes: %w", err)
+	}
+
+	if len(nodes) == 0 {
+		return nil // No nodes to collect stats from
+	}
+
+	// Filter nodes: only collect stats from nodes that have assigned inbounds
+	nodesWithInbounds := make([]*model.Node, 0)
+	for _, node := range nodes {
+		inbounds, err := s.GetInboundsForNode(node.Id)
+		if err == nil && len(inbounds) > 0 {
+			// Only include nodes that have at least one assigned inbound
+			nodesWithInbounds = append(nodesWithInbounds, node)
+		}
+	}
+
+	if len(nodesWithInbounds) == 0 {
+		return nil // No nodes with assigned inbounds
+	}
+
+	// Import inbound service to aggregate traffic
+	inboundService := &InboundService{}
+
+	// Collect stats from nodes with assigned inbounds concurrently
+	type nodeStatsResult struct {
+		node  *model.Node
+		stats *NodeStatsResponse
+		err   error
+	}
+
+	results := make(chan nodeStatsResult, len(nodesWithInbounds))
+	for _, node := range nodesWithInbounds {
+		go func(n *model.Node) {
+			stats, err := s.GetNodeStats(n, false) // Don't reset counters on collection
+			results <- nodeStatsResult{node: n, stats: stats, err: err}
+		}(node)
+	}
+
+	// Aggregate all traffic
+	allTraffics := make([]*xray.Traffic, 0)
+	allClientTraffics := make([]*xray.ClientTraffic, 0)
+	onlineClientsMap := make(map[string]bool)
+
+	for i := 0; i < len(nodesWithInbounds); i++ {
+		result := <-results
+		if result.err != nil {
+			// Check if error is expected (XRAY not running, 404 for old nodes, etc.)
+			errMsg := result.err.Error()
+			if strings.Contains(errMsg, "XRAY is not running") || 
+			   strings.Contains(errMsg, "status code 404") ||
+			   strings.Contains(errMsg, "status code 500") {
+				// These are expected errors, log as debug only
+				logger.Debugf("Skipping stats collection from node %s (ID: %d): %v", result.node.Name, result.node.Id, result.err)
+			} else {
+				// Unexpected errors should be logged as warning
+				logger.Warningf("Failed to get stats from node %s (ID: %d): %v", result.node.Name, result.node.Id, result.err)
+			}
+			continue
+		}
+
+		if result.stats == nil {
+			continue
+		}
+
+		// Convert node traffic to xray.Traffic
+		for _, nt := range result.stats.Traffic {
+			allTraffics = append(allTraffics, &xray.Traffic{
+				IsInbound:  nt.IsInbound,
+				IsOutbound: nt.IsOutbound,
+				Tag:        nt.Tag,
+				Up:         nt.Up,
+				Down:       nt.Down,
+			})
+		}
+
+		// Convert node client traffic to xray.ClientTraffic
+		for _, nct := range result.stats.ClientTraffic {
+			allClientTraffics = append(allClientTraffics, &xray.ClientTraffic{
+				Email: nct.Email,
+				Up:    nct.Up,
+				Down:  nct.Down,
+			})
+		}
+
+		// Collect online clients
+		for _, email := range result.stats.OnlineClients {
+			onlineClientsMap[email] = true
+		}
+	}
+
+	// Aggregate traffic into database
+	if len(allTraffics) > 0 || len(allClientTraffics) > 0 {
+		_, needRestart := inboundService.AddTraffic(allTraffics, allClientTraffics)
+		if needRestart {
+			logger.Info("Traffic aggregation triggered client renewal/disabling, restart may be needed")
+		}
+	}
+
+	logger.Debugf("Collected stats from nodes: %d traffics, %d client traffics, %d online clients",
+		len(allTraffics), len(allClientTraffics), len(onlineClientsMap))
+
+	return nil
 }
 
 // AssignInboundToNode assigns an inbound to a node.

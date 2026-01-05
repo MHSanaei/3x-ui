@@ -5,27 +5,76 @@
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' nodes-page'">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
-    <a-layout-content>
-      <a-card>
-        <h2>Nodes Management</h2>
-        
-        <div style="margin-bottom: 20px;">
-          <h3>Add New Node</h3>
-          <a-input id="node-name" placeholder="Node Name" style="width: 200px; margin-right: 10px;"></a-input>
-          <a-input id="node-address" placeholder="http://192.168.1.100:8080" style="width: 300px; margin-right: 10px;"></a-input>
-          <a-input-password id="node-apikey" placeholder="API Key" style="width: 200px; margin-right: 10px;"></a-input-password>
-          <a-button type="primary" onclick="addNode()">Add Node</a-button>
-        </div>
+    <a-layout-content :style="{ padding: '24px 16px' }">
+      <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
+        <a-col>
+          <a-card size="small" :style="{ padding: '16px' }" hoverable>
+            <h2>Nodes Management</h2>
+            
+            <div style="margin-bottom: 20px;">
+              <h3>Add New Node</h3>
+              <a-input id="node-name" placeholder='{{ i18n "pages.nodes.nodeName" }}' style="width: 200px; margin-right: 10px;"></a-input>
+              <a-input id="node-address" placeholder='{{ i18n "pages.nodes.nodeAddress" }} (http://192.168.1.100)' style="width: 250px; margin-right: 10px;"></a-input>
+              <a-input id="node-port" placeholder='{{ i18n "pages.nodes.nodePort" }} (8080)' type="number" style="width: 120px; margin-right: 10px;"></a-input>
+              <a-input-password id="node-apikey" placeholder='{{ i18n "pages.nodes.nodeApiKey" }}' style="width: 200px; margin-right: 10px;"></a-input-password>
+              <a-button type="primary" onclick="addNode()">{{ i18n "pages.nodes.addNode" }}</a-button>
+            </div>
 
-        <div style="margin-bottom: 20px;">
-          <a-button onclick="loadNodes()">Refresh</a-button>
-          <a-button onclick="checkAllNodes()" style="margin-left: 10px;">Check All</a-button>
-        </div>
+            <div style="margin-bottom: 20px;">
+              <a-button icon="sync" @click="loadNodes" :loading="refreshing">{{ i18n "refresh" }}</a-button>
+              <a-button icon="check-circle" @click="checkAllNodes" :loading="checkingAll" style="margin-left: 10px;">{{ i18n "pages.nodes.checkAll" }}</a-button>
+            </div>
 
-        <div id="nodes-list">
-          <a-spin tip="Loading..."></a-spin>
-        </div>
-      </a-card>
+            <a-table :columns="isMobile ? mobileColumns : columns" :row-key="node => node.id"
+              :data-source="nodes" :scroll="isMobile ? {} : { x: 1000 }"
+              :pagination="false"
+              :style="{ marginTop: '10px' }"
+              class="nodes-table"
+              :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
+          <template slot="action" slot-scope="text, node">
+            <a-dropdown :trigger="['click']">
+              <a-icon @click="e => e.preventDefault()" type="more"
+                :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
+              <a-menu slot="overlay" @click="a => clickAction(a, node)"
+                :theme="themeSwitcher.currentTheme">
+                <a-menu-item key="check">
+                  <a-icon type="check-circle"></a-icon>
+                  {{ i18n "pages.nodes.check" }}
+                </a-menu-item>
+                <a-menu-item key="edit">
+                  <a-icon type="edit"></a-icon>
+                  {{ i18n "edit" }}
+                </a-menu-item>
+                <a-menu-item key="delete" :style="{ color: '#FF4D4F' }">
+                  <a-icon type="delete"></a-icon>
+                  {{ i18n "delete" }}
+                </a-menu-item>
+              </a-menu>
+            </a-dropdown>
+          </template>
+          <template slot="status" slot-scope="text, node">
+            <a-tag :color="getStatusColor(node.status)">
+              [[ node.status || 'unknown' ]]
+            </a-tag>
+          </template>
+          <template slot="inbounds" slot-scope="text, node">
+            <template v-if="node.inbounds && node.inbounds.length > 0">
+              <a-tag v-for="(inbound, index) in node.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+              </a-tag>
+            </template>
+            <a-tag v-else color="default">{{ i18n "none" }}</a-tag>
+          </template>
+            </a-table>
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-row v-else>
+        <a-card
+          :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+          <a-spin tip='{{ i18n "loading" }}'></a-spin>
+        </a-card>
+      </a-row>
     </a-layout-content>
   </a-layout>
 </a-layout>
@@ -34,188 +83,343 @@
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 <script>
+  const columns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+    responsive: ["xs"],
+  }, {
+    title: '{{ i18n "pages.nodes.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.nodes.name" }}',
+    align: 'left',
+    width: 120,
+    dataIndex: "name",
+  }, {
+    title: '{{ i18n "pages.nodes.address" }}',
+    align: 'left',
+    width: 200,
+    dataIndex: "address",
+  }, {
+    title: '{{ i18n "pages.nodes.status" }}',
+    align: 'center',
+    width: 80,
+    scopedSlots: { customRender: 'status' },
+  }, {
+    title: '{{ i18n "pages.nodes.assignedInbounds" }}',
+    align: 'left',
+    width: 300,
+    scopedSlots: { customRender: 'inbounds' },
+  }];
+
+  const mobileColumns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+    responsive: ["s"],
+  }, {
+    title: '{{ i18n "pages.nodes.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.nodes.name" }}',
+    align: 'left',
+    width: 100,
+    dataIndex: "name",
+  }, {
+    title: '{{ i18n "pages.nodes.status" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'status' },
+  }];
+
   const app = new Vue({
     delimiters: ['[[', ']]'],
     el: '#app',
     mixins: [MediaQueryMixin],
     data: {
-      themeSwitcher
+      themeSwitcher,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
+      nodes: [],
+      refreshing: false,
+      checkingAll: false,
+    },
+    methods: {
+      async loadNodes() {
+        this.refreshing = true;
+        try {
+          const msg = await HttpUtil.get('/panel/node/list');
+          if (msg && msg.success && msg.obj) {
+            this.nodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name || '',
+              address: node.address || '',
+              status: node.status || 'unknown',
+              inbounds: node.inbounds || []
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to load nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+        } finally {
+          this.refreshing = false;
+          this.loadingStates.fetched = true;
+        }
+      },
+      getStatusColor(status) {
+        switch (status) {
+          case 'online':
+            return 'green';
+          case 'offline':
+            return 'orange';
+          case 'error':
+            return 'red';
+          default:
+            return 'default';
+        }
+      },
+      clickAction(action, node) {
+        switch (action.key) {
+          case 'check':
+            this.checkNode(node.id);
+            break;
+          case 'edit':
+            this.editNode(node);
+            break;
+          case 'delete':
+            this.deleteNode(node.id);
+            break;
+        }
+      },
+      async checkNode(id) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/check/${id}`);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.checkSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.checkError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to check node:", e);
+          app.$message.error('{{ i18n "pages.nodes.checkError" }}');
+        }
+      },
+      async checkAllNodes() {
+        this.checkingAll = true;
+        try {
+          const msg = await HttpUtil.post('/panel/node/checkAll');
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.checkingAll" }}');
+            setTimeout(() => {
+              this.loadNodes();
+            }, 2000);
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.checkError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to check all nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.checkError" }}');
+        } finally {
+          this.checkingAll = false;
+        }
+      },
+      async deleteNode(id) {
+        this.$confirm({
+          title: '{{ i18n "pages.nodes.deleteConfirm" }}',
+          content: '{{ i18n "pages.nodes.deleteConfirmText" }}',
+          okText: '{{ i18n "sure" }}',
+          okType: 'danger',
+          cancelText: '{{ i18n "close" }}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post(`/panel/node/del/${id}`);
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.nodes.deleteSuccess" }}');
+                await this.loadNodes();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "pages.nodes.deleteError" }}');
+              }
+            } catch (e) {
+              console.error("Failed to delete node:", e);
+              app.$message.error('{{ i18n "pages.nodes.deleteError" }}');
+            }
+          }
+        });
+      },
+      editNode(node) {
+        // Parse existing address
+        let existingAddress = node.address || '';
+        let existingPort = '';
+        try {
+          const url = new URL(existingAddress);
+          existingAddress = `${url.protocol}//${url.hostname}`;
+          existingPort = url.port || '';
+        } catch (e) {
+          // If parsing fails, try to extract manually
+          const match = existingAddress.match(/^(https?:\/\/[^:]+)(?::(\d+))?/);
+          if (match) {
+            existingAddress = match[1];
+            existingPort = match[2] || '';
+          }
+        }
+        
+        const newName = prompt('{{ i18n "pages.nodes.nodeName" }}:', node.name || '');
+        if (newName === null) return;
+        
+        const newAddress = prompt('{{ i18n "pages.nodes.nodeAddress" }}:', existingAddress);
+        if (newAddress === null) return;
+        
+        const newPort = prompt('{{ i18n "pages.nodes.nodePort" }}:', existingPort);
+        if (newPort === null) return;
+        
+        const newApiKey = prompt('{{ i18n "pages.nodes.nodeApiKey" }} ({{ i18n "pages.nodes.leaveEmptyToKeep" }}):', '');
+        
+        // Validate address format
+        if (!newAddress.match(/^https?:\/\//)) {
+          app.$message.error('{{ i18n "pages.nodes.validUrl" }}');
+          return;
+        }
+        
+        // Validate port
+        const portNum = parseInt(newPort);
+        if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+          app.$message.error('{{ i18n "pages.nodes.validPort" }}');
+          return;
+        }
+        
+        // Construct full address
+        const fullAddress = `${newAddress}:${newPort}`;
+        
+        // Check for duplicate nodes (excluding current node)
+        const existingNodes = this.nodes || [];
+        const duplicate = existingNodes.find(n => {
+          if (n.id === node.id) return false; // Skip current node
+          try {
+            const nodeUrl = new URL(n.address);
+            const newUrl = new URL(fullAddress);
+            // Compare protocol, hostname, and port
+            return nodeUrl.protocol === newUrl.protocol && 
+                   nodeUrl.hostname === newUrl.hostname && 
+                   (nodeUrl.port || (nodeUrl.protocol === 'https:' ? '443' : '80')) === 
+                   (newUrl.port || (newUrl.protocol === 'https:' ? '443' : '80'));
+          } catch (e) {
+            // If URL parsing fails, do simple string comparison
+            return n.address === fullAddress;
+          }
+        });
+        
+        if (duplicate) {
+          app.$message.error('{{ i18n "pages.nodes.duplicateNode" }}');
+          return;
+        }
+        
+        const nodeData = {
+          name: newName.trim(),
+          address: fullAddress
+        };
+        
+        if (newApiKey !== null && newApiKey.trim() !== '') {
+          nodeData.apiKey = newApiKey.trim();
+        }
+        
+        this.updateNode(node.id, nodeData);
+      },
+      async updateNode(id, nodeData) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/update/${id}`, nodeData);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.updateError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to update node:", e);
+          app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+        }
+      }
+    },
+    async mounted() {
+      await this.loadNodes();
     }
   });
 
-  async function loadNodes() {
-    const listDiv = document.getElementById('nodes-list');
-    listDiv.innerHTML = '<a-spin tip="Loading..."></a-spin>';
-    
-    try {
-      const response = await fetch('/panel/node/list');
-      const data = await response.json();
-      
-      if (data.success && data.obj) {
-        let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr><th style="border: 1px solid #ddd; padding: 8px;">ID</th><th style="border: 1px solid #ddd; padding: 8px;">Name</th><th style="border: 1px solid #ddd; padding: 8px;">Address</th><th style="border: 1px solid #ddd; padding: 8px;">Status</th><th style="border: 1px solid #ddd; padding: 8px;">Assigned Inbounds</th><th style="border: 1px solid #ddd; padding: 8px;">Actions</th></tr></thead><tbody>';
-        
-        data.obj.forEach(node => {
-          const status = node.status || 'unknown';
-          const statusColor = status === 'online' ? 'green' : status === 'offline' ? 'red' : 'gray';
-          
-          // Format assigned inbounds
-          let inboundsText = 'None';
-          if (node.inbounds && node.inbounds.length > 0) {
-            inboundsText = node.inbounds.map(inbound => {
-              const remark = inbound.remark || `Port ${inbound.port}`;
-              return `${remark} (ID: ${inbound.id})`;
-            }).join(', ');
-          }
-          
-          html += `<tr>
-            <td style="border: 1px solid #ddd; padding: 8px;">${node.id}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${node.name || ''}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">${node.address || ''}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor};">${status}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; max-width: 300px; word-wrap: break-word;">${inboundsText}</td>
-            <td style="border: 1px solid #ddd; padding: 8px;">
-              <button onclick="checkNode(${node.id})" style="margin-right: 5px;">Check</button>
-              <button onclick="editNode(${node.id}, '${(node.name || '').replace(/'/g, "\\'")}', '${(node.address || '').replace(/'/g, "\\'")}')" style="margin-right: 5px;">Edit</button>
-              <button onclick="deleteNode(${node.id})" style="color: red;">Delete</button>
-            </td>
-          </tr>`;
-        });
-        
-        html += '</tbody></table>';
-        listDiv.innerHTML = html;
-      } else {
-        listDiv.innerHTML = '<p>No nodes found</p>';
-      }
-    } catch (error) {
-      listDiv.innerHTML = '<p style="color: red;">Error loading nodes: ' + error.message + '</p>';
-      console.error('Error:', error);
-    }
-  }
-
   async function addNode() {
-    const name = document.getElementById('node-name').value;
-    const address = document.getElementById('node-address').value;
+    const name = document.getElementById('node-name').value.trim();
+    const address = document.getElementById('node-address').value.trim();
+    const port = document.getElementById('node-port').value.trim();
     const apiKey = document.getElementById('node-apikey').value;
     
-    if (!name || !address || !apiKey) {
-      alert('Please fill all fields');
+    if (!name || !address || !port || !apiKey) {
+      app.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
+      return;
+    }
+    
+    // Validate address format
+    if (!address.match(/^https?:\/\//)) {
+      app.$message.error('{{ i18n "pages.nodes.validUrl" }}');
+      return;
+    }
+    
+    // Validate port
+    const portNum = parseInt(port);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      app.$message.error('{{ i18n "pages.nodes.validPort" }}');
+      return;
+    }
+    
+    // Construct full address
+    const fullAddress = `${address}:${port}`;
+    
+    // Check for duplicate nodes
+    const existingNodes = app.$data.nodes || [];
+    const duplicate = existingNodes.find(node => {
+      try {
+        const nodeUrl = new URL(node.address);
+        const newUrl = new URL(fullAddress);
+        // Compare protocol, hostname, and port
+        const nodePort = nodeUrl.port || (nodeUrl.protocol === 'https:' ? '443' : '80');
+        const newPort = newUrl.port || (newUrl.protocol === 'https:' ? '443' : '80');
+        return nodeUrl.protocol === newUrl.protocol && 
+               nodeUrl.hostname === newUrl.hostname && 
+               nodePort === newPort;
+      } catch (e) {
+        // If URL parsing fails, do simple string comparison
+        return node.address === fullAddress;
+      }
+    });
+    
+    if (duplicate) {
+      app.$message.error('{{ i18n "pages.nodes.duplicateNode" }}');
       return;
     }
     
     try {
-      const response = await fetch('/panel/node/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, address, apiKey })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        alert('Node added successfully');
+      const msg = await HttpUtil.post('/panel/node/add', { name, address: fullAddress, apiKey });
+      if (msg.success) {
+        app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
         document.getElementById('node-name').value = '';
         document.getElementById('node-address').value = '';
+        document.getElementById('node-port').value = '';
         document.getElementById('node-apikey').value = '';
-        loadNodes();
+        app.loadNodes();
       } else {
-        alert('Error: ' + (data.msg || 'Failed to add node'));
+        app.$message.error(msg.msg || '{{ i18n "pages.nodes.addError" }}');
       }
     } catch (error) {
-      alert('Error: ' + error.message);
       console.error('Error:', error);
+      app.$message.error('{{ i18n "pages.nodes.addError" }}');
     }
-  }
-
-  async function checkNode(id) {
-    try {
-      const response = await fetch(`/panel/node/check/${id}`, { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        alert('Node checked');
-        loadNodes();
-      } else {
-        alert('Error: ' + (data.msg || 'Failed to check node'));
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-      console.error('Error:', error);
-    }
-  }
-
-  async function checkAllNodes() {
-    try {
-      const response = await fetch('/panel/node/checkAll', { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        alert('Checking all nodes...');
-        setTimeout(loadNodes, 2000);
-      } else {
-        alert('Error: ' + (data.msg || 'Failed to check nodes'));
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-      console.error('Error:', error);
-    }
-  }
-
-  async function deleteNode(id) {
-    if (!confirm('Are you sure you want to delete this node?')) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`/panel/node/del/${id}`, { method: 'POST' });
-      const data = await response.json();
-      if (data.success) {
-        alert('Node deleted');
-        loadNodes();
-      } else {
-        alert('Error: ' + (data.msg || 'Failed to delete node'));
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-      console.error('Error:', error);
-    }
-  }
-
-  async function editNode(id, name, address) {
-    const newName = prompt('Enter new name:', name);
-    if (newName === null) return;
-    
-    const newAddress = prompt('Enter new address:', address);
-    if (newAddress === null) return;
-    
-    const apiKey = prompt('Enter API Key (leave empty to keep current):');
-    
-    const data = { name: newName, address: newAddress };
-    if (apiKey) {
-      data.apiKey = apiKey;
-    }
-    
-    try {
-      const response = await fetch(`/panel/node/update/${id}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      
-      const result = await response.json();
-      if (result.success) {
-        alert('Node updated');
-        loadNodes();
-      } else {
-        alert('Error: ' + (result.msg || 'Failed to update node'));
-      }
-    } catch (error) {
-      alert('Error: ' + error.message);
-      console.error('Error:', error);
-    }
-  }
-
-  // Load nodes on page load
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadNodes);
-  } else {
-    loadNodes();
   }
 </script>
 {{template "page/body_end" .}}

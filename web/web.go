@@ -343,8 +343,10 @@ func (s *Server) startTask() {
 		s.cron.AddJob(runtime, j)
 	}
 
-	// Node health check job (every 5 minutes)
-	s.cron.AddJob("@every 5m", job.NewCheckNodeHealthJob())
+	// Node health check job (every 10 seconds)
+	s.cron.AddJob("@every 10s", job.NewCheckNodeHealthJob())
+	// Collect node statistics (traffic and online clients) every 30 seconds
+	s.cron.AddJob("@every 30s", job.NewCollectNodeStatsJob())
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID

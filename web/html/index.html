@@ -78,6 +78,19 @@
                   </a-row>
                 </a-card>
               </a-col>
+              <a-col v-if="multiNodeMode" :sm="24" :lg="12">
+                <a-card hoverable>
+                  <a-row :gutter="[0, isMobile ? 16 : 0]">
+                    <a-col :span="24" class="text-center">
+                      <a-progress type="dashboard" status="normal" :stroke-color="status.nodesColor"
+                        :percent="status.nodesPercent"></a-progress>
+                      <div>
+                        <b>{{ i18n "pages.index.nodesAvailability" }}:</b> [[ status.nodes.online ]] / [[ status.nodes.total ]]
+                      </div>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
               <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <template #title>
@@ -685,6 +698,7 @@
       this.appStats = { threads: 0, mem: 0, uptime: 0 };
 
       this.xray = { state: 'stop', stateMsg: "", errorMsg: "", version: "", color: "" };
+      this.nodes = { online: 0, total: 0 };
 
       if (data == null) {
         return;
@@ -707,6 +721,11 @@
       this.appUptime = data.appUptime;
       this.appStats = data.appStats;
       this.xray = data.xray;
+      if (data.nodes) {
+        this.nodes = { online: data.nodes.online || 0, total: data.nodes.total || 0 };
+      } else {
+        this.nodes = { online: 0, total: 0 };
+      }
       switch (this.xray.state) {
         case 'running':
           this.xray.color = "green";
@@ -724,6 +743,24 @@
           this.xray.color = "gray";
           this.xray.stateMsg = '{{ i18n "pages.index.xrayStatusUnknown" }}';
           break;
+      }
+    }
+    
+    get nodesPercent() {
+      if (this.nodes.total === 0) {
+        return 0;
+      }
+      return NumberFormatter.toFixed(this.nodes.online / this.nodes.total * 100, 2);
+    }
+    
+    get nodesColor() {
+      const percent = this.nodesPercent;
+      if (percent === 100) {
+        return '#008771'; // Green
+      } else if (percent >= 50) {
+        return "#f37b24"; // Orange
+      } else {
+        return "#cf3c3c"; // Red
       }
     }
   }
@@ -895,11 +932,22 @@
       showAlert: false,
       showIp: false,
       ipLimitEnable: false,
+      multiNodeMode: false,
     },
     methods: {
       loading(spinning, tip = '{{ i18n "loading"}}') {
         this.loadingStates.spinning = spinning;
         this.loadingTip = tip;
+      },
+      async loadMultiNodeMode() {
+        try {
+          const msg = await HttpUtil.post("/panel/setting/all");
+          if (msg && msg.success && msg.obj) {
+            this.multiNodeMode = Boolean(msg.obj.multiNodeMode) || false;
+          }
+        } catch (e) {
+          console.warn("Failed to load multi-node mode:", e);
+        }
       },
       async getStatus() {
         try {
@@ -1126,6 +1174,9 @@
       if (msg.success) {
         this.ipLimitEnable = msg.obj.ipLimitEnable;
       }
+
+      // Load multi-node mode setting
+      await this.loadMultiNodeMode();
 
       // Initial status fetch
       await this.getStatus();

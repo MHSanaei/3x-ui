@@ -1684,6 +1684,40 @@ class Inbound extends XrayCommonClass {
         return addresses;
     }
     
+    // Get node addresses with their IDs - returns array of {address, nodeId}
+    getNodeAddressesWithIds() {
+        // Check if we have nodeIds and availableNodes
+        if (!this.nodeIds || !Array.isArray(this.nodeIds) || this.nodeIds.length === 0) {
+            return [];
+        }
+        
+        // Try to get availableNodes from global app object
+        let availableNodes = null;
+        if (typeof app !== 'undefined' && app.availableNodes) {
+            availableNodes = app.availableNodes;
+        } else if (typeof window !== 'undefined' && window.app && window.app.availableNodes) {
+            availableNodes = window.app.availableNodes;
+        }
+        
+        if (!availableNodes || availableNodes.length === 0) {
+            return [];
+        }
+        
+        // Get addresses with node IDs for all node IDs
+        const result = [];
+        for (const nodeId of this.nodeIds) {
+            const node = availableNodes.find(n => n.id === nodeId);
+            if (node && node.address) {
+                const host = this.extractNodeHost(node.address);
+                if (host) {
+                    result.push({ address: host, nodeId: nodeId });
+                }
+            }
+        }
+        
+        return result;
+    }
+    
     // Get first node address (for backward compatibility)
     getNodeAddress() {
         const addresses = this.getNodeAddresses();
@@ -1694,17 +1728,17 @@ class Inbound extends XrayCommonClass {
         let result = [];
         let email = client ? client.email : '';
         
-        // Get all node addresses
-        const nodeAddresses = this.getNodeAddresses();
+        // Get all node addresses with their IDs
+        const nodeAddressesWithIds = this.getNodeAddressesWithIds();
         
         // Determine addresses to use
-        let addresses = [];
-        if (nodeAddresses.length > 0) {
-            addresses = nodeAddresses;
+        let addressesWithIds = [];
+        if (nodeAddressesWithIds.length > 0) {
+            addressesWithIds = nodeAddressesWithIds;
         } else if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
-            addresses = [this.listen];
+            addressesWithIds = [{ address: this.listen, nodeId: null }];
         } else {
-            addresses = [location.hostname];
+            addressesWithIds = [{ address: location.hostname, nodeId: null }];
         }
         
         let port = this.port;
@@ -1718,11 +1752,12 @@ class Inbound extends XrayCommonClass {
         
         if (ObjectUtil.isArrEmpty(this.stream.externalProxy)) {
             // Generate links for each node address
-            addresses.forEach((addr) => {
+            addressesWithIds.forEach((addrInfo) => {
                 let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
-                    link: this.genLink(addr, port, 'same', r, client)
+                    link: this.genLink(addrInfo.address, port, 'same', r, client),
+                    nodeId: addrInfo.nodeId
                 });
             });
         } else {
@@ -1732,7 +1767,8 @@ class Inbound extends XrayCommonClass {
                 let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
-                    link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client)
+                    link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client),
+                    nodeId: null
                 });
             });
         }

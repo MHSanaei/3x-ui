@@ -46,6 +46,7 @@ func (s *Server) Start() error {
 		api.POST("/apply-config", s.applyConfig)
 		api.POST("/reload", s.reload)
 		api.GET("/status", s.status)
+		api.GET("/stats", s.stats)
 	}
 
 	s.httpServer = &http.Server{
@@ -146,4 +147,19 @@ func (s *Server) reload(c *gin.Context) {
 func (s *Server) status(c *gin.Context) {
 	status := s.xrayManager.GetStatus()
 	c.JSON(http.StatusOK, status)
+}
+
+// stats returns traffic and online clients statistics from XRAY.
+func (s *Server) stats(c *gin.Context) {
+	// Get reset parameter (default: false)
+	reset := c.DefaultQuery("reset", "false") == "true"
+
+	stats, err := s.xrayManager.GetStats(reset)
+	if err != nil {
+		logger.Errorf("Failed to get stats: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
 }

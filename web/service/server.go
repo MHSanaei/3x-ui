@@ -92,6 +92,10 @@ type Status struct {
 		Mem     uint64 `json:"mem"`
 		Uptime  uint64 `json:"uptime"`
 	} `json:"appStats"`
+	Nodes struct {
+		Online int `json:"online"`
+		Total  int `json:"total"`
+	} `json:"nodes"`
 }
 
 // Release represents information about a software release from GitHub.
@@ -412,6 +416,32 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.AppStats.Uptime = p.GetUptime()
 	} else {
 		status.AppStats.Uptime = 0
+	}
+
+	// Node statistics (only if multi-node mode is enabled)
+	settingService := SettingService{}
+	allSetting, err := settingService.GetAllSetting()
+	if err == nil && allSetting != nil && allSetting.MultiNodeMode {
+		nodeService := NodeService{}
+		nodes, err := nodeService.GetAllNodes()
+		if err == nil {
+			status.Nodes.Total = len(nodes)
+			onlineCount := 0
+			for _, node := range nodes {
+				if node.Status == "online" {
+					onlineCount++
+				}
+			}
+			status.Nodes.Online = onlineCount
+		} else {
+			// If error getting nodes, set to 0
+			status.Nodes.Total = 0
+			status.Nodes.Online = 0
+		}
+	} else {
+		// If multi-node mode is disabled, set to 0
+		status.Nodes.Total = 0
+		status.Nodes.Online = 0
 	}
 
 	return status
