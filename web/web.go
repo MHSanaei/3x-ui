@@ -181,20 +181,6 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
-	engine.Use(func(c *gin.Context) {
-		upgrade := c.GetHeader("Upgrade")
-		connection := c.GetHeader("Connection")
-		if upgrade != "" || connection != "" {
-			logger.Infof("ws-check path=%s upgrade=%q connection=%q ua=%q remote=%s",
-				c.Request.URL.Path,
-				upgrade,
-				connection,
-				c.GetHeader("User-Agent"),
-				c.ClientIP(),
-			)
-		}
-		c.Next()
-	})
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
@@ -214,7 +200,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{basePath + "panel/api/"})))
+	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{
+		basePath + "panel/api/",
+		basePath + "ws",
+	})))
 	assetsBasePath := basePath + "assets/"
 
 	store := cookie.NewStore(secret)
