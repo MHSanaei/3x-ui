@@ -69,12 +69,19 @@ func initDefaultBackend() logging.Backend {
 		includeTime = true
 	} else {
 		// Unix-like: Try syslog, fallback to stderr
-		if syslogBackend, err := logging.NewSyslogBackend(""); err != nil {
-			fmt.Fprintf(os.Stderr, "syslog backend disabled: %v\n", err)
-			backend = logging.NewLogBackend(os.Stderr, "", 0)
-			includeTime = os.Getppid() > 0
-		} else {
+		// Try syslog with "x-ui" tag first
+		if syslogBackend, err := logging.NewSyslogBackend("x-ui"); err == nil {
 			backend = syslogBackend
+		} else {
+			// Try with empty tag as fallback
+			if syslogBackend2, err2 := logging.NewSyslogBackend(""); err2 == nil {
+				backend = syslogBackend2
+			} else {
+				// Syslog unavailable - use stderr (normal in containers/Docker)
+				// In containers, syslog is often not configured - this is normal and expected
+				backend = logging.NewLogBackend(os.Stderr, "", 0)
+				includeTime = os.Getppid() > 0
+			}
 		}
 	}
 

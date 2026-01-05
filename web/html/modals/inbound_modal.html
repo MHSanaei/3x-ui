@@ -22,11 +22,13 @@
         show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => { }, isEdit = false }) {
             this.title = title;
             this.okText = okText;
+            
             if (inbound) {
                 this.inbound = Inbound.fromJson(inbound.toJson());
             } else {
                 this.inbound = new Inbound();
             }
+            
             // Always ensure testseed is initialized for VLESS protocol (even if vision flow is not set yet)
             // This ensures Vue reactivity works properly
             if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings) {
@@ -35,14 +37,42 @@
                     this.inbound.settings.testseed = [900, 500, 900, 256].slice();
                 }
             }
+            
             if (dbInbound) {
                 this.dbInbound = new DBInbound(dbInbound);
             } else {
                 this.dbInbound = new DBInbound();
             }
+            
+            // Set nodeIds - ensure it's always an array for Vue reactivity
+            let nodeIdsToSet = [];
+            if (dbInbound) {
+                const dbInboundObj = new DBInbound(dbInbound);
+                if (dbInboundObj.nodeIds && Array.isArray(dbInboundObj.nodeIds) && dbInboundObj.nodeIds.length > 0) {
+                    nodeIdsToSet = dbInboundObj.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+                } else if (dbInboundObj.nodeId !== null && dbInboundObj.nodeId !== undefined) {
+                    const nodeId = typeof dbInboundObj.nodeId === 'string' ? parseInt(dbInboundObj.nodeId, 10) : dbInboundObj.nodeId;
+                    if (!isNaN(nodeId) && nodeId > 0) {
+                        nodeIdsToSet = [nodeId];
+                    }
+                }
+            } else if (inbound && inbound.nodeIds && Array.isArray(inbound.nodeIds)) {
+                // Use nodeIds from inbound if dbInbound is not provided
+                nodeIdsToSet = inbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+            }
+            
+            // Set nodeIds directly first
+            this.inbound.nodeIds = nodeIdsToSet;
+            
             this.confirm = confirm;
             this.visible = true;
             this.isEdit = isEdit;
+            
+            // Ensure Vue reactivity - inModal is in Vue's data, so we can use $set on inModal.inbound
+            if (inboundModalVueInstance && inboundModalVueInstance.$set) {
+                // Use $set to ensure Vue tracks nodeIds property on the inbound object
+                inboundModalVueInstance.$set(inModal.inbound, 'nodeIds', nodeIdsToSet);
+            }
         },
         close() {
             inModal.visible = false;
@@ -107,6 +137,12 @@
             },
             get datepicker() {
                 return app.datepicker;
+            },
+            get multiNodeMode() {
+                return app && (app.multiNodeMode || (app.allSetting && app.allSetting.multiNodeMode)) || false;
+            },
+            get availableNodes() {
+                return app && app.availableNodes || [];
             },
             get delayedExpireDays() {
                 return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;

@@ -146,7 +146,33 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="6" header='LDAP'>
+    <a-collapse-panel key="6" header='Multi-Node Mode'>
+        <a-setting-list-item paddings="small">
+            <template #title>Multi-Node Mode</template>
+            <template #description>Enable distributed architecture with separate worker nodes. When enabled, XRAY Core runs on nodes instead of locally.</template>
+            <template #control>
+                <a-switch v-model="allSetting.multiNodeMode" @change="(enabled) => onMultiNodeModeChange(enabled)"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-alert v-if="allSetting.multiNodeMode" type="info" :style="{ marginTop: '10px' }" show-icon>
+            <template slot="message">
+                Multi-Node Mode Enabled
+            </template>
+            <template slot="description">
+                <div>In this mode:</div>
+                <ul style="margin: 8px 0 0 20px; padding: 0;">
+                    <li>XRAY Core will not run locally</li>
+                    <li>Configurations will be sent to worker nodes</li>
+                    <li>You need to assign inbounds to nodes</li>
+                    <li>Subscriptions will use node endpoints</li>
+                </ul>
+                <div style="margin-top: 8px;">
+                    <a-button type="link" size="small" @click="goToNodes">Go to Nodes Management</a-button>
+                </div>
+            </template>
+        </a-alert>
+    </a-collapse-panel>
+    <a-collapse-panel key="7" header='LDAP'>
         <a-setting-list-item paddings="small">
             <template #title>Enable LDAP sync</template>
             <template #control>

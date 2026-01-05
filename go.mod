@@ -1,5 +1,9 @@
 module github.com/mhsanaei/3x-ui/v2
 
+// Local development - use local files instead of GitHub
+// These replace directives ensure we use local code during development
+// Remove these when changes are pushed to GitHub
+
 go 1.25.5
 
 require (
@@ -101,3 +105,8 @@ require (
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+// Local development - use local files instead of GitHub
+// This ensures we use local code during development
+// Remove this when changes are pushed to GitHub
+replace github.com/mhsanaei/3x-ui/v2 => ./

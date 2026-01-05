@@ -72,10 +72,24 @@ class AllSetting {
         this.ldapDefaultExpiryDays = 0;
         this.ldapDefaultLimitIP = 0;
 
+        // Multi-node mode settings
+        this.multiNodeMode = false; // Multi-node mode setting
+
         if (data == null) {
             return
         }
         ObjectUtil.cloneProps(this, data);
+        
+        // Ensure multiNodeMode is boolean (handle string "true"/"false" from backend)
+        if (this.multiNodeMode !== undefined && this.multiNodeMode !== null) {
+            if (typeof this.multiNodeMode === 'string') {
+                this.multiNodeMode = this.multiNodeMode === 'true' || this.multiNodeMode === '1';
+            } else {
+                this.multiNodeMode = Boolean(this.multiNodeMode);
+            }
+        } else {
+            this.multiNodeMode = false;
+        }
     }
 
     equals(other) {

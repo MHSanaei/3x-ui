@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
@@ -106,9 +107,11 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
+		logger.Errorf("Failed to bind inbound data: %v", err)
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), err)
 		return
 	}
+	
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
@@ -119,9 +122,49 @@ func (a *InboundController) addInbound(c *gin.Context) {
 
 	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
 	if err != nil {
+		logger.Errorf("Failed to add inbound: %v", err)
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+
+	// Handle node assignment in multi-node mode
+	nodeService := service.NodeService{}
+	
+	// Get nodeIds from form (array format: nodeIds=1&nodeIds=2)
+	nodeIdsStr := c.PostFormArray("nodeIds")
+	logger.Debugf("Received nodeIds from form: %v", nodeIdsStr)
+	
+	// Check if nodeIds array was provided (even if empty)
+	nodeIdStr := c.PostForm("nodeId")
+	if len(nodeIdsStr) > 0 || nodeIdStr != "" {
+		// Multi-node mode: parse nodeIds array
+		nodeIds := make([]int, 0)
+		for _, idStr := range nodeIdsStr {
+			if idStr != "" {
+				if id, err := strconv.Atoi(idStr); err == nil && id > 0 {
+					nodeIds = append(nodeIds, id)
+				}
+			}
+		}
+		
+		if len(nodeIds) > 0 {
+			// Assign to multiple nodes
+			if err := nodeService.AssignInboundToNodes(inbound.Id, nodeIds); err != nil {
+				logger.Errorf("Failed to assign inbound %d to nodes %v: %v", inbound.Id, nodeIds, err)
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+		} else if nodeIdStr != "" && nodeIdStr != "null" {
+			// Backward compatibility: single nodeId
+			nodeId, err := strconv.Atoi(nodeIdStr)
+			if err == nil && nodeId > 0 {
+				if err := nodeService.AssignInboundToNode(inbound.Id, nodeId); err != nil {
+					logger.Warningf("Failed to assign inbound %d to node %d: %v", inbound.Id, nodeId, err)
+				}
+			}
+		}
+	}
+
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -160,19 +203,87 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
+	
+	// Get nodeIds from form BEFORE binding to avoid conflict with ShouldBind
+	// Get nodeIds from form (array format: nodeIds=1&nodeIds=2)
+	nodeIdsStr := c.PostFormArray("nodeIds")
+	logger.Debugf("Received nodeIds from form: %v (count: %d)", nodeIdsStr, len(nodeIdsStr))
+	
+	// Check if nodeIds array was provided
+	nodeIdStr := c.PostForm("nodeId")
+	logger.Debugf("Received nodeId from form: %s", nodeIdStr)
+	
+	// Check if nodeIds or nodeId was explicitly provided in the form
+	_, hasNodeIds := c.GetPostForm("nodeIds")
+	_, hasNodeId := c.GetPostForm("nodeId")
+	logger.Debugf("Form has nodeIds: %v, has nodeId: %v", hasNodeIds, hasNodeId)
+	
 	inbound := &model.Inbound{
 		Id: id,
 	}
+	// Bind inbound data (nodeIds will be ignored since we handle it separately)
 	err = c.ShouldBind(inbound)
 	if err != nil {
+		logger.Errorf("Failed to bind inbound data: %v", err)
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
 	inbound, needRestart, err := a.inboundService.UpdateInbound(inbound)
 	if err != nil {
+		logger.Errorf("Failed to update inbound: %v", err)
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+
+	// Handle node assignment in multi-node mode
+	nodeService := service.NodeService{}
+	
+	if hasNodeIds || hasNodeId {
+		// Multi-node mode: parse nodeIds array
+		nodeIds := make([]int, 0)
+		for _, idStr := range nodeIdsStr {
+			if idStr != "" {
+				if id, err := strconv.Atoi(idStr); err == nil && id > 0 {
+					nodeIds = append(nodeIds, id)
+				} else {
+					logger.Warningf("Invalid nodeId in array: %s (error: %v)", idStr, err)
+				}
+			}
+		}
+		
+		logger.Debugf("Parsed nodeIds: %v", nodeIds)
+		
+		if len(nodeIds) > 0 {
+			// Assign to multiple nodes
+			if err := nodeService.AssignInboundToNodes(inbound.Id, nodeIds); err != nil {
+				logger.Errorf("Failed to assign inbound %d to nodes %v: %v", inbound.Id, nodeIds, err)
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+			logger.Debugf("Successfully assigned inbound %d to nodes %v", inbound.Id, nodeIds)
+		} else if nodeIdStr != "" && nodeIdStr != "null" {
+			// Backward compatibility: single nodeId
+			nodeId, err := strconv.Atoi(nodeIdStr)
+			if err == nil && nodeId > 0 {
+				if err := nodeService.AssignInboundToNode(inbound.Id, nodeId); err != nil {
+					logger.Warningf("Failed to assign inbound %d to node %d: %v", inbound.Id, nodeId, err)
+				} else {
+					logger.Debugf("Successfully assigned inbound %d to node %d", inbound.Id, nodeId)
+				}
+			} else {
+				logger.Warningf("Invalid nodeId: %s (error: %v)", nodeIdStr, err)
+			}
+		} else if hasNodeIds {
+			// nodeIds was explicitly provided but is empty - unassign all
+			if err := nodeService.UnassignInboundFromNode(inbound.Id); err != nil {
+				logger.Warningf("Failed to unassign inbound %d from nodes: %v", inbound.Id, err)
+			} else {
+				logger.Debugf("Successfully unassigned inbound %d from all nodes", inbound.Id)
+			}
+		}
+		// If neither nodeIds nor nodeId was provided, don't change assignments
+	}
+
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -367,7 +478,8 @@ func (a *InboundController) delDepletedClients(c *gin.Context) {
 
 // onlines retrieves the list of currently online clients.
 func (a *InboundController) onlines(c *gin.Context) {
-	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
+	clients := a.inboundService.GetOnlineClients()
+	jsonObj(c, clients, nil)
 }
 
 // lastOnline retrieves the last online timestamps for clients.

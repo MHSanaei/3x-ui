@@ -43,7 +43,29 @@
     Vue.component('a-sidebar', {
         data() {
             return {
-                tabs: [
+                tabs: [],
+                activeTab: [
+                    '{{ .request_uri }}'
+                ],
+                visible: false,
+                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
+                multiNodeMode: false
+            }
+        },
+        methods: {
+            async loadMultiNodeMode() {
+                try {
+                    const msg = await HttpUtil.post("/panel/setting/all");
+                    if (msg && msg.success && msg.obj) {
+                        this.multiNodeMode = msg.obj.multiNodeMode || false;
+                        this.updateTabs();
+                    }
+                } catch (e) {
+                    console.warn("Failed to load multi-node mode:", e);
+                }
+            },
+            updateTabs() {
+                this.tabs = [
                     {
                         key: '{{ .base_path }}panel/',
                         icon: 'dashboard',
@@ -63,21 +85,24 @@
                         key: '{{ .base_path }}panel/xray',
                         icon: 'tool',
                         title: '{{ i18n "menu.xray"}}'
-                    },
-                    {
-                        key: '{{ .base_path }}logout/',
-                        icon: 'logout',
-                        title: '{{ i18n "menu.logout"}}'
-                    },
-                ],
-                activeTab: [
-                    '{{ .request_uri }}'
-                ],
-                visible: false,
-                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
-            }
-        },
-        methods: {
+                    }
+                ];
+                
+                // Add Nodes menu item if multi-node mode is enabled
+                if (this.multiNodeMode) {
+                    this.tabs.splice(3, 0, {
+                        key: '{{ .base_path }}panel/nodes',
+                        icon: 'cluster',
+                        title: '{{ i18n "menu.nodes"}}'
+                    });
+                }
+                
+                this.tabs.push({
+                    key: '{{ .base_path }}logout/',
+                    icon: 'logout',
+                    title: '{{ i18n "menu.logout"}}'
+                });
+            },
             openLink(key) {
                 return key.startsWith('http') ? 
                     window.open(key) : 
@@ -96,6 +121,14 @@
                     this.collapsed = JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY));
                 }
             }
+        },
+        mounted() {
+            this.updateTabs();
+            this.loadMultiNodeMode();
+            // Watch for multi-node mode changes
+            setInterval(() => {
+                this.loadMultiNodeMode();
+            }, 5000);
         },
         template: `{{template "component/sidebar/content"}}`,
     });

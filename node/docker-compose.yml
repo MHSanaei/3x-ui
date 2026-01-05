@@ -1,0 +1,62 @@
+services:
+  node:
+    build:
+      context: ..
+      dockerfile: node/Dockerfile
+    container_name: 3x-ui-node
+    restart: unless-stopped
+    environment:
+#      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
+      - NODE_API_KEY=test-key
+    ports:
+      - "8080:8080"
+      - "44000:44000"
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      # Note: ./bin volume is removed to preserve xray binary from image
+      # If you need to persist bin directory, use a different path or copy files manually
+    networks:
+      - xray-network
+  node2:
+    build:
+      context: ..
+      dockerfile: node/Dockerfile
+    container_name: 3x-ui-node2
+    restart: unless-stopped
+    environment:
+#      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
+      - NODE_API_KEY=test-key
+    ports:
+      - "8081:8080"
+      - "44001:44000"
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      # Note: ./bin volume is removed to preserve xray binary from image
+      # If you need to persist bin directory, use a different path or copy files manually
+    networks:
+      - xray-network
+
+  node3:
+    build:
+      context: ..
+      dockerfile: node/Dockerfile
+    container_name: 3x-ui-node3
+    restart: unless-stopped
+    environment:
+#      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
+      - NODE_API_KEY=test-key
+    ports:
+      - "8082:8080"
+      - "44002:44000"
+    volumes:
+      - ./config:/app/config
+      - ./logs:/app/logs
+      # Note: ./bin volume is removed to preserve xray binary from image
+      # If you need to persist bin directory, use a different path or copy files manually
+    networks:
+      - xray-network
+networks:
+  xray-network:
+    driver: bridge

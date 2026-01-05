@@ -343,6 +343,9 @@ func (s *Server) startTask() {
 		s.cron.AddJob(runtime, j)
 	}
 
+	// Node health check job (every 5 minutes)
+	s.cron.AddJob("@every 5m", job.NewCheckNodeHealthJob())
+
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()

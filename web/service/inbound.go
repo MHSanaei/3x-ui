@@ -35,8 +35,26 @@ func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return nil, err
 	}
-	// Enrich client stats with UUID/SubId from inbound settings
+	
+	// Enrich with node assignments
+	nodeService := NodeService{}
 	for _, inbound := range inbounds {
+		// Load all nodes for this inbound
+		nodes, err := nodeService.GetNodesForInbound(inbound.Id)
+		if err == nil && len(nodes) > 0 {
+			nodeIds := make([]int, len(nodes))
+			for i, node := range nodes {
+				nodeIds[i] = node.Id
+			}
+			inbound.NodeIds = nodeIds
+			// Don't set nodeId - it's deprecated and causes confusion
+			// nodeId is only for backward compatibility when receiving data from old clients
+		} else {
+			// Ensure empty array if no nodes assigned
+			inbound.NodeIds = []int{}
+		}
+		
+		// Enrich client stats with UUID/SubId from inbound settings
 		clients, _ := s.GetClients(inbound)
 		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
 			continue
@@ -347,6 +365,13 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	
+	// Delete node mappings for this inbound (cascade delete)
+	err = db.Where("inbound_id = ?", id).Delete(&model.InboundNodeMapping{}).Error
+	if err != nil {
+		return false, err
+	}
+	
 	inbound, err := s.GetInbound(id)
 	if err != nil {
 		return false, err
@@ -372,6 +397,23 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 	if err != nil {
 		return nil, err
 	}
+	
+	// Enrich with node assignments
+	nodeService := NodeService{}
+	nodes, err := nodeService.GetNodesForInbound(inbound.Id)
+	if err == nil && len(nodes) > 0 {
+		nodeIds := make([]int, len(nodes))
+		for i, node := range nodes {
+			nodeIds[i] = node.Id
+		}
+		inbound.NodeIds = nodeIds
+		// Don't set nodeId - it's deprecated and causes confusion
+		// nodeId is only for backward compatibility when receiving data from old clients
+	} else {
+		// Ensure empty array if no nodes assigned
+		inbound.NodeIds = []int{}
+	}
+	
 	return inbound, nil
 }
 
@@ -1055,7 +1097,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	}
 
 	// Set onlineUsers
-	p.SetOnlineClients(onlineClients)
+	if p != nil {
+		p.SetOnlineClients(onlineClients)
+	}
 
 	err = tx.Save(dbClientTraffics).Error
 	if err != nil {
@@ -2329,6 +2373,9 @@ func (s *InboundService) MigrateDB() {
 }
 
 func (s *InboundService) GetOnlineClients() []string {
+	if p == nil {
+		return []string{}
+	}
 	return p.GetOnlineClients()
 }
 

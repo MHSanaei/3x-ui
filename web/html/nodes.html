@@ -1,0 +1,221 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' nodes-page'">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content>
+      <a-card>
+        <h2>Nodes Management</h2>
+        
+        <div style="margin-bottom: 20px;">
+          <h3>Add New Node</h3>
+          <a-input id="node-name" placeholder="Node Name" style="width: 200px; margin-right: 10px;"></a-input>
+          <a-input id="node-address" placeholder="http://192.168.1.100:8080" style="width: 300px; margin-right: 10px;"></a-input>
+          <a-input-password id="node-apikey" placeholder="API Key" style="width: 200px; margin-right: 10px;"></a-input-password>
+          <a-button type="primary" onclick="addNode()">Add Node</a-button>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <a-button onclick="loadNodes()">Refresh</a-button>
+          <a-button onclick="checkAllNodes()" style="margin-left: 10px;">Check All</a-button>
+        </div>
+
+        <div id="nodes-list">
+          <a-spin tip="Loading..."></a-spin>
+        </div>
+      </a-card>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+{{template "page/body_scripts" .}}
+<script src="{{ .base_path }}assets/js/model/node.js?{{ .cur_ver }}"></script>
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+<script>
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    mixins: [MediaQueryMixin],
+    data: {
+      themeSwitcher
+    }
+  });
+
+  async function loadNodes() {
+    const listDiv = document.getElementById('nodes-list');
+    listDiv.innerHTML = '<a-spin tip="Loading..."></a-spin>';
+    
+    try {
+      const response = await fetch('/panel/node/list');
+      const data = await response.json();
+      
+      if (data.success && data.obj) {
+        let html = '<table style="width: 100%; border-collapse: collapse;"><thead><tr><th style="border: 1px solid #ddd; padding: 8px;">ID</th><th style="border: 1px solid #ddd; padding: 8px;">Name</th><th style="border: 1px solid #ddd; padding: 8px;">Address</th><th style="border: 1px solid #ddd; padding: 8px;">Status</th><th style="border: 1px solid #ddd; padding: 8px;">Assigned Inbounds</th><th style="border: 1px solid #ddd; padding: 8px;">Actions</th></tr></thead><tbody>';
+        
+        data.obj.forEach(node => {
+          const status = node.status || 'unknown';
+          const statusColor = status === 'online' ? 'green' : status === 'offline' ? 'red' : 'gray';
+          
+          // Format assigned inbounds
+          let inboundsText = 'None';
+          if (node.inbounds && node.inbounds.length > 0) {
+            inboundsText = node.inbounds.map(inbound => {
+              const remark = inbound.remark || `Port ${inbound.port}`;
+              return `${remark} (ID: ${inbound.id})`;
+            }).join(', ');
+          }
+          
+          html += `<tr>
+            <td style="border: 1px solid #ddd; padding: 8px;">${node.id}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${node.name || ''}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">${node.address || ''}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; color: ${statusColor};">${status}</td>
+            <td style="border: 1px solid #ddd; padding: 8px; max-width: 300px; word-wrap: break-word;">${inboundsText}</td>
+            <td style="border: 1px solid #ddd; padding: 8px;">
+              <button onclick="checkNode(${node.id})" style="margin-right: 5px;">Check</button>
+              <button onclick="editNode(${node.id}, '${(node.name || '').replace(/'/g, "\\'")}', '${(node.address || '').replace(/'/g, "\\'")}')" style="margin-right: 5px;">Edit</button>
+              <button onclick="deleteNode(${node.id})" style="color: red;">Delete</button>
+            </td>
+          </tr>`;
+        });
+        
+        html += '</tbody></table>';
+        listDiv.innerHTML = html;
+      } else {
+        listDiv.innerHTML = '<p>No nodes found</p>';
+      }
+    } catch (error) {
+      listDiv.innerHTML = '<p style="color: red;">Error loading nodes: ' + error.message + '</p>';
+      console.error('Error:', error);
+    }
+  }
+
+  async function addNode() {
+    const name = document.getElementById('node-name').value;
+    const address = document.getElementById('node-address').value;
+    const apiKey = document.getElementById('node-apikey').value;
+    
+    if (!name || !address || !apiKey) {
+      alert('Please fill all fields');
+      return;
+    }
+    
+    try {
+      const response = await fetch('/panel/node/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, address, apiKey })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        alert('Node added successfully');
+        document.getElementById('node-name').value = '';
+        document.getElementById('node-address').value = '';
+        document.getElementById('node-apikey').value = '';
+        loadNodes();
+      } else {
+        alert('Error: ' + (data.msg || 'Failed to add node'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      console.error('Error:', error);
+    }
+  }
+
+  async function checkNode(id) {
+    try {
+      const response = await fetch(`/panel/node/check/${id}`, { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        alert('Node checked');
+        loadNodes();
+      } else {
+        alert('Error: ' + (data.msg || 'Failed to check node'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      console.error('Error:', error);
+    }
+  }
+
+  async function checkAllNodes() {
+    try {
+      const response = await fetch('/panel/node/checkAll', { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        alert('Checking all nodes...');
+        setTimeout(loadNodes, 2000);
+      } else {
+        alert('Error: ' + (data.msg || 'Failed to check nodes'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      console.error('Error:', error);
+    }
+  }
+
+  async function deleteNode(id) {
+    if (!confirm('Are you sure you want to delete this node?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/panel/node/del/${id}`, { method: 'POST' });
+      const data = await response.json();
+      if (data.success) {
+        alert('Node deleted');
+        loadNodes();
+      } else {
+        alert('Error: ' + (data.msg || 'Failed to delete node'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      console.error('Error:', error);
+    }
+  }
+
+  async function editNode(id, name, address) {
+    const newName = prompt('Enter new name:', name);
+    if (newName === null) return;
+    
+    const newAddress = prompt('Enter new address:', address);
+    if (newAddress === null) return;
+    
+    const apiKey = prompt('Enter API Key (leave empty to keep current):');
+    
+    const data = { name: newName, address: newAddress };
+    if (apiKey) {
+      data.apiKey = apiKey;
+    }
+    
+    try {
+      const response = await fetch(`/panel/node/update/${id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        alert('Node updated');
+        loadNodes();
+      } else {
+        alert('Error: ' + (result.msg || 'Failed to update node'));
+      }
+    } catch (error) {
+      alert('Error: ' + error.message);
+      console.error('Error:', error);
+    }
+  }
+
+  // Load nodes on page load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadNodes);
+  } else {
+    loadNodes();
+  }
+</script>
+{{template "page/body_end" .}}

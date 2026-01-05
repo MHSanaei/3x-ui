@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
+	service "github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,6 +41,8 @@ func NewSUBController(
 	subTitle string,
 ) *SUBController {
 	sub := NewSubService(showInfo, rModel)
+	// Initialize NodeService for multi-node support
+	sub.nodeService = service.NodeService{}
 	a := &SUBController{
 		subTitle:       subTitle,
 		subPath:        subPath,

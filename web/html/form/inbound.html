@@ -31,6 +31,26 @@
         <a-input-number v-model.number="inbound.port" :min="1" :max="65535"></a-input-number>
     </a-form-item>
 
+    <a-form-item v-if="multiNodeMode" label="Nodes">
+        <template slot="extra">
+            <a-tooltip>
+                <template slot="title">
+                    Select worker nodes where this inbound will run. You can select multiple nodes. Only available in multi-node mode.
+                </template>
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-select v-model="inbound.nodeIds" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" 
+            placeholder="Select nodes (optional)" allow-clear>
+            <a-select-option v-for="node in availableNodes" :key="node.id" :value="node.id">
+                [[ node.name ]] <a-tag :color="node.status === 'online' ? 'green' : 'red'" size="small" style="margin-left: 8px;">[[ node.status ]]</a-tag>
+            </a-select-option>
+        </a-select>
+        <div v-if="availableNodes.length === 0" style="margin-top: 4px; color: #ff4d4f; font-size: 12px;">
+            No nodes available. Please add nodes first.
+        </div>
+    </a-form-item>
+
     <a-form-item>
         <template slot="label">
             <a-tooltip>

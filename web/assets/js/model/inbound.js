@@ -1075,6 +1075,8 @@ class Inbound extends XrayCommonClass {
         this.tag = tag;
         this.sniffing = sniffing;
         this.clientStats = clientStats;
+        this.nodeIds = []; // Node IDs array for multi-node mode
+        this.nodeId = null; // Backward compatibility
     }
     getClientStats() {
         return this.clientStats;
@@ -1638,10 +1640,73 @@ class Inbound extends XrayCommonClass {
         }
     }
 
+    // Extract node host from node address (e.g., "http://192.168.1.100:8080" -> "192.168.1.100")
+    extractNodeHost(nodeAddress) {
+        if (!nodeAddress) return '';
+        // Remove protocol prefix
+        let address = nodeAddress.replace(/^https?:\/\//, '');
+        // Extract host (remove port if present)
+        const parts = address.split(':');
+        return parts[0] || address;
+    }
+    
+    // Get node addresses from nodeIds - returns array of all node addresses
+    getNodeAddresses() {
+        // Check if we have nodeIds and availableNodes
+        if (!this.nodeIds || !Array.isArray(this.nodeIds) || this.nodeIds.length === 0) {
+            return [];
+        }
+        
+        // Try to get availableNodes from global app object
+        let availableNodes = null;
+        if (typeof app !== 'undefined' && app.availableNodes) {
+            availableNodes = app.availableNodes;
+        } else if (typeof window !== 'undefined' && window.app && window.app.availableNodes) {
+            availableNodes = window.app.availableNodes;
+        }
+        
+        if (!availableNodes || availableNodes.length === 0) {
+            return [];
+        }
+        
+        // Get addresses for all node IDs
+        const addresses = [];
+        for (const nodeId of this.nodeIds) {
+            const node = availableNodes.find(n => n.id === nodeId);
+            if (node && node.address) {
+                const host = this.extractNodeHost(node.address);
+                if (host) {
+                    addresses.push(host);
+                }
+            }
+        }
+        
+        return addresses;
+    }
+    
+    // Get first node address (for backward compatibility)
+    getNodeAddress() {
+        const addresses = this.getNodeAddresses();
+        return addresses.length > 0 ? addresses[0] : null;
+    }
+    
     genAllLinks(remark = '', remarkModel = '-ieo', client) {
         let result = [];
         let email = client ? client.email : '';
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        
+        // Get all node addresses
+        const nodeAddresses = this.getNodeAddresses();
+        
+        // Determine addresses to use
+        let addresses = [];
+        if (nodeAddresses.length > 0) {
+            addresses = nodeAddresses;
+        } else if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
+            addresses = [this.listen];
+        } else {
+            addresses = [location.hostname];
+        }
+        
         let port = this.port;
         const separationChar = remarkModel.charAt(0);
         const orderChars = remarkModel.slice(1);
@@ -1650,13 +1715,18 @@ class Inbound extends XrayCommonClass {
             'e': email,
             'o': '',
         };
+        
         if (ObjectUtil.isArrEmpty(this.stream.externalProxy)) {
-            let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
-            result.push({
-                remark: r,
-                link: this.genLink(addr, port, 'same', r, client)
+            // Generate links for each node address
+            addresses.forEach((addr) => {
+                let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
+                result.push({
+                    remark: r,
+                    link: this.genLink(addr, port, 'same', r, client)
+                });
             });
         } else {
+            // External proxy takes precedence
             this.stream.externalProxy.forEach((ep) => {
                 orders['o'] = ep.remark;
                 let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
@@ -1670,7 +1740,18 @@ class Inbound extends XrayCommonClass {
     }
 
     genInboundLinks(remark = '', remarkModel = '-ieo') {
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        // Get all node addresses
+        const nodeAddresses = this.getNodeAddresses();
+        
+        // Determine addresses to use
+        let addresses = [];
+        if (nodeAddresses.length > 0) {
+            addresses = nodeAddresses;
+        } else if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
+            addresses = [this.listen];
+        } else {
+            addresses = [location.hostname];
+        }
         if (this.clients) {
             let links = [];
             this.clients.forEach((client) => {
@@ -1680,11 +1761,20 @@ class Inbound extends XrayCommonClass {
             });
             return links.join('\r\n');
         } else {
-            if (this.protocol == Protocols.SHADOWSOCKS && !this.isSSMultiUser) return this.genSSLink(addr, this.port, 'same', remark);
+            if (this.protocol == Protocols.SHADOWSOCKS && !this.isSSMultiUser) {
+                // Generate links for each node address
+                let links = [];
+                addresses.forEach((addr) => {
+                    links.push(this.genSSLink(addr, this.port, 'same', remark));
+                });
+                return links.join('\r\n');
+            }
             if (this.protocol == Protocols.WIREGUARD) {
                 let links = [];
-                this.settings.peers.forEach((p, index) => {
-                    links.push(this.getWireguardLink(addr, this.port, remark + remarkModel.charAt(0) + (index + 1), index));
+                addresses.forEach((addr) => {
+                    this.settings.peers.forEach((p, index) => {
+                        links.push(this.getWireguardLink(addr, this.port, remark + remarkModel.charAt(0) + (index + 1), index));
+                    });
                 });
                 return links.join('\r\n');
             }
@@ -1693,7 +1783,7 @@ class Inbound extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        return new Inbound(
+        const inbound = new Inbound(
             json.port,
             json.listen,
             json.protocol,
@@ -1702,7 +1792,14 @@ class Inbound extends XrayCommonClass {
             json.tag,
             Sniffing.fromJson(json.sniffing),
             json.clientStats
-        )
+        );
+        // Restore nodeIds if present
+        if (json.nodeIds && Array.isArray(json.nodeIds)) {
+            inbound.nodeIds = json.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id);
+        } else if (json.nodeId !== null && json.nodeId !== undefined) {
+            inbound.nodeIds = [typeof json.nodeId === 'string' ? parseInt(json.nodeId, 10) : json.nodeId];
+        }
+        return inbound;
     }
 
     toJson() {
@@ -1710,7 +1807,7 @@ class Inbound extends XrayCommonClass {
         if (this.canEnableStream() || this.stream?.sockopt) {
             streamSettings = this.stream.toJson();
         }
-        return {
+        const result = {
             port: this.port,
             listen: this.listen,
             protocol: this.protocol,
@@ -1720,6 +1817,11 @@ class Inbound extends XrayCommonClass {
             sniffing: this.sniffing.toJson(),
             clientStats: this.clientStats
         };
+        // Include nodeIds if present
+        if (this.nodeIds && Array.isArray(this.nodeIds) && this.nodeIds.length > 0) {
+            result.nodeIds = this.nodeIds;
+        }
+        return result;
     }
 }
 

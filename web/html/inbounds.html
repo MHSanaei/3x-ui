@@ -563,6 +563,19 @@
                                 <a-tag color="blue">[[ dbInbound.trafficReset ]]</a-tag>
                               </td>
                             </tr>
+                            <tr v-if="multiNodeMode && Array.isArray(dbInbound.nodeIds) && dbInbound.nodeIds.length > 0">
+                              <td>Nodes</td>
+                              <td>
+                                <template v-for="(nodeId, index) in dbInbound.nodeIds" :key="nodeId">
+                                  <a-tag v-if="getNodeName(nodeId)" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                                    [[ getNodeName(nodeId) ]]
+                                  </a-tag>
+                                  <a-tag v-else color="gray" :style="{ margin: '0 4px 4px 0' }">
+                                    Node [[ nodeId ]]
+                                  </a-tag>
+                                </template>
+                              </td>
+                            </tr>
                           </table>
                         </template>
                         <a-badge>
@@ -706,6 +719,8 @@
     el: '#app',
     mixins: [MediaQueryMixin],
     data: {
+      availableNodes: [],
+      multiNodeMode: false,
       themeSwitcher,
       persianDatepicker,
       loadingStates: {
@@ -745,6 +760,44 @@
     methods: {
       loading(spinning = true) {
         this.loadingStates.spinning = spinning;
+      },
+      async loadMultiNodeMode() {
+        try {
+          const msg = await HttpUtil.post("/panel/setting/all");
+          if (msg && msg.success && msg.obj) {
+            this.multiNodeMode = Boolean(msg.obj.multiNodeMode) || false;
+            // Store in allSetting for modal access
+            if (!this.allSetting) {
+              this.allSetting = {};
+            }
+            this.allSetting.multiNodeMode = this.multiNodeMode;
+            // Load available nodes if in multi-node mode
+            if (this.multiNodeMode) {
+              await this.loadAvailableNodes();
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load multi-node mode:", e);
+        }
+      },
+      async loadAvailableNodes() {
+        try {
+          const msg = await HttpUtil.get("/panel/node/list");
+          if (msg && msg.success && msg.obj) {
+            this.availableNodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name,
+              address: node.address,
+              status: node.status || 'unknown'
+            }));
+          }
+        } catch (e) {
+          console.warn("Failed to load available nodes:", e);
+        }
+      },
+      getNodeName(nodeId) {
+        const node = this.availableNodes.find(n => n.id === nodeId);
+        return node ? node.name : null;
       },
       async getDBInbounds() {
         this.refreshing = true;
@@ -804,6 +857,11 @@
         this.clientCount.splice(0);
         for (const inbound of dbInbounds) {
           const dbInbound = new DBInbound(inbound);
+          // Ensure nodeIds are properly set after creating DBInbound
+          // The constructor should handle this, but double-check
+          if (!Array.isArray(dbInbound.nodeIds)) {
+            dbInbound.nodeIds = [];
+          }
           to_inbound = dbInbound.toInbound()
           this.inbounds.push(to_inbound);
           this.dbInbounds.push(dbInbound);
@@ -1041,6 +1099,20 @@
       openEditInbound(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         const inbound = dbInbound.toInbound();
+        // Set nodeIds from dbInbound if available - ensure they are numbers
+        // This is critical: dbInbound is the source of truth for nodeIds
+        let nodeIdsToSet = [];
+        if (dbInbound.nodeIds && Array.isArray(dbInbound.nodeIds) && dbInbound.nodeIds.length > 0) {
+          nodeIdsToSet = dbInbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+        } else if (dbInbound.nodeId !== null && dbInbound.nodeId !== undefined) {
+          // Backward compatibility: single nodeId
+          const nodeId = typeof dbInbound.nodeId === 'string' ? parseInt(dbInbound.nodeId, 10) : dbInbound.nodeId;
+          if (!isNaN(nodeId) && nodeId > 0) {
+            nodeIdsToSet = [nodeId];
+          }
+        }
+        // Ensure nodeIds are set on inbound object before passing to modal
+        inbound.nodeIds = nodeIdsToSet;
         inModal.show({
           title: '{{ i18n "pages.inbounds.modifyInbound"}}',
           okText: '{{ i18n "update"}}',
@@ -1075,6 +1147,14 @@
           data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
         }
         data.sniffing = inbound.sniffing.toString();
+        
+        // Add nodeIds if multi-node mode is enabled
+        if (this.multiNodeMode && inbound.nodeIds && Array.isArray(inbound.nodeIds) && inbound.nodeIds.length > 0) {
+          data.nodeIds = inbound.nodeIds;
+        } else if (this.multiNodeMode && inbound.nodeId) {
+          // Backward compatibility: single nodeId
+          data.nodeId = inbound.nodeId;
+        }
 
         await this.submit('/panel/api/inbounds/add', data, inModal);
       },
@@ -1100,6 +1180,21 @@
           data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
         }
         data.sniffing = inbound.sniffing.toString();
+        
+        // Add nodeIds if multi-node mode is enabled
+        if (this.multiNodeMode) {
+          if (inbound.nodeIds && Array.isArray(inbound.nodeIds) && inbound.nodeIds.length > 0) {
+            // Ensure all values are numbers
+            data.nodeIds = inbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+          } else if (inbound.nodeId !== null && inbound.nodeId !== undefined) {
+            // Backward compatibility: single nodeId
+            const nodeId = typeof inbound.nodeId === 'string' ? parseInt(inbound.nodeId, 10) : inbound.nodeId;
+            if (!isNaN(nodeId) && nodeId > 0) {
+              data.nodeId = nodeId;
+            }
+          }
+          // If no nodes selected, don't send nodeIds field at all - server will handle unassignment
+        }
 
         await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, data, inModal);
       },
@@ -1252,6 +1347,10 @@
       },
       checkFallback(dbInbound) {
         newDbInbound = new DBInbound(dbInbound);
+        // Ensure nodeIds are preserved when creating new DBInbound
+        if (dbInbound.nodeIds && Array.isArray(dbInbound.nodeIds)) {
+          newDbInbound.nodeIds = dbInbound.nodeIds;
+        }
         if (dbInbound.listen.startsWith("@")) {
           rootInbound = this.inbounds.find((i) =>
             i.isTcp &&
@@ -1312,7 +1411,10 @@
       async submit(url, data, modal) {
         const msg = await HttpUtil.postWithModal(url, data, modal);
         if (msg.success) {
+          // Force reload inbounds to get updated nodeIds from server
           await this.getDBInbounds();
+          // Force Vue to update the view
+          this.$forceUpdate();
         }
       },
       getInboundClients(dbInbound) {
@@ -1581,7 +1683,8 @@
         this.searchInbounds(newVal);
       }, 500)
     },
-    mounted() {
+    async mounted() {
+      await this.loadMultiNodeMode();
       if (window.location.protocol !== "https:") {
         this.showAlert = true;
       }

@@ -28,6 +28,7 @@ type SubService struct {
 	datepicker     string
 	inboundService service.InboundService
 	settingService service.SettingService
+	nodeService    service.NodeService
 }
 
 // NewSubService creates a new subscription service with the given configuration.
@@ -77,7 +78,14 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
 				link := s.getLink(inbound, client.Email)
-				result = append(result, link)
+				// Split link by newline to handle multiple links (for multiple nodes)
+				linkLines := strings.Split(link, "\n")
+				for _, linkLine := range linkLines {
+					linkLine = strings.TrimSpace(linkLine)
+					if linkLine != "" {
+						result = append(result, linkLine)
+					}
+				}
 				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
 				clientTraffics = append(clientTraffics, ct)
 				if ct.LastOnline > lastOnline {
@@ -179,78 +187,99 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	if inbound.Protocol != model.VMESS {
 		return ""
 	}
-	var address string
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		address = s.address
-	} else {
-		address = inbound.Listen
+	
+	// Get all nodes for this inbound
+	var nodeAddresses []string
+	multiMode, _ := s.settingService.GetMultiNodeMode()
+	if multiMode {
+		nodes, err := s.nodeService.GetNodesForInbound(inbound.Id)
+		if err == nil && len(nodes) > 0 {
+			// Extract addresses from all nodes
+			for _, node := range nodes {
+				nodeAddr := s.extractNodeHost(node.Address)
+				if nodeAddr != "" {
+					nodeAddresses = append(nodeAddresses, nodeAddr)
+				}
+			}
+		}
 	}
-	obj := map[string]any{
+	
+	// Fallback to default logic if no nodes found
+	var defaultAddress string
+	if len(nodeAddresses) == 0 {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			defaultAddress = s.address
+		} else {
+			defaultAddress = inbound.Listen
+		}
+		nodeAddresses = []string{defaultAddress}
+	}
+	// Base object template (address will be set per node)
+	baseObj := map[string]any{
 		"v":    "2",
-		"add":  address,
 		"port": inbound.Port,
 		"type": "none",
 	}
 	var stream map[string]any
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
 	network, _ := stream["network"].(string)
-	obj["net"] = network
+	baseObj["net"] = network
 	switch network {
 	case "tcp":
 		tcp, _ := stream["tcpSettings"].(map[string]any)
 		header, _ := tcp["header"].(map[string]any)
 		typeStr, _ := header["type"].(string)
-		obj["type"] = typeStr
+		baseObj["type"] = typeStr
 		if typeStr == "http" {
 			request := header["request"].(map[string]any)
 			requestPath, _ := request["path"].([]any)
-			obj["path"] = requestPath[0].(string)
+			baseObj["path"] = requestPath[0].(string)
 			headers, _ := request["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			baseObj["host"] = searchHost(headers)
 		}
 	case "kcp":
 		kcp, _ := stream["kcpSettings"].(map[string]any)
 		header, _ := kcp["header"].(map[string]any)
-		obj["type"], _ = header["type"].(string)
-		obj["path"], _ = kcp["seed"].(string)
+		baseObj["type"], _ = header["type"].(string)
+		baseObj["path"], _ = kcp["seed"].(string)
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]any)
-		obj["path"] = ws["path"].(string)
+		baseObj["path"] = ws["path"].(string)
 		if host, ok := ws["host"].(string); ok && len(host) > 0 {
-			obj["host"] = host
+			baseObj["host"] = host
 		} else {
 			headers, _ := ws["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			baseObj["host"] = searchHost(headers)
 		}
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]any)
-		obj["path"] = grpc["serviceName"].(string)
-		obj["authority"] = grpc["authority"].(string)
+		baseObj["path"] = grpc["serviceName"].(string)
+		baseObj["authority"] = grpc["authority"].(string)
 		if grpc["multiMode"].(bool) {
-			obj["type"] = "multi"
+			baseObj["type"] = "multi"
 		}
 	case "httpupgrade":
 		httpupgrade, _ := stream["httpupgradeSettings"].(map[string]any)
-		obj["path"] = httpupgrade["path"].(string)
+		baseObj["path"] = httpupgrade["path"].(string)
 		if host, ok := httpupgrade["host"].(string); ok && len(host) > 0 {
-			obj["host"] = host
+			baseObj["host"] = host
 		} else {
 			headers, _ := httpupgrade["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			baseObj["host"] = searchHost(headers)
 		}
 	case "xhttp":
 		xhttp, _ := stream["xhttpSettings"].(map[string]any)
-		obj["path"] = xhttp["path"].(string)
+		baseObj["path"] = xhttp["path"].(string)
 		if host, ok := xhttp["host"].(string); ok && len(host) > 0 {
-			obj["host"] = host
+			baseObj["host"] = host
 		} else {
 			headers, _ := xhttp["headers"].(map[string]any)
-			obj["host"] = searchHost(headers)
+			baseObj["host"] = searchHost(headers)
 		}
-		obj["mode"] = xhttp["mode"].(string)
+		baseObj["mode"] = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
-	obj["tls"] = security
+	baseObj["tls"] = security
 	if security == "tls" {
 		tlsSetting, _ := stream["tlsSettings"].(map[string]any)
 		alpns, _ := tlsSetting["alpn"].([]any)
@@ -259,19 +288,19 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			for _, a := range alpns {
 				alpn = append(alpn, a.(string))
 			}
-			obj["alpn"] = strings.Join(alpn, ",")
+			baseObj["alpn"] = strings.Join(alpn, ",")
 		}
 		if sniValue, ok := searchKey(tlsSetting, "serverName"); ok {
-			obj["sni"], _ = sniValue.(string)
+			baseObj["sni"], _ = sniValue.(string)
 		}
 
 		tlsSettings, _ := searchKey(tlsSetting, "settings")
 		if tlsSetting != nil {
 			if fpValue, ok := searchKey(tlsSettings, "fingerprint"); ok {
-				obj["fp"], _ = fpValue.(string)
+				baseObj["fp"], _ = fpValue.(string)
 			}
 			if insecure, ok := searchKey(tlsSettings, "allowInsecure"); ok {
-				obj["allowInsecure"], _ = insecure.(bool)
+				baseObj["allowInsecure"], _ = insecure.(bool)
 			}
 		}
 	}
@@ -284,18 +313,22 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			break
 		}
 	}
-	obj["id"] = clients[clientIndex].ID
-	obj["scy"] = clients[clientIndex].Security
+	baseObj["id"] = clients[clientIndex].ID
+	baseObj["scy"] = clients[clientIndex].Security
 
 	externalProxies, _ := stream["externalProxy"].([]any)
 
+	// Generate links for each node address (or external proxy)
+	links := ""
+	linkIndex := 0
+	
+	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
-		links := ""
-		for index, externalProxy := range externalProxies {
+		for _, externalProxy := range externalProxies {
 			ep, _ := externalProxy.(map[string]any)
 			newSecurity, _ := ep["forceTls"].(string)
 			newObj := map[string]any{}
-			for key, value := range obj {
+			for key, value := range baseObj {
 				if !(newSecurity == "none" && (key == "alpn" || key == "sni" || key == "fp" || key == "allowInsecure")) {
 					newObj[key] = value
 				}
@@ -307,31 +340,66 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			if newSecurity != "same" {
 				newObj["tls"] = newSecurity
 			}
-			if index > 0 {
+			if linkIndex > 0 {
 				links += "\n"
 			}
 			jsonStr, _ := json.MarshalIndent(newObj, "", "  ")
 			links += "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
+			linkIndex++
 		}
 		return links
 	}
 
-	obj["ps"] = s.genRemark(inbound, email, "")
+	// Generate links for each node address
+	for _, nodeAddr := range nodeAddresses {
+		obj := make(map[string]any)
+		for k, v := range baseObj {
+			obj[k] = v
+		}
+		obj["add"] = nodeAddr
+		obj["ps"] = s.genRemark(inbound, email, "")
 
-	jsonStr, _ := json.MarshalIndent(obj, "", "  ")
-	return "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
+		if linkIndex > 0 {
+			links += "\n"
+		}
+		jsonStr, _ := json.MarshalIndent(obj, "", "  ")
+		links += "vmess://" + base64.StdEncoding.EncodeToString(jsonStr)
+		linkIndex++
+	}
+	
+	return links
 }
 
 func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
-	var address string
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		address = s.address
-	} else {
-		address = inbound.Listen
-	}
-
 	if inbound.Protocol != model.VLESS {
 		return ""
+	}
+	
+	// Get all nodes for this inbound
+	var nodeAddresses []string
+	multiMode, _ := s.settingService.GetMultiNodeMode()
+	if multiMode {
+		nodes, err := s.nodeService.GetNodesForInbound(inbound.Id)
+		if err == nil && len(nodes) > 0 {
+			// Extract addresses from all nodes
+			for _, node := range nodes {
+				nodeAddr := s.extractNodeHost(node.Address)
+				if nodeAddr != "" {
+					nodeAddresses = append(nodeAddresses, nodeAddr)
+				}
+			}
+		}
+	}
+	
+	// Fallback to default logic if no nodes found
+	var defaultAddress string
+	if len(nodeAddresses) == 0 {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			defaultAddress = s.address
+		} else {
+			defaultAddress = inbound.Listen
+		}
+		nodeAddresses = []string{defaultAddress}
 	}
 	var stream map[string]any
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
@@ -483,14 +551,18 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 	externalProxies, _ := stream["externalProxy"].([]any)
 
+	// Generate links for each node address (or external proxy)
+	links := ""
+	linkIndex := 0
+	
+	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
-		links := ""
-		for index, externalProxy := range externalProxies {
+		for _, externalProxy := range externalProxies {
 			ep, _ := externalProxy.(map[string]any)
 			newSecurity, _ := ep["forceTls"].(string)
 			dest, _ := ep["dest"].(string)
-			port := int(ep["port"].(float64))
-			link := fmt.Sprintf("vless://%s@%s:%d", uuid, dest, port)
+			epPort := int(ep["port"].(float64))
+			link := fmt.Sprintf("vless://%s@%s:%d", uuid, dest, epPort)
 
 			if newSecurity != "same" {
 				params["security"] = newSecurity
@@ -511,38 +583,70 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
 
-			if index > 0 {
+			if linkIndex > 0 {
 				links += "\n"
 			}
 			links += url.String()
+			linkIndex++
 		}
 		return links
 	}
 
-	link := fmt.Sprintf("vless://%s@%s:%d", uuid, address, port)
-	url, _ := url.Parse(link)
-	q := url.Query()
+	// Generate links for each node address
+	for _, nodeAddr := range nodeAddresses {
+		link := fmt.Sprintf("vless://%s@%s:%d", uuid, nodeAddr, port)
+		url, _ := url.Parse(link)
+		q := url.Query()
 
-	for k, v := range params {
-		q.Add(k, v)
+		for k, v := range params {
+			q.Add(k, v)
+		}
+
+		// Set the new query values on the URL
+		url.RawQuery = q.Encode()
+
+		url.Fragment = s.genRemark(inbound, email, "")
+
+		if linkIndex > 0 {
+			links += "\n"
+		}
+		links += url.String()
+		linkIndex++
 	}
-
-	// Set the new query values on the URL
-	url.RawQuery = q.Encode()
-
-	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+	
+	return links
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
-	var address string
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		address = s.address
-	} else {
-		address = inbound.Listen
-	}
 	if inbound.Protocol != model.Trojan {
 		return ""
+	}
+	
+	// Get all nodes for this inbound
+	var nodeAddresses []string
+	multiMode, _ := s.settingService.GetMultiNodeMode()
+	if multiMode {
+		nodes, err := s.nodeService.GetNodesForInbound(inbound.Id)
+		if err == nil && len(nodes) > 0 {
+			// Extract addresses from all nodes
+			for _, node := range nodes {
+				nodeAddr := s.extractNodeHost(node.Address)
+				if nodeAddr != "" {
+					nodeAddresses = append(nodeAddresses, nodeAddr)
+				}
+			}
+		}
+	}
+	
+	// Fallback to default logic if no nodes found
+	var defaultAddress string
+	if len(nodeAddresses) == 0 {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			defaultAddress = s.address
+		} else {
+			defaultAddress = inbound.Listen
+		}
+		nodeAddresses = []string{defaultAddress}
 	}
 	var stream map[string]any
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
@@ -683,14 +787,18 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 	externalProxies, _ := stream["externalProxy"].([]any)
 
+	// Generate links for each node address (or external proxy)
+	links := ""
+	linkIndex := 0
+	
+	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
-		links := ""
-		for index, externalProxy := range externalProxies {
+		for _, externalProxy := range externalProxies {
 			ep, _ := externalProxy.(map[string]any)
 			newSecurity, _ := ep["forceTls"].(string)
 			dest, _ := ep["dest"].(string)
-			port := int(ep["port"].(float64))
-			link := fmt.Sprintf("trojan://%s@%s:%d", password, dest, port)
+			epPort := int(ep["port"].(float64))
+			link := fmt.Sprintf("trojan://%s@%s:%d", password, dest, epPort)
 
 			if newSecurity != "same" {
 				params["security"] = newSecurity
@@ -711,39 +819,70 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 
 			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
 
-			if index > 0 {
+			if linkIndex > 0 {
 				links += "\n"
 			}
 			links += url.String()
+			linkIndex++
 		}
 		return links
 	}
 
-	link := fmt.Sprintf("trojan://%s@%s:%d", password, address, port)
+	// Generate links for each node address
+	for _, nodeAddr := range nodeAddresses {
+		link := fmt.Sprintf("trojan://%s@%s:%d", password, nodeAddr, port)
+		url, _ := url.Parse(link)
+		q := url.Query()
 
-	url, _ := url.Parse(link)
-	q := url.Query()
+		for k, v := range params {
+			q.Add(k, v)
+		}
 
-	for k, v := range params {
-		q.Add(k, v)
+		// Set the new query values on the URL
+		url.RawQuery = q.Encode()
+
+		url.Fragment = s.genRemark(inbound, email, "")
+
+		if linkIndex > 0 {
+			links += "\n"
+		}
+		links += url.String()
+		linkIndex++
 	}
-
-	// Set the new query values on the URL
-	url.RawQuery = q.Encode()
-
-	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+	
+	return links
 }
 
 func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) string {
-	var address string
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		address = s.address
-	} else {
-		address = inbound.Listen
-	}
 	if inbound.Protocol != model.Shadowsocks {
 		return ""
+	}
+	
+	// Get all nodes for this inbound
+	var nodeAddresses []string
+	multiMode, _ := s.settingService.GetMultiNodeMode()
+	if multiMode {
+		nodes, err := s.nodeService.GetNodesForInbound(inbound.Id)
+		if err == nil && len(nodes) > 0 {
+			// Extract addresses from all nodes
+			for _, node := range nodes {
+				nodeAddr := s.extractNodeHost(node.Address)
+				if nodeAddr != "" {
+					nodeAddresses = append(nodeAddresses, nodeAddr)
+				}
+			}
+		}
+	}
+	
+	// Fallback to default logic if no nodes found
+	var defaultAddress string
+	if len(nodeAddresses) == 0 {
+		if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
+			defaultAddress = s.address
+		} else {
+			defaultAddress = inbound.Listen
+		}
+		nodeAddresses = []string{defaultAddress}
 	}
 	var stream map[string]any
 	json.Unmarshal([]byte(inbound.StreamSettings), &stream)
@@ -855,14 +994,18 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 
 	externalProxies, _ := stream["externalProxy"].([]any)
 
+	// Generate links for each node address (or external proxy)
+	links := ""
+	linkIndex := 0
+	
+	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
-		links := ""
-		for index, externalProxy := range externalProxies {
+		for _, externalProxy := range externalProxies {
 			ep, _ := externalProxy.(map[string]any)
 			newSecurity, _ := ep["forceTls"].(string)
 			dest, _ := ep["dest"].(string)
-			port := int(ep["port"].(float64))
-			link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), dest, port)
+			epPort := int(ep["port"].(float64))
+			link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), dest, epPort)
 
 			if newSecurity != "same" {
 				params["security"] = newSecurity
@@ -883,27 +1026,38 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 
 			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
 
-			if index > 0 {
+			if linkIndex > 0 {
 				links += "\n"
 			}
 			links += url.String()
+			linkIndex++
 		}
 		return links
 	}
 
-	link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), address, inbound.Port)
-	url, _ := url.Parse(link)
-	q := url.Query()
+	// Generate links for each node address
+	for _, nodeAddr := range nodeAddresses {
+		link := fmt.Sprintf("ss://%s@%s:%d", base64.StdEncoding.EncodeToString([]byte(encPart)), nodeAddr, inbound.Port)
+		url, _ := url.Parse(link)
+		q := url.Query()
 
-	for k, v := range params {
-		q.Add(k, v)
+		for k, v := range params {
+			q.Add(k, v)
+		}
+
+		// Set the new query values on the URL
+		url.RawQuery = q.Encode()
+
+		url.Fragment = s.genRemark(inbound, email, "")
+
+		if linkIndex > 0 {
+			links += "\n"
+		}
+		links += url.String()
+		linkIndex++
 	}
-
-	// Set the new query values on the URL
-	url.RawQuery = q.Encode()
-
-	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+	
+	return links
 }
 
 func (s *SubService) genRemark(inbound *model.Inbound, email string, extra string) string {
@@ -1217,4 +1371,20 @@ func getHostFromXFH(s string) (string, error) {
 		return realHost, nil
 	}
 	return s, nil
+}
+
+// extractNodeHost extracts the host from a node API address.
+// Example: "http://192.168.1.100:8080" -> "192.168.1.100"
+func (s *SubService) extractNodeHost(nodeAddress string) string {
+	// Remove protocol prefix
+	address := strings.TrimPrefix(nodeAddress, "http://")
+	address = strings.TrimPrefix(address, "https://")
+	
+	// Extract host (remove port if present)
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		// No port, return as is
+		return address
+	}
+	return host
 }

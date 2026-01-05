@@ -774,6 +774,14 @@ func (s *ServerService) GetXrayLogs(
 	countInt, _ := strconv.Atoi(count)
 	var entries []LogEntry
 
+	// Check if multi-node mode is enabled
+	settingService := SettingService{}
+	multiMode, err := settingService.GetMultiNodeMode()
+	if err == nil && multiMode {
+		// In multi-node mode, logs are on nodes, not locally
+		return nil
+	}
+
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {
 		return nil

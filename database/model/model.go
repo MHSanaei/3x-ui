@@ -53,6 +53,8 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+	NodeId         *int     `json:"nodeId,omitempty" form:"-" gorm:"-"` // Node ID (not stored in Inbound table, from mapping) - DEPRECATED: kept only for backward compatibility with old clients, use NodeIds instead
+	NodeIds        []int    `json:"nodeIds,omitempty" form:"-" gorm:"-"` // Node IDs array (not stored in Inbound table, from mapping) - use this for multi-node support
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -118,4 +120,23 @@ type Client struct {
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
+}
+
+// Node represents a worker node in multi-node architecture.
+type Node struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"` // Unique identifier
+	Name        string `json:"name" form:"name"`                   // Node name/identifier
+	Address     string `json:"address" form:"address"`             // Node API address (e.g., "http://192.168.1.100:8080")
+	ApiKey      string `json:"apiKey" form:"apiKey"`               // API key for authentication
+	Status      string `json:"status" gorm:"default:unknown"`     // Status: online, offline, unknown
+	LastCheck   int64  `json:"lastCheck" gorm:"default:0"`        // Last health check timestamp
+	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime"`  // Creation timestamp
+	UpdatedAt   int64  `json:"updatedAt" gorm:"autoUpdateTime"`   // Last update timestamp
+}
+
+// InboundNodeMapping maps inbounds to nodes in multi-node mode.
+type InboundNodeMapping struct {
+	Id        int `json:"id" gorm:"primaryKey;autoIncrement"` // Unique identifier
+	InboundId int `json:"inboundId" form:"inboundId" gorm:"uniqueIndex:idx_inbound_node"` // Inbound ID
+	NodeId    int `json:"nodeId" form:"nodeId" gorm:"uniqueIndex:idx_inbound_node"`        // Node ID
 }

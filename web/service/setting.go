@@ -94,6 +94,8 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+	// Multi-node mode
+	"multiNodeMode": "false", // "true" for multi-mode, "false" for single-mode
 }
 
 // SettingService provides business logic for application settings management.
@@ -564,6 +566,13 @@ func (s *SettingService) SetExternalTrafficInformURI(InformURI string) error {
 }
 
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
+	// Check if multi-node mode is enabled
+	multiMode, err := s.GetMultiNodeMode()
+	if err == nil && multiMode {
+		// In multi-node mode, IP limiting is handled by nodes
+		return false, nil
+	}
+	
 	accessLogPath, err := xray.GetAccessLogPath()
 	if err != nil {
 		return false, err
@@ -650,6 +659,16 @@ func (s *SettingService) GetLdapDefaultExpiryDays() (int, error) {
 
 func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
+}
+
+// GetMultiNodeMode returns whether multi-node mode is enabled.
+func (s *SettingService) GetMultiNodeMode() (bool, error) {
+	return s.getBool("multiNodeMode")
+}
+
+// SetMultiNodeMode sets the multi-node mode setting.
+func (s *SettingService) SetMultiNodeMode(enabled bool) error {
+	return s.setBool("multiNodeMode", enabled)
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

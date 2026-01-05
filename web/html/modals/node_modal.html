@@ -1,0 +1,232 @@
+{{define "modals/nodeModal"}}
+<a-modal id="node-modal" v-model="nodeModal.visible" :title="nodeModal.title" :confirm-loading="nodeModal.confirmLoading"
+  @ok="nodeModal.ok" @cancel="nodeModal.cancel" :class="themeSwitcher.currentTheme" :ok-text="nodeModal.okText" :width="600">
+  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form-item :label='{{ i18n "pages.nodes.nodeName" }}'>
+      <a-input v-model.trim="nodeModal.formData.name" placeholder="e.g., Node-1"></a-input>
+    </a-form-item>
+    <a-form-item :label='{{ i18n "pages.nodes.nodeAddress" }}'>
+      <a-input v-model.trim="nodeModal.formData.address" placeholder="http://192.168.1.100:8080"></a-input>
+      <div style="margin-top: 4px; color: #999; font-size: 12px;">
+        {{ i18n "pages.nodes.fullUrlHint" }}
+      </div>
+    </a-form-item>
+    <a-form-item :label='{{ i18n "pages.nodes.nodeApiKey" }}'>
+      <a-input-password v-model.trim="nodeModal.formData.apiKey" placeholder="{{ i18n "pages.nodes.enterApiKey" }}"></a-input>
+      <div style="margin-top: 4px; color: #999; font-size: 12px;">
+        {{ i18n "pages.nodes.apiKeyHint" }}
+      </div>
+    </a-form-item>
+  </a-form>
+</a-modal>
+<script>
+  // Make nodeModal globally available to ensure it works with any base path
+  const nodeModal = window.nodeModal = {
+    visible: false,
+    title: '',
+    confirmLoading: false,
+    okText: '{{ i18n "sure" }}',
+    isEdit: false,
+    currentNode: null,
+    confirm: null,
+    formData: {
+      name: '',
+      address: '',
+      apiKey: ''
+    },
+    ok() {
+      // Validate form data
+      if (!this.formData.name || !this.formData.name.trim()) {
+        Vue.prototype.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
+        return;
+      }
+      if (!this.formData.address || !this.formData.address.trim()) {
+        Vue.prototype.$message.error('{{ i18n "pages.nodes.enterNodeAddress" }}');
+        return;
+      }
+      if (!/^https?:\/\/.+/.test(this.formData.address)) {
+        Vue.prototype.$message.error('{{ i18n "pages.nodes.validUrl" }}');
+        return;
+      }
+      if (!this.formData.apiKey || !this.formData.apiKey.trim()) {
+        Vue.prototype.$message.error('{{ i18n "pages.nodes.enterApiKey" }}');
+        return;
+      }
+      
+      this.confirmLoading = true;
+      if (this.confirm) {
+        const result = this.confirm({ ...this.formData });
+        // If confirm returns a promise, handle it
+        if (result && typeof result.then === 'function') {
+          result.catch(() => {
+            this.confirmLoading = false;
+          });
+        } else {
+          // If not async, reset loading after a short delay
+          setTimeout(() => {
+            this.confirmLoading = false;
+          }, 100);
+        }
+      } else {
+        this.confirmLoading = false;
+      }
+    },
+    show({ title = '', okText = '{{ i18n "sure" }}', node = null, confirm = (data) => { }, isEdit = false }) {
+      console.log('[nodeModal.show] START - called with:', { title, okText, node, isEdit });
+      console.log('[nodeModal.show] this.visible before:', this.visible);
+      console.log('[nodeModal.show] nodeModalVueInstance:', nodeModalVueInstance);
+      
+      // Update properties using 'this' like in inbound_modal
+      this.title = title;
+      this.okText = okText;
+      this.isEdit = isEdit;
+      this.confirm = confirm;
+      console.log('[nodeModal.show] Properties updated:', { title: this.title, okText: this.okText, isEdit: this.isEdit });
+      
+      if (node) {
+        this.currentNode = node;
+        this.formData = {
+          name: node.name || '',
+          address: node.address || '',
+          apiKey: node.apiKey || ''
+        };
+        console.log('[nodeModal.show] Node data set:', this.formData);
+      } else {
+        this.currentNode = null;
+        this.formData = {
+          name: '',
+          address: '',
+          apiKey: ''
+        };
+        console.log('[nodeModal.show] Form data reset (new node)');
+      }
+      
+      // Set visible - Vue will track this since nodeModal is in Vue instance data
+      console.log('[nodeModal.show] Setting this.visible = true');
+      this.visible = true;
+      console.log('[nodeModal.show] this.visible after setting:', this.visible);
+      
+      // Check Vue instance
+      if (nodeModalVueInstance) {
+        console.log('[nodeModal.show] Vue instance exists');
+        console.log('[nodeModal.show] nodeModalVueInstance.nodeModal:', nodeModalVueInstance.nodeModal);
+        console.log('[nodeModal.show] nodeModalVueInstance.nodeModal.visible:', nodeModalVueInstance.nodeModal.visible);
+        console.log('[nodeModal.show] nodeModalVueInstance.$el:', nodeModalVueInstance.$el);
+      } else {
+        console.warn('[nodeModal.show] WARNING - Vue instance does not exist!');
+      }
+      
+      // Check DOM element
+      const modalElement = document.getElementById('node-modal');
+      console.log('[nodeModal.show] Modal element in DOM:', modalElement);
+      if (modalElement) {
+        console.log('[nodeModal.show] Modal element classes:', modalElement.className);
+        console.log('[nodeModal.show] Modal element style.display:', modalElement.style.display);
+        const computedStyle = window.getComputedStyle(modalElement);
+        console.log('[nodeModal.show] Modal element computed display:', computedStyle.display);
+        console.log('[nodeModal.show] Modal element computed visibility:', computedStyle.visibility);
+        console.log('[nodeModal.show] Modal element computed opacity:', computedStyle.opacity);
+        console.log('[nodeModal.show] Modal element computed z-index:', computedStyle.zIndex);
+        
+        // Check for Ant Design modal root
+        const modalRoot = document.querySelector('.ant-modal-root');
+        console.log('[nodeModal.show] Ant Design modal root exists:', !!modalRoot);
+        if (modalRoot) {
+          console.log('[nodeModal.show] Modal root style.display:', window.getComputedStyle(modalRoot).display);
+          const modalWrap = modalRoot.querySelector('.ant-modal-wrap');
+          console.log('[nodeModal.show] Modal wrap exists:', !!modalWrap);
+          if (modalWrap) {
+            console.log('[nodeModal.show] Modal wrap style.display:', window.getComputedStyle(modalWrap).display);
+            const modalInWrap = modalWrap.querySelector('#node-modal');
+            console.log('[nodeModal.show] Modal #node-modal in wrap:', !!modalInWrap);
+          }
+        }
+      } else {
+        console.error('[nodeModal.show] ERROR - Modal element #node-modal not found in DOM!');
+      }
+      
+      // Use nextTick to check after Vue updates
+      if (nodeModalVueInstance) {
+        nodeModalVueInstance.$nextTick(() => {
+          console.log('[nodeModal.show] After $nextTick - nodeModal.visible:', nodeModalVueInstance.nodeModal.visible);
+          const modalElementAfter = document.getElementById('node-modal');
+          if (modalElementAfter) {
+            const modalRootAfter = document.querySelector('.ant-modal-root');
+            if (modalRootAfter) {
+              console.log('[nodeModal.show] After $nextTick - Modal root display:', window.getComputedStyle(modalRootAfter).display);
+            }
+          }
+        });
+        }
+      
+      console.log('[nodeModal.show] END');
+    },
+    cancel() {
+      nodeModal.visible = false;
+      // Reset form data
+      nodeModal.formData = {
+        name: '',
+        address: '',
+        apiKey: ''
+      };
+    },
+    close() {
+      nodeModal.visible = false;
+      nodeModal.confirmLoading = false;
+    },
+    loading(loading = true) {
+      this.confirmLoading = loading;
+    }
+  };
+
+  // Store Vue instance globally to ensure methods are always accessible
+  let nodeModalVueInstance = null;
+  
+  // Create Vue instance after main app is ready
+  window.initNodeModalVue = function initNodeModalVue() {
+    if (nodeModalVueInstance) {
+      return; // Already initialized
+    }
+    
+    const modalElement = document.getElementById('node-modal');
+    if (!modalElement) {
+      setTimeout(initNodeModalVue, 50);
+      return;
+    }
+    
+    try {
+      nodeModalVueInstance = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#node-modal',
+        data: {
+          nodeModal: nodeModal,
+          get themeSwitcher() {
+            // Try to get themeSwitcher from window or global scope
+            if (typeof window !== 'undefined' && window.themeSwitcher) {
+              return window.themeSwitcher;
+            }
+            if (typeof themeSwitcher !== 'undefined') {
+              return themeSwitcher;
+            }
+            // Fallback to a simple object if themeSwitcher is not available
+            return { currentTheme: 'light' };
+          }
+        }
+      });
+      window.nodeModalVueInstance = nodeModalVueInstance;
+    } catch (error) {
+      console.error('[nodeModal init] ERROR creating Vue instance:', error);
+    }
+  };
+  
+  // Wait for DOM and main app to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(window.initNodeModalVue, 100);
+    });
+  } else {
+    setTimeout(window.initNodeModalVue, 100);
+  }
+
+</script>
+{{end}}
