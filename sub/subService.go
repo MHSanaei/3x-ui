@@ -552,8 +552,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	externalProxies, _ := stream["externalProxy"].([]any)
 
 	// Generate links for each node address (or external proxy)
-	links := ""
-	linkIndex := 0
+	links := make([]string, 0)
 	
 	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
@@ -583,13 +582,9 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 			url.Fragment = s.genRemark(inbound, email, ep["remark"].(string))
 
-			if linkIndex > 0 {
-				links += "\n"
-			}
-			links += url.String()
-			linkIndex++
+			links = append(links, url.String())
 		}
-		return links
+		return strings.Join(links, "\n")
 	}
 
 	// Generate links for each node address
@@ -607,14 +602,10 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 
 		url.Fragment = s.genRemark(inbound, email, "")
 
-		if linkIndex > 0 {
-			links += "\n"
-		}
-		links += url.String()
-		linkIndex++
+		links = append(links, url.String())
 	}
 	
-	return links
+	return strings.Join(links, "\n")
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {
