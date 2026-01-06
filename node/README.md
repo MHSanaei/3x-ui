@@ -1,37 +1,46 @@
 # 3x-ui Node Service
 
-Node service (worker) для multi-node архитектуры 3x-ui.
+Node service (worker) for 3x-ui multi-node architecture.
 
-## Описание
+## Description
 
-Этот сервис запускается на отдельных серверах и управляет XRAY Core инстансами. Панель 3x-ui (master) отправляет конфигурации на ноды через REST API.
+This service runs on separate servers and manages XRAY Core instances. The 3x-ui panel (master) sends configurations to nodes via REST API.
 
-## Функциональность
+## Features
 
-- REST API для управления XRAY Core
-- Применение конфигураций от панели
-- Перезагрузка XRAY без остановки контейнера
-- Проверка статуса и здоровья
+- REST API for XRAY Core management
+- Apply configurations from the panel
+- Reload XRAY without stopping the container
+- Status and health checks
 
 ## API Endpoints
 
 ### `GET /health`
-Проверка здоровья сервиса (без аутентификации)
+Health check endpoint (no authentication required)
 
-### `POST /api/v1/apply-config`
-Применить новую конфигурацию XRAY
+### `POST /api/v1/apply`
+Apply new XRAY configuration
 - **Headers**: `Authorization: Bearer <api-key>`
-- **Body**: JSON конфигурация XRAY
+- **Body**: XRAY JSON configuration
 
 ### `POST /api/v1/reload`
-Перезагрузить XRAY
+Reload XRAY
+- **Headers**: `Authorization: Bearer <api-key>`
+
+### `POST /api/v1/force-reload`
+Force reload XRAY (stops and restarts)
 - **Headers**: `Authorization: Bearer <api-key>`
 
 ### `GET /api/v1/status`
-Получить статус XRAY
+Get XRAY status
 - **Headers**: `Authorization: Bearer <api-key>`
 
-## Запуск
+### `GET /api/v1/stats`
+Get traffic statistics and online clients
+- **Headers**: `Authorization: Bearer <api-key>`
+- **Query Parameters**: `reset=true` to reset statistics after reading
+
+## Running
 
 ### Docker Compose
 
@@ -40,31 +49,31 @@ cd node
 NODE_API_KEY=your-secure-api-key docker-compose up -d --build
 ```
 
-**Примечание:** XRAY Core автоматически скачивается во время сборки Docker-образа для вашей архитектуры. Docker BuildKit автоматически определяет архитектуру хоста. Для явного указания архитектуры используйте:
+**Note:** XRAY Core is automatically downloaded during Docker image build for your architecture. Docker BuildKit automatically detects the host architecture. To explicitly specify the architecture, use:
 
 ```bash
 DOCKER_BUILDKIT=1 docker build --build-arg TARGETARCH=arm64 -t 3x-ui-node -f node/Dockerfile ..
 ```
 
-### Вручную
+### Manual
 
 ```bash
 go run node/main.go -port 8080 -api-key your-secure-api-key
 ```
 
-## Переменные окружения
+## Environment Variables
 
-- `NODE_API_KEY` - API ключ для аутентификации (обязательно)
+- `NODE_API_KEY` - API key for authentication (required)
 
-## Структура
+## Structure
 
 ```
 node/
-├── main.go           # Точка входа
+├── main.go           # Entry point
 ├── api/
-│   └── server.go     # REST API сервер
+│   └── server.go     # REST API server
 ├── xray/
-│   └── manager.go    # Управление XRAY процессом
-├── Dockerfile        # Docker образ
+│   └── manager.go    # XRAY process management
+├── Dockerfile        # Docker image
 └── docker-compose.yml
 ```
