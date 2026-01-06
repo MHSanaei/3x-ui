@@ -164,7 +164,7 @@ class TcpStreamSettings extends CommonClass {
 
 class KcpStreamSettings extends CommonClass {
     constructor(
-        mtu = 1350,
+        mtu = 1250,
         tti = 50,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
@@ -1233,7 +1233,7 @@ Outbound.HttpSettings = class extends CommonClass {
 
 Outbound.WireguardSettings = class extends CommonClass {
     constructor(
-        mtu = 1420,
+        mtu = 1250,
         secretKey = '',
         address = [''],
         workers = 2,

@@ -20,12 +20,13 @@ const (
 	MessageTypeInbounds     MessageType = "inbounds"     // Inbounds list update
 	MessageTypeNotification MessageType = "notification" // System notification
 	MessageTypeXrayState    MessageType = "xray_state"   // Xray state change
+	MessageTypeOutbounds    MessageType = "outbounds"    // Outbounds list update
 )
 
 // Message represents a WebSocket message
 type Message struct {
 	Type    MessageType `json:"type"`
-	Payload interface{} `json:"payload"`
+	Payload any         `json:"payload"`
 	Time    int64       `json:"time"`
 }
 
@@ -249,7 +250,7 @@ func (h *Hub) broadcastParallel(clients []*Client, message []byte) {
 }
 
 // Broadcast sends a message to all connected clients
-func (h *Hub) Broadcast(messageType MessageType, payload interface{}) {
+func (h *Hub) Broadcast(messageType MessageType, payload any) {
 	if h == nil {
 		return
 	}
@@ -288,7 +289,7 @@ func (h *Hub) Broadcast(messageType MessageType, payload interface{}) {
 }
 
 // BroadcastToTopic sends a message only to clients subscribed to the specific topic
-func (h *Hub) BroadcastToTopic(messageType MessageType, payload interface{}) {
+func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 	if h == nil {
 		return
 	}

@@ -116,7 +116,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 		}
 		// Add testseed if provided
 		if testseedVal, ok := user["testseed"]; ok {
-			if testseedArr, ok := testseedVal.([]interface{}); ok && len(testseedArr) >= 4 {
+			if testseedArr, ok := testseedVal.([]any); ok && len(testseedArr) >= 4 {
 				testseed := make([]uint32, len(testseedArr))
 				for i, v := range testseedArr {
 					if num, ok := v.(float64); ok {

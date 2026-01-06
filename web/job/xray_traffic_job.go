@@ -58,7 +58,19 @@ func (j *XrayTrafficJob) Run() {
 		lastOnlineMap = make(map[string]int64)
 	}
 
-	// Broadcast traffic update via WebSocket
+	// Fetch updated inbounds from database with accumulated traffic values
+	// This ensures frontend receives the actual total traffic, not just delta values
+	updatedInbounds, err := j.inboundService.GetAllInbounds()
+	if err != nil {
+		logger.Warning("get all inbounds for websocket failed:", err)
+	}
+
+	updatedOutbounds, err := j.outboundService.GetOutboundsTraffic()
+	if err != nil {
+		logger.Warning("get all outbounds for websocket failed:", err)
+	}
+
+	// Broadcast traffic update via WebSocket with accumulated values from database
 	trafficUpdate := map[string]interface{}{
 		"traffics":       traffics,
 		"clientTraffics": clientTraffics,
@@ -66,6 +78,16 @@ func (j *XrayTrafficJob) Run() {
 		"lastOnlineMap":  lastOnlineMap,
 	}
 	websocket.BroadcastTraffic(trafficUpdate)
+
+	// Broadcast full inbounds update for real-time UI refresh
+	if updatedInbounds != nil {
+		websocket.BroadcastInbounds(updatedInbounds)
+	}
+
+	if updatedOutbounds != nil {
+		websocket.BroadcastOutbounds(updatedOutbounds)
+	}
+
 }
 
 func (j *XrayTrafficJob) informTrafficToExternalAPI(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) {

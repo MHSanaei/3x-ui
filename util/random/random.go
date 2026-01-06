@@ -18,10 +18,10 @@ var (
 // init initializes the character sequences used for random string generation.
 // It sets up arrays for numbers, lowercase letters, uppercase letters, and combinations.
 func init() {
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		numSeq[i] = rune('0' + i)
 	}
-	for i := 0; i < 26; i++ {
+	for i := range 26 {
 		lowerSeq[i] = rune('a' + i)
 		upperSeq[i] = rune('A' + i)
 	}
@@ -40,7 +40,7 @@ func init() {
 // Seq generates a random string of length n containing alphanumeric characters (numbers, lowercase and uppercase letters).
 func Seq(n int) string {
 	runes := make([]rune, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		idx, err := rand.Int(rand.Reader, big.NewInt(int64(len(allSeq))))
 		if err != nil {
 			panic("crypto/rand failed: " + err.Error())

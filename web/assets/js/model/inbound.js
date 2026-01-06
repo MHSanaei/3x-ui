@@ -317,7 +317,7 @@ TcpStreamSettings.TcpResponse = class extends XrayCommonClass {
 
 class KcpStreamSettings extends XrayCommonClass {
     constructor(
-        mtu = 1350,
+        mtu = 1250,
         tti = 50,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
@@ -2506,7 +2506,7 @@ Inbound.HttpSettings.HttpAccount = class extends XrayCommonClass {
 Inbound.WireguardSettings = class extends XrayCommonClass {
     constructor(
         protocol,
-        mtu = 1420,
+        mtu = 1250,
         secretKey = Wireguard.generateKeypair().privateKey,
         peers = [new Inbound.WireguardSettings.Peer()],
         noKernelTun = false

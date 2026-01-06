@@ -25,7 +25,7 @@ func GetHub() *Hub {
 }
 
 // BroadcastStatus broadcasts server status update to all connected clients
-func BroadcastStatus(status interface{}) {
+func BroadcastStatus(status any) {
 	hub := GetHub()
 	if hub != nil {
 		hub.Broadcast(MessageTypeStatus, status)
@@ -33,7 +33,7 @@ func BroadcastStatus(status interface{}) {
 }
 
 // BroadcastTraffic broadcasts traffic statistics update to all connected clients
-func BroadcastTraffic(traffic interface{}) {
+func BroadcastTraffic(traffic any) {
 	hub := GetHub()
 	if hub != nil {
 		hub.Broadcast(MessageTypeTraffic, traffic)
@@ -41,10 +41,18 @@ func BroadcastTraffic(traffic interface{}) {
 }
 
 // BroadcastInbounds broadcasts inbounds list update to all connected clients
-func BroadcastInbounds(inbounds interface{}) {
+func BroadcastInbounds(inbounds any) {
 	hub := GetHub()
 	if hub != nil {
 		hub.Broadcast(MessageTypeInbounds, inbounds)
+	}
+}
+
+// BroadcastOutbounds broadcasts outbounds list update to all connected clients
+func BroadcastOutbounds(outbounds interface{}) {
+	hub := GetHub()
+	if hub != nil {
+		hub.Broadcast(MessageTypeOutbounds, outbounds)
 	}
 }
 

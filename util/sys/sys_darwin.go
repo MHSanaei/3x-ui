@@ -47,11 +47,11 @@ func CPUPercentRaw() (float64, error) {
 	var out [5]uint64
 	switch len(raw) {
 	case 5 * 8:
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			out[i] = binary.LittleEndian.Uint64(raw[i*8 : (i+1)*8])
 		}
 	case 5 * 4:
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			out[i] = uint64(binary.LittleEndian.Uint32(raw[i*4 : (i+1)*4]))
 		}
 	default:
