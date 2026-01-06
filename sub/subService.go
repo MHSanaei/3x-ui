@@ -552,7 +552,14 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	externalProxies, _ := stream["externalProxy"].([]any)
 
 	// Generate links for each node address (or external proxy)
-	links := make([]string, 0)
+	// Pre-allocate capacity based on external proxies or node addresses
+	var initialCapacity int
+	if len(externalProxies) > 0 {
+		initialCapacity = len(externalProxies)
+	} else {
+		initialCapacity = len(nodeAddresses)
+	}
+	links := make([]string, 0, initialCapacity)
 	
 	// First, handle external proxies if any
 	if len(externalProxies) > 0 {
