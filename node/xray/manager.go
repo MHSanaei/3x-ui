@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/json_util"
@@ -211,6 +212,105 @@ func (m *Manager) Reload() error {
 	}
 
 	logger.Info("XRAY reloaded successfully")
+	return nil
+}
+
+// ForceReload forcefully reloads XRAY even if it's not running or hung.
+// It stops XRAY if running, loads config from file if available, and restarts.
+func (m *Manager) ForceReload() error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	// Stop XRAY if it's running (even if hung)
+	if m.process != nil {
+		// Try to stop gracefully, but don't fail if it's hung
+		_ = m.process.Stop()
+		// Give it a moment to stop
+		time.Sleep(500 * time.Millisecond)
+		// Force kill if still running
+		if m.process.IsRunning() {
+			logger.Warning("XRAY process appears hung, forcing stop")
+			// Process will be cleaned up by finalizer or on next start
+		}
+		m.process = nil
+	}
+
+	// Try to load config from file first (if available)
+	configPaths := []string{
+		"bin/config.json",
+		"config/config.json",
+		"./config.json",
+		"/app/bin/config.json",
+		"/app/config/config.json",
+	}
+	
+	var configData []byte
+	var configPath string
+	
+	// Find config file
+	for _, path := range configPaths {
+		if _, statErr := os.Stat(path); statErr == nil {
+			var readErr error
+			configData, readErr = os.ReadFile(path)
+			if readErr == nil {
+				configPath = path
+				break
+			}
+		}
+	}
+	
+	// If config file found, try to use it
+	if configPath != "" {
+		var config xray.Config
+		if err := json.Unmarshal(configData, &config); err == nil {
+			// Check if config has inbounds
+			if len(config.InboundConfigs) > 0 {
+				// Check if API inbound exists
+				hasAPIInbound := false
+				for _, inbound := range config.InboundConfigs {
+					if inbound.Tag == "api" {
+						hasAPIInbound = true
+						break
+					}
+				}
+				
+				// Add API inbound if missing
+				if !hasAPIInbound {
+					apiInbound := xray.InboundConfig{
+						Tag:      "api",
+						Port:     62789,
+						Protocol: "tunnel",
+						Listen:   json_util.RawMessage(`"127.0.0.1"`),
+						Settings: json_util.RawMessage(`{"address":"127.0.0.1"}`),
+					}
+					config.InboundConfigs = append([]xray.InboundConfig{apiInbound}, config.InboundConfigs...)
+					configData, _ = json.MarshalIndent(&config, "", "  ")
+				}
+				
+				// Apply config from file
+				m.config = &config
+				m.process = xray.NewProcess(&config)
+				if err := m.process.Start(); err == nil {
+					logger.Infof("XRAY force reloaded successfully from config file %s", configPath)
+					return nil
+				}
+			}
+		}
+		// If loading from file failed, continue with saved config
+	}
+
+	// If no config file, try to use saved config
+	if m.config == nil {
+		return errors.New("no config available to reload")
+	}
+
+	// Restart with saved config
+	m.process = xray.NewProcess(m.config)
+	if err := m.process.Start(); err != nil {
+		return fmt.Errorf("failed to restart XRAY: %w", err)
+	}
+
+	logger.Info("XRAY force reloaded successfully")
 	return nil
 }
 

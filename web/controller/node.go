@@ -34,6 +34,8 @@ func (a *NodeController) initRouter(g *gin.RouterGroup) {
 	g.POST("/del/:id", a.deleteNode)
 	g.POST("/check/:id", a.checkNode)
 	g.POST("/checkAll", a.checkAllNodes)
+	g.POST("/reload/:id", a.reloadNode)
+	g.POST("/reloadAll", a.reloadAllNodes)
 	g.GET("/status/:id", a.getNodeStatus)
 }
 
@@ -123,23 +125,58 @@ func (a *NodeController) updateNode(c *gin.Context) {
 		return
 	}
 
-	node := &model.Node{Id: id}
-	err = c.ShouldBind(node)
-	if err != nil {
-		jsonMsg(c, "Invalid node data", err)
-		return
-	}
-
-	// Get existing node to check if API key changed
+	// Get existing node first to preserve fields that are not being updated
 	existingNode, err := a.nodeService.GetNode(id)
 	if err != nil {
 		jsonMsg(c, "Failed to get existing node", err)
 		return
 	}
 
-	// Validate API key if it was changed or address was changed
-	if node.ApiKey != "" && (node.ApiKey != existingNode.ApiKey || node.Address != existingNode.Address) {
-		err = a.nodeService.ValidateApiKey(node)
+	// Create node with only provided fields
+	node := &model.Node{Id: id}
+	
+	// Try to parse as JSON first (for API calls)
+	contentType := c.GetHeader("Content-Type")
+	if contentType == "application/json" {
+		var jsonData map[string]interface{}
+		if err := c.ShouldBindJSON(&jsonData); err == nil {
+			// Only set fields that are provided in JSON
+			if nameVal, ok := jsonData["name"].(string); ok && nameVal != "" {
+				node.Name = nameVal
+			}
+			if addressVal, ok := jsonData["address"].(string); ok && addressVal != "" {
+				node.Address = addressVal
+			}
+			if apiKeyVal, ok := jsonData["apiKey"].(string); ok && apiKeyVal != "" {
+				node.ApiKey = apiKeyVal
+			}
+		}
+	} else {
+		// Parse as form data (default for web UI)
+		// Only extract fields that are actually provided
+		if name := c.PostForm("name"); name != "" {
+			node.Name = name
+		}
+		if address := c.PostForm("address"); address != "" {
+			node.Address = address
+		}
+		if apiKey := c.PostForm("apiKey"); apiKey != "" {
+			node.ApiKey = apiKey
+		}
+	}
+
+	// Validate API key if it was changed
+	if node.ApiKey != "" && node.ApiKey != existingNode.ApiKey {
+		// Create a temporary node for validation
+		validationNode := &model.Node{
+			Id:      id,
+			Address: node.Address,
+			ApiKey:  node.ApiKey,
+		}
+		if validationNode.Address == "" {
+			validationNode.Address = existingNode.Address
+		}
+		err = a.nodeService.ValidateApiKey(validationNode)
 		if err != nil {
 			jsonMsg(c, "Invalid API key or node unreachable: "+err.Error(), err)
 			return
@@ -222,4 +259,39 @@ func (a *NodeController) getNodeStatus(c *gin.Context) {
 	}
 
 	jsonObj(c, status, nil)
+}
+
+// reloadNode reloads XRAY on a specific node.
+func (a *NodeController) reloadNode(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, "Invalid node ID", err)
+		return
+	}
+
+	node, err := a.nodeService.GetNode(id)
+	if err != nil {
+		jsonMsg(c, "Failed to get node", err)
+		return
+	}
+
+	// Use force reload to handle hung nodes
+	err = a.nodeService.ForceReloadNode(node)
+	if err != nil {
+		jsonMsg(c, "Failed to reload node", err)
+		return
+	}
+
+	jsonMsg(c, "Node reloaded successfully", nil)
+}
+
+// reloadAllNodes reloads XRAY on all nodes.
+func (a *NodeController) reloadAllNodes(c *gin.Context) {
+	err := a.nodeService.ReloadAllNodes()
+	if err != nil {
+		jsonMsg(c, "Failed to reload some nodes", err)
+		return
+	}
+
+	jsonMsg(c, "All nodes reloaded successfully", nil)
 }

@@ -247,8 +247,8 @@
         
         if (enabled) {
           vm.$confirm({
-            title: 'Enable Multi-Node Mode',
-            content: 'Enabling multi-node mode will stop local XRAY Core. Make sure you have configured worker nodes before enabling this mode. Continue?',
+            title: '{{ i18n "pages.settings.enableMultiNodeMode" }}',
+            content: '{{ i18n "pages.settings.enableMultiNodeModeConfirm" }}',
             class: themeSwitcher.currentTheme,
             okText: '{{ i18n "sure" }}',
             cancelText: '{{ i18n "cancel" }}',

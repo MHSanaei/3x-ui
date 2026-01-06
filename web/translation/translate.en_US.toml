@@ -410,6 +410,17 @@
 "muxDesc" = "Transmit multiple independent data streams within an established data stream."
 "muxSett" = "Mux Settings"
 "direct" = "Direct Connection"
+"multiNodeMode" = "Multi-Node Mode"
+"multiNodeModeDesc" = "Enable distributed architecture with separate worker nodes. When enabled, XRAY Core runs on nodes instead of locally."
+"multiNodeModeEnabled" = "Multi-Node Mode Enabled"
+"multiNodeModeInThisMode" = "In this mode:"
+"multiNodeModePoint1" = "XRAY Core will not run locally"
+"multiNodeModePoint2" = "Configurations will be sent to worker nodes"
+"multiNodeModePoint3" = "You need to assign inbounds to nodes"
+"multiNodeModePoint4" = "Subscriptions will use node endpoints"
+"goToNodesManagement" = "Go to Nodes Management"
+"enableMultiNodeMode" = "Enable Multi-Node Mode"
+"enableMultiNodeModeConfirm" = "Enabling multi-node mode will stop local XRAY Core. Make sure you have configured worker nodes before enabling this mode. Continue?"
 "directDesc" = "Directly establishes connections with domains or IP ranges of a specific country."
 "notifications" = "Notifications"
 "certs" = "Certificaties"
@@ -587,6 +598,7 @@
 
 [pages.nodes]
 "title" = "Nodes Management"
+"addNewNode" = "Add New Node"
 "addNode" = "Add Node"
 "editNode" = "Edit Node"
 "deleteNode" = "Delete Node"
@@ -631,6 +643,12 @@
 "updateError" = "Failed to update node"
 "addSuccess" = "Node added successfully"
 "addError" = "Failed to add node"
+"reload" = "Reload"
+"reloadAll" = "Reload All Nodes"
+"reloadSuccess" = "Node reloaded successfully"
+"reloadError" = "Failed to reload node"
+"reloadAllSuccess" = "All nodes reloaded successfully"
+"reloadAllError" = "Failed to reload some nodes"
 
 [pages.nodes.toasts]
 "createSuccess" = "Node created successfully"

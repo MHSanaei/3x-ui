@@ -45,6 +45,7 @@ func (s *Server) Start() error {
 	{
 		api.POST("/apply-config", s.applyConfig)
 		api.POST("/reload", s.reload)
+		api.POST("/force-reload", s.forceReload)
 		api.GET("/status", s.status)
 		api.GET("/stats", s.stats)
 	}
@@ -141,6 +142,17 @@ func (s *Server) reload(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "XRAY reloaded successfully"})
+}
+
+// forceReload forcefully reloads XRAY even if it's hung or not running.
+func (s *Server) forceReload(c *gin.Context) {
+	if err := s.xrayManager.ForceReload(); err != nil {
+		logger.Errorf("Failed to force reload: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "XRAY force reloaded successfully"})
 }
 
 // status returns the current status of XRAY.

@@ -9,10 +9,10 @@
       <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
         <a-col>
           <a-card size="small" :style="{ padding: '16px' }" hoverable>
-            <h2>Nodes Management</h2>
+            <h2>{{ i18n "pages.nodes.title" }}</h2>
             
             <div style="margin-bottom: 20px;">
-              <h3>Add New Node</h3>
+              <h3>{{ i18n "pages.nodes.addNewNode" }}</h3>
               <a-input id="node-name" placeholder='{{ i18n "pages.nodes.nodeName" }}' style="width: 200px; margin-right: 10px;"></a-input>
               <a-input id="node-address" placeholder='{{ i18n "pages.nodes.nodeAddress" }} (http://192.168.1.100)' style="width: 250px; margin-right: 10px;"></a-input>
               <a-input id="node-port" placeholder='{{ i18n "pages.nodes.nodePort" }} (8080)' type="number" style="width: 120px; margin-right: 10px;"></a-input>
@@ -23,6 +23,7 @@
             <div style="margin-bottom: 20px;">
               <a-button icon="sync" @click="loadNodes" :loading="refreshing">{{ i18n "refresh" }}</a-button>
               <a-button icon="check-circle" @click="checkAllNodes" :loading="checkingAll" style="margin-left: 10px;">{{ i18n "pages.nodes.checkAll" }}</a-button>
+              <a-button icon="reload" @click="reloadAllNodes" :loading="reloadingAll" style="margin-left: 10px;">{{ i18n "pages.nodes.reloadAll" }}</a-button>
             </div>
 
             <a-table :columns="isMobile ? mobileColumns : columns" :row-key="node => node.id"
@@ -40,6 +41,10 @@
                 <a-menu-item key="check">
                   <a-icon type="check-circle"></a-icon>
                   {{ i18n "pages.nodes.check" }}
+                </a-menu-item>
+                <a-menu-item key="reload">
+                  <a-icon type="reload"></a-icon>
+                  {{ i18n "pages.nodes.reload" }}
                 </a-menu-item>
                 <a-menu-item key="edit">
                   <a-icon type="edit"></a-icon>
@@ -65,6 +70,26 @@
             </template>
             <a-tag v-else color="default">{{ i18n "none" }}</a-tag>
           </template>
+          <template slot="name" slot-scope="text, node">
+            <template v-if="editingNodeId === node.id">
+              <div style="display: inline-flex; align-items: center;">
+                <a-input :id="`node-name-input-${node.id}`"
+                         v-model="editingNodeName" 
+                         @keydown.enter.native="saveNodeName(node.id)"
+                         @keydown.esc.native="cancelEditNodeName()"
+                         :style="{ width: '120px', marginRight: '8px' }" />
+                <a-icon type="check-circle" theme="filled" @click="saveNodeName(node.id)" 
+                        :style="{ color: '#52c41a', cursor: 'pointer', fontSize: '18px', marginRight: '8px' }" 
+                        title="Сохранить" />
+                <a-icon type="close-circle" theme="filled" @click="cancelEditNodeName()" 
+                        :style="{ color: '#ff4d4f', cursor: 'pointer', fontSize: '18px' }" 
+                        title="Отменить" />
+              </div>
+            </template>
+            <template v-else>
+              <span>[[ node.name || '-' ]]</span>
+            </template>
+          </template>
             </a-table>
           </a-card>
         </a-col>
@@ -78,6 +103,8 @@
     </a-layout-content>
   </a-layout>
 </a-layout>
+
+
 {{template "page/body_scripts" .}}
 <script src="{{ .base_path }}assets/js/model/node.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
@@ -99,6 +126,7 @@
     align: 'left',
     width: 120,
     dataIndex: "name",
+    scopedSlots: { customRender: 'name' },
   }, {
     title: '{{ i18n "pages.nodes.address" }}',
     align: 'left',
@@ -132,6 +160,7 @@
     align: 'left',
     width: 100,
     dataIndex: "name",
+    scopedSlots: { customRender: 'name' },
   }, {
     title: '{{ i18n "pages.nodes.status" }}',
     align: 'center',
@@ -152,6 +181,9 @@
       nodes: [],
       refreshing: false,
       checkingAll: false,
+      reloadingAll: false,
+      editingNodeId: null,
+      editingNodeName: '',
     },
     methods: {
       async loadNodes() {
@@ -192,8 +224,11 @@
           case 'check':
             this.checkNode(node.id);
             break;
+          case 'reload':
+            this.reloadNode(node.id);
+            break;
           case 'edit':
-            this.editNode(node);
+            this.startEditNodeName(node);
             break;
           case 'delete':
             this.deleteNode(node.id);
@@ -256,83 +291,56 @@
           }
         });
       },
-      editNode(node) {
-        // Parse existing address
-        let existingAddress = node.address || '';
-        let existingPort = '';
-        try {
-          const url = new URL(existingAddress);
-          existingAddress = `${url.protocol}//${url.hostname}`;
-          existingPort = url.port || '';
-        } catch (e) {
-          // If parsing fails, try to extract manually
-          const match = existingAddress.match(/^(https?:\/\/[^:]+)(?::(\d+))?/);
-          if (match) {
-            existingAddress = match[1];
-            existingPort = match[2] || '';
-          }
-        }
-        
-        const newName = prompt('{{ i18n "pages.nodes.nodeName" }}:', node.name || '');
-        if (newName === null) return;
-        
-        const newAddress = prompt('{{ i18n "pages.nodes.nodeAddress" }}:', existingAddress);
-        if (newAddress === null) return;
-        
-        const newPort = prompt('{{ i18n "pages.nodes.nodePort" }}:', existingPort);
-        if (newPort === null) return;
-        
-        const newApiKey = prompt('{{ i18n "pages.nodes.nodeApiKey" }} ({{ i18n "pages.nodes.leaveEmptyToKeep" }}):', '');
-        
-        // Validate address format
-        if (!newAddress.match(/^https?:\/\//)) {
-          app.$message.error('{{ i18n "pages.nodes.validUrl" }}');
-          return;
-        }
-        
-        // Validate port
-        const portNum = parseInt(newPort);
-        if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-          app.$message.error('{{ i18n "pages.nodes.validPort" }}');
-          return;
-        }
-        
-        // Construct full address
-        const fullAddress = `${newAddress}:${newPort}`;
-        
-        // Check for duplicate nodes (excluding current node)
-        const existingNodes = this.nodes || [];
-        const duplicate = existingNodes.find(n => {
-          if (n.id === node.id) return false; // Skip current node
-          try {
-            const nodeUrl = new URL(n.address);
-            const newUrl = new URL(fullAddress);
-            // Compare protocol, hostname, and port
-            return nodeUrl.protocol === newUrl.protocol && 
-                   nodeUrl.hostname === newUrl.hostname && 
-                   (nodeUrl.port || (nodeUrl.protocol === 'https:' ? '443' : '80')) === 
-                   (newUrl.port || (newUrl.protocol === 'https:' ? '443' : '80'));
-          } catch (e) {
-            // If URL parsing fails, do simple string comparison
-            return n.address === fullAddress;
+      startEditNodeName(node) {
+        this.editingNodeId = node.id;
+        this.editingNodeName = node.name || '';
+        // Focus input after Vue updates DOM
+        this.$nextTick(() => {
+          const inputId = `node-name-input-${node.id}`;
+          const input = document.getElementById(inputId);
+          if (input) {
+            input.focus();
+            input.select();
           }
         });
+      },
+      cancelEditNodeName() {
+        this.editingNodeId = null;
+        this.editingNodeName = '';
+      },
+      async saveNodeName(nodeId) {
+        if (this.editingNodeId !== nodeId) {
+          return; // Not editing this node
+        }
         
-        if (duplicate) {
-          app.$message.error('{{ i18n "pages.nodes.duplicateNode" }}');
+        const newName = (this.editingNodeName || '').trim();
+        
+        if (!newName) {
+          this.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
           return;
         }
         
-        const nodeData = {
-          name: newName.trim(),
-          address: fullAddress
-        };
-        
-        if (newApiKey !== null && newApiKey.trim() !== '') {
-          nodeData.apiKey = newApiKey.trim();
+        // Check if name changed
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (node && node.name === newName) {
+          // No change, just cancel editing
+          this.cancelEditNodeName();
+          return;
         }
         
-        this.updateNode(node.id, nodeData);
+        try {
+          const msg = await HttpUtil.post(`/panel/node/update/${nodeId}`, { name: newName });
+          if (msg && msg.success) {
+            this.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+            this.cancelEditNodeName();
+            await this.loadNodes();
+          } else {
+            this.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.updateError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to update node name:", e);
+          this.$message.error('{{ i18n "pages.nodes.updateError" }}');
+        }
       },
       async updateNode(id, nodeData) {
         try {
@@ -346,6 +354,39 @@
         } catch (e) {
           console.error("Failed to update node:", e);
           app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+        }
+      },
+      async reloadNode(id) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/reload/${id}`);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.reloadSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.reloadError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to reload node:", e);
+          app.$message.error('{{ i18n "pages.nodes.reloadError" }}');
+        }
+      },
+      async reloadAllNodes() {
+        this.reloadingAll = true;
+        try {
+          const msg = await HttpUtil.post('/panel/node/reloadAll');
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.reloadAllSuccess" }}');
+            setTimeout(() => {
+              this.loadNodes();
+            }, 2000);
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.reloadAllError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to reload all nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.reloadAllError" }}');
+        } finally {
+          this.reloadingAll = false;
         }
       }
     },

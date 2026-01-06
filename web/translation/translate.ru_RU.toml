@@ -411,6 +411,17 @@
 "muxSett" = "Настройки Mux"
 "direct" = "Прямое подключение"
 "directDesc" = "Устанавливает прямые соединения с доменами или IP-адресами определённой страны."
+"multiNodeMode" = "Режим Multi-Node"
+"multiNodeModeDesc" = "Включить распределенную архитектуру с отдельными рабочими нодами. При включении XRAY Core будет работать на нодах, а не локально."
+"multiNodeModeEnabled" = "Режим Multi-Node включен"
+"multiNodeModeInThisMode" = "В этом режиме:"
+"multiNodeModePoint1" = "XRAY Core не будет работать локально"
+"multiNodeModePoint2" = "Конфигурации будут отправляться на рабочие ноды"
+"multiNodeModePoint3" = "Необходимо назначить инбаунды на ноды"
+"multiNodeModePoint4" = "Подписки будут использовать адреса нод"
+"goToNodesManagement" = "Перейти к управлению нодами"
+"enableMultiNodeMode" = "Включить режим Multi-Node"
+"enableMultiNodeModeConfirm" = "Включение режима Multi-Node остановит локальный XRAY Core. Убедитесь, что вы настроили рабочие ноды перед включением этого режима. Продолжить?"
 "notifications" = "Уведомления"
 "certs" = "Сертификаты"
 "externalTraffic" = "Внешний трафик"
@@ -587,6 +598,7 @@
 
 [pages.nodes]
 "title" = "Управление нодами"
+"addNewNode" = "Добавить новую ноду"
 "addNode" = "Добавить ноду"
 "editNode" = "Редактировать ноду"
 "deleteNode" = "Удалить ноду"
@@ -631,6 +643,12 @@
 "updateError" = "Не удалось обновить ноду"
 "addSuccess" = "Нода успешно добавлена"
 "addError" = "Не удалось добавить ноду"
+"reload" = "Перезагрузить"
+"reloadAll" = "Перезагрузить все ноды"
+"reloadSuccess" = "Нода успешно перезагружена"
+"reloadError" = "Не удалось перезагрузить ноду"
+"reloadAllSuccess" = "Все ноды успешно перезагружены"
+"reloadAllError" = "Не удалось перезагрузить некоторые ноды"
 
 [pages.nodes.toasts]
 "createSuccess" = "Нода успешно создана"

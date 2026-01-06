@@ -45,9 +45,47 @@ func (s *NodeService) AddNode(node *model.Node) error {
 }
 
 // UpdateNode updates an existing node.
+// Only updates fields that are provided (non-empty for strings, non-zero for integers).
 func (s *NodeService) UpdateNode(node *model.Node) error {
 	db := database.GetDB()
-	return db.Save(node).Error
+	
+	// Get existing node to preserve fields that are not being updated
+	existingNode, err := s.GetNode(node.Id)
+	if err != nil {
+		return fmt.Errorf("failed to get existing node: %w", err)
+	}
+	
+	// Update only provided fields
+	updates := make(map[string]interface{})
+	
+	if node.Name != "" {
+		updates["name"] = node.Name
+	}
+	
+	if node.Address != "" {
+		updates["address"] = node.Address
+	}
+	
+	if node.ApiKey != "" {
+		updates["api_key"] = node.ApiKey
+	}
+	
+	// Update status and last_check if provided (these are usually set by health checks, not user edits)
+	if node.Status != "" && node.Status != existingNode.Status {
+		updates["status"] = node.Status
+	}
+	
+	if node.LastCheck > 0 && node.LastCheck != existingNode.LastCheck {
+		updates["last_check"] = node.LastCheck
+	}
+	
+	// If no fields to update, return early
+	if len(updates) == 0 {
+		return nil
+	}
+	
+	// Update only the specified fields
+	return db.Model(existingNode).Updates(updates).Error
 }
 
 // DeleteNode deletes a node by ID.
@@ -403,6 +441,97 @@ func (s *NodeService) ApplyConfigToNode(node *model.Node, xrayConfig []byte) err
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("node returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ReloadNode reloads XRAY on a specific node.
+func (s *NodeService) ReloadNode(node *model.Node) error {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/reload", node.Address)
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", node.ApiKey))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("node returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ForceReloadNode forcefully reloads XRAY on a specific node (even if hung).
+func (s *NodeService) ForceReloadNode(node *model.Node) error {
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	url := fmt.Sprintf("%s/api/v1/force-reload", node.Address)
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", node.ApiKey))
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("node returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
+
+// ReloadAllNodes reloads XRAY on all nodes.
+func (s *NodeService) ReloadAllNodes() error {
+	nodes, err := s.GetAllNodes()
+	if err != nil {
+		return fmt.Errorf("failed to get nodes: %w", err)
+	}
+
+	type reloadResult struct {
+		node *model.Node
+		err  error
+	}
+
+	results := make(chan reloadResult, len(nodes))
+	for _, node := range nodes {
+		go func(n *model.Node) {
+			err := s.ForceReloadNode(n) // Use force reload to handle hung nodes
+			results <- reloadResult{node: n, err: err}
+		}(node)
+	}
+
+	var errors []string
+	for i := 0; i < len(nodes); i++ {
+		result := <-results
+		if result.err != nil {
+			errors = append(errors, fmt.Sprintf("node %d (%s): %v", result.node.Id, result.node.Name, result.err))
+		}
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to reload some nodes: %s", strings.Join(errors, "; "))
 	}
 
 	return nil
