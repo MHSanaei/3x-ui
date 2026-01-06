@@ -24,6 +24,40 @@
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Vazirmatn', 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
     }
+    
+    /* mobile touch scrolling for tabs */
+    @media (max-width: 576px) {
+      .ant-tabs-nav-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        white-space: nowrap;
+        max-width: 100%;
+        padding: 0 !important; /* Remove padding for arrows */
+      }
+      .ant-tabs-nav-wrap {
+        overflow: visible !important;
+        padding: 0 !important;
+      }
+      .ant-tabs-nav-scroll {
+        overflow: visible !important;
+        box-shadow: none !important;
+      }
+      .ant-tabs-nav {
+         display: flex !important;
+         transform: none !important; /* Disable JS transform */
+         width: auto !important;
+         margin: 0 !important;
+      }
+      .ant-tabs-tab-prev,
+      .ant-tabs-tab-next {
+        display: none !important; /* Hide arrows */
+      }
+      .ant-tabs-nav-container::-webkit-scrollbar {
+        display: none;
+      }
+    }
   </style>
   <title>{{ .host }} – {{ i18n .title}}</title>
 {{ end }}

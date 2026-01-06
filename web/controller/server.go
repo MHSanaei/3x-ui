@@ -210,10 +210,10 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 	//getting tags for freedom and blackhole outbounds
 	config, err := a.settingService.GetDefaultXrayConfig()
 	if err == nil && config != nil {
-		if cfgMap, ok := config.(map[string]interface{}); ok {
-			if outbounds, ok := cfgMap["outbounds"].([]interface{}); ok {
+		if cfgMap, ok := config.(map[string]any); ok {
+			if outbounds, ok := cfgMap["outbounds"].([]any); ok {
 				for _, outbound := range outbounds {
-					if obMap, ok := outbound.(map[string]interface{}); ok {
+					if obMap, ok := outbound.(map[string]any); ok {
 						switch obMap["protocol"] {
 						case "freedom":
 							if tag, ok := obMap["tag"].(string); ok {

@@ -492,6 +492,6 @@ func (s *Server) GetCron() *cron.Cron {
 }
 
 // GetWSHub returns the WebSocket hub instance.
-func (s *Server) GetWSHub() interface{} {
+func (s *Server) GetWSHub() any {
 	return s.wsHub
 }
