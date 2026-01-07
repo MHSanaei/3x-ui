@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export LANG=zh_CN.UTF-8
+export LC_ALL=zh_CN.UTF-8
+
 red='\033[0;31m'
 green='\033[0;32m'
 blue='\033[0;34m'
