@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -31,9 +34,90 @@ type Manager struct {
 // NewManager creates a new XRAY manager instance.
 func NewManager() *Manager {
 	m := &Manager{}
+	// Download geo files if missing
+	m.downloadGeoFiles()
 	// Try to load config from file on startup
 	m.LoadConfigFromFile()
 	return m
+}
+
+// downloadGeoFiles downloads geo data files if they are missing.
+// These files are required for routing rules that use geoip/geosite matching.
+func (m *Manager) downloadGeoFiles() {
+	// Possible bin folder paths (in order of priority)
+	binPaths := []string{
+		"bin",
+		"/app/bin",
+		"./bin",
+	}
+
+	var binPath string
+	for _, path := range binPaths {
+		if _, err := os.Stat(path); err == nil {
+			binPath = path
+			break
+		}
+	}
+
+	if binPath == "" {
+		logger.Debug("No bin folder found, skipping geo files download")
+		return
+	}
+
+	// List of geo files to download
+	geoFiles := []struct {
+		URL      string
+		FileName string
+	}{
+		{"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
+		{"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
+		{"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
+		{"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
+		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
+		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+	}
+
+	downloadFile := func(url, destPath string) error {
+		resp, err := http.Get(url)
+		if err != nil {
+			return fmt.Errorf("failed to download: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("bad status: %d", resp.StatusCode)
+		}
+
+		file, err := os.Create(destPath)
+		if err != nil {
+			return fmt.Errorf("failed to create file: %w", err)
+		}
+		defer file.Close()
+
+		_, err = io.Copy(file, resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to write file: %w", err)
+		}
+
+		return nil
+	}
+
+	for _, file := range geoFiles {
+		destPath := filepath.Join(binPath, file.FileName)
+		
+		// Check if file already exists
+		if _, err := os.Stat(destPath); err == nil {
+			logger.Debugf("Geo file %s already exists, skipping download", file.FileName)
+			continue
+		}
+
+		logger.Infof("Downloading geo file: %s", file.FileName)
+		if err := downloadFile(file.URL, destPath); err != nil {
+			logger.Warningf("Failed to download %s: %v", file.FileName, err)
+		} else {
+			logger.Infof("Successfully downloaded %s", file.FileName)
+		}
+	}
 }
 
 // LoadConfigFromFile attempts to load XRAY configuration from config.json file.

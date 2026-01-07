@@ -18,45 +18,7 @@ services:
       # If the file doesn't exist, it will be created when XRAY config is first applied
     networks:
       - xray-network
-  node2:
-    build:
-      context: ..
-      dockerfile: node/Dockerfile
-    container_name: 3x-ui-node2
-    restart: unless-stopped
-    environment:
-#      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
-      - NODE_API_KEY=test-key
-    ports:
-      - "8081:8080"
-      - "44001:44000"
-    volumes:
-      - ./bin/config.json:/app/bin/config.json
-      - ./logs:/app/logs
-      # Note: config.json is mounted directly for persistence
-      # If the file doesn't exist, it will be created when XRAY config is first applied
-    networks:
-      - xray-network
 
-  node3:
-    build:
-      context: ..
-      dockerfile: node/Dockerfile
-    container_name: 3x-ui-node3
-    restart: unless-stopped
-    environment:
-#      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
-      - NODE_API_KEY=test-key
-    ports:
-      - "8082:8080"
-      - "44002:44000"
-    volumes:
-      - ./bin/config.json:/app/bin/config.json
-      - ./logs:/app/logs
-      # Note: config.json is mounted directly for persistence
-      # If the file doesn't exist, it will be created when XRAY config is first applied
-    networks:
-      - xray-network
 networks:
   xray-network:
     driver: bridge
