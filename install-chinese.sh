@@ -42,7 +42,7 @@ if [ -f "/usr/local/x-ui/x-ui.sh" ]; then
 fi
 
 # 下载中文脚本
-wget -q -O /usr/local/x-ui/x-ui.sh https://raw.githubusercontent.com/sinian-liu/3x-ui/main/x-ui.sh
+wget -q -O /usr/local/x-ui/x-ui.sh https://raw.githubusercontent.com/sinian-liu/Original-3x-ui/main/x-ui.sh
 
 if [ $? -ne 0 ]; then
     echo -e "${YELLOW}下载中文脚本失败，使用原版英文脚本${NC}"
