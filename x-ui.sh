@@ -903,24 +903,21 @@ delete_ports() {
 }
 
 update_all_geofiles() {
-        update_main_geofiles
-        update_ir_geofiles
-        update_ru_geofiles
+    update_geofiles "main"
+    update_geofiles "IR"
+    update_geofiles "RU"
 }
 
-update_main_geofiles() {
-        curl -fLRo geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        curl -fLRo geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-}
-
-update_ir_geofiles() {
-        curl -fLRo geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        curl -fLRo geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-}
-
-update_ru_geofiles() {
-        curl -fLRo geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        curl -fLRo geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+update_geofiles() {
+    case "${1}" in
+      "main") dat_files=(geoip geosite); dat_source="Loyalsoldier/v2ray-rules-dat";;
+        "IR") dat_files=(geoip_IR geosite_IR); dat_source="chocolate4u/Iran-v2ray-rules" ;;
+        "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
+    esac
+    for dat in "${dat_files[@]}"; do
+        curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
+            https://github.com/${dat_source}/releases/latest/download/${dat%%_}.dat
+    done
 }
 
 update_geo() {
@@ -931,24 +928,22 @@ update_geo() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
 
-    cd ${xui_folder}/bin
-
     case "$choice" in
     0)
         show_menu
         ;;
     1)
-        update_main_geofiles
+        update_geofiles "main"
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
         restart
         ;;
     2)
-        update_ir_geofiles
+        update_geofiles "IR"
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
         restart
         ;;
     3)
-        update_ru_geofiles
+        update_geofiles "RU"
         echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
         restart
         ;;
