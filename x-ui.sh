@@ -539,36 +539,6 @@ enable_bbr() {
         before_show_menu
     fi
 
-    # Check the OS and install necessary packages
-    case "${release}" in
-    ubuntu | debian | armbian)
-        apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
-        ;;
-    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-        dnf -y update && dnf -y install ca-certificates
-        ;;
-    centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum -y install ca-certificates
-            else
-                dnf -y update && dnf -y install ca-certificates
-            fi
-        ;;
-    arch | manjaro | parch)
-        pacman -Sy --noconfirm ca-certificates
-        ;;
-	opensuse-tumbleweed | opensuse-leap)
-        zypper refresh && zypper -q install -y ca-certificates
-        ;;
-    alpine)
-        apk add ca-certificates
-        ;;
-    *)
-        echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-        exit 1
-        ;;
-    esac
-
     # Enable BBR
     echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
     echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
