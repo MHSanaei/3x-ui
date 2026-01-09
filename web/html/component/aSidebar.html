@@ -77,6 +77,11 @@
                         title: '{{ i18n "menu.inbounds"}}'
                     },
                     {
+                        key: '{{ .base_path }}panel/clients',
+                        icon: 'team',
+                        title: '{{ i18n "menu.clients"}}'
+                    },
+                    {
                         key: '{{ .base_path }}panel/settings',
                         icon: 'setting',
                         title: '{{ i18n "menu.settings"}}'
@@ -88,12 +93,17 @@
                     }
                 ];
                 
-                // Add Nodes menu item if multi-node mode is enabled
+                // Add Nodes and Hosts menu items if multi-node mode is enabled
                 if (this.multiNodeMode) {
-                    this.tabs.splice(3, 0, {
+                    this.tabs.splice(4, 0, {
                         key: '{{ .base_path }}panel/nodes',
                         icon: 'cluster',
                         title: '{{ i18n "menu.nodes"}}'
+                    });
+                    this.tabs.splice(5, 0, {
+                        key: '{{ .base_path }}panel/hosts',
+                        icon: 'cloud-server',
+                        title: '{{ i18n "menu.hosts"}}'
                     });
                 }
                 

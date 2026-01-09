@@ -96,6 +96,8 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultLimitIP":    "0",
 	// Multi-node mode
 	"multiNodeMode": "false", // "true" for multi-mode, "false" for single-mode
+	// HWID tracking mode
+	"hwidMode": "client_header", // "off" = disabled, "client_header" = use x-hwid header (default), "legacy_fingerprint" = deprecated fingerprint-based (deprecated)
 }
 
 // SettingService provides business logic for application settings management.
@@ -669,6 +671,40 @@ func (s *SettingService) GetMultiNodeMode() (bool, error) {
 // SetMultiNodeMode sets the multi-node mode setting.
 func (s *SettingService) SetMultiNodeMode(enabled bool) error {
 	return s.setBool("multiNodeMode", enabled)
+}
+
+// GetHwidMode returns the HWID tracking mode.
+// Returns: "off", "client_header", or "legacy_fingerprint"
+func (s *SettingService) GetHwidMode() (string, error) {
+	mode, err := s.getString("hwidMode")
+	if err != nil {
+		return "client_header", err // Default to client_header on error
+	}
+	// Validate mode
+	validModes := map[string]bool{
+		"off":                true,
+		"client_header":     true,
+		"legacy_fingerprint": true,
+	}
+	if !validModes[mode] {
+		// Invalid mode, return default
+		return "client_header", nil
+	}
+	return mode, nil
+}
+
+// SetHwidMode sets the HWID tracking mode.
+// Valid values: "off", "client_header", "legacy_fingerprint"
+func (s *SettingService) SetHwidMode(mode string) error {
+	validModes := map[string]bool{
+		"off":                true,
+		"client_header":     true,
+		"legacy_fingerprint": true,
+	}
+	if !validModes[mode] {
+		return common.NewErrorf("invalid hwidMode: %s (must be one of: off, client_header, legacy_fingerprint)", mode)
+	}
+	return s.setString("hwidMode", mode)
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

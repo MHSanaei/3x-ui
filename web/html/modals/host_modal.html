@@ -1,0 +1,153 @@
+{{define "modals/hostModal"}}
+<a-modal id="host-modal" v-model="hostModal.visible" :title="hostModal.title" @ok="hostModal.ok"
+  :confirm-loading="hostModal.confirmLoading" :closable="true" :mask-closable="false"
+  :class="themeSwitcher.currentTheme"
+  :ok-text="hostModal.okText" cancel-text='{{ i18n "close" }}' :width="600">
+  <a-form layout="vertical" v-if="hostModal.formData">
+    <a-form-item label='{{ i18n "pages.hosts.hostName" }}' :required="true">
+      <a-input v-model.trim="hostModal.formData.name" placeholder='{{ i18n "pages.hosts.enterHostName" }}'></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.hosts.hostAddress" }}' :required="true">
+      <a-input v-model.trim="hostModal.formData.address" placeholder='{{ i18n "pages.hosts.enterHostAddress" }}'></a-input>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.hosts.hostPort" }}'>
+      <a-input-number v-model.number="hostModal.formData.port" :min="0" :max="65535" :style="{ width: '100%' }"></a-input-number>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.hosts.hostProtocol" }}'>
+      <a-select v-model="hostModal.formData.protocol" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+        <a-select-option value="tcp">TCP</a-select-option>
+        <a-select-option value="udp">UDP</a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.hosts.assignedInbounds" }}'>
+      <a-select v-model="hostModal.formData.inboundIds" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+        <a-select-option v-for="inbound in allInbounds" :key="inbound.id" :value="inbound.id">
+          [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+        </a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item label='{{ i18n "pages.hosts.enable" }}'>
+      <a-switch v-model="hostModal.formData.enable"></a-switch>
+    </a-form-item>
+  </a-form>
+</a-modal>
+<script>
+  const hostModal = window.hostModal = {
+    visible: false,
+    confirmLoading: false,
+    title: '',
+    okText: '{{ i18n "sure" }}',
+    isEdit: false,
+    confirm: null,
+    formData: {
+      name: '',
+      address: '',
+      port: 0,
+      protocol: 'tcp',
+      inboundIds: [],
+      enable: true
+    },
+    ok() {
+      // Validate form data
+      if (!hostModal.formData.name || !hostModal.formData.name.trim()) {
+        if (typeof app !== 'undefined' && app.$message) {
+          app.$message.error('{{ i18n "pages.hosts.enterHostName" }}');
+        } else if (typeof Vue !== 'undefined' && Vue.prototype && Vue.prototype.$message) {
+          Vue.prototype.$message.error('{{ i18n "pages.hosts.enterHostName" }}');
+        }
+        return;
+      }
+      if (!hostModal.formData.address || !hostModal.formData.address.trim()) {
+        if (typeof app !== 'undefined' && app.$message) {
+          app.$message.error('{{ i18n "pages.hosts.enterHostAddress" }}');
+        } else if (typeof Vue !== 'undefined' && Vue.prototype && Vue.prototype.$message) {
+          Vue.prototype.$message.error('{{ i18n "pages.hosts.enterHostAddress" }}');
+        }
+        return;
+      }
+      
+      // Ensure inboundIds is always an array
+      const dataToSend = { ...hostModal.formData };
+      if (dataToSend.inboundIds && !Array.isArray(dataToSend.inboundIds)) {
+        dataToSend.inboundIds = [dataToSend.inboundIds];
+      } else if (!dataToSend.inboundIds) {
+        dataToSend.inboundIds = [];
+      }
+      
+      hostModal.confirmLoading = true;
+      if (hostModal.confirm) {
+        try {
+          const result = hostModal.confirm(dataToSend);
+          // If confirm returns a promise, handle it
+          if (result && typeof result.then === 'function') {
+            result.catch(() => {
+              // Error handling is done in addHostSubmit
+            }).finally(() => {
+              hostModal.confirmLoading = false;
+            });
+          } else {
+            // If not async, reset loading after a short delay
+            setTimeout(() => {
+              hostModal.confirmLoading = false;
+            }, 100);
+          }
+        } catch (e) {
+          console.error("Error in hostModal.ok():", e);
+          hostModal.confirmLoading = false;
+        }
+      } else {
+        hostModal.confirmLoading = false;
+      }
+    },
+    show({ title = '', okText = '{{ i18n "sure" }}', host = null, confirm = () => {}, isEdit = false }) {
+      this.title = title;
+      this.okText = okText;
+      this.isEdit = isEdit;
+      this.confirm = confirm;
+      
+      if (host) {
+        this.formData = {
+          name: host.name || '',
+          address: host.address || '',
+          port: host.port || 0,
+          protocol: host.protocol || 'tcp',
+          inboundIds: host.inboundIds ? [...host.inboundIds] : [],
+          enable: host.enable !== undefined ? host.enable : true
+        };
+      } else {
+        this.formData = {
+          name: '',
+          address: '',
+          port: 0,
+          protocol: 'tcp',
+          inboundIds: [],
+          enable: true
+        };
+      }
+      
+      this.visible = true;
+    },
+    close() {
+      this.visible = false;
+      this.confirmLoading = false;
+    },
+    loading(loading = true) {
+      this.confirmLoading = loading;
+    }
+  };
+
+  const hostModalApp = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#host-modal',
+    data: {
+      hostModal: hostModal,
+      get themeSwitcher() {
+        return typeof themeSwitcher !== 'undefined' ? themeSwitcher : { currentTheme: 'light' };
+      },
+      get allInbounds() {
+        return typeof app !== 'undefined' && app.allInbounds ? app.allInbounds : [];
+      }
+    }
+  });
+</script>
+{{end}}

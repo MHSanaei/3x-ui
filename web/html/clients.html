@@ -1,0 +1,730 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' clients-page'">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content :style="{ padding: '24px 16px' }">
+      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
+        <a-col>
+          <a-card size="small" :style="{ padding: '16px' }" hoverable>
+            <h2>{{ i18n "pages.clients.title" }}</h2>
+            
+            <div style="margin-bottom: 20px;">
+              <a-button type="primary" icon="plus" @click="openAddClient">{{ i18n "pages.clients.addClient" }}</a-button>
+              <a-button icon="sync" @click="manualRefresh" :loading="refreshing" style="margin-left: 10px;">{{ i18n "refresh" }}</a-button>
+              <a-popover placement="bottomRight" trigger="click" :overlay-class-name="themeSwitcher.currentTheme" style="margin-left: 10px;">
+                <template #title>
+                  <div class="ant-custom-popover-title">
+                    <a-switch v-model="isRefreshEnabled" @change="toggleRefresh" size="small"></a-switch>
+                    <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
+                  </div>
+                </template>
+                <template #content>
+                  <a-space direction="vertical">
+                    <span>{{ i18n "pages.inbounds.autoRefreshInterval" }}</span>
+                    <a-select v-model="refreshInterval" :disabled="!isRefreshEnabled" :style="{ width: '100%' }"
+                      @change="changeRefreshInterval" :dropdown-class-name="themeSwitcher.currentTheme">
+                      <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
+                    </a-select>
+                  </a-space>
+                </template>
+                <a-button icon="down"></a-button>
+              </a-popover>
+            </div>
+
+            <a-table :columns="isMobile ? mobileColumns : columns" :row-key="client => client.id"
+              :data-source="clients" :scroll="isMobile ? {} : { x: 1000 }"
+              :pagination="false"
+              :style="{ marginTop: '10px' }"
+              class="clients-table"
+              :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
+              <template slot="action" slot-scope="text, client">
+                <a-dropdown :trigger="['click']">
+                  <a-icon @click="e => e.preventDefault()" type="more"
+                    :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
+                  <a-menu slot="overlay" @click="a => clickAction(a, client)"
+                    :theme="themeSwitcher.currentTheme">
+                    <a-menu-item key="qrcode" v-if="client.inbounds && client.inbounds.length > 0">
+                      <a-icon type="qrcode"></a-icon>
+                      {{ i18n "qrCode" }}
+                    </a-menu-item>
+                    <a-menu-item key="edit">
+                      <a-icon type="edit"></a-icon>
+                      {{ i18n "edit" }}
+                    </a-menu-item>
+                    <a-menu-item key="delete" :style="{ color: '#FF4D4F' }">
+                      <a-icon type="delete"></a-icon>
+                      {{ i18n "delete" }}
+                    </a-menu-item>
+                  </a-menu>
+                </a-dropdown>
+              </template>
+              <template slot="email" slot-scope="text, client">
+                <span>[[ client.email || '-' ]]</span>
+              </template>
+              <template slot="inbounds" slot-scope="text, client">
+                <template v-if="client.inbounds && client.inbounds.length > 0">
+                  <a-tag v-for="(inbound, index) in client.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                    [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+                  </a-tag>
+                </template>
+                <a-tag v-else color="default">{{ i18n "none" }}</a-tag>
+              </template>
+              <template slot="enable" slot-scope="text, client">
+                <a-switch v-model="client.enable" @change="switchEnable(client.id, client.enable)"></a-switch>
+              </template>
+              <template slot="status" slot-scope="text, client">
+                <a-tag v-if="isClientOnline(client.email)" color="green">{{ i18n "online" }}</a-tag>
+                <a-tag v-else color="default">{{ i18n "offline" }}</a-tag>
+              </template>
+              <template slot="traffic" slot-scope="text, client">
+                <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="content">
+                    <table cellpadding="2" width="100%">
+                      <tr>
+                        <td>↑[[ SizeFormatter.sizeFormat(client.up || 0) ]]</td>
+                        <td>↓[[ SizeFormatter.sizeFormat(client.down || 0) ]]</td>
+                      </tr>
+                      <tr v-if="getClientTotal(client) > 0 && (client.up || 0) + (client.down || 0) < getClientTotal(client)">
+                        <td>{{ i18n "remained" }}</td>
+                        <td>[[ SizeFormatter.sizeFormat(getClientTotal(client) - (client.up || 0) - (client.down || 0)) ]]</td>
+                      </tr>
+                    </table>
+                  </template>
+                  <a-tag :color="ColorUtils.usageColor((client.up || 0) + (client.down || 0), 0, getClientTotal(client))">
+                    [[ SizeFormatter.sizeFormat((client.up || 0) + (client.down || 0)) ]] /
+                    <template v-if="getClientTotal(client) > 0">
+                      [[ SizeFormatter.sizeFormat(getClientTotal(client)) ]]
+                    </template>
+                    <template v-else>
+                      <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                        <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
+                      </svg>
+                    </template>
+                  </a-tag>
+                </a-popover>
+              </template>
+              <template slot="expiryTime" slot-scope="text, client">
+                <a-popover v-if="client.expiryTime > 0" :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="content">
+                    [[ IntlUtil.formatDate(client.expiryTime) ]]
+                  </template>
+                  <a-tag :style="{ minWidth: '50px' }"
+                    :color="ColorUtils.usageColor(new Date().getTime(), 0, client.expiryTime)">
+                    [[ IntlUtil.formatRelativeTime(client.expiryTime) ]]
+                  </a-tag>
+                </a-popover>
+                <a-tag v-else color="purple" class="infinite-tag">
+                  <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
+                    <path d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z" fill="currentColor"></path>
+                  </svg>
+                </a-tag>
+              </template>
+            </a-table>
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-row v-else>
+        <a-card
+          :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+          <a-spin tip='{{ i18n "loading" }}'></a-spin>
+        </a-card>
+      </a-row>
+      </a-spin>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+
+{{template "page/body_scripts" .}}
+<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/uri/URI.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/inbound.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+{{template "modals/qrcodeModal"}}
+{{template "modals/clientEntityModal"}}
+<script>
+  const columns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 50,
+  }, {
+    title: '{{ i18n "pages.clients.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.clients.email" }}',
+    align: 'left',
+    width: 200,
+    scopedSlots: { customRender: 'email' },
+  }, {
+    title: '{{ i18n "pages.clients.inbounds" }}',
+    align: 'left',
+    width: 250,
+    scopedSlots: { customRender: 'inbounds' },
+  }, {
+    title: '{{ i18n "status" }}',
+    align: 'center',
+    width: 100,
+    scopedSlots: { customRender: 'status' },
+  }, {
+    title: '{{ i18n "pages.clients.traffic" }}',
+    align: 'left',
+    width: 150,
+    scopedSlots: { customRender: 'traffic' },
+  }, {
+    title: '{{ i18n "pages.clients.expiryTime" }}',
+    align: 'left',
+    width: 120,
+    scopedSlots: { customRender: 'expiryTime' },
+  }, {
+    title: '{{ i18n "pages.clients.enable" }}',
+    align: 'center',
+    width: 80,
+    scopedSlots: { customRender: 'enable' },
+  }];
+
+  const mobileColumns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+  }, {
+    title: '{{ i18n "pages.clients.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.clients.email" }}',
+    align: 'left',
+    width: 150,
+    scopedSlots: { customRender: 'email' },
+  }, {
+    title: '{{ i18n "pages.clients.enable" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'enable' },
+  }];
+
+  const app = window.app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    mixins: [MediaQueryMixin],
+    data: {
+      themeSwitcher,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
+      clients: [],
+      allInbounds: [],
+      availableNodes: [],
+      refreshing: false,
+      onlineClients: [],
+      lastOnlineMap: {},
+      isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
+      refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
+      subSettings: {
+        enable: false,
+        subTitle: '',
+        subURI: '',
+        subJsonURI: '',
+        subJsonEnable: false,
+      },
+      remarkModel: '-ieo',
+    },
+    methods: {
+      loading(spinning = true) {
+        this.loadingStates.spinning = spinning;
+      },
+      async loadClients() {
+        this.refreshing = true;
+        try {
+          // Load online clients and last online map first
+          await this.getOnlineUsers();
+          await this.getLastOnlineMap();
+          
+          const msg = await HttpUtil.get('/panel/client/list');
+          if (msg && msg.success && msg.obj) {
+            this.clients = msg.obj;
+            // Load inbounds for each client
+            await this.loadInboundsForClients();
+          }
+        } catch (e) {
+          console.error("Failed to load clients:", e);
+          app.$message.error('{{ i18n "pages.clients.loadError" }}');
+        } finally {
+          this.refreshing = false;
+          this.loadingStates.fetched = true;
+        }
+      },
+      async getOnlineUsers() {
+        const msg = await HttpUtil.post('/panel/api/inbounds/onlines');
+        if (!msg.success) {
+          return;
+        }
+        this.onlineClients = msg.obj != null ? msg.obj : [];
+      },
+      async getLastOnlineMap() {
+        const msg = await HttpUtil.post('/panel/api/inbounds/lastOnline');
+        if (!msg.success || !msg.obj) return;
+        this.lastOnlineMap = msg.obj || {}
+      },
+      isClientOnline(email) {
+        return this.onlineClients.includes(email);
+      },
+      getLastOnline(email) {
+        return this.lastOnlineMap[email] || null
+      },
+      formatLastOnline(email) {
+        const ts = this.getLastOnline(email)
+        if (!ts) return '-'
+        // Check if IntlUtil is available (may not be loaded yet)
+        if (typeof IntlUtil !== 'undefined' && IntlUtil.formatDate) {
+          return IntlUtil.formatDate(ts)
+        }
+        // Fallback to simple date formatting if IntlUtil is not available
+        return new Date(ts).toLocaleString()
+      },
+      getClientTotal(client) {
+        // Convert TotalGB to bytes (1 GB = 1024^3 bytes)
+        if (client.totalGB && client.totalGB > 0) {
+          return client.totalGB * 1024 * 1024 * 1024;
+        }
+        return 0;
+      },
+      async loadInboundsForClients() {
+        try {
+          const inboundsMsg = await HttpUtil.get('/panel/api/inbounds/list');
+          if (inboundsMsg && inboundsMsg.success && inboundsMsg.obj) {
+            this.allInbounds = inboundsMsg.obj;
+            // Map inbound IDs to full inbound objects for each client
+            this.clients.forEach(client => {
+              if (client.inboundIds && Array.isArray(client.inboundIds)) {
+                client.inbounds = client.inboundIds.map(id => {
+                  return this.allInbounds.find(ib => ib.id === id);
+                }).filter(ib => ib != null);
+              } else {
+                client.inbounds = [];
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load inbounds for clients:", e);
+        }
+      },
+      async getDefaultSettings() {
+        const msg = await HttpUtil.post('/panel/setting/defaultSettings');
+        if (!msg.success) {
+          return;
+        }
+        with (msg.obj) {
+          this.subSettings = {
+            enable: subEnable,
+            subTitle: subTitle,
+            subURI: subURI,
+            subJsonURI: subJsonURI,
+            subJsonEnable: subJsonEnable,
+          };
+          this.remarkModel = remarkModel;
+        }
+      },
+      async loadAvailableNodes() {
+        try {
+          const msg = await HttpUtil.get("/panel/node/list");
+          if (msg && msg.success && msg.obj) {
+            this.availableNodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name,
+              address: node.address,
+              status: node.status || 'unknown'
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to load available nodes:", e);
+        }
+      },
+      clickAction(action, client) {
+        switch (action.key) {
+          case 'qrcode':
+            this.showQrcode(client);
+            break;
+          case 'edit':
+            this.editClient(client);
+            break;
+          case 'delete':
+            this.deleteClient(client.id);
+            break;
+        }
+      },
+      showQrcode(client) {
+        // Show QR codes for all inbounds assigned to this client
+        if (!client.inbounds || client.inbounds.length === 0) {
+          app.$message.warning('{{ i18n "tgbot.noInbounds" }}');
+          return;
+        }
+        
+        // Convert ClientEntity to client format for qrModal
+        const clientForQR = {
+          email: client.email,
+          id: client.uuid || client.email,
+          password: client.password || '',
+          security: client.security || 'auto',
+          flow: client.flow || '',
+          subId: client.subId || '' // Add subId for subscription link generation
+        };
+        
+        // Collect QR codes from all inbounds
+        const allQRCodes = [];
+        
+        // Process each inbound assigned to this client
+        client.inbounds.forEach(inbound => {
+          if (!inbound) return;
+          
+          // Load full inbound data to create DBInbound
+          const dbInbound = this.allInbounds.find(ib => ib.id === inbound.id);
+          if (!dbInbound) return;
+          
+          // Create a DBInbound object from the inbound data
+          const dbInboundObj = new DBInbound(dbInbound);
+          const inboundObj = dbInboundObj.toInbound();
+          
+          // Generate links for this inbound
+          // Get inbound remark (fallback to ID if remark is empty)
+          const inboundRemarkForWireguard = (dbInbound.remark && dbInbound.remark.trim()) || ('Inbound #' + dbInbound.id);
+          
+          if (inboundObj.protocol == Protocols.WIREGUARD) {
+            inboundObj.genInboundLinks(dbInbound.remark).split('\r\n').forEach((l, index) => {
+              allQRCodes.push({
+                remark: inboundRemarkForWireguard + " - Peer " + (index + 1),
+                link: l,
+                useIPv4: false,
+                originalLink: l
+              });
+            });
+          } else {
+            const links = inboundObj.genAllLinks(dbInbound.remark, this.remarkModel, clientForQR);
+            const hasMultipleNodes = links.length > 1 && links.some(l => l.nodeId !== null);
+            const hasMultipleInbounds = client.inbounds.length > 1;
+            
+            // Get inbound remark (fallback to ID if remark is empty)
+            const inboundRemark = (dbInbound.remark && dbInbound.remark.trim()) || ('Inbound #' + dbInbound.id);
+            
+            links.forEach(l => {
+              // Build display remark - always start with inbound name
+              let displayRemark = inboundRemark;
+              
+              // If multiple nodes, append node name
+              if (hasMultipleNodes && l.nodeId !== null) {
+                const node = this.availableNodes && this.availableNodes.find(n => n.id === l.nodeId);
+                if (node && node.name) {
+                  displayRemark = inboundRemark + " - " + node.name;
+                }
+              }
+              
+              // Ensure remark is never empty
+              if (!displayRemark || !displayRemark.trim()) {
+                displayRemark = 'Inbound #' + dbInbound.id;
+              }
+              
+              allQRCodes.push({
+                remark: displayRemark,
+                link: l.link,
+                useIPv4: false,
+                originalLink: l.link,
+                nodeId: l.nodeId
+              });
+            });
+          }
+        });
+        
+        // If we have QR codes, show them in the modal
+        if (allQRCodes.length > 0) {
+          // Set up qrModal with first inbound (for subscription links if enabled)
+          const firstDbInbound = this.allInbounds.find(ib => ib.id === client.inbounds[0].id);
+          if (firstDbInbound) {
+            const firstDbInboundObj = new DBInbound(firstDbInbound);
+            
+            // Set modal properties
+            qrModal.title = '{{ i18n "qrCode"}} - ' + client.email;
+            qrModal.dbInbound = firstDbInboundObj;
+            qrModal.inbound = firstDbInboundObj.toInbound();
+            qrModal.client = clientForQR;
+            qrModal.subId = clientForQR.subId || '';
+            
+            // Clear and set qrcodes array - use Vue.set for reactivity if needed
+            qrModal.qrcodes.length = 0;
+            allQRCodes.forEach(qr => {
+              // Ensure remark is set and not empty
+              if (!qr.remark || !qr.remark.trim()) {
+                qr.remark = 'QR Code';
+              }
+              qrModal.qrcodes.push(qr);
+            });
+            
+            // Show modal
+            qrModal.visible = true;
+            
+            // Reset the status fetched flag
+            if (qrModalApp) {
+              qrModalApp.statusFetched = false;
+            }
+          }
+        } else {
+          app.$message.warning('{{ i18n "tgbot.noInbounds" }}');
+        }
+      },
+      openAddClient() {
+        // Call directly like inModal.show() in inbounds.html
+        if (typeof window.clientEntityModal !== 'undefined') {
+          window.clientEntityModal.show({
+            title: '{{ i18n "pages.clients.addClient" }}',
+            okText: '{{ i18n "create" }}',
+            confirm: async (client) => {
+              await this.submitClient(client, false);
+            },
+            isEdit: false
+          });
+        } else if (typeof clientEntityModal !== 'undefined') {
+          clientEntityModal.show({
+            title: '{{ i18n "pages.clients.addClient" }}',
+            okText: '{{ i18n "create" }}',
+            confirm: async (client) => {
+              await this.submitClient(client, false);
+            },
+            isEdit: false
+          });
+        } else {
+          console.error('[openAddClient] ERROR: clientEntityModal is not defined!');
+        }
+      },
+      async editClient(client) {
+        // Load full client data including HWIDs
+        try {
+          const msg = await HttpUtil.get(`/panel/client/get/${client.id}`);
+          if (msg && msg.success && msg.obj) {
+            client = msg.obj; // Use full client data from API
+          }
+        } catch (e) {
+          console.error("Failed to load full client data:", e);
+        }
+        
+        // Call directly like inModal.show() in inbounds.html
+        if (typeof window.clientEntityModal !== 'undefined') {
+          window.clientEntityModal.show({
+            title: '{{ i18n "pages.clients.editClient" }}',
+            okText: '{{ i18n "update" }}',
+            client: client,
+            confirm: async (client) => {
+              await this.submitClient(client, true);
+            },
+            isEdit: true
+          });
+        } else if (typeof clientEntityModal !== 'undefined') {
+          clientEntityModal.show({
+            title: '{{ i18n "pages.clients.editClient" }}',
+            okText: '{{ i18n "update" }}',
+            client: client,
+            confirm: async (client) => {
+              await this.submitClient(client, true);
+            },
+            isEdit: true
+          });
+        }
+      },
+      async submitClient(client, isEdit) {
+        if (!client.email || !client.email.trim()) {
+          app.$message.error('{{ i18n "pages.clients.emailRequired" }}');
+          return;
+        }
+        
+        clientEntityModal.loading(true);
+        try {
+          // Convert date picker value to timestamp
+          if (client._expiryTime) {
+            if (moment && moment.isMoment(client._expiryTime)) {
+              client.expiryTime = client._expiryTime.valueOf();
+            } else if (client._expiryTime instanceof Date) {
+              client.expiryTime = client._expiryTime.getTime();
+            } else if (typeof client._expiryTime === 'number') {
+              client.expiryTime = client._expiryTime;
+            } else {
+              client.expiryTime = parseInt(client._expiryTime) || 0;
+            }
+          } else {
+            client.expiryTime = 0;
+          }
+          
+          let msg;
+          if (isEdit) {
+            msg = await HttpUtil.post(`/panel/client/update/${client.id}`, client);
+          } else {
+            msg = await HttpUtil.post('/panel/client/add', client);
+          }
+          
+          if (msg.success) {
+            app.$message.success(isEdit ? '{{ i18n "pages.clients.updateSuccess" }}' : '{{ i18n "pages.clients.addSuccess" }}');
+            clientEntityModal.close();
+            await this.loadClients();
+          } else {
+            app.$message.error(msg.msg || (isEdit ? '{{ i18n "pages.clients.updateError" }}' : '{{ i18n "pages.clients.addError" }}'));
+          }
+        } catch (e) {
+          console.error("Failed to submit client:", e);
+          app.$message.error(isEdit ? '{{ i18n "pages.clients.updateError" }}' : '{{ i18n "pages.clients.addError" }}');
+        } finally {
+          clientEntityModal.loading(false);
+        }
+      },
+      async deleteClient(id) {
+        this.$confirm({
+          title: '{{ i18n "pages.clients.deleteConfirm" }}',
+          content: '{{ i18n "pages.clients.deleteConfirmText" }}',
+          okText: '{{ i18n "sure" }}',
+          okType: 'danger',
+          cancelText: '{{ i18n "close" }}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post(`/panel/client/del/${id}`);
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.clients.deleteSuccess" }}');
+                await this.loadClients();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "pages.clients.deleteError" }}');
+              }
+            } catch (e) {
+              console.error("Failed to delete client:", e);
+              app.$message.error('{{ i18n "pages.clients.deleteError" }}');
+            }
+          }
+        });
+      },
+      async switchEnable(id, enable) {
+        try {
+          const msg = await HttpUtil.post(`/panel/client/update/${id}`, { enable: enable });
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.clients.updateSuccess" }}');
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.clients.updateError" }}');
+            // Revert switch
+            const client = this.clients.find(c => c.id === id);
+            if (client) {
+              client.enable = !enable;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to update client:", e);
+          app.$message.error('{{ i18n "pages.clients.updateError" }}');
+          // Revert switch
+          const client = this.clients.find(c => c.id === id);
+          if (client) {
+            client.enable = !enable;
+          }
+        }
+      },
+      async startDataRefreshLoop() {
+        while (this.isRefreshEnabled) {
+          try {
+            await this.loadClients();
+          } catch (e) {
+            console.error(e);
+          }
+          await PromiseUtil.sleep(this.refreshInterval);
+        }
+      },
+      toggleRefresh() {
+        localStorage.setItem("isRefreshEnabled", this.isRefreshEnabled);
+        if (this.isRefreshEnabled) {
+          this.startDataRefreshLoop();
+        }
+      },
+      changeRefreshInterval() {
+        localStorage.setItem("refreshInterval", this.refreshInterval);
+      },
+      async manualRefresh() {
+        if (!this.refreshing) {
+          this.loadingStates.spinning = true;
+          await this.loadClients();
+          this.loadingStates.spinning = false;
+        }
+      }
+    },
+    async mounted() {
+      // Load default settings (subSettings, remarkModel) first
+      await this.getDefaultSettings();
+      // Load available nodes for proper host addresses in QR codes
+      await this.loadAvailableNodes();
+      this.loading();
+      
+      // Initial data fetch
+      this.loadClients().then(() => {
+        this.loading(false);
+      });
+
+      // Setup WebSocket for real-time updates
+      if (window.wsClient) {
+        window.wsClient.connect();
+        
+        // Listen for inbounds updates (contains full client traffic data)
+        window.wsClient.on('inbounds', (payload) => {
+          if (payload && Array.isArray(payload)) {
+            // Reload clients to get updated traffic (silently, without showing loading spinner)
+            // Only reload if not already refreshing to avoid multiple simultaneous requests
+            if (!this.refreshing) {
+              this.refreshing = true;
+              this.loadClients().finally(() => {
+                this.refreshing = false;
+              });
+            }
+          }
+        });
+        
+        // Listen for traffic updates
+        window.wsClient.on('traffic', (payload) => {
+          // Update online clients list in real-time
+          if (payload && Array.isArray(payload.onlineClients)) {
+            this.onlineClients = payload.onlineClients;
+          }
+          
+          // Update last online map in real-time
+          if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
+            this.lastOnlineMap = { ...this.lastOnlineMap, ...payload.lastOnlineMap };
+          }
+          
+          // Note: Traffic updates (up/down) are handled via 'inbounds' event
+          // which contains full accumulated traffic data from database
+        });
+
+        // Fallback to polling if WebSocket fails
+        window.wsClient.on('error', () => {
+          console.warn('WebSocket connection failed, falling back to polling');
+          if (this.isRefreshEnabled) {
+            this.startDataRefreshLoop();
+          }
+        });
+
+        window.wsClient.on('disconnected', () => {
+          if (window.wsClient.reconnectAttempts >= window.wsClient.maxReconnectAttempts) {
+            console.warn('WebSocket reconnection failed, falling back to polling');
+            if (this.isRefreshEnabled) {
+              this.startDataRefreshLoop();
+            }
+          }
+        });
+      } else {
+        // Fallback to polling if WebSocket is not available
+        if (this.isRefreshEnabled) {
+          this.startDataRefreshLoop();
+        }
+      }
+      
+    }
+  });
+</script>
+{{ template "page/body_end" .}}

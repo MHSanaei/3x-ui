@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/database"
@@ -24,6 +25,72 @@ import (
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
 	xrayApi xray.XrayAPI
+}
+
+// inboundUpdateMutexes provides per-inbound mutexes to prevent concurrent updates
+var inboundUpdateMutexes = make(map[int]*sync.Mutex)
+var inboundMutexLock sync.Mutex
+
+// getInboundMutex returns a mutex for a specific inbound ID to prevent concurrent updates
+func getInboundMutex(inboundId int) *sync.Mutex {
+	inboundMutexLock.Lock()
+	defer inboundMutexLock.Unlock()
+	
+	if mutex, exists := inboundUpdateMutexes[inboundId]; exists {
+		return mutex
+	}
+	
+	mutex := &sync.Mutex{}
+	inboundUpdateMutexes[inboundId] = mutex
+	return mutex
+}
+
+// updateInboundWithRetry updates an inbound with retry logic for database lock errors.
+// It uses a per-inbound mutex to prevent concurrent updates and retries up to 3 times
+// with exponential backoff (50ms, 100ms, 200ms).
+func (s *InboundService) updateInboundWithRetry(inbound *model.Inbound) (*model.Inbound, bool, error) {
+	// Use per-inbound mutex to prevent concurrent updates of the same inbound
+	mutex := getInboundMutex(inbound.Id)
+	mutex.Lock()
+	defer mutex.Unlock()
+	
+	maxRetries := 3
+	baseDelay := 50 * time.Millisecond
+	
+	var result *model.Inbound
+	var needRestart bool
+	var err error
+	
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		if attempt > 0 {
+			// Exponential backoff: 50ms, 100ms, 200ms
+			delay := baseDelay * time.Duration(1<<uint(attempt-1))
+			logger.Debugf("Retrying inbound %d update (attempt %d/%d) after %v", inbound.Id, attempt+1, maxRetries, delay)
+			time.Sleep(delay)
+		}
+		
+		result, needRestart, err = s.UpdateInbound(inbound)
+		if err == nil {
+			return result, needRestart, nil
+		}
+		
+		// Check if error is "database is locked"
+		errStr := err.Error()
+		if strings.Contains(errStr, "database is locked") || strings.Contains(errStr, "locked") {
+			if attempt < maxRetries-1 {
+				logger.Debugf("Database locked for inbound %d, will retry: %v", inbound.Id, err)
+				continue
+			}
+			// Last attempt failed
+			logger.Warningf("Failed to update inbound %d after %d retries: %v", inbound.Id, maxRetries, err)
+			return result, needRestart, err
+		}
+		
+		// For other errors, don't retry
+		return result, needRestart, err
+	}
+	
+	return result, needRestart, err
 }
 
 // GetInbounds retrieves all inbounds for a specific user.
@@ -145,7 +212,24 @@ func (s *InboundService) checkPortExist(listen string, port int, ignoreId int) (
 	return count > 0, nil
 }
 
+// GetClients retrieves clients for an inbound.
+// First tries to get clients from ClientEntity (new approach),
+// falls back to parsing Settings JSON for backward compatibility.
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
+	clientService := ClientService{}
+	
+	// Try to get clients from ClientEntity (new approach)
+	clientEntities, err := clientService.GetClientsForInbound(inbound.Id)
+	if err == nil && len(clientEntities) > 0 {
+		// Convert ClientEntity to Client
+		clients := make([]model.Client, len(clientEntities))
+		for i, entity := range clientEntities {
+			clients[i] = clientService.ConvertClientEntityToClient(entity)
+		}
+		return clients, nil
+	}
+	
+	// Fallback: parse from Settings JSON (backward compatibility)
 	settings := map[string][]model.Client{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	if settings == nil {
@@ -159,17 +243,84 @@ func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, err
 	return clients, nil
 }
 
+// BuildSettingsFromClientEntities builds Settings JSON for Xray from ClientEntity.
+// This method creates a minimal Settings structure with only fields needed by Xray.
+func (s *InboundService) BuildSettingsFromClientEntities(inbound *model.Inbound, clientEntities []*model.ClientEntity) (string, error) {
+	// Parse existing settings to preserve other fields (like encryption for VLESS)
+	var settings map[string]any
+	if inbound.Settings != "" {
+		json.Unmarshal([]byte(inbound.Settings), &settings)
+	}
+	if settings == nil {
+		settings = make(map[string]any)
+	}
+	
+	// Build clients array for Xray (only minimal fields)
+	var xrayClients []map[string]any
+	for _, entity := range clientEntities {
+		if !entity.Enable {
+			continue // Skip disabled clients
+		}
+		
+		client := make(map[string]any)
+		client["email"] = entity.Email
+		
+		switch inbound.Protocol {
+		case model.Trojan:
+			client["password"] = entity.Password
+		case model.Shadowsocks:
+			// For Shadowsocks, we need to get method from settings
+			if method, ok := settings["method"].(string); ok {
+				client["method"] = method
+			}
+			client["password"] = entity.Password
+		case model.VMESS, model.VLESS:
+			client["id"] = entity.UUID
+			if inbound.Protocol == model.VMESS {
+				if entity.Security != "" {
+					client["security"] = entity.Security
+				}
+			}
+			if inbound.Protocol == model.VLESS && entity.Flow != "" {
+				client["flow"] = entity.Flow
+			}
+		}
+		
+		xrayClients = append(xrayClients, client)
+	}
+	
+	settings["clients"] = xrayClients
+	settingsJSON, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return "", err
+	}
+	
+	return string(settingsJSON), nil
+}
+
 func (s *InboundService) getAllEmails() ([]string, error) {
 	db := database.GetDB()
 	var emails []string
-	err := db.Raw(`
-		SELECT JSON_EXTRACT(client.value, '$.email')
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
-		`).Scan(&emails).Error
+	
+	// Get emails from ClientEntity (new approach)
+	err := db.Model(&model.ClientEntity{}).Pluck("email", &emails).Error
 	if err != nil {
 		return nil, err
 	}
+	
+	// Also get emails from Settings JSON (backward compatibility)
+	var settingsEmails []string
+	_ = db.Raw(`
+		SELECT JSON_EXTRACT(client.value, '$.email')
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE JSON_EXTRACT(client.value, '$.email') IS NOT NULL
+			AND JSON_EXTRACT(client.value, '$.email') != ''
+		`).Scan(&settingsEmails)
+	if len(settingsEmails) > 0 {
+		emails = append(emails, settingsEmails...)
+	}
+	
 	return emails, nil
 }
 
@@ -277,20 +428,23 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		}
 	}
 
-	// Secure client ID
-	for _, client := range clients {
-		switch inbound.Protocol {
-		case "trojan":
-			if client.Password == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-		case "shadowsocks":
-			if client.Email == "" {
-				return inbound, false, common.NewError("empty client ID")
-			}
-		default:
-			if client.ID == "" {
-				return inbound, false, common.NewError("empty client ID")
+	// Secure client ID (only validate if clients are provided)
+	// Allow creating inbounds without clients
+	if len(clients) > 0 {
+		for _, client := range clients {
+			switch inbound.Protocol {
+			case "trojan":
+				if client.Password == "" {
+					return inbound, false, common.NewError("empty client ID")
+				}
+			case "shadowsocks":
+				if client.Email == "" {
+					return inbound, false, common.NewError("empty client ID")
+				}
+			default:
+				if client.ID == "" {
+					return inbound, false, common.NewError("empty client ID")
+				}
 			}
 		}
 	}

@@ -204,14 +204,6 @@
                             {{ i18n "qrCode" }}
                           </a-menu-item>
                           <template v-if="dbInbound.isMultiUser()">
-                            <a-menu-item key="addClient">
-                              <a-icon type="user-add"></a-icon>
-                              {{ i18n "pages.client.add"}}
-                            </a-menu-item>
-                            <a-menu-item key="addBulkClient">
-                              <a-icon type="usergroup-add"></a-icon>
-                              {{ i18n "pages.client.bulk"}}
-                            </a-menu-item>
                             <a-menu-item key="resetClients">
                               <a-icon type="file-done"></a-icon>
                               {{ i18n "pages.inbounds.resetInboundClientTraffics"}}
@@ -586,13 +578,6 @@
                           </a-button>
                         </a-badge>
                       </a-popover>
-                    </template>
-                    <template slot="expandedRowRender" slot-scope="record">
-                      <a-table :row-key="client => client.id" :columns="isMobile ? innerMobileColumns : innerColumns"
-                        :data-source="getInboundClients(record)" :pagination=pagination(getInboundClients(record))
-                        :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -11px` }">
-                        {{template "component/aClientTable"}}
-                      </a-table>
                     </template>
                   </a-table>
                 </a-space>
@@ -1017,12 +1002,6 @@
             break;
           case "edit":
             this.openEditInbound(dbInbound.id);
-            break;
-          case "addClient":
-            this.openAddClient(dbInbound.id)
-            break;
-          case "addBulkClient":
-            this.openAddBulkClient(dbInbound.id)
             break;
           case "export":
             this.inboundLinks(dbInbound.id);
