@@ -6,6 +6,8 @@ blue='\033[0;34m'
 yellow='\033[0;33m'
 plain='\033[0m'
 
+source docker-cron-runner/xray-tools.sh
+
 #Add some basic function here
 function LOGD() {
     echo -e "${yellow}[DEG] $* ${plain}"
@@ -61,7 +63,7 @@ iplimit_log_path="${log_folder}/3xipl.log"
 iplimit_banned_log_path="${log_folder}/3xipl-banned.log"
 
 confirm() {
-    if [[ $# > 1 ]]; then
+    if [[ $# -gt 1 ]]; then
         echo && read -rp "$1 [Default $2]: " temp
         if [[ "${temp}" == "" ]]; then
             temp=$2
@@ -872,24 +874,6 @@ delete_ports() {
     fi
 }
 
-update_all_geofiles() {
-    update_geofiles "main"
-    update_geofiles "IR"
-    update_geofiles "RU"
-}
-
-update_geofiles() {
-    case "${1}" in
-      "main") dat_files=(geoip geosite); dat_source="Loyalsoldier/v2ray-rules-dat";;
-        "IR") dat_files=(geoip_IR geosite_IR); dat_source="chocolate4u/Iran-v2ray-rules" ;;
-        "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
-    esac
-    for dat in "${dat_files[@]}"; do
-        curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
-            https://github.com/${dat_source}/releases/latest/download/${dat%%_}.dat
-    done
-}
-
 update_geo() {
     echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
     echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
@@ -903,17 +887,17 @@ update_geo() {
         show_menu
         ;;
     1)
-        update_geofiles "main"
+        update_main_geofiles
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
         restart
         ;;
     2)
-        update_geofiles "IR"
+        update_ir_geofiles
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
         restart
         ;;
     3)
-        update_geofiles "RU"
+        update_ru_geofiles
         echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
         restart
         ;;
@@ -1074,28 +1058,28 @@ ssl_cert_issue_main() {
 ssl_cert_issue_for_ip() {
     LOGI "Starting automatic SSL certificate generation for server IP..."
     LOGI "Using Let's Encrypt shortlived profile (~6 days validity, auto-renews)"
-    
+
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    
+
     # Get server IP
     local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
     if [ -z "$server_ip" ]; then
         server_ip=$(curl -s --max-time 3 https://4.ident.me)
     fi
-    
+
     if [ -z "$server_ip" ]; then
         LOGE "Failed to get server IP address"
         return 1
     fi
-    
+
     LOGI "Server IP detected: ${server_ip}"
-    
+
     # Ask for optional IPv6
     local ipv6_addr=""
     read -rp "Do you have an IPv6 address to include? (leave empty to skip): " ipv6_addr
     ipv6_addr="${ipv6_addr// /}"  # Trim whitespace
-    
+
     # check for acme.sh first
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
         LOGI "acme.sh not found, installing..."
@@ -1105,7 +1089,7 @@ ssl_cert_issue_for_ip() {
             return 1
         fi
     fi
-    
+
     # install socat
     case "${release}" in
     ubuntu | debian | armbian)
@@ -1134,26 +1118,26 @@ ssl_cert_issue_for_ip() {
         LOGW "Unsupported OS for automatic socat installation"
         ;;
     esac
-    
+
     # Create certificate directory
     certPath="/root/cert/ip"
     mkdir -p "$certPath"
-    
+
     # Build domain arguments
     local domain_args="-d ${server_ip}"
     if [[ -n "$ipv6_addr" ]] && is_ipv6 "$ipv6_addr"; then
         domain_args="${domain_args} -d ${ipv6_addr}"
         LOGI "Including IPv6 address: ${ipv6_addr}"
     fi
-    
+
     # Use port 80 for certificate issuance
     local WebPort=80
     LOGI "Using port ${WebPort} to issue certificate for IP: ${server_ip}"
     LOGI "Make sure port ${WebPort} is open and not in use..."
-    
+
     # Reload command - restarts panel after renewal
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null"
-    
+
     # issue the certificate for IP with shortlived profile
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     ~/.acme.sh/acme.sh --issue \
@@ -1164,7 +1148,7 @@ ssl_cert_issue_for_ip() {
         --days 6 \
         --httpport ${WebPort} \
         --force
-    
+
     if [ $? -ne 0 ]; then
         LOGE "Failed to issue certificate for IP: ${server_ip}"
         LOGE "Make sure port ${WebPort} is open and the server is accessible from the internet"
@@ -1176,7 +1160,7 @@ ssl_cert_issue_for_ip() {
     else
         LOGI "Certificate issued successfully for IP: ${server_ip}"
     fi
-    
+
     # Install the certificate
     # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
     # but the cert files are still installed. We check for files instead of exit code.
@@ -1184,7 +1168,7 @@ ssl_cert_issue_for_ip() {
         --key-file "${certPath}/privkey.pem" \
         --fullchain-file "${certPath}/fullchain.pem" \
         --reloadcmd "${reloadCmd}" 2>&1 || true
-    
+
     # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
     if [[ ! -f "${certPath}/fullchain.pem" || ! -f "${certPath}/privkey.pem" ]]; then
         LOGE "Certificate files not found after installation"
@@ -1194,18 +1178,18 @@ ssl_cert_issue_for_ip() {
         rm -rf ${certPath} 2>/dev/null
         return 1
     fi
-    
+
     LOGI "Certificate files installed successfully"
-    
+
     # enable auto-renew
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
     chmod 600 $certPath/privkey.pem 2>/dev/null
     chmod 644 $certPath/fullchain.pem 2>/dev/null
-    
+
     # Set certificate paths for the panel
     local webCertFile="${certPath}/fullchain.pem"
     local webKeyFile="${certPath}/privkey.pem"
-    
+
     if [[ -f "$webCertFile" && -f "$webKeyFile" ]]; then
         ${xui_folder}/x-ui cert -webCert "$webCertFile" -webCertKey "$webKeyFile"
         LOGI "Certificate configured for panel"
@@ -1275,17 +1259,17 @@ ssl_cert_issue() {
     while true; do
         read -rp "Please enter your domain name: " domain
         domain="${domain// /}"  # Trim whitespace
-        
+
         if [[ -z "$domain" ]]; then
             LOGE "Domain name cannot be empty. Please try again."
             continue
         fi
-        
+
         if ! is_domain "$domain"; then
             LOGE "Invalid domain format: ${domain}. Please enter a valid domain name."
             continue
         fi
-        
+
         break
     done
     LOGD "Your domain is: ${domain}, checking it..."
@@ -1834,7 +1818,7 @@ remove_iplimit() {
             dnf autoremove -y
             ;;
         centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then    
+            if [[ "${VERSION_ID}" =~ ^7 ]]; then
                 yum remove fail2ban -y
                 yum autoremove -y
             else
@@ -2219,7 +2203,7 @@ show_menu() {
     esac
 }
 
-if [[ $# > 0 ]]; then
+if [[ $# -gt 0 ]]; then
     case $1 in
     "start")
         check_install 0 && start 0
