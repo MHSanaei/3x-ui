@@ -59,29 +59,29 @@ is_domain() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q curl tar tzdata socat
+            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q curl tar tzdata socat
+            dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y curl tar tzdata socat
+                yum -y update && yum install -y curl tar tzdata socat ca-certificates
             else
-                dnf -y update && dnf install -y -q curl tar tzdata socat
+                dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata socat
+            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata socat ca-certificates
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y curl tar timezone socat
+            zypper refresh && zypper -q install -y curl tar timezone socat ca-certificates
         ;;
         alpine)
-            apk update && apk add curl tar tzdata socat
+            apk update && apk add curl tar tzdata socat ca-certificates
         ;;
         *)
-            apt-get update && apt-get install -y -q curl tar tzdata socat
+            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
         ;;
     esac
 }

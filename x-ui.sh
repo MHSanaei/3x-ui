@@ -539,36 +539,6 @@ enable_bbr() {
         before_show_menu
     fi
 
-    # Check the OS and install necessary packages
-    case "${release}" in
-    ubuntu | debian | armbian)
-        apt-get update && apt-get install -yqq --no-install-recommends ca-certificates
-        ;;
-    fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-        dnf -y update && dnf -y install ca-certificates
-        ;;
-    centos)
-            if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum -y install ca-certificates
-            else
-                dnf -y update && dnf -y install ca-certificates
-            fi
-        ;;
-    arch | manjaro | parch)
-        pacman -Sy --noconfirm ca-certificates
-        ;;
-	opensuse-tumbleweed | opensuse-leap)
-        zypper refresh && zypper -q install -y ca-certificates
-        ;;
-    alpine)
-        apk add ca-certificates
-        ;;
-    *)
-        echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-        exit 1
-        ;;
-    esac
-
     # Enable BBR
     echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
     echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
@@ -903,24 +873,21 @@ delete_ports() {
 }
 
 update_all_geofiles() {
-        update_main_geofiles
-        update_ir_geofiles
-        update_ru_geofiles
+    update_geofiles "main"
+    update_geofiles "IR"
+    update_geofiles "RU"
 }
 
-update_main_geofiles() {
-        curl -fLRo geoip.dat       https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-        curl -fLRo geosite.dat     https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-}
-
-update_ir_geofiles() {
-        curl -fLRo geoip_IR.dat    https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-        curl -fLRo geosite_IR.dat  https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-}
-
-update_ru_geofiles() {
-        curl -fLRo geoip_RU.dat    https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-        curl -fLRo geosite_RU.dat  https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
+update_geofiles() {
+    case "${1}" in
+      "main") dat_files=(geoip geosite); dat_source="Loyalsoldier/v2ray-rules-dat";;
+        "IR") dat_files=(geoip_IR geosite_IR); dat_source="chocolate4u/Iran-v2ray-rules" ;;
+        "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
+    esac
+    for dat in "${dat_files[@]}"; do
+        curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
+            https://github.com/${dat_source}/releases/latest/download/${dat%%_}.dat
+    done
 }
 
 update_geo() {
@@ -931,24 +898,22 @@ update_geo() {
     echo -e "${green}\t0.${plain} Back to Main Menu"
     read -rp "Choose an option: " choice
 
-    cd ${xui_folder}/bin
-
     case "$choice" in
     0)
         show_menu
         ;;
     1)
-        update_main_geofiles
+        update_geofiles "main"
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
         restart
         ;;
     2)
-        update_ir_geofiles
+        update_geofiles "IR"
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
         restart
         ;;
     3)
-        update_ru_geofiles
+        update_geofiles "RU"
         echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
         restart
         ;;
