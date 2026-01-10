@@ -3,10 +3,13 @@ package service
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -70,6 +73,16 @@ func (s *NodeService) UpdateNode(node *model.Node) error {
 		updates["api_key"] = node.ApiKey
 	}
 	
+	// Update TLS settings if provided
+	updates["use_tls"] = node.UseTLS
+	if node.CertPath != "" {
+		updates["cert_path"] = node.CertPath
+	}
+	if node.KeyPath != "" {
+		updates["key_path"] = node.KeyPath
+	}
+	updates["insecure_tls"] = node.InsecureTLS
+	
 	// Update status and last_check if provided (these are usually set by health checks, not user edits)
 	if node.Status != "" && node.Status != existingNode.Status {
 		updates["status"] = node.Status
@@ -117,10 +130,53 @@ func (s *NodeService) CheckNodeHealth(node *model.Node) error {
 	return s.UpdateNode(node)
 }
 
+// createHTTPClient creates an HTTP client configured for the node's TLS settings.
+func (s *NodeService) createHTTPClient(node *model.Node, timeout time.Duration) (*http.Client, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: node.InsecureTLS,
+		},
+	}
+
+	// If custom certificates are provided, load them
+	if node.UseTLS && node.CertPath != "" {
+		// Load custom CA certificate
+		cert, err := os.ReadFile(node.CertPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read certificate file: %w", err)
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(cert) {
+			return nil, fmt.Errorf("failed to parse certificate")
+		}
+
+		transport.TLSClientConfig.RootCAs = caCertPool
+		transport.TLSClientConfig.InsecureSkipVerify = false // Use custom CA
+	}
+
+	// If custom key is provided, load client certificate
+	if node.UseTLS && node.KeyPath != "" && node.CertPath != "" {
+		// Load client certificate (cert + key)
+		clientCert, err := tls.LoadX509KeyPair(node.CertPath, node.KeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load client certificate: %w", err)
+		}
+
+		transport.TLSClientConfig.Certificates = []tls.Certificate{clientCert}
+	}
+
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: transport,
+	}, nil
+}
+
 // CheckNodeStatus performs a health check on a given node.
 func (s *NodeService) CheckNodeStatus(node *model.Node) (string, error) {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
+	client, err := s.createHTTPClient(node, 5*time.Second)
+	if err != nil {
+		return "error", err
 	}
 
 	url := fmt.Sprintf("%s/health", node.Address)
@@ -226,8 +282,9 @@ type NodeClientTraffic struct {
 
 // GetNodeStats retrieves traffic and online clients statistics from a node.
 func (s *NodeService) GetNodeStats(node *model.Node, reset bool) (*NodeStatsResponse, error) {
-	client := &http.Client{
-		Timeout: 10 * time.Second,
+	client, err := s.createHTTPClient(node, 10*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/v1/stats", node.Address)
@@ -419,8 +476,9 @@ func (s *NodeService) UnassignInboundFromNode(inboundId int) error {
 
 // ApplyConfigToNode sends XRAY configuration to a node.
 func (s *NodeService) ApplyConfigToNode(node *model.Node, xrayConfig []byte) error {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	client, err := s.createHTTPClient(node, 30*time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/v1/apply-config", node.Address)
@@ -448,8 +506,9 @@ func (s *NodeService) ApplyConfigToNode(node *model.Node, xrayConfig []byte) err
 
 // ReloadNode reloads XRAY on a specific node.
 func (s *NodeService) ReloadNode(node *model.Node) error {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	client, err := s.createHTTPClient(node, 30*time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/v1/reload", node.Address)
@@ -476,8 +535,9 @@ func (s *NodeService) ReloadNode(node *model.Node) error {
 
 // ForceReloadNode forcefully reloads XRAY on a specific node (even if hung).
 func (s *NodeService) ForceReloadNode(node *model.Node) error {
-	client := &http.Client{
-		Timeout: 30 * time.Second,
+	client, err := s.createHTTPClient(node, 30*time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/v1/force-reload", node.Address)
@@ -539,8 +599,9 @@ func (s *NodeService) ReloadAllNodes() error {
 
 // ValidateApiKey validates the API key by making a test request to the node.
 func (s *NodeService) ValidateApiKey(node *model.Node) error {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
+	client, err := s.createHTTPClient(node, 5*time.Second)
+	if err != nil {
+		return fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	// First, check if node is reachable via health endpoint
@@ -593,8 +654,9 @@ func (s *NodeService) ValidateApiKey(node *model.Node) error {
 
 // GetNodeStatus retrieves the status of a node.
 func (s *NodeService) GetNodeStatus(node *model.Node) (map[string]interface{}, error) {
-	client := &http.Client{
-		Timeout: 5 * time.Second,
+	client, err := s.createHTTPClient(node, 5*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP client: %w", err)
 	}
 
 	url := fmt.Sprintf("%s/api/v1/status", node.Address)

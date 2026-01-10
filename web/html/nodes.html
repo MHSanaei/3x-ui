@@ -12,12 +12,7 @@
             <h2>{{ i18n "pages.nodes.title" }}</h2>
             
             <div style="margin-bottom: 20px;">
-              <h3>{{ i18n "pages.nodes.addNewNode" }}</h3>
-              <a-input id="node-name" placeholder='{{ i18n "pages.nodes.nodeName" }}' style="width: 200px; margin-right: 10px;"></a-input>
-              <a-input id="node-address" placeholder='{{ i18n "pages.nodes.nodeAddress" }} (http://192.168.1.100)' style="width: 250px; margin-right: 10px;"></a-input>
-              <a-input id="node-port" placeholder='{{ i18n "pages.nodes.nodePort" }} (8080)' type="number" style="width: 120px; margin-right: 10px;"></a-input>
-              <a-input-password id="node-apikey" placeholder='{{ i18n "pages.nodes.nodeApiKey" }}' style="width: 200px; margin-right: 10px;"></a-input-password>
-              <a-button type="primary" onclick="addNode()">{{ i18n "pages.nodes.addNode" }}</a-button>
+              <a-button type="primary" icon="plus" @click="openAddNode">{{ i18n "pages.nodes.addNewNode" }}</a-button>
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -109,6 +104,7 @@
 <script src="{{ .base_path }}assets/js/model/node.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
+{{template "modals/nodeModal"}}
 <script>
   const columns = [{
     title: "ID",
@@ -228,7 +224,7 @@
             this.reloadNode(node.id);
             break;
           case 'edit':
-            this.startEditNodeName(node);
+            this.editNode(node);
             break;
           case 'delete':
             this.deleteNode(node.id);
@@ -388,6 +384,63 @@
         } finally {
           this.reloadingAll = false;
         }
+      },
+      openAddNode() {
+        if (typeof window.nodeModal !== 'undefined') {
+          window.nodeModal.show({
+            title: '{{ i18n "pages.nodes.addNewNode" }}',
+            okText: '{{ i18n "create" }}',
+            confirm: async (nodeData) => {
+              await this.submitNode(nodeData, false);
+            },
+            isEdit: false
+          });
+        } else {
+          console.error('[openAddNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      editNode(node) {
+        if (typeof window.nodeModal !== 'undefined') {
+          // Load full node data including TLS settings
+          HttpUtil.get(`/panel/node/get/${node.id}`).then(msg => {
+            if (msg && msg.success && msg.obj) {
+              window.nodeModal.show({
+                title: '{{ i18n "pages.nodes.editNode" }}',
+                okText: '{{ i18n "update" }}',
+                node: msg.obj,
+                confirm: async (nodeData) => {
+                  await this.submitNode(nodeData, true, node.id);
+                },
+                isEdit: true
+              });
+            } else {
+              app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+            }
+          }).catch(e => {
+            console.error("Failed to load node:", e);
+            app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+          });
+        } else {
+          console.error('[editNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      async submitNode(nodeData, isEdit, nodeId = null) {
+        try {
+          const url = isEdit ? `/panel/node/update/${nodeId}` : '/panel/node/add';
+          const msg = await HttpUtil.post(url, nodeData);
+          if (msg && msg.success) {
+            app.$message.success(isEdit ? '{{ i18n "pages.nodes.updateSuccess" }}' : '{{ i18n "pages.nodes.addSuccess" }}');
+            await this.loadNodes();
+            if (window.nodeModal) {
+              window.nodeModal.close();
+            }
+          } else {
+            app.$message.error((msg && msg.msg) || (isEdit ? '{{ i18n "pages.nodes.updateError" }}' : '{{ i18n "pages.nodes.addError" }}'));
+          }
+        } catch (e) {
+          console.error(`Failed to ${isEdit ? 'update' : 'add'} node:`, e);
+          app.$message.error(isEdit ? '{{ i18n "pages.nodes.updateError" }}' : '{{ i18n "pages.nodes.addError" }}');
+        }
       }
     },
     async mounted() {
@@ -395,72 +448,5 @@
     }
   });
 
-  async function addNode() {
-    const name = document.getElementById('node-name').value.trim();
-    const address = document.getElementById('node-address').value.trim();
-    const port = document.getElementById('node-port').value.trim();
-    const apiKey = document.getElementById('node-apikey').value;
-    
-    if (!name || !address || !port || !apiKey) {
-      app.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
-      return;
-    }
-    
-    // Validate address format
-    if (!address.match(/^https?:\/\//)) {
-      app.$message.error('{{ i18n "pages.nodes.validUrl" }}');
-      return;
-    }
-    
-    // Validate port
-    const portNum = parseInt(port);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      app.$message.error('{{ i18n "pages.nodes.validPort" }}');
-      return;
-    }
-    
-    // Construct full address
-    const fullAddress = `${address}:${port}`;
-    
-    // Check for duplicate nodes
-    const existingNodes = app.$data.nodes || [];
-    const duplicate = existingNodes.find(node => {
-      try {
-        const nodeUrl = new URL(node.address);
-        const newUrl = new URL(fullAddress);
-        // Compare protocol, hostname, and port
-        const nodePort = nodeUrl.port || (nodeUrl.protocol === 'https:' ? '443' : '80');
-        const newPort = newUrl.port || (newUrl.protocol === 'https:' ? '443' : '80');
-        return nodeUrl.protocol === newUrl.protocol && 
-               nodeUrl.hostname === newUrl.hostname && 
-               nodePort === newPort;
-      } catch (e) {
-        // If URL parsing fails, do simple string comparison
-        return node.address === fullAddress;
-      }
-    });
-    
-    if (duplicate) {
-      app.$message.error('{{ i18n "pages.nodes.duplicateNode" }}');
-      return;
-    }
-    
-    try {
-      const msg = await HttpUtil.post('/panel/node/add', { name, address: fullAddress, apiKey });
-      if (msg.success) {
-        app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
-        document.getElementById('node-name').value = '';
-        document.getElementById('node-address').value = '';
-        document.getElementById('node-port').value = '';
-        document.getElementById('node-apikey').value = '';
-        app.loadNodes();
-      } else {
-        app.$message.error(msg.msg || '{{ i18n "pages.nodes.addError" }}');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      app.$message.error('{{ i18n "pages.nodes.addError" }}');
-    }
-  }
 </script>
 {{template "page/body_end" .}}

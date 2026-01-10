@@ -164,10 +164,14 @@ type ClientEntity struct {
 type Node struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"` // Unique identifier
 	Name        string `json:"name" form:"name"`                   // Node name/identifier
-	Address     string `json:"address" form:"address"`             // Node API address (e.g., "http://192.168.1.100:8080")
+	Address     string `json:"address" form:"address"`             // Node API address (e.g., "http://192.168.1.100:8080" or "https://...")
 	ApiKey      string `json:"apiKey" form:"apiKey"`               // API key for authentication
 	Status      string `json:"status" gorm:"default:unknown"`     // Status: online, offline, unknown
 	LastCheck   int64  `json:"lastCheck" gorm:"default:0"`        // Last health check timestamp
+	UseTLS      bool   `json:"useTls" form:"useTls" gorm:"column:use_tls;default:false"` // Whether to use TLS/HTTPS for API calls
+	CertPath    string `json:"certPath" form:"certPath" gorm:"column:cert_path"`       // Path to certificate file (optional, for custom CA)
+	KeyPath     string `json:"keyPath" form:"keyPath" gorm:"column:key_path"`          // Path to private key file (optional, for custom CA)
+	InsecureTLS bool   `json:"insecureTls" form:"insecureTls" gorm:"column:insecure_tls;default:false"` // Skip certificate verification (not recommended)
 	CreatedAt    int64  `json:"createdAt" gorm:"autoCreateTime"`  // Creation timestamp
 	UpdatedAt   int64  `json:"updatedAt" gorm:"autoUpdateTime"`   // Last update timestamp
 }

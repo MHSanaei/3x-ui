@@ -150,6 +150,19 @@ func (a *NodeController) updateNode(c *gin.Context) {
 			if apiKeyVal, ok := jsonData["apiKey"].(string); ok && apiKeyVal != "" {
 				node.ApiKey = apiKeyVal
 			}
+			// TLS settings
+			if useTlsVal, ok := jsonData["useTls"].(bool); ok {
+				node.UseTLS = useTlsVal
+			}
+			if certPathVal, ok := jsonData["certPath"].(string); ok {
+				node.CertPath = certPathVal
+			}
+			if keyPathVal, ok := jsonData["keyPath"].(string); ok {
+				node.KeyPath = keyPathVal
+			}
+			if insecureTlsVal, ok := jsonData["insecureTls"].(bool); ok {
+				node.InsecureTLS = insecureTlsVal
+			}
 		}
 	} else {
 		// Parse as form data (default for web UI)
@@ -163,6 +176,15 @@ func (a *NodeController) updateNode(c *gin.Context) {
 		if apiKey := c.PostForm("apiKey"); apiKey != "" {
 			node.ApiKey = apiKey
 		}
+		// TLS settings
+		node.UseTLS = c.PostForm("useTls") == "true" || c.PostForm("useTls") == "on"
+		if certPath := c.PostForm("certPath"); certPath != "" {
+			node.CertPath = certPath
+		}
+		if keyPath := c.PostForm("keyPath"); keyPath != "" {
+			node.KeyPath = keyPath
+		}
+		node.InsecureTLS = c.PostForm("insecureTls") == "true" || c.PostForm("insecureTls") == "on"
 	}
 
 	// Validate API key if it was changed
