@@ -13,13 +13,6 @@
     <a-icon :style="{ fontSize: '22px' }" class="normal-icon" type="info-circle" @click="showInfo(record.id,client);"></a-icon>
   </a-tooltip>
   <a-tooltip>
-    <template slot="title">{{ i18n "pages.inbounds.resetTraffic" }}</template>
-    <a-popconfirm @confirm="resetClientTraffic(client,record.id,false)" title='{{ i18n "pages.inbounds.resetTrafficContent"}}' :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}' cancel-text='{{ i18n "cancel"}}'>
-      <a-icon slot="icon" type="question-circle-o" :style="{ color: 'var(--color-primary-100)'}"></a-icon>
-      <a-icon :style="{ fontSize: '22px', cursor: 'pointer' }" class="normal-icon" type="retweet" v-if="client.email.length > 0"></a-icon>
-    </a-popconfirm>
-  </a-tooltip>
-  <a-tooltip>
     <template slot="title">
       <span :style="{ color: '#FF4D4F' }"> {{ i18n "delete"}}</span>
     </template>
@@ -155,10 +148,6 @@
       <a-menu-item @click="showInfo(record.id,client);">
         <a-icon :style="{ fontSize: '14px' }" type="info-circle"></a-icon>
         {{ i18n "info" }}
-      </a-menu-item>
-      <a-menu-item @click="resetClientTraffic(client,record.id)" v-if="client.email.length > 0">
-        <a-icon :style="{ fontSize: '14px' }" type="retweet"></a-icon>
-        {{ i18n "pages.inbounds.resetTraffic" }}
       </a-menu-item>
       <a-menu-item v-if="isRemovable(record.id)" @click="delClient(record.id,client)">
         <a-icon :style="{ fontSize: '14px' }" type="delete"></a-icon>

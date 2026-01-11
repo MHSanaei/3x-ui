@@ -240,6 +240,10 @@ func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 }
 
 // processTraffic aggregates a traffic stat into trafficMap using regex matches and value.
+// Note: In Xray API terminology:
+// - "downlink" = traffic from client to server → maps to Traffic.Down (from server perspective)
+// - "uplink" = traffic from server to client → maps to Traffic.Up (from server perspective)
+// For inbounds: downlink is what clients send (server receives), uplink is what server sends (clients receive)
 func processTraffic(matches []string, value int64, trafficMap map[string]*Traffic) {
 	isInbound := matches[1] == "inbound"
 	tag := matches[2]
@@ -259,14 +263,19 @@ func processTraffic(matches []string, value int64, trafficMap map[string]*Traffi
 		trafficMap[tag] = traffic
 	}
 
+	// Direct mapping: downlink → Down, uplink → Up
 	if isDown {
-		traffic.Down = value
+		traffic.Down = value   // downlink = traffic from clients to server
 	} else {
-		traffic.Up = value
+		traffic.Up = value      // uplink = traffic from server to clients
 	}
 }
 
 // processClientTraffic updates clientTrafficMap with upload/download values for a client email.
+// Note: In Xray API terminology:
+// - "downlink" = traffic from client to server → maps to ClientTraffic.Down
+// - "uplink" = traffic from server to client → maps to ClientTraffic.Up
+// This matches the server perspective and is consistent with processTraffic for inbounds.
 func processClientTraffic(matches []string, value int64, clientTrafficMap map[string]*ClientTraffic) {
 	email := matches[1]
 	isDown := matches[2] == "downlink"
@@ -277,10 +286,11 @@ func processClientTraffic(matches []string, value int64, clientTrafficMap map[st
 		clientTrafficMap[email] = traffic
 	}
 
+	// Direct mapping: downlink → Down, uplink → Up (consistent with processTraffic)
 	if isDown {
-		traffic.Down = value
+		traffic.Down = value  // downlink = traffic from client to server
 	} else {
-		traffic.Up = value
+		traffic.Up = value     // uplink = traffic from server to client
 	}
 }
 

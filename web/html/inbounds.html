@@ -123,18 +123,6 @@
                           <a-icon type="export"></a-icon>
                           {{ i18n "pages.inbounds.export" }} - {{ i18n "pages.settings.subSettings" }}
                         </a-menu-item>
-                        <a-menu-item key="resetInbounds">
-                          <a-icon type="reload"></a-icon>
-                          {{ i18n "pages.inbounds.resetAllTraffic" }}
-                        </a-menu-item>
-                        <a-menu-item key="resetClients">
-                          <a-icon type="file-done"></a-icon>
-                          {{ i18n "pages.inbounds.resetAllClientTraffics" }}
-                        </a-menu-item>
-                        <a-menu-item key="delDepletedClients" :style="{ color: '#FF4D4F' }">
-                          <a-icon type="rest"></a-icon>
-                          {{ i18n "pages.inbounds.delDepletedClients" }}
-                        </a-menu-item>
                       </a-menu>
                     </a-dropdown>
                   </a-space>
@@ -204,10 +192,6 @@
                             {{ i18n "qrCode" }}
                           </a-menu-item>
                           <template v-if="dbInbound.isMultiUser()">
-                            <a-menu-item key="resetClients">
-                              <a-icon type="file-done"></a-icon>
-                              {{ i18n "pages.inbounds.resetInboundClientTraffics"}}
-                            </a-menu-item>
                             <a-menu-item key="export">
                               <a-icon type="export"></a-icon>
                               {{ i18n "pages.inbounds.export"}}
@@ -215,10 +199,6 @@
                             <a-menu-item key="subs" v-if="subSettings.enable">
                               <a-icon type="export"></a-icon>
                               {{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}
-                            </a-menu-item>
-                            <a-menu-item key="delDepletedClients" :style="{ color: '#FF4D4F' }">
-                              <a-icon type="rest"></a-icon>
-                              {{ i18n "pages.inbounds.delDepletedClients" }}
                             </a-menu-item>
                           </template>
                           <template v-else>
@@ -230,9 +210,6 @@
                           <a-menu-item key="clipboard">
                             <a-icon type="copy"></a-icon>
                             {{ i18n "pages.inbounds.exportInbound" }}
-                          </a-menu-item>
-                          <a-menu-item key="resetTraffic">
-                            <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                           </a-menu-item>
                           <a-menu-item key="clone">
                             <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.clone"}}
@@ -345,19 +322,12 @@
                               <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
                               <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                             </tr>
-                            <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
-                              <td>{{ i18n "remained" }}</td>
-                              <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
-                            </tr>
+                            <!-- Inbound traffic is now only statistics (sum of client traffic), no limits -->
                           </table>
                         </template>
-                        <a-tag
-                          :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                          [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
-                          <template v-if="dbInbound.total > 0">
-                            [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
-                          </template>
-                          <template v-else>
+                        <a-tag>
+                          [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]
+                          <template v-if="false">
                             <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                               <path
                                 d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
@@ -366,9 +336,6 @@
                           </template>
                         </a-tag>
                       </a-popover>
-                    </template>
-                    <template slot="allTimeInbound" slot-scope="text, dbInbound">
-                      <a-tag>[[ SizeFormatter.sizeFormat(dbInbound.allTime || 0) ]]</a-tag>
                     </template>
                     <template slot="enable" slot-scope="text, dbInbound">
                       <a-switch v-model="dbInbound.enable"
@@ -508,21 +475,12 @@
                                         <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
                                         <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                                       </tr>
-                                      <tr
-                                        v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
-                                        <td>{{ i18n "remained" }}</td>
-                                        <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down)
-                                          ]]</td>
-                                      </tr>
+                                      <!-- Inbound traffic is now only statistics (sum of client traffic), no limits -->
                                     </table>
                                   </template>
-                                  <a-tag
-                                    :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                                    [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
-                                    <template v-if="dbInbound.total > 0">
-                                      [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
-                                    </template>
-                                    <template v-else>
+                                  <a-tag>
+                                    [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]
+                                    <template v-if="false">
                                       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                                         <path
                                           d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
@@ -649,11 +607,6 @@
     width: 90,
     scopedSlots: { customRender: 'traffic' },
   }, {
-    title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
-    align: 'center',
-    width: 60,
-    scopedSlots: { customRender: 'allTimeInbound' },
-  }, {
     title: '{{ i18n "pages.inbounds.expireDate" }}',
     align: 'center',
     width: 40,
@@ -689,7 +642,6 @@
     { title: '{{ i18n "online" }}', width: 32, scopedSlots: { customRender: 'online' } },
     { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 60, align: 'center', scopedSlots: { customRender: 'allTime' } },
     { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
   ];
 
@@ -981,15 +933,6 @@
           case "subs":
             this.exportAllSubs();
             break;
-          case "resetInbounds":
-            this.resetAllTraffic();
-            break;
-          case "resetClients":
-            this.resetAllClientTraffics(-1);
-            break;
-          case "delDepletedClients":
-            this.delDepletedClients(-1)
-            break;
         }
       },
       clickAction(action, dbInbound) {
@@ -1012,20 +955,11 @@
           case "clipboard":
             this.copy(dbInbound.id);
             break;
-          case "resetTraffic":
-            this.resetTraffic(dbInbound.id);
-            break;
-          case "resetClients":
-            this.resetAllClientTraffics(dbInbound.id);
-            break;
           case "clone":
             this.openCloneInbound(dbInbound);
             break;
           case "delete":
             this.delInbound(dbInbound.id);
-            break;
-          case "delDepletedClients":
-            this.delDepletedClients(dbInbound.id)
             break;
         }
       },

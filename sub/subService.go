@@ -62,6 +62,36 @@ func (s *SubService) GetSubs(subId string, host string, c *gin.Context) ([]strin
 	} else if clientEntity != nil {
 		logger.Debugf("GetSubs: Found client by subId '%s': clientId=%d, email=%s, hwidEnabled=%v", 
 			subId, clientEntity.Id, clientEntity.Email, clientEntity.HWIDEnabled)
+		
+		// Check traffic limits and expiry time before returning subscription
+		// Traffic statistics are now stored directly in ClientEntity
+		now := time.Now().Unix() * 1000
+		totalUsed := clientEntity.Up + clientEntity.Down
+		trafficLimit := int64(clientEntity.TotalGB * 1024 * 1024 * 1024)
+		trafficExceeded := clientEntity.TotalGB > 0 && totalUsed >= trafficLimit
+		timeExpired := clientEntity.ExpiryTime > 0 && clientEntity.ExpiryTime <= now
+		
+		// Check if client exceeded limits - set status but keep Enable = true to allow subscription
+		if trafficExceeded || timeExpired {
+			// Client exceeded limits - set status but keep Enable = true
+			// Subscription should still work to show traffic information to client
+			status := "expired_traffic"
+			if timeExpired {
+				status = "expired_time"
+			}
+			
+			// Update status if not already set
+			if clientEntity.Status != status {
+				db.Model(&model.ClientEntity{}).Where("id = ?", clientEntity.Id).Update("status", status)
+				clientEntity.Status = status
+				logger.Warningf("GetSubs: Client %s (subId: %s) exceeded limits - set status to %s: trafficExceeded=%v, timeExpired=%v, totalUsed=%d, total=%d", 
+					clientEntity.Email, subId, status, trafficExceeded, timeExpired, totalUsed, trafficLimit)
+			}
+			// Continue to generate subscription - client will be blocked in Xray config, not in subscription
+		}
+		
+		// Note: We don't block subscription even if client has expired status
+		// Subscription provides traffic information, and client blocking is handled in Xray config
 	}
 	
 	// Register HWID from headers if context is provided and client is found
@@ -106,7 +136,16 @@ func (s *SubService) GetSubs(subId string, host string, c *gin.Context) ([]strin
 					result = append(result, linkLine)
 				}
 			}
-			ct := s.getClientTraffics(inbound.ClientStats, clientEntity.Email)
+			// Create ClientTraffic from ClientEntity for statistics (traffic is stored in ClientEntity now)
+			trafficLimit := int64(clientEntity.TotalGB * 1024 * 1024 * 1024)
+			ct := xray.ClientTraffic{
+				Email:      clientEntity.Email,
+				Up:         clientEntity.Up,
+				Down:       clientEntity.Down,
+				Total:      trafficLimit,
+				ExpiryTime: clientEntity.ExpiryTime,
+				LastOnline: clientEntity.LastOnline,
+			}
 			clientTraffics = append(clientTraffics, ct)
 			if ct.LastOnline > lastOnline {
 				lastOnline = ct.LastOnline
@@ -122,6 +161,39 @@ func (s *SubService) GetSubs(subId string, host string, c *gin.Context) ([]strin
 			}
 			for _, client := range clients {
 				if client.Enable && client.SubID == subId {
+					// Use ClientEntity for traffic (new architecture only)
+					var clientEntity model.ClientEntity
+					err = db.Where("LOWER(email) = ?", strings.ToLower(client.Email)).First(&clientEntity).Error
+					if err != nil {
+						// Client not found in ClientEntity - skip (old architecture clients should be migrated)
+						logger.Warningf("GetSubs: Client %s (subId: %s) not found in ClientEntity - skipping", 
+							client.Email, subId)
+						continue
+					}
+					
+					// Check traffic limits from ClientEntity
+					now := time.Now().Unix() * 1000
+					totalUsed := clientEntity.Up + clientEntity.Down
+					trafficLimit := int64(clientEntity.TotalGB * 1024 * 1024 * 1024)
+					trafficExceeded := clientEntity.TotalGB > 0 && totalUsed >= trafficLimit
+					timeExpired := clientEntity.ExpiryTime > 0 && clientEntity.ExpiryTime <= now
+					
+					if trafficExceeded || timeExpired || !clientEntity.Enable {
+						logger.Warningf("GetSubs: Client %s (subId: %s) exceeded limits or disabled - skipping", 
+							client.Email, subId)
+						continue
+					}
+					
+					// Create ClientTraffic from ClientEntity for statistics
+					clientTraffic := xray.ClientTraffic{
+						Email:      clientEntity.Email,
+						Up:         clientEntity.Up,
+						Down:       clientEntity.Down,
+						Total:      trafficLimit,
+						ExpiryTime: clientEntity.ExpiryTime,
+						LastOnline: clientEntity.LastOnline,
+					}
+					
 					link := s.getLink(inbound, client.Email)
 					// Split link by newline to handle multiple links (for multiple nodes)
 					linkLines := strings.Split(link, "\n")
@@ -132,6 +204,9 @@ func (s *SubService) GetSubs(subId string, host string, c *gin.Context) ([]strin
 						}
 					}
 					ct := s.getClientTraffics(inbound.ClientStats, client.Email)
+					if ct.Email == "" {
+						ct = clientTraffic
+					}
 					clientTraffics = append(clientTraffics, ct)
 					if ct.LastOnline > lastOnline {
 						lastOnline = ct.LastOnline

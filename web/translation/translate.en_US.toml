@@ -703,6 +703,7 @@
 [pages.clients.toasts]
 "clientCreateSuccess" = "Client created successfully"
 "clientUpdateSuccess" = "Client updated successfully"
+"clientDeleteSuccess" = "Client deleted successfully"
 
 [pages.hosts]
 "title" = "Hosts Management"

@@ -10,37 +10,76 @@
         <transition name="list" appear>
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
         <a-col>
-          <a-card size="small" :style="{ padding: '16px' }" hoverable>
-            <h2>{{ i18n "pages.clients.title" }}</h2>
-            
-            <div style="margin-bottom: 20px;">
-              <a-button type="primary" icon="plus" @click="openAddClient">{{ i18n "pages.clients.addClient" }}</a-button>
-              <a-button icon="sync" @click="manualRefresh" :loading="refreshing" style="margin-left: 10px;">{{ i18n "refresh" }}</a-button>
-              <a-popover placement="bottomRight" trigger="click" :overlay-class-name="themeSwitcher.currentTheme" style="margin-left: 10px;">
-                <template #title>
-                  <div class="ant-custom-popover-title">
-                    <a-switch v-model="isRefreshEnabled" @change="toggleRefresh" size="small"></a-switch>
-                    <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
-                  </div>
-                </template>
-                <template #content>
-                  <a-space direction="vertical">
-                    <span>{{ i18n "pages.inbounds.autoRefreshInterval" }}</span>
-                    <a-select v-model="refreshInterval" :disabled="!isRefreshEnabled" :style="{ width: '100%' }"
-                      @change="changeRefreshInterval" :dropdown-class-name="themeSwitcher.currentTheme">
-                      <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
-                    </a-select>
-                  </a-space>
-                </template>
-                <a-button icon="down"></a-button>
-              </a-popover>
-            </div>
-
-            <a-table :columns="isMobile ? mobileColumns : columns" :row-key="client => client.id"
-              :data-source="clients" :scroll="isMobile ? {} : { x: 1000 }"
-              :pagination="false"
-              :style="{ marginTop: '10px' }"
-              class="clients-table"
+          <a-card hoverable>
+            <template #title>
+              <a-space direction="horizontal">
+                <a-button type="primary" icon="plus" @click="openAddClient">
+                  <template v-if="!isMobile">{{ i18n "pages.clients.addClient" }}</template>
+                </a-button>
+                <a-dropdown :trigger="['click']">
+                  <a-button type="primary" icon="menu">
+                    <template v-if="!isMobile">{{ i18n "pages.inbounds.generalActions" }}</template>
+                  </a-button>
+                  <a-menu slot="overlay" @click="a => generalActions(a)" :theme="themeSwitcher.currentTheme">
+                    <a-menu-item key="resetClients">
+                      <a-icon type="file-done"></a-icon>
+                      {{ i18n "pages.inbounds.resetAllClientTraffics" }}
+                    </a-menu-item>
+                    <a-menu-item key="delDepletedClients" :style="{ color: '#FF4D4F' }">
+                      <a-icon type="rest"></a-icon>
+                      {{ i18n "pages.inbounds.delDepletedClients" }}
+                    </a-menu-item>
+                  </a-menu>
+                </a-dropdown>
+              </a-space>
+            </template>
+            <template #extra>
+              <a-button-group>
+                <a-button icon="sync" @click="manualRefresh" :loading="refreshing"></a-button>
+                <a-popover placement="bottomRight" trigger="click" :overlay-class-name="themeSwitcher.currentTheme">
+                  <template #title>
+                    <div class="ant-custom-popover-title">
+                      <a-switch v-model="isRefreshEnabled" @change="toggleRefresh" size="small"></a-switch>
+                      <span>{{ i18n "pages.inbounds.autoRefresh" }}</span>
+                    </div>
+                  </template>
+                  <template #content>
+                    <a-space direction="vertical">
+                      <span>{{ i18n "pages.inbounds.autoRefreshInterval" }}</span>
+                      <a-select v-model="refreshInterval" :disabled="!isRefreshEnabled" :style="{ width: '100%' }"
+                        @change="changeRefreshInterval" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option v-for="key in [5,10,30,60]" :value="key*1000">[[ key ]]s</a-select-option>
+                      </a-select>
+                    </a-space>
+                  </template>
+                  <a-button icon="down"></a-button>
+                </a-popover>
+              </a-button-group>
+            </template>
+            <a-space direction="vertical">
+              <div :style="isMobile ? {} : { display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }">
+                <a-switch v-model="enableFilter"
+                  :style="isMobile ? { marginBottom: '.5rem', display: 'flex' } : { marginRight: '.5rem' }"
+                  @change="toggleFilter">
+                  <a-icon slot="checkedChildren" type="search"></a-icon>
+                  <a-icon slot="unCheckedChildren" type="filter"></a-icon>
+                </a-switch>
+                <a-input v-if="!enableFilter" v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus
+                  :style="{ maxWidth: '300px' }" :size="isMobile ? 'small' : ''"></a-input>
+                <a-radio-group v-if="enableFilter" v-model="filterBy" @change="filterClients" button-style="solid"
+                  :size="isMobile ? 'small' : ''">
+                  <a-radio-button value="">{{ i18n "none" }}</a-radio-button>
+                  <a-radio-button value="deactive">{{ i18n "disabled" }}</a-radio-button>
+                  <a-radio-button value="depleted">{{ i18n "depleted" }}</a-radio-button>
+                  <a-radio-button value="expiring">{{ i18n "depletingSoon" }}</a-radio-button>
+                  <a-radio-button value="online">{{ i18n "online" }}</a-radio-button>
+                </a-radio-group>
+              </div>
+              <a-table :columns="isMobile ? mobileColumns : columns" :row-key="client => client.id"
+                :data-source="searchedClients" :scroll="isMobile ? {} : { x: 1000 }"
+                :pagination="false"
+                :style="{ marginTop: '10px' }"
+                class="clients-table"
               :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
               <template slot="action" slot-scope="text, client">
                 <a-dropdown :trigger="['click']">
@@ -55,6 +94,10 @@
                     <a-menu-item key="edit">
                       <a-icon type="edit"></a-icon>
                       {{ i18n "edit" }}
+                    </a-menu-item>
+                    <a-menu-item key="resetTraffic">
+                      <a-icon type="reload"></a-icon>
+                      {{ i18n "pages.inbounds.resetTraffic" }}
                     </a-menu-item>
                     <a-menu-item key="delete" :style="{ color: '#FF4D4F' }">
                       <a-icon type="delete"></a-icon>
@@ -86,8 +129,8 @@
                   <template slot="content">
                     <table cellpadding="2" width="100%">
                       <tr>
-                        <td>↑[[ SizeFormatter.sizeFormat(client.up || 0) ]]</td>
-                        <td>↓[[ SizeFormatter.sizeFormat(client.down || 0) ]]</td>
+                        <td>↓[[ SizeFormatter.sizeFormat(client.up || 0) ]]</td>
+                        <td>↑[[ SizeFormatter.sizeFormat(client.down || 0) ]]</td>
                       </tr>
                       <tr v-if="getClientTotal(client) > 0 && (client.up || 0) + (client.down || 0) < getClientTotal(client)">
                         <td>{{ i18n "remained" }}</td>
@@ -125,6 +168,7 @@
                 </a-tag>
               </template>
             </a-table>
+            </a-space>
           </a-card>
         </a-col>
       </a-row>
@@ -225,6 +269,7 @@
         spinning: false
       },
       clients: [],
+      searchedClients: [],
       allInbounds: [],
       availableNodes: [],
       refreshing: false,
@@ -232,6 +277,11 @@
       lastOnlineMap: {},
       isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
       refreshInterval: Number(localStorage.getItem("refreshInterval")) || 5000,
+      searchKey: '',
+      enableFilter: false,
+      filterBy: '',
+      expireDiff: 0,
+      trafficDiff: 0,
       subSettings: {
         enable: false,
         subTitle: '',
@@ -257,6 +307,16 @@
             this.clients = msg.obj;
             // Load inbounds for each client
             await this.loadInboundsForClients();
+            // Apply current filter/search
+            if (this.enableFilter) {
+              this.filterClients();
+            } else {
+              this.searchClients(this.searchKey);
+            }
+            // Ensure searchedClients is initialized
+            if (this.searchedClients.length === 0 && this.clients.length > 0) {
+              this.searchedClients = this.clients.slice();
+            }
           }
         } catch (e) {
           console.error("Failed to load clients:", e);
@@ -296,6 +356,7 @@
       },
       getClientTotal(client) {
         // Convert TotalGB to bytes (1 GB = 1024^3 bytes)
+        // TotalGB can now be a decimal value (e.g., 0.01 for MB)
         if (client.totalGB && client.totalGB > 0) {
           return client.totalGB * 1024 * 1024 * 1024;
         }
@@ -327,6 +388,8 @@
           return;
         }
         with (msg.obj) {
+          this.expireDiff = expireDiff * 86400000;
+          this.trafficDiff = trafficDiff * 1073741824;
           this.subSettings = {
             enable: subEnable,
             subTitle: subTitle,
@@ -359,6 +422,9 @@
             break;
           case 'edit':
             this.editClient(client);
+            break;
+          case 'resetTraffic':
+            this.resetClientTraffic(client);
             break;
           case 'delete':
             this.deleteClient(client.id);
@@ -655,6 +721,143 @@
           await this.loadClients();
           this.loadingStates.spinning = false;
         }
+      },
+      searchClients(key) {
+        if (ObjectUtil.isEmpty(key)) {
+          this.searchedClients = this.clients.slice();
+        } else {
+          this.searchedClients.splice(0, this.searchedClients.length);
+          this.clients.forEach(client => {
+            if (ObjectUtil.deepSearch(client, key)) {
+              this.searchedClients.push(client);
+            }
+          });
+        }
+      },
+      filterClients() {
+        if (ObjectUtil.isEmpty(this.filterBy)) {
+          this.searchedClients = this.clients.slice();
+        } else {
+          this.searchedClients.splice(0, this.searchedClients.length);
+          const now = new Date().getTime();
+          this.clients.forEach(client => {
+            let shouldInclude = false;
+            switch (this.filterBy) {
+              case 'deactive':
+                shouldInclude = !client.enable;
+                break;
+              case 'depleted':
+                const exhausted = client.totalGB > 0 && (client.up || 0) + (client.down || 0) >= client.totalGB * 1024 * 1024 * 1024;
+                const expired = client.expiryTime > 0 && client.expiryTime <= now;
+                shouldInclude = expired || exhausted;
+                break;
+              case 'expiring':
+                const expiringSoon = (client.expiryTime > 0 && (client.expiryTime - now < this.expireDiff)) ||
+                  (client.totalGB > 0 && (client.totalGB * 1024 * 1024 * 1024 - (client.up || 0) - (client.down || 0) < this.trafficDiff));
+                shouldInclude = expiringSoon && !this.isClientDepleted(client);
+                break;
+              case 'online':
+                shouldInclude = this.isClientOnline(client.email);
+                break;
+            }
+            if (shouldInclude) {
+              this.searchedClients.push(client);
+            }
+          });
+        }
+      },
+      toggleFilter() {
+        if (this.enableFilter) {
+          this.searchKey = '';
+        } else {
+          this.filterBy = '';
+          this.searchedClients = this.clients.slice();
+        }
+      },
+      isClientDepleted(client) {
+        const now = new Date().getTime();
+        const exhausted = client.totalGB > 0 && (client.up || 0) + (client.down || 0) >= client.totalGB * 1024 * 1024 * 1024;
+        const expired = client.expiryTime > 0 && client.expiryTime <= now;
+        return expired || exhausted;
+      },
+      generalActions(action) {
+        switch (action.key) {
+          case "resetClients":
+            this.resetAllClientTraffics();
+            break;
+          case "delDepletedClients":
+            this.delDepletedClients();
+            break;
+        }
+      },
+      resetAllClientTraffics() {
+        this.$confirm({
+          title: '{{ i18n "pages.inbounds.resetAllClientTrafficTitle"}}',
+          content: '{{ i18n "pages.inbounds.resetAllClientTrafficContent"}}',
+          class: themeSwitcher.currentTheme,
+          okText: '{{ i18n "reset"}}',
+          cancelText: '{{ i18n "cancel"}}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post('/panel/client/resetAllTraffics');
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.inbounds.toasts.resetAllClientTrafficSuccess" }}');
+                await this.loadClients();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "somethingWentWrong" }}');
+              }
+            } catch (e) {
+              console.error("Failed to reset all client traffics:", e);
+              app.$message.error('{{ i18n "somethingWentWrong" }}');
+            }
+          }
+        });
+      },
+      resetClientTraffic(client) {
+        this.$confirm({
+          title: '{{ i18n "pages.inbounds.resetTraffic"}}' + ' ' + client.email,
+          content: '{{ i18n "pages.inbounds.resetTrafficContent"}}',
+          class: themeSwitcher.currentTheme,
+          okText: '{{ i18n "reset"}}',
+          cancelText: '{{ i18n "cancel"}}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post('/panel/client/resetTraffic/' + client.id);
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.inbounds.toasts.resetInboundClientTrafficSuccess" }}');
+                await this.loadClients();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "somethingWentWrong" }}');
+              }
+            } catch (e) {
+              console.error("Failed to reset client traffic:", e);
+              app.$message.error('{{ i18n "somethingWentWrong" }}');
+            }
+          }
+        });
+      },
+      delDepletedClients() {
+        this.$confirm({
+          title: '{{ i18n "pages.inbounds.delDepletedClientsTitle"}}',
+          content: '{{ i18n "pages.inbounds.delDepletedClientsContent"}}',
+          class: themeSwitcher.currentTheme,
+          okText: '{{ i18n "delete"}}',
+          cancelText: '{{ i18n "cancel"}}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post('/panel/client/delDepletedClients');
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.inbounds.toasts.delDepletedClientsSuccess" }}');
+                await this.loadClients();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "somethingWentWrong" }}');
+              }
+            } catch (e) {
+              console.error("Failed to delete depleted clients:", e);
+              app.$message.error('{{ i18n "somethingWentWrong" }}');
+            }
+          }
+        });
       }
     },
     async mounted() {
@@ -667,6 +870,8 @@
       // Initial data fetch
       this.loadClients().then(() => {
         this.loading(false);
+        // Initialize searchedClients after first load
+        this.searchedClients = this.clients.slice();
       });
 
       // Setup WebSocket for real-time updates
@@ -676,10 +881,11 @@
         // Listen for inbounds updates (contains full client traffic data)
         window.wsClient.on('inbounds', (payload) => {
           if (payload && Array.isArray(payload)) {
-            // Reload clients to get updated traffic (silently, without showing loading spinner)
-            // Only reload if not already refreshing to avoid multiple simultaneous requests
+            // Update traffic for clients from inbounds data
+            // This is more efficient than reloading all clients
             if (!this.refreshing) {
               this.refreshing = true;
+              // Silently reload clients to get updated traffic
               this.loadClients().finally(() => {
                 this.refreshing = false;
               });
@@ -725,7 +931,11 @@
           this.startDataRefreshLoop();
         }
       }
-      
+    },
+    watch: {
+      searchKey: Utils.debounce(function (newVal) {
+        this.searchClients(newVal);
+      }, 500)
     }
   });
 </script>

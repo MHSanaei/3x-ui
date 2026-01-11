@@ -39,6 +39,8 @@
 
 <script>
     const SIDEBAR_COLLAPSED_KEY = "isSidebarCollapsed"
+    // Get multiNodeMode from server-rendered template
+    const INITIAL_MULTI_NODE_MODE = {{ if .multiNodeMode }}true{{else}}false{{end}};
 
     Vue.component('a-sidebar', {
         data() {
@@ -49,7 +51,7 @@
                 ],
                 visible: false,
                 collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
-                multiNodeMode: false
+                multiNodeMode: INITIAL_MULTI_NODE_MODE
             }
         },
         methods: {
@@ -134,8 +136,7 @@
         },
         mounted() {
             this.updateTabs();
-            this.loadMultiNodeMode();
-            // Watch for multi-node mode changes
+            // Watch for multi-node mode changes (update tabs if mode changes)
             setInterval(() => {
                 this.loadMultiNodeMode();
             }, 5000);

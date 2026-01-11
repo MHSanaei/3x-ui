@@ -135,9 +135,10 @@ type ClientEntity struct {
 	Password   string `json:"password" form:"password"`           // Client password (for Trojan/Shadowsocks)
 	Flow       string `json:"flow" form:"flow"`                  // Flow control (XTLS)
 	LimitIP    int    `json:"limitIp" form:"limitIp"`            // IP limit for this client
-	TotalGB    int64  `json:"totalGB" form:"totalGB"`            // Total traffic limit in GB
+	TotalGB    float64 `json:"totalGB" form:"totalGB"`            // Total traffic limit in GB (supports decimal values like 0.01 for MB)
 	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"`     // Expiration timestamp
 	Enable     bool   `json:"enable" form:"enable"`             // Whether the client is enabled
+	Status     string `json:"status" form:"status" gorm:"default:active"` // Client status: active, expired_traffic, expired_time
 	TgID       int64  `json:"tgId" form:"tgId"`                  // Telegram user ID for notifications
 	SubID      string `json:"subId" form:"subId" gorm:"index"`   // Subscription identifier
 	Comment    string `json:"comment" form:"comment"`            // Client comment
@@ -148,11 +149,11 @@ type ClientEntity struct {
 	// Relations (not stored in DB, loaded via joins)
 	InboundIds []int `json:"inboundIds,omitempty" form:"-" gorm:"-"` // Inbound IDs this client is assigned to
 	
-	// Traffic statistics (loaded from client_traffics table, not stored in ClientEntity table)
-	Up         int64 `json:"up,omitempty" form:"-" gorm:"-"`         // Upload traffic in bytes
-	Down       int64 `json:"down,omitempty" form:"-" gorm:"-"`       // Download traffic in bytes
-	AllTime    int64 `json:"allTime,omitempty" form:"-" gorm:"-"`    // All-time traffic usage
-	LastOnline int64 `json:"lastOnline,omitempty" form:"-" gorm:"-"` // Last online timestamp
+	// Traffic statistics (stored directly in ClientEntity table)
+	Up         int64 `json:"up,omitempty" form:"-" gorm:"default:0"`         // Upload traffic in bytes
+	Down       int64 `json:"down,omitempty" form:"-" gorm:"default:0"`       // Download traffic in bytes
+	AllTime    int64 `json:"allTime,omitempty" form:"-" gorm:"default:0"`    // All-time traffic usage
+	LastOnline int64 `json:"lastOnline,omitempty" form:"-" gorm:"default:0"` // Last online timestamp
 	
 	// HWID (Hardware ID) restrictions
 	HWIDEnabled bool `json:"hwidEnabled" form:"hwidEnabled" gorm:"column:hwid_enabled;default:false"` // Whether HWID restriction is enabled for this client

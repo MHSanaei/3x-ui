@@ -703,6 +703,7 @@
 [pages.clients.toasts]
 "clientCreateSuccess" = "Клиент успешно создан"
 "clientUpdateSuccess" = "Клиент успешно обновлен"
+"clientDeleteSuccess" = "Клиент успешно удален"
 
 [pages.hosts]
 "title" = "Управление хостами"
