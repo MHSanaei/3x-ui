@@ -19,6 +19,23 @@ function LOGI() {
     echo -e "${green}[INF] $* ${plain}"
 }
 
+# Port helpers: detect listener and owning process (best effort)
+is_port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltn 2>/dev/null | awk -v p=":${port}$" '$4 ~ p {exit 0} END {exit 1}'
+        return
+    fi
+    if command -v netstat >/dev/null 2>&1; then
+        netstat -lnt 2>/dev/null | awk -v p=":${port} " '$4 ~ p {exit 0} END {exit 1}'
+        return
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:${port} -sTCP:LISTEN >/dev/null 2>&1 && return 0
+    fi
+    return 1
+}
+
 # Simple helpers for domain/IP validation
 is_ipv4() {
     [[ "$1" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] && return 0 || return 1
@@ -906,8 +923,10 @@ update_geofiles() {
         "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
     esac
     for dat in "${dat_files[@]}"; do
+        # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
+        remote_file="${dat%%_*}"
         curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
-            https://github.com/${dat_source}/releases/latest/download/${dat%%_}.dat
+            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat
     done
 }
 
@@ -1167,10 +1186,41 @@ ssl_cert_issue_for_ip() {
         LOGI "Including IPv6 address: ${ipv6_addr}"
     fi
     
-    # Use port 80 for certificate issuance
-    local WebPort=80
+    # Choose port for HTTP-01 listener (default 80, allow override)
+    local WebPort=""
+    read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
+    WebPort="${WebPort:-80}"
+    if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
+        LOGE "Invalid port provided. Falling back to 80."
+        WebPort=80
+    fi
     LOGI "Using port ${WebPort} to issue certificate for IP: ${server_ip}"
-    LOGI "Make sure port ${WebPort} is open and not in use..."
+    if [[ "${WebPort}" -ne 80 ]]; then
+        LOGI "Reminder: Let's Encrypt still reaches port 80; forward external port 80 to ${WebPort} for validation."
+    fi
+
+    while true; do
+        if is_port_in_use "${WebPort}"; then
+            LOGI "Port ${WebPort} is currently in use."
+
+            local alt_port=""
+            read -rp "Enter another port for acme.sh standalone listener (leave empty to abort): " alt_port
+            alt_port="${alt_port// /}"
+            if [[ -z "${alt_port}" ]]; then
+                LOGE "Port ${WebPort} is busy; cannot proceed with issuance."
+                return 1
+            fi
+            if ! [[ "${alt_port}" =~ ^[0-9]+$ ]] || ((alt_port < 1 || alt_port > 65535)); then
+                LOGE "Invalid port provided."
+                return 1
+            fi
+            WebPort="${alt_port}"
+            continue
+        else
+            LOGI "Port ${WebPort} is free and ready for standalone validation."
+            break
+        fi
+    done
     
     # Reload command - restarts panel after renewal
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null"
