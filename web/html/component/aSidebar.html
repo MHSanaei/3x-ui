@@ -6,7 +6,7 @@
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
                 @click="({key}) => openLink(key)">
-                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                <a-menu-item v-for="tab in tabs" :key="tab.key" :data-menu-key="tab.key">
                     <a-icon :type="tab.icon"></a-icon>
                     <span v-text="tab.title"></span>
                 </a-menu-item>
@@ -20,7 +20,7 @@
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
                 @click="({key}) => openLink(key)">
-                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                <a-menu-item v-for="tab in tabs" :key="tab.key" :data-menu-key="tab.key">
                     <a-icon :type="tab.icon"></a-icon>
                     <span v-text="tab.title"></span>
                 </a-menu-item>

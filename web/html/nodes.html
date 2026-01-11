@@ -6,7 +6,8 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content :style="{ padding: '24px 16px' }">
-      <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
+      <transition name="list" appear>
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
         <a-col>
           <a-card size="small" :style="{ padding: '16px' }" hoverable>
             <h2>{{ i18n "pages.nodes.title" }}</h2>
@@ -95,6 +96,7 @@
           <a-spin tip='{{ i18n "loading" }}'></a-spin>
         </a-card>
       </a-row>
+      </transition>
     </a-layout-content>
   </a-layout>
 </a-layout>
