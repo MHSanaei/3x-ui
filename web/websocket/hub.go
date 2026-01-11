@@ -2,6 +2,7 @@
 package websocket
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"runtime"
@@ -62,6 +63,15 @@ type Hub struct {
 	// Worker pool for parallel broadcasting
 	workerPoolSize int
 	broadcastWg    sync.WaitGroup
+
+	// Cache for last serialized messages to avoid re-serialization
+	messageCache map[MessageType][]byte
+	cacheMu      sync.RWMutex
+
+	// Throttling for frequent updates
+	throttleMap map[MessageType]time.Time
+	throttleMu  sync.Mutex
+	throttleInterval time.Duration
 }
 
 // NewHub creates a new WebSocket hub
@@ -85,6 +95,9 @@ func NewHub() *Hub {
 		ctx:            ctx,
 		cancel:         cancel,
 		workerPoolSize: workerPoolSize,
+		messageCache:   make(map[MessageType][]byte),
+		throttleMap:    make(map[MessageType]time.Time),
+		throttleInterval: 100 * time.Millisecond, // Throttle updates to max 10 per second per type
 	}
 }
 
@@ -259,17 +272,36 @@ func (h *Hub) Broadcast(messageType MessageType, payload any) {
 		return
 	}
 
+	// Throttle frequent updates (except for critical messages)
+	if messageType == MessageTypeInbounds || messageType == MessageTypeTraffic {
+		h.throttleMu.Lock()
+		lastTime, exists := h.throttleMap[messageType]
+		if exists && time.Since(lastTime) < h.throttleInterval {
+			h.throttleMu.Unlock()
+			return // Skip this update, too soon
+		}
+		h.throttleMap[messageType] = time.Now()
+		h.throttleMu.Unlock()
+	}
+
+	// Use buffer pool for JSON encoding to reduce allocations
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false) // Faster encoding, no HTML escaping needed
+
 	msg := Message{
 		Type:    messageType,
 		Payload: payload,
 		Time:    getCurrentTimestamp(),
 	}
 
-	data, err := json.Marshal(msg)
-	if err != nil {
+	if err := enc.Encode(msg); err != nil {
 		logger.Error("Failed to marshal WebSocket message:", err)
 		return
 	}
+
+	// Remove trailing newline from Encode
+	data := bytes.TrimRight(buf.Bytes(), "\n")
 
 	// Limit message size to prevent memory issues
 	const maxMessageSize = 1024 * 1024 // 1MB
@@ -277,6 +309,14 @@ func (h *Hub) Broadcast(messageType MessageType, payload any) {
 		logger.Warningf("WebSocket message too large: %d bytes, dropping", len(data))
 		return
 	}
+
+	// Cache the serialized message for potential reuse
+	// Make a copy to avoid issues with buffer reuse
+	dataCopy := make([]byte, len(data))
+	copy(dataCopy, data)
+	h.cacheMu.Lock()
+	h.messageCache[messageType] = dataCopy
+	h.cacheMu.Unlock()
 
 	// Non-blocking send with timeout to prevent delays
 	select {
@@ -298,17 +338,24 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 		return
 	}
 
+	// Use buffer pool for JSON encoding to reduce allocations
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false) // Faster encoding, no HTML escaping needed
+
 	msg := Message{
 		Type:    messageType,
 		Payload: payload,
 		Time:    getCurrentTimestamp(),
 	}
 
-	data, err := json.Marshal(msg)
-	if err != nil {
+	if err := enc.Encode(msg); err != nil {
 		logger.Error("Failed to marshal WebSocket message:", err)
 		return
 	}
+
+	// Remove trailing newline from Encode
+	data := bytes.TrimRight(buf.Bytes(), "\n")
 
 	// Limit message size to prevent memory issues
 	const maxMessageSize = 1024 * 1024 // 1MB
@@ -316,6 +363,14 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 		logger.Warningf("WebSocket message too large: %d bytes, dropping", len(data))
 		return
 	}
+
+	// Cache the serialized message for potential reuse
+	// Make a copy to avoid issues with buffer reuse
+	dataCopy := make([]byte, len(data))
+	copy(dataCopy, data)
+	h.cacheMu.Lock()
+	h.messageCache[messageType] = dataCopy
+	h.cacheMu.Unlock()
 
 	h.mu.RLock()
 	// Filter clients by topics and quickly release lock

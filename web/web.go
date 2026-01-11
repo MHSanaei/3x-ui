@@ -31,6 +31,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/mhsanaei/3x-ui/v2/web/cache"
 	"github.com/robfig/cron/v3"
 )
 
@@ -203,7 +204,19 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{basePath + "panel/api/"})))
 	assetsBasePath := basePath + "assets/"
 
-	store := cookie.NewStore(secret)
+	// Use Redis store for sessions if available, otherwise fallback to cookie store
+	var store sessions.Store
+	redisClient := cache.GetClient()
+	if redisClient != nil {
+		// Use Redis store
+		store = cache.NewRedisStore(redisClient, []byte(secret))
+		logger.Info("Using Redis store for sessions")
+	} else {
+		// Fallback to cookie store
+		store = cookie.NewStore(secret)
+		logger.Info("Using cookie store for sessions (Redis not available)")
+	}
+	
 	// Configure default session cookie options, including expiration (MaxAge)
 	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
 		store.Options(sessions.Options{
@@ -220,7 +233,12 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	engine.Use(func(c *gin.Context) {
 		uri := c.Request.RequestURI
 		if strings.HasPrefix(uri, assetsBasePath) {
-			c.Header("Cache-Control", "max-age=31536000")
+			// Cache static assets for 1 year with immutable flag
+			c.Header("Cache-Control", "max-age=31536000, public, immutable")
+		} else if strings.HasPrefix(uri, basePath+"panel/api/") && c.Request.Method == "GET" {
+			// For API GET requests, use no-cache but allow conditional requests
+			// This enables browser caching with validation
+			c.Header("Cache-Control", "no-cache, must-revalidate")
 		}
 	})
 
@@ -497,4 +515,14 @@ func (s *Server) GetCron() *cron.Cron {
 // GetWSHub returns the WebSocket hub instance.
 func (s *Server) GetWSHub() any {
 	return s.wsHub
+}
+
+// InitRedisCache initializes Redis cache. If redisAddr is empty, uses embedded Redis.
+func InitRedisCache(redisAddr string) error {
+	return cache.InitRedis(redisAddr)
+}
+
+// CloseRedisCache closes Redis cache connection.
+func CloseRedisCache() error {
+	return cache.Close()
 }

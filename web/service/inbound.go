@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/web/cache"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"gorm.io/gorm"
@@ -95,51 +96,60 @@ func (s *InboundService) updateInboundWithRetry(inbound *model.Inbound) (*model.
 
 // GetInbounds retrieves all inbounds for a specific user.
 // Returns a slice of inbound models with their associated client statistics.
+// Results are cached in Redis for 30 seconds.
 func (s *InboundService) GetInbounds(userId int) ([]*model.Inbound, error) {
-	db := database.GetDB()
+	key := fmt.Sprintf("%s%d", cache.KeyInboundsPrefix, userId)
 	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Find(&inbounds).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, err
-	}
 	
-	// Enrich with node assignments
-	nodeService := NodeService{}
-	for _, inbound := range inbounds {
-		// Load all nodes for this inbound
-		nodes, err := nodeService.GetNodesForInbound(inbound.Id)
-		if err == nil && len(nodes) > 0 {
-			nodeIds := make([]int, len(nodes))
-			for i, node := range nodes {
-				nodeIds[i] = node.Id
-			}
-			inbound.NodeIds = nodeIds
-			// Don't set nodeId - it's deprecated and causes confusion
-			// nodeId is only for backward compatibility when receiving data from old clients
-		} else {
-			// Ensure empty array if no nodes assigned
-			inbound.NodeIds = []int{}
+	err := cache.GetOrSet(key, &inbounds, cache.TTLInbounds, func() (interface{}, error) {
+		// Cache miss - fetch from database
+		db := database.GetDB()
+		var result []*model.Inbound
+		err := db.Model(model.Inbound{}).Preload("ClientStats").Where("user_id = ?", userId).Find(&result).Error
+		if err != nil && err != gorm.ErrRecordNotFound {
+			return nil, err
 		}
 		
-		// Enrich client stats with UUID/SubId from inbound settings
-		clients, _ := s.GetClients(inbound)
-		if len(clients) == 0 || len(inbound.ClientStats) == 0 {
-			continue
-		}
-		// Build a map email -> client
-		cMap := make(map[string]model.Client, len(clients))
-		for _, c := range clients {
-			cMap[strings.ToLower(c.Email)] = c
-		}
-		for i := range inbound.ClientStats {
-			email := strings.ToLower(inbound.ClientStats[i].Email)
-			if c, ok := cMap[email]; ok {
-				inbound.ClientStats[i].UUID = c.ID
-				inbound.ClientStats[i].SubId = c.SubID
+		// Enrich with node assignments
+		nodeService := NodeService{}
+		for _, inbound := range result {
+			// Load all nodes for this inbound
+			nodes, err := nodeService.GetNodesForInbound(inbound.Id)
+			if err == nil && len(nodes) > 0 {
+				nodeIds := make([]int, len(nodes))
+				for i, node := range nodes {
+					nodeIds[i] = node.Id
+				}
+				inbound.NodeIds = nodeIds
+				// Don't set nodeId - it's deprecated and causes confusion
+				// nodeId is only for backward compatibility when receiving data from old clients
+			} else {
+				// Ensure empty array if no nodes assigned
+				inbound.NodeIds = []int{}
+			}
+			
+			// Enrich client stats with UUID/SubId from inbound settings
+			clients, _ := s.GetClients(inbound)
+			if len(clients) == 0 || len(inbound.ClientStats) == 0 {
+				continue
+			}
+			// Build a map email -> client
+			cMap := make(map[string]model.Client, len(clients))
+			for _, c := range clients {
+				cMap[strings.ToLower(c.Email)] = c
+			}
+			for i := range inbound.ClientStats {
+				email := strings.ToLower(inbound.ClientStats[i].Email)
+				if c, ok := cMap[email]; ok {
+					inbound.ClientStats[i].UUID = c.ID
+					inbound.ClientStats[i].SubId = c.SubID
+				}
 			}
 		}
-	}
-	return inbounds, nil
+		return result, nil
+	})
+	
+	return inbounds, err
 }
 
 // GetAllInbounds retrieves all inbounds from the database.
@@ -440,6 +450,11 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		return inbound, false, err
 	}
 	
+	// Invalidate cache for this user's inbounds
+	if inbound.UserId > 0 {
+		cache.InvalidateInbounds(inbound.UserId)
+	}
+	
 	// Note: ClientStats are no longer managed here - clients are managed through ClientEntity
 	// Traffic is stored directly in ClientEntity table
 
@@ -503,6 +518,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	userId := inbound.UserId
 	clients, err := s.GetClients(inbound)
 	if err != nil {
 		return false, err
@@ -514,7 +530,12 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 	}
 
-	return needRestart, db.Delete(model.Inbound{}, id).Error
+	err = db.Delete(model.Inbound{}, id).Error
+	if err == nil && userId > 0 {
+		// Invalidate cache for this user's inbounds
+		cache.InvalidateInbounds(userId)
+	}
+	return needRestart, err
 }
 
 func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
@@ -690,7 +711,14 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		logger.Debug("Inbound is disabled, not adding to Xray:", tag)
 	}
 
-	return inbound, needRestart, tx.Save(oldInbound).Error
+	err = tx.Save(oldInbound).Error
+	if err == nil {
+		// Invalidate cache for this user's inbounds
+		if oldInbound.UserId > 0 {
+			cache.InvalidateInbounds(oldInbound.UserId)
+		}
+	}
+	return inbound, needRestart, err
 }
 
 // updateClientTraffics is removed - clients are now managed through ClientEntity

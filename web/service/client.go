@@ -13,6 +13,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/util/random"
+	"github.com/mhsanaei/3x-ui/v2/web/cache"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"gorm.io/gorm"
@@ -23,59 +24,68 @@ type ClientService struct{}
 
 // GetClients retrieves all clients for a specific user.
 // Also loads traffic statistics and last online time for each client.
+// Results are cached in Redis for 30 seconds.
 func (s *ClientService) GetClients(userId int) ([]*model.ClientEntity, error) {
-	db := database.GetDB()
+	key := fmt.Sprintf("%s%d", cache.KeyClientsPrefix, userId)
 	var clients []*model.ClientEntity
-	err := db.Where("user_id = ?", userId).Find(&clients).Error
-	if err != nil {
-		return nil, err
-	}
-
-	// Load inbound assignments, traffic statistics, and HWIDs for each client
-	for _, client := range clients {
-		// Load inbound assignments
-		inboundIds, err := s.GetInboundIdsForClient(client.Id)
-		if err == nil {
-			client.InboundIds = inboundIds
+	
+	err := cache.GetOrSet(key, &clients, cache.TTLClients, func() (interface{}, error) {
+		// Cache miss - fetch from database
+		db := database.GetDB()
+		var result []*model.ClientEntity
+		err := db.Where("user_id = ?", userId).Find(&result).Error
+		if err != nil {
+			return nil, err
 		}
 
-		// Traffic statistics are now stored directly in ClientEntity table
-		// No need to load from client_traffics - fields are already loaded from DB
-		
-		// Check if client exceeded limits and update status if needed (but keep Enable = true)
-		now := time.Now().Unix() * 1000
-		totalUsed := client.Up + client.Down
-		trafficLimit := int64(client.TotalGB * 1024 * 1024 * 1024)
-		trafficExceeded := client.TotalGB > 0 && totalUsed >= trafficLimit
-		timeExpired := client.ExpiryTime > 0 && client.ExpiryTime <= now
-		
-		// Update status if expired, but don't change Enable
-		if trafficExceeded || timeExpired {
-			status := "expired_traffic"
-			if timeExpired {
-				status = "expired_time"
+		// Load inbound assignments, traffic statistics, and HWIDs for each client
+		for _, client := range result {
+			// Load inbound assignments
+			inboundIds, err := s.GetInboundIdsForClient(client.Id)
+			if err == nil {
+				client.InboundIds = inboundIds
 			}
-			// Only update if status changed
-			if client.Status != status {
-				client.Status = status
-				err = db.Model(&model.ClientEntity{}).Where("id = ?", client.Id).Update("status", status).Error
-				if err != nil {
-					logger.Warningf("Failed to update status for client %s: %v", client.Email, err)
+
+			// Traffic statistics are now stored directly in ClientEntity table
+			// No need to load from client_traffics - fields are already loaded from DB
+			
+			// Check if client exceeded limits and update status if needed (but keep Enable = true)
+			now := time.Now().Unix() * 1000
+			totalUsed := client.Up + client.Down
+			trafficLimit := int64(client.TotalGB * 1024 * 1024 * 1024)
+			trafficExceeded := client.TotalGB > 0 && totalUsed >= trafficLimit
+			timeExpired := client.ExpiryTime > 0 && client.ExpiryTime <= now
+			
+			// Update status if expired, but don't change Enable
+			if trafficExceeded || timeExpired {
+				status := "expired_traffic"
+				if timeExpired {
+					status = "expired_time"
+				}
+				// Only update if status changed
+				if client.Status != status {
+					client.Status = status
+					err = db.Model(&model.ClientEntity{}).Where("id = ?", client.Id).Update("status", status).Error
+					if err != nil {
+						logger.Warningf("Failed to update status for client %s: %v", client.Email, err)
+					}
 				}
 			}
+
+			// Load HWIDs for this client
+			hwidService := ClientHWIDService{}
+			hwids, err := hwidService.GetHWIDsForClient(client.Id)
+			if err == nil {
+				client.HWIDs = hwids
+			} else {
+				logger.Warningf("Failed to load HWIDs for client %d: %v", client.Id, err)
+			}
 		}
 
-		// Load HWIDs for this client
-		hwidService := ClientHWIDService{}
-		hwids, err := hwidService.GetHWIDsForClient(client.Id)
-		if err == nil {
-			client.HWIDs = hwids
-		} else {
-			logger.Warningf("Failed to load HWIDs for client %d: %v", client.Id, err)
-		}
-	}
-
-	return clients, nil
+		return result, nil
+	})
+	
+	return clients, err
 }
 
 // GetClient retrieves a client by ID.
@@ -218,6 +228,9 @@ func (s *ClientService) AddClient(userId int, client *model.ClientEntity) (bool,
 	if err != nil {
 		return false, err
 	}
+	
+	// Invalidate cache for this user's clients
+	cache.InvalidateClients(userId)
 	
 	// Now update Settings for all assigned inbounds
 	// This is done AFTER committing the client transaction to avoid nested transactions and database locks
@@ -433,6 +446,9 @@ func (s *ClientService) UpdateClient(userId int, client *model.ClientEntity) (bo
 	if err != nil {
 		return false, err
 	}
+	
+	// Invalidate cache for this user's clients
+	cache.InvalidateClients(userId)
 	
 	// Now update Settings for all affected inbounds (old + new)
 	// This is needed even if InboundIds wasn't changed, because client data (UUID, password, etc.) might have changed
