@@ -1,0 +1,307 @@
+{{define "modals/clientEntityModal"}}
+<a-modal id="client-entity-modal" v-model="clientEntityModal.visible" :title="clientEntityModal.title" @ok="clientEntityModal.ok"
+         :confirm-loading="clientEntityModal.confirmLoading" :closable="true" :mask-closable="false"
+         :class="themeSwitcher.currentTheme"
+         :ok-text="clientEntityModal.okText" cancel-text='{{ i18n "close" }}' :width="600">
+    <a-form layout="vertical" v-if="client">
+        <a-form-item label='{{ i18n "pages.clients.email" }}' :required="true">
+            <a-input v-model.trim="client.email" :disabled="clientEntityModal.isEdit"></a-input>
+        </a-form-item>
+        <a-form-item label='UUID/ID'>
+            <a-input v-model.trim="client.uuid">
+                <a-icon slot="suffix" type="sync" @click="client.uuid = RandomUtil.randomUUID()" style="cursor: pointer;"></a-icon>
+            </a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "password" }}'>
+            <a-input v-model.trim="client.password">
+                <a-icon slot="suffix" type="sync" @click="client.password = RandomUtil.randomSeq(10)" style="cursor: pointer;"></a-icon>
+            </a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "security" }}'>
+            <a-select v-model="client.security" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="">{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in USERS_SECURITY" :key="key" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Flow'>
+            <a-select v-model="client.flow" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="">{{ i18n "none" }}</a-select-option>
+                <a-select-option v-for="key in TLS_FLOW_CONTROL" :key="key" :value="key">[[ key ]]</a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-form-item label='Subscription ID'>
+            <a-input v-model.trim="client.subId">
+                <a-icon slot="suffix" type="sync" @click="client.subId = RandomUtil.randomLowerAndNum(16)" style="cursor: pointer;"></a-icon>
+            </a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "comment" }}'>
+            <a-input v-model.trim="client.comment"></a-input>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.IPLimit" }}'>
+            <a-input-number v-model.number="client.limitIp" :min="0" :style="{ width: '100%' }"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.totalFlow" }} (GB)'>
+            <a-input-number v-model.number="client.totalGB" :min="0" :step="0.01" :precision="2" :style="{ width: '100%' }"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.expireDate" }}'>
+            <a-date-picker :show-time="{ format: 'HH:mm:ss' }" format="YYYY-MM-DD HH:mm:ss"
+                :dropdown-class-name="themeSwitcher.currentTheme" v-model="client._expiryTime" :style="{ width: '100%' }"></a-date-picker>
+        </a-form-item>
+        <a-form-item label='Telegram ChatID'>
+            <a-input-number v-model.number="client.tgId" :min="0" :style="{ width: '100%' }"></a-input-number>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.clients.inbounds" }}'>
+            <a-select v-model="client.inboundIds" mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                <a-select-option v-for="inbound in app.allInbounds" :key="inbound.id" :value="inbound.id">
+                    [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+                </a-select-option>
+            </a-select>
+        </a-form-item>
+        <a-divider>{{ i18n "hwidSettings" }}</a-divider>
+        <a-alert
+            message='{{ i18n "hwidBetaWarningTitle" }}'
+            description='{{ i18n "hwidBetaWarningDesc" }}'
+            type="warning"
+            show-icon
+            :closable="false"
+            style="margin-bottom: 16px;">
+        </a-alert>
+        <a-form-item label='{{ i18n "hwidEnabled" }}'>
+            <a-switch v-model="client.hwidEnabled"></a-switch>
+        </a-form-item>
+        <a-form-item label='{{ i18n "maxHwid" }}' v-if="client.hwidEnabled">
+            <a-input-number v-model.number="client.maxHwid" :min="0" :style="{ width: '100%' }">
+                <template slot="addonAfter">
+                    <a-tooltip>
+                        <template slot="title">0 = {{ i18n "unlimited" }}</template>
+                        <a-icon type="question-circle"></a-icon>
+                    </a-tooltip>
+                </template>
+            </a-input-number>
+        </a-form-item>
+        <a-form-item v-if="client.hwidEnabled && clientEntityModal.isEdit">
+            <a-table 
+                :columns="hwidColumns" 
+                :data-source="client.hwids" 
+                :pagination="false"
+                size="small"
+                :style="{ marginTop: '10px' }">
+                <template slot="deviceInfo" slot-scope="text, record">
+                    <div>
+                        <div><strong>[[ record.deviceModel || record.deviceName || record.deviceOs || 'Unknown Device' ]]</strong></div>
+                        <small style="color: #999;">HWID: [[ record.hwid ]]</small>
+                    </div>
+                </template>
+                <template slot="status" slot-scope="text, record">
+                    <a-tag v-if="record.isActive" color="green">{{ i18n "active" }}</a-tag>
+                    <a-tag v-else>{{ i18n "inactive" }}</a-tag>
+                </template>
+                <template slot="firstSeen" slot-scope="text, record">
+                    [[ clientEntityModal.formatTimestamp(record.firstSeenAt || record.firstSeen) ]]
+                </template>
+                <template slot="lastSeen" slot-scope="text, record">
+                    [[ clientEntityModal.formatTimestamp(record.lastSeenAt || record.lastSeen) ]]
+                </template>
+                <template slot="actions" slot-scope="text, record">
+                    <a-button type="danger" size="small" @click="clientEntityModal.removeHwid(record.id)">{{ i18n "delete" }}</a-button>
+                </template>
+            </a-table>
+        </a-form-item>
+        <a-form-item label='{{ i18n "pages.inbounds.enable" }}'>
+            <a-switch v-model="client.enable"></a-switch>
+        </a-form-item>
+    </a-form>
+</a-modal>
+<script>
+    const clientEntityModal = window.clientEntityModal = {
+        visible: false,
+        confirmLoading: false,
+        title: '',
+        okText: '{{ i18n "sure" }}',
+        isEdit: false,
+        client: null,
+        confirm: null,
+        ok() {
+            if (clientEntityModal.confirm && clientEntityModal.client) {
+                const client = clientEntityModal.client;
+                if (typeof ObjectUtil !== 'undefined' && ObjectUtil.execute) {
+                    ObjectUtil.execute(clientEntityModal.confirm, client);
+                } else {
+                    clientEntityModal.confirm(client);
+                }
+            }
+        },
+        show({ title = '', okText = '{{ i18n "sure" }}', client = null, confirm = () => {}, isEdit = false }) {
+            this.title = title;
+            this.okText = okText;
+            this.isEdit = isEdit;
+            this.confirm = confirm;
+            
+            if (client) {
+                // Edit mode - use provided client data
+                this.client = {
+                    id: client.id,
+                    email: client.email || '',
+                    uuid: client.uuid || '',
+                    password: client.password || '',
+                    security: client.security || 'auto',
+                    flow: client.flow || '',
+                    subId: client.subId || '',
+                    comment: client.comment || '',
+                    limitIp: client.limitIp || 0,
+                    totalGB: client.totalGB || 0,
+                    expiryTime: client.expiryTime || 0,
+                    _expiryTime: client.expiryTime > 0 ? (moment ? moment(client.expiryTime) : new Date(client.expiryTime)) : null,
+                    tgId: client.tgId || 0,
+                    inboundIds: client.inboundIds ? [...client.inboundIds] : [],
+                    enable: client.enable !== undefined ? client.enable : true,
+                    hwidEnabled: client.hwidEnabled !== undefined ? client.hwidEnabled : false,
+                    maxHwid: client.maxHwid !== undefined ? client.maxHwid : 1,
+                    hwids: client.hwids ? [...client.hwids] : []
+                };
+                
+                // If in edit mode, load HWIDs from API
+                if (isEdit && client.id) {
+                    this.loadClientHWIDs(client.id);
+                }
+            } else {
+                // Add mode - create new client
+                this.client = {
+                    email: '',
+                    uuid: RandomUtil.randomUUID(),
+                    password: RandomUtil.randomSeq(10),
+                    security: 'auto',
+                    flow: '',
+                    subId: RandomUtil.randomLowerAndNum(16),
+                    comment: '',
+                    limitIp: 0,
+                    totalGB: 0,
+                    expiryTime: 0,
+                    _expiryTime: null,
+                    tgId: 0,
+                    inboundIds: [],
+                    enable: true,
+                    hwidEnabled: false,
+                    maxHwid: 1
+                };
+            }
+            
+            this.visible = true;
+        },
+        close() {
+            this.visible = false;
+            this.loading(false);
+        },
+        loading(loading = true) {
+            this.confirmLoading = loading;
+        },
+        async loadClientHWIDs(clientId) {
+            try {
+                const msg = await HttpUtil.get(`/panel/client/hwid/list/${clientId}`);
+                if (msg && msg.success && msg.obj) {
+                    if (this.client) {
+                        this.client.hwids = msg.obj || [];
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to load client HWIDs:", e);
+                if (this.client) {
+                    this.client.hwids = [];
+                }
+            }
+        },
+        formatTimestamp(timestamp) {
+            if (!timestamp) return '-';
+            if (typeof IntlUtil !== 'undefined' && IntlUtil.formatDate) {
+                return IntlUtil.formatDate(timestamp);
+            }
+            return new Date(timestamp * 1000).toLocaleString();
+        },
+        async removeHwid(hwidId) {
+            if (!confirm('{{ i18n "pages.clients.confirmDeleteHwid" }}')) {
+                return;
+            }
+            try {
+                const msg = await HttpUtil.post(`/panel/client/hwid/remove/${hwidId}`);
+                if (msg.success) {
+                    if (typeof app !== 'undefined') {
+                        app.$message.success('{{ i18n "pages.clients.hwidDeleteSuccess" }}');
+                    }
+                    // Reload client HWIDs
+                    if (this.client && this.client.id) {
+                        await this.loadClientHWIDs(this.client.id);
+                    }
+                } else {
+                    if (typeof app !== 'undefined') {
+                        app.$message.error(msg.msg || '{{ i18n "somethingWentWrong" }}');
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to delete HWID:", e);
+                if (typeof app !== 'undefined') {
+                    app.$message.error('{{ i18n "somethingWentWrong" }}');
+                }
+            }
+        }
+    };
+
+    const clientEntityModalApp = window.clientEntityModalApp = new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#client-entity-modal',
+        data: {
+            clientEntityModal: clientEntityModal,
+        },
+        computed: {
+            client() {
+                return this.clientEntityModal.client;
+            },
+            themeSwitcher() {
+                return typeof themeSwitcher !== 'undefined' ? themeSwitcher : { currentTheme: 'light' };
+            },
+            app() {
+                return typeof app !== 'undefined' ? app : null;
+            },
+            USERS_SECURITY() {
+                return typeof USERS_SECURITY !== 'undefined' ? USERS_SECURITY : {};
+            },
+            TLS_FLOW_CONTROL() {
+                return typeof TLS_FLOW_CONTROL !== 'undefined' ? TLS_FLOW_CONTROL : {};
+            },
+            hwidColumns() {
+                return [
+                    {
+                        title: '{{ i18n "pages.clients.deviceInfo" }}',
+                        align: 'left',
+                        width: 200,
+                        scopedSlots: { customRender: 'deviceInfo' }
+                    },
+                    {
+                        title: '{{ i18n "status" }}',
+                        align: 'center',
+                        width: 80,
+                        scopedSlots: { customRender: 'status' }
+                    },
+                    {
+                        title: '{{ i18n "pages.clients.firstSeen" }}',
+                        align: 'left',
+                        width: 150,
+                        scopedSlots: { customRender: 'firstSeen' }
+                    },
+                    {
+                        title: '{{ i18n "pages.clients.lastSeen" }}',
+                        align: 'left',
+                        width: 150,
+                        scopedSlots: { customRender: 'lastSeen' }
+                    },
+                    {
+                        title: '{{ i18n "pages.clients.actions" }}',
+                        align: 'center',
+                        width: 80,
+                        scopedSlots: { customRender: 'actions' }
+                    }
+                ];
+            }
+        }
+    });
+</script>
+{{end}}

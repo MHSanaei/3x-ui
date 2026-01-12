@@ -2,8 +2,12 @@
 package job
 
 import (
+	"sync"
+
+	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
+	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 )
 
 // CheckNodeHealthJob periodically checks the health of all nodes in multi-node mode.
@@ -38,14 +42,48 @@ func (j *CheckNodeHealthJob) Run() {
 	}
 
 	logger.Debugf("Checking health of %d nodes", len(nodes))
+	
+	// Use a wait group to wait for all health checks to complete
+	var wg sync.WaitGroup
 	for _, node := range nodes {
 		n := node // Capture loop variable
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			if err := j.nodeService.CheckNodeHealth(n); err != nil {
-				logger.Debugf("Node %s (%s) health check failed: %v", n.Name, n.Address, err)
+				logger.Debugf("[Node: %s] Health check failed: %v", n.Name, err)
 			} else {
-				logger.Debugf("Node %s (%s) is %s", n.Name, n.Address, n.Status)
+				logger.Debugf("[Node: %s] Status: %s, ResponseTime: %d ms", n.Name, n.Status, n.ResponseTime)
 			}
 		}()
 	}
+	
+	// Wait for all checks to complete, then broadcast update
+	go func() {
+		wg.Wait()
+		// Get updated nodes with response times
+		updatedNodes, err := j.nodeService.GetAllNodes()
+		if err != nil {
+			logger.Warningf("Failed to get nodes for WebSocket broadcast: %v", err)
+			return
+		}
+		
+		// Enrich nodes with assigned inbounds information
+		type NodeWithInbounds struct {
+			*model.Node
+			Inbounds []*model.Inbound `json:"inbounds,omitempty"`
+		}
+		
+		result := make([]NodeWithInbounds, 0, len(updatedNodes))
+		for _, node := range updatedNodes {
+			inbounds, _ := j.nodeService.GetInboundsForNode(node.Id)
+			result = append(result, NodeWithInbounds{
+				Node:     node,
+				Inbounds: inbounds,
+			})
+		}
+		
+		// Broadcast via WebSocket
+		websocket.BroadcastNodes(result)
+	}()
 }

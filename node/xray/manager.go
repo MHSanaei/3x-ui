@@ -2,6 +2,7 @@
 package xray
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -468,4 +470,72 @@ func (m *Manager) GetStats(reset bool) (*NodeStats, error) {
 		ClientTraffic: clientTraffics,
 		OnlineClients: onlineList,
 	}, nil
+}
+
+// GetLogs returns XRAY access logs from the log file.
+// Returns raw log lines as strings.
+func (m *Manager) GetLogs(count int, filter string) ([]string, error) {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	if m.process == nil || !m.process.IsRunning() {
+		return nil, errors.New("XRAY is not running")
+	}
+
+	// Get access log path from current config
+	var pathToAccessLog string
+	if m.config != nil && len(m.config.LogConfig) > 0 {
+		var logConfig map[string]interface{}
+		if err := json.Unmarshal(m.config.LogConfig, &logConfig); err == nil {
+			if access, ok := logConfig["access"].(string); ok {
+				pathToAccessLog = access
+			}
+		}
+	}
+
+	// Fallback to reading from file if not in config
+	if pathToAccessLog == "" {
+		var err error
+		pathToAccessLog, err = xray.GetAccessLogPath()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get access log path: %w", err)
+		}
+	}
+
+	if pathToAccessLog == "none" || pathToAccessLog == "" {
+		return []string{}, nil // No logs configured
+	}
+
+	file, err := os.Open(pathToAccessLog)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+	defer file.Close()
+
+	var lines []string
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.Contains(line, "api -> api") {
+			continue // Skip empty lines and API calls
+		}
+
+		if filter != "" && !strings.Contains(line, filter) {
+			continue // Apply filter if provided
+		}
+
+		lines = append(lines, line)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read log file: %w", err)
+	}
+
+	// Return last 'count' lines
+	if len(lines) > count {
+		lines = lines[len(lines)-count:]
+	}
+
+	return lines, nil
 }

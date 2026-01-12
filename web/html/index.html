@@ -392,6 +392,15 @@
       </a-icon>
     </template>
     <a-form layout="inline">
+      <a-form-item class="mr-05" v-if="multiNodeMode" label="Node:">
+        <a-select size="small" v-model="xraylogModal.nodeId" :style="{ width: '180px' }" @change="openXrayLogs()"
+          :dropdown-class-name="themeSwitcher.currentTheme" placeholder="Select Node">
+          <a-select-option value="">All Nodes</a-select-option>
+          <a-select-option v-for="node in xraylogModal.nodes" :key="node.id" :value="node.id.toString()">
+            [[ node.name || 'Node ' + node.id ]]
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item class="mr-05">
         <a-input-group compact>
           <a-select size="small" v-model="xraylogModal.rows" :style="{ width: '70px' }" @change="openXrayLogs()"
@@ -834,10 +843,14 @@
       visible: false,
       logs: [],
       rows: 20,
+      filter: '',
       showDirect: true,
       showBlocked: true,
       showProxy: true,
       loading: false,
+      multiNodeMode: false,
+      nodes: [],
+      nodeId: '',
       show(logs) {
         this.visible = true;
         this.logs = logs;
@@ -944,9 +957,29 @@
           const msg = await HttpUtil.post("/panel/setting/all");
           if (msg && msg.success && msg.obj) {
             this.multiNodeMode = Boolean(msg.obj.multiNodeMode) || false;
+            xraylogModal.multiNodeMode = this.multiNodeMode;
+            // Load nodes if multi-node mode is enabled
+            if (this.multiNodeMode) {
+              await this.loadNodesForLogs();
+            }
           }
         } catch (e) {
           console.warn("Failed to load multi-node mode:", e);
+        }
+      },
+      async loadNodesForLogs() {
+        try {
+          const msg = await HttpUtil.get("/panel/node/list");
+          if (msg && msg.success && msg.obj) {
+            xraylogModal.nodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name || 'Node ' + node.id,
+              address: node.address || '',
+              status: node.status || 'unknown'
+            }));
+          }
+        } catch (e) {
+          console.warn("Failed to load nodes for logs:", e);
         }
       },
       async getStatus() {
@@ -1075,12 +1108,45 @@
         logModal.loading = false;
       },
       async openXrayLogs() {
-        xraylogModal.loading = true;
-        const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, { filter: xraylogModal.filter, showDirect: xraylogModal.showDirect, showBlocked: xraylogModal.showBlocked, showProxy: xraylogModal.showProxy });
-        if (!msg.success) {
-          return;
+        // Ensure multi-node mode is loaded and nodes are available
+        if (this.multiNodeMode && xraylogModal.nodes.length === 0) {
+          await this.loadNodesForLogs();
         }
-        xraylogModal.show(msg.obj);
+        
+        xraylogModal.loading = true;
+        const params = { 
+          filter: xraylogModal.filter, 
+          showDirect: xraylogModal.showDirect, 
+          showBlocked: xraylogModal.showBlocked, 
+          showProxy: xraylogModal.showProxy 
+        };
+        
+        // If multi-node mode and nodeId is selected, use node-specific endpoint
+        if (this.multiNodeMode && xraylogModal.nodeId) {
+          const msg = await HttpUtil.post('/panel/node/logs/' + xraylogModal.nodeId, {
+            count: xraylogModal.rows,
+            filter: xraylogModal.filter,
+            showDirect: xraylogModal.showDirect,
+            showBlocked: xraylogModal.showBlocked,
+            showProxy: xraylogModal.showProxy
+          });
+          if (!msg.success) {
+            xraylogModal.loading = false;
+            return;
+          }
+          xraylogModal.show(msg.obj);
+        } else {
+          // Use standard endpoint with optional nodeId
+          if (xraylogModal.nodeId) {
+            params.nodeId = xraylogModal.nodeId;
+          }
+          const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, params);
+          if (!msg.success) {
+            xraylogModal.loading = false;
+            return;
+          }
+          xraylogModal.show(msg.obj);
+        }
         await PromiseUtil.sleep(500);
         xraylogModal.loading = false;
       },
@@ -1164,6 +1230,13 @@
           }
         }, 2000);
       },
+    },
+    watch: {
+      'xraylogModal.visible'(newVal) {
+        if (newVal && this.multiNodeMode && xraylogModal.nodes.length === 0) {
+          this.loadNodesForLogs();
+        }
+      }
     },
     async mounted() {
       if (window.location.protocol !== "https:") {

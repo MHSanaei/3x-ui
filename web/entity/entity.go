@@ -101,6 +101,12 @@ type AllSetting struct {
 	
 	// Multi-node mode setting
 	MultiNodeMode bool `json:"multiNodeMode" form:"multiNodeMode"` // Enable multi-node architecture mode
+	
+	// HWID tracking mode
+	// "off" = HWID tracking disabled
+	// "client_header" = HWID provided by client via x-hwid header (default, recommended)
+	// "legacy_fingerprint" = deprecated fingerprint-based HWID generation (deprecated, for backward compatibility only)
+	HwidMode string `json:"hwidMode" form:"hwidMode"` // HWID tracking mode
 	// JSON subscription routing rules
 }
 
@@ -169,6 +175,16 @@ func (s *AllSetting) CheckValid() error {
 	_, err := time.LoadLocation(s.TimeLocation)
 	if err != nil {
 		return common.NewError("time location not exist:", s.TimeLocation)
+	}
+
+	// Validate HWID mode
+	validHwidModes := map[string]bool{
+		"off":                true,
+		"client_header":     true,
+		"legacy_fingerprint": true,
+	}
+	if s.HwidMode != "" && !validHwidModes[s.HwidMode] {
+		return common.NewErrorf("invalid hwidMode: %s (must be one of: off, client_header, legacy_fingerprint)", s.HwidMode)
 	}
 
 	return nil

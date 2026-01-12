@@ -41,8 +41,10 @@ func NewSUBController(
 	subTitle string,
 ) *SUBController {
 	sub := NewSubService(showInfo, rModel)
-	// Initialize NodeService for multi-node support
+	// Initialize services for multi-node support and new architecture
 	sub.nodeService = service.NodeService{}
+	sub.hostService = service.HostService{}
+	sub.clientService = service.ClientService{}
 	a := &SUBController{
 		subTitle:       subTitle,
 		subPath:        subPath,
@@ -73,7 +75,7 @@ func (a *SUBController) initRouter(g *gin.RouterGroup) {
 func (a *SUBController) subs(c *gin.Context) {
 	subId := c.Param("subid")
 	scheme, host, hostWithPort, hostHeader := a.subService.ResolveRequest(c)
-	subs, lastOnline, traffic, err := a.subService.GetSubs(subId, host)
+	subs, lastOnline, traffic, err := a.subService.GetSubs(subId, host, c) // Pass context for HWID registration
 	if err != nil || len(subs) == 0 {
 		c.String(400, "Error!")
 	} else {
@@ -130,7 +132,7 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, subId)
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -144,21 +146,24 @@ func (a *SUBController) subs(c *gin.Context) {
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
 	_, host, _, _ := a.subService.ResolveRequest(c)
-	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
+	jsonSub, header, err := a.subJsonService.GetJson(subId, host, c) // Pass context for HWID registration
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")
 	} else {
 
 		// Add headers
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, subId)
 
 		c.String(200, jsonSub)
 	}
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
-func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
+// Also adds X-Subscription-ID header so clients can use it as HWID if needed.
+func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle, subId string) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
 	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
+	// Add subscription ID header so clients can use it as HWID identifier
+	c.Writer.Header().Set("X-Subscription-ID", subId)
 }

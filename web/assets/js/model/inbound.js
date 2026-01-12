@@ -1902,7 +1902,7 @@ Inbound.Settings = class extends XrayCommonClass {
 
 Inbound.VmessSettings = class extends Inbound.Settings {
     constructor(protocol,
-        vmesses = [new Inbound.VmessSettings.VMESS()]) {
+        vmesses = []) {
         super(protocol);
         this.vmesses = vmesses;
     }
@@ -2018,7 +2018,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
 Inbound.VLESSSettings = class extends Inbound.Settings {
     constructor(
         protocol,
-        vlesses = [new Inbound.VLESSSettings.VLESS()],
+        vlesses = [],
         decryption = "none",
         encryption = "none",
         fallbacks = [],
@@ -2208,7 +2208,7 @@ Inbound.VLESSSettings.Fallback = class extends XrayCommonClass {
 
 Inbound.TrojanSettings = class extends Inbound.Settings {
     constructor(protocol,
-        trojans = [new Inbound.TrojanSettings.Trojan()],
+        trojans = [],
         fallbacks = [],) {
         super(protocol);
         this.trojans = trojans;
@@ -2373,7 +2373,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
         method = SSMethods.BLAKE3_AES_256_GCM,
         password = RandomUtil.randomShadowsocksPassword(),
         network = 'tcp,udp',
-        shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()],
+        shadowsockses = [],
         ivCheck = false,
     ) {
         super(protocol);

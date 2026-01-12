@@ -6,18 +6,14 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content :style="{ padding: '24px 16px' }">
-      <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
+      <transition name="list" appear>
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
         <a-col>
           <a-card size="small" :style="{ padding: '16px' }" hoverable>
             <h2>{{ i18n "pages.nodes.title" }}</h2>
             
             <div style="margin-bottom: 20px;">
-              <h3>{{ i18n "pages.nodes.addNewNode" }}</h3>
-              <a-input id="node-name" placeholder='{{ i18n "pages.nodes.nodeName" }}' style="width: 200px; margin-right: 10px;"></a-input>
-              <a-input id="node-address" placeholder='{{ i18n "pages.nodes.nodeAddress" }} (http://192.168.1.100)' style="width: 250px; margin-right: 10px;"></a-input>
-              <a-input id="node-port" placeholder='{{ i18n "pages.nodes.nodePort" }} (8080)' type="number" style="width: 120px; margin-right: 10px;"></a-input>
-              <a-input-password id="node-apikey" placeholder='{{ i18n "pages.nodes.nodeApiKey" }}' style="width: 200px; margin-right: 10px;"></a-input-password>
-              <a-button type="primary" onclick="addNode()">{{ i18n "pages.nodes.addNode" }}</a-button>
+              <a-button type="primary" icon="plus" @click="openAddNode">{{ i18n "pages.nodes.addNewNode" }}</a-button>
             </div>
 
             <div style="margin-bottom: 20px;">
@@ -62,6 +58,15 @@
               [[ node.status || 'unknown' ]]
             </a-tag>
           </template>
+          <template slot="responseTime" slot-scope="text, node">
+            <span v-if="node.responseTime && node.responseTime > 0" :style="{ 
+              color: node.responseTime < 100 ? '#52c41a' : node.responseTime < 300 ? '#faad14' : '#ff4d4f',
+              fontWeight: 'bold'
+            }">
+              [[ node.responseTime ]] ms
+            </span>
+            <span v-else style="color: #999;">-</span>
+          </template>
           <template slot="inbounds" slot-scope="text, node">
             <template v-if="node.inbounds && node.inbounds.length > 0">
               <a-tag v-for="(inbound, index) in node.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
@@ -100,6 +105,7 @@
           <a-spin tip='{{ i18n "loading" }}'></a-spin>
         </a-card>
       </a-row>
+      </transition>
     </a-layout-content>
   </a-layout>
 </a-layout>
@@ -109,6 +115,7 @@
 <script src="{{ .base_path }}assets/js/model/node.js?{{ .cur_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
+{{template "modals/nodeModal"}}
 <script>
   const columns = [{
     title: "ID",
@@ -137,6 +144,11 @@
     align: 'center',
     width: 80,
     scopedSlots: { customRender: 'status' },
+  }, {
+    title: '{{ i18n "pages.nodes.responseTime" }}',
+    align: 'center',
+    width: 100,
+    scopedSlots: { customRender: 'responseTime' },
   }, {
     title: '{{ i18n "pages.nodes.assignedInbounds" }}',
     align: 'left',
@@ -184,6 +196,7 @@
       reloadingAll: false,
       editingNodeId: null,
       editingNodeName: '',
+      pollInterval: null,
     },
     methods: {
       async loadNodes() {
@@ -196,6 +209,7 @@
               name: node.name || '',
               address: node.address || '',
               status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
               inbounds: node.inbounds || []
             }));
           }
@@ -228,7 +242,7 @@
             this.reloadNode(node.id);
             break;
           case 'edit':
-            this.startEditNodeName(node);
+            this.editNode(node);
             break;
           case 'delete':
             this.deleteNode(node.id);
@@ -388,79 +402,212 @@
         } finally {
           this.reloadingAll = false;
         }
+      },
+      openAddNode() {
+        if (typeof window.nodeModal !== 'undefined') {
+          window.nodeModal.show({
+            title: '{{ i18n "pages.nodes.addNewNode" }}',
+            okText: '{{ i18n "create" }}',
+            confirm: async (nodeData) => {
+              await this.submitNode(nodeData, false);
+            },
+            isEdit: false
+          });
+        } else {
+          console.error('[openAddNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      editNode(node) {
+        if (typeof window.nodeModal !== 'undefined') {
+          // Load full node data including TLS settings
+          HttpUtil.get(`/panel/node/get/${node.id}`).then(msg => {
+            if (msg && msg.success && msg.obj) {
+              window.nodeModal.show({
+                title: '{{ i18n "pages.nodes.editNode" }}',
+                okText: '{{ i18n "update" }}',
+                node: msg.obj,
+                confirm: async (nodeData) => {
+                  await this.submitNode(nodeData, true, node.id);
+                },
+                isEdit: true
+              });
+            } else {
+              app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+            }
+          }).catch(e => {
+            console.error("Failed to load node:", e);
+            app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+          });
+        } else {
+          console.error('[editNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      async submitNode(nodeData, isEdit, nodeId = null) {
+        // Для редактирования используем обычный процесс
+        if (isEdit) {
+          try {
+            const url = `/panel/node/update/${nodeId}`;
+            const msg = await HttpUtil.post(url, nodeData);
+            if (msg && msg.success) {
+              app.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+              await this.loadNodes();
+              if (window.nodeModal) {
+                window.nodeModal.close();
+              }
+            } else {
+              app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.updateError" }}');
+            }
+          } catch (e) {
+            console.error('Failed to update node:', e);
+            app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+          }
+          return;
+        }
+        
+        // Для добавления новой ноды показываем прогресс регистрации
+        const modal = window.nodeModal;
+        if (!modal) {
+          app.$message.error('Modal not found');
+          return;
+        }
+        
+        try {
+          // Шаг 1: Устанавливаю соединение
+          modal.currentStep = 0;
+          modal.steps.connecting = 'process';
+          
+          // Проверяем доступность ноды через панель (избегаем CORS)
+          try {
+            const checkMsg = await HttpUtil.post('/panel/node/check-connection', {
+              address: nodeData.address
+            });
+            
+            if (!checkMsg || !checkMsg.success) {
+              modal.steps.connecting = 'error';
+              app.$message.error(checkMsg?.msg || 'Нода недоступна. Проверьте адрес и порт.');
+              modal.registering = false;
+              return;
+            }
+          } catch (e) {
+            modal.steps.connecting = 'error';
+            app.$message.error('Нода недоступна. Проверьте адрес и порт.');
+            modal.registering = false;
+            return;
+          }
+          
+          modal.steps.connecting = 'finish';
+          modal.currentStep = 1;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 2: Генерирую API ключ
+          modal.steps.generating = 'process';
+          await new Promise(resolve => setTimeout(resolve, 500)); // Имитация генерации
+          modal.steps.generating = 'finish';
+          modal.currentStep = 2;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 3: Регистрирую ноду
+          modal.steps.registering = 'process';
+          const url = '/panel/node/add';
+          const msg = await HttpUtil.post(url, nodeData);
+          
+          if (msg && msg.success) {
+            modal.steps.registering = 'finish';
+            modal.currentStep = 3;
+            
+            // Небольшая задержка для визуального эффекта
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Шаг 4: Готово
+            modal.steps.completed = 'finish';
+            
+            // Задержка перед закрытием модалки
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
+            await this.loadNodes();
+            if (window.nodeModal) {
+              window.nodeModal.close();
+            }
+          } else {
+            modal.steps.registering = 'error';
+            app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.addError" }}');
+            modal.registering = false;
+          }
+        } catch (e) {
+          console.error('Failed to add node:', e);
+          // Определяем на каком шаге произошла ошибка
+          if (modal.steps.connecting === 'process') {
+            modal.steps.connecting = 'error';
+          } else if (modal.steps.generating === 'process') {
+            modal.steps.generating = 'error';
+          } else if (modal.steps.registering === 'process') {
+            modal.steps.registering = 'error';
+          }
+          app.$message.error('{{ i18n "pages.nodes.addError" }}');
+          modal.registering = false;
+        }
+      },
+      startPolling() {
+        // Poll every 5 seconds as fallback
+        if (this.pollInterval) {
+          clearInterval(this.pollInterval);
+        }
+        this.pollInterval = setInterval(() => {
+          this.loadNodes();
+        }, 5000);
+      }
+    },
+    beforeDestroy() {
+      // Clean up polling interval
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = null;
       }
     },
     async mounted() {
       await this.loadNodes();
+
+      // Setup WebSocket for real-time updates
+      if (window.wsClient) {
+        window.wsClient.connect();
+        
+        // Listen for nodes updates
+        window.wsClient.on('nodes', (payload) => {
+          if (payload && Array.isArray(payload)) {
+            this.nodes = payload.map(node => ({
+              id: node.id,
+              name: node.name || '',
+              address: node.address || '',
+              status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
+              inbounds: node.inbounds || []
+            }));
+          }
+        });
+
+        // Fallback to polling if WebSocket fails
+        window.wsClient.on('error', () => {
+          console.warn('WebSocket connection failed, falling back to polling');
+          this.startPolling();
+        });
+
+        window.wsClient.on('disconnected', () => {
+          if (window.wsClient.reconnectAttempts >= window.wsClient.maxReconnectAttempts) {
+            console.warn('WebSocket reconnection failed, falling back to polling');
+            this.startPolling();
+          }
+        });
+      } else {
+        // Fallback to polling if WebSocket is not available
+        this.startPolling();
+      }
     }
   });
 
-  async function addNode() {
-    const name = document.getElementById('node-name').value.trim();
-    const address = document.getElementById('node-address').value.trim();
-    const port = document.getElementById('node-port').value.trim();
-    const apiKey = document.getElementById('node-apikey').value;
-    
-    if (!name || !address || !port || !apiKey) {
-      app.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
-      return;
-    }
-    
-    // Validate address format
-    if (!address.match(/^https?:\/\//)) {
-      app.$message.error('{{ i18n "pages.nodes.validUrl" }}');
-      return;
-    }
-    
-    // Validate port
-    const portNum = parseInt(port);
-    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      app.$message.error('{{ i18n "pages.nodes.validPort" }}');
-      return;
-    }
-    
-    // Construct full address
-    const fullAddress = `${address}:${port}`;
-    
-    // Check for duplicate nodes
-    const existingNodes = app.$data.nodes || [];
-    const duplicate = existingNodes.find(node => {
-      try {
-        const nodeUrl = new URL(node.address);
-        const newUrl = new URL(fullAddress);
-        // Compare protocol, hostname, and port
-        const nodePort = nodeUrl.port || (nodeUrl.protocol === 'https:' ? '443' : '80');
-        const newPort = newUrl.port || (newUrl.protocol === 'https:' ? '443' : '80');
-        return nodeUrl.protocol === newUrl.protocol && 
-               nodeUrl.hostname === newUrl.hostname && 
-               nodePort === newPort;
-      } catch (e) {
-        // If URL parsing fails, do simple string comparison
-        return node.address === fullAddress;
-      }
-    });
-    
-    if (duplicate) {
-      app.$message.error('{{ i18n "pages.nodes.duplicateNode" }}');
-      return;
-    }
-    
-    try {
-      const msg = await HttpUtil.post('/panel/node/add', { name, address: fullAddress, apiKey });
-      if (msg.success) {
-        app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
-        document.getElementById('node-name').value = '';
-        document.getElementById('node-address').value = '';
-        document.getElementById('node-port').value = '';
-        document.getElementById('node-apikey').value = '';
-        app.loadNodes();
-      } else {
-        app.$message.error(msg.msg || '{{ i18n "pages.nodes.addError" }}');
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      app.$message.error('{{ i18n "pages.nodes.addError" }}');
-    }
-  }
 </script>
 {{template "page/body_end" .}}

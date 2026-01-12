@@ -132,9 +132,6 @@
             get isEdit() {
                 return inModal.isEdit;
             },
-            get client() {
-                return inModal.inbound && inModal.inbound.clients && inModal.inbound.clients.length > 0 ? inModal.inbound.clients[0] : null;
-            },
             get datepicker() {
                 return app.datepicker;
             },
@@ -143,12 +140,6 @@
             },
             get availableNodes() {
                 return app && app.availableNodes || [];
-            },
-            get delayedExpireDays() {
-                return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
-            },
-            set delayedExpireDays(days) {
-                this.client.expiryTime = -86400000 * days;
             },
             get externalProxy() {
                 return this.inbound.stream.externalProxy.length > 0;
