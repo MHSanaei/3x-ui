@@ -401,16 +401,16 @@ func (s *XrayService) restartXrayMultiMode(isForce bool) error {
 		// Marshal config to JSON
 		configJSON, err := json.MarshalIndent(&nodeConfig, "", "  ")
 		if err != nil {
-			logger.Errorf("Failed to marshal config for node %d: %v", node.Id, err)
+			logger.Errorf("[Node: %s] Failed to marshal config: %v", node.Name, err)
 			continue
 		}
 
 		// Send to node
 		if err := s.nodeService.ApplyConfigToNode(node, configJSON); err != nil {
-			logger.Errorf("Failed to apply config to node %d (%s): %v", node.Id, node.Name, err)
+			logger.Errorf("[Node: %s] Failed to apply config: %v", node.Name, err)
 			// Continue with other nodes even if one fails
 		} else {
-			logger.Infof("Successfully applied config to node %d (%s)", node.Id, node.Name)
+			logger.Infof("[Node: %s] Successfully applied config", node.Name)
 		}
 	}
 

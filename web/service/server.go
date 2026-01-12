@@ -793,7 +793,8 @@ func (s *ServerService) GetXrayLogs(
 	showBlocked string,
 	showProxy string,
 	freedoms []string,
-	blackholes []string) []LogEntry {
+	blackholes []string,
+	nodeId string) []LogEntry {
 
 	const (
 		Direct = iota
@@ -808,8 +809,70 @@ func (s *ServerService) GetXrayLogs(
 	settingService := SettingService{}
 	multiMode, err := settingService.GetMultiNodeMode()
 	if err == nil && multiMode {
-		// In multi-node mode, logs are on nodes, not locally
-		return nil
+		// In multi-node mode, get logs from node
+		if nodeId != "" {
+			nodeIdInt, err := strconv.Atoi(nodeId)
+			if err == nil {
+				nodeService := NodeService{}
+				node, err := nodeService.GetNode(nodeIdInt)
+				if err == nil && node != nil {
+					// Get raw logs from node
+					rawLogs, err := nodeService.GetNodeLogs(node, countInt, filter)
+					if err == nil {
+						// Parse logs into LogEntry format
+						for _, line := range rawLogs {
+							var entry LogEntry
+							parts := strings.Fields(line)
+
+							for i, part := range parts {
+								if i == 0 {
+									if len(parts) > 1 {
+										dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
+										if err == nil {
+											entry.DateTime = dateTime.UTC()
+										}
+									}
+								}
+
+								if part == "from" && i+1 < len(parts) {
+									entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+								} else if part == "accepted" && i+1 < len(parts) {
+									entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+								} else if strings.HasPrefix(part, "[") {
+									entry.Inbound = part[1:]
+								} else if strings.HasSuffix(part, "]") {
+									entry.Outbound = part[:len(part)-1]
+								} else if part == "email:" && i+1 < len(parts) {
+									entry.Email = parts[i+1]
+								}
+							}
+
+							// Determine event type
+							if logEntryContains(line, freedoms) {
+								if showDirect == "false" {
+									continue
+								}
+								entry.Event = Direct
+							} else if logEntryContains(line, blackholes) {
+								if showBlocked == "false" {
+									continue
+								}
+								entry.Event = Blocked
+							} else {
+								if showProxy == "false" {
+									continue
+								}
+								entry.Event = Proxied
+							}
+
+							entries = append(entries, entry)
+						}
+					}
+				}
+			}
+		}
+		// If no nodeId provided or node not found, return empty
+		return entries
 	}
 
 	pathToAccessLog, err := xray.GetAccessLogPath()

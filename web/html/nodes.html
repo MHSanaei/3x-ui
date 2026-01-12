@@ -58,6 +58,15 @@
               [[ node.status || 'unknown' ]]
             </a-tag>
           </template>
+          <template slot="responseTime" slot-scope="text, node">
+            <span v-if="node.responseTime && node.responseTime > 0" :style="{ 
+              color: node.responseTime < 100 ? '#52c41a' : node.responseTime < 300 ? '#faad14' : '#ff4d4f',
+              fontWeight: 'bold'
+            }">
+              [[ node.responseTime ]] ms
+            </span>
+            <span v-else style="color: #999;">-</span>
+          </template>
           <template slot="inbounds" slot-scope="text, node">
             <template v-if="node.inbounds && node.inbounds.length > 0">
               <a-tag v-for="(inbound, index) in node.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
@@ -136,6 +145,11 @@
     width: 80,
     scopedSlots: { customRender: 'status' },
   }, {
+    title: '{{ i18n "pages.nodes.responseTime" }}',
+    align: 'center',
+    width: 100,
+    scopedSlots: { customRender: 'responseTime' },
+  }, {
     title: '{{ i18n "pages.nodes.assignedInbounds" }}',
     align: 'left',
     width: 300,
@@ -182,6 +196,7 @@
       reloadingAll: false,
       editingNodeId: null,
       editingNodeName: '',
+      pollInterval: null,
     },
     methods: {
       async loadNodes() {
@@ -194,6 +209,7 @@
               name: node.name || '',
               address: node.address || '',
               status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
               inbounds: node.inbounds || []
             }));
           }
@@ -427,26 +443,169 @@
         }
       },
       async submitNode(nodeData, isEdit, nodeId = null) {
+        // Для редактирования используем обычный процесс
+        if (isEdit) {
+          try {
+            const url = `/panel/node/update/${nodeId}`;
+            const msg = await HttpUtil.post(url, nodeData);
+            if (msg && msg.success) {
+              app.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+              await this.loadNodes();
+              if (window.nodeModal) {
+                window.nodeModal.close();
+              }
+            } else {
+              app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.updateError" }}');
+            }
+          } catch (e) {
+            console.error('Failed to update node:', e);
+            app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+          }
+          return;
+        }
+        
+        // Для добавления новой ноды показываем прогресс регистрации
+        const modal = window.nodeModal;
+        if (!modal) {
+          app.$message.error('Modal not found');
+          return;
+        }
+        
         try {
-          const url = isEdit ? `/panel/node/update/${nodeId}` : '/panel/node/add';
+          // Шаг 1: Устанавливаю соединение
+          modal.currentStep = 0;
+          modal.steps.connecting = 'process';
+          
+          // Проверяем доступность ноды через панель (избегаем CORS)
+          try {
+            const checkMsg = await HttpUtil.post('/panel/node/check-connection', {
+              address: nodeData.address
+            });
+            
+            if (!checkMsg || !checkMsg.success) {
+              modal.steps.connecting = 'error';
+              app.$message.error(checkMsg?.msg || 'Нода недоступна. Проверьте адрес и порт.');
+              modal.registering = false;
+              return;
+            }
+          } catch (e) {
+            modal.steps.connecting = 'error';
+            app.$message.error('Нода недоступна. Проверьте адрес и порт.');
+            modal.registering = false;
+            return;
+          }
+          
+          modal.steps.connecting = 'finish';
+          modal.currentStep = 1;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 2: Генерирую API ключ
+          modal.steps.generating = 'process';
+          await new Promise(resolve => setTimeout(resolve, 500)); // Имитация генерации
+          modal.steps.generating = 'finish';
+          modal.currentStep = 2;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 3: Регистрирую ноду
+          modal.steps.registering = 'process';
+          const url = '/panel/node/add';
           const msg = await HttpUtil.post(url, nodeData);
+          
           if (msg && msg.success) {
-            app.$message.success(isEdit ? '{{ i18n "pages.nodes.updateSuccess" }}' : '{{ i18n "pages.nodes.addSuccess" }}');
+            modal.steps.registering = 'finish';
+            modal.currentStep = 3;
+            
+            // Небольшая задержка для визуального эффекта
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Шаг 4: Готово
+            modal.steps.completed = 'finish';
+            
+            // Задержка перед закрытием модалки
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
             await this.loadNodes();
             if (window.nodeModal) {
               window.nodeModal.close();
             }
           } else {
-            app.$message.error((msg && msg.msg) || (isEdit ? '{{ i18n "pages.nodes.updateError" }}' : '{{ i18n "pages.nodes.addError" }}'));
+            modal.steps.registering = 'error';
+            app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.addError" }}');
+            modal.registering = false;
           }
         } catch (e) {
-          console.error(`Failed to ${isEdit ? 'update' : 'add'} node:`, e);
-          app.$message.error(isEdit ? '{{ i18n "pages.nodes.updateError" }}' : '{{ i18n "pages.nodes.addError" }}');
+          console.error('Failed to add node:', e);
+          // Определяем на каком шаге произошла ошибка
+          if (modal.steps.connecting === 'process') {
+            modal.steps.connecting = 'error';
+          } else if (modal.steps.generating === 'process') {
+            modal.steps.generating = 'error';
+          } else if (modal.steps.registering === 'process') {
+            modal.steps.registering = 'error';
+          }
+          app.$message.error('{{ i18n "pages.nodes.addError" }}');
+          modal.registering = false;
         }
+      },
+      startPolling() {
+        // Poll every 5 seconds as fallback
+        if (this.pollInterval) {
+          clearInterval(this.pollInterval);
+        }
+        this.pollInterval = setInterval(() => {
+          this.loadNodes();
+        }, 5000);
+      }
+    },
+    beforeDestroy() {
+      // Clean up polling interval
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = null;
       }
     },
     async mounted() {
       await this.loadNodes();
+
+      // Setup WebSocket for real-time updates
+      if (window.wsClient) {
+        window.wsClient.connect();
+        
+        // Listen for nodes updates
+        window.wsClient.on('nodes', (payload) => {
+          if (payload && Array.isArray(payload)) {
+            this.nodes = payload.map(node => ({
+              id: node.id,
+              name: node.name || '',
+              address: node.address || '',
+              status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
+              inbounds: node.inbounds || []
+            }));
+          }
+        });
+
+        // Fallback to polling if WebSocket fails
+        window.wsClient.on('error', () => {
+          console.warn('WebSocket connection failed, falling back to polling');
+          this.startPolling();
+        });
+
+        window.wsClient.on('disconnected', () => {
+          if (window.wsClient.reconnectAttempts >= window.wsClient.maxReconnectAttempts) {
+            console.warn('WebSocket reconnection failed, falling back to polling');
+            this.startPolling();
+          }
+        });
+      } else {
+        // Fallback to polling if WebSocket is not available
+        this.startPolling();
+      }
     }
   });
 

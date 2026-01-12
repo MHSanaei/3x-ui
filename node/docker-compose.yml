@@ -7,7 +7,8 @@ services:
     restart: unless-stopped
     environment:
 #      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
-      - NODE_API_KEY=test-key
+      #- NODE_API_KEY=test-key
+      - PANEL_URL=http://192.168.0.7:2054
     ports:
       - "8080:8080"
       - "44000:44000"
@@ -26,7 +27,8 @@ services:
     restart: unless-stopped
     environment:
 #      - NODE_API_KEY=${NODE_API_KEY:-change-me-to-secure-key}
-      - NODE_API_KEY=test-key
+      #- NODE_API_KEY=test-key1
+      - PANEL_URL=http://192.168.0.7:2054
     ports:
       - "8081:8080"
       - "44001:44001"
@@ -45,7 +47,8 @@ services:
     container_name: 3x-ui-node3
     restart: unless-stopped
     environment:
-      - NODE_API_KEY=test-key
+      #- NODE_API_KEY=test-key
+      - PANEL_URL=http://192.168.0.7:2054
     ports:
       - "8082:8080"
       - "44002:44002"
