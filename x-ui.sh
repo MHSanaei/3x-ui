@@ -887,17 +887,17 @@ update_geo() {
         show_menu
         ;;
     1)
-        update_main_geofiles
+        update_geofiles "main"
         echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
         restart
         ;;
     2)
-        update_ir_geofiles
+        update_geofiles "IR"
         echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
         restart
         ;;
     3)
-        update_ru_geofiles
+        update_geofiles "RU"
         echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
         restart
         ;;
