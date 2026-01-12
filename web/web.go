@@ -368,9 +368,6 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@every 10s", job.NewCheckNodeHealthJob())
 	// Collect node statistics (traffic and online clients) every 30 seconds
 	s.cron.AddJob("@every 30s", job.NewCollectNodeStatsJob())
-	// Collect node logs and add to panel log buffer every 30 seconds
-	// Disabled: logs are now pushed from nodes in real-time via push-logs endpoint
-	// s.cron.AddJob("@every 30s", job.NewCollectNodeLogsJob())
 
 	// Make a traffic condition every day, 8:30
 	var entry cron.EntryID
