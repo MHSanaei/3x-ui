@@ -1,0 +1,397 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' hosts-page'">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content :style="{ padding: '24px 16px' }">
+      <transition name="list" appear>
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched && multiNodeMode">
+        <a-col>
+          <a-card size="small" :style="{ padding: '16px' }" hoverable>
+            <h2>{{ i18n "pages.hosts.title" }}</h2>
+            
+            <div style="margin-bottom: 20px;">
+              <a-button type="primary" icon="plus" @click="openAddHost">{{ i18n "pages.hosts.addNewHost" }}</a-button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <a-button icon="sync" @click="loadHosts" :loading="refreshing">{{ i18n "refresh" }}</a-button>
+            </div>
+
+            <a-table :columns="isMobile ? mobileColumns : columns" :row-key="host => host.id"
+              :data-source="hosts" :scroll="isMobile ? {} : { x: 1000 }"
+              :pagination="false"
+              :style="{ marginTop: '10px' }"
+              class="hosts-table"
+              :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
+              <template slot="action" slot-scope="text, host">
+                <a-dropdown :trigger="['click']">
+                  <a-icon @click="e => e.preventDefault()" type="more"
+                    :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
+                  <a-menu slot="overlay" @click="a => clickAction(a, host)"
+                    :theme="themeSwitcher.currentTheme">
+                    <a-menu-item key="edit">
+                      <a-icon type="edit"></a-icon>
+                      {{ i18n "edit" }}
+                    </a-menu-item>
+                    <a-menu-item key="delete" :style="{ color: '#FF4D4F' }">
+                      <a-icon type="delete"></a-icon>
+                      {{ i18n "delete" }}
+                    </a-menu-item>
+                  </a-menu>
+                </a-dropdown>
+              </template>
+              <template slot="enable" slot-scope="text, host">
+                <a-switch v-model="host.enable" @change="switchEnable(host.id, host.enable)"></a-switch>
+              </template>
+              <template slot="inbounds" slot-scope="text, host">
+                <template v-if="host.inbounds && host.inbounds.length > 0">
+                  <a-tag v-for="(inbound, index) in host.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                    [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+                  </a-tag>
+                </template>
+                <a-tag v-else color="default">{{ i18n "none" }}</a-tag>
+              </template>
+            </a-table>
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-row v-else-if="!multiNodeMode">
+        <a-card
+          :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+          <a-alert type="info" message='{{ i18n "pages.hosts.multiNodeModeRequired" }}' show-icon></a-alert>
+        </a-card>
+      </a-row>
+      <a-row v-else>
+        <a-card
+          :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+          <a-spin tip='{{ i18n "loading" }}'></a-spin>
+        </a-card>
+      </a-row>
+      </transition>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+
+{{template "page/body_scripts" .}}
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+{{template "modals/hostModal"}}
+<script>
+  const columns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 50,
+  }, {
+    title: '{{ i18n "pages.hosts.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.hosts.name" }}',
+    align: 'left',
+    width: 150,
+    dataIndex: "name",
+  }, {
+    title: '{{ i18n "pages.hosts.address" }}',
+    align: 'left',
+    width: 200,
+    dataIndex: "address",
+  }, {
+    title: '{{ i18n "pages.hosts.port" }}',
+    align: 'center',
+    width: 80,
+    dataIndex: "port",
+  }, {
+    title: '{{ i18n "pages.hosts.protocol" }}',
+    align: 'center',
+    width: 80,
+    dataIndex: "protocol",
+  }, {
+    title: '{{ i18n "pages.hosts.assignedInbounds" }}',
+    align: 'left',
+    width: 300,
+    scopedSlots: { customRender: 'inbounds' },
+  }, {
+    title: '{{ i18n "pages.hosts.enable" }}',
+    align: 'center',
+    width: 80,
+    scopedSlots: { customRender: 'enable' },
+  }];
+
+  const mobileColumns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+  }, {
+    title: '{{ i18n "pages.hosts.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.hosts.name" }}',
+    align: 'left',
+    width: 100,
+    dataIndex: "name",
+  }, {
+    title: '{{ i18n "pages.hosts.enable" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'enable' },
+  }];
+
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    mixins: [MediaQueryMixin],
+    data: {
+      themeSwitcher,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
+      hosts: [],
+      refreshing: false,
+      multiNodeMode: false,
+      allInbounds: [],
+    },
+    methods: {
+      async loadMultiNodeMode() {
+        try {
+          const msg = await HttpUtil.post('/panel/setting/all');
+          if (msg && msg.success && msg.obj) {
+            this.multiNodeMode = msg.obj.multiNodeMode || false;
+          }
+        } catch (e) {
+          console.error("Failed to load multi-node mode:", e);
+        }
+      },
+      async loadHosts() {
+        if (!this.multiNodeMode) {
+          this.loadingStates.fetched = true;
+          return;
+        }
+        this.refreshing = true;
+        try {
+          const msg = await HttpUtil.get('/panel/host/list');
+          if (msg && msg.success && msg.obj) {
+            this.hosts = msg.obj;
+            // Load inbounds for each host
+            await this.loadInboundsForHosts();
+          }
+        } catch (e) {
+          console.error("Failed to load hosts:", e);
+          app.$message.error('{{ i18n "pages.hosts.loadError" }}');
+        } finally {
+          this.refreshing = false;
+          this.loadingStates.fetched = true;
+        }
+      },
+      async loadInboundsForHosts() {
+        try {
+          const inboundsMsg = await HttpUtil.get('/panel/api/inbounds/list');
+          if (inboundsMsg && inboundsMsg.success && inboundsMsg.obj) {
+            const allInbounds = inboundsMsg.obj;
+            // Map inbound IDs to full inbound objects for each host
+            this.hosts.forEach(host => {
+              if (host.inboundIds && Array.isArray(host.inboundIds)) {
+                host.inbounds = host.inboundIds.map(id => {
+                  return allInbounds.find(ib => ib.id === id);
+                }).filter(ib => ib != null);
+              } else {
+                host.inbounds = [];
+              }
+            });
+          }
+        } catch (e) {
+          console.error("Failed to load inbounds for hosts:", e);
+        }
+      },
+      clickAction(action, host) {
+        switch (action.key) {
+          case 'edit':
+            this.editHost(host);
+            break;
+          case 'delete':
+            this.deleteHost(host.id);
+            break;
+        }
+      },
+      async editHost(host) {
+        // Load all inbounds for selection
+        try {
+          const inboundsMsg = await HttpUtil.get('/panel/api/inbounds/list');
+          if (inboundsMsg && inboundsMsg.success && inboundsMsg.obj) {
+            // Store inbounds in app for modal access
+            if (!this.allInbounds) {
+              this.allInbounds = [];
+            }
+            this.allInbounds = inboundsMsg.obj;
+          }
+        } catch (e) {
+          console.error("Failed to load inbounds:", e);
+        }
+        
+        window.hostModal.show({
+          title: '{{ i18n "pages.hosts.editHost" }}',
+          okText: '{{ i18n "update" }}',
+          host: host,
+          confirm: async (data) => {
+            await this.updateHost(host.id, data);
+          },
+          isEdit: true
+        });
+      },
+      async updateHost(id, data) {
+        try {
+          const msg = await HttpUtil.post(`/panel/host/update/${id}`, data);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.hosts.updateSuccess" }}');
+            window.hostModal.close();
+            await this.loadHosts();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.hosts.updateError" }}');
+            window.hostModal.loading(false);
+          }
+        } catch (e) {
+          console.error("Failed to update host:", e);
+          app.$message.error('{{ i18n "pages.hosts.updateError" }}');
+          hostModal.loading(false);
+        }
+      },
+      async deleteHost(id) {
+        this.$confirm({
+          title: '{{ i18n "pages.hosts.deleteConfirm" }}',
+          content: '{{ i18n "pages.hosts.deleteConfirmText" }}',
+          okText: '{{ i18n "sure" }}',
+          okType: 'danger',
+          cancelText: '{{ i18n "close" }}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post(`/panel/host/del/${id}`);
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.hosts.deleteSuccess" }}');
+                await this.loadHosts();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "pages.hosts.deleteError" }}');
+              }
+            } catch (e) {
+              console.error("Failed to delete host:", e);
+              app.$message.error('{{ i18n "pages.hosts.deleteError" }}');
+            }
+          }
+        });
+      },
+      async addHostSubmit(data) {
+        try {
+          const msg = await HttpUtil.post('/panel/host/add', data);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.hosts.addSuccess" }}');
+            window.hostModal.close();
+            await this.loadHosts();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.hosts.addError" }}');
+            window.hostModal.loading(false);
+          }
+        } catch (e) {
+          console.error("Failed to add host:", e);
+          app.$message.error('{{ i18n "pages.hosts.addError" }}');
+          hostModal.loading(false);
+        }
+      },
+      async switchEnable(id, enable) {
+        try {
+          const msg = await HttpUtil.post(`/panel/host/update/${id}`, { enable: enable });
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.hosts.updateSuccess" }}');
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.hosts.updateError" }}');
+            // Revert switch
+            const host = this.hosts.find(h => h.id === id);
+            if (host) {
+              host.enable = !enable;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to update host:", e);
+          app.$message.error('{{ i18n "pages.hosts.updateError" }}');
+          // Revert switch
+          const host = this.hosts.find(h => h.id === id);
+          if (host) {
+            host.enable = !enable;
+          }
+        }
+      },
+      async openAddHost() {
+        // Load all inbounds for selection
+        try {
+          const inboundsMsg = await HttpUtil.get('/panel/api/inbounds/list');
+          if (inboundsMsg && inboundsMsg.success && inboundsMsg.obj) {
+            // Store inbounds in app for modal access
+            if (!this.allInbounds) {
+              this.allInbounds = [];
+            }
+            this.allInbounds = inboundsMsg.obj;
+            // Also update hostModalApp if it exists
+            if (window.hostModalApp && window.hostModalApp.app) {
+              window.hostModalApp.app.allInbounds = inboundsMsg.obj;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to load inbounds:", e);
+        }
+        
+        // Ensure hostModal is available
+        if (typeof window.hostModal === 'undefined' || !window.hostModal) {
+          console.error("hostModal is not defined");
+          this.$message.error('{{ i18n "pages.hosts.modalNotAvailable" }}');
+          return;
+        }
+        
+        window.hostModal.show({
+          title: '{{ i18n "pages.hosts.addHost" }}',
+          okText: '{{ i18n "create" }}',
+          confirm: async (data) => {
+            await this.addHostSubmit(data);
+          },
+          isEdit: false
+        });
+      }
+    },
+    async mounted() {
+      await this.loadMultiNodeMode();
+      await this.loadHosts();
+      
+    }
+  });
+
+  async function addHost() {
+    // Load all inbounds for selection
+    try {
+      const inboundsMsg = await HttpUtil.get('/panel/api/inbounds/list');
+      if (inboundsMsg && inboundsMsg.success && inboundsMsg.obj) {
+        // Store inbounds in app for modal access
+        if (!app.allInbounds) {
+          app.allInbounds = [];
+        }
+        app.allInbounds = inboundsMsg.obj;
+      }
+    } catch (e) {
+      console.error("Failed to load inbounds:", e);
+    }
+    
+    window.hostModal.show({
+      title: '{{ i18n "pages.hosts.addHost" }}',
+      okText: '{{ i18n "create" }}',
+      confirm: async (data) => {
+        await app.addHostSubmit(data);
+      },
+      isEdit: false
+    });
+  }
+</script>
+{{ template "page/body_end" .}}

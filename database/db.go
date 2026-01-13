@@ -38,6 +38,13 @@ func initModels() error {
 		&model.InboundClientIps{},
 		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
+		&model.Node{},
+		&model.InboundNodeMapping{},
+		&model.ClientEntity{},
+		&model.ClientInboundMapping{},
+		&model.Host{},
+		&model.HostInboundMapping{},
+		&model.ClientHWID{}, // HWID tracking for clients
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {

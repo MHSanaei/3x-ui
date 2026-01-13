@@ -1,4 +1,9 @@
 {{define "modals/clientsModal"}}
+<!-- 
+    NOTE: This modal is for backward compatibility with old client architecture (clients stored in inbound.settings).
+    New clients should be created/edited using clientEntityModal in clients.html.
+    This modal is still used for editing existing clients in old inbounds.
+-->
 <a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
          :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
          :class="themeSwitcher.currentTheme"
@@ -10,6 +15,8 @@
 </a-modal>
 <script>
 
+    // NOTE: This modal is for backward compatibility with old client architecture.
+    // New clients should use clientEntityModal (see clients.html).
     const clientModal = {
         visible: false,
         confirmLoading: false,

@@ -9,13 +9,19 @@
       <a-menu-item id="change-theme" class="ant-menu-theme-switch" @mousedown="themeSwitcher.animationsOff()">
         <span>{{ i18n "menu.dark" }}</span>
         <a-switch :style="{ marginLeft: '2px' }" size="small" :default-checked="themeSwitcher.isDarkTheme"
-          @change="themeSwitcher.toggleTheme()"></a-switch>
+          :disabled="themeSwitcher.isGlassMorphism" @change="themeSwitcher.toggleTheme()"></a-switch>
       </a-menu-item>
       <a-menu-item id="change-theme-ultra" v-if="themeSwitcher.isDarkTheme" class="ant-menu-theme-switch"
         @mousedown="themeSwitcher.animationsOffUltra()">
         <span>{{ i18n "menu.ultraDark" }}</span>
         <a-checkbox :style="{ marginLeft: '2px' }" :checked="themeSwitcher.isUltra"
           @click="themeSwitcher.toggleUltra()"></a-checkbox>
+      </a-menu-item>
+      <a-menu-item id="change-theme-glass" class="ant-menu-theme-switch"
+        @mousedown="themeSwitcher.animationsOffGlass()">
+        <span>{{ i18n "menu.glassMorphism" }}</span>
+        <a-switch :style="{ marginLeft: '2px' }" size="small" :default-checked="themeSwitcher.isGlassMorphism"
+          @change="themeSwitcher.toggleGlassMorphism()"></a-switch>
       </a-menu-item>
     </a-sub-menu>
   </a-menu>
@@ -26,12 +32,16 @@
 <template>
   <a-space @mousedown="themeSwitcher.animationsOff()" id="change-theme" direction="vertical" :size="10" :style="{ width: '100%' }">
     <a-space direction="horizontal" size="small">
-      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" @change="themeSwitcher.toggleTheme()"></a-switch>
+      <a-switch size="small" :default-checked="themeSwitcher.isDarkTheme" :disabled="themeSwitcher.isGlassMorphism" @change="themeSwitcher.toggleTheme()"></a-switch>
       <span>{{ i18n "menu.dark" }}</span>
     </a-space>
     <a-space v-if="themeSwitcher.isDarkTheme" direction="horizontal" size="small">
       <a-checkbox :checked="themeSwitcher.isUltra" @click="themeSwitcher.toggleUltra()"></a-checkbox>
       <span>{{ i18n "menu.ultraDark" }}</span>
+    </a-space>
+    <a-space direction="horizontal" size="small">
+      <a-switch size="small" :default-checked="themeSwitcher.isGlassMorphism" @change="themeSwitcher.toggleGlassMorphism()"></a-switch>
+      <span>{{ i18n "menu.glassMorphism" }}</span>
     </a-space>
   </a-space>
 </template>
@@ -40,10 +50,34 @@
 {{define "component/aThemeSwitch"}}
 <script>
   function createThemeSwitcher() {
-    const isDarkTheme = localStorage.getItem('dark-mode') === 'true';
-    const isUltra = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
-    if (isUltra) {
-      document.documentElement.setAttribute('data-theme', 'ultra-dark');
+    let isDarkTheme = localStorage.getItem('dark-mode') === 'true';
+    let isUltra = localStorage.getItem('isUltraDarkThemeEnabled') === 'true';
+    // Glass Morphism включен по умолчанию, если не установлено явно
+    let isGlassMorphism = localStorage.getItem('isGlassMorphismEnabled');
+    if (isGlassMorphism === null) {
+      isGlassMorphism = true; // По умолчанию включен
+      localStorage.setItem('isGlassMorphismEnabled', 'true');
+    } else {
+      isGlassMorphism = isGlassMorphism === 'true';
+    }
+    // Если включен Glass Morphism, отключаем темную тему
+    if (isGlassMorphism) {
+      isDarkTheme = false;
+      isUltra = false;
+      localStorage.setItem('dark-mode', 'false');
+      localStorage.setItem('isUltraDarkThemeEnabled', 'false');
+      document.documentElement.setAttribute('data-glass-morphism', 'true');
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      // Если включена темная тема, отключаем Glass Morphism
+      if (isDarkTheme) {
+        isGlassMorphism = false;
+        localStorage.setItem('isGlassMorphismEnabled', 'false');
+        document.documentElement.removeAttribute('data-glass-morphism');
+      }
+      if (isUltra) {
+        document.documentElement.setAttribute('data-theme', 'ultra-dark');
+      }
     }
     const theme = isDarkTheme ? 'dark' : 'light';
     document.querySelector('body').setAttribute('class', theme);
@@ -68,13 +102,33 @@
           document.documentElement.removeAttribute('data-theme-animations');
         });
       },
+      animationsOffGlass() {
+        document.documentElement.setAttribute('data-theme-animations', 'off');
+        const themeAnimationsGlass = document.querySelector('#change-theme-glass');
+        themeAnimationsGlass.addEventListener('mouseleave', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+        themeAnimationsGlass.addEventListener('touchend', () => {
+          document.documentElement.removeAttribute('data-theme-animations');
+        });
+      },
       isDarkTheme,
       isUltra,
+      isGlassMorphism,
       get currentTheme() {
         return this.isDarkTheme ? 'dark' : 'light';
       },
       toggleTheme() {
+        if (this.isGlassMorphism) {
+          return; // Не позволяем включать темную тему когда включен Glass Morphism
+        }
         this.isDarkTheme = !this.isDarkTheme;
+        if (this.isDarkTheme) {
+          // Если включаем темную тему, отключаем Glass Morphism
+          this.isGlassMorphism = false;
+          document.documentElement.removeAttribute('data-glass-morphism');
+          localStorage.setItem('isGlassMorphismEnabled', 'false');
+        }
         localStorage.setItem('dark-mode', this.isDarkTheme);
         document.querySelector('body').setAttribute('class', this.isDarkTheme ? 'dark' : 'light');
         document.getElementById('message').className = themeSwitcher.currentTheme;
@@ -87,6 +141,23 @@
           document.documentElement.removeAttribute('data-theme');
         }
         localStorage.setItem('isUltraDarkThemeEnabled', this.isUltra.toString());
+      },
+      toggleGlassMorphism() {
+        this.isGlassMorphism = !this.isGlassMorphism;
+        if (this.isGlassMorphism) {
+          // Если включаем Glass Morphism, отключаем темную тему
+          this.isDarkTheme = false;
+          document.querySelector('body').setAttribute('class', 'light');
+          document.documentElement.removeAttribute('data-theme');
+          this.isUltra = false;
+          localStorage.setItem('dark-mode', 'false');
+          localStorage.setItem('isUltraDarkThemeEnabled', 'false');
+          document.documentElement.setAttribute('data-glass-morphism', 'true');
+          document.getElementById('message').className = 'light';
+        } else {
+          document.documentElement.removeAttribute('data-glass-morphism');
+        }
+        localStorage.setItem('isGlassMorphismEnabled', this.isGlassMorphism.toString());
       }
     };
   }

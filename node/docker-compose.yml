@@ -1,0 +1,23 @@
+services:
+  node:
+    build:
+      context: ..
+      dockerfile: node/Dockerfile
+    container_name: 3x-ui-node
+    restart: unless-stopped
+    #environment:
+      #- NODE_API_KEY=test-key
+      #- PANEL_URL=http://192.168.0.7:2054
+    ports:
+      - "8080:8080"  # API ports (connect panel)
+     # - "44000:44000" # Xray ports = Inbound port
+    volumes:
+      - ./bin/config.json:/app/bin/config.json
+      - ./logs:/app/logs
+      # Note: config.json is mounted directly for persistence
+      # If the file doesn't exist, it will be created when XRAY config is first applied
+    networks:
+      - xray-network
+networks:
+  xray-network:
+    driver: bridge

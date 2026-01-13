@@ -1,10 +1,5 @@
 {{define "form/trojan"}}
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.trojans.slice(0,1)" v-if="!isEdit">
-  <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-    {{template "form/client"}}
-  </a-collapse-panel>
-</a-collapse>
-<a-collapse v-else>
+<a-collapse v-if="isEdit">
   <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.trojans.length">
     <table width="100%">
       <tr class="client-table-header">

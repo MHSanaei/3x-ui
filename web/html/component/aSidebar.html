@@ -6,7 +6,7 @@
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
                 @click="({key}) => openLink(key)">
-                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                <a-menu-item v-for="tab in tabs" :key="tab.key" :data-menu-key="tab.key">
                     <a-icon :type="tab.icon"></a-icon>
                     <span v-text="tab.title"></span>
                 </a-menu-item>
@@ -20,7 +20,7 @@
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
                 @click="({key}) => openLink(key)">
-                <a-menu-item v-for="tab in tabs" :key="tab.key">
+                <a-menu-item v-for="tab in tabs" :key="tab.key" :data-menu-key="tab.key">
                     <a-icon :type="tab.icon"></a-icon>
                     <span v-text="tab.title"></span>
                 </a-menu-item>
@@ -39,11 +39,35 @@
 
 <script>
     const SIDEBAR_COLLAPSED_KEY = "isSidebarCollapsed"
+    // Get multiNodeMode from server-rendered template
+    const INITIAL_MULTI_NODE_MODE = {{ if .multiNodeMode }}true{{else}}false{{end}};
 
     Vue.component('a-sidebar', {
         data() {
             return {
-                tabs: [
+                tabs: [],
+                activeTab: [
+                    '{{ .request_uri }}'
+                ],
+                visible: false,
+                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
+                multiNodeMode: INITIAL_MULTI_NODE_MODE
+            }
+        },
+        methods: {
+            async loadMultiNodeMode() {
+                try {
+                    const msg = await HttpUtil.post("/panel/setting/all");
+                    if (msg && msg.success && msg.obj) {
+                        this.multiNodeMode = msg.obj.multiNodeMode || false;
+                        this.updateTabs();
+                    }
+                } catch (e) {
+                    console.warn("Failed to load multi-node mode:", e);
+                }
+            },
+            updateTabs() {
+                this.tabs = [
                     {
                         key: '{{ .base_path }}panel/',
                         icon: 'dashboard',
@@ -55,6 +79,11 @@
                         title: '{{ i18n "menu.inbounds"}}'
                     },
                     {
+                        key: '{{ .base_path }}panel/clients',
+                        icon: 'team',
+                        title: '{{ i18n "menu.clients"}}'
+                    },
+                    {
                         key: '{{ .base_path }}panel/settings',
                         icon: 'setting',
                         title: '{{ i18n "menu.settings"}}'
@@ -63,21 +92,29 @@
                         key: '{{ .base_path }}panel/xray',
                         icon: 'tool',
                         title: '{{ i18n "menu.xray"}}'
-                    },
-                    {
-                        key: '{{ .base_path }}logout/',
-                        icon: 'logout',
-                        title: '{{ i18n "menu.logout"}}'
-                    },
-                ],
-                activeTab: [
-                    '{{ .request_uri }}'
-                ],
-                visible: false,
-                collapsed: JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY)),
-            }
-        },
-        methods: {
+                    }
+                ];
+                
+                // Add Nodes and Hosts menu items if multi-node mode is enabled
+                if (this.multiNodeMode) {
+                    this.tabs.splice(4, 0, {
+                        key: '{{ .base_path }}panel/nodes',
+                        icon: 'cluster',
+                        title: '{{ i18n "menu.nodes"}}'
+                    });
+                    this.tabs.splice(5, 0, {
+                        key: '{{ .base_path }}panel/hosts',
+                        icon: 'cloud-server',
+                        title: '{{ i18n "menu.hosts"}}'
+                    });
+                }
+                
+                this.tabs.push({
+                    key: '{{ .base_path }}logout/',
+                    icon: 'logout',
+                    title: '{{ i18n "menu.logout"}}'
+                });
+            },
             openLink(key) {
                 return key.startsWith('http') ? 
                     window.open(key) : 
@@ -96,6 +133,13 @@
                     this.collapsed = JSON.parse(localStorage.getItem(SIDEBAR_COLLAPSED_KEY));
                 }
             }
+        },
+        mounted() {
+            this.updateTabs();
+            // Watch for multi-node mode changes (update tabs if mode changes)
+            setInterval(() => {
+                this.loadMultiNodeMode();
+            }, 5000);
         },
         template: `{{template "component/sidebar/content"}}`,
     });

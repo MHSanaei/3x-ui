@@ -231,6 +231,44 @@
         sample = []
         this.remarkModel.forEach(r => sample.push(this.remarkModels[r]));
         this.remarkSample = sample.length == 0 ? '' : sample.join(this.remarkSeparator);
+      },
+      onMultiNodeModeChange(enabled) {
+        // Use app reference to ensure correct context
+        const vm = app || this;
+        
+        // Ensure allSetting is initialized
+        if (!vm || !vm.allSetting) {
+          console.error('allSetting is not initialized', vm);
+          return;
+        }
+        
+        // Update the value immediately
+        vm.allSetting.multiNodeMode = enabled;
+        
+        if (enabled) {
+          vm.$confirm({
+            title: '{{ i18n "pages.settings.enableMultiNodeMode" }}',
+            content: '{{ i18n "pages.settings.enableMultiNodeModeConfirm" }}',
+            class: themeSwitcher.currentTheme,
+            okText: '{{ i18n "sure" }}',
+            cancelText: '{{ i18n "cancel" }}',
+            onOk: () => {
+              // Value already set, just update save button state
+              vm.saveBtnDisable = vm.oldAllSetting.equals(vm.allSetting);
+            },
+            onCancel: () => {
+              // Revert the value if cancelled
+              vm.allSetting.multiNodeMode = false;
+              vm.saveBtnDisable = vm.oldAllSetting.equals(vm.allSetting);
+            }
+          });
+        } else {
+          // Directly update save button state if disabling
+          vm.saveBtnDisable = vm.oldAllSetting.equals(vm.allSetting);
+        }
+      },
+      goToNodes() {
+        window.location.href = basePath + 'panel/nodes';
       }
     },
     methods: {
@@ -271,7 +309,21 @@
           }
 
           this.oldAllSetting = new AllSetting(msg.obj);
-          this.allSetting = new AllSetting(msg.obj);
+          const newSetting = new AllSetting(msg.obj);
+          
+          // Ensure multiNodeMode is properly converted to boolean
+          if (newSetting.multiNodeMode !== undefined && newSetting.multiNodeMode !== null) {
+            newSetting.multiNodeMode = Boolean(newSetting.multiNodeMode);
+          } else {
+            newSetting.multiNodeMode = false;
+          }
+          
+          // Replace the object to trigger Vue reactivity
+          this.allSetting = newSetting;
+          
+          // Force Vue to recognize the change by using $set for nested property
+          this.$set(this, 'allSetting', newSetting);
+          
           app.changeRemarkSample();
           this.saveBtnDisable = true;
         }
@@ -292,7 +344,10 @@
         const msg = await HttpUtil.post("/panel/setting/update", this.allSetting);
         this.loading(false);
         if (msg.success) {
+          Vue.prototype.$message.success('{{ i18n "pages.settings.toasts.modifySettings" }}');
           await this.getAllSetting();
+        } else {
+          Vue.prototype.$message.error(msg.msg || '{{ i18n "pages.settings.toasts.getSettings" }}');
         }
       },
       async updateUser() {

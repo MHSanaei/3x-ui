@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/util/random"
 	"github.com/mhsanaei/3x-ui/v2/util/reflect_util"
+	"github.com/mhsanaei/3x-ui/v2/web/cache"
 	"github.com/mhsanaei/3x-ui/v2/web/entity"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
@@ -94,6 +95,10 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+	// Multi-node mode
+	"multiNodeMode": "false", // "true" for multi-mode, "false" for single-mode
+	// HWID tracking mode
+	"hwidMode": "client_header", // "off" = disabled, "client_header" = use x-hwid header (default), "legacy_fingerprint" = deprecated fingerprint-based (deprecated)
 }
 
 // SettingService provides business logic for application settings management.
@@ -110,78 +115,85 @@ func (s *SettingService) GetDefaultJsonConfig() (any, error) {
 }
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
-	db := database.GetDB()
-	settings := make([]*model.Setting, 0)
-	err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
-	if err != nil {
-		return nil, err
-	}
-	allSetting := &entity.AllSetting{}
-	t := reflect.TypeOf(allSetting).Elem()
-	v := reflect.ValueOf(allSetting).Elem()
-	fields := reflect_util.GetFields(t)
+	var allSetting *entity.AllSetting
+	
+	err := cache.GetOrSet(cache.KeySettingsAll, &allSetting, cache.TTLSettings, func() (interface{}, error) {
+		// Cache miss - fetch from database
+		db := database.GetDB()
+		settings := make([]*model.Setting, 0)
+		err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
+		if err != nil {
+			return nil, err
+		}
+		result := &entity.AllSetting{}
+		t := reflect.TypeOf(result).Elem()
+		v := reflect.ValueOf(result).Elem()
+		fields := reflect_util.GetFields(t)
 
-	setSetting := func(key, value string) (err error) {
-		defer func() {
-			panicErr := recover()
-			if panicErr != nil {
-				err = errors.New(fmt.Sprint(panicErr))
-			}
-		}()
+		setSetting := func(key, value string) (err error) {
+			defer func() {
+				panicErr := recover()
+				if panicErr != nil {
+					err = errors.New(fmt.Sprint(panicErr))
+				}
+			}()
 
-		var found bool
-		var field reflect.StructField
-		for _, f := range fields {
-			if f.Tag.Get("json") == key {
-				field = f
-				found = true
-				break
+			var found bool
+			var field reflect.StructField
+			for _, f := range fields {
+				if f.Tag.Get("json") == key {
+					field = f
+					found = true
+					break
+				}
 			}
+
+			if !found {
+				// Some settings are automatically generated, no need to return to the front end to modify the user
+				return nil
+			}
+
+			fieldV := v.FieldByName(field.Name)
+			switch t := fieldV.Interface().(type) {
+			case int:
+				n, err := strconv.ParseInt(value, 10, 64)
+				if err != nil {
+					return err
+				}
+				fieldV.SetInt(n)
+			case string:
+				fieldV.SetString(value)
+			case bool:
+				fieldV.SetBool(value == "true")
+			default:
+				return common.NewErrorf("unknown field %v type %v", key, t)
+			}
+			return
 		}
 
-		if !found {
-			// Some settings are automatically generated, no need to return to the front end to modify the user
-			return nil
-		}
-
-		fieldV := v.FieldByName(field.Name)
-		switch t := fieldV.Interface().(type) {
-		case int:
-			n, err := strconv.ParseInt(value, 10, 64)
+		keyMap := map[string]bool{}
+		for _, setting := range settings {
+			err := setSetting(setting.Key, setting.Value)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			fieldV.SetInt(n)
-		case string:
-			fieldV.SetString(value)
-		case bool:
-			fieldV.SetBool(value == "true")
-		default:
-			return common.NewErrorf("unknown field %v type %v", key, t)
+			keyMap[setting.Key] = true
 		}
-		return
-	}
 
-	keyMap := map[string]bool{}
-	for _, setting := range settings {
-		err := setSetting(setting.Key, setting.Value)
-		if err != nil {
-			return nil, err
+		for key, value := range defaultValueMap {
+			if keyMap[key] {
+				continue
+			}
+			err := setSetting(key, value)
+			if err != nil {
+				return nil, err
+			}
 		}
-		keyMap[setting.Key] = true
-	}
 
-	for key, value := range defaultValueMap {
-		if keyMap[key] {
-			continue
-		}
-		err := setSetting(key, value)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return allSetting, nil
+		return result, nil
+	})
+	
+	return allSetting, err
 }
 
 func (s *SettingService) ResetSettings() error {
@@ -195,29 +207,54 @@ func (s *SettingService) ResetSettings() error {
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
-	db := database.GetDB()
-	setting := &model.Setting{}
-	err := db.Model(model.Setting{}).Where("key = ?", key).First(setting).Error
-	if err != nil {
-		return nil, err
-	}
-	return setting, nil
+	cacheKey := cache.KeySettingPrefix + key
+	var setting *model.Setting
+	
+	err := cache.GetOrSet(cacheKey, &setting, cache.TTLSetting, func() (interface{}, error) {
+		// Cache miss - fetch from database
+		db := database.GetDB()
+		result := &model.Setting{}
+		err := db.Model(model.Setting{}).Where("key = ?", key).First(result).Error
+		if err != nil {
+			return nil, err
+		}
+		return result, nil
+	})
+	
+	return setting, err
 }
 
 func (s *SettingService) saveSetting(key string, value string) error {
 	setting, err := s.getSetting(key)
 	db := database.GetDB()
 	if database.IsNotFound(err) {
-		return db.Create(&model.Setting{
+		err = db.Create(&model.Setting{
 			Key:   key,
 			Value: value,
 		}).Error
 	} else if err != nil {
 		return err
+	} else {
+		setting.Key = key
+		setting.Value = value
+		err = db.Save(setting).Error
 	}
-	setting.Key = key
-	setting.Value = value
-	return db.Save(setting).Error
+	
+	if err == nil {
+		// Invalidate cache for this specific setting
+		cache.InvalidateSetting(key)
+		// Invalidate all settings cache only when a setting is actually changed
+		// This ensures consistency while avoiding unnecessary cache misses
+		cache.Delete(cache.KeySettingsAll)
+		// Also invalidate default settings cache (they depend on individual settings)
+		cache.DeletePattern("defaultSettings:*")
+		// Invalidate computed settings that depend on this setting
+		if key == "multiNodeMode" {
+			cache.Delete("computed:ipLimitEnable")
+		}
+	}
+	
+	return err
 }
 
 func (s *SettingService) getString(key string) (string, error) {
@@ -564,11 +601,26 @@ func (s *SettingService) SetExternalTrafficInformURI(InformURI string) error {
 }
 
 func (s *SettingService) GetIpLimitEnable() (bool, error) {
-	accessLogPath, err := xray.GetAccessLogPath()
-	if err != nil {
-		return false, err
-	}
-	return (accessLogPath != "none" && accessLogPath != ""), nil
+	// Cache key for this computed setting
+	cacheKey := "computed:ipLimitEnable"
+	var result bool
+	
+	err := cache.GetOrSet(cacheKey, &result, cache.TTLSetting, func() (interface{}, error) {
+		// Check if multi-node mode is enabled
+		multiMode, err := s.GetMultiNodeMode()
+		if err == nil && multiMode {
+			// In multi-node mode, IP limiting is handled by nodes
+			return false, nil
+		}
+		
+		accessLogPath, err := xray.GetAccessLogPath()
+		if err != nil {
+			return false, err
+		}
+		return (accessLogPath != "none" && accessLogPath != ""), nil
+	})
+	
+	return result, err
 }
 
 // LDAP exported getters
@@ -652,6 +704,50 @@ func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
 }
 
+// GetMultiNodeMode returns whether multi-node mode is enabled.
+func (s *SettingService) GetMultiNodeMode() (bool, error) {
+	return s.getBool("multiNodeMode")
+}
+
+// SetMultiNodeMode sets the multi-node mode setting.
+func (s *SettingService) SetMultiNodeMode(enabled bool) error {
+	return s.setBool("multiNodeMode", enabled)
+}
+
+// GetHwidMode returns the HWID tracking mode.
+// Returns: "off", "client_header", or "legacy_fingerprint"
+func (s *SettingService) GetHwidMode() (string, error) {
+	mode, err := s.getString("hwidMode")
+	if err != nil {
+		return "client_header", err // Default to client_header on error
+	}
+	// Validate mode
+	validModes := map[string]bool{
+		"off":                true,
+		"client_header":     true,
+		"legacy_fingerprint": true,
+	}
+	if !validModes[mode] {
+		// Invalid mode, return default
+		return "client_header", nil
+	}
+	return mode, nil
+}
+
+// SetHwidMode sets the HWID tracking mode.
+// Valid values: "off", "client_header", "legacy_fingerprint"
+func (s *SettingService) SetHwidMode(mode string) error {
+	validModes := map[string]bool{
+		"off":                true,
+		"client_header":     true,
+		"legacy_fingerprint": true,
+	}
+	if !validModes[mode] {
+		return common.NewErrorf("invalid hwidMode: %s (must be one of: off, client_header, legacy_fingerprint)", mode)
+	}
+	return s.setString("hwidMode", mode)
+}
+
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	if err := allSetting.CheckValid(); err != nil {
 		return err
@@ -683,32 +779,44 @@ func (s *SettingService) GetDefaultXrayConfig() (any, error) {
 }
 
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
-	type settingFunc func() (any, error)
-	settings := map[string]settingFunc{
-		"expireDiff":    func() (any, error) { return s.GetExpireDiff() },
-		"trafficDiff":   func() (any, error) { return s.GetTrafficDiff() },
-		"pageSize":      func() (any, error) { return s.GetPageSize() },
-		"defaultCert":   func() (any, error) { return s.GetCertFile() },
-		"defaultKey":    func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":   func() (any, error) { return s.GetTgbotEnabled() },
-		"subEnable":     func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable": func() (any, error) { return s.GetSubJsonEnable() },
-		"subTitle":      func() (any, error) { return s.GetSubTitle() },
-		"subURI":        func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":    func() (any, error) { return s.GetSubJsonURI() },
-		"remarkModel":   func() (any, error) { return s.GetRemarkModel() },
-		"datepicker":    func() (any, error) { return s.GetDatepicker() },
-		"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
-	}
-
-	result := make(map[string]any)
-
-	for key, fn := range settings {
-		value, err := fn()
-		if err != nil {
-			return "", err
+	// Cache key includes host to support multi-domain setups
+	cacheKey := fmt.Sprintf("defaultSettings:%s", host)
+	var result map[string]any
+	
+	err := cache.GetOrSet(cacheKey, &result, cache.TTLSettings, func() (interface{}, error) {
+		// Cache miss - compute default settings
+		type settingFunc func() (any, error)
+		settings := map[string]settingFunc{
+			"expireDiff":    func() (any, error) { return s.GetExpireDiff() },
+			"trafficDiff":   func() (any, error) { return s.GetTrafficDiff() },
+			"pageSize":      func() (any, error) { return s.GetPageSize() },
+			"defaultCert":   func() (any, error) { return s.GetCertFile() },
+			"defaultKey":    func() (any, error) { return s.GetKeyFile() },
+			"tgBotEnable":   func() (any, error) { return s.GetTgbotEnabled() },
+			"subEnable":     func() (any, error) { return s.GetSubEnable() },
+			"subJsonEnable": func() (any, error) { return s.GetSubJsonEnable() },
+			"subTitle":      func() (any, error) { return s.GetSubTitle() },
+			"subURI":        func() (any, error) { return s.GetSubURI() },
+			"subJsonURI":    func() (any, error) { return s.GetSubJsonURI() },
+			"remarkModel":   func() (any, error) { return s.GetRemarkModel() },
+			"datepicker":    func() (any, error) { return s.GetDatepicker() },
+			"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
 		}
-		result[key] = value
+
+		res := make(map[string]any)
+
+		for key, fn := range settings {
+			value, err := fn()
+			if err != nil {
+				return nil, err
+			}
+			res[key] = value
+		}
+		return res, nil
+	})
+	
+	if err != nil {
+		return nil, err
 	}
 
 	subEnable := result["subEnable"].(bool)

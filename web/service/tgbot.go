@@ -3554,18 +3554,24 @@ func (t *Tgbot) sendBackup(chatId int64) {
 		logger.Error("Error in opening db file for backup: ", err)
 	}
 
-	file, err = os.Open(xray.GetConfigPath())
-	if err == nil {
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.File(file),
-		)
-		_, err = bot.SendDocument(context.Background(), document)
-		if err != nil {
-			logger.Error("Error in uploading config.json: ", err)
+	// Check if multi-node mode is enabled before trying to open config.json
+	multiMode, err := t.settingService.GetMultiNodeMode()
+	if err == nil && !multiMode {
+		file, err = os.Open(xray.GetConfigPath())
+		if err == nil {
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.File(file),
+			)
+			_, err = bot.SendDocument(context.Background(), document)
+			if err != nil {
+				logger.Error("Error in uploading config.json: ", err)
+			}
+		} else {
+			logger.Error("Error in opening config.json file for backup: ", err)
 		}
-	} else {
-		logger.Error("Error in opening config.json file for backup: ", err)
+	} else if multiMode {
+		logger.Debug("Skipping config.json backup in multi-node mode")
 	}
 }
 

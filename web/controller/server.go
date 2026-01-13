@@ -237,7 +237,8 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 		blackholes = []string{"blocked"}
 	}
 
-	logs := a.serverService.GetXrayLogs(count, filter, showDirect, showBlocked, showProxy, freedoms, blackholes)
+	nodeId := c.PostForm("nodeId")
+	logs := a.serverService.GetXrayLogs(count, filter, showDirect, showBlocked, showProxy, freedoms, blackholes, nodeId)
 	jsonObj(c, logs, nil)
 }
 

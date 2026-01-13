@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -69,12 +70,19 @@ func initDefaultBackend() logging.Backend {
 		includeTime = true
 	} else {
 		// Unix-like: Try syslog, fallback to stderr
-		if syslogBackend, err := logging.NewSyslogBackend(""); err != nil {
-			fmt.Fprintf(os.Stderr, "syslog backend disabled: %v\n", err)
-			backend = logging.NewLogBackend(os.Stderr, "", 0)
-			includeTime = os.Getppid() > 0
-		} else {
+		// Try syslog with "x-ui" tag first
+		if syslogBackend, err := logging.NewSyslogBackend("x-ui"); err == nil {
 			backend = syslogBackend
+		} else {
+			// Try with empty tag as fallback
+			if syslogBackend2, err2 := logging.NewSyslogBackend(""); err2 == nil {
+				backend = syslogBackend2
+			} else {
+				// Syslog unavailable - use stderr (normal in containers/Docker)
+				// In containers, syslog is often not configured - this is normal and expected
+				backend = logging.NewLogBackend(os.Stderr, "", 0)
+				includeTime = os.Getppid() > 0
+			}
 		}
 	}
 
@@ -202,6 +210,27 @@ func addToBuffer(level string, newLog string) {
 		level: logLevel,
 		log:   newLog,
 	})
+
+	// If running on node, push log to panel in real-time
+	// Check if we're in node mode by checking for NODE_API_KEY environment variable
+	if os.Getenv("NODE_API_KEY") != "" {
+		// Format log line as "timestamp level - message" for panel
+		logLine := fmt.Sprintf("%s %s - %s", t.Format(timeFormat), strings.ToUpper(level), newLog)
+		// Use build tag or lazy initialization to avoid circular dependency
+		// For now, we'll use a simple check - if node/logs package is available
+		pushLogToPanel(logLine)
+	}
+}
+
+// pushLogToPanel pushes a log line to the panel (called from node mode only).
+// This function will be implemented in node package to avoid circular dependency.
+var pushLogToPanel = func(logLine string) {
+	// Default: no-op, will be overridden by node package if available
+}
+
+// SetLogPusher sets the function to push logs to panel (called from node package).
+func SetLogPusher(pusher func(string)) {
+	pushLogToPanel = pusher
 }
 
 // GetLogs retrieves up to c log entries from the buffer that are at or below the specified level.

@@ -1,0 +1,228 @@
+{{define "modals/nodeModal"}}
+<a-modal id="node-modal" v-model="nodeModal.visible" :title="nodeModal.title" 
+  @ok="nodeModal.ok" @cancel="nodeModal.cancel" :ok-text="nodeModal.okText" :width="600"
+  :confirm-loading="nodeModal.registering" :ok-button-props="{ disabled: nodeModal.registering }">
+  <div v-if="!nodeModal.registering && !nodeModal.showProgress">
+    <a-form layout="vertical">
+      <a-form-item label='{{ i18n "pages.nodes.nodeName" }}'>
+        <a-input v-model.trim="nodeModal.formData.name" placeholder="e.g., Node-1"></a-input>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.nodes.nodeAddress" }}'>
+        <a-input v-model.trim="nodeModal.formData.address" placeholder='{{ i18n "pages.nodes.fullUrlHint" }}'></a-input>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.nodes.nodePort" }}'>
+        <a-input-number v-model.number="nodeModal.formData.port" :min="1" :max="65535" :style="{ width: '100%' }"></a-input-number>
+      </a-form-item>
+      <!-- API key is now auto-generated during registration, no need for user input -->
+    </a-form>
+  </div>
+  
+  <!-- Progress animation during registration -->
+  <div v-if="nodeModal.showProgress" style="padding: 20px 0; text-align: center;">
+    <a-steps :current="nodeModal.currentStep" direction="vertical" size="small">
+      <a-step title='{{ i18n "pages.nodes.connecting" }}' :status="nodeModal.steps.connecting">
+        <template slot="description">
+          <a-spin v-if="nodeModal.steps.connecting === 'process'" size="small" style="margin-right: 8px;"></a-spin>
+          <span v-if="nodeModal.steps.connecting === 'finish'">✓ {{ i18n "pages.nodes.connectionEstablished" }}</span>
+          <span v-if="nodeModal.steps.connecting === 'error'">✗ {{ i18n "pages.nodes.connectionError" }}</span>
+        </template>
+      </a-step>
+      <a-step title='{{ i18n "pages.nodes.generatingApiKey" }}' :status="nodeModal.steps.generating">
+        <template slot="description">
+          <a-spin v-if="nodeModal.steps.generating === 'process'" size="small" style="margin-right: 8px;"></a-spin>
+          <span v-if="nodeModal.steps.generating === 'finish'">✓ {{ i18n "pages.nodes.apiKeyGenerated" }}</span>
+          <span v-if="nodeModal.steps.generating === 'error'">✗ {{ i18n "pages.nodes.generationError" }}</span>
+        </template>
+      </a-step>
+      <a-step title='{{ i18n "pages.nodes.registeringNode" }}' :status="nodeModal.steps.registering">
+        <template slot="description">
+          <a-spin v-if="nodeModal.steps.registering === 'process'" size="small" style="margin-right: 8px;"></a-spin>
+          <span v-if="nodeModal.steps.registering === 'finish'">✓ {{ i18n "pages.nodes.nodeRegistered" }}</span>
+          <span v-if="nodeModal.steps.registering === 'error'">✗ {{ i18n "pages.nodes.registrationError" }}</span>
+        </template>
+      </a-step>
+      <a-step title='{{ i18n "pages.nodes.done" }}' :status="nodeModal.steps.completed">
+        <template slot="description">
+          <span v-if="nodeModal.steps.completed === 'finish'" style="color: #52c41a; font-weight: bold;">✓ {{ i18n "pages.nodes.nodeAddedSuccessfully" }}</span>
+        </template>
+      </a-step>
+    </a-steps>
+  </div>
+</a-modal>
+<script>
+  const nodeModal = window.nodeModal = {
+    visible: false,
+    title: '',
+    okText: 'OK',
+    registering: false,
+    showProgress: false,
+    currentStep: 0,
+    steps: {
+      connecting: 'wait',
+      generating: 'wait',
+      registering: 'wait',
+      completed: 'wait'
+    },
+    formData: {
+      name: '',
+      address: '',
+      port: 8080
+      // apiKey is now auto-generated during registration
+    },
+    ok() {
+      // Валидация полей - используем nodeModal напрямую для правильного контекста
+      if (!nodeModal.formData.name || !nodeModal.formData.name.trim()) {
+        if (typeof app !== 'undefined' && app.$message) {
+          app.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
+        } else if (typeof Vue !== 'undefined' && Vue.prototype && Vue.prototype.$message) {
+          Vue.prototype.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
+        }
+        return;
+      }
+      
+      if (!nodeModal.formData.address || !nodeModal.formData.address.trim()) {
+        if (typeof app !== 'undefined' && app.$message) {
+          app.$message.error('{{ i18n "pages.nodes.enterNodeAddress" }}');
+        } else if (typeof Vue !== 'undefined' && Vue.prototype && Vue.prototype.$message) {
+          Vue.prototype.$message.error('{{ i18n "pages.nodes.enterNodeAddress" }}');
+        }
+        return;
+      }
+      
+      // API key is now auto-generated during registration, no validation needed
+      
+      // Если все поля заполнены, формируем полный адрес с портом
+      const dataToSend = { ...nodeModal.formData };
+      
+      // Всегда добавляем порт к адресу
+      let fullAddress = dataToSend.address.trim();
+      const port = dataToSend.port && dataToSend.port > 0 ? dataToSend.port : 8080;
+      
+      // Правильно добавляем порт к URL
+      // Парсим URL: http://192.168.0.7 -> http://192.168.0.7:8080
+      const urlMatch = fullAddress.match(/^(https?:\/\/)([^\/:]+)(\/.*)?$/);
+      if (urlMatch) {
+        const protocol = urlMatch[1]; // http:// или https://
+        const host = urlMatch[2];     // 192.168.0.7
+        const path = urlMatch[3] || ''; // /path или ''
+        fullAddress = `${protocol}${host}:${port}${path}`;
+      } else {
+        // Если не удалось распарсить, просто добавляем порт
+        fullAddress = `${fullAddress}:${port}`;
+      }
+      
+      // Удаляем порт из данных, так как он теперь в адресе
+      delete dataToSend.port;
+      dataToSend.address = fullAddress;
+      
+      // Если это режим редактирования, просто вызываем confirm
+      if (nodeModal.isEdit) {
+        if (nodeModal.confirm) {
+          nodeModal.confirm(dataToSend);
+        }
+        nodeModal.visible = false;
+        return;
+      }
+      
+      // Для добавления новой ноды показываем прогресс регистрации
+      nodeModal.registering = true;
+      nodeModal.showProgress = true;
+      nodeModal.currentStep = 0;
+      
+      // Сброс всех шагов
+      nodeModal.steps = {
+        connecting: 'wait',
+        generating: 'wait',
+        registering: 'wait',
+        completed: 'wait'
+      };
+      
+      // Вызываем confirm с объединенным адресом (это запустит регистрацию)
+      if (nodeModal.confirm) {
+        nodeModal.confirm(dataToSend);
+      }
+    },
+    cancel() {
+      this.visible = false;
+      this.resetProgress();
+    },
+    show({ title = '', okText = 'OK', node = null, confirm = (data) => { }, isEdit = false }) {
+      this.title = title;
+      this.okText = okText;
+      this.confirm = confirm;
+      this.isEdit = isEdit;
+      this.registering = false;
+      this.showProgress = false;
+      this.currentStep = 0;
+      this.steps = {
+        connecting: 'wait',
+        generating: 'wait',
+        registering: 'wait',
+        completed: 'wait'
+      };
+      
+      if (node) {
+        // Извлекаем адрес и порт из полного URL
+        let address = node.address || '';
+        let port = 8080;
+        
+        // Всегда извлекаем порт из адреса, если он там есть
+        if (address) {
+          const urlMatch = address.match(/^(https?:\/\/[^\/:]+)(:(\d+))?(\/.*)?$/);
+          if (urlMatch) {
+            // Убираем порт из адреса для отображения
+            const protocol = urlMatch[1].match(/^(https?:\/\/)/)[1];
+            const host = urlMatch[1].replace(/^https?:\/\//, '');
+            const path = urlMatch[4] || '';
+            address = `${protocol}${host}${path}`;
+            
+            // Если порт был в адресе, извлекаем его
+            if (urlMatch[3]) {
+              port = parseInt(urlMatch[3], 10);
+            }
+          }
+        }
+        
+        this.formData = {
+          name: node.name || '',
+          address: address,
+          port: port
+          // apiKey is not shown in edit mode (it's managed by the system)
+        };
+      } else {
+        this.formData = {
+          name: '',
+          address: '',
+          port: 8080
+          // apiKey is auto-generated during registration
+        };
+      }
+      
+      this.visible = true;
+    },
+    close() {
+      this.visible = false;
+      this.resetProgress();
+    },
+    resetProgress() {
+      this.registering = false;
+      this.showProgress = false;
+      this.currentStep = 0;
+      this.steps = {
+        connecting: 'wait',
+        generating: 'wait',
+        registering: 'wait',
+        completed: 'wait'
+      };
+    }
+  };
+
+  const nodeModalVueInstance = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#node-modal',
+    data: {
+      nodeModal: nodeModal
+    }
+  });
+</script>
+{{end}}

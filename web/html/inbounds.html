@@ -123,18 +123,6 @@
                           <a-icon type="export"></a-icon>
                           {{ i18n "pages.inbounds.export" }} - {{ i18n "pages.settings.subSettings" }}
                         </a-menu-item>
-                        <a-menu-item key="resetInbounds">
-                          <a-icon type="reload"></a-icon>
-                          {{ i18n "pages.inbounds.resetAllTraffic" }}
-                        </a-menu-item>
-                        <a-menu-item key="resetClients">
-                          <a-icon type="file-done"></a-icon>
-                          {{ i18n "pages.inbounds.resetAllClientTraffics" }}
-                        </a-menu-item>
-                        <a-menu-item key="delDepletedClients" :style="{ color: '#FF4D4F' }">
-                          <a-icon type="rest"></a-icon>
-                          {{ i18n "pages.inbounds.delDepletedClients" }}
-                        </a-menu-item>
                       </a-menu>
                     </a-dropdown>
                   </a-space>
@@ -204,18 +192,6 @@
                             {{ i18n "qrCode" }}
                           </a-menu-item>
                           <template v-if="dbInbound.isMultiUser()">
-                            <a-menu-item key="addClient">
-                              <a-icon type="user-add"></a-icon>
-                              {{ i18n "pages.client.add"}}
-                            </a-menu-item>
-                            <a-menu-item key="addBulkClient">
-                              <a-icon type="usergroup-add"></a-icon>
-                              {{ i18n "pages.client.bulk"}}
-                            </a-menu-item>
-                            <a-menu-item key="resetClients">
-                              <a-icon type="file-done"></a-icon>
-                              {{ i18n "pages.inbounds.resetInboundClientTraffics"}}
-                            </a-menu-item>
                             <a-menu-item key="export">
                               <a-icon type="export"></a-icon>
                               {{ i18n "pages.inbounds.export"}}
@@ -223,10 +199,6 @@
                             <a-menu-item key="subs" v-if="subSettings.enable">
                               <a-icon type="export"></a-icon>
                               {{ i18n "pages.inbounds.export"}} - {{ i18n "pages.settings.subSettings" }}
-                            </a-menu-item>
-                            <a-menu-item key="delDepletedClients" :style="{ color: '#FF4D4F' }">
-                              <a-icon type="rest"></a-icon>
-                              {{ i18n "pages.inbounds.delDepletedClients" }}
                             </a-menu-item>
                           </template>
                           <template v-else>
@@ -238,9 +210,6 @@
                           <a-menu-item key="clipboard">
                             <a-icon type="copy"></a-icon>
                             {{ i18n "pages.inbounds.exportInbound" }}
-                          </a-menu-item>
-                          <a-menu-item key="resetTraffic">
-                            <a-icon type="retweet"></a-icon> {{ i18n "pages.inbounds.resetTraffic" }}
                           </a-menu-item>
                           <a-menu-item key="clone">
                             <a-icon type="block"></a-icon> {{ i18n "pages.inbounds.clone"}}
@@ -353,19 +322,12 @@
                               <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
                               <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                             </tr>
-                            <tr v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
-                              <td>{{ i18n "remained" }}</td>
-                              <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down) ]]</td>
-                            </tr>
+                            <!-- Inbound traffic is now only statistics (sum of client traffic), no limits -->
                           </table>
                         </template>
-                        <a-tag
-                          :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                          [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
-                          <template v-if="dbInbound.total > 0">
-                            [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
-                          </template>
-                          <template v-else>
+                        <a-tag>
+                          [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]
+                          <template v-if="false">
                             <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                               <path
                                 d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
@@ -374,9 +336,6 @@
                           </template>
                         </a-tag>
                       </a-popover>
-                    </template>
-                    <template slot="allTimeInbound" slot-scope="text, dbInbound">
-                      <a-tag>[[ SizeFormatter.sizeFormat(dbInbound.allTime || 0) ]]</a-tag>
                     </template>
                     <template slot="enable" slot-scope="text, dbInbound">
                       <a-switch v-model="dbInbound.enable"
@@ -516,21 +475,12 @@
                                         <td>↑[[ SizeFormatter.sizeFormat(dbInbound.up) ]]</td>
                                         <td>↓[[ SizeFormatter.sizeFormat(dbInbound.down) ]]</td>
                                       </tr>
-                                      <tr
-                                        v-if="dbInbound.total > 0 &&  dbInbound.up + dbInbound.down < dbInbound.total">
-                                        <td>{{ i18n "remained" }}</td>
-                                        <td>[[ SizeFormatter.sizeFormat(dbInbound.total - dbInbound.up - dbInbound.down)
-                                          ]]</td>
-                                      </tr>
+                                      <!-- Inbound traffic is now only statistics (sum of client traffic), no limits -->
                                     </table>
                                   </template>
-                                  <a-tag
-                                    :color="ColorUtils.usageColor(dbInbound.up + dbInbound.down, app.trafficDiff, dbInbound.total)">
-                                    [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]] /
-                                    <template v-if="dbInbound.total > 0">
-                                      [[ SizeFormatter.sizeFormat(dbInbound.total) ]]
-                                    </template>
-                                    <template v-else>
+                                  <a-tag>
+                                    [[ SizeFormatter.sizeFormat(dbInbound.up + dbInbound.down) ]]
+                                    <template v-if="false">
                                       <svg height="10px" width="14px" viewBox="0 0 640 512" fill="currentColor">
                                         <path
                                           d="M484.4 96C407 96 349.2 164.1 320 208.5C290.8 164.1 233 96 155.6 96C69.75 96 0 167.8 0 256s69.75 160 155.6 160C233.1 416 290.8 347.9 320 303.5C349.2 347.9 407 416 484.4 416C570.3 416 640 344.2 640 256S570.3 96 484.4 96zM155.6 368C96.25 368 48 317.8 48 256s48.25-112 107.6-112c67.75 0 120.5 82.25 137.1 112C276 285.8 223.4 368 155.6 368zM484.4 368c-67.75 0-120.5-82.25-137.1-112C364 226.2 416.6 144 484.4 144C543.8 144 592 194.2 592 256S543.8 368 484.4 368z"
@@ -563,6 +513,19 @@
                                 <a-tag color="blue">[[ dbInbound.trafficReset ]]</a-tag>
                               </td>
                             </tr>
+                            <tr v-if="multiNodeMode && Array.isArray(dbInbound.nodeIds) && dbInbound.nodeIds.length > 0">
+                              <td>Nodes</td>
+                              <td>
+                                <template v-for="(nodeId, index) in dbInbound.nodeIds" :key="nodeId">
+                                  <a-tag v-if="getNodeName(nodeId)" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                                    [[ getNodeName(nodeId) ]]
+                                  </a-tag>
+                                  <a-tag v-else color="gray" :style="{ margin: '0 4px 4px 0' }">
+                                    Node [[ nodeId ]]
+                                  </a-tag>
+                                </template>
+                              </td>
+                            </tr>
                           </table>
                         </template>
                         <a-badge>
@@ -573,13 +536,6 @@
                           </a-button>
                         </a-badge>
                       </a-popover>
-                    </template>
-                    <template slot="expandedRowRender" slot-scope="record">
-                      <a-table :row-key="client => client.id" :columns="isMobile ? innerMobileColumns : innerColumns"
-                        :data-source="getInboundClients(record)" :pagination=pagination(getInboundClients(record))
-                        :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -11px` }">
-                        {{template "component/aClientTable"}}
-                      </a-table>
                     </template>
                   </a-table>
                 </a-space>
@@ -651,11 +607,6 @@
     width: 90,
     scopedSlots: { customRender: 'traffic' },
   }, {
-    title: '{{ i18n "pages.inbounds.allTimeTraffic" }}',
-    align: 'center',
-    width: 60,
-    scopedSlots: { customRender: 'allTimeInbound' },
-  }, {
     title: '{{ i18n "pages.inbounds.expireDate" }}',
     align: 'center',
     width: 40,
@@ -691,7 +642,6 @@
     { title: '{{ i18n "online" }}', width: 32, scopedSlots: { customRender: 'online' } },
     { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 60, align: 'center', scopedSlots: { customRender: 'allTime' } },
     { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
   ];
 
@@ -706,6 +656,8 @@
     el: '#app',
     mixins: [MediaQueryMixin],
     data: {
+      availableNodes: [],
+      multiNodeMode: false,
       themeSwitcher,
       persianDatepicker,
       loadingStates: {
@@ -745,6 +697,44 @@
     methods: {
       loading(spinning = true) {
         this.loadingStates.spinning = spinning;
+      },
+      async loadMultiNodeMode() {
+        try {
+          const msg = await HttpUtil.post("/panel/setting/all");
+          if (msg && msg.success && msg.obj) {
+            this.multiNodeMode = Boolean(msg.obj.multiNodeMode) || false;
+            // Store in allSetting for modal access
+            if (!this.allSetting) {
+              this.allSetting = {};
+            }
+            this.allSetting.multiNodeMode = this.multiNodeMode;
+            // Load available nodes if in multi-node mode
+            if (this.multiNodeMode) {
+              await this.loadAvailableNodes();
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load multi-node mode:", e);
+        }
+      },
+      async loadAvailableNodes() {
+        try {
+          const msg = await HttpUtil.get("/panel/node/list");
+          if (msg && msg.success && msg.obj) {
+            this.availableNodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name,
+              address: node.address,
+              status: node.status || 'unknown'
+            }));
+          }
+        } catch (e) {
+          console.warn("Failed to load available nodes:", e);
+        }
+      },
+      getNodeName(nodeId) {
+        const node = this.availableNodes.find(n => n.id === nodeId);
+        return node ? node.name : null;
       },
       async getDBInbounds() {
         this.refreshing = true;
@@ -804,6 +794,11 @@
         this.clientCount.splice(0);
         for (const inbound of dbInbounds) {
           const dbInbound = new DBInbound(inbound);
+          // Ensure nodeIds are properly set after creating DBInbound
+          // The constructor should handle this, but double-check
+          if (!Array.isArray(dbInbound.nodeIds)) {
+            dbInbound.nodeIds = [];
+          }
           to_inbound = dbInbound.toInbound()
           this.inbounds.push(to_inbound);
           this.dbInbounds.push(dbInbound);
@@ -938,15 +933,6 @@
           case "subs":
             this.exportAllSubs();
             break;
-          case "resetInbounds":
-            this.resetAllTraffic();
-            break;
-          case "resetClients":
-            this.resetAllClientTraffics(-1);
-            break;
-          case "delDepletedClients":
-            this.delDepletedClients(-1)
-            break;
         }
       },
       clickAction(action, dbInbound) {
@@ -960,12 +946,6 @@
           case "edit":
             this.openEditInbound(dbInbound.id);
             break;
-          case "addClient":
-            this.openAddClient(dbInbound.id)
-            break;
-          case "addBulkClient":
-            this.openAddBulkClient(dbInbound.id)
-            break;
           case "export":
             this.inboundLinks(dbInbound.id);
             break;
@@ -975,20 +955,11 @@
           case "clipboard":
             this.copy(dbInbound.id);
             break;
-          case "resetTraffic":
-            this.resetTraffic(dbInbound.id);
-            break;
-          case "resetClients":
-            this.resetAllClientTraffics(dbInbound.id);
-            break;
           case "clone":
             this.openCloneInbound(dbInbound);
             break;
           case "delete":
             this.delInbound(dbInbound.id);
-            break;
-          case "delDepletedClients":
-            this.delDepletedClients(dbInbound.id)
             break;
         }
       },
@@ -1041,6 +1012,20 @@
       openEditInbound(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         const inbound = dbInbound.toInbound();
+        // Set nodeIds from dbInbound if available - ensure they are numbers
+        // This is critical: dbInbound is the source of truth for nodeIds
+        let nodeIdsToSet = [];
+        if (dbInbound.nodeIds && Array.isArray(dbInbound.nodeIds) && dbInbound.nodeIds.length > 0) {
+          nodeIdsToSet = dbInbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+        } else if (dbInbound.nodeId !== null && dbInbound.nodeId !== undefined) {
+          // Backward compatibility: single nodeId
+          const nodeId = typeof dbInbound.nodeId === 'string' ? parseInt(dbInbound.nodeId, 10) : dbInbound.nodeId;
+          if (!isNaN(nodeId) && nodeId > 0) {
+            nodeIdsToSet = [nodeId];
+          }
+        }
+        // Ensure nodeIds are set on inbound object before passing to modal
+        inbound.nodeIds = nodeIdsToSet;
         inModal.show({
           title: '{{ i18n "pages.inbounds.modifyInbound"}}',
           okText: '{{ i18n "update"}}',
@@ -1075,6 +1060,14 @@
           data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
         }
         data.sniffing = inbound.sniffing.toString();
+        
+        // Add nodeIds if multi-node mode is enabled
+        if (this.multiNodeMode && inbound.nodeIds && Array.isArray(inbound.nodeIds) && inbound.nodeIds.length > 0) {
+          data.nodeIds = inbound.nodeIds;
+        } else if (this.multiNodeMode && inbound.nodeId) {
+          // Backward compatibility: single nodeId
+          data.nodeId = inbound.nodeId;
+        }
 
         await this.submit('/panel/api/inbounds/add', data, inModal);
       },
@@ -1100,6 +1093,21 @@
           data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
         }
         data.sniffing = inbound.sniffing.toString();
+        
+        // Add nodeIds if multi-node mode is enabled
+        if (this.multiNodeMode) {
+          if (inbound.nodeIds && Array.isArray(inbound.nodeIds) && inbound.nodeIds.length > 0) {
+            // Ensure all values are numbers
+            data.nodeIds = inbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+          } else if (inbound.nodeId !== null && inbound.nodeId !== undefined) {
+            // Backward compatibility: single nodeId
+            const nodeId = typeof inbound.nodeId === 'string' ? parseInt(inbound.nodeId, 10) : inbound.nodeId;
+            if (!isNaN(nodeId) && nodeId > 0) {
+              data.nodeId = nodeId;
+            }
+          }
+          // If no nodes selected, don't send nodeIds field at all - server will handle unassignment
+        }
 
         await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, data, inModal);
       },
@@ -1252,6 +1260,10 @@
       },
       checkFallback(dbInbound) {
         newDbInbound = new DBInbound(dbInbound);
+        // Ensure nodeIds are preserved when creating new DBInbound
+        if (dbInbound.nodeIds && Array.isArray(dbInbound.nodeIds)) {
+          newDbInbound.nodeIds = dbInbound.nodeIds;
+        }
         if (dbInbound.listen.startsWith("@")) {
           rootInbound = this.inbounds.find((i) =>
             i.isTcp &&
@@ -1312,7 +1324,10 @@
       async submit(url, data, modal) {
         const msg = await HttpUtil.postWithModal(url, data, modal);
         if (msg.success) {
+          // Force reload inbounds to get updated nodeIds from server
           await this.getDBInbounds();
+          // Force Vue to update the view
+          this.$forceUpdate();
         }
       },
       getInboundClients(dbInbound) {
@@ -1581,7 +1596,8 @@
         this.searchInbounds(newVal);
       }, 500)
     },
-    mounted() {
+    async mounted() {
+      await this.loadMultiNodeMode();
       if (window.location.protocol !== "https:") {
         this.showAlert = true;
       }

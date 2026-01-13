@@ -123,6 +123,8 @@
         this.loadingStates.spinning = true;
         const msg = await HttpUtil.post('/login', this.user);
         if (msg.success) {
+          // Устанавливаем флаг для показа popup "Что нового?" после логина
+          sessionStorage.setItem('showWhatsNew', 'true');
           location.href = basePath + 'panel/';
         }
         this.loadingStates.spinning = false;

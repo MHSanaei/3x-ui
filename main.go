@@ -50,6 +50,13 @@ func runWebServer() {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 
+	// Initialize Redis cache (embedded mode by default)
+	err = web.InitRedisCache("")
+	if err != nil {
+		log.Fatalf("Error initializing Redis cache: %v", err)
+	}
+	defer web.CloseRedisCache()
+
 	var server *web.Server
 	server = web.NewServer()
 	global.SetWebServer(server)

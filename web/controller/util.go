@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/entity"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -92,6 +93,16 @@ func getContext(h gin.H) gin.H {
 	a := gin.H{
 		"cur_ver": config.GetVersion(),
 	}
+	
+	// Add multiNodeMode to context for all pages
+	settingService := service.SettingService{}
+	multiNodeMode, err := settingService.GetMultiNodeMode()
+	if err != nil {
+		// If error, default to false (single mode)
+		multiNodeMode = false
+	}
+	a["multiNodeMode"] = multiNodeMode
+	
 	for key, value := range h {
 		a[key] = value
 	}

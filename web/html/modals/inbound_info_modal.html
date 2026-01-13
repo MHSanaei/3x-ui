@@ -23,6 +23,19 @@
             <a-tag>[[ dbInbound.port ]]</a-tag>
           </td>
         </tr>
+        <tr v-if="multiNodeMode && Array.isArray(dbInbound.nodeIds) && dbInbound.nodeIds.length > 0">
+          <td>Nodes</td>
+          <td>
+            <template v-for="(nodeId, index) in dbInbound.nodeIds" :key="nodeId">
+              <a-tag v-if="getNodeName(nodeId)" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                [[ getNodeName(nodeId) ]]
+              </a-tag>
+              <a-tag v-else color="gray" :style="{ margin: '0 4px 4px 0' }">
+                Node [[ nodeId ]]
+              </a-tag>
+            </template>
+          </td>
+        </tr>
       </table>
     </a-col>
     <a-col :xs="24" :md="12">
@@ -508,8 +521,17 @@
     clientIps: '',
     show(dbInbound, index) {
       this.index = index;
-      this.inbound = dbInbound.toInbound();
+      // Create DBInbound first to ensure nodeIds are properly processed
       this.dbInbound = new DBInbound(dbInbound);
+      // Ensure nodeIds are properly set - they should be an array
+      if (!Array.isArray(this.dbInbound.nodeIds)) {
+        this.dbInbound.nodeIds = [];
+      }
+      this.inbound = this.dbInbound.toInbound();
+      // Ensure inbound also has nodeIds from dbInbound
+      if (this.dbInbound.nodeIds && Array.isArray(this.dbInbound.nodeIds) && this.dbInbound.nodeIds.length > 0) {
+        this.inbound.nodeIds = this.dbInbound.nodeIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id) && id > 0);
+      }
       this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
       this.clientStats = this.inbound.clients ? (this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) || null) : null;
@@ -562,6 +584,12 @@
       },
       get inbound() {
         return this.infoModal.inbound;
+      },
+      get multiNodeMode() {
+        return app && (app.multiNodeMode || (app.allSetting && app.allSetting.multiNodeMode)) || false;
+      },
+      get availableNodes() {
+        return app && app.availableNodes || [];
       },
       get isActive() {
         if (infoModal.clientStats) {
@@ -628,6 +656,10 @@
             this.infoModal.clientIps = 'No IP Record';
           })
           .catch(() => {});
+      },
+      getNodeName(nodeId) {
+        const node = this.availableNodes.find(n => n.id === nodeId);
+        return node ? node.name : null;
       },
     },
   });

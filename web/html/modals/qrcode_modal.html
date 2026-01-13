@@ -21,7 +21,7 @@
     </a-space>
   </template>
   <tr-qr-modal class="qr-modal">
-    <template v-if="app.subSettings?.enable && qrModal.subId">
+    <template v-if="app.subSettings && app.subSettings.enable && qrModal.client && qrModal.client.subId">
       <tr-qr-box class="qr-box">
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}}</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
@@ -30,7 +30,7 @@
           </tr-qr-bg-inner>
         </tr-qr-bg>
       </tr-qr-box>
-      <tr-qr-box class="qr-box" v-if="app.subSettings.subJsonEnable">
+      <tr-qr-box class="qr-box" v-if="app.subSettings && app.subSettings.subJsonEnable && qrModal.client && qrModal.client.subId">
         <a-tag color="purple" class="qr-tag"><span>{{ i18n "pages.settings.subSettings"}} Json</span></a-tag>
         <tr-qr-bg class="qr-bg-sub">
           <tr-qr-bg-inner class="qr-bg-sub-inner">
@@ -110,7 +110,8 @@
       this.dbInbound = dbInbound;
       this.inbound = dbInbound.toInbound();
       this.client = client;
-      this.subId = '';
+      // Set subId from client if available
+      this.subId = (client && client.subId) ? client.subId : '';
       this.qrcodes = [];
       // Reset the status fetched flag when showing the modal
       if (qrModalApp) qrModalApp.statusFetched = false;
@@ -124,12 +125,25 @@
           });
         });
       } else {
-        this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client).forEach(l => {
+        const links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, client);
+        const hasMultipleNodes = links.length > 1 && links.some(l => l.nodeId !== null);
+        
+        links.forEach(l => {
+          // Use node name if multiple nodes, otherwise use remark
+          let displayRemark = l.remark;
+          if (hasMultipleNodes && l.nodeId !== null) {
+            const node = app.availableNodes && app.availableNodes.find(n => n.id === l.nodeId);
+            if (node && node.name) {
+              displayRemark = node.name;
+            }
+          }
+          
           this.qrcodes.push({
-            remark: l.remark,
+            remark: displayRemark,
             link: l.link,
             useIPv4: false,
-            originalLink: l.link
+            originalLink: l.link,
+            nodeId: l.nodeId
           });
         });
       }
@@ -231,9 +245,15 @@
         });
       },
       genSubLink(subID) {
+        if (!app || !app.subSettings || !app.subSettings.subURI) {
+          return '';
+        }
         return app.subSettings.subURI + subID;
       },
       genSubJsonLink(subID) {
+        if (!app || !app.subSettings || !app.subSettings.subJsonURI) {
+          return '';
+        }
         return app.subSettings.subJsonURI + subID;
       },
       revertOverflow() {
@@ -261,9 +281,15 @@
       }
       if (qrModal.client && qrModal.client.subId) {
         qrModal.subId = qrModal.client.subId;
-        this.setQrCode("qrCode-sub", this.genSubLink(qrModal.subId));
-        if (app.subSettings.subJsonEnable) {
-          this.setQrCode("qrCode-subJson", this.genSubJsonLink(qrModal.subId));
+        const subLink = this.genSubLink(qrModal.subId);
+        if (subLink) {
+          this.setQrCode("qrCode-sub", subLink);
+        }
+        if (app && app.subSettings && app.subSettings.subJsonEnable) {
+          const subJsonLink = this.genSubJsonLink(qrModal.subId);
+          if (subJsonLink) {
+            this.setQrCode("qrCode-subJson", subJsonLink);
+          }
         }
       }
       qrModal.qrcodes.forEach((element, index) => {

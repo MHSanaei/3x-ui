@@ -7,6 +7,8 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/gin-gonic/gin"
+	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/json_util"
@@ -71,7 +73,19 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 }
 
 // GetJson generates a JSON subscription configuration for the given subscription ID and host.
-func (s *SubJsonService) GetJson(subId string, host string) (string, string, error) {
+// If gin.Context is provided, it will also register HWID from HTTP headers.
+func (s *SubJsonService) GetJson(subId string, host string, c *gin.Context) (string, string, error) {
+	// Register HWID from headers if context is provided
+	if c != nil {
+		// Try to find client by subId
+		db := database.GetDB()
+		var clientEntity *model.ClientEntity
+		err := db.Where("sub_id = ? AND enable = ?", subId, true).First(&clientEntity).Error
+		if err == nil && clientEntity != nil {
+			s.SubService.registerHWIDFromRequest(c, clientEntity)
+		}
+	}
+	
 	inbounds, err := s.SubService.getInboundsBySubId(subId)
 	if err != nil || len(inbounds) == 0 {
 		return "", "", err
