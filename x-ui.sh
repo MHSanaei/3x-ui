@@ -229,9 +229,9 @@ reset_user() {
 
     read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
     if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
-        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor false >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor false >/dev/null 2>&1
     else
-        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor true >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor true >/dev/null 2>&1
         echo -e "Two factor authentication has been disabled."
     fi
     
