@@ -14,9 +14,11 @@ class WebSocketClient {
   }
 
   connect() {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
+
+    this.shouldReconnect = true;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     // Ensure basePath ends with '/' for proper URL construction
@@ -97,7 +99,10 @@ class WebSocketClient {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, []);
     }
-    this.listeners.get(event).push(callback);
+    const callbacks = this.listeners.get(event);
+    if (!callbacks.includes(callback)) {
+      callbacks.push(callback);
+    }
   }
 
   off(event, callback) {
