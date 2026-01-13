@@ -5,6 +5,10 @@ services:
       dockerfile: ./Dockerfile
     container_name: 3xui_app
     # hostname: yourhostname <- optional
+    # ports:
+    #   - "2053:2053"   # Web UI
+    #   - "2096:2096"   # Subscriptions
+    #   - "443:443"     # Example - Inbound internal    
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
@@ -14,3 +18,4 @@ services:
     tty: true
     network_mode: host
     restart: unless-stopped
+
