@@ -22,8 +22,10 @@ update_geofiles() {
         "RU") dat_files=(geoip_RU geosite_RU); dat_source="runetfreedom/russia-v2ray-rules-dat";;
     esac
     for dat in "${dat_files[@]}"; do
+        # Remove suffix for remote filename (e.g., geoip_IR -> geoip)
+        remote_file="${dat%%_*}"
         curl -fLRo ${xui_folder}/bin/${dat}.dat -z ${xui_folder}/bin/${dat}.dat \
-            https://github.com/${dat_source}/releases/latest/download/${dat%%_}.dat
+            https://github.com/${dat_source}/releases/latest/download/${remote_file}.dat
     done
 }
 
