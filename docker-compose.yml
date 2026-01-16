@@ -1,16 +1,57 @@
 services:
-  3xui:
+  3x-ui:
     build:
       context: .
-      dockerfile: ./Dockerfile
     container_name: 3xui_app
-    # hostname: yourhostname <- optional
     volumes:
       - $PWD/db/:/etc/x-ui/
       - $PWD/cert/:/root/cert/
+      - $PWD/geodata/:/app/bin
     environment:
+      TZ: "Asia/Tehran"
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      GEODATA_DIR: "/app/bin"
     tty: true
     network_mode: host
     restart: unless-stopped
+    depends_on:
+      - geodata-cron
+
+  docker-proxy:
+    image: tecnativa/docker-socket-proxy
+    container_name: docker_proxy
+    restart: unless-stopped
+    environment:
+      - CONTAINERS=1
+      - POST=1
+      - ALLOW_RESTARTS=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - docker-internal
+
+  geodata-cron:
+    build:
+      context: docker-cron-runner
+      args:
+        XRAY_VERSION: "${XRAY_VERSION:-v25.10.15}"
+        XRAY_BUILD_DIR: "/app/xray"
+    container_name: geodata_cron
+    restart: unless-stopped
+    depends_on:
+      - docker-proxy
+    environment:
+      TZ: "UTC"
+      DOCKER_PROXY_URL: "http://docker-proxy:2375"
+      TARGET_CONTAINER_NAME: "3xui_app"
+      CRON_SCHEDULE: "0 */6 * * *"
+      SHARED_VOLUME_PATH: "/app/bin"
+    volumes:
+      - $PWD/geodata/:/app/bin/
+    networks:
+      - docker-internal
+
+networks:
+  docker-internal:
+    driver: bridge

@@ -1,0 +1,11 @@
+.git
+db
+cert
+*.log
+Dockerfile
+docker-compose.yml
+.tmp
+.idea
+.vscode
+LICENSE
+README.*

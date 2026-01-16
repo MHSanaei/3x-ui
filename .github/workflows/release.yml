@@ -82,6 +82,7 @@ jobs:
           cp x-ui.service.debian x-ui/
           cp x-ui.service.rhel x-ui/
           cp x-ui.sh x-ui/
+          cp -r lib x-ui/ 
           mv x-ui/xui-release x-ui/x-ui
           mkdir x-ui/bin
           cd x-ui/bin
@@ -178,12 +179,12 @@ jobs:
           $env:GOOS="windows"
           $env:GOARCH="amd64"
           go build -ldflags "-w -s" -o xui-release.exe -v main.go
-          
+
           mkdir x-ui
           Copy-Item xui-release.exe x-ui\
           mkdir x-ui\bin
           cd x-ui\bin
-          
+
           # Download Xray for Windows
           $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v25.12.8/"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
