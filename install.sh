@@ -818,6 +818,15 @@ install_x-ui() {
                         fi
                     fi
                 ;;
+                arch | manjaro | parch)
+                    if [ -f "x-ui.service.arch" ]; then
+                        echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
+                        cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
+                ;;
                 *)
                     if [ -f "x-ui.service.rhel" ]; then
                         echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
@@ -836,6 +845,9 @@ install_x-ui() {
             case "${release}" in
                 ubuntu | debian | armbian)
                     curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                ;;
+                arch | manjaro | parch)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
                 ;;
                 *)
                     curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
