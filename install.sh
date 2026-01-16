@@ -53,7 +53,7 @@ is_ip() {
     is_ipv4 "$1" || is_ipv6 "$1"
 }
 is_domain() {
-    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*)\.([A-Za-z]{2,})$ ]] && return 0 || return 1
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
 # Port helpers
