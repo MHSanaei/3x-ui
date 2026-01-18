@@ -2,16 +2,9 @@
 # x-ui.sh - 3X-UI Panel Management Script (Entrypoint)
 # This is the main entrypoint that sources modular library files
 
-# Resolve the actual script location (handles symlinks)
-#SCRIPT_PATH="$(readlink -f "$0" 2>/dev/null || realpath "$0" 2>/dev/null || echo "$0")"
-#SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
-#LIB_DIR="${SCRIPT_DIR}/lib"
-#
-## Fallback for installed location
-#[[ ! -d "$LIB_DIR" ]] && LIB_DIR="/usr/local/x-ui/lib"
 
-LIB_DIR="${LIB_DIR:=/usr/local/x-ui/lib}"
 # Export LIB_DIR for use by library files
+LIB_DIR="${LIB_DIR:=/usr/local/x-ui/lib}"
 export LIB_DIR
 
 # Source all library files
