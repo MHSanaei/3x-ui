@@ -40,6 +40,9 @@ func (s *XrayService) GetXrayErr() error {
 	}
 
 	err := p.GetErr()
+	if err == nil {
+		return nil
+	}
 
 	if runtime.GOOS == "windows" && err.Error() == "exit status 1" {
 		// exit status 1 on Windows means that Xray process was killed

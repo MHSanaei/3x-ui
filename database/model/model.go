@@ -80,9 +80,12 @@ type HistoryOfSeeders struct {
 // GenXrayInboundConfig generates an Xray inbound configuration from the Inbound model.
 func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 	listen := i.Listen
-	if listen != "" {
-		listen = fmt.Sprintf("\"%v\"", listen)
+	// Default to 0.0.0.0 (all interfaces) when listen is empty
+	// This ensures proper dual-stack IPv4/IPv6 binding in systems where bindv6only=0
+	if listen == "" {
+		listen = "0.0.0.0"
 	}
+	listen = fmt.Sprintf("\"%v\"", listen)
 	return &xray.InboundConfig{
 		Listen:         json_util.RawMessage(listen),
 		Port:           i.Port,
