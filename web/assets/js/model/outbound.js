@@ -430,6 +430,7 @@ class HysteriaStreamSettings extends CommonClass {
     constructor(
         version = 2,
         auth = '',
+        congestion = '',
         up = '0',
         down = '0',
         udphopPort = '',
@@ -445,6 +446,7 @@ class HysteriaStreamSettings extends CommonClass {
         super();
         this.version = version;
         this.auth = auth;
+        this.congestion = congestion;
         this.up = up;
         this.down = down;
         this.udphopPort = udphopPort;
@@ -468,6 +470,7 @@ class HysteriaStreamSettings extends CommonClass {
         return new HysteriaStreamSettings(
             json.version,
             json.auth,
+            json.congestion,
             json.up,
             json.down,
             udphopPort,
@@ -486,6 +489,7 @@ class HysteriaStreamSettings extends CommonClass {
         const result = {
             version: this.version,
             auth: this.auth,
+            congestion: this.congestion,
             up: this.up,
             down: this.down,
             initStreamReceiveWindow: this.initStreamReceiveWindow,
@@ -554,6 +558,30 @@ class SockoptStreamSettings extends CommonClass {
     }
 }
 
+class UdpMask extends CommonClass {
+    constructor(type = 'salamander', password = '') {
+        super();
+        this.type = type;
+        this.password = password;
+    }
+
+    static fromJson(json = {}) {
+        return new UdpMask(
+            json.type,
+            json.settings?.password || ''
+        );
+    }
+
+    toJson() {
+        return {
+            type: this.type,
+            settings: {
+                password: this.password
+            }
+        };
+    }
+}
+
 class StreamSettings extends CommonClass {
     constructor(
         network = 'tcp',
@@ -567,6 +595,7 @@ class StreamSettings extends CommonClass {
         httpupgradeSettings = new HttpUpgradeStreamSettings(),
         xhttpSettings = new xHTTPStreamSettings(),
         hysteriaSettings = new HysteriaStreamSettings(),
+        udpmasks = [],
         sockopt = undefined,
     ) {
         super();
@@ -581,7 +610,16 @@ class StreamSettings extends CommonClass {
         this.httpupgrade = httpupgradeSettings;
         this.xhttp = xhttpSettings;
         this.hysteria = hysteriaSettings;
+        this.udpmasks = udpmasks;
         this.sockopt = sockopt;
+    }
+
+    addUdpMask() {
+        this.udpmasks.push(new UdpMask());
+    }
+
+    delUdpMask(index) {
+        this.udpmasks.splice(index, 1);
     }
 
     get isTls() {
@@ -601,6 +639,7 @@ class StreamSettings extends CommonClass {
     }
 
     static fromJson(json = {}) {
+        const udpmasks = json.udpmasks ? json.udpmasks.map(mask => UdpMask.fromJson(mask)) : [];
         return new StreamSettings(
             json.network,
             json.security,
@@ -613,6 +652,7 @@ class StreamSettings extends CommonClass {
             HttpUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
             xHTTPStreamSettings.fromJson(json.xhttpSettings),
             HysteriaStreamSettings.fromJson(json.hysteriaSettings),
+            udpmasks,
             SockoptStreamSettings.fromJson(json.sockopt),
         );
     }
@@ -631,6 +671,7 @@ class StreamSettings extends CommonClass {
             httpupgradeSettings: network === 'httpupgrade' ? this.httpupgrade.toJson() : undefined,
             xhttpSettings: network === 'xhttp' ? this.xhttp.toJson() : undefined,
             hysteriaSettings: network === 'hysteria' ? this.hysteria.toJson() : undefined,
+            udpmasks: this.udpmasks.length > 0 ? this.udpmasks.map(mask => mask.toJson()) : undefined,
             sockopt: this.sockopt != undefined ? this.sockopt.toJson() : undefined,
         };
     }
@@ -694,7 +735,8 @@ class Outbound extends CommonClass {
     }
 
     canEnableTls() {
-        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol)) return false;
+        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks, Protocols.Hysteria].includes(this.protocol)) return false;
+        if (this.protocol === Protocols.Hysteria) return this.stream.network === 'hysteria';
         return ["tcp", "ws", "http", "grpc", "httpupgrade", "xhttp"].includes(this.stream.network);
     }
 
@@ -936,25 +978,26 @@ class Outbound extends CommonClass {
         // Parse hysteria2://password@address:port[?param1=value1&param2=value2...][#remarks]
         const regex = /^hysteria2?:\/\/([^@]+)@([^:?#]+):(\d+)([^#]*)(#.*)?$/;
         const match = link.match(regex);
-        
+
         if (!match) return null;
-        
+
         let [, password, address, port, params, hash] = match;
         port = parseInt(port);
-        
+
         // Parse URL parameters if present
         let urlParams = new URLSearchParams(params);
-        
+
         // Create stream settings with hysteria network
         let stream = new StreamSettings('hysteria', 'none');
-        
+
         // Set hysteria stream settings
         stream.hysteria.auth = password;
+        stream.hysteria.congestion = urlParams.get('congestion') ?? '';
         stream.hysteria.up = urlParams.get('up') ?? '0';
         stream.hysteria.down = urlParams.get('down') ?? '0';
         stream.hysteria.udphopPort = urlParams.get('udphopPort') ?? '';
         stream.hysteria.udphopInterval = parseInt(urlParams.get('udphopInterval') ?? '30');
-        
+
         // Optional QUIC parameters
         if (urlParams.has('initStreamReceiveWindow')) {
             stream.hysteria.initStreamReceiveWindow = parseInt(urlParams.get('initStreamReceiveWindow'));
@@ -977,13 +1020,13 @@ class Outbound extends CommonClass {
         if (urlParams.has('disablePathMTUDiscovery')) {
             stream.hysteria.disablePathMTUDiscovery = urlParams.get('disablePathMTUDiscovery') === 'true';
         }
-        
+
         // Create settings
         let settings = new Outbound.HysteriaSettings(address, port, 2);
-        
+
         // Extract remark from hash
         let remark = hash ? decodeURIComponent(hash.substring(1)) : `out-hysteria-${port}`;
-        
+
         return new Outbound(remark, Protocols.Hysteria, settings, stream);
     }
 }

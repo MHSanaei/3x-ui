@@ -545,6 +545,12 @@
           <a-form-item label='Auth Password'>
             <a-input v-model.trim="outbound.stream.hysteria.auth"></a-input>
           </a-form-item>
+          <a-form-item label='Congestion'>
+            <a-select v-model="outbound.stream.hysteria.congestion" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="">BBR (Auto)</a-select-option>
+              <a-select-option value="brutal">Brutal</a-select-option>
+            </a-select>
+          </a-form-item>
           <a-form-item label='Upload Speed'>
             <a-input v-model.trim="outbound.stream.hysteria.up"
               placeholder="0 (BBR mode), e.g., 100 mbps"></a-input>
@@ -593,6 +599,30 @@
             <a-switch
               v-model="outbound.stream.hysteria.disablePathMTUDiscovery"></a-switch>
           </a-form-item>
+        </template>
+      </template>
+
+      <!-- udpmasks settings -->
+      <template v-if="outbound.canEnableStream()">
+        <a-form-item label="UDP Masks">
+          <a-button icon="plus" type="primary" size="small" @click="outbound.stream.addUdpMask()"></a-button>
+        </a-form-item>
+        <template v-if="outbound.stream.udpmasks.length > 0">
+          <a-form v-for="(mask, index) in outbound.stream.udpmasks" :key="index" :colon="false"
+            :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+            <a-divider :style="{ margin: '0' }"> UDP Mask [[ index + 1 ]]
+              <a-icon type="delete" @click="() => outbound.stream.delUdpMask(index)"
+                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+            </a-divider>
+            <a-form-item label='Type'>
+              <a-select v-model="mask.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="salamander">Salamander</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label='Password'>
+              <a-input v-model.trim="mask.password" placeholder="Obfuscation password"></a-input>
+            </a-form-item>
+          </a-form>
         </template>
       </template>
 
