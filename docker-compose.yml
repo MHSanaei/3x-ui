@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        XRAY_VERSION: "${XRAY_VERSION:-v25.10.15}"
+        XRAY_VERSION: "${XRAY_VERSION:-v26.1.18}"
     container_name: 3xui_app
     volumes:
       - $PWD/db/:/etc/x-ui/
