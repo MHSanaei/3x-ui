@@ -531,6 +531,12 @@
 "psk" = "PreShared Key"
 "domainStrategy" = "Domain Strategy"
 
+[pages.xray.tun]
+"nameDesc" = "The name of the TUN interface. Default is 'xray0'"
+"mtuDesc" = "Maximum Transmission Unit. The maximum size of data packets. Default is 1500"
+"userLevel" = "User Level"
+"userLevelDesc" = "All connections made through this inbound will use this user level. Default is 0"
+
 [pages.xray.dns]
 "enable" = "Enable DNS"
 "enableDesc" = "Enable built-in DNS server"

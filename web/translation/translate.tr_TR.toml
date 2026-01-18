@@ -531,6 +531,12 @@
 "psk" = "Ön Paylaşılan Anahtar"
 "domainStrategy" = "Alan Adı Stratejisi"
 
+[pages.xray.tun]
+"nameDesc" = "TUN arabiriminin adı. Varsayılan değer 'xray0'dir"
+"mtuDesc" = "Maksimum İletim Birimi. Veri paketlerinin maksimum boyutu. Varsayılan değer 1500'dür"
+"userLevel" = "Kullanıcı Seviyesi"
+"userLevelDesc" = "Bu giriş yoluyla yapılan tüm bağlantılar bu kullanıcı seviyesini kullanacaktır. Varsayılan değer 0'dır"
+
 [pages.xray.dns]
 "enable" = "DNS'yi Etkinleştir"
 "enableDesc" = "Dahili DNS sunucusunu etkinleştir"

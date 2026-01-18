@@ -531,6 +531,12 @@
 "psk" = "Kunci Pra-Bagi"
 "domainStrategy" = "Strategi Domain"
 
+[pages.xray.tun]
+"nameDesc" = "Nama antarmuka TUN. Standar adalah 'xray0'"
+"mtuDesc" = "Unit Transmisi Maksimum. Ukuran maksimum paket data. Standar adalah 1500"
+"userLevel" = "Level Pengguna"
+"userLevelDesc" = "Semua koneksi yang dibuat melalui inbound ini akan menggunakan level pengguna ini. Standar adalah 0"
+
 [pages.xray.dns]
 "enable" = "Aktifkan DNS"
 "enableDesc" = "Aktifkan server DNS bawaan"
