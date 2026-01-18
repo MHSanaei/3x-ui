@@ -1,0 +1,22 @@
+FROM alpine:3.20
+
+ARG TARGETARCH
+ARG XRAY_VERSION
+ARG XRAY_BUILD_DIR
+
+WORKDIR /app
+
+RUN apk add --no-cache  \
+    wget  \
+    curl \
+    bash \
+    ca-certificates  \
+    tzdata
+
+COPY lib/geo.sh \
+    docker-cron-runner/entrypoint.sh \
+    docker-cron-runner/cron-job-script.sh ./
+
+RUN chmod +x geo.sh entrypoint.sh cron-job-script.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

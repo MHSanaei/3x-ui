@@ -3,14 +3,7 @@ set -eu
 
 echo "[$(date)] Starting geodata update..."
 
-FINISHED_FLAG="${SHARED_VOLUME_PATH}/cron-job-finished.txt"
-
-if [ -f "$FINISHED_FLAG" ]; then
-  rm -f "$FINISHED_FLAG"
-fi
-
-/app/xray-tools.sh update_geodata_in_docker "${SHARED_VOLUME_PATH}"
-touch "$FINISHED_FLAG"
+/app/geo.sh update_all_geofiles "${SHARED_VOLUME_PATH}"
 
 echo "[$(date)] Geodata update finished, restarting container..."
 

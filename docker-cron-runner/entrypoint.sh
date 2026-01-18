@@ -18,8 +18,8 @@ mkdir -p /var/log
 touch /var/log/cron.log
 
 mkdir -p "$SHARED_VOLUME_PATH"
-cp -r "$XRAY_BUILD_DIR"/* "$SHARED_VOLUME_PATH"/
+#cp -r "$XRAY_BUILD_DIR"/* "$SHARED_VOLUME_PATH"/
 
-touch "$SHARED_VOLUME_PATH/cron-job-finished.txt" # cron job execution imitation
+#touch "$SHARED_VOLUME_PATH/cron-job-finished.txt" # cron job execution imitation
 
 exec crond -f -l 2
