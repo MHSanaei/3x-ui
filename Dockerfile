@@ -7,7 +7,9 @@ ARG TARGETARCH
 ARG XRAY_VERSION
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-ENV XRAY_BUILD_DIR="/app/xray-build"
+ENV XRAY_GEO_FILES_DIR="/app/xray-build"
+ENV XRAY_BUILD_DIR="/app/build/x-ui"
+
 WORKDIR /app
 
 RUN apk add --no-cache --update \
@@ -18,15 +20,14 @@ RUN apk add --no-cache --update \
   bash
 
 # Install xray-core and geodat files
-RUN mkdir -p "$XRAY_BUILD_DIR"
-COPY lib/geo.sh "$XRAY_BUILD_DIR"/
-COPY lib/xray-tools.sh "$XRAY_BUILD_DIR"/
+RUN mkdir -p "$XRAY_GEO_FILES_DIR"
+COPY lib/geo.sh "$XRAY_GEO_FILES_DIR"/
+COPY lib/xray-tools.sh "$XRAY_GEO_FILES_DIR"/
 
-RUN chmod +x "$XRAY_BUILD_DIR"/xray-tools.sh \
-    && chmod +x "$XRAY_BUILD_DIR"/geo.sh
-RUN "$XRAY_BUILD_DIR"/xray-tools.sh install_xray_core "$TARGETARCH" "$XRAY_BUILD_DIR"/bin "$XRAY_VERSION" \
-    && "$XRAY_BUILD_DIR"/geo.sh update_all_geofiles "$XRAY_BUILD_DIR"/bin
-
+RUN chmod +x "$XRAY_GEO_FILES_DIR"/xray-tools.sh \
+    && chmod +x "$XRAY_GEO_FILES_DIR"/geo.sh
+RUN "$XRAY_GEO_FILES_DIR"/xray-tools.sh install_xray_core "$TARGETARCH" "$XRAY_GEO_FILES_DIR"/bin "$XRAY_VERSION" \
+    && "$XRAY_GEO_FILES_DIR"/geo.sh update_all_geofiles "$XRAY_GEO_FILES_DIR"/bin
 
 # docker CACHE
 COPY go.mod go.sum ./
@@ -42,20 +43,20 @@ COPY util/ util/
 COPY xray/ xray/
 COPY main.go ./
 
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
+RUN go build -ldflags "-w -s" -o "$XRAY_BUILD_DIR" main.go
 
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
 FROM alpine
 
-WORKDIR /app
-
 RUN apk add --no-cache \
   ca-certificates \
   tzdata \
   fail2ban \
   bash
+
+WORKDIR /app
 
 COPY DockerEntrypoint.sh ./
 COPY --from=builder /app/build/x-ui ./
