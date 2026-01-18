@@ -1,12 +1,16 @@
 {{define "form/outbound"}}
 <!-- base -->
-<a-tabs :active-key="outModal.activeKey" :style="{ padding: '0', backgroundColor: 'transparent' }"
+<a-tabs :active-key="outModal.activeKey"
+  :style="{ padding: '0', backgroundColor: 'transparent' }"
   @change="(activeKey) => {outModal.toggleJson(activeKey == '2'); }">
   <a-tab-pane key="1" tab="Form">
-    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+    <a-form :colon="false" :label-col="{ md: {span:8} }"
+      :wrapper-col="{ md: {span:14} }">
       <a-form-item label='{{ i18n "protocol" }}'>
-        <a-select v-model="outbound.protocol" :dropdown-class-name="themeSwitcher.currentTheme">
-          <a-select-option v-for="x,y in Protocols" :value="x">[[ y ]]</a-select-option>
+        <a-select v-model="outbound.protocol"
+          :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option v-for="x,y in Protocols" :value="x">[[ y
+            ]]</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label='{{ i18n "pages.xray.outbound.tag" }}' has-feedback
@@ -21,8 +25,10 @@
       <!-- freedom settings-->
       <template v-if="outbound.protocol === Protocols.Freedom">
         <a-form-item label='Strategy'>
-          <a-select v-model="outbound.settings.domainStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[ s ]]</a-select-option>
+          <a-select v-model="outbound.settings.domainStrategy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in OutboundDomainStrategies" :value="s">[[
+              s ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label='Redirect'>
@@ -35,18 +41,22 @@
         </a-form-item>
         <template v-if="Object.keys(outbound.settings.fragment).length >0">
           <a-form-item label='Packets'>
-            <a-select v-model="outbound.settings.fragment.packets" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="s in ['1-3','tlshello']" :value="s">[[ s ]]</a-select-option>
+            <a-select v-model="outbound.settings.fragment.packets"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="s in ['1-3','tlshello']" :value="s">[[ s
+                ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label='Length'>
             <a-input v-model.trim="outbound.settings.fragment.length"></a-input>
           </a-form-item>
           <a-form-item label='Interval'>
-            <a-input v-model.trim="outbound.settings.fragment.interval"></a-input>
+            <a-input
+              v-model.trim="outbound.settings.fragment.interval"></a-input>
           </a-form-item>
           <a-form-item label='Max Split'>
-            <a-input v-model.trim="outbound.settings.fragment.maxSplit"></a-input>
+            <a-input
+              v-model.trim="outbound.settings.fragment.maxSplit"></a-input>
           </a-form-item>
         </template>
 
@@ -60,11 +70,13 @@
         <!-- Add Noise Button -->
         <template v-if="outbound.settings.noises.length > 0">
           <a-form-item label="Noises">
-            <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addNoise()"></a-button>
+            <a-button icon="plus" type="primary" size="small"
+              @click="outbound.settings.addNoise()"></a-button>
           </a-form-item>
 
           <!-- Noise Configurations -->
-          <a-form v-for="(noise, index) in outbound.settings.noises" :key="index" :colon="false"
+          <a-form v-for="(noise, index) in outbound.settings.noises"
+            :key="index" :colon="false"
             :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
             <a-divider :style="{ margin: '0' }"> Noise [[ index + 1 ]]
               <a-icon v-if="outbound.settings.noises.length > 1" type="delete"
@@ -72,8 +84,10 @@
                 :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
             </a-divider>
             <a-form-item label='Type'>
-              <a-select v-model="noise.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['rand','base64','str', 'hex']" :value="s">[[ s ]]</a-select-option>
+              <a-select v-model="noise.type"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['rand','base64','str', 'hex']"
+                  :value="s">[[ s ]]</a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label='Packet'>
@@ -83,8 +97,10 @@
               <a-input v-model.trim="noise.delay"></a-input>
             </a-form-item>
             <a-form-item label='Apply To'>
-              <a-select v-model="noise.applyTo" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="s in ['ip','ipv4','ipv6']" :value="s">[[ s ]]</a-select-option>
+              <a-select v-model="noise.applyTo"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-for="s in ['ip','ipv4','ipv6']" :value="s">[[
+                  s ]]</a-select-option>
               </a-select>
             </a-form-item>
           </a-form>
@@ -94,8 +110,10 @@
       <!-- blackhole settings -->
       <template v-if="outbound.protocol === Protocols.Blackhole">
         <a-form-item label='Response Type'>
-          <a-select v-model="outbound.settings.type" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in ['', 'none','http']" :value="s">[[ s ]]</a-select-option>
+          <a-select v-model="outbound.settings.type"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['', 'none','http']" :value="s">[[ s
+              ]]</a-select-option>
           </a-select>
         </a-form-item>
       </template>
@@ -103,16 +121,21 @@
       <!-- dns settings -->
       <template v-if="outbound.protocol === Protocols.DNS">
         <a-form-item label='{{ i18n "pages.inbounds.network" }}'>
-          <a-select v-model="outbound.settings.network" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s ]]</a-select-option>
+          <a-select v-model="outbound.settings.network"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['udp','tcp']" :value="s">[[ s
+              ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label='non-IP queries'>
-          <a-select v-model="outbound.settings.nonIPQuery" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="s in ['reject','drop','skip']" :value="s">[[ s ]]</a-select-option>
+          <a-select v-model="outbound.settings.nonIPQuery"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="s in ['reject','drop','skip']" :value="s">[[
+              s ]]</a-select-option>
           </a-select>
         </a-form-item>
-        <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'" label='Block Types'>
+        <a-form-item v-if="outbound.settings.nonIPQuery === 'skip'"
+          label='Block Types'>
           <a-input v-model.number="outbound.settings.blockTypes"></a-input>
         </a-form-item>
       </template>
@@ -149,15 +172,19 @@
           <a-input disabled v-model="outbound.settings.pubKey"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.xray.wireguard.domainStrategy" }}'>
-          <a-select v-model="outbound.settings.domainStrategy" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="wds in ['', ...WireguardDomainStrategy]" :value="wds">[[ wds ]]</a-select-option>
+          <a-select v-model="outbound.settings.domainStrategy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="wds in ['', ...WireguardDomainStrategy]"
+              :value="wds">[[ wds ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label='MTU'>
-          <a-input-number v-model.number="outbound.settings.mtu" min="0"></a-input-number>
+          <a-input-number v-model.number="outbound.settings.mtu"
+            min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='Workers'>
-          <a-input-number v-model.number="outbound.settings.workers" min="0"></a-input-number>
+          <a-input-number v-model.number="outbound.settings.workers"
+            min="0"></a-input-number>
         </a-form-item>
         <a-form-item label='No Kernel Tun'>
           <a-switch v-model="outbound.settings.noKernelTun"></a-switch>
@@ -173,11 +200,14 @@
           <a-input v-model="outbound.settings.reserved"></a-input>
         </a-form-item>
         <a-form-item label="Peers">
-          <a-button icon="plus" type="primary" size="small" @click="outbound.settings.addPeer()"></a-button>
+          <a-button icon="plus" type="primary" size="small"
+            @click="outbound.settings.addPeer()"></a-button>
         </a-form-item>
-        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false" :label-col="{ md: {span:8} }"
+        <a-form v-for="(peer, index) in outbound.settings.peers" :colon="false"
+          :label-col="{ md: {span:8} }"
           :wrapper-col="{ md: {span:14} }">
-          <a-divider :style="{ margin: '0' }"> Peer [[ index + 1 ]] <a-icon v-if="outbound.settings.peers.length>1"
+          <a-divider :style="{ margin: '0' }"> Peer [[ index + 1 ]] <a-icon
+              v-if="outbound.settings.peers.length>1"
               type="delete" @click="() => outbound.settings.delPeer(index)"
               :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
           </a-divider>
@@ -193,17 +223,21 @@
           <a-form-item>
             <template slot="label">
               {{ i18n "pages.xray.wireguard.allowedIPs" }}
-              <a-button icon="plus" type="primary" size="small" @click="peer.allowedIPs.push('')"></a-button>
+              <a-button icon="plus" type="primary" size="small"
+                @click="peer.allowedIPs.push('')"></a-button>
             </template>
-            <template v-for="(aip, index) in peer.allowedIPs" :style="{ marginBottom: '10px' }">
+            <template v-for="(aip, index) in peer.allowedIPs"
+              :style="{ marginBottom: '10px' }">
               <a-input v-model.trim="peer.allowedIPs[index]">
-                <a-button icon="minus" v-if="peer.allowedIPs.length>1" slot="addonAfter" size="small"
+                <a-button icon="minus" v-if="peer.allowedIPs.length>1"
+                  slot="addonAfter" size="small"
                   @click="peer.allowedIPs.splice(index, 1)"></a-button>
               </a-input>
             </template>
           </a-form-item>
           <a-form-item label='Keep Alive'>
-            <a-input-number v-model.number="peer.keepAlive" :min="0"></a-input-number>
+            <a-input-number v-model.number="peer.keepAlive"
+              :min="0"></a-input-number>
           </a-form-item>
         </a-form>
       </template>
@@ -214,12 +248,14 @@
           <a-input v-model.trim="outbound.settings.address"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.inbounds.port" }}'>
-          <a-input-number v-model.number="outbound.settings.port" :min="1" :max="65532"></a-input-number>
+          <a-input-number v-model.number="outbound.settings.port" :min="1"
+            :max="65532"></a-input-number>
         </a-form-item>
       </template>
 
       <!-- VLESS/VMess user settings -->
-      <template v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
+      <template
+        v-if="[Protocols.VMess, Protocols.VLESS].includes(outbound.protocol)">
         <a-form-item label='ID'>
           <a-input v-model.trim="outbound.settings.id"></a-input>
         </a-form-item>
@@ -227,8 +263,10 @@
         <!-- vmess settings -->
         <template v-if="outbound.protocol === Protocols.VMess">
           <a-form-item label='Security'>
-            <a-select v-model="outbound.settings.security" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+            <a-select v-model="outbound.settings.security"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key
+                ]]</a-select-option>
             </a-select>
           </a-form-item>
         </template>
@@ -241,35 +279,47 @@
         </template>
         <template v-if="outbound.canEnableTlsFlow()">
           <a-form-item label='Flow'>
-            <a-select v-model="outbound.settings.flow" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-              <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
+            <a-select v-model="outbound.settings.flow"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value selected>{{ i18n "none"
+                }}</a-select-option>
+              <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[
+                key ]]</a-select-option>
             </a-select>
           </a-form-item>
         </template>
         <!-- XTLS Vision Advanced Settings -->
         <template v-if="outbound.canEnableVisionSeed()">
           <a-form-item label="Vision Pre-Connect">
-            <a-input-number v-model.number="outbound.settings.testpre" :min="0" :max="10" :style="{ width: '100%' }"
+            <a-input-number v-model.number="outbound.settings.testpre" :min="0"
+              :max="10" :style="{ width: '100%' }"
               placeholder="0"></a-input-number>
           </a-form-item>
           <a-form-item label="Vision Seed">
             <a-row :gutter="8">
               <a-col :span="6">
-                <a-input-number v-model.number="outbound.settings.testseed[0]" :min="0" :max="9999"
-                  :style="{ width: '100%' }" placeholder="900" addon-before="[0]"></a-input-number>
+                <a-input-number v-model.number="outbound.settings.testseed[0]"
+                  :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="900"
+                  addon-before="[0]"></a-input-number>
               </a-col>
               <a-col :span="6">
-                <a-input-number v-model.number="outbound.settings.testseed[1]" :min="0" :max="9999"
-                  :style="{ width: '100%' }" placeholder="500" addon-before="[1]"></a-input-number>
+                <a-input-number v-model.number="outbound.settings.testseed[1]"
+                  :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="500"
+                  addon-before="[1]"></a-input-number>
               </a-col>
               <a-col :span="6">
-                <a-input-number v-model.number="outbound.settings.testseed[2]" :min="0" :max="9999"
-                  :style="{ width: '100%' }" placeholder="900" addon-before="[2]"></a-input-number>
+                <a-input-number v-model.number="outbound.settings.testseed[2]"
+                  :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="900"
+                  addon-before="[2]"></a-input-number>
               </a-col>
               <a-col :span="6">
-                <a-input-number v-model.number="outbound.settings.testseed[3]" :min="0" :max="9999"
-                  :style="{ width: '100%' }" placeholder="256" addon-before="[3]"></a-input-number>
+                <a-input-number v-model.number="outbound.settings.testseed[3]"
+                  :min="0" :max="9999"
+                  :style="{ width: '100%' }" placeholder="256"
+                  addon-before="[3]"></a-input-number>
               </a-col>
             </a-row>
           </a-form-item>
@@ -289,7 +339,8 @@
         </template>
 
         <!-- trojan/shadowsocks -->
-        <template v-if="[Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
+        <template
+          v-if="[Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
           <a-form-item label='{{ i18n "password" }}'>
             <a-input v-model.trim="outbound.settings.password"></a-input>
           </a-form-item>
@@ -298,8 +349,10 @@
         <!-- shadowsocks -->
         <template v-if="outbound.protocol === Protocols.Shadowsocks">
           <a-form-item label='{{ i18n "encryption" }}'>
-            <a-select v-model="outbound.settings.method" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="(method, method_name) in SSMethods" :value="method">[[ method_name
+            <a-select v-model="outbound.settings.method"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="(method, method_name) in SSMethods"
+                :value="method">[[ method_name
                 ]]</a-select-option>
             </a-select>
           </a-form-item>
@@ -307,15 +360,25 @@
             <a-switch v-model="outbound.settings.uot"></a-switch>
           </a-form-item>
           <a-form-item label='UoTVersion'>
-            <a-input-number v-model.number="outbound.settings.UoTVersion" :min="1" :max="2"></a-input-number>
+            <a-input-number v-model.number="outbound.settings.UoTVersion"
+              :min="1" :max="2"></a-input-number>
           </a-form-item>
         </template>
+      </template>
+
+      <!-- hysteria settings -->
+      <template v-if="outbound.protocol === Protocols.Hysteria">
+        <a-form-item label='Version'>
+          <a-input-number v-model.number="outbound.settings.version" :min="2"
+            :max="2" disabled></a-input-number>
+        </a-form-item>
       </template>
 
       <!-- stream settings -->
       <template v-if="outbound.canEnableStream()">
         <a-form-item label='{{ i18n "transmission" }}'>
-          <a-select v-model="outbound.stream.network" @change="streamNetworkChange"
+          <a-select v-model="outbound.stream.network"
+            @change="streamNetworkChange"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
@@ -323,6 +386,8 @@
             <a-select-option value="grpc">gRPC</a-select-option>
             <a-select-option value="httpupgrade">HTTPUpgrade</a-select-option>
             <a-select-option value="xhttp">XHTTP</a-select-option>
+            <a-select-option v-if="outbound.protocol === Protocols.Hysteria"
+              value="hysteria">Hysteria2</a-select-option>
           </a-select>
         </a-form-item>
         <template v-if="outbound.stream.network === 'tcp'">
@@ -343,7 +408,8 @@
         <!-- kcp -->
         <template v-if="outbound.stream.network === 'kcp'">
           <a-form-item label='{{ i18n "camouflage" }}'>
-            <a-select v-model="outbound.stream.kcp.type" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select v-model="outbound.stream.kcp.type"
+              :dropdown-class-name="themeSwitcher.currentTheme">
               <a-select-option value="none">None</a-select-option>
               <a-select-option value="srtp">SRTP</a-select-option>
               <a-select-option value="utp">uTP</a-select-option>
@@ -357,25 +423,31 @@
             <a-input v-model="outbound.stream.kcp.seed"></a-input>
           </a-form-item>
           <a-form-item label='MTU'>
-            <a-input-number v-model.number="outbound.stream.kcp.mtu" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.mtu"
+              min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='TTI (ms)'>
-            <a-input-number v-model.number="outbound.stream.kcp.tti" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.tti"
+              min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Uplink (MB/s)'>
-            <a-input-number v-model.number="outbound.stream.kcp.upCap" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.upCap"
+              min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Downlink (MB/s)'>
-            <a-input-number v-model.number="outbound.stream.kcp.downCap" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.downCap"
+              min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Congestion'>
             <a-switch v-model="outbound.stream.kcp.congestion"></a-switch>
           </a-form-item>
           <a-form-item label='Read Buffer (MB)'>
-            <a-input-number v-model.number="outbound.stream.kcp.readBuffer" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.readBuffer"
+              min="0"></a-input-number>
           </a-form-item>
           <a-form-item label='Write Buffer (MB)'>
-            <a-input-number v-model.number="outbound.stream.kcp.writeBuffer" min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.kcp.writeBuffer"
+              min="0"></a-input-number>
           </a-form-item>
         </template>
 
@@ -388,7 +460,8 @@
             <a-input v-model.trim="outbound.stream.ws.path"></a-input>
           </a-form-item>
           <a-form-item label='Heartbeat Period'>
-            <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod" :min="0"></a-input-number>
+            <a-input-number v-model.number="outbound.stream.ws.heartbeatPeriod"
+              :min="0"></a-input-number>
           </a-form-item>
         </template>
 
@@ -424,45 +497,144 @@
             <a-input v-model.trim="outbound.stream.xhttp.path"></a-input>
           </a-form-item>
           <a-form-item label='Mode'>
-            <a-select v-model="outbound.stream.xhttp.mode" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key ]]</a-select-option>
+            <a-select v-model="outbound.stream.xhttp.mode"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in MODE_OPTION" :value="key">[[ key
+                ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="No gRPC Header"
             v-if="outbound.stream.xhttp.mode === 'stream-up' || outbound.stream.xhttp.mode === 'stream-one'">
             <a-switch v-model="outbound.stream.xhttp.noGRPCHeader"></a-switch>
           </a-form-item>
-          <a-form-item label="Min Upload Interval (Ms)" v-if="outbound.stream.xhttp.mode === 'packet-up'">
-            <a-input v-model.trim="outbound.stream.xhttp.scMinPostsIntervalMs"></a-input>
+          <a-form-item label="Min Upload Interval (Ms)"
+            v-if="outbound.stream.xhttp.mode === 'packet-up'">
+            <a-input
+              v-model.trim="outbound.stream.xhttp.scMinPostsIntervalMs"></a-input>
           </a-form-item>
-          <a-form-item label="Max Concurrency" v-if="!outbound.stream.xhttp.xmux.maxConnections">
-            <a-input v-model="outbound.stream.xhttp.xmux.maxConcurrency"></a-input>
+          <a-form-item label="Max Concurrency"
+            v-if="!outbound.stream.xhttp.xmux.maxConnections">
+            <a-input
+              v-model="outbound.stream.xhttp.xmux.maxConcurrency"></a-input>
           </a-form-item>
-          <a-form-item label="Max Connections" v-if="!outbound.stream.xhttp.xmux.maxConcurrency">
-            <a-input v-model="outbound.stream.xhttp.xmux.maxConnections"></a-input>
+          <a-form-item label="Max Connections"
+            v-if="!outbound.stream.xhttp.xmux.maxConcurrency">
+            <a-input
+              v-model="outbound.stream.xhttp.xmux.maxConnections"></a-input>
           </a-form-item>
           <a-form-item label="Max Reuse Times">
-            <a-input v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
+            <a-input
+              v-model="outbound.stream.xhttp.xmux.cMaxReuseTimes"></a-input>
           </a-form-item>
           <a-form-item label="Max Request Times">
-            <a-input v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
+            <a-input
+              v-model="outbound.stream.xhttp.xmux.hMaxRequestTimes"></a-input>
           </a-form-item>
           <a-form-item label="Max Reusable Secs">
-            <a-input v-model="outbound.stream.xhttp.xmux.hMaxReusableSecs"></a-input>
+            <a-input
+              v-model="outbound.stream.xhttp.xmux.hMaxReusableSecs"></a-input>
           </a-form-item>
           <a-form-item label='Keep Alive Period'>
-            <a-input-number v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input-number>
+            <a-input-number
+              v-model.number="outbound.stream.xhttp.xmux.hKeepAlivePeriod"></a-input-number>
           </a-form-item>
+        </template>
+
+        <!-- hysteria -->
+        <template v-if="outbound.stream.network === 'hysteria'">
+          <a-form-item label='Auth Password'>
+            <a-input v-model.trim="outbound.stream.hysteria.auth"></a-input>
+          </a-form-item>
+          <a-form-item label='Congestion'>
+            <a-select v-model="outbound.stream.hysteria.congestion" :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value="">BBR (Auto)</a-select-option>
+              <a-select-option value="brutal">Brutal</a-select-option>
+            </a-select>
+          </a-form-item>
+          <a-form-item label='Upload Speed'>
+            <a-input v-model.trim="outbound.stream.hysteria.up"
+              placeholder="0 (BBR mode), e.g., 100 mbps"></a-input>
+          </a-form-item>
+          <a-form-item label='Download Speed'>
+            <a-input v-model.trim="outbound.stream.hysteria.down"
+              placeholder="0 (BBR mode), e.g., 100 mbps"></a-input>
+          </a-form-item>
+          <a-form-item label='UDP Hop Port'>
+            <a-input v-model.trim="outbound.stream.hysteria.udphopPort"
+              placeholder="e.g., 1145-1919 or 11,13,15-17"></a-input>
+          </a-form-item>
+          <a-form-item label='UDP Hop Interval (s)'
+            v-if="outbound.stream.hysteria.udphopPort">
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.udphopInterval"
+              :min="5"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Init Stream Receive'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.initStreamReceiveWindow"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Max Stream Receive'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.maxStreamReceiveWindow"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Init Connection Receive'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.initConnectionReceiveWindow"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Max Connection Receive'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.maxConnectionReceiveWindow"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Max Idle Timeout (s)'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.maxIdleTimeout" :min="4"
+              :max="120"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Keep Alive Period (s)'>
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.keepAlivePeriod" :min="0"
+              :max="60"></a-input-number>
+          </a-form-item>
+          <a-form-item label='Disable Path MTU'>
+            <a-switch
+              v-model="outbound.stream.hysteria.disablePathMTUDiscovery"></a-switch>
+          </a-form-item>
+        </template>
+      </template>
+
+      <!-- udpmasks settings -->
+      <template v-if="outbound.canEnableStream()">
+        <a-form-item label="UDP Masks">
+          <a-button icon="plus" type="primary" size="small" @click="outbound.stream.addUdpMask()"></a-button>
+        </a-form-item>
+        <template v-if="outbound.stream.udpmasks.length > 0">
+          <a-form v-for="(mask, index) in outbound.stream.udpmasks" :key="index" :colon="false"
+            :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+            <a-divider :style="{ margin: '0' }"> UDP Mask [[ index + 1 ]]
+              <a-icon type="delete" @click="() => outbound.stream.delUdpMask(index)"
+                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+            </a-divider>
+            <a-form-item label='Type'>
+              <a-select v-model="mask.type" :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="salamander">Salamander</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label='Password'>
+              <a-input v-model.trim="mask.password" placeholder="Obfuscation password"></a-input>
+            </a-form-item>
+          </a-form>
         </template>
       </template>
 
       <!-- tls settings -->
       <template v-if="outbound.canEnableTls()">
         <a-form-item label='{{ i18n "security" }}'>
-          <a-radio-group v-model="outbound.stream.security" button-style="solid">
+          <a-radio-group v-model="outbound.stream.security"
+            button-style="solid">
             <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
             <a-radio-button value="tls">TLS</a-radio-button>
-            <a-radio-button v-if="outbound.canEnableReality()" value="reality">Reality</a-radio-button>
+            <a-radio-button v-if="outbound.canEnableReality()"
+              value="reality">Reality</a-radio-button>
           </a-radio-group>
         </a-form-item>
         <template v-if="outbound.stream.isTls">
@@ -470,15 +642,19 @@
             <a-input v-model.trim="outbound.stream.tls.serverName"></a-input>
           </a-form-item>
           <a-form-item label="uTLS">
-            <a-select v-model="outbound.stream.tls.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value=''>None</a-select-option>
-              <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            <a-select v-model="outbound.stream.tls.fingerprint"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>None</a-select-option>
+              <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[
+                key ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="ALPN">
-            <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme"
+            <a-select mode="multiple"
+              :dropdown-class-name="themeSwitcher.currentTheme"
               v-model="outbound.stream.tls.alpn">
-              <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+              <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn
+                ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="ECH Config List">
@@ -492,11 +668,14 @@
         <!-- reality settings -->
         <template v-if="outbound.stream.isReality">
           <a-form-item label="SNI">
-            <a-input v-model.trim="outbound.stream.reality.serverName"></a-input>
+            <a-input
+              v-model.trim="outbound.stream.reality.serverName"></a-input>
           </a-form-item>
           <a-form-item label="uTLS">
-            <a-select v-model="outbound.stream.reality.fingerprint" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+            <a-select v-model="outbound.stream.reality.fingerprint"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[
+                key ]]</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="Short ID">
@@ -506,10 +685,12 @@
             <a-input v-model.trim="outbound.stream.reality.spiderX"></a-input>
           </a-form-item>
           <a-form-item label="Public Key">
-            <a-textarea v-model.trim="outbound.stream.reality.publicKey"></a-textarea>
+            <a-textarea
+              v-model.trim="outbound.stream.reality.publicKey"></a-textarea>
           </a-form-item>
           <a-form-item label="mldsa65 Verify">
-            <a-textarea v-model.trim="outbound.stream.reality.mldsa65Verify"></a-textarea>
+            <a-textarea
+              v-model.trim="outbound.stream.reality.mldsa65Verify"></a-textarea>
           </a-form-item>
         </template>
       </template>
@@ -520,18 +701,23 @@
       </a-form-item>
       <template v-if="outbound.stream.sockoptSwitch">
         <a-form-item label="Dialer Proxy">
-          <a-select v-model="outbound.stream.sockopt.dialerProxy" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="tag in ['', ...outModal.tags]" :value="tag">[[ tag ]]</a-select-option>
+          <a-select v-model="outbound.stream.sockopt.dialerProxy"
+            :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="tag in ['', ...outModal.tags]"
+              :value="tag">[[ tag ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label='Address Port Strategy'>
           <a-select v-model="outbound.stream.sockopt.addressPortStrategy"
             :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="key in Address_Port_Strategy" :value="key">[[ key ]]</a-select-option>
+            <a-select-option v-for="key in Address_Port_Strategy"
+              :value="key">[[ key ]]</a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="Keep Alive Interval">
-          <a-input-number v-model.number="outbound.stream.sockopt.tcpKeepAliveInterval" :min="0"></a-input-number>
+          <a-input-number
+            v-model.number="outbound.stream.sockopt.tcpKeepAliveInterval"
+            :min="0"></a-input-number>
         </a-form-item>
         <a-form-item label="TCP Fast Open">
           <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
@@ -543,11 +729,15 @@
           <a-switch v-model="outbound.stream.sockopt.penetrate"></a-switch>
         </a-form-item>
         <a-form-item label="Trusted X-Forwarded-For">
-          <a-select mode="tags" v-model="outbound.stream.sockopt.trustedXForwardedFor" :style="{ width: '100%' }"
+          <a-select mode="tags"
+            v-model="outbound.stream.sockopt.trustedXForwardedFor"
+            :style="{ width: '100%' }"
             :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
+            <a-select-option
+              value="CF-Connecting-IP">CF-Connecting-IP</a-select-option>
             <a-select-option value="X-Real-IP">X-Real-IP</a-select-option>
-            <a-select-option value="True-Client-IP">True-Client-IP</a-select-option>
+            <a-select-option
+              value="True-Client-IP">True-Client-IP</a-select-option>
             <a-select-option value="X-Client-IP">X-Client-IP</a-select-option>
           </a-select>
         </a-form-item>
@@ -560,14 +750,18 @@
         </a-form-item>
         <template v-if="outbound.mux.enabled">
           <a-form-item label="Concurrency">
-            <a-input-number v-model.number="outbound.mux.concurrency" :min="-1" :max="1024"></a-input-number>
+            <a-input-number v-model.number="outbound.mux.concurrency" :min="-1"
+              :max="1024"></a-input-number>
           </a-form-item>
           <a-form-item label="xudp Concurrency">
-            <a-input-number v-model.number="outbound.mux.xudpConcurrency" :min="-1" :max="1024"></a-input-number>
+            <a-input-number v-model.number="outbound.mux.xudpConcurrency"
+              :min="-1" :max="1024"></a-input-number>
           </a-form-item>
           <a-form-item label="xudp UDP 443">
-            <a-select v-model="outbound.mux.xudpProxyUDP443" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option v-for="c in ['reject', 'allow', 'skip']" :value="c">[[ c ]]</a-select-option>
+            <a-select v-model="outbound.mux.xudpProxyUDP443"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option v-for="c in ['reject', 'allow', 'skip']"
+                :value="c">[[ c ]]</a-select-option>
             </a-select>
           </a-form-item>
         </template>
@@ -576,11 +770,13 @@
   </a-tab-pane>
   <a-tab-pane key="2" tab="JSON" force-render="true">
     <a-space direction="vertical" :size="10" :style="{ marginTop: '10px' }">
-      <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}' v-model.trim="outModal.link"
+      <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}'
+        v-model.trim="outModal.link"
         placeholder="vmess:// vless:// trojan:// ss://">
         <a-icon slot="addonAfter" type="form" @click="convertLink"></a-icon>
       </a-input>
-      <textarea :style="{ position: 'absolute', left: '-800px' }" id="outboundJson"></textarea>
+      <textarea :style="{ position: 'absolute', left: '-800px' }"
+        id="outboundJson"></textarea>
     </a-space>
   </a-tab-pane>
 </a-tabs>
