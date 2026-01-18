@@ -15,6 +15,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 )
 
@@ -33,6 +34,14 @@ func NewCheckClientIpJob() *CheckClientIpJob {
 }
 
 func (j *CheckClientIpJob) Run() {
+	// Check if multi-node mode is enabled
+	settingService := service.SettingService{}
+	multiMode, err := settingService.GetMultiNodeMode()
+	if err == nil && multiMode {
+		// In multi-node mode, IP checking is handled by nodes
+		return
+	}
+
 	if j.lastClear == 0 {
 		j.lastClear = time.Now().Unix()
 	}

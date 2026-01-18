@@ -78,6 +78,19 @@
                   </a-row>
                 </a-card>
               </a-col>
+              <a-col v-if="multiNodeMode" :sm="24" :lg="12">
+                <a-card hoverable>
+                  <a-row :gutter="[0, isMobile ? 16 : 0]">
+                    <a-col :span="24" class="text-center">
+                      <a-progress type="dashboard" status="normal" :stroke-color="status.nodesColor"
+                        :percent="status.nodesPercent"></a-progress>
+                      <div>
+                        <b>{{ i18n "pages.index.nodesAvailability" }}:</b> [[ status.nodes.online ]] / [[ status.nodes.total ]]
+                      </div>
+                    </a-col>
+                  </a-row>
+                </a-card>
+              </a-col>
               <a-col :sm="24" :lg="12">
                 <a-card hoverable>
                   <template #title>
@@ -379,6 +392,15 @@
       </a-icon>
     </template>
     <a-form layout="inline">
+      <a-form-item class="mr-05" v-if="multiNodeMode" label="Node:">
+        <a-select size="small" v-model="xraylogModal.nodeId" :style="{ width: '180px' }" @change="openXrayLogs()"
+          :dropdown-class-name="themeSwitcher.currentTheme" placeholder="Select Node">
+          <a-select-option value="">All Nodes</a-select-option>
+          <a-select-option v-for="node in xraylogModal.nodes" :key="node.id" :value="node.id.toString()">
+            [[ node.name || 'Node ' + node.id ]]
+          </a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item class="mr-05">
         <a-input-group compact>
           <a-select size="small" v-model="xraylogModal.rows" :style="{ width: '70px' }" @change="openXrayLogs()"
@@ -685,6 +707,7 @@
       this.appStats = { threads: 0, mem: 0, uptime: 0 };
 
       this.xray = { state: 'stop', stateMsg: "", errorMsg: "", version: "", color: "" };
+      this.nodes = { online: 0, total: 0 };
 
       if (data == null) {
         return;
@@ -707,6 +730,11 @@
       this.appUptime = data.appUptime;
       this.appStats = data.appStats;
       this.xray = data.xray;
+      if (data.nodes) {
+        this.nodes = { online: data.nodes.online || 0, total: data.nodes.total || 0 };
+      } else {
+        this.nodes = { online: 0, total: 0 };
+      }
       switch (this.xray.state) {
         case 'running':
           this.xray.color = "green";
@@ -724,6 +752,24 @@
           this.xray.color = "gray";
           this.xray.stateMsg = '{{ i18n "pages.index.xrayStatusUnknown" }}';
           break;
+      }
+    }
+    
+    get nodesPercent() {
+      if (this.nodes.total === 0) {
+        return 0;
+      }
+      return NumberFormatter.toFixed(this.nodes.online / this.nodes.total * 100, 2);
+    }
+    
+    get nodesColor() {
+      const percent = this.nodesPercent;
+      if (percent === 100) {
+        return '#008771'; // Green
+      } else if (percent >= 50) {
+        return "#f37b24"; // Orange
+      } else {
+        return "#cf3c3c"; // Red
       }
     }
   }
@@ -797,10 +843,14 @@
       visible: false,
       logs: [],
       rows: 20,
+      filter: '',
       showDirect: true,
       showBlocked: true,
       showProxy: true,
       loading: false,
+      multiNodeMode: false,
+      nodes: [],
+      nodeId: '',
       show(logs) {
         this.visible = true;
         this.logs = logs;
@@ -895,11 +945,42 @@
       showAlert: false,
       showIp: false,
       ipLimitEnable: false,
+      multiNodeMode: false,
     },
     methods: {
       loading(spinning, tip = '{{ i18n "loading"}}') {
         this.loadingStates.spinning = spinning;
         this.loadingTip = tip;
+      },
+      async loadMultiNodeMode() {
+        try {
+          const msg = await HttpUtil.post("/panel/setting/all");
+          if (msg && msg.success && msg.obj) {
+            this.multiNodeMode = Boolean(msg.obj.multiNodeMode) || false;
+            xraylogModal.multiNodeMode = this.multiNodeMode;
+            // Load nodes if multi-node mode is enabled
+            if (this.multiNodeMode) {
+              await this.loadNodesForLogs();
+            }
+          }
+        } catch (e) {
+          console.warn("Failed to load multi-node mode:", e);
+        }
+      },
+      async loadNodesForLogs() {
+        try {
+          const msg = await HttpUtil.get("/panel/node/list");
+          if (msg && msg.success && msg.obj) {
+            xraylogModal.nodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name || 'Node ' + node.id,
+              address: node.address || '',
+              status: node.status || 'unknown'
+            }));
+          }
+        } catch (e) {
+          console.warn("Failed to load nodes for logs:", e);
+        }
       },
       async getStatus() {
         try {
@@ -1027,12 +1108,45 @@
         logModal.loading = false;
       },
       async openXrayLogs() {
-        xraylogModal.loading = true;
-        const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, { filter: xraylogModal.filter, showDirect: xraylogModal.showDirect, showBlocked: xraylogModal.showBlocked, showProxy: xraylogModal.showProxy });
-        if (!msg.success) {
-          return;
+        // Ensure multi-node mode is loaded and nodes are available
+        if (this.multiNodeMode && xraylogModal.nodes.length === 0) {
+          await this.loadNodesForLogs();
         }
-        xraylogModal.show(msg.obj);
+        
+        xraylogModal.loading = true;
+        const params = { 
+          filter: xraylogModal.filter, 
+          showDirect: xraylogModal.showDirect, 
+          showBlocked: xraylogModal.showBlocked, 
+          showProxy: xraylogModal.showProxy 
+        };
+        
+        // If multi-node mode and nodeId is selected, use node-specific endpoint
+        if (this.multiNodeMode && xraylogModal.nodeId) {
+          const msg = await HttpUtil.post('/panel/node/logs/' + xraylogModal.nodeId, {
+            count: xraylogModal.rows,
+            filter: xraylogModal.filter,
+            showDirect: xraylogModal.showDirect,
+            showBlocked: xraylogModal.showBlocked,
+            showProxy: xraylogModal.showProxy
+          });
+          if (!msg.success) {
+            xraylogModal.loading = false;
+            return;
+          }
+          xraylogModal.show(msg.obj);
+        } else {
+          // Use standard endpoint with optional nodeId
+          if (xraylogModal.nodeId) {
+            params.nodeId = xraylogModal.nodeId;
+          }
+          const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, params);
+          if (!msg.success) {
+            xraylogModal.loading = false;
+            return;
+          }
+          xraylogModal.show(msg.obj);
+        }
         await PromiseUtil.sleep(500);
         xraylogModal.loading = false;
       },
@@ -1117,6 +1231,13 @@
         }, 2000);
       },
     },
+    watch: {
+      'xraylogModal.visible'(newVal) {
+        if (newVal && this.multiNodeMode && xraylogModal.nodes.length === 0) {
+          this.loadNodesForLogs();
+        }
+      }
+    },
     async mounted() {
       if (window.location.protocol !== "https:") {
         this.showAlert = true;
@@ -1126,6 +1247,9 @@
       if (msg.success) {
         this.ipLimitEnable = msg.obj.ipLimitEnable;
       }
+
+      // Load multi-node mode setting
+      await this.loadMultiNodeMode();
 
       // Initial status fetch
       await this.getStatus();

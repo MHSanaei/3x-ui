@@ -1,10 +1,5 @@
 {{define "form/vless"}}
-<a-collapse activeKey="0" v-for="(client, index) in inbound.settings.vlesses.slice(0,1)" v-if="!isEdit">
-  <a-collapse-panel header='{{ i18n "pages.inbounds.client" }}'>
-    {{template "form/client"}}
-  </a-collapse-panel>
-</a-collapse>
-<a-collapse v-else>
+<a-collapse v-if="isEdit">
   <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' +
     inbound.settings.vlesses.length">
     <table width="100%">

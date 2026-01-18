@@ -1,11 +1,14 @@
 package controller
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"strconv"
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
@@ -103,12 +106,61 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 
 // addInbound creates a new inbound configuration.
 func (a *InboundController) addInbound(c *gin.Context) {
+	// Try to get nodeIds from JSON body first (if Content-Type is application/json)
+	// This must be done BEFORE ShouldBind, which reads the body
+	var nodeIdsFromJSON []int
+	var nodeIdFromJSON *int
+	var hasNodeIdsInJSON, hasNodeIdInJSON bool
+	
+	if c.ContentType() == "application/json" {
+		// Read raw body to extract nodeIds
+		bodyBytes, err := c.GetRawData()
+		if err == nil && len(bodyBytes) > 0 {
+			// Parse JSON to extract nodeIds
+			var jsonData map[string]interface{}
+			if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
+				// Check for nodeIds array
+				if nodeIdsVal, ok := jsonData["nodeIds"]; ok {
+					hasNodeIdsInJSON = true
+					if nodeIdsArray, ok := nodeIdsVal.([]interface{}); ok {
+						for _, val := range nodeIdsArray {
+							if num, ok := val.(float64); ok {
+								nodeIdsFromJSON = append(nodeIdsFromJSON, int(num))
+							} else if num, ok := val.(int); ok {
+								nodeIdsFromJSON = append(nodeIdsFromJSON, num)
+							}
+						}
+					} else if num, ok := nodeIdsVal.(float64); ok {
+						// Single number instead of array
+						nodeIdsFromJSON = append(nodeIdsFromJSON, int(num))
+					} else if num, ok := nodeIdsVal.(int); ok {
+						nodeIdsFromJSON = append(nodeIdsFromJSON, num)
+					}
+				}
+				// Check for nodeId (backward compatibility)
+				if nodeIdVal, ok := jsonData["nodeId"]; ok {
+					hasNodeIdInJSON = true
+					if num, ok := nodeIdVal.(float64); ok {
+						nodeId := int(num)
+						nodeIdFromJSON = &nodeId
+					} else if num, ok := nodeIdVal.(int); ok {
+						nodeIdFromJSON = &num
+					}
+				}
+			}
+			// Restore body for ShouldBind
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		}
+	}
+	
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
 	if err != nil {
+		logger.Errorf("Failed to bind inbound data: %v", err)
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), err)
 		return
 	}
+	
 	user := session.GetLoginUser(c)
 	inbound.UserId = user.Id
 	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
@@ -119,9 +171,65 @@ func (a *InboundController) addInbound(c *gin.Context) {
 
 	inbound, needRestart, err := a.inboundService.AddInbound(inbound)
 	if err != nil {
+		logger.Errorf("Failed to add inbound: %v", err)
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+
+	// Handle node assignment in multi-node mode
+	nodeService := service.NodeService{}
+	
+	// Get nodeIds from form (for form-encoded requests)
+	nodeIdsStr := c.PostFormArray("nodeIds")
+	logger.Debugf("Received nodeIds from form: %v", nodeIdsStr)
+	
+	// Check if nodeIds array was provided (even if empty)
+	nodeIdStr := c.PostForm("nodeId")
+	
+	// Determine which source to use: JSON takes precedence over form data
+	useJSON := hasNodeIdsInJSON || hasNodeIdInJSON
+	useForm := (len(nodeIdsStr) > 0 || nodeIdStr != "") && !useJSON
+	
+	if useJSON || useForm {
+		var nodeIds []int
+		var nodeId *int
+		
+		if useJSON {
+			// Use data from JSON
+			nodeIds = nodeIdsFromJSON
+			nodeId = nodeIdFromJSON
+		} else {
+			// Parse nodeIds array from form
+			for _, idStr := range nodeIdsStr {
+				if idStr != "" {
+					if id, err := strconv.Atoi(idStr); err == nil && id > 0 {
+						nodeIds = append(nodeIds, id)
+					}
+				}
+			}
+			// Parse single nodeId from form
+			if nodeIdStr != "" && nodeIdStr != "null" {
+				if parsedId, err := strconv.Atoi(nodeIdStr); err == nil && parsedId > 0 {
+					nodeId = &parsedId
+				}
+			}
+		}
+		
+		if len(nodeIds) > 0 {
+			// Assign to multiple nodes
+			if err := nodeService.AssignInboundToNodes(inbound.Id, nodeIds); err != nil {
+				logger.Errorf("Failed to assign inbound %d to nodes %v: %v", inbound.Id, nodeIds, err)
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+		} else if nodeId != nil && *nodeId > 0 {
+			// Backward compatibility: single nodeId
+			if err := nodeService.AssignInboundToNode(inbound.Id, *nodeId); err != nil {
+				logger.Warningf("Failed to assign inbound %d to node %d: %v", inbound.Id, *nodeId, err)
+			}
+		}
+	}
+
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -160,19 +268,151 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
+	
+	// Try to get nodeIds from JSON body first (if Content-Type is application/json)
+	var nodeIdsFromJSON []int
+	var nodeIdFromJSON *int
+	var hasNodeIdsInJSON, hasNodeIdInJSON bool
+	
+	if c.ContentType() == "application/json" {
+		// Read raw body to extract nodeIds
+		bodyBytes, err := c.GetRawData()
+		if err == nil && len(bodyBytes) > 0 {
+			// Parse JSON to extract nodeIds
+			var jsonData map[string]interface{}
+			if err := json.Unmarshal(bodyBytes, &jsonData); err == nil {
+				// Check for nodeIds array
+				if nodeIdsVal, ok := jsonData["nodeIds"]; ok {
+					hasNodeIdsInJSON = true
+					if nodeIdsArray, ok := nodeIdsVal.([]interface{}); ok {
+						for _, val := range nodeIdsArray {
+							if num, ok := val.(float64); ok {
+								nodeIdsFromJSON = append(nodeIdsFromJSON, int(num))
+							} else if num, ok := val.(int); ok {
+								nodeIdsFromJSON = append(nodeIdsFromJSON, num)
+							}
+						}
+					} else if num, ok := nodeIdsVal.(float64); ok {
+						// Single number instead of array
+						nodeIdsFromJSON = append(nodeIdsFromJSON, int(num))
+					} else if num, ok := nodeIdsVal.(int); ok {
+						nodeIdsFromJSON = append(nodeIdsFromJSON, num)
+					}
+				}
+				// Check for nodeId (backward compatibility)
+				if nodeIdVal, ok := jsonData["nodeId"]; ok {
+					hasNodeIdInJSON = true
+					if num, ok := nodeIdVal.(float64); ok {
+						nodeId := int(num)
+						nodeIdFromJSON = &nodeId
+					} else if num, ok := nodeIdVal.(int); ok {
+						nodeIdFromJSON = &num
+					}
+				}
+			}
+			// Restore body for ShouldBind
+			c.Request.Body = io.NopCloser(bytes.NewBuffer(bodyBytes))
+		}
+	}
+	
+	// Get nodeIds from form (for form-encoded requests)
+	nodeIdsStr := c.PostFormArray("nodeIds")
+	logger.Debugf("Received nodeIds from form: %v (count: %d)", nodeIdsStr, len(nodeIdsStr))
+	
+	// Check if nodeIds array was provided
+	nodeIdStr := c.PostForm("nodeId")
+	logger.Debugf("Received nodeId from form: %s", nodeIdStr)
+	
+	// Check if nodeIds or nodeId was explicitly provided in the form
+	_, hasNodeIds := c.GetPostForm("nodeIds")
+	_, hasNodeId := c.GetPostForm("nodeId")
+	logger.Debugf("Form has nodeIds: %v, has nodeId: %v", hasNodeIds, hasNodeId)
+	logger.Debugf("JSON has nodeIds: %v (values: %v), has nodeId: %v (value: %v)", hasNodeIdsInJSON, nodeIdsFromJSON, hasNodeIdInJSON, nodeIdFromJSON)
+	
 	inbound := &model.Inbound{
 		Id: id,
 	}
+	// Bind inbound data (nodeIds will be ignored since we handle it separately)
 	err = c.ShouldBind(inbound)
 	if err != nil {
+		logger.Errorf("Failed to bind inbound data: %v", err)
 		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
 		return
 	}
 	inbound, needRestart, err := a.inboundService.UpdateInbound(inbound)
 	if err != nil {
+		logger.Errorf("Failed to update inbound: %v", err)
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
+
+	// Handle node assignment in multi-node mode
+	nodeService := service.NodeService{}
+	
+	// Determine which source to use: JSON takes precedence over form data
+	useJSON := hasNodeIdsInJSON || hasNodeIdInJSON
+	useForm := (hasNodeIds || hasNodeId) && !useJSON
+	
+	if useJSON || useForm {
+		var nodeIds []int
+		var nodeId *int
+		var hasNodeIdsFlag bool
+		
+		if useJSON {
+			// Use data from JSON
+			nodeIds = nodeIdsFromJSON
+			nodeId = nodeIdFromJSON
+			hasNodeIdsFlag = hasNodeIdsInJSON
+		} else {
+			// Use data from form
+			hasNodeIdsFlag = hasNodeIds
+			// Parse nodeIds array from form
+			for _, idStr := range nodeIdsStr {
+				if idStr != "" {
+					if id, err := strconv.Atoi(idStr); err == nil && id > 0 {
+						nodeIds = append(nodeIds, id)
+					} else {
+						logger.Warningf("Invalid nodeId in array: %s (error: %v)", idStr, err)
+					}
+				}
+			}
+			// Parse single nodeId from form
+			if nodeIdStr != "" && nodeIdStr != "null" {
+				if parsedId, err := strconv.Atoi(nodeIdStr); err == nil && parsedId > 0 {
+					nodeId = &parsedId
+				}
+			}
+		}
+		
+		logger.Debugf("Parsed nodeIds: %v, nodeId: %v", nodeIds, nodeId)
+		
+		if len(nodeIds) > 0 {
+			// Assign to multiple nodes
+			if err := nodeService.AssignInboundToNodes(inbound.Id, nodeIds); err != nil {
+				logger.Errorf("Failed to assign inbound %d to nodes %v: %v", inbound.Id, nodeIds, err)
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+			logger.Debugf("Successfully assigned inbound %d to nodes %v", inbound.Id, nodeIds)
+		} else if nodeId != nil && *nodeId > 0 {
+			// Backward compatibility: single nodeId
+			if err := nodeService.AssignInboundToNode(inbound.Id, *nodeId); err != nil {
+				logger.Errorf("Failed to assign inbound %d to node %d: %v", inbound.Id, *nodeId, err)
+				jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+				return
+			}
+			logger.Debugf("Successfully assigned inbound %d to node %d", inbound.Id, *nodeId)
+		} else if hasNodeIdsFlag {
+			// nodeIds was explicitly provided but is empty - unassign all
+			if err := nodeService.UnassignInboundFromNode(inbound.Id); err != nil {
+				logger.Warningf("Failed to unassign inbound %d from nodes: %v", inbound.Id, err)
+			} else {
+				logger.Debugf("Successfully unassigned inbound %d from all nodes", inbound.Id)
+			}
+		}
+		// If neither nodeIds nor nodeId was provided, don't change assignments
+	}
+
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), inbound, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
@@ -367,7 +607,8 @@ func (a *InboundController) delDepletedClients(c *gin.Context) {
 
 // onlines retrieves the list of currently online clients.
 func (a *InboundController) onlines(c *gin.Context) {
-	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
+	clients := a.inboundService.GetOnlineClients()
+	jsonObj(c, clients, nil)
 }
 
 // lastOnline retrieves the last online timestamps for clients.

@@ -1,0 +1,613 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' nodes-page'">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content :style="{ padding: '24px 16px' }">
+      <transition name="list" appear>
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-if="loadingStates.fetched">
+        <a-col>
+          <a-card size="small" :style="{ padding: '16px' }" hoverable>
+            <h2>{{ i18n "pages.nodes.title" }}</h2>
+            
+            <div style="margin-bottom: 20px;">
+              <a-button type="primary" icon="plus" @click="openAddNode">{{ i18n "pages.nodes.addNewNode" }}</a-button>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <a-button icon="sync" @click="loadNodes" :loading="refreshing">{{ i18n "refresh" }}</a-button>
+              <a-button icon="check-circle" @click="checkAllNodes" :loading="checkingAll" style="margin-left: 10px;">{{ i18n "pages.nodes.checkAll" }}</a-button>
+              <a-button icon="reload" @click="reloadAllNodes" :loading="reloadingAll" style="margin-left: 10px;">{{ i18n "pages.nodes.reloadAll" }}</a-button>
+            </div>
+
+            <a-table :columns="isMobile ? mobileColumns : columns" :row-key="node => node.id"
+              :data-source="nodes" :scroll="isMobile ? {} : { x: 1000 }"
+              :pagination="false"
+              :style="{ marginTop: '10px' }"
+              class="nodes-table"
+              :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}`, emptyText: `{{ i18n "noData" }}` }'>
+          <template slot="action" slot-scope="text, node">
+            <a-dropdown :trigger="['click']">
+              <a-icon @click="e => e.preventDefault()" type="more"
+                :style="{ fontSize: '20px', textDecoration: 'solid' }"></a-icon>
+              <a-menu slot="overlay" @click="a => clickAction(a, node)"
+                :theme="themeSwitcher.currentTheme">
+                <a-menu-item key="check">
+                  <a-icon type="check-circle"></a-icon>
+                  {{ i18n "pages.nodes.check" }}
+                </a-menu-item>
+                <a-menu-item key="reload">
+                  <a-icon type="reload"></a-icon>
+                  {{ i18n "pages.nodes.reload" }}
+                </a-menu-item>
+                <a-menu-item key="edit">
+                  <a-icon type="edit"></a-icon>
+                  {{ i18n "edit" }}
+                </a-menu-item>
+                <a-menu-item key="delete" :style="{ color: '#FF4D4F' }">
+                  <a-icon type="delete"></a-icon>
+                  {{ i18n "delete" }}
+                </a-menu-item>
+              </a-menu>
+            </a-dropdown>
+          </template>
+          <template slot="status" slot-scope="text, node">
+            <a-tag :color="getStatusColor(node.status)">
+              [[ node.status || 'unknown' ]]
+            </a-tag>
+          </template>
+          <template slot="responseTime" slot-scope="text, node">
+            <span v-if="node.responseTime && node.responseTime > 0" :style="{ 
+              color: node.responseTime < 100 ? '#52c41a' : node.responseTime < 300 ? '#faad14' : '#ff4d4f',
+              fontWeight: 'bold'
+            }">
+              [[ node.responseTime ]] ms
+            </span>
+            <span v-else style="color: #999;">-</span>
+          </template>
+          <template slot="inbounds" slot-scope="text, node">
+            <template v-if="node.inbounds && node.inbounds.length > 0">
+              <a-tag v-for="(inbound, index) in node.inbounds" :key="inbound.id" color="blue" :style="{ margin: '0 4px 4px 0' }">
+                [[ inbound.remark || `Port ${inbound.port}` ]] (ID: [[ inbound.id ]])
+              </a-tag>
+            </template>
+            <a-tag v-else color="default">{{ i18n "none" }}</a-tag>
+          </template>
+          <template slot="name" slot-scope="text, node">
+            <template v-if="editingNodeId === node.id">
+              <div style="display: inline-flex; align-items: center;">
+                <a-input :id="`node-name-input-${node.id}`"
+                         v-model="editingNodeName" 
+                         @keydown.enter.native="saveNodeName(node.id)"
+                         @keydown.esc.native="cancelEditNodeName()"
+                         :style="{ width: '120px', marginRight: '8px' }" />
+                <a-icon type="check-circle" theme="filled" @click="saveNodeName(node.id)" 
+                        :style="{ color: '#52c41a', cursor: 'pointer', fontSize: '18px', marginRight: '8px' }" 
+                        title="Сохранить" />
+                <a-icon type="close-circle" theme="filled" @click="cancelEditNodeName()" 
+                        :style="{ color: '#ff4d4f', cursor: 'pointer', fontSize: '18px' }" 
+                        title="Отменить" />
+              </div>
+            </template>
+            <template v-else>
+              <span>[[ node.name || '-' ]]</span>
+            </template>
+          </template>
+            </a-table>
+          </a-card>
+        </a-col>
+      </a-row>
+      <a-row v-else>
+        <a-card
+          :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
+          <a-spin tip='{{ i18n "loading" }}'></a-spin>
+        </a-card>
+      </a-row>
+      </transition>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+
+
+{{template "page/body_scripts" .}}
+<script src="{{ .base_path }}assets/js/model/node.js?{{ .cur_ver }}"></script>
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+{{template "modals/nodeModal"}}
+<script>
+  const columns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+    responsive: ["xs"],
+  }, {
+    title: '{{ i18n "pages.nodes.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.nodes.name" }}',
+    align: 'left',
+    width: 120,
+    dataIndex: "name",
+    scopedSlots: { customRender: 'name' },
+  }, {
+    title: '{{ i18n "pages.nodes.address" }}',
+    align: 'left',
+    width: 200,
+    dataIndex: "address",
+  }, {
+    title: '{{ i18n "pages.nodes.status" }}',
+    align: 'center',
+    width: 80,
+    scopedSlots: { customRender: 'status' },
+  }, {
+    title: '{{ i18n "pages.nodes.responseTime" }}',
+    align: 'center',
+    width: 100,
+    scopedSlots: { customRender: 'responseTime' },
+  }, {
+    title: '{{ i18n "pages.nodes.assignedInbounds" }}',
+    align: 'left',
+    width: 300,
+    scopedSlots: { customRender: 'inbounds' },
+  }];
+
+  const mobileColumns = [{
+    title: "ID",
+    align: 'right',
+    dataIndex: "id",
+    width: 30,
+    responsive: ["s"],
+  }, {
+    title: '{{ i18n "pages.nodes.operate" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'action' },
+  }, {
+    title: '{{ i18n "pages.nodes.name" }}',
+    align: 'left',
+    width: 100,
+    dataIndex: "name",
+    scopedSlots: { customRender: 'name' },
+  }, {
+    title: '{{ i18n "pages.nodes.status" }}',
+    align: 'center',
+    width: 60,
+    scopedSlots: { customRender: 'status' },
+  }];
+
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#app',
+    mixins: [MediaQueryMixin],
+    data: {
+      themeSwitcher,
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
+      nodes: [],
+      refreshing: false,
+      checkingAll: false,
+      reloadingAll: false,
+      editingNodeId: null,
+      editingNodeName: '',
+      pollInterval: null,
+    },
+    methods: {
+      async loadNodes() {
+        this.refreshing = true;
+        try {
+          const msg = await HttpUtil.get('/panel/node/list');
+          if (msg && msg.success && msg.obj) {
+            this.nodes = msg.obj.map(node => ({
+              id: node.id,
+              name: node.name || '',
+              address: node.address || '',
+              status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
+              inbounds: node.inbounds || []
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to load nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+        } finally {
+          this.refreshing = false;
+          this.loadingStates.fetched = true;
+        }
+      },
+      getStatusColor(status) {
+        switch (status) {
+          case 'online':
+            return 'green';
+          case 'offline':
+            return 'orange';
+          case 'error':
+            return 'red';
+          default:
+            return 'default';
+        }
+      },
+      clickAction(action, node) {
+        switch (action.key) {
+          case 'check':
+            this.checkNode(node.id);
+            break;
+          case 'reload':
+            this.reloadNode(node.id);
+            break;
+          case 'edit':
+            this.editNode(node);
+            break;
+          case 'delete':
+            this.deleteNode(node.id);
+            break;
+        }
+      },
+      async checkNode(id) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/check/${id}`);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.checkSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.checkError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to check node:", e);
+          app.$message.error('{{ i18n "pages.nodes.checkError" }}');
+        }
+      },
+      async checkAllNodes() {
+        this.checkingAll = true;
+        try {
+          const msg = await HttpUtil.post('/panel/node/checkAll');
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.checkingAll" }}');
+            setTimeout(() => {
+              this.loadNodes();
+            }, 2000);
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.checkError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to check all nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.checkError" }}');
+        } finally {
+          this.checkingAll = false;
+        }
+      },
+      async deleteNode(id) {
+        this.$confirm({
+          title: '{{ i18n "pages.nodes.deleteConfirm" }}',
+          content: '{{ i18n "pages.nodes.deleteConfirmText" }}',
+          okText: '{{ i18n "sure" }}',
+          okType: 'danger',
+          cancelText: '{{ i18n "close" }}',
+          onOk: async () => {
+            try {
+              const msg = await HttpUtil.post(`/panel/node/del/${id}`);
+              if (msg.success) {
+                app.$message.success('{{ i18n "pages.nodes.deleteSuccess" }}');
+                await this.loadNodes();
+              } else {
+                app.$message.error(msg.msg || '{{ i18n "pages.nodes.deleteError" }}');
+              }
+            } catch (e) {
+              console.error("Failed to delete node:", e);
+              app.$message.error('{{ i18n "pages.nodes.deleteError" }}');
+            }
+          }
+        });
+      },
+      startEditNodeName(node) {
+        this.editingNodeId = node.id;
+        this.editingNodeName = node.name || '';
+        // Focus input after Vue updates DOM
+        this.$nextTick(() => {
+          const inputId = `node-name-input-${node.id}`;
+          const input = document.getElementById(inputId);
+          if (input) {
+            input.focus();
+            input.select();
+          }
+        });
+      },
+      cancelEditNodeName() {
+        this.editingNodeId = null;
+        this.editingNodeName = '';
+      },
+      async saveNodeName(nodeId) {
+        if (this.editingNodeId !== nodeId) {
+          return; // Not editing this node
+        }
+        
+        const newName = (this.editingNodeName || '').trim();
+        
+        if (!newName) {
+          this.$message.error('{{ i18n "pages.nodes.enterNodeName" }}');
+          return;
+        }
+        
+        // Check if name changed
+        const node = this.nodes.find(n => n.id === nodeId);
+        if (node && node.name === newName) {
+          // No change, just cancel editing
+          this.cancelEditNodeName();
+          return;
+        }
+        
+        try {
+          const msg = await HttpUtil.post(`/panel/node/update/${nodeId}`, { name: newName });
+          if (msg && msg.success) {
+            this.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+            this.cancelEditNodeName();
+            await this.loadNodes();
+          } else {
+            this.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.updateError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to update node name:", e);
+          this.$message.error('{{ i18n "pages.nodes.updateError" }}');
+        }
+      },
+      async updateNode(id, nodeData) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/update/${id}`, nodeData);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.updateError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to update node:", e);
+          app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+        }
+      },
+      async reloadNode(id) {
+        try {
+          const msg = await HttpUtil.post(`/panel/node/reload/${id}`);
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.reloadSuccess" }}');
+            await this.loadNodes();
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.reloadError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to reload node:", e);
+          app.$message.error('{{ i18n "pages.nodes.reloadError" }}');
+        }
+      },
+      async reloadAllNodes() {
+        this.reloadingAll = true;
+        try {
+          const msg = await HttpUtil.post('/panel/node/reloadAll');
+          if (msg.success) {
+            app.$message.success('{{ i18n "pages.nodes.reloadAllSuccess" }}');
+            setTimeout(() => {
+              this.loadNodes();
+            }, 2000);
+          } else {
+            app.$message.error(msg.msg || '{{ i18n "pages.nodes.reloadAllError" }}');
+          }
+        } catch (e) {
+          console.error("Failed to reload all nodes:", e);
+          app.$message.error('{{ i18n "pages.nodes.reloadAllError" }}');
+        } finally {
+          this.reloadingAll = false;
+        }
+      },
+      openAddNode() {
+        if (typeof window.nodeModal !== 'undefined') {
+          window.nodeModal.show({
+            title: '{{ i18n "pages.nodes.addNewNode" }}',
+            okText: '{{ i18n "create" }}',
+            confirm: async (nodeData) => {
+              await this.submitNode(nodeData, false);
+            },
+            isEdit: false
+          });
+        } else {
+          console.error('[openAddNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      editNode(node) {
+        if (typeof window.nodeModal !== 'undefined') {
+          // Load full node data including TLS settings
+          HttpUtil.get(`/panel/node/get/${node.id}`).then(msg => {
+            if (msg && msg.success && msg.obj) {
+              window.nodeModal.show({
+                title: '{{ i18n "pages.nodes.editNode" }}',
+                okText: '{{ i18n "update" }}',
+                node: msg.obj,
+                confirm: async (nodeData) => {
+                  await this.submitNode(nodeData, true, node.id);
+                },
+                isEdit: true
+              });
+            } else {
+              app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+            }
+          }).catch(e => {
+            console.error("Failed to load node:", e);
+            app.$message.error('{{ i18n "pages.nodes.loadError" }}');
+          });
+        } else {
+          console.error('[editNode] ERROR: nodeModal is not defined!');
+        }
+      },
+      async submitNode(nodeData, isEdit, nodeId = null) {
+        // Для редактирования используем обычный процесс
+        if (isEdit) {
+          try {
+            const url = `/panel/node/update/${nodeId}`;
+            const msg = await HttpUtil.post(url, nodeData);
+            if (msg && msg.success) {
+              app.$message.success('{{ i18n "pages.nodes.updateSuccess" }}');
+              await this.loadNodes();
+              if (window.nodeModal) {
+                window.nodeModal.close();
+              }
+            } else {
+              app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.updateError" }}');
+            }
+          } catch (e) {
+            console.error('Failed to update node:', e);
+            app.$message.error('{{ i18n "pages.nodes.updateError" }}');
+          }
+          return;
+        }
+        
+        // Для добавления новой ноды показываем прогресс регистрации
+        const modal = window.nodeModal;
+        if (!modal) {
+          app.$message.error('Modal not found');
+          return;
+        }
+        
+        try {
+          // Шаг 1: Устанавливаю соединение
+          modal.currentStep = 0;
+          modal.steps.connecting = 'process';
+          
+          // Проверяем доступность ноды через панель (избегаем CORS)
+          try {
+            const checkMsg = await HttpUtil.post('/panel/node/check-connection', {
+              address: nodeData.address
+            });
+            
+            if (!checkMsg || !checkMsg.success) {
+              modal.steps.connecting = 'error';
+              app.$message.error(checkMsg?.msg || 'Нода недоступна. Проверьте адрес и порт.');
+              modal.registering = false;
+              return;
+            }
+          } catch (e) {
+            modal.steps.connecting = 'error';
+            app.$message.error('Нода недоступна. Проверьте адрес и порт.');
+            modal.registering = false;
+            return;
+          }
+          
+          modal.steps.connecting = 'finish';
+          modal.currentStep = 1;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 2: Генерирую API ключ
+          modal.steps.generating = 'process';
+          await new Promise(resolve => setTimeout(resolve, 500)); // Имитация генерации
+          modal.steps.generating = 'finish';
+          modal.currentStep = 2;
+          
+          // Небольшая задержка для визуального эффекта
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          // Шаг 3: Регистрирую ноду
+          modal.steps.registering = 'process';
+          const url = '/panel/node/add';
+          const msg = await HttpUtil.post(url, nodeData);
+          
+          if (msg && msg.success) {
+            modal.steps.registering = 'finish';
+            modal.currentStep = 3;
+            
+            // Небольшая задержка для визуального эффекта
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Шаг 4: Готово
+            modal.steps.completed = 'finish';
+            
+            // Задержка перед закрытием модалки
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            app.$message.success('{{ i18n "pages.nodes.addSuccess" }}');
+            await this.loadNodes();
+            if (window.nodeModal) {
+              window.nodeModal.close();
+            }
+          } else {
+            modal.steps.registering = 'error';
+            app.$message.error((msg && msg.msg) || '{{ i18n "pages.nodes.addError" }}');
+            modal.registering = false;
+          }
+        } catch (e) {
+          console.error('Failed to add node:', e);
+          // Определяем на каком шаге произошла ошибка
+          if (modal.steps.connecting === 'process') {
+            modal.steps.connecting = 'error';
+          } else if (modal.steps.generating === 'process') {
+            modal.steps.generating = 'error';
+          } else if (modal.steps.registering === 'process') {
+            modal.steps.registering = 'error';
+          }
+          app.$message.error('{{ i18n "pages.nodes.addError" }}');
+          modal.registering = false;
+        }
+      },
+      startPolling() {
+        // Poll every 5 seconds as fallback
+        if (this.pollInterval) {
+          clearInterval(this.pollInterval);
+        }
+        this.pollInterval = setInterval(() => {
+          this.loadNodes();
+        }, 5000);
+      }
+    },
+    beforeDestroy() {
+      // Clean up polling interval
+      if (this.pollInterval) {
+        clearInterval(this.pollInterval);
+        this.pollInterval = null;
+      }
+    },
+    async mounted() {
+      await this.loadNodes();
+
+      // Setup WebSocket for real-time updates
+      if (window.wsClient) {
+        window.wsClient.connect();
+        
+        // Listen for nodes updates
+        window.wsClient.on('nodes', (payload) => {
+          if (payload && Array.isArray(payload)) {
+            this.nodes = payload.map(node => ({
+              id: node.id,
+              name: node.name || '',
+              address: node.address || '',
+              status: node.status || 'unknown',
+              responseTime: node.responseTime || 0,
+              inbounds: node.inbounds || []
+            }));
+          }
+        });
+
+        // Fallback to polling if WebSocket fails
+        window.wsClient.on('error', () => {
+          console.warn('WebSocket connection failed, falling back to polling');
+          this.startPolling();
+        });
+
+        window.wsClient.on('disconnected', () => {
+          if (window.wsClient.reconnectAttempts >= window.wsClient.maxReconnectAttempts) {
+            console.warn('WebSocket reconnection failed, falling back to polling');
+            this.startPolling();
+          }
+        });
+      } else {
+        // Fallback to polling if WebSocket is not available
+        this.startPolling();
+      }
+    }
+  });
+
+</script>
+{{template "page/body_end" .}}

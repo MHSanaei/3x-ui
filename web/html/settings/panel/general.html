@@ -146,7 +146,33 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="6" header='LDAP'>
+    <a-collapse-panel key="6" header='{{ i18n "pages.settings.multiNodeMode" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.multiNodeMode" }}</template>
+            <template #description>{{ i18n "pages.settings.multiNodeModeDesc" }}</template>
+            <template #control>
+                <a-switch v-model="allSetting.multiNodeMode" @change="(enabled) => onMultiNodeModeChange(enabled)"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-alert v-if="allSetting.multiNodeMode" type="info" :style="{ marginTop: '10px' }" show-icon>
+            <template slot="message">
+                {{ i18n "pages.settings.multiNodeModeEnabled" }}
+            </template>
+            <template slot="description">
+                <div>{{ i18n "pages.settings.multiNodeModeInThisMode" }}</div>
+                <ul style="margin: 8px 0 0 20px; padding: 0;">
+                    <li>{{ i18n "pages.settings.multiNodeModePoint1" }}</li>
+                    <li>{{ i18n "pages.settings.multiNodeModePoint2" }}</li>
+                    <li>{{ i18n "pages.settings.multiNodeModePoint3" }}</li>
+                    <li>{{ i18n "pages.settings.multiNodeModePoint4" }}</li>
+                </ul>
+                <div style="margin-top: 8px;">
+                    <a-button type="link" size="small" @click="goToNodes">{{ i18n "pages.settings.goToNodesManagement" }}</a-button>
+                </div>
+            </template>
+        </a-alert>
+    </a-collapse-panel>
+    <a-collapse-panel key="7" header='LDAP'>
         <a-setting-list-item paddings="small">
             <template #title>Enable LDAP sync</template>
             <template #control>

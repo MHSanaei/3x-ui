@@ -3,9 +3,11 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"runtime"
 	"sync"
 
+	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
@@ -22,9 +24,11 @@ var (
 
 // XrayService provides business logic for Xray process management.
 // It handles starting, stopping, restarting Xray, and managing its configuration.
+// In multi-node mode, it sends configurations to nodes instead of running Xray locally.
 type XrayService struct {
 	inboundService InboundService
 	settingService SettingService
+	nodeService    NodeService
 	xrayAPI        xray.XrayAPI
 }
 
@@ -214,12 +218,24 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 }
 
 // RestartXray restarts the Xray process, optionally forcing a restart even if config unchanged.
+// In multi-node mode, it sends configurations to nodes instead of restarting local Xray.
 func (s *XrayService) RestartXray(isForce bool) error {
 	lock.Lock()
 	defer lock.Unlock()
 	logger.Debug("restart Xray, force:", isForce)
 	isManuallyStopped.Store(false)
 
+	// Check if multi-node mode is enabled
+	multiMode, err := s.settingService.GetMultiNodeMode()
+	if err != nil {
+		multiMode = false // Default to single mode on error
+	}
+
+	if multiMode {
+		return s.restartXrayMultiMode(isForce)
+	}
+
+	// Single mode: use local Xray
 	xrayConfig, err := s.GetXrayConfig()
 	if err != nil {
 		return err
@@ -238,6 +254,167 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	err = p.Start()
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+// restartXrayMultiMode handles Xray restart in multi-node mode by sending configs to nodes.
+func (s *XrayService) restartXrayMultiMode(isForce bool) error {
+	// Initialize nodeService if not already initialized
+	if s.nodeService == (NodeService{}) {
+		s.nodeService = NodeService{}
+	}
+	
+	// Get all nodes
+	nodes, err := s.nodeService.GetAllNodes()
+	if err != nil {
+		return fmt.Errorf("failed to get nodes: %w", err)
+	}
+
+	// Group inbounds by node
+	nodeInbounds := make(map[int][]*model.Inbound)
+	allInbounds, err := s.inboundService.GetAllInbounds()
+	if err != nil {
+		return fmt.Errorf("failed to get inbounds: %w", err)
+	}
+
+	// Get template config
+	templateConfig, err := s.settingService.GetXrayConfigTemplate()
+	if err != nil {
+		return err
+	}
+
+	baseConfig := &xray.Config{}
+	if err := json.Unmarshal([]byte(templateConfig), baseConfig); err != nil {
+		return err
+	}
+
+	// Group inbounds by their assigned nodes
+	for _, inbound := range allInbounds {
+		if !inbound.Enable {
+			continue
+		}
+
+		// Get all nodes assigned to this inbound (multi-node support)
+		nodes, err := s.nodeService.GetNodesForInbound(inbound.Id)
+		if err != nil || len(nodes) == 0 {
+			// Inbound not assigned to any node, skip it (this is normal - not all inbounds need to be assigned)
+			logger.Debugf("Inbound %d is not assigned to any node, skipping", inbound.Id)
+			continue
+		}
+
+		// Add inbound to all assigned nodes
+		for _, node := range nodes {
+			nodeInbounds[node.Id] = append(nodeInbounds[node.Id], inbound)
+		}
+	}
+
+	// Send config to each node
+	for _, node := range nodes {
+		inbounds, ok := nodeInbounds[node.Id]
+		if !ok {
+			// No inbounds assigned to this node, skip
+			continue
+		}
+
+		// Build config for this node
+		nodeConfig := *baseConfig
+		// Preserve API inbound from template (if exists)
+		apiInbound := xray.InboundConfig{}
+		hasAPIInbound := false
+		for _, inbound := range baseConfig.InboundConfigs {
+			if inbound.Tag == "api" {
+				apiInbound = inbound
+				hasAPIInbound = true
+				break
+			}
+		}
+		nodeConfig.InboundConfigs = []xray.InboundConfig{}
+		// Add API inbound first if it exists
+		if hasAPIInbound {
+			nodeConfig.InboundConfigs = append(nodeConfig.InboundConfigs, apiInbound)
+		}
+
+		for _, inbound := range inbounds {
+			// Process clients (same logic as GetXrayConfig)
+			settings := map[string]any{}
+			json.Unmarshal([]byte(inbound.Settings), &settings)
+			clients, ok := settings["clients"].([]any)
+			if ok {
+				clientStats := inbound.ClientStats
+				for _, clientTraffic := range clientStats {
+					indexDecrease := 0
+					for index, client := range clients {
+						c := client.(map[string]any)
+						if c["email"] == clientTraffic.Email {
+							if !clientTraffic.Enable {
+								clients = RemoveIndex(clients, index-indexDecrease)
+								indexDecrease++
+							}
+						}
+					}
+				}
+
+				var final_clients []any
+				for _, client := range clients {
+					c := client.(map[string]any)
+					if c["enable"] != nil {
+						if enable, ok := c["enable"].(bool); ok && !enable {
+							continue
+						}
+					}
+					for key := range c {
+						if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" {
+							delete(c, key)
+						}
+						if c["flow"] == "xtls-rprx-vision-udp443" {
+							c["flow"] = "xtls-rprx-vision"
+						}
+					}
+					final_clients = append(final_clients, any(c))
+				}
+
+				settings["clients"] = final_clients
+				modifiedSettings, _ := json.MarshalIndent(settings, "", "  ")
+				inbound.Settings = string(modifiedSettings)
+			}
+
+			if len(inbound.StreamSettings) > 0 {
+				var stream map[string]any
+				json.Unmarshal([]byte(inbound.StreamSettings), &stream)
+				tlsSettings, ok1 := stream["tlsSettings"].(map[string]any)
+				realitySettings, ok2 := stream["realitySettings"].(map[string]any)
+				if ok1 || ok2 {
+					if ok1 {
+						delete(tlsSettings, "settings")
+					} else if ok2 {
+						delete(realitySettings, "settings")
+					}
+				}
+				delete(stream, "externalProxy")
+				newStream, _ := json.MarshalIndent(stream, "", "  ")
+				inbound.StreamSettings = string(newStream)
+			}
+
+			inboundConfig := inbound.GenXrayInboundConfig()
+			nodeConfig.InboundConfigs = append(nodeConfig.InboundConfigs, *inboundConfig)
+		}
+
+		// Marshal config to JSON
+		configJSON, err := json.MarshalIndent(&nodeConfig, "", "  ")
+		if err != nil {
+			logger.Errorf("[Node: %s] Failed to marshal config: %v", node.Name, err)
+			continue
+		}
+
+		// Send to node
+		if err := s.nodeService.ApplyConfigToNode(node, configJSON); err != nil {
+			logger.Errorf("[Node: %s] Failed to apply config: %v", node.Name, err)
+			// Continue with other nodes even if one fails
+		} else {
+			logger.Infof("[Node: %s] Successfully applied config", node.Name)
+		}
 	}
 
 	return nil

@@ -69,9 +69,15 @@ func GetAccessPersistentPrevLogPath() string {
 }
 
 // GetAccessLogPath reads the Xray config and returns the access log file path.
+// Returns an error if the config file doesn't exist (e.g., in multi-node mode).
 func GetAccessLogPath() (string, error) {
-	config, err := os.ReadFile(GetConfigPath())
+	configPath := GetConfigPath()
+	config, err := os.ReadFile(configPath)
 	if err != nil {
+		// Don't log warning if file doesn't exist - this is normal in multi-node mode
+		if os.IsNotExist(err) {
+			return "", err
+		}
 		logger.Warningf("Failed to read configuration file: %s", err)
 		return "", err
 	}

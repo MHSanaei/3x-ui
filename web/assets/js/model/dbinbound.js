@@ -20,11 +20,48 @@ class DBInbound {
         this.streamSettings = "";
         this.tag = "";
         this.sniffing = "";
-        this.clientStats = ""
+        this.clientStats = "";
+        this.nodeId = null; // Node ID for multi-node mode - DEPRECATED: kept only for backward compatibility, use nodeIds instead
+        this.nodeIds = []; // Node IDs array for multi-node mode - use this for multi-node support
         if (data == null) {
             return;
         }
         ObjectUtil.cloneProps(this, data);
+        // Ensure nodeIds is always an array (even if empty)
+        // Priority: use nodeIds if available, otherwise convert from deprecated nodeId
+        // First check if nodeIds exists and is an array (even if empty)
+        // Handle nodeIds from API response - it should be an array
+        if (this.nodeIds !== null && this.nodeIds !== undefined) {
+            if (Array.isArray(this.nodeIds)) {
+                // nodeIds is already an array - ensure all values are numbers
+                if (this.nodeIds.length > 0) {
+                    this.nodeIds = this.nodeIds.map(id => {
+                        // Convert string to number if needed
+                        const numId = typeof id === 'string' ? parseInt(id, 10) : id;
+                        return numId;
+                    }).filter(id => !isNaN(id) && id > 0);
+                } else {
+                    // Empty array is valid
+                    this.nodeIds = [];
+                }
+            } else {
+                // nodeIds exists but is not an array - try to convert
+                // This shouldn't happen if API returns correct format, but handle it anyway
+                const nodeId = typeof this.nodeIds === 'string' ? parseInt(this.nodeIds, 10) : this.nodeIds;
+                this.nodeIds = !isNaN(nodeId) && nodeId > 0 ? [nodeId] : [];
+            }
+        } else if (this.nodeId !== null && this.nodeId !== undefined) {
+            // Convert deprecated nodeId to nodeIds array (backward compatibility)
+            const nodeId = typeof this.nodeId === 'string' ? parseInt(this.nodeId, 10) : this.nodeId;
+            this.nodeIds = !isNaN(nodeId) && nodeId > 0 ? [nodeId] : [];
+        } else {
+            // No nodes assigned - ensure empty array
+            this.nodeIds = [];
+        }
+        // Ensure nodeIds is never null or undefined - always an array
+        if (!Array.isArray(this.nodeIds)) {
+            this.nodeIds = [];
+        }
     }
 
     get totalGB() {
@@ -116,6 +153,13 @@ class DBInbound {
             sniffing: sniffing,
             clientStats: this.clientStats,
         };
+        // Include nodeIds if available (for multi-node mode)
+        if (this.nodeIds && Array.isArray(this.nodeIds) && this.nodeIds.length > 0) {
+            config.nodeIds = this.nodeIds;
+        } else if (this.nodeId !== null && this.nodeId !== undefined) {
+            // Backward compatibility: convert single nodeId to nodeIds array
+            config.nodeIds = [this.nodeId];
+        }
         return Inbound.fromJson(config);
     }
 

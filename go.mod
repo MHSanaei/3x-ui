@@ -1,5 +1,9 @@
 module github.com/mhsanaei/3x-ui/v2
 
+// Local development - use local files instead of GitHub
+// These replace directives ensure we use local code during development
+// Remove these when changes are pushed to GitHub
+
 go 1.25.5
 
 require (
@@ -32,13 +36,16 @@ require (
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.0 // indirect
+	github.com/alicebob/miniredis/v2 v2.35.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.14.2 // indirect
 	github.com/bytedance/sonic/loader v0.4.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.2 // indirect
 	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/dgryski/go-metro v0.0.0-20250106013310-edb8663e5e33 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/ebitengine/purego v0.9.1 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
@@ -70,6 +77,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.58.0 // indirect
+	github.com/redis/go-redis/v9 v9.17.2 // indirect
 	github.com/refraction-networking/utls v1.8.1 // indirect
 	github.com/riobard/go-bloom v0.0.0-20200614022211-cdc8013cb5b3 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
@@ -86,6 +94,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/xtls/reality v0.0.0-20251116175510-cd53f7d50237 // indirect
+	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
 	golang.org/x/arch v0.23.0 // indirect
@@ -101,3 +110,8 @@ require (
 	gvisor.dev/gvisor v0.0.0-20250503011706-39ed1f5ac29c // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+
+// Local development - use local files instead of GitHub
+// This ensures we use local code during development
+// Remove this when changes are pushed to GitHub
+replace github.com/mhsanaei/3x-ui/v2 => ./

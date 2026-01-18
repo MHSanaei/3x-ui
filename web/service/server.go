@@ -92,6 +92,10 @@ type Status struct {
 		Mem     uint64 `json:"mem"`
 		Uptime  uint64 `json:"uptime"`
 	} `json:"appStats"`
+	Nodes struct {
+		Online int `json:"online"`
+		Total  int `json:"total"`
+	} `json:"nodes"`
 }
 
 // Release represents information about a software release from GitHub.
@@ -412,6 +416,32 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		status.AppStats.Uptime = p.GetUptime()
 	} else {
 		status.AppStats.Uptime = 0
+	}
+
+	// Node statistics (only if multi-node mode is enabled)
+	settingService := SettingService{}
+	allSetting, err := settingService.GetAllSetting()
+	if err == nil && allSetting != nil && allSetting.MultiNodeMode {
+		nodeService := NodeService{}
+		nodes, err := nodeService.GetAllNodes()
+		if err == nil {
+			status.Nodes.Total = len(nodes)
+			onlineCount := 0
+			for _, node := range nodes {
+				if node.Status == "online" {
+					onlineCount++
+				}
+			}
+			status.Nodes.Online = onlineCount
+		} else {
+			// If error getting nodes, set to 0
+			status.Nodes.Total = 0
+			status.Nodes.Online = 0
+		}
+	} else {
+		// If multi-node mode is disabled, set to 0
+		status.Nodes.Total = 0
+		status.Nodes.Online = 0
 	}
 
 	return status
@@ -763,7 +793,8 @@ func (s *ServerService) GetXrayLogs(
 	showBlocked string,
 	showProxy string,
 	freedoms []string,
-	blackholes []string) []LogEntry {
+	blackholes []string,
+	nodeId string) []LogEntry {
 
 	const (
 		Direct = iota
@@ -773,6 +804,76 @@ func (s *ServerService) GetXrayLogs(
 
 	countInt, _ := strconv.Atoi(count)
 	var entries []LogEntry
+
+	// Check if multi-node mode is enabled
+	settingService := SettingService{}
+	multiMode, err := settingService.GetMultiNodeMode()
+	if err == nil && multiMode {
+		// In multi-node mode, get logs from node
+		if nodeId != "" {
+			nodeIdInt, err := strconv.Atoi(nodeId)
+			if err == nil {
+				nodeService := NodeService{}
+				node, err := nodeService.GetNode(nodeIdInt)
+				if err == nil && node != nil {
+					// Get raw logs from node
+					rawLogs, err := nodeService.GetNodeLogs(node, countInt, filter)
+					if err == nil {
+						// Parse logs into LogEntry format
+						for _, line := range rawLogs {
+							var entry LogEntry
+							parts := strings.Fields(line)
+
+							for i, part := range parts {
+								if i == 0 {
+									if len(parts) > 1 {
+										dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
+										if err == nil {
+											entry.DateTime = dateTime.UTC()
+										}
+									}
+								}
+
+								if part == "from" && i+1 < len(parts) {
+									entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
+								} else if part == "accepted" && i+1 < len(parts) {
+									entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
+								} else if strings.HasPrefix(part, "[") {
+									entry.Inbound = part[1:]
+								} else if strings.HasSuffix(part, "]") {
+									entry.Outbound = part[:len(part)-1]
+								} else if part == "email:" && i+1 < len(parts) {
+									entry.Email = parts[i+1]
+								}
+							}
+
+							// Determine event type
+							if logEntryContains(line, freedoms) {
+								if showDirect == "false" {
+									continue
+								}
+								entry.Event = Direct
+							} else if logEntryContains(line, blackholes) {
+								if showBlocked == "false" {
+									continue
+								}
+								entry.Event = Blocked
+							} else {
+								if showProxy == "false" {
+									continue
+								}
+								entry.Event = Proxied
+							}
+
+							entries = append(entries, entry)
+						}
+					}
+				}
+			}
+		}
+		// If no nodeId provided or node not found, return empty
+		return entries
+	}
 
 	pathToAccessLog, err := xray.GetAccessLogPath()
 	if err != nil {

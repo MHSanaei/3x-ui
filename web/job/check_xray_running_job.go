@@ -20,6 +20,13 @@ func NewCheckXrayRunningJob() *CheckXrayRunningJob {
 
 // Run checks if Xray has crashed and restarts it after confirming it's down for 2 consecutive checks.
 func (j *CheckXrayRunningJob) Run() {
+	// Skip in multi-node mode - there's no local Xray process to check
+	settingService := service.SettingService{}
+	multiMode, err := settingService.GetMultiNodeMode()
+	if err == nil && multiMode {
+		return // Skip if multi-node mode is enabled
+	}
+
 	if !j.xrayService.DidXrayCrash() {
 		j.checkTime = 0
 	} else {
