@@ -54,7 +54,8 @@ RUN apk add --no-cache \
   ca-certificates \
   tzdata \
   fail2ban \
-  bash
+  bash \
+  curl
 
 WORKDIR /app
 

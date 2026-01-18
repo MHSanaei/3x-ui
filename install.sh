@@ -53,7 +53,24 @@ is_ip() {
     is_ipv4 "$1" || is_ipv6 "$1"
 }
 is_domain() {
-    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+[A-Za-z]{2,}$ ]] && return 0 || return 1
+    [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
+}
+
+# Port helpers
+is_port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -ltn 2>/dev/null | awk -v p=":${port}$" '$4 ~ p {exit 0} END {exit 1}'
+        return
+    fi
+    if command -v netstat >/dev/null 2>&1; then
+        netstat -lnt 2>/dev/null | awk -v p=":${port} " '$4 ~ p {exit 0} END {exit 1}'
+        return
+    fi
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:${port} -sTCP:LISTEN >/dev/null 2>&1 && return 0
+    fi
+    return 1
 }
 
 install_base() {
@@ -180,7 +197,7 @@ setup_ip_certificate() {
 
     echo -e "${green}Setting up Let's Encrypt IP certificate (shortlived profile)...${plain}"
     echo -e "${yellow}Note: IP certificates are valid for ~6 days and will auto-renew.${plain}"
-    echo -e "${yellow}Port 80 must be open and accessible from the internet.${plain}"
+    echo -e "${yellow}Default listener is port 80. If you choose another port, ensure external port 80 forwards to it.${plain}"
 
     # Check for acme.sh
     if ! command -v ~/.acme.sh/acme.sh &>/dev/null; then
@@ -216,6 +233,43 @@ setup_ip_certificate() {
     # Set reload command for auto-renewal (add || true so it doesn't fail during first install)
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
 
+    # Choose port for HTTP-01 listener (default 80, prompt override)
+    local WebPort=""
+    read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
+    WebPort="${WebPort:-80}"
+    if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
+        echo -e "${red}Invalid port provided. Falling back to 80.${plain}"
+        WebPort=80
+    fi
+    echo -e "${green}Using port ${WebPort} for standalone validation.${plain}"
+    if [[ "${WebPort}" -ne 80 ]]; then
+        echo -e "${yellow}Reminder: Let's Encrypt still connects on port 80; forward external port 80 to ${WebPort}.${plain}"
+    fi
+
+    # Ensure chosen port is available
+    while true; do
+        if is_port_in_use "${WebPort}"; then
+            echo -e "${yellow}Port ${WebPort} is in use.${plain}"
+
+            local alt_port=""
+            read -rp "Enter another port for acme.sh standalone listener (leave empty to abort): " alt_port
+            alt_port="${alt_port// /}"
+            if [[ -z "${alt_port}" ]]; then
+                echo -e "${red}Port ${WebPort} is busy; cannot proceed.${plain}"
+                return 1
+            fi
+            if ! [[ "${alt_port}" =~ ^[0-9]+$ ]] || ((alt_port < 1 || alt_port > 65535)); then
+                echo -e "${red}Invalid port provided.${plain}"
+                return 1
+            fi
+            WebPort="${alt_port}"
+            continue
+        else
+            echo -e "${green}Port ${WebPort} is free and ready for standalone validation.${plain}"
+            break
+        fi
+    done
+
     # Issue certificate with shortlived profile
     echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
     ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
@@ -226,12 +280,12 @@ setup_ip_certificate() {
         --server letsencrypt \
         --certificate-profile shortlived \
         --days 6 \
-        --httpport 80 \
+        --httpport ${WebPort} \
         --force
 
     if [ $? -ne 0 ]; then
         echo -e "${red}Failed to issue IP certificate${plain}"
-        echo -e "${yellow}Please ensure port 80 is open and accessible from the internet${plain}"
+        echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
         # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${ipv4} 2>/dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2>/dev/null
