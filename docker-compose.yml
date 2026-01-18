@@ -34,6 +34,7 @@ services:
 
   geodata-cron:
     build:
+      context: .
       dockerfile: Dockerfile-cron-runner
     container_name: geodata_cron
     restart: unless-stopped
