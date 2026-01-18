@@ -2,7 +2,6 @@
 # x-ui.sh - 3X-UI Panel Management Script (Entrypoint)
 # This is the main entrypoint that sources modular library files
 
-
 # Export LIB_DIR for use by library files
 LIB_DIR="${LIB_DIR:=/usr/local/x-ui/lib}"
 export LIB_DIR
@@ -274,7 +273,6 @@ if [[ $# -gt 0 ]]; then
     "uninstall")
         check_install 0 && uninstall 0
         ;;
-#      TODO: check
     "update-all-geofiles")
         check_install 0 && update_all_geofiles "${xui_folder}"/bin 0 && restart 0
         ;;
