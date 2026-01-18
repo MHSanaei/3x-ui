@@ -737,6 +737,7 @@ update_x-ui() {
         rm ${xui_folder} -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.service -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.service.debian -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui.service.arch -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.service.rhel -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.sh -f >/dev/null 2>&1
@@ -819,6 +820,15 @@ update_x-ui() {
                         fi
                     fi
                 ;;
+                arch | manjaro | parch)
+                    if [ -f "x-ui.service.arch" ]; then
+                        echo -e "${green}Installing arch-like systemd unit...${plain}"
+                        cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
+                ;;
                 *)
                     if [ -f "x-ui.service.rhel" ]; then
                         echo -e "${green}Installing rhel-like systemd unit...${plain}"
@@ -836,6 +846,9 @@ update_x-ui() {
                 case "${release}" in
                     ubuntu | debian | armbian)
                         ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                    ;;
+                    arch | manjaro | parch)
+                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
                     ;;
                     *)
                         ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
