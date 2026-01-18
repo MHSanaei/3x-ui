@@ -69,6 +69,47 @@ show_usage() {
 └────────────────────────────────────────────────────────────────┘"
 }
 
+update_geo() {
+    echo -e "${green}\t1.${plain} Loyalsoldier (geoip.dat, geosite.dat)"
+    echo -e "${green}\t2.${plain} chocolate4u (geoip_IR.dat, geosite_IR.dat)"
+    echo -e "${green}\t3.${plain} runetfreedom (geoip_RU.dat, geosite_RU.dat)"
+    echo -e "${green}\t4.${plain} All"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " choice
+
+    case "$choice" in
+    0)
+        show_menu
+        ;;
+    1)
+        update_geofiles "main" "${xui_folder}"/bin
+        echo -e "${green}Loyalsoldier datasets have been updated successfully!${plain}"
+        restart
+        ;;
+    2)
+        update_geofiles "IR" "${xui_folder}"/bin
+        echo -e "${green}chocolate4u datasets have been updated successfully!${plain}"
+        restart
+        ;;
+    3)
+        update_geofiles "RU" "${xui_folder}"/bin
+        echo -e "${green}runetfreedom datasets have been updated successfully!${plain}"
+        restart
+        ;;
+    4)
+        update_all_geofiles "${xui_folder}"/bin
+        echo -e "${green}All geo files have been updated successfully!${plain}"
+        restart
+        ;;
+    *)
+        echo -e "${red}Invalid option. Please select a valid number.${plain}\n"
+        update_geo
+        ;;
+    esac
+
+    before_show_menu
+}
+
 show_menu() {
     echo -e "
 ╔────────────────────────────────────────────────╗
@@ -240,8 +281,9 @@ if [[ $# -gt 0 ]]; then
     "uninstall")
         check_install 0 && uninstall 0
         ;;
+#      TODO: check
     "update-all-geofiles")
-        check_install 0 && update_all_geofiles 0 && restart 0
+        check_install 0 && update_all_geofiles "${xui_folder}"/bin 0 && restart 0
         ;;
     *) show_usage ;;
     esac
