@@ -229,9 +229,9 @@ reset_user() {
 
     read -rp "Do you want to disable currently configured two-factor authentication? (y/n): " twoFactorConfirm
     if [[ $twoFactorConfirm != "y" && $twoFactorConfirm != "Y" ]]; then
-        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor false >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor false >/dev/null 2>&1
     else
-        ${xui_folder}/x-ui setting -username ${config_account} -password ${config_password} -resetTwoFactor true >/dev/null 2>&1
+        ${xui_folder}/x-ui setting -username "${config_account}" -password "${config_password}" -resetTwoFactor true >/dev/null 2>&1
         echo -e "Two factor authentication has been disabled."
     fi
     
@@ -530,20 +530,27 @@ bbr_menu() {
 
 disable_bbr() {
 
-    if ! grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf || ! grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) != "bbr" ]] || [[ ! $(sysctl -n net.core.default_qdisc) =~ ^(fq|cake)$ ]]; then
         echo -e "${yellow}BBR is not currently enabled.${plain}"
         before_show_menu
     fi
 
-    # Replace BBR with CUBIC configurations
-    sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
-    sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
+    if [ -f "/etc/sysctl.d/99-bbr-x-ui.conf" ]; then
+        old_settings=$(head -1 /etc/sysctl.d/99-bbr-x-ui.conf | tr -d '#')
+        sysctl -w net.core.default_qdisc="${old_settings%:*}"
+        sysctl -w net.ipv4.tcp_congestion_control="${old_settings#*:}"
+        rm /etc/sysctl.d/99-bbr-x-ui.conf
+        sysctl --system
+    else
+        # Replace BBR with CUBIC configurations
+        if [ -f "/etc/sysctl.conf" ]; then
+            sed -i 's/net.core.default_qdisc=fq/net.core.default_qdisc=pfifo_fast/' /etc/sysctl.conf
+            sed -i 's/net.ipv4.tcp_congestion_control=bbr/net.ipv4.tcp_congestion_control=cubic/' /etc/sysctl.conf
+            sysctl -p
+        fi
+    fi
 
-    # Apply changes
-    sysctl -p
-
-    # Verify that BBR is replaced with CUBIC
-    if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "cubic" ]]; then
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) != "bbr" ]]; then
         echo -e "${green}BBR has been replaced with CUBIC successfully.${plain}"
     else
         echo -e "${red}Failed to replace BBR with CUBIC. Please check your system configuration.${plain}"
@@ -551,20 +558,34 @@ disable_bbr() {
 }
 
 enable_bbr() {
-    if grep -q "net.core.default_qdisc=fq" /etc/sysctl.conf && grep -q "net.ipv4.tcp_congestion_control=bbr" /etc/sysctl.conf; then
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) == "bbr" ]] && [[ $(sysctl -n net.core.default_qdisc) =~ ^(fq|cake)$ ]]; then
         echo -e "${green}BBR is already enabled!${plain}"
         before_show_menu
     fi
 
     # Enable BBR
-    echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
-
-    # Apply changes
-    sysctl -p
+    if [ -d "/etc/sysctl.d/" ]; then
+        {
+            echo "#$(sysctl -n net.core.default_qdisc):$(sysctl -n net.ipv4.tcp_congestion_control)"
+            echo "net.core.default_qdisc = fq"
+            echo "net.ipv4.tcp_congestion_control = bbr"
+        } > "/etc/sysctl.d/99-bbr-x-ui.conf"
+        if [ -f "/etc/sysctl.conf" ]; then
+            # Backup old settings from sysctl.conf, if any
+            sed -i 's/^net.core.default_qdisc/# &/'          /etc/sysctl.conf
+            sed -i 's/^net.ipv4.tcp_congestion_control/# &/' /etc/sysctl.conf
+        fi
+        sysctl --system
+    else
+        sed -i '/net.core.default_qdisc/d' /etc/sysctl.conf
+        sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+        echo "net.core.default_qdisc=fq" | tee -a /etc/sysctl.conf
+        echo "net.ipv4.tcp_congestion_control=bbr" | tee -a /etc/sysctl.conf
+        sysctl -p
+    fi
 
     # Verify that BBR is enabled
-    if [[ $(sysctl net.ipv4.tcp_congestion_control | awk '{print $3}') == "bbr" ]]; then
+    if [[ $(sysctl -n net.ipv4.tcp_congestion_control) == "bbr" ]]; then
         echo -e "${green}BBR has been enabled successfully.${plain}"
     else
         echo -e "${red}Failed to enable BBR. Please check your system configuration.${plain}"
