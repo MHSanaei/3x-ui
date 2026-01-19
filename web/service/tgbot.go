@@ -2267,6 +2267,8 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	}
 
 	// Gather settings to construct absolute URLs
+	subURI, _ := t.settingService.GetSubURI()
+	subJsonURI, _ := t.settingService.GetSubJsonURI()
 	subDomain, _ := t.settingService.GetSubDomain()
 	subPort, _ := t.settingService.GetSubPort()
 	subPath, _ := t.settingService.GetSubPath()
@@ -2314,8 +2316,29 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 		subJsonPath = subJsonPath + "/"
 	}
 
-	subURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subPath, client.SubID)
-	subJsonURL := fmt.Sprintf("%s://%s%s%s", scheme, host, subJsonPath, client.SubID)
+	var subURL string
+	var subJsonURL string
+
+	// If pre-configured URIs are available, use them directly
+	if subURI != "" {
+		if !strings.HasSuffix(subURI, "/") {
+			subURI = subURI + "/" 
+		}
+		subURL = fmt.Sprintf("%s%s", subURI, client.SubID) 
+	} else {
+		subURL = fmt.Sprintf("%s://%s%s%s", scheme, host, subPath, client.SubID)
+	}
+
+	if subJsonURI != "" {
+		if !strings.HasSuffix(subJsonURI, "/") {
+			subJsonURI = subJsonURI + "/"
+		}
+		subJsonURL = fmt.Sprintf("%s%s", subJsonURI, client.SubID) 
+	} else {
+
+		subJsonURL = fmt.Sprintf("%s://%s%s%s", scheme, host, subJsonPath, client.SubID)
+	}
+
 	if !subJsonEnable {
 		subJsonURL = ""
 	}
