@@ -531,6 +531,12 @@
 "psk" = "Clave precompartida"
 "domainStrategy" = "Estrategia de dominio"
 
+[pages.xray.tun]
+"nameDesc" = "El nombre de la interfaz TUN. El valor predeterminado es 'xray0'"
+"mtuDesc" = "Unidad Máxima de Transmisión. El tamaño máximo de los paquetes de datos. El valor predeterminado es 1500"
+"userLevel" = "Nivel de Usuario"
+"userLevelDesc" = "Todas las conexiones realizadas a través de este entrada utilizarán este nivel de usuario. El valor predeterminado es 0"
+
 [pages.xray.dns]
 "enable" = "Habilitar DNS"
 "enableDesc" = "Habilitar servidor DNS incorporado"

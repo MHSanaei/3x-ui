@@ -7,6 +7,7 @@ const Protocols = {
     MIXED: 'mixed',
     HTTP: 'http',
     WIREGUARD: 'wireguard',
+    TUN: 'tun',
 };
 
 const SSMethods = {
@@ -1739,6 +1740,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.MIXED: return new Inbound.MixedSettings(protocol);
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
+            case Protocols.TUN: return new Inbound.TunSettings(protocol);
             default: return null;
         }
     }
@@ -1753,6 +1755,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.MIXED: return Inbound.MixedSettings.fromJson(json);
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
+            case Protocols.TUN: return Inbound.TunSettings.fromJson(json);
             default: return null;
         }
     }
@@ -2583,6 +2586,37 @@ Inbound.WireguardSettings.Peer = class extends XrayCommonClass {
             preSharedKey: this.psk.length > 0 ? this.psk : undefined,
             allowedIPs: this.allowedIPs,
             keepAlive: this.keepAlive ?? undefined,
+        };
+    }
+};
+
+Inbound.TunSettings = class extends Inbound.Settings {
+    constructor(
+        protocol,
+        name = 'xray0',
+        mtu = 1500,
+        userLevel = 0
+    ) {
+        super(protocol);
+        this.name = name;
+        this.mtu = mtu;
+        this.userLevel = userLevel;
+    }
+
+    static fromJson(json = {}) {
+        return new Inbound.TunSettings(
+            Protocols.TUN,
+            json.name ?? 'xray0',
+            json.mtu ?? json.MTU ?? 1500,
+            json.userLevel ?? 0
+        );
+    }
+
+    toJson() {
+        return {
+            name: this.name || 'xray0',
+            mtu: this.mtu || 1500,
+            userLevel: this.userLevel || 0,
         };
     }
 };

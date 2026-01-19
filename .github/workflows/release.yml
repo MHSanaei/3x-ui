@@ -18,6 +18,7 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'x-ui.service.debian'
+      - 'x-ui.service.arch'
       - 'x-ui.service.rhel'
 
 jobs:
@@ -80,6 +81,7 @@ jobs:
           mkdir x-ui
           cp xui-release x-ui/
           cp x-ui.service.debian x-ui/
+          cp x-ui.service.arch x-ui/
           cp x-ui.service.rhel x-ui/
           cp x-ui.sh x-ui/
           mv x-ui/xui-release x-ui/x-ui
@@ -87,7 +89,7 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v25.12.8/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.1.18/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -185,7 +187,7 @@ jobs:
           cd x-ui\bin
           
           # Download Xray for Windows
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v25.12.8/"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.1.18/"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"

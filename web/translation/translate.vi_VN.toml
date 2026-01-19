@@ -531,6 +531,12 @@
 "psk" = "Khóa chia sẻ"
 "domainStrategy" = "Chiến lược tên miền"
 
+[pages.xray.tun]
+"nameDesc" = "Tên của giao diện TUN. Giá trị mặc định là 'xray0'"
+"mtuDesc" = "Đơn vị Truyền Tối đa. Kích thước tối đa của các gói dữ liệu. Giá trị mặc định là 1500"
+"userLevel" = "Mức Người Dùng"
+"userLevelDesc" = "Tất cả các kết nối được thực hiện thông qua inbound này sẽ sử dụng mức người dùng này. Giá trị mặc định là 0"
+
 [pages.xray.dns]
 "enable" = "Kích hoạt DNS"
 "enableDesc" = "Kích hoạt máy chủ DNS tích hợp"

@@ -531,6 +531,12 @@
 "psk" = "共有キー"
 "domainStrategy" = "ドメイン戦略"
 
+[pages.xray.tun]
+"nameDesc" = "TUN インターフェースの名前。デフォルトは 'xray0' です"
+"mtuDesc" = "最大伝送単位。データパケットの最大サイズ。デフォルトは 1500 です"
+"userLevel" = "ユーザーレベル"
+"userLevelDesc" = "このインバウンドを通じて確立されたすべての接続は、このユーザーレベルを使用します。デフォルトは 0 です"
+
 [pages.xray.dns]
 "enable" = "DNSを有効にする"
 "enableDesc" = "組み込みDNSサーバーを有効にする"

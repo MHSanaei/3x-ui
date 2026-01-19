@@ -531,6 +531,12 @@
 "psk" = "Chave Pré-Compartilhada"
 "domainStrategy" = "Estratégia de Domínio"
 
+[pages.xray.tun]
+"nameDesc" = "O nome da interface TUN. O padrão é 'xray0'"
+"mtuDesc" = "Unidade Máxima de Transmissão. O tamanho máximo dos pacotes de dados. O padrão é 1500"
+"userLevel" = "Nível do Usuário"
+"userLevelDesc" = "Todas as conexões feitas através deste inbound usarão este nível de usuário. O padrão é 0"
+
 [pages.xray.dns]
 "enable" = "Ativar DNS"
 "enableDesc" = "Ativar o servidor DNS integrado"

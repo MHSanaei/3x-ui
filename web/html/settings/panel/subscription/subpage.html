@@ -5,6 +5,43 @@
 <script src="{{ .base_path }}assets/ant-design-vue/antd.min.js"></script>
 <script src="{{ .base_path }}assets/js/util/index.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
+<style>
+    .subscription-page .subscription-link-box {
+        cursor: pointer;
+        border-radius: 12px;
+        padding: 25px 20px 15px 20px;
+        margin-top: -12px;
+        word-break: break-all;
+        font-size: 13px;
+        line-height: 1.5;
+        text-align: left;
+        font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        transition: all 0.3s;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .dark.subscription-page .subscription-link-box {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #fff;
+    }
+
+    .dark.subscription-page .subscription-link-box:hover {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .light.subscription-page .subscription-link-box {
+        background: rgba(0, 0, 0, 0.03);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        color: rgba(0, 0, 0, 0.85);
+    }
+
+    .light.subscription-page .subscription-link-box:hover {
+        background: rgba(0, 0, 0, 0.05);
+        border-color: rgba(0, 0, 0, 0.14);
+    }
+</style>
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
@@ -138,27 +175,12 @@
                                 style="margin-bottom: -10px; position: relative; z-index: 2; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
                                 <span>[[ linkName(link, idx) ]]</span>
                             </a-tag>
-                            <div @click="copy(link)" style="
-                                cursor: pointer;
-                                background: rgba(0, 0, 0, 0.2);
-                                border: 1px solid rgba(255, 255, 255, 0.1);
-                                border-radius: 12px;
-                                padding: 25px 20px 15px 20px;
-                                margin-top: -12px;
-                                word-break: break-all;
-                                color: #fff;
-                                font-size: 13px;
-                                line-height: 1.5;
-                                text-align: left;
-                                font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-                                transition: all 0.3s;
-                                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                            " onmouseover="this.style.background='rgba(0, 0, 0, 0.3)'; this.style.borderColor='rgba(255, 255, 255, 0.2)'"
-                                onmouseout="this.style.background='rgba(0, 0, 0, 0.2)'; this.style.borderColor='rgba(255, 255, 255, 0.1)'">
+                            <div @click="copy(link)" class="subscription-link-box">
                                 [[ link ]]
                             </div>
                         </div>
                     </div>
+
                     </div>
                     <br />
 

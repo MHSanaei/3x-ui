@@ -1602,7 +1602,6 @@
           if (payload && Array.isArray(payload)) {
             // Use setInbounds to properly convert to DBInbound objects with methods
             this.setInbounds(payload);
-            this.searchInbounds(this.searchKey);
           }
         });
 
@@ -1614,14 +1613,31 @@
           
           // Update online clients list in real-time
           if (payload && Array.isArray(payload.onlineClients)) {
-            this.onlineClients = payload.onlineClients;
-            // Recalculate client counts to update online status
-            this.dbInbounds.forEach(dbInbound => {
-              const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
-              if (inbound && this.clientCount[dbInbound.id]) {
-                this.clientCount[dbInbound.id] = this.getClientCounts(dbInbound, inbound);
+            const nextOnlineClients = payload.onlineClients;
+            let onlineChanged = this.onlineClients.length !== nextOnlineClients.length;
+            if (!onlineChanged) {
+              const prevSet = new Set(this.onlineClients);
+              for (const email of nextOnlineClients) {
+                if (!prevSet.has(email)) {
+                  onlineChanged = true;
+                  break;
+                }
               }
-            });
+            }
+            this.onlineClients = nextOnlineClients;
+            if (onlineChanged) {
+              // Recalculate client counts to update online status
+              this.dbInbounds.forEach(dbInbound => {
+                const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
+                if (inbound && this.clientCount[dbInbound.id]) {
+                  this.clientCount[dbInbound.id] = this.getClientCounts(dbInbound, inbound);
+                }
+              });
+
+              if (this.enableFilter) {
+                this.filterInbounds();
+              }
+            }
           }
           
           // Update last online map in real-time

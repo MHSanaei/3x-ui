@@ -531,6 +531,12 @@
 "psk" = "共享密钥"
 "domainStrategy" = "域策略"
 
+[pages.xray.tun]
+"nameDesc" = "TUN 接口的名称。默认值为 'xray0'"
+"mtuDesc" = "最大传输单元。数据包的最大大小。默认值为 1500"
+"userLevel" = "用户级别"
+"userLevelDesc" = "通过此入站的所有连接都将使用此用户级别。默认值为 0"
+
 [pages.xray.dns]
 "enable" = "启用 DNS"
 "enableDesc" = "启用内置 DNS 服务器"
