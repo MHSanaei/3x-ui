@@ -772,7 +772,7 @@
     <a-space direction="vertical" :size="10" :style="{ marginTop: '10px' }">
       <a-input addon-before='{{ i18n "pages.xray.outbound.link" }}'
         v-model.trim="outModal.link"
-        placeholder="vmess:// vless:// trojan:// ss://">
+        placeholder="vmess:// vless:// trojan:// ss:// hysteria2://">
         <a-icon slot="addonAfter" type="form" @click="convertLink"></a-icon>
       </a-input>
       <textarea :style="{ position: 'absolute', left: '-800px' }"
