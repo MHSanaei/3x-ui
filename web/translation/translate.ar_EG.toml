@@ -381,7 +381,7 @@
 "subAnnounce" = "إعلان"
 "subAnnounceDesc" = "نص الإعلان المعروض في عميل VPN"
 "subEnableRouting" = "تفعيل التوجيه"
-"subEnableRoutingDesc" = "إعداد عام لتعطيل التوجيه في عميل VPN"
+"subEnableRoutingDesc" = "إعداد عام لتمكين التوجيه (Routing) في عميل VPN."
 "subListen" = "IP الاستماع"
 "subListenDesc" = "عنوان IP لخدمة الاشتراك. (سيبه فاضي عشان يستمع على كل الـ IPs)"
 "subPort" = "بورت الاستماع"

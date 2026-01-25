@@ -381,7 +381,7 @@
 "subAnnounce" = "公告"
 "subAnnounceDesc" = "VPN 用戶端中顯示的公告文字"
 "subEnableRouting" = "啟用路由"
-"subEnableRoutingDesc" = "VPN 用戶端中停用路由的全域設定"
+"subEnableRoutingDesc" = "在 VPN 用戶端中啟用路由的全域設定。"
 "subListen" = "監聽 IP"
 "subListenDesc" = "訂閱服務監聽的 IP 地址（留空表示監聽所有 IP）"
 "subPort" = "監聽埠"

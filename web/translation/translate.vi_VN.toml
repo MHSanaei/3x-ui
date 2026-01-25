@@ -381,7 +381,7 @@
 "subAnnounce" = "Thông báo"
 "subAnnounceDesc" = "Văn bản thông báo hiển thị trong ứng dụng VPN"
 "subEnableRouting" = "Bật định tuyến"
-"subEnableRoutingDesc" = "Cài đặt chung để tắt định tuyến trong ứng dụng VPN"
+"subEnableRoutingDesc" = "Cài đặt toàn cục để bật định tuyến trong ứng dụng khách VPN."
 "subListen" = "Listening IP"
 "subListenDesc" = "Mặc định để trống để nghe tất cả các IP"
 "subPort" = "Cổng gói đăng ký"

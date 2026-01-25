@@ -381,7 +381,7 @@
 "subAnnounce" = "Duyuru"
 "subAnnounceDesc" = "VPN istemcisinde görüntülenen duyuru metni"
 "subEnableRouting" = "Yönlendirmeyi etkinleştir"
-"subEnableRoutingDesc" = "VPN istemcisinde yönlendirmeyi devre dışı bırakmak için genel ayar"
+"subEnableRoutingDesc" = "VPN istemcisinde yönlendirmeyi etkinleştirmek için genel ayar."
 "subListen" = "Dinleme IP"
 "subListenDesc" = "Abonelik hizmeti için IP adresi. (tüm IP'leri dinlemek için boş bırakın)"
 "subPort" = "Dinleme Portu"

@@ -381,7 +381,7 @@
 "subAnnounce" = "Announce"
 "subAnnounceDesc" = "The text of the announce displayed in the VPN client"
 "subEnableRouting" = "Enable routing"
-"subEnableRoutingDesc" = "Global setting to disable routing in the VPN client."
+"subEnableRoutingDesc" = "Global setting to enable routing in the VPN client."
 "subListen" = "Listen IP"
 "subListenDesc" = "The IP address for the subscription service. (leave blank to listen on all IPs)"
 "subPort" = "Listen Port"

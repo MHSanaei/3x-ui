@@ -381,7 +381,7 @@
 "subAnnounce" = "Pengumuman"
 "subAnnounceDesc" = "Teks pengumuman yang ditampilkan di klien VPN"
 "subEnableRouting" = "Aktifkan perutean"
-"subEnableRoutingDesc" = "Pengaturan global untuk menonaktifkan perutean di klien VPN"
+"subEnableRoutingDesc" = "Pengaturan global untuk mengaktifkan perutean (routing) di klien VPN."
 "subListen" = "IP Pendengar"
 "subListenDesc" = "Alamat IP untuk layanan langganan. (biarkan kosong untuk mendengarkan semua IP)"
 "subPort" = "Port Pendengar"

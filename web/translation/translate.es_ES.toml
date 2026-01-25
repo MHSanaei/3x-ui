@@ -381,7 +381,7 @@
 "subAnnounce" = "Anuncio"
 "subAnnounceDesc" = "El texto del anuncio mostrado en el cliente VPN"
 "subEnableRouting" = "Habilitar enrutamiento"
-"subEnableRoutingDesc" = "Configuración global para deshabilitar el enrutamiento en el cliente VPN"
+"subEnableRoutingDesc" = "Configuración global para habilitar el enrutamiento en el cliente VPN."
 "subListen" = "Listening IP"
 "subListenDesc" = "Dejar en blanco por defecto para monitorear todas las IPs."
 "subPort" = "Puerto de Suscripción"
