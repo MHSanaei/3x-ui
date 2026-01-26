@@ -18,6 +18,7 @@ type SUBController struct {
 	subProfileUrl    string
 	subAnnounce      string
 	subEnableRouting bool
+	subRoutingRules  string
 	subPath          string
 	subJsonPath      string
 	jsonEnabled      bool
@@ -47,6 +48,7 @@ func NewSUBController(
 	subProfileUrl string,
 	subAnnounce string,
 	subEnableRouting bool,
+	subRoutingRules string,
 ) *SUBController {
 	sub := NewSubService(showInfo, rModel)
 	a := &SUBController{
@@ -55,6 +57,7 @@ func NewSUBController(
 		subProfileUrl:    subProfileUrl,
 		subAnnounce:      subAnnounce,
 		subEnableRouting: subEnableRouting,
+		subRoutingRules:  subRoutingRules,
 		subPath:          subPath,
 		subJsonPath:      jsonPath,
 		jsonEnabled:      jsonEnabled,
@@ -140,7 +143,7 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -159,7 +162,7 @@ func (a *SUBController) subJsons(c *gin.Context) {
 		c.String(400, "Error!")
 	} else {
 		// Add headers
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
 
 		c.String(200, jsonSub)
 	}
@@ -175,6 +178,7 @@ func (a *SUBController) ApplyCommonHeaders(
 	profileUrl string, 
 	profileAnnounce string, 
 	profileEnableRouting bool,
+	profileRoutingRules string,
 ) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
@@ -183,4 +187,5 @@ func (a *SUBController) ApplyCommonHeaders(
 	c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
 	c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
 	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
+	c.Writer.Header().Set("Routing", profileRoutingRules)
 }

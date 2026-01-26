@@ -61,6 +61,7 @@ type AllSetting struct {
 	SubProfileUrl               string `json:"subProfileUrl" form:"subProfileUrl"`                             // Subscription profile URL
 	SubAnnounce                 string `json:"subAnnounce" form:"subAnnounce"`                                 // Subscription announce
 	SubEnableRouting            bool   `json:"subEnableRouting" form:"subEnableRouting"`                       // Enable routing for subscription
+	SubRoutingRules             string `json:"subRoutingRules" form:"subRoutingRules"`                         // Subscription global routing rules (Only for Happ)
 	SubListen                   string `json:"subListen" form:"subListen"`                                     // Subscription server listen IP
 	SubPort                     int    `json:"subPort" form:"subPort"`                                         // Subscription server port
 	SubPath                     string `json:"subPath" form:"subPath"`                                         // Base path for subscription URLs
