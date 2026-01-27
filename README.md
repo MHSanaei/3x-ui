@@ -1,9 +1,9 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](docs/README.fa_IR.md) | [العربية](docs/README.ar_EG.md) |  [中文](docs/README.zh_CN.md) | [Español](docs/README.es_ES.md) | [Русский](docs/README.ru_RU.md)
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
-    <img alt="3x-ui" src="./media/3x-ui-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/media/3x-ui-dark.png">
+    <img alt="3x-ui" src="./docs/media/3x-ui-light.png">
   </picture>
 </p>
 
@@ -44,12 +44,12 @@ For full documentation, please visit the [project Wiki](https://github.com/MHSan
 **If this project is helpful to you, you may wish to give it a**:star2:
 
 <a href="https://www.buymeacoffee.com/MHSanaei" target="_blank">
-<img src="./media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
+<img src="./docs/media/default-yellow.png" alt="Buy Me A Coffee" style="height: 70px !important;width: 277px !important;" >
 </a>
-
+<br>
 </br>
 <a href="https://nowpayments.io/donation/hsanaei" target="_blank" rel="noreferrer noopener">
-   <img src="./media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
+   <img src="./docs/media/donation-button-black.svg" alt="Crypto donation button by NOWPayments">
 </a>
 
 ## Stargazers over Time

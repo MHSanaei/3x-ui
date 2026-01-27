@@ -1,3 +1,6 @@
+# shared volume
+geodata/
+
 # Ignore editor and IDE settings
 .idea/
 .vscode/

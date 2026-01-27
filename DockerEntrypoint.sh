@@ -1,7 +1,12 @@
 #!/bin/sh
 
+set -eu
+
+# /app/bin is shared volume
+cp /tmp/xray/* /app/bin/
+
 # Start fail2ban
-[ $XUI_ENABLE_FAIL2BAN == "true" ] && fail2ban-client -x start
+[ "$XUI_ENABLE_FAIL2BAN" = "true" ] && fail2ban-client -x start
 
 # Run x-ui
 exec /app/x-ui
