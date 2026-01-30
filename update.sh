@@ -173,7 +173,7 @@ setup_ssl_certificate() {
     echo -e "${green}Issuing SSL certificate for ${domain}...${plain}"
     echo -e "${yellow}Note: Port 80 must be open and accessible from the internet${plain}"
     
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force >/dev/null 2>&1
     ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport 80 --force
     
     if [ $? -ne 0 ]; then
@@ -297,7 +297,7 @@ setup_ip_certificate() {
 
     # Issue certificate with shortlived profile
     echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt >/dev/null 2>&1
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force >/dev/null 2>&1
     
     ~/.acme.sh/acme.sh --issue \
         ${domain_args} \
@@ -437,7 +437,7 @@ ssl_cert_issue() {
     systemctl stop x-ui 2>/dev/null || rc-service x-ui stop 2>/dev/null
 
     # issue the certificate
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt
+    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
     ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
     if [ $? -ne 0 ]; then
         echo -e "${red}Issuing certificate failed, please check logs.${plain}"
