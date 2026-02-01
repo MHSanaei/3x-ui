@@ -5,68 +5,119 @@
   </a-collapse-panel>
 </a-collapse>
 <a-collapse v-else>
-  <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' + inbound.settings.vlesses.length">
+  <a-collapse-panel :header="'{{ i18n "pages.client.clientCount"}} : ' +
+    inbound.settings.vlesses.length">
     <table width="100%">
       <tr class="client-table-header">
         <th>{{ i18n "pages.inbounds.email" }}</th>
         <th>ID</th>
       </tr>
-      <tr v-for="(client, index) in inbound.settings.vlesses" :class="index % 2 == 1 ? 'client-table-odd-row' : ''">
+      <tr v-for="(client, index) in inbound.settings.vlesses"
+        :class="index % 2 == 1 ? ' client-table-odd-row' : ''">
         <td>[[ client.email ]]</td>
         <td>[[ client.id ]]</td>
       </tr>
     </table>
   </a-collapse-panel>
 </a-collapse>
-<template v-if="!inbound.stream.isTLS || !inbound.stream.isReality">
-  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label="Authentication">
-      <a-select v-model="inbound.settings.selectedAuth" @change="getNewVlessEnc" :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option value="X25519, not Post-Quantum">X25519 (not Post-Quantum)</a-select-option>
-        <a-select-option value="ML-KEM-768, Post-Quantum">ML-KEM-768 (Post-Quantum)</a-select-option>
-      </a-select>
-    </a-form-item>
-    <a-form-item label="decryption">
-      <a-input v-model.trim="inbound.settings.decryption"></a-input>
-    </a-form-item>
-    <a-form-item label="encryption">
-      <a-input v-model="inbound.settings.encryption"></a-input>
-    </a-form-item>
-    <a-form-item label=" ">
-      <a-space>
-        <a-button type="primary" icon="import" @click="getNewVlessEnc">Get New keys</a-button>
-        <a-button danger @click="clearVlessEnc">Clear</a-button>
-      </a-space>
-    </a-form-item>
-  </a-form>
-</template>
-<template v-if="inbound.isTcp && !inbound.settings.selectedAuth">
-  <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-form-item label="Fallbacks">
-      <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addFallback()"></a-button>
-    </a-form-item>
-  </a-form>
+<template v-if=" !inbound.stream.isTLS || !inbound.stream.isReality">
+    <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+      <a-form-item label="Authentication">
+        <a-select v-model="inbound.settings.selectedAuth" @change="getNewVlessEnc"
+          :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option value="X25519, not Post-Quantum">X25519 (not
+            Post-Quantum)</a-select-option>
+          <a-select-option value="ML-KEM-768, Post-Quantum">ML-KEM-768
+            (Post-Quantum)</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="decryption">
+        <a-input v-model.trim="inbound.settings.decryption"></a-input>
+      </a-form-item>
+      <a-form-item label="encryption">
+        <a-input v-model="inbound.settings.encryption"></a-input>
+      </a-form-item>
+      <a-form-item label=" ">
+        <a-space>
+          <a-button type="primary" icon="import" @click="getNewVlessEnc">Get New
+            keys</a-button>
+          <a-button danger @click="clearVlessEnc">Clear</a-button>
+        </a-space>
+      </a-form-item>
+    </a-form>
+    <a-divider :style="{ margin: '5px 0' }"></a-divider>
+    </template>
+    <template v-if="inbound.isTcp && !inbound.settings.selectedAuth">
+      <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label="Fallbacks">
+          <a-button icon="plus" type="primary" size="small" @click="inbound.settings.addFallback()"></a-button>
+        </a-form-item>
+      </a-form>
 
-  <!-- vless fallbacks -->
-  <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
-    <a-divider :style="{ margin: '0' }"> Fallback [[ index + 1 ]] <a-icon type="delete" @click="() => inbound.settings.delFallback(index)" :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
-    </a-divider>
-    <a-form-item label='SNI'>
-      <a-input v-model="fallback.name"></a-input>
-    </a-form-item>
-    <a-form-item label='ALPN'>
-      <a-input v-model="fallback.alpn"></a-input>
-    </a-form-item>
-    <a-form-item label='Path'>
-      <a-input v-model="fallback.path"></a-input>
-    </a-form-item>
-    <a-form-item label='Dest'>
-      <a-input v-model="fallback.dest"></a-input>
-    </a-form-item>
-    <a-form-item label='xVer'>
-      <a-input-number v-model.number="fallback.xver" :min="0" :max="2"></a-input-number>
-    </a-form-item>
-  </a-form>
-  <a-divider :style="{ margin: '5px 0' }"></a-divider>
-</template>
+      <!-- vless fallbacks -->
+      <a-form v-for="(fallback, index) in inbound.settings.fallbacks" :colon="false" :label-col="{ md: {span:8} }"
+        :wrapper-col="{ md: {span:14} }">
+        <a-divider :style="{ margin: '0' }"> Fallback [[ index + 1 ]] <a-icon type="delete"
+            @click="() => inbound.settings.delFallback(index)"
+            :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+        </a-divider>
+        <a-form-item label='SNI'>
+          <a-input v-model="fallback.name"></a-input>
+        </a-form-item>
+        <a-form-item label='ALPN'>
+          <a-input v-model="fallback.alpn"></a-input>
+        </a-form-item>
+        <a-form-item label='Path'>
+          <a-input v-model="fallback.path"></a-input>
+        </a-form-item>
+        <a-form-item label='Dest'>
+          <a-input v-model="fallback.dest"></a-input>
+        </a-form-item>
+        <a-form-item label='xVer'>
+          <a-input-number v-model.number="fallback.xver" :min="0" :max="2"></a-input-number>
+        </a-form-item>
+      </a-form>
+      <a-divider :style="{ margin: '5px 0' }"></a-divider>
+    </template>
+    <template v-if="inbound.canEnableVisionSeed()">
+      <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-form-item label="Vision Seed">
+          <a-row :gutter="8">
+            <a-col :span="6">
+              <a-input-number
+                :value="(inbound.settings.testseed && inbound.settings.testseed[0] !== undefined) ? inbound.settings.testseed[0] : 900"
+                @change="(val) => updateTestseed(0, val)" :min="0" :max="9999" :style="{ width: '100%' }"
+                placeholder="900" addon-before="[0]"></a-input-number>
+            </a-col>
+            <a-col :span="6">
+              <a-input-number
+                :value="(inbound.settings.testseed && inbound.settings.testseed[1] !== undefined) ? inbound.settings.testseed[1] : 500"
+                @change="(val) => updateTestseed(1, val)" :min="0" :max="9999" :style="{ width: '100%' }"
+                placeholder="500" addon-before="[1]"></a-input-number>
+            </a-col>
+            <a-col :span="6">
+              <a-input-number
+                :value="(inbound.settings.testseed && inbound.settings.testseed[2] !== undefined) ? inbound.settings.testseed[2] : 900"
+                @change="(val) => updateTestseed(2, val)" :min="0" :max="9999" :style="{ width: '100%' }"
+                placeholder="900" addon-before="[2]"></a-input-number>
+            </a-col>
+            <a-col :span="6">
+              <a-input-number
+                :value="(inbound.settings.testseed && inbound.settings.testseed[3] !== undefined) ? inbound.settings.testseed[3] : 256"
+                @change="(val) => updateTestseed(3, val)" :min="0" :max="9999" :style="{ width: '100%' }"
+                placeholder="256" addon-before="[3]"></a-input-number>
+            </a-col>
+          </a-row>
+          <a-space :size="8" :style="{ marginTop: '8px' }">
+            <a-button type="primary" @click="setRandomTestseed">
+              Rand
+            </a-button>
+            <a-button @click="resetTestseed">
+              Reset
+            </a-button>
+          </a-space>
+        </a-form-item>
+      </a-form>
+      <a-divider :style="{ margin: '5px 0' }"></a-divider>
+    </template>
 {{end}}

@@ -45,7 +45,7 @@ func (j *ClearLogsJob) Run() {
 	}
 
 	// Clear log files and copy to previous logs
-	for i := 0; i < len(logFiles); i++ {
+	for i := range len(logFiles) {
 		if i > 0 {
 			// Copy to previous logs
 			logFilePrev, err := os.OpenFile(logFilesPrev[i-1], os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)

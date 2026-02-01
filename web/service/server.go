@@ -529,6 +529,18 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	}
 	defer resp.Body.Close()
 
+	// Check HTTP status code - GitHub API returns object instead of array on error
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		var errorResponse struct {
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(bodyBytes, &errorResponse) == nil && errorResponse.Message != "" {
+			return nil, fmt.Errorf("GitHub API error: %s", errorResponse.Message)
+		}
+		return nil, fmt.Errorf("GitHub API returned status %d: %s", resp.StatusCode, resp.Status)
+	}
+
 	buffer := bytes.NewBuffer(make([]byte, bufferSize))
 	buffer.Reset()
 	if _, err := buffer.ReadFrom(resp.Body); err != nil {
@@ -555,7 +567,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 			continue
 		}
 
-		if major > 25 || (major == 25 && minor > 9) || (major == 25 && minor == 9 && patch >= 11) {
+		if major > 26 || (major == 26 && minor > 1) || (major == 26 && minor == 1 && patch >= 31) {
 			versions = append(versions, release.TagName)
 		}
 	}
@@ -794,17 +806,17 @@ func (s *ServerService) GetXrayLogs(
 		for i, part := range parts {
 
 			if i == 0 {
-				dateTime, err := time.Parse("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1])
+				dateTime, err := time.ParseInLocation("2006/01/02 15:04:05.999999", parts[0]+" "+parts[1], time.Local)
 				if err != nil {
 					continue
 				}
-				entry.DateTime = dateTime
+				entry.DateTime = dateTime.UTC()
 			}
 
 			if part == "from" {
-				entry.FromAddress = parts[i+1]
+				entry.FromAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if part == "accepted" {
-				entry.ToAddress = parts[i+1]
+				entry.ToAddress = strings.TrimLeft(parts[i+1], "/")
 			} else if strings.HasPrefix(part, "[") {
 				entry.Inbound = part[1:]
 			} else if strings.HasSuffix(part, "]") {
@@ -1193,7 +1205,7 @@ func (s *ServerService) GetNewmldsa65() (any, error) {
 	return keyPair, nil
 }
 
-func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
+func (s *ServerService) GetNewEchCert(sni string) (any, error) {
 	// Run the command
 	cmd := exec.Command(xray.GetBinaryPath(), "tls", "ech", "--serverName", sni)
 	var out bytes.Buffer
@@ -1211,7 +1223,7 @@ func (s *ServerService) GetNewEchCert(sni string) (interface{}, error) {
 	configList := lines[1]
 	serverKeys := lines[3]
 
-	return map[string]interface{}{
+	return map[string]any{
 		"echServerKeys": serverKeys,
 		"echConfigList": configList,
 	}, nil

@@ -17,6 +17,7 @@ var (
 type WebServer interface {
 	GetCron() *cron.Cron     // Get the cron scheduler
 	GetCtx() context.Context // Get the server context
+	GetWSHub() any           // Get the WebSocket hub (using any to avoid circular dependency)
 }
 
 // SubServer interface defines methods for accessing the subscription server instance.

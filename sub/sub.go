@@ -153,6 +153,31 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubTitle = ""
 	}
 
+	SubSupportUrl, err := s.settingService.GetSubSupportUrl()
+	if err != nil {
+		SubSupportUrl = ""
+	}
+
+	SubProfileUrl, err := s.settingService.GetSubProfileUrl()
+	if err != nil {
+		SubProfileUrl = ""
+	}
+
+	SubAnnounce, err := s.settingService.GetSubAnnounce()
+	if err != nil {
+		SubAnnounce = ""
+	}
+
+	SubEnableRouting, err := s.settingService.GetSubEnableRouting()
+	if err != nil {
+		return nil, err
+	}
+
+	SubRoutingRules, err := s.settingService.GetSubRoutingRules()
+	if err != nil {
+		SubRoutingRules = ""
+	}
+
 	// set per-request localizer from headers/cookies
 	engine.Use(locale.LocalizerMiddleware())
 
@@ -231,7 +256,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, subJsonEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
-		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle)
+		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle, SubSupportUrl,
+		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 
 	return engine, nil
 }

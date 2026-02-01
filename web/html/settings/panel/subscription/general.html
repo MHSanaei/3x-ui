@@ -16,13 +16,6 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
-            <template #title>{{ i18n "pages.settings.subTitle"}}</template>
-            <template #description>{{ i18n "pages.settings.subTitleDesc"}}</template>
-            <template #control>
-                <a-input type="text" v-model="allSetting.subTitle"></a-input>
-            </template>
-        </a-setting-list-item>
-        <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subListen"}}</template>
             <template #description>{{ i18n "pages.settings.subListenDesc"}}</template>
             <template #control>
@@ -76,6 +69,50 @@
             <template #description>{{ i18n "pages.settings.subShowInfoDesc"}}</template>
             <template #control>
                 <a-switch v-model="allSetting.subShowInfo"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-divider>{{ i18n "pages.xray.basicTemplate"}}</a-divider>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subTitle"}}</template>
+            <template #description>{{ i18n "pages.settings.subTitleDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subTitle"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subSupportUrl"}}</template>
+            <template #description>{{ i18n "pages.settings.subSupportUrlDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subSupportUrl" placeholder="https://example.com"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subProfileUrl"}}</template>
+            <template #description>{{ i18n "pages.settings.subProfileUrlDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subProfileUrl" placeholder="https://example.com"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subAnnounce"}}</template>
+            <template #description>{{ i18n "pages.settings.subAnnounceDesc"}}</template>
+            <template #control>
+                <a-textarea v-model="allSetting.subAnnounce"></a-textarea>
+            </template>
+        </a-setting-list-item>
+        <a-divider>{{ i18n "pages.xray.advancedTemplate"}} (Happ)</a-divider>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subEnableRouting"}}</template>
+            <template #description>{{ i18n "pages.settings.subEnableRoutingDesc"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subEnableRouting"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subRoutingRules"}}</template>
+            <template #description>{{ i18n "pages.settings.subRoutingRulesDesc"}}</template>
+            <template #control>
+                <a-textarea v-model="allSetting.subRoutingRules" placeholder="happ://routing/add/..."></a-textarea>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>

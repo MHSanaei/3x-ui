@@ -106,7 +106,7 @@
 "invalidFormData" = "تنسيق البيانات المدخلة مش صحيح."
 "emptyUsername" = "اسم المستخدم مطلوب"
 "emptyPassword" = "الباسورد مطلوب"
-"wrongUsernameOrPassword" = "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح."  
+"wrongUsernameOrPassword" = "اسم المستخدم أو كلمة المرور أو كود المصادقة الثنائية غير صحيح."
 "successLogin" = "لقد تم تسجيل الدخول إلى حسابك بنجاح."
 
 [pages.index]
@@ -374,6 +374,16 @@
 "subJsonEnable" = "تمكين/تعطيل نقطة نهاية اشتراك JSON بشكل مستقل."
 "subTitle" = "عنوان الاشتراك"
 "subTitleDesc" = "العنوان اللي هيظهر في عميل VPN"
+"subSupportUrl" = "رابط الدعم"
+"subSupportUrlDesc" = "رابط الدعم الفني المعروض في عميل VPN"
+"subProfileUrl" = "رابط الملف الشخصي"
+"subProfileUrlDesc" = "رابط لموقعك الإلكتروني يظهر في عميل VPN"
+"subAnnounce" = "إعلان"
+"subAnnounceDesc" = "نص الإعلان المعروض في عميل VPN"
+"subEnableRouting" = "تفعيل التوجيه"
+"subEnableRoutingDesc" = "إعداد عام لتمكين التوجيه (Routing) في عميل VPN. (فقط لـ Happ)"
+"subRoutingRules" = "قواعد التوجيه"
+"subRoutingRulesDesc" = "قواعد التوجيه العامة لعميل VPN. (فقط لـ Happ)"
 "subListen" = "IP الاستماع"
 "subListenDesc" = "عنوان IP لخدمة الاشتراك. (سيبه فاضي عشان يستمع على كل الـ IPs)"
 "subPort" = "بورت الاستماع"
@@ -531,6 +541,12 @@
 "psk" = "المفتاح المشترك"
 "domainStrategy" = "استراتيجية الدومين"
 
+[pages.xray.tun]
+"nameDesc" = "اسم واجهة TUN. القيمة الافتراضية هي 'xray0'"
+"mtuDesc" = "وحدة النقل الأقصى. الحد الأقصى لحجم حزم البيانات. القيمة الافتراضية هي 1500"
+"userLevel" = "مستوى المستخدم"
+"userLevelDesc" = "ستستخدم جميع الاتصالات المُرسلة عبر هذا الإدخال مستوى المستخدم هذا. القيمة الافتراضية هي 0"
+
 [pages.xray.dns]
 "enable" = "فعل DNS"
 "enableDesc" = "فعل سيرفر DNS المدمج"
@@ -544,6 +560,8 @@
 "disableFallbackDesc" = "بيعطل استعلامات DNS الاحتياطية"
 "disableFallbackIfMatch" = "تعطيل النسخ الاحتياطي عند التطابق"
 "disableFallbackIfMatchDesc" = "بيعطل استعلامات DNS الاحتياطية لما يتحقق تطابق مع قائمة الدومينات"
+"enableParallelQuery" = "تفعيل الاستعلام المتوازي"
+"enableParallelQueryDesc" = "تفعيل استعلامات DNS المتوازية لعدة خوادم لحل أسرع"
 "strategy" = "استراتيجية الاستعلام"
 "strategyDesc" = "الاستراتيجية العامة لحل أسماء الدومين"
 "add" = "أضف سيرفر"
@@ -565,9 +583,9 @@
 
 [pages.settings.security]
 "admin" = "بيانات الأدمن"
-"twoFactor" = "المصادقة الثنائية"  
-"twoFactorEnable" = "تفعيل المصادقة الثنائية"  
-"twoFactorEnableDesc" = "يضيف طبقة إضافية من المصادقة لتعزيز الأمان."  
+"twoFactor" = "المصادقة الثنائية"
+"twoFactorEnable" = "تفعيل المصادقة الثنائية"
+"twoFactorEnableDesc" = "يضيف طبقة إضافية من المصادقة لتعزيز الأمان."
 "twoFactorModalSetTitle" = "تفعيل المصادقة الثنائية"
 "twoFactorModalDeleteTitle" = "تعطيل المصادقة الثنائية"
 "twoFactorModalSteps" = "لإعداد المصادقة الثنائية، قم ببعض الخطوات:"
@@ -663,6 +681,7 @@
 "active" = "💡 مفعل: {{ .Enable }}\r\n"
 "enabled" = "🚨 مفعل: {{ .Enable }}\r\n"
 "online" = "🌐 حالة الاتصال: {{ .Status }}\r\n"
+"lastOnline" = "🔙 آخر متصل: {{ .Time }}\r\n"
 "email" = "📧 الإيميل: {{ .Email }}\r\n"
 "upload" = "🔼 رفع: ↑{{ .Upload }}\r\n"
 "download" = "🔽 تنزيل: ↓{{ .Download }}\r\n"

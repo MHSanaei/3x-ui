@@ -29,6 +29,11 @@ class AllSetting {
         this.subEnable = true;
         this.subJsonEnable = false;
         this.subTitle = "";
+        this.subSupportUrl = "";
+        this.subProfileUrl = "";
+        this.subAnnounce = "";
+        this.subEnableRouting = true;
+        this.subRoutingRules = "";
         this.subListen = "";
         this.subPort = 2096;
         this.subPath = "/sub/";

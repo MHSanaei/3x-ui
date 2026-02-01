@@ -110,10 +110,33 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 			Id: user["id"].(string),
 		})
 	case "vless":
-		account = serial.ToTypedMessage(&vless.Account{
+		vlessAccount := &vless.Account{
 			Id:   user["id"].(string),
 			Flow: user["flow"].(string),
-		})
+		}
+		// Add testseed if provided
+		if testseedVal, ok := user["testseed"]; ok {
+			if testseedArr, ok := testseedVal.([]any); ok && len(testseedArr) >= 4 {
+				testseed := make([]uint32, len(testseedArr))
+				for i, v := range testseedArr {
+					if num, ok := v.(float64); ok {
+						testseed[i] = uint32(num)
+					}
+				}
+				vlessAccount.Testseed = testseed
+			} else if testseedArr, ok := testseedVal.([]uint32); ok && len(testseedArr) >= 4 {
+				vlessAccount.Testseed = testseedArr
+			}
+		}
+		// Add testpre if provided (for outbound, but can be in user for compatibility)
+		if testpreVal, ok := user["testpre"]; ok {
+			if testpre, ok := testpreVal.(float64); ok && testpre > 0 {
+				vlessAccount.Testpre = uint32(testpre)
+			} else if testpre, ok := testpreVal.(uint32); ok && testpre > 0 {
+				vlessAccount.Testpre = testpre
+			}
+		}
+		account = serial.ToTypedMessage(vlessAccount)
 	case "trojan":
 		account = serial.ToTypedMessage(&trojan.Account{
 			Password: user["password"].(string),

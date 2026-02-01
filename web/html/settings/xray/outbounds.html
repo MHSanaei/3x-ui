@@ -3,8 +3,8 @@
     <a-row>
         <a-col :xs="12" :sm="12" :lg="12">
             <a-space direction="horizontal" size="small">
-                <a-button type="primary" icon="plus" @click="addOutbound()">
-                    {{ i18n "pages.xray.outbound.addOutbound" }}
+                <a-button type="primary" icon="plus" @click="addOutbound">
+                    <span v-if="!isMobile">{{ i18n "pages.xray.outbound.addOutbound" }}</span>
                 </a-button>
                 <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
             </a-space>

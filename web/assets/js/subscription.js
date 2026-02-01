@@ -138,14 +138,14 @@
         return `streisand://import/${encodeURIComponent(this.app.subUrl)}`;
       },
       v2raytunUrl() {
-        return this.app.subUrl; 
+        return this.app.subUrl;
       },
       npvtunUrl() {
-        return this.app.subUrl; 
+        return this.app.subUrl;
       },
-	  happUrl() {
-		return `happ://add/${encodeURIComponent(this.app.subUrl)}`;
-	  }
+      happUrl() {
+        return `happ://add/${encodeURIComponent(this.app.subUrl)}`;
+      }
     },
     methods: {
       renderLink,

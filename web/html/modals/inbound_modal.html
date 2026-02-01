@@ -6,7 +6,8 @@
 </a-modal>
 <script>
 
-    const inModal = {
+    // Make inModal globally available to ensure it works with any base path
+    const inModal = window.inModal = {
         title: '',
         visible: false,
         confirmLoading: false,
@@ -26,6 +27,14 @@
             } else {
                 this.inbound = new Inbound();
             }
+            // Always ensure testseed is initialized for VLESS protocol (even if vision flow is not set yet)
+            // This ensures Vue reactivity works properly
+            if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings) {
+                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4) {
+                    // Create a new array to ensure Vue reactivity
+                    this.inbound.settings.testseed = [900, 500, 900, 256].slice();
+                }
+            }
             if (dbInbound) {
                 this.dbInbound = new DBInbound(dbInbound);
             } else {
@@ -42,9 +51,43 @@
         loading(loading = true) {
             inModal.confirmLoading = loading;
         },
+        // Vision Seed methods - always available regardless of Vue context
+        updateTestseed(index, value) {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
+            // Ensure testseed is initialized
+            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed)) {
+                inModal.inbound.settings.testseed = [900, 500, 900, 256];
+            }
+            // Ensure array has enough elements
+            while (inModal.inbound.settings.testseed.length <= index) {
+                inModal.inbound.settings.testseed.push(0);
+            }
+            // Update value
+            inModal.inbound.settings.testseed[index] = value;
+        },
+        setRandomTestseed() {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
+            // Ensure testseed is initialized
+            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
+                inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
+            }
+            // Create new array with random values
+            inModal.inbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+        },
+        resetTestseed() {
+            // Use inModal.inbound explicitly to ensure correct context
+            if (!inModal.inbound || !inModal.inbound.settings) return;
+            // Reset testseed to default values
+            inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
+        }
     };
 
-    new Vue({
+    // Store Vue instance globally to ensure methods are always accessible
+    let inboundModalVueInstance = null;
+    
+    inboundModalVueInstance = new Vue({
         delimiters: ['[[', ']]'],
         el: '#inbound-modal',
         data: {
@@ -60,7 +103,7 @@
                 return inModal.isEdit;
             },
             get client() {
-                return inModal.inbound.clients[0];
+                return inModal.inbound && inModal.inbound.clients && inModal.inbound.clients.length > 0 ? inModal.inbound.clients[0] : null;
             },
             get datepicker() {
                 return app.datepicker;
@@ -85,6 +128,28 @@
                 } else {
                     inModal.inbound.stream.externalProxy = [];
                 }
+            }
+        },
+        watch: {
+            'inModal.inbound.stream.security'(newVal, oldVal) {
+                // Clear flow when security changes from reality/tls to none
+                if (inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
+                    inModal.inbound.settings.vlesses.forEach(client => {
+                        client.flow = "";
+                    });
+                }
+            },
+            // Ensure testseed is always initialized when vision flow is enabled
+            'inModal.inbound.settings.vlesses': {
+                handler() {
+                    if (inModal.inbound.protocol === Protocols.VLESS && inModal.inbound.settings && inModal.inbound.settings.vlesses) {
+                        const hasVisionFlow = inModal.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
+                        if (hasVisionFlow && (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4)) {
+                            inModal.inbound.settings.testseed = [900, 500, 900, 256];
+                        }
+                    }
+                },
+                deep: true
             }
         },
         methods: {
@@ -204,8 +269,29 @@
                 this.inbound.settings.decryption = 'none';
                 this.inbound.settings.encryption = 'none';
                 this.inbound.settings.selectedAuth = undefined;
+            },
+            // Vision Seed methods - must be in Vue methods for proper binding
+            updateTestseed(index, value) {
+                // Ensure testseed is initialized
+                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed)) {
+                    this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
+                }
+                // Ensure array has enough elements
+                while (this.inbound.settings.testseed.length <= index) {
+                    this.inbound.settings.testseed.push(0);
+                }
+                // Update value using Vue.set for reactivity
+                this.$set(this.inbound.settings.testseed, index, value);
+            },
+            setRandomTestseed() {
+                // Create new array with random values and use Vue.set for reactivity
+                const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+                this.$set(this.inbound.settings, 'testseed', newSeed);
+            },
+            resetTestseed() {
+                // Reset testseed to default values using Vue.set for reactivity
+                this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
             }
-
         },
     });
 

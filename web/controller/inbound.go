@@ -8,6 +8,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
+	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 
 	"github.com/gin-gonic/gin"
 )
@@ -125,6 +126,9 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	// Broadcast inbounds update via WebSocket
+	inbounds, _ := a.inboundService.GetInbounds(user.Id)
+	websocket.BroadcastInbounds(inbounds)
 }
 
 // delInbound deletes an inbound configuration by its ID.
@@ -143,6 +147,10 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	// Broadcast inbounds update via WebSocket
+	user := session.GetLoginUser(c)
+	inbounds, _ := a.inboundService.GetInbounds(user.Id)
+	websocket.BroadcastInbounds(inbounds)
 }
 
 // updateInbound updates an existing inbound configuration.
@@ -169,6 +177,10 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	// Broadcast inbounds update via WebSocket
+	user := session.GetLoginUser(c)
+	inbounds, _ := a.inboundService.GetInbounds(user.Id)
+	websocket.BroadcastInbounds(inbounds)
 }
 
 // getClientIps retrieves the IP addresses associated with a client by email.

@@ -24,13 +24,22 @@ type Config struct {
 // FetchVlessFlags returns map[email]enabled
 func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	var conn *ldap.Conn
-	var err error
+
+	scheme := "ldap"
 	if cfg.UseTLS {
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: false})
-	} else {
-		conn, err = ldap.Dial("tcp", addr)
+		scheme = "ldaps"
 	}
+
+	ldapURL := fmt.Sprintf("%s://%s", scheme, addr)
+
+	var opts []ldap.DialOpt
+	if cfg.UseTLS {
+		opts = append(opts, ldap.DialWithTLSConfig(&tls.Config{
+			InsecureSkipVerify: false,
+		}))
+	}
+
+	conn, err := ldap.DialURL(ldapURL, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,13 +100,22 @@ func FetchVlessFlags(cfg Config) (map[string]bool, error) {
 // AuthenticateUser searches user by cfg.UserAttr and attempts to bind with provided password.
 func AuthenticateUser(cfg Config, username, password string) (bool, error) {
 	addr := fmt.Sprintf("%s:%d", cfg.Host, cfg.Port)
-	var conn *ldap.Conn
-	var err error
+
+	scheme := "ldap"
 	if cfg.UseTLS {
-		conn, err = ldap.DialTLS("tcp", addr, &tls.Config{InsecureSkipVerify: false})
-	} else {
-		conn, err = ldap.Dial("tcp", addr)
+		scheme = "ldaps"
 	}
+
+	ldapURL := fmt.Sprintf("%s://%s", scheme, addr)
+
+	var opts []ldap.DialOpt
+	if cfg.UseTLS {
+		opts = append(opts, ldap.DialWithTLSConfig(&tls.Config{
+			InsecureSkipVerify: false,
+		}))
+	}
+
+	conn, err := ldap.DialURL(ldapURL, opts...)
 	if err != nil {
 		return false, err
 	}
