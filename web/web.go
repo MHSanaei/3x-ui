@@ -200,7 +200,10 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
-	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{basePath + "panel/api/"})))
+	engine.Use(gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedPaths([]string{
+		basePath + "panel/api/",
+		basePath + "ws",
+	})))
 	assetsBasePath := basePath + "assets/"
 
 	store := cookie.NewStore(secret)
