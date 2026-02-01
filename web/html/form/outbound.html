@@ -546,8 +546,9 @@
             <a-input v-model.trim="outbound.stream.hysteria.auth"></a-input>
           </a-form-item>
           <a-form-item label='Congestion'>
-            <a-select v-model="outbound.stream.hysteria.congestion" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="">BBR (Auto)</a-select-option>
+            <a-select v-model="outbound.stream.hysteria.congestion"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>BBR (Auto)</a-select-option>
               <a-select-option value="brutal">Brutal</a-select-option>
             </a-select>
           </a-form-item>
@@ -602,25 +603,59 @@
         </template>
       </template>
 
-      <!-- udpmasks settings -->
+      <!-- finalmask settings -->
       <template v-if="outbound.canEnableStream()">
         <a-form-item label="UDP Masks">
-          <a-button icon="plus" type="primary" size="small" @click="outbound.stream.addUdpMask()"></a-button>
+          <a-button icon="plus" type="primary" size="small"
+            @click="outbound.stream.addUdpMask(outbound.protocol === Protocols.Hysteria ? 'salamander' : 'mkcp-aes128gcm')"></a-button>
         </a-form-item>
-        <template v-if="outbound.stream.udpmasks.length > 0">
-          <a-form v-for="(mask, index) in outbound.stream.udpmasks" :key="index" :colon="false"
+        <template
+          v-if="outbound.stream.finalmask.udp && outbound.stream.finalmask.udp.length > 0">
+          <a-form v-for="(mask, index) in outbound.stream.finalmask.udp"
+            :key="index" :colon="false"
             :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
             <a-divider :style="{ margin: '0' }"> UDP Mask [[ index + 1 ]]
-              <a-icon type="delete" @click="() => outbound.stream.delUdpMask(index)"
+              <a-icon type="delete"
+                @click="() => outbound.stream.delUdpMask(index)"
                 :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
             </a-divider>
             <a-form-item label='Type'>
-              <a-select v-model="mask.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="salamander">Salamander</a-select-option>
+              <a-select v-model="mask.type"
+                @change="(type) => mask.settings = mask._getDefaultSettings(type, {})"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option v-if="outbound.protocol === Protocols.Hysteria" value="salamander">
+                  Salamander (Hysteria2)</a-select-option>
+                <a-select-option value="mkcp-aes128gcm">
+                  mKCP AES-128-GCM</a-select-option>
+                <a-select-option value="header-dns">
+                  Header DNS</a-select-option>
+                <a-select-option value="header-dtls">
+                  Header DTLS 1.2</a-select-option>
+                <a-select-option value="header-srtp">
+                  Header SRTP</a-select-option>
+                <a-select-option value="header-utp">
+                  Header uTP</a-select-option>
+                <a-select-option value="header-wechat">
+                  Header WeChat Video</a-select-option>
+                <a-select-option value="header-wireguard">
+                  Header WireGuard</a-select-option>
+                <a-select-option value="mkcp-original">
+                  mKCP Original</a-select-option>
+                <a-select-option value="xdns">
+                  xDNS (Experimental)</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item label='Password'>
-              <a-input v-model.trim="mask.password" placeholder="Obfuscation password"></a-input>
+            <!-- Settings for password-based masks -->
+            <a-form-item label='Password'
+              v-if="['salamander', 'mkcp-aes128gcm'].includes(mask.type)">
+              <a-input v-model.trim="mask.settings.password"
+                placeholder="Obfuscation password"></a-input>
+            </a-form-item>
+            <!-- Settings for domain-based masks -->
+            <a-form-item label='Domain'
+              v-if="['header-dns', 'xdns'].includes(mask.type)">
+              <a-input v-model.trim="mask.settings.domain"
+                placeholder="e.g., www.example.com"></a-input>
             </a-form-item>
           </a-form>
         </template>
