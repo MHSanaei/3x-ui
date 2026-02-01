@@ -407,21 +407,6 @@
 
         <!-- kcp -->
         <template v-if="outbound.stream.network === 'kcp'">
-          <a-form-item label='{{ i18n "camouflage" }}'>
-            <a-select v-model="outbound.stream.kcp.type"
-              :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="srtp">SRTP</a-select-option>
-              <a-select-option value="utp">uTP</a-select-option>
-              <a-select-option value="wechat-video">WeChat</a-select-option>
-              <a-select-option value="dtls">DTLS 1.2</a-select-option>
-              <a-select-option value="wireguard">WireGuard</a-select-option>
-              <a-select-option value="dns">DNS</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label='{{ i18n "password" }}'>
-            <a-input v-model="outbound.stream.kcp.seed"></a-input>
-          </a-form-item>
           <a-form-item label='MTU'>
             <a-input-number v-model.number="outbound.stream.kcp.mtu"
               min="0"></a-input-number>
@@ -607,7 +592,7 @@
       <template v-if="outbound.canEnableStream()">
         <a-form-item label="UDP Masks">
           <a-button icon="plus" type="primary" size="small"
-            @click="outbound.stream.addUdpMask(outbound.protocol === Protocols.Hysteria ? 'salamander' : 'mkcp-aes128gcm')"></a-button>
+            @click="outbound.stream.addUdpMask(outbound.protocol === Protocols.Hysteria ? 'salamander' : (outbound.stream.network === 'kcp' ? 'mkcp-aes128gcm' : 'xdns'))"></a-button>
         </a-form-item>
         <template
           v-if="outbound.stream.finalmask.udp && outbound.stream.finalmask.udp.length > 0">
@@ -623,25 +608,39 @@
               <a-select v-model="mask.type"
                 @change="(type) => mask.settings = mask._getDefaultSettings(type, {})"
                 :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-if="outbound.protocol === Protocols.Hysteria" value="salamander">
+                <!-- Salamander for Hysteria2 only -->
+                <a-select-option v-if="outbound.protocol === Protocols.Hysteria"
+                  value="salamander">
                   Salamander (Hysteria2)</a-select-option>
-                <a-select-option value="mkcp-aes128gcm">
+                <!-- mKCP-specific masks -->
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="mkcp-aes128gcm">
                   mKCP AES-128-GCM</a-select-option>
-                <a-select-option value="header-dns">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-dns">
                   Header DNS</a-select-option>
-                <a-select-option value="header-dtls">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-dtls">
                   Header DTLS 1.2</a-select-option>
-                <a-select-option value="header-srtp">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-srtp">
                   Header SRTP</a-select-option>
-                <a-select-option value="header-utp">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-utp">
                   Header uTP</a-select-option>
-                <a-select-option value="header-wechat">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-wechat">
                   Header WeChat Video</a-select-option>
-                <a-select-option value="header-wireguard">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-wireguard">
                   Header WireGuard</a-select-option>
-                <a-select-option value="mkcp-original">
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="mkcp-original">
                   mKCP Original</a-select-option>
-                <a-select-option value="xdns">
+                <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP -->
+                <a-select-option
+                  v-if="['tcp', 'ws', 'httpupgrade', 'xhttp'].includes(outbound.stream.network)"
+                  value="xdns">
                   xDNS (Experimental)</a-select-option>
               </a-select>
             </a-form-item>

@@ -166,14 +166,12 @@ class TcpStreamSettings extends CommonClass {
 class KcpStreamSettings extends CommonClass {
     constructor(
         mtu = 1350,
-        tti = 50,
+        tti = 20,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
         congestion = false,
-        readBufferSize = 2,
-        writeBufferSize = 2,
-        type = 'none',
-        seed = '',
+        readBufferSize = 1,
+        writeBufferSize = 1,
     ) {
         super();
         this.mtu = mtu;
@@ -183,8 +181,6 @@ class KcpStreamSettings extends CommonClass {
         this.congestion = congestion;
         this.readBuffer = readBufferSize;
         this.writeBuffer = writeBufferSize;
-        this.type = type;
-        this.seed = seed;
     }
 
     static fromJson(json = {}) {
@@ -196,8 +192,6 @@ class KcpStreamSettings extends CommonClass {
             json.congestion,
             json.readBufferSize,
             json.writeBufferSize,
-            ObjectUtil.isEmpty(json.header) ? 'none' : json.header.type,
-            json.seed,
         );
     }
 
@@ -210,10 +204,6 @@ class KcpStreamSettings extends CommonClass {
             congestion: this.congestion,
             readBufferSize: this.readBuffer,
             writeBufferSize: this.writeBuffer,
-            header: {
-                type: this.type,
-            },
-            seed: this.seed,
         };
     }
 }
