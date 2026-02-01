@@ -703,6 +703,15 @@
           <a-form-item label="Allow Insecure">
             <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
           </a-form-item>
+          <a-form-item label="verify Peer Cert By Name">
+            <a-input
+              v-model.trim="outbound.stream.tls.verifyPeerCertByName"></a-input>
+          </a-form-item>
+          <a-form-item label="pinned Peer Cert Sha256">
+            <a-input v-model.trim="outbound.stream.tls.pinnedPeerCertSha256"
+              placeholder="Enter SHA256 fingerprints (base64)">
+            </a-input>
+          </a-form-item>
         </template>
 
         <!-- reality settings -->

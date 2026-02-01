@@ -347,6 +347,8 @@ class TlsStreamSettings extends CommonClass {
         fingerprint = '',
         allowInsecure = false,
         echConfigList = '',
+        verifyPeerCertByName = 'cloudflare-dns.com',
+        pinnedPeerCertSha256 = '',
     ) {
         super();
         this.serverName = serverName;
@@ -354,6 +356,8 @@ class TlsStreamSettings extends CommonClass {
         this.fingerprint = fingerprint;
         this.allowInsecure = allowInsecure;
         this.echConfigList = echConfigList;
+        this.verifyPeerCertByName = verifyPeerCertByName;
+        this.pinnedPeerCertSha256 = pinnedPeerCertSha256;
     }
 
     static fromJson(json = {}) {
@@ -363,6 +367,8 @@ class TlsStreamSettings extends CommonClass {
             json.fingerprint,
             json.allowInsecure,
             json.echConfigList,
+            json.verifyPeerCertByName,
+            json.pinnedPeerCertSha256,
         );
     }
 
@@ -372,7 +378,9 @@ class TlsStreamSettings extends CommonClass {
             alpn: this.alpn,
             fingerprint: this.fingerprint,
             allowInsecure: this.allowInsecure,
-            echConfigList: this.echConfigList
+            echConfigList: this.echConfigList,
+            verifyPeerCertByName: this.verifyPeerCertByName,
+            pinnedPeerCertSha256: this.pinnedPeerCertSha256
         };
     }
 }
