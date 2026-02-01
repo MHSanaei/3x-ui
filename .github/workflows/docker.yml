@@ -11,55 +11,8 @@ on:
       - 'v*'
 
 jobs:
-  create-release:
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Generate Release Notes
-        id: release_notes
-        run: |
-          # 获取上一个 tag
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-
-          echo "## 🚀 更新内容" > release_notes.md
-          echo "" >> release_notes.md
-
-          if [ -n "$PREV_TAG" ]; then
-            echo "### 📝 提交记录" >> release_notes.md
-            echo "" >> release_notes.md
-            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" >> release_notes.md
-          else
-            echo "### 📝 提交记录" >> release_notes.md
-            echo "" >> release_notes.md
-            git log --pretty=format:"- %s (%h)" -20 >> release_notes.md
-          fi
-
-          echo "" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### 🐳 Docker 镜像" >> release_notes.md
-          echo "\`\`\`bash" >> release_notes.md
-          echo "docker pull xidahuang/3xuidash:${{ github.ref_name }}" >> release_notes.md
-          echo "\`\`\`" >> release_notes.md
-
-          cat release_notes.md
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          name: ${{ github.ref_name }}
-          body_path: release_notes.md
-          draft: false
-          prerelease: false
-          generate_release_notes: true
-
   build:
     runs-on: ubuntu-latest
-    needs: [create-release]
-    if: always() && (needs.create-release.result == 'success' || needs.create-release.result == 'skipped')
 
     steps:
       - uses: actions/checkout@v5
@@ -104,3 +57,47 @@ jobs:
           platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        run: |
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## 🚀 更新内容" > release_notes.md
+          echo "" >> release_notes.md
+
+          if [ -n "$PREV_TAG" ]; then
+            echo "### 📝 提交记录" >> release_notes.md
+            echo "" >> release_notes.md
+            git log ${PREV_TAG}..HEAD --pretty=format:"- %s (%h)" >> release_notes.md
+          else
+            echo "### 📝 提交记录" >> release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%h)" -20 >> release_notes.md
+          fi
+
+          echo "" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 🐳 Docker 镜像" >> release_notes.md
+          echo "\`\`\`bash" >> release_notes.md
+          echo "docker pull xidahuang/3xuidash:${{ github.ref_name }}" >> release_notes.md
+          echo "\`\`\`" >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
