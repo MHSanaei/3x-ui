@@ -647,7 +647,7 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
-            json.verifyPeerCertByNames,
+            json.verifyPeerCertByNames || json.verifyPeerCertInNames,
             json.pinnedPeerCertSha256 || [],
             json.disableSystemRoot,
             json.enableSessionResumption,
