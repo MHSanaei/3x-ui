@@ -27,6 +27,7 @@ jobs:
             xidahuang/3xuidash
           tags: |
             type=raw,value=${{ github.ref_name }}
+            type=raw,value=latest
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
