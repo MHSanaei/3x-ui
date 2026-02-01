@@ -199,7 +199,7 @@ jobs:
 
           go build -ldflags "-w -s" -o xui-release.exe -v main.go
 
-      - name: Package 3X-UI for Windows
+      - name: Copy and download resources
         shell: pwsh
         run: |
           mkdir x-ui
