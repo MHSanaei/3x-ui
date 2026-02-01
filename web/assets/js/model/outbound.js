@@ -424,7 +424,8 @@ class HysteriaStreamSettings extends CommonClass {
         up = '0',
         down = '0',
         udphopPort = '',
-        udphopInterval = 30,
+        udphopIntervalMin = 30,
+        udphopIntervalMax = 30,
         initStreamReceiveWindow = 8388608,
         maxStreamReceiveWindow = 8388608,
         initConnectionReceiveWindow = 20971520,
@@ -440,7 +441,8 @@ class HysteriaStreamSettings extends CommonClass {
         this.up = up;
         this.down = down;
         this.udphopPort = udphopPort;
-        this.udphopInterval = udphopInterval;
+        this.udphopIntervalMin = udphopIntervalMin;
+        this.udphopIntervalMax = udphopIntervalMax;
         this.initStreamReceiveWindow = initStreamReceiveWindow;
         this.maxStreamReceiveWindow = maxStreamReceiveWindow;
         this.initConnectionReceiveWindow = initConnectionReceiveWindow;
@@ -452,10 +454,18 @@ class HysteriaStreamSettings extends CommonClass {
 
     static fromJson(json = {}) {
         let udphopPort = '';
-        let udphopInterval = 30;
+        let udphopIntervalMin = 30;
+        let udphopIntervalMax = 30;
         if (json.udphop) {
             udphopPort = json.udphop.port || '';
-            udphopInterval = json.udphop.interval || 30;
+            // Backward compatibility: if old 'interval' exists, use it for both min/max
+            if (json.udphop.interval !== undefined) {
+                udphopIntervalMin = json.udphop.interval;
+                udphopIntervalMax = json.udphop.interval;
+            } else {
+                udphopIntervalMin = json.udphop.intervalMin || 30;
+                udphopIntervalMax = json.udphop.intervalMax || 30;
+            }
         }
         return new HysteriaStreamSettings(
             json.version,
@@ -464,7 +474,8 @@ class HysteriaStreamSettings extends CommonClass {
             json.up,
             json.down,
             udphopPort,
-            udphopInterval,
+            udphopIntervalMin,
+            udphopIntervalMax,
             json.initStreamReceiveWindow,
             json.maxStreamReceiveWindow,
             json.initConnectionReceiveWindow,
@@ -493,7 +504,8 @@ class HysteriaStreamSettings extends CommonClass {
         if (this.udphopPort) {
             result.udphop = {
                 port: this.udphopPort,
-                interval: this.udphopInterval
+                intervalMin: this.udphopIntervalMin,
+                intervalMax: this.udphopIntervalMax
             };
         }
         return result;
@@ -1024,7 +1036,15 @@ class Outbound extends CommonClass {
         stream.hysteria.up = urlParams.get('up') ?? '0';
         stream.hysteria.down = urlParams.get('down') ?? '0';
         stream.hysteria.udphopPort = urlParams.get('udphopPort') ?? '';
-        stream.hysteria.udphopInterval = parseInt(urlParams.get('udphopInterval') ?? '30');
+        // Support both old single interval and new min/max range
+        if (urlParams.has('udphopInterval')) {
+            const interval = parseInt(urlParams.get('udphopInterval'));
+            stream.hysteria.udphopIntervalMin = interval;
+            stream.hysteria.udphopIntervalMax = interval;
+        } else {
+            stream.hysteria.udphopIntervalMin = parseInt(urlParams.get('udphopIntervalMin') ?? '30');
+            stream.hysteria.udphopIntervalMax = parseInt(urlParams.get('udphopIntervalMax') ?? '30');
+        }
 
         // Optional QUIC parameters
         if (urlParams.has('initStreamReceiveWindow')) {

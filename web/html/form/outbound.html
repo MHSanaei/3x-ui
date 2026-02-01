@@ -549,10 +549,16 @@
             <a-input v-model.trim="outbound.stream.hysteria.udphopPort"
               placeholder="e.g., 1145-1919 or 11,13,15-17"></a-input>
           </a-form-item>
-          <a-form-item label='UDP Hop Interval (s)'
+          <a-form-item label='UDP Hop Interval Min (s)'
             v-if="outbound.stream.hysteria.udphopPort">
             <a-input-number
-              v-model.number="outbound.stream.hysteria.udphopInterval"
+              v-model.number="outbound.stream.hysteria.udphopIntervalMin"
+              :min="5"></a-input-number>
+          </a-form-item>
+          <a-form-item label='UDP Hop Interval Max (s)'
+            v-if="outbound.stream.hysteria.udphopPort">
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.udphopIntervalMax"
               :min="5"></a-input-number>
           </a-form-item>
           <a-form-item label='Init Stream Receive'>
