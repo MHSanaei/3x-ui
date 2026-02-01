@@ -487,6 +487,19 @@ class xHTTPStreamSettings extends XrayCommonClass {
         noSSEHeader = false,
         xPaddingBytes = "100-1000",
         mode = MODE_OPTION.AUTO,
+        xPaddingObfsMode = false,
+        xPaddingKey = '',
+        xPaddingHeader = '',
+        xPaddingPlacement = '',
+        xPaddingMethod = '',
+        uplinkHTTPMethod = '',
+        sessionPlacement = '',
+        sessionKey = '',
+        seqPlacement = '',
+        seqKey = '',
+        uplinkDataPlacement = '',
+        uplinkDataKey = '',
+        uplinkChunkSize = 0,
     ) {
         super();
         this.path = path;
@@ -498,6 +511,19 @@ class xHTTPStreamSettings extends XrayCommonClass {
         this.noSSEHeader = noSSEHeader;
         this.xPaddingBytes = xPaddingBytes;
         this.mode = mode;
+        this.xPaddingObfsMode = xPaddingObfsMode;
+        this.xPaddingKey = xPaddingKey;
+        this.xPaddingHeader = xPaddingHeader;
+        this.xPaddingPlacement = xPaddingPlacement;
+        this.xPaddingMethod = xPaddingMethod;
+        this.uplinkHTTPMethod = uplinkHTTPMethod;
+        this.sessionPlacement = sessionPlacement;
+        this.sessionKey = sessionKey;
+        this.seqPlacement = seqPlacement;
+        this.seqKey = seqKey;
+        this.uplinkDataPlacement = uplinkDataPlacement;
+        this.uplinkDataKey = uplinkDataKey;
+        this.uplinkChunkSize = uplinkChunkSize;
     }
 
     addHeader(name, value) {
@@ -519,6 +545,19 @@ class xHTTPStreamSettings extends XrayCommonClass {
             json.noSSEHeader,
             json.xPaddingBytes,
             json.mode,
+            json.xPaddingObfsMode,
+            json.xPaddingKey,
+            json.xPaddingHeader,
+            json.xPaddingPlacement,
+            json.xPaddingMethod,
+            json.uplinkHTTPMethod,
+            json.sessionPlacement,
+            json.sessionKey,
+            json.seqPlacement,
+            json.seqKey,
+            json.uplinkDataPlacement,
+            json.uplinkDataKey,
+            json.uplinkChunkSize,
         );
     }
 
@@ -533,6 +572,19 @@ class xHTTPStreamSettings extends XrayCommonClass {
             noSSEHeader: this.noSSEHeader,
             xPaddingBytes: this.xPaddingBytes,
             mode: this.mode,
+            xPaddingObfsMode: this.xPaddingObfsMode,
+            xPaddingKey: this.xPaddingKey,
+            xPaddingHeader: this.xPaddingHeader,
+            xPaddingPlacement: this.xPaddingPlacement,
+            xPaddingMethod: this.xPaddingMethod,
+            uplinkHTTPMethod: this.uplinkHTTPMethod,
+            sessionPlacement: this.sessionPlacement,
+            sessionKey: this.sessionKey,
+            seqPlacement: this.seqPlacement,
+            seqKey: this.seqKey,
+            uplinkDataPlacement: this.uplinkDataPlacement,
+            uplinkDataKey: this.uplinkDataKey,
+            uplinkChunkSize: this.uplinkChunkSize,
         };
     }
 }
