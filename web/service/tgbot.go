@@ -108,6 +108,7 @@ type Tgbot struct {
 	settingService SettingService
 	serverService  ServerService
 	xrayService    XrayService
+	aiService      *AIService
 	lastStatus     *Status
 }
 
@@ -177,6 +178,10 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	// If Start is called again (e.g. during reload), ensure any previous long-polling
 	// loop is stopped before creating a new bot / receiver.
 	StopBot()
+
+	// Initialize AI service
+	t.aiService = NewAIService()
+	logger.Info("Telegram Bot: AI service initialized - Enabled:", t.aiService.IsEnabled())
 
 	// Initialize hash storage to store callback queries
 	hashStorage = global.NewHashStorage(20 * time.Minute)
@@ -591,6 +596,28 @@ func (t *Tgbot) OnReceive() {
 			}
 			return nil
 		}, th.AnyMessage())
+
+		// AI natural language processing handler - processes any text message not caught by above handlers
+		h.HandleMessage(func(ctx *th.Context, message telego.Message) error {
+			// Only process for admins and when AI is enabled
+			if !checkAdmin(message.From.ID) || t.aiService == nil || !t.aiService.IsEnabled() {
+				return nil
+			}
+
+			// Ignore if user is in a state (waiting for specific input)
+			if _, exists := userStates[message.Chat.ID]; exists {
+				return nil
+			}
+
+			// Process with AI in goroutine
+			go func() {
+				messageWorkerPool <- struct{}{}        // Acquire worker
+				defer func() { <-messageWorkerPool }() // Release worker
+
+				t.handleAIMessage(&message)
+			}()
+			return nil
+		}, th.AnyMessage(), th.Not(th.AnyCommand()))
 
 		h.Start()
 	}()
@@ -3727,3 +3754,119 @@ func (t *Tgbot) isSingleWord(text string) bool {
 	re := regexp.MustCompile(`\s+`)
 	return re.MatchString(text)
 }
+
+// handleAIMessage processes natural language messages using Gemini AI
+func (t *Tgbot) handleAIMessage(message *telego.Message) {
+	chatID := message.Chat.ID
+	userID := message.From.ID
+	text := strings.TrimSpace(message.Text)
+
+	// Ignore empty messages
+	if text == "" {
+		return
+	}
+
+	// Send "typing" indicator
+	bot.SendChatAction(context.Background(), &telego.SendChatActionParams{
+		ChatID: tu.ID(chatID),
+		Action: telego.ChatActionTyping,
+	})
+
+	// Process message with AI
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	intent, err := t.aiService.ProcessMessage(ctx, userID, text)
+	if err != nil {
+		logger.Warning("AI Service error:", err)
+		// Fallback: suggest using /help
+		t.SendMsgToTgbot(chatID, t.I18nBot("tgbot.aiError")+"\n\n"+t.I18nBot("tgbot.commands.help"))
+		return
+	}
+
+	// Log AI response for monitoring
+	logger.Debug("AI Intent - User:", userID, "Action:", intent.Action, "Confidence:", intent.Confidence)
+
+	// If confidence is too low, ask for clarification
+	if intent.Confidence < 0.5 {
+		response := intent.Response + "\n\n" + t.I18nBot("tgbot.aiLowConfidence")
+		t.SendMsgToTgbot(chatID, response)
+		return
+	}
+
+	// Execute the detected action
+	t.executeAIAction(message, intent)
+}
+
+// executeAIAction performs the action determined by AI
+func (t *Tgbot) executeAIAction(message *telego.Message, intent *AIIntent) {
+	chatID := message.Chat.ID
+
+	// Send AI's response first
+	if intent.Response != "" {
+		t.SendMsgToTgbot(chatID, intent.Response)
+	}
+
+	// Execute the action if needed
+	if !intent.NeedsAction {
+		return
+	}
+
+	switch intent.Action {
+	case "server_status":
+		// Simulate /status command
+		t.answerCommand(message, chatID, true)
+		return
+
+	case "server_usage":
+		// Show traffic usage
+		onlyForMe := false
+		output := t.getServerUsage(onlyForMe)
+		t.SendMsgToTgbot(chatID, output)
+
+	case "inbound_list":
+		// Show inbound list
+		t.inboundList(chatID)
+
+	case "inbound_info":
+		// Get specific inbound info
+		if inboundID, ok := intent.Parameters["inbound_id"].(float64); ok {
+			t.searchInbound(chatID, fmt.Sprintf("%d", int(inboundID)))
+		} else if remark, ok := intent.Parameters["remark"].(string); ok {
+			t.searchInbound(chatID, remark)
+		} else {
+			t.SendMsgToTgbot(chatID, t.I18nBot("tgbot.aiNeedMoreInfo"))
+		}
+
+	case "client_list":
+		// Show client list for inbound
+		if inboundID, ok := intent.Parameters["inbound_id"].(float64); ok {
+			t.getInboundClients(chatID, int(inboundID))
+		} else {
+			t.SendMsgToTgbot(chatID, t.I18nBot("tgbot.aiNeedInboundID"))
+		}
+
+	case "client_info", "client_usage":
+		// Show client usage
+		if email, ok := intent.Parameters["email"].(string); ok {
+			t.searchClient(chatID, email)
+		} else {
+			t.SendMsgToTgbot(chatID, t.I18nBot("tgbot.aiNeedEmail"))
+		}
+
+	case "help":
+		// Show help
+		msg := t.I18nBot("tgbot.commands.help") + "\n\n" + t.I18nBot("tgbot.aiEnabled")
+		t.SendMsgToTgbot(chatID, msg)
+
+	case "unknown":
+		// Unknown intent - do nothing, response already sent
+		return
+
+	default:
+		// Unsupported action
+		msg := t.I18nBot("tgbot.aiUnsupportedAction", "Action=="+intent.Action)
+		t.SendMsgToTgbot(chatID, msg)
+	}
+}
+

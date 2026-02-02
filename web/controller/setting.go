@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
@@ -44,6 +45,8 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+	g.POST("/ai/update", a.updateAISetting)
+	g.GET("/ai/status", a.getAIStatus)
 }
 
 // getAllSetting retrieves all current settings.
@@ -119,3 +122,64 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 	}
 	jsonObj(c, defaultJsonConfig, nil)
 }
+
+// updateAISetting updates AI configuration settings
+func (a *SettingController) updateAISetting(c *gin.Context) {
+	var req struct {
+		Enabled     bool    `json:"enabled"`
+		ApiKey      string  `json:"apiKey"`
+		MaxTokens   int     `json:"maxTokens"`
+		Temperature float64 `json:"temperature"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), err)
+		return
+	}
+
+	// Update settings
+	if err := a.settingService.SetAIEnabled(req.Enabled); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), err)
+		return
+	}
+
+	if req.ApiKey != "" {
+		if err := a.settingService.SetAIApiKey(req.ApiKey); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), err)
+			return
+		}
+	}
+
+	if req.MaxTokens > 0 {
+		if err := a.settingService.SetAIMaxTokens(req.MaxTokens); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), err)
+			return
+		}
+	}
+
+	if req.Temperature > 0 {
+		tempStr := fmt.Sprintf("%.1f", req.Temperature)
+		if err := a.settingService.SetAISetting("aiTemperature", tempStr); err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), err)
+			return
+		}
+	}
+
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.updateSettings"), nil)
+}
+
+// getAIStatus returns the current AI service status
+func (a *SettingController) getAIStatus(c *gin.Context) {
+	enabled, _ := a.settingService.GetAIEnabled()
+	hasApiKey := false
+	if apiKey, err := a.settingService.GetAIApiKey(); err == nil && apiKey != "" {
+		hasApiKey = true
+	}
+
+	jsonObj(c, gin.H{
+		"enabled":   enabled,
+		"hasApiKey": hasApiKey,
+		"ready":     enabled && hasApiKey,
+	}, nil)
+}
+

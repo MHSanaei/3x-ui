@@ -98,6 +98,11 @@ var defaultValueMap = map[string]string{
 	"ldapAutoDelete":        "false",
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
+	// AI defaults
+	"aiEnabled":     "false",
+	"aiApiKey":      "",
+	"aiMaxTokens":   "1024",
+	"aiTemperature": "0.7",
 	"ldapDefaultLimitIP":    "0",
 }
 
@@ -398,6 +403,40 @@ func (s *SettingService) GetTrafficDiff() (int, error) {
 func (s *SettingService) GetSessionMaxAge() (int, error) {
 	return s.getInt("sessionMaxAge")
 }
+
+// AI-related settings
+func (s *SettingService) GetAISetting(key string) (string, error) {
+	return s.getString(key)
+}
+
+func (s *SettingService) SetAISetting(key, value string) error {
+	return s.setString(key, value)
+}
+
+func (s *SettingService) GetAIEnabled() (bool, error) {
+	return s.getBool("aiEnabled")
+}
+
+func (s *SettingService) SetAIEnabled(enabled bool) error {
+	return s.setBool("aiEnabled", enabled)
+}
+
+func (s *SettingService) GetAIApiKey() (string, error) {
+	return s.getString("aiApiKey")
+}
+
+func (s *SettingService) SetAIApiKey(apiKey string) error {
+	return s.setString("aiApiKey", apiKey)
+}
+
+func (s *SettingService) GetAIMaxTokens() (int, error) {
+	return s.getInt("aiMaxTokens")
+}
+
+func (s *SettingService) SetAIMaxTokens(maxTokens int) error {
+	return s.setInt("aiMaxTokens", maxTokens)
+}
+
 
 func (s *SettingService) GetRemarkModel() (string, error) {
 	return s.getString("remarkModel")

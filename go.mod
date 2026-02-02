@@ -8,6 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/go-ldap/ldap/v3 v3.4.12
 	github.com/goccy/go-json v0.10.5
+	github.com/google/generative-ai-go v0.19.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/joho/godotenv v1.5.1
@@ -25,6 +26,7 @@ require (
 	golang.org/x/crypto v0.47.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/text v0.33.0
+	google.golang.org/api v0.218.0
 	google.golang.org/grpc v1.78.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1

@@ -22,6 +22,17 @@
 
 As an enhanced fork of the original X-UI project, 3X-UI provides improved stability, broader protocol support, and additional features.
 
+## ✨ New Feature: AI-Powered Telegram Bot
+
+**3X-UI now features Gemini AI integration** that transforms the Telegram bot into an intelligent conversational assistant! 🤖
+
+Instead of memorizing commands, just chat naturally:
+- "Show me server status" → Get instant server metrics
+- "How much traffic has user@example.com used?" → View client usage
+- "List all inbounds" → See inbound configurations
+
+**[Quick Setup Guide →](docs/AI_QUICKSTART.md)** | **[Full Documentation →](docs/AI_INTEGRATION.md)**
+
 ## Quick Start
 
 ```bash

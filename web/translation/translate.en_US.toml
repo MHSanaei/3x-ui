@@ -715,6 +715,15 @@
 "FailedResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Result: ❌ Failed \n\n🛠️ Error: [ {{ .ErrorMessage }} ]"
 "FinishProcess" = "🔚 Traffic reset process finished for all clients."
 
+# AI Integration messages
+"aiError" = "🤖 AI service is temporarily unavailable. Please use traditional commands."
+"aiLowConfidence" = "💭 I'm not quite sure I understood. Could you rephrase or use /help to see available commands?"
+"aiEnabled" = "💡 You can also chat naturally - I'll understand commands like 'show server status', 'list inbounds', 'get client usage for user@example.com', etc."
+"aiNeedMoreInfo" = "ℹ️ I need more information to complete this action. Please provide additional details."
+"aiNeedInboundID" = "🔢 Please specify the inbound ID or remark."
+"aiNeedEmail" = "📧 Please specify the client email address."
+"aiUnsupportedAction" = "⚠️ The action '{{ .Action }}' is not yet supported through AI. Use /help to see available commands."
+
 [tgbot.buttons]
 "closeKeyboard" = "❌ Close Keyboard"
 "cancel" = "❌ Cancel"
