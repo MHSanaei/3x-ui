@@ -3,8 +3,8 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
 	"strconv"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 
@@ -64,8 +64,8 @@ func NewSUBController(
 		subEncrypt:       encrypt,
 		updateInterval:   update,
 
-		subService:       sub,
-		subJsonService:   NewSubJsonService(jsonFragment, jsonNoise, jsonMux, jsonRules, sub),
+		subService:     sub,
+		subJsonService: NewSubJsonService(jsonFragment, jsonNoise, jsonMux, jsonRules, sub),
 	}
 	a.initRouter(g)
 	return a
@@ -170,13 +170,13 @@ func (a *SUBController) subJsons(c *gin.Context) {
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
 func (a *SUBController) ApplyCommonHeaders(
-	c *gin.Context, 
-	header, 
-	updateInterval, 
-	profileTitle string, 
+	c *gin.Context,
+	header,
+	updateInterval,
+	profileTitle string,
 	profileSupportUrl string,
-	profileUrl string, 
-	profileAnnounce string, 
+	profileUrl string,
+	profileAnnounce string,
 	profileEnableRouting bool,
 	profileRoutingRules string,
 ) {
