@@ -1087,12 +1087,14 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			return common.NewErrorf("Invalid geofile name: %s not in allowlist", fileName)
 		}
 	}
+
 	downloadFile := func(url, destPath string) error {
 		var req *http.Request
 		req, err := http.NewRequest("GET", url, nil)
 		if err != nil {
-				return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
+			return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
 		}
+
 		var localFileModTime time.Time
 		if fileInfo, err := os.Stat(destPath); err == nil {
 			localFileModTime = fileInfo.ModTime()
@@ -1100,7 +1102,7 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 				req.Header.Set("If-Modified-Since", localFileModTime.UTC().Format(http.TimeFormat))
 			}
 		}
-		
+
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		if err != nil {
@@ -1160,7 +1162,6 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		for _, file := range files {
 			// Sanitize the filename from our allowlist as an extra precaution
 			destPath := filepath.Join(config.GetBinFolderPath(), filepath.Base(file.FileName))
-
 			if err := downloadFile(file.URL, destPath); err != nil {
 				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
 			}
