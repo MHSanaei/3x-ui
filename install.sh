@@ -858,47 +858,36 @@ install_x-ui() {
     else
         # Install systemd service file
         service_installed=false
-        
-        if [ -f "x-ui.service" ]; then
-            echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
-            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
-            if [[ $? -eq 0 ]]; then
-                service_installed=true
-            fi
-        fi
-        
-        if [ "$service_installed" = false ]; then
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    if [ -f "x-ui.service.debian" ]; then
-                        echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
+        case "${release}" in
+            ubuntu | debian | armbian)
+                if [ -f "x-ui.service.debian" ]; then
+                    echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
+                    cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                    if [[ $? -eq 0 ]]; then
+                        service_installed=true
                     fi
-                ;;
-                arch | manjaro | parch)
-                    if [ -f "x-ui.service.arch" ]; then
-                        echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
+                fi
+            ;;
+            arch | manjaro | parch)
+                if [ -f "x-ui.service.arch" ]; then
+                    echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
+                    cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
+                    if [[ $? -eq 0 ]]; then
+                        service_installed=true
                     fi
-                ;;
-                *)
-                    if [ -f "x-ui.service.rhel" ]; then
-                        echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
+                fi
+            ;;
+            *)
+                if [ -f "x-ui.service.rhel" ]; then
+                    echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
+                    cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                    if [[ $? -eq 0 ]]; then
+                        service_installed=true
                     fi
-                ;;
-            esac
-        fi
-        
+                fi
+            ;;
+        esac
+
         # If service file not found in tar.gz, download from GitHub
         if [ "$service_installed" = false ]; then
             echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
@@ -932,8 +921,45 @@ install_x-ui() {
             echo -e "${red}Failed to install x-ui.service file${plain}"
             exit 1
         fi
+
+        #Installing Update geo timer and service files.
+        geoupdate_installed=false
+        if [ -f "x-ui-updategeo.timer" ] && [ -f "x-ui-updategeo.service"]; then
+            echo -e "${green}Found x-ui-updategeo.timer and .service in extracted files, installing...${plain}"
+            cp -f x-ui-updategeo.{timer,service} -t ${xui_service} >/dev/null 2>&1
+            if [[ $? -eq 0 ]]; then
+                geoupdate_installed=true
+            fi
+        fi
+
+        # If geo service and timer files not found in tar.gz, download from GitHub
+        if [ "$geoupdate_installed" = false ]; then
+            echo -e "${yellow}Update geo files service and timer files not found in tar.gz, downloading from GitHub...${plain}"
+            curl -4fLRo ${xui_service}/x-ui-updategeo.timer https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui-updategeo.timer >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to install x-ui-updategeo.timer from GitHub${plain}"
+                exit 1
+            fi
+            curl -4fLRo ${xui_service}/x-ui-updategeo.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui-updategeo.service >/dev/null 2>&1
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to install x-ui-updategeo.service from GitHub${plain}"
+                exit 1
+            fi
+            geoupdate_installed=true
+        fi
+
+        if [ "$geoupdate_installed" = true ]; then
+            chown root:root ${xui_service}/x-ui-updategeo.{timer,service} >/dev/null 2>&1
+            chmod 644 ${xui_service}/x-ui-updategeo.{timer,service} >/dev/null 2>&1
+            systemctl daemon-reload
+            echo -e "${green}Optional: you could enable the x-ui-updategeo.timer after installing, by running:${plain}"
+            echo -e "${green}          systemctl enable --now x-ui-updategeo.timer${plain}"
+        else
+            echo -e "${red}Failed to install x-ui-updategeo.timer and .service file${plain}"
+            exit 1
+        fi
     fi
-    
+
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
