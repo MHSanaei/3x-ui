@@ -567,7 +567,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 			continue
 		}
 
-		if major > 26 || (major == 26 && minor > 1) || (major == 26 && minor == 1 && patch >= 18) {
+		if major > 26 || (major == 26 && minor > 1) || (major == 26 && minor == 1 && patch >= 31) {
 			versions = append(versions, release.TagName)
 		}
 	}

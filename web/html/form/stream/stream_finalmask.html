@@ -1,0 +1,70 @@
+{{define "form/streamFinalMask"}}
+<a-divider :style="{ margin: '5px 0 0' }"></a-divider>
+<a-form :colon="false" :label-col="{ md: {span:8} }"
+    :wrapper-col="{ md: {span:14} }">
+    <a-form-item label="UDP Masks">
+        <a-button icon="plus" type="primary" size="small"
+            @click="inbound.stream.addUdpMask(inbound.stream.network === 'kcp' ? 'mkcp-aes128gcm' : 'xdns')"></a-button>
+    </a-form-item>
+    <template
+        v-if="inbound.stream.finalmask.udp && inbound.stream.finalmask.udp.length > 0">
+        <a-form v-for="(mask, index) in inbound.stream.finalmask.udp"
+            :key="index" :colon="false"
+            :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+            <a-divider :style="{ margin: '0' }"> UDP Mask [[ index + 1 ]]
+                <a-icon type="delete"
+                    @click="() => inbound.stream.delUdpMask(index)"
+                    :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
+            </a-divider>
+            <a-form-item label='Type'>
+                <a-select v-model="mask.type"
+                    @change="(type) => mask.settings = mask._getDefaultSettings(type, {})"
+                    :dropdown-class-name="themeSwitcher.currentTheme">
+                    <!-- mKCP-specific masks -->
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="mkcp-aes128gcm">
+                        mKCP AES-128-GCM</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-dns">
+                        Header DNS</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-dtls">
+                        Header DTLS 1.2</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-srtp">
+                        Header SRTP</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-utp">
+                        Header uTP</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-wechat">
+                        Header WeChat Video</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="header-wireguard">
+                        Header WireGuard</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="mkcp-original">
+                        mKCP Original</a-select-option>
+                    <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP -->
+                    <a-select-option
+                        v-if="['tcp', 'ws', 'httpupgrade', 'xhttp'].includes(inbound.stream.network)"
+                        value="xdns">
+                        xDNS (Experimental)</a-select-option>
+                </a-select>
+            </a-form-item>
+            <!-- Settings for password-based masks -->
+            <a-form-item label='Password'
+                v-if="['mkcp-aes128gcm'].includes(mask.type)">
+                <a-input v-model.trim="mask.settings.password"
+                    placeholder="Obfuscation password"></a-input>
+            </a-form-item>
+            <!-- Settings for domain-based masks -->
+            <a-form-item label='Domain'
+                v-if="['header-dns', 'xdns'].includes(mask.type)">
+                <a-input v-model.trim="mask.settings.domain"
+                    placeholder="e.g., www.example.com"></a-input>
+            </a-form-item>
+        </a-form>
+    </template>
+</a-form>
+{{end}}

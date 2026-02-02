@@ -407,21 +407,6 @@
 
         <!-- kcp -->
         <template v-if="outbound.stream.network === 'kcp'">
-          <a-form-item label='{{ i18n "camouflage" }}'>
-            <a-select v-model="outbound.stream.kcp.type"
-              :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="none">None</a-select-option>
-              <a-select-option value="srtp">SRTP</a-select-option>
-              <a-select-option value="utp">uTP</a-select-option>
-              <a-select-option value="wechat-video">WeChat</a-select-option>
-              <a-select-option value="dtls">DTLS 1.2</a-select-option>
-              <a-select-option value="wireguard">WireGuard</a-select-option>
-              <a-select-option value="dns">DNS</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label='{{ i18n "password" }}'>
-            <a-input v-model="outbound.stream.kcp.seed"></a-input>
-          </a-form-item>
           <a-form-item label='MTU'>
             <a-input-number v-model.number="outbound.stream.kcp.mtu"
               min="0"></a-input-number>
@@ -546,8 +531,9 @@
             <a-input v-model.trim="outbound.stream.hysteria.auth"></a-input>
           </a-form-item>
           <a-form-item label='Congestion'>
-            <a-select v-model="outbound.stream.hysteria.congestion" :dropdown-class-name="themeSwitcher.currentTheme">
-              <a-select-option value="">BBR (Auto)</a-select-option>
+            <a-select v-model="outbound.stream.hysteria.congestion"
+              :dropdown-class-name="themeSwitcher.currentTheme">
+              <a-select-option value>BBR (Auto)</a-select-option>
               <a-select-option value="brutal">Brutal</a-select-option>
             </a-select>
           </a-form-item>
@@ -563,10 +549,16 @@
             <a-input v-model.trim="outbound.stream.hysteria.udphopPort"
               placeholder="e.g., 1145-1919 or 11,13,15-17"></a-input>
           </a-form-item>
-          <a-form-item label='UDP Hop Interval (s)'
+          <a-form-item label='UDP Hop Interval Min (s)'
             v-if="outbound.stream.hysteria.udphopPort">
             <a-input-number
-              v-model.number="outbound.stream.hysteria.udphopInterval"
+              v-model.number="outbound.stream.hysteria.udphopIntervalMin"
+              :min="5"></a-input-number>
+          </a-form-item>
+          <a-form-item label='UDP Hop Interval Max (s)'
+            v-if="outbound.stream.hysteria.udphopPort">
+            <a-input-number
+              v-model.number="outbound.stream.hysteria.udphopIntervalMax"
               :min="5"></a-input-number>
           </a-form-item>
           <a-form-item label='Init Stream Receive'>
@@ -602,25 +594,73 @@
         </template>
       </template>
 
-      <!-- udpmasks settings -->
+      <!-- finalmask settings -->
       <template v-if="outbound.canEnableStream()">
         <a-form-item label="UDP Masks">
-          <a-button icon="plus" type="primary" size="small" @click="outbound.stream.addUdpMask()"></a-button>
+          <a-button icon="plus" type="primary" size="small"
+            @click="outbound.stream.addUdpMask(outbound.protocol === Protocols.Hysteria ? 'salamander' : (outbound.stream.network === 'kcp' ? 'mkcp-aes128gcm' : 'xdns'))"></a-button>
         </a-form-item>
-        <template v-if="outbound.stream.udpmasks.length > 0">
-          <a-form v-for="(mask, index) in outbound.stream.udpmasks" :key="index" :colon="false"
+        <template
+          v-if="outbound.stream.finalmask.udp && outbound.stream.finalmask.udp.length > 0">
+          <a-form v-for="(mask, index) in outbound.stream.finalmask.udp"
+            :key="index" :colon="false"
             :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
             <a-divider :style="{ margin: '0' }"> UDP Mask [[ index + 1 ]]
-              <a-icon type="delete" @click="() => outbound.stream.delUdpMask(index)"
+              <a-icon type="delete"
+                @click="() => outbound.stream.delUdpMask(index)"
                 :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"></a-icon>
             </a-divider>
             <a-form-item label='Type'>
-              <a-select v-model="mask.type" :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="salamander">Salamander</a-select-option>
+              <a-select v-model="mask.type"
+                @change="(type) => mask.settings = mask._getDefaultSettings(type, {})"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <!-- Salamander for Hysteria2 only -->
+                <a-select-option v-if="outbound.protocol === Protocols.Hysteria"
+                  value="salamander">
+                  Salamander (Hysteria2)</a-select-option>
+                <!-- mKCP-specific masks -->
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="mkcp-aes128gcm">
+                  mKCP AES-128-GCM</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-dns">
+                  Header DNS</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-dtls">
+                  Header DTLS 1.2</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-srtp">
+                  Header SRTP</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-utp">
+                  Header uTP</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-wechat">
+                  Header WeChat Video</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="header-wireguard">
+                  Header WireGuard</a-select-option>
+                <a-select-option v-if="outbound.stream.network === 'kcp'"
+                  value="mkcp-original">
+                  mKCP Original</a-select-option>
+                <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP -->
+                <a-select-option
+                  v-if="['tcp', 'ws', 'httpupgrade', 'xhttp'].includes(outbound.stream.network)"
+                  value="xdns">
+                  xDNS (Experimental)</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item label='Password'>
-              <a-input v-model.trim="mask.password" placeholder="Obfuscation password"></a-input>
+            <!-- Settings for password-based masks -->
+            <a-form-item label='Password'
+              v-if="['salamander', 'mkcp-aes128gcm'].includes(mask.type)">
+              <a-input v-model.trim="mask.settings.password"
+                placeholder="Obfuscation password"></a-input>
+            </a-form-item>
+            <!-- Settings for domain-based masks -->
+            <a-form-item label='Domain'
+              v-if="['header-dns', 'xdns'].includes(mask.type)">
+              <a-input v-model.trim="mask.settings.domain"
+                placeholder="e.g., www.example.com"></a-input>
             </a-form-item>
           </a-form>
         </template>
@@ -662,6 +702,15 @@
           </a-form-item>
           <a-form-item label="Allow Insecure">
             <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
+          </a-form-item>
+          <a-form-item label="verify Peer Cert By Name">
+            <a-input
+              v-model.trim="outbound.stream.tls.verifyPeerCertByName"></a-input>
+          </a-form-item>
+          <a-form-item label="pinned Peer Cert Sha256">
+            <a-input v-model.trim="outbound.stream.tls.pinnedPeerCertSha256"
+              placeholder="Enter SHA256 fingerprints (base64)">
+            </a-input>
           </a-form-item>
         </template>
 

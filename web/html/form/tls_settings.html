@@ -1,11 +1,13 @@
 {{define "form/tlsSettings"}}
 <!-- tls enable -->
-<a-form v-if="inbound.canEnableTls()" :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+<a-form v-if="inbound.canEnableTls()" :colon="false"
+  :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
   <a-divider :style="{ margin: '3px 0' }"></a-divider>
   <a-form-item label='{{ i18n "security" }}'>
     <a-radio-group v-model="inbound.stream.security" button-style="solid">
       <a-radio-button value="none">{{ i18n "none" }}</a-radio-button>
-      <a-radio-button v-if="inbound.canEnableReality()" value="reality">Reality</a-radio-button>
+      <a-radio-button v-if="inbound.canEnableReality()"
+        value="reality">Reality</a-radio-button>
       <a-radio-button value="tls">TLS</a-radio-button>
     </a-radio-group>
   </a-form-item>
@@ -16,33 +18,44 @@
       <a-input v-model.trim="inbound.stream.tls.sni"></a-input>
     </a-form-item>
     <a-form-item label="Cipher Suites">
-      <a-select v-model="inbound.stream.tls.cipherSuites" :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option value="">Auto</a-select-option>
-        <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[ value ]]</a-select-option>
+      <a-select v-model="inbound.stream.tls.cipherSuites"
+        :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option value>Auto</a-select-option>
+        <a-select-option v-for="key,value in TLS_CIPHER_OPTION" :value="key">[[
+          value ]]</a-select-option>
       </a-select>
     </a-form-item>
     <a-form-item label="Min/Max Version">
       <a-input-group compact>
-        <a-select v-model="inbound.stream.tls.minVersion" :style="{ width: '50%' }"
+        <a-select v-model="inbound.stream.tls.minVersion"
+          :style="{ width: '50%' }"
           :dropdown-class-name="themeSwitcher.currentTheme">
-          <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+          <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key
+            ]]</a-select-option>
         </a-select>
-        <a-select v-model="inbound.stream.tls.maxVersion" :style="{ width: '50%' }"
+        <a-select v-model="inbound.stream.tls.maxVersion"
+          :style="{ width: '50%' }"
           :dropdown-class-name="themeSwitcher.currentTheme">
-          <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key ]]</a-select-option>
+          <a-select-option v-for="key in TLS_VERSION_OPTION" :value="key">[[ key
+            ]]</a-select-option>
         </a-select>
       </a-input-group>
     </a-form-item>
     <a-form-item label="uTLS">
-      <a-select v-model="inbound.stream.tls.settings.fingerprint" :style="{ width: '100%' }"
+      <a-select v-model="inbound.stream.tls.settings.fingerprint"
+        :style="{ width: '100%' }"
         :dropdown-class-name="themeSwitcher.currentTheme">
-        <a-select-option value=''>None</a-select-option>
-        <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key ]]</a-select-option>
+        <a-select-option value>None</a-select-option>
+        <a-select-option v-for="key in UTLS_FINGERPRINT" :value="key">[[ key
+          ]]</a-select-option>
       </a-select>
     </a-form-item>
     <a-form-item label="ALPN">
-      <a-select mode="multiple" :dropdown-class-name="themeSwitcher.currentTheme" v-model="inbound.stream.tls.alpn">
-        <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn ]]</a-select-option>
+      <a-select mode="multiple"
+        :dropdown-class-name="themeSwitcher.currentTheme"
+        v-model="inbound.stream.tls.alpn">
+        <a-select-option v-for="alpn in ALPN_OPTION" :value="alpn">[[ alpn
+          ]]</a-select-option>
       </a-select>
     </a-form-item>
     <a-form-item label="Allow Insecure">
@@ -57,21 +70,25 @@
     <a-form-item label="Session Resumption">
       <a-switch v-model="inbound.stream.tls.enableSessionResumption"></a-switch>
     </a-form-item>
-    <a-form-item label="VerifyPeerCertInNames">
-      <a-input v-model.trim="inbound.stream.tls.verifyPeerCertInNames"></a-input>
-    </a-form-item>
     <a-divider :style="{ margin: '3px 0' }"></a-divider>
     <template v-for="cert,index in inbound.stream.tls.certs">
       <a-form-item label='{{ i18n "certificate" }}'>
-        <a-radio-group v-model="cert.useFile" button-style="solid" :style="{ display: 'inline-flex', whiteSpace: 'nowrap', maxWidth: '100%' }">
-          <a-radio-button :value="true" :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ i18n "pages.inbounds.certificatePath" }}</a-radio-button>
-          <a-radio-button :value="false" :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{ i18n "pages.inbounds.certificateContent" }}</a-radio-button>
+        <a-radio-group v-model="cert.useFile" button-style="solid"
+          :style="{ display: 'inline-flex', whiteSpace: 'nowrap', maxWidth: '100%' }">
+          <a-radio-button :value="true"
+            :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{
+            i18n "pages.inbounds.certificatePath" }}</a-radio-button>
+          <a-radio-button :value="false"
+            :style="{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }">{{
+            i18n "pages.inbounds.certificateContent" }}</a-radio-button>
         </a-radio-group>
       </a-form-item>
       <a-form-item label=" ">
         <a-space>
-          <a-button icon="plus" v-if="index === 0" type="primary" size="small" @click="inbound.stream.tls.addCert()"></a-button>
-          <a-button icon="minus" v-if="inbound.stream.tls.certs.length>1" type="primary" size="small"
+          <a-button icon="plus" v-if="index === 0" type="primary" size="small"
+            @click="inbound.stream.tls.addCert()"></a-button>
+          <a-button icon="minus" v-if="inbound.stream.tls.certs.length>1"
+            type="primary" size="small"
             @click="inbound.stream.tls.removeCert(index)"></a-button>
         </a-space>
       </a-form-item>
@@ -83,7 +100,8 @@
           <a-input v-model.trim="cert.keyFile"></a-input>
         </a-form-item>
         <a-form-item label=" ">
-          <a-button type="primary" icon="import" @click="setDefaultCertData(index)">
+          <a-button type="primary" icon="import"
+            @click="setDefaultCertData(index)">
             {{ i18n "pages.inbounds.setDefaultCert" }}</a-button>
         </a-form-item>
       </template>
@@ -99,8 +117,10 @@
         <a-switch v-model="cert.oneTimeLoading"></a-switch>
       </a-form-item>
       <a-form-item label='Usage Option'>
-        <a-select v-model="cert.usage" :style="{ width: '50%' }" :dropdown-class-name="themeSwitcher.currentTheme">
-          <a-select-option v-for="key in USAGE_OPTION" :value="key">[[ key ]]</a-select-option>
+        <a-select v-model="cert.usage" :style="{ width: '50%' }"
+          :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option v-for="key in USAGE_OPTION" :value="key">[[ key
+            ]]</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label="Build Chain" v-if="cert.usage === 'issue'">
@@ -108,20 +128,22 @@
       </a-form-item>
     </template>
     <a-form-item label='ECH key'>
-        <a-input v-model="inbound.stream.tls.echServerKeys"></a-input>
+      <a-input v-model="inbound.stream.tls.echServerKeys"></a-input>
     </a-form-item>
     <a-form-item label='ECH config'>
-        <a-input v-model="inbound.stream.tls.settings.echConfigList"></a-input>
+      <a-input v-model="inbound.stream.tls.settings.echConfigList"></a-input>
     </a-form-item>
     <a-form-item label='ECH force query'>
-        <a-select v-model="inbound.stream.tls.echForceQuery"
-            :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option v-for="key in ['none', 'half', 'full']" :value="key">[[ key ]]</a-select-option>
-        </a-select>
+      <a-select v-model="inbound.stream.tls.echForceQuery"
+        :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select-option v-for="key in ['none', 'half', 'full']" :value="key">[[
+          key ]]</a-select-option>
+      </a-select>
     </a-form-item>
     <a-form-item label=" ">
       <a-space>
-        <a-button type="primary" icon="import" @click="getNewEchCert">Get New ECH Cert</a-button>
+        <a-button type="primary" icon="import" @click="getNewEchCert">Get New
+          ECH Cert</a-button>
         <a-button danger @click="clearEchCert">Clear</a-button>
       </a-space>
     </a-form-item>

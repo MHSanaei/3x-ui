@@ -1,8 +1,10 @@
 {{define "form/streamSettings"}}
 <!-- select stream network -->
-<a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+<a-form :colon="false" :label-col="{ md: {span:8} }"
+    :wrapper-col="{ md: {span:14} }">
     <a-form-item label='{{ i18n "transmission" }}'>
-        <a-select v-model="inbound.stream.network" :style="{ width: '75%' }" @change="streamNetworkChange"
+        <a-select v-model="inbound.stream.network" :style="{ width: '75%' }"
+            @change="streamNetworkChange"
             :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="tcp">TCP (RAW)</a-select-option>
             <a-select-option value="kcp">mKCP</a-select-option>
@@ -47,5 +49,11 @@
 <!-- sockopt -->
 <template>
     {{template "form/streamSockopt"}}
+</template>
+
+<!-- finalmask - only for TCP, WS, HTTPUpgrade, XHTTP, mKCP -->
+<template
+    v-if="['tcp', 'ws', 'httpupgrade', 'xhttp', 'kcp'].includes(inbound.stream.network)">
+    {{template "form/streamFinalMask"}}
 </template>
 {{end}}
