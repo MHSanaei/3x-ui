@@ -1,0 +1,15 @@
+[Unit]
+Description=x-ui update all geofiles timer
+
+[Timer]
+AccuracySec=5min
+OnBootSec=5min
+OnCalendar=*-*-* 02,14:00:00 UTC
+FixedRandomDelay=true
+RandomizedDelaySec=10min
+Persistent=true
+
+Unit=x-ui-updategeo.service
+
+[Install]
+WantedBy=timers.target
