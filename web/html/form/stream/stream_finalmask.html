@@ -45,6 +45,9 @@
                     <a-select-option v-if="inbound.stream.network === 'kcp'"
                         value="mkcp-original">
                         mKCP Original</a-select-option>
+                    <a-select-option v-if="inbound.stream.network === 'kcp'"
+                        value="xicmp">
+                        xICMP (Experimental)</a-select-option>
                     <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP -->
                     <a-select-option
                         v-if="['tcp', 'ws', 'httpupgrade', 'xhttp'].includes(inbound.stream.network)"
@@ -63,6 +66,17 @@
                 v-if="['header-dns', 'xdns'].includes(mask.type)">
                 <a-input v-model.trim="mask.settings.domain"
                     placeholder="e.g., www.example.com"></a-input>
+            </a-form-item>
+            <!-- Settings for xICMP -->
+            <a-form-item label='IP'
+                v-if="mask.type === 'xicmp'">
+                <a-input v-model.trim="mask.settings.ip"
+                    placeholder="e.g., 1.1.1.1"></a-input>
+            </a-form-item>
+            <a-form-item label='ID'
+                v-if="mask.type === 'xicmp'">
+                <a-input-number v-model.number="mask.settings.id"
+                    :min="0" :max="65535"></a-input-number>
             </a-form-item>
         </a-form>
     </template>
