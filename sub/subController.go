@@ -3,7 +3,6 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -13,17 +12,12 @@ import (
 
 // SUBController handles HTTP requests for subscription links and JSON configurations.
 type SUBController struct {
-	subTitle         string
-	subSupportUrl    string
-	subProfileUrl    string
-	subAnnounce      string
-	subEnableRouting bool
-	subRoutingRules  string
-	subPath          string
-	subJsonPath      string
-	jsonEnabled      bool
-	subEncrypt       bool
-	updateInterval   string
+	subTitle       string
+	subPath        string
+	subJsonPath    string
+	jsonEnabled    bool
+	subEncrypt     bool
+	updateInterval string
 
 	subService     *SubService
 	subJsonService *SubJsonService
@@ -44,25 +38,15 @@ func NewSUBController(
 	jsonMux string,
 	jsonRules string,
 	subTitle string,
-	subSupportUrl string,
-	subProfileUrl string,
-	subAnnounce string,
-	subEnableRouting bool,
-	subRoutingRules string,
 ) *SUBController {
 	sub := NewSubService(showInfo, rModel)
 	a := &SUBController{
-		subTitle:         subTitle,
-		subSupportUrl:    subSupportUrl,
-		subProfileUrl:    subProfileUrl,
-		subAnnounce:      subAnnounce,
-		subEnableRouting: subEnableRouting,
-		subRoutingRules:  subRoutingRules,
-		subPath:          subPath,
-		subJsonPath:      jsonPath,
-		jsonEnabled:      jsonEnabled,
-		subEncrypt:       encrypt,
-		updateInterval:   update,
+		subTitle:       subTitle,
+		subPath:        subPath,
+		subJsonPath:    jsonPath,
+		jsonEnabled:    jsonEnabled,
+		subEncrypt:     encrypt,
+		updateInterval: update,
 
 		subService:     sub,
 		subJsonService: NewSubJsonService(jsonFragment, jsonNoise, jsonMux, jsonRules, sub),
@@ -143,7 +127,7 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -161,31 +145,17 @@ func (a *SUBController) subJsons(c *gin.Context) {
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")
 	} else {
+
 		// Add headers
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle)
 
 		c.String(200, jsonSub)
 	}
 }
 
 // ApplyCommonHeaders sets common HTTP headers for subscription responses including user info, update interval, and profile title.
-func (a *SUBController) ApplyCommonHeaders(
-	c *gin.Context,
-	header,
-	updateInterval,
-	profileTitle string,
-	profileSupportUrl string,
-	profileUrl string,
-	profileAnnounce string,
-	profileEnableRouting bool,
-	profileRoutingRules string,
-) {
+func (a *SUBController) ApplyCommonHeaders(c *gin.Context, header, updateInterval, profileTitle string) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
 	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
-	c.Writer.Header().Set("Support-Url", profileSupportUrl)
-	c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
-	c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
-	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
-	c.Writer.Header().Set("Routing", profileRoutingRules)
 }

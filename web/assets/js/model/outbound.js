@@ -165,13 +165,15 @@ class TcpStreamSettings extends CommonClass {
 
 class KcpStreamSettings extends CommonClass {
     constructor(
-        mtu = 1350,
-        tti = 20,
+        mtu = 1250,
+        tti = 50,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
         congestion = false,
-        readBufferSize = 1,
-        writeBufferSize = 1,
+        readBufferSize = 2,
+        writeBufferSize = 2,
+        type = 'none',
+        seed = '',
     ) {
         super();
         this.mtu = mtu;
@@ -181,6 +183,8 @@ class KcpStreamSettings extends CommonClass {
         this.congestion = congestion;
         this.readBuffer = readBufferSize;
         this.writeBuffer = writeBufferSize;
+        this.type = type;
+        this.seed = seed;
     }
 
     static fromJson(json = {}) {
@@ -192,6 +196,8 @@ class KcpStreamSettings extends CommonClass {
             json.congestion,
             json.readBufferSize,
             json.writeBufferSize,
+            ObjectUtil.isEmpty(json.header) ? 'none' : json.header.type,
+            json.seed,
         );
     }
 
@@ -204,6 +210,10 @@ class KcpStreamSettings extends CommonClass {
             congestion: this.congestion,
             readBufferSize: this.readBuffer,
             writeBufferSize: this.writeBuffer,
+            header: {
+                type: this.type,
+            },
+            seed: this.seed,
         };
     }
 }
@@ -347,8 +357,6 @@ class TlsStreamSettings extends CommonClass {
         fingerprint = '',
         allowInsecure = false,
         echConfigList = '',
-        verifyPeerCertByName = 'cloudflare-dns.com',
-        pinnedPeerCertSha256 = '',
     ) {
         super();
         this.serverName = serverName;
@@ -356,8 +364,6 @@ class TlsStreamSettings extends CommonClass {
         this.fingerprint = fingerprint;
         this.allowInsecure = allowInsecure;
         this.echConfigList = echConfigList;
-        this.verifyPeerCertByName = verifyPeerCertByName;
-        this.pinnedPeerCertSha256 = pinnedPeerCertSha256;
     }
 
     static fromJson(json = {}) {
@@ -367,8 +373,6 @@ class TlsStreamSettings extends CommonClass {
             json.fingerprint,
             json.allowInsecure,
             json.echConfigList,
-            json.verifyPeerCertByName,
-            json.pinnedPeerCertSha256,
         );
     }
 
@@ -378,9 +382,7 @@ class TlsStreamSettings extends CommonClass {
             alpn: this.alpn,
             fingerprint: this.fingerprint,
             allowInsecure: this.allowInsecure,
-            echConfigList: this.echConfigList,
-            verifyPeerCertByName: this.verifyPeerCertByName,
-            pinnedPeerCertSha256: this.pinnedPeerCertSha256
+            echConfigList: this.echConfigList
         };
     }
 }
@@ -432,8 +434,7 @@ class HysteriaStreamSettings extends CommonClass {
         up = '0',
         down = '0',
         udphopPort = '',
-        udphopIntervalMin = 30,
-        udphopIntervalMax = 30,
+        udphopInterval = 30,
         initStreamReceiveWindow = 8388608,
         maxStreamReceiveWindow = 8388608,
         initConnectionReceiveWindow = 20971520,
@@ -449,8 +450,7 @@ class HysteriaStreamSettings extends CommonClass {
         this.up = up;
         this.down = down;
         this.udphopPort = udphopPort;
-        this.udphopIntervalMin = udphopIntervalMin;
-        this.udphopIntervalMax = udphopIntervalMax;
+        this.udphopInterval = udphopInterval;
         this.initStreamReceiveWindow = initStreamReceiveWindow;
         this.maxStreamReceiveWindow = maxStreamReceiveWindow;
         this.initConnectionReceiveWindow = initConnectionReceiveWindow;
@@ -462,18 +462,10 @@ class HysteriaStreamSettings extends CommonClass {
 
     static fromJson(json = {}) {
         let udphopPort = '';
-        let udphopIntervalMin = 30;
-        let udphopIntervalMax = 30;
+        let udphopInterval = 30;
         if (json.udphop) {
             udphopPort = json.udphop.port || '';
-            // Backward compatibility: if old 'interval' exists, use it for both min/max
-            if (json.udphop.interval !== undefined) {
-                udphopIntervalMin = json.udphop.interval;
-                udphopIntervalMax = json.udphop.interval;
-            } else {
-                udphopIntervalMin = json.udphop.intervalMin || 30;
-                udphopIntervalMax = json.udphop.intervalMax || 30;
-            }
+            udphopInterval = json.udphop.interval || 30;
         }
         return new HysteriaStreamSettings(
             json.version,
@@ -482,8 +474,7 @@ class HysteriaStreamSettings extends CommonClass {
             json.up,
             json.down,
             udphopPort,
-            udphopIntervalMin,
-            udphopIntervalMax,
+            udphopInterval,
             json.initStreamReceiveWindow,
             json.maxStreamReceiveWindow,
             json.initConnectionReceiveWindow,
@@ -512,8 +503,7 @@ class HysteriaStreamSettings extends CommonClass {
         if (this.udphopPort) {
             result.udphop = {
                 port: this.udphopPort,
-                intervalMin: this.udphopIntervalMin,
-                intervalMax: this.udphopIntervalMax
+                interval: this.udphopInterval
             };
         }
         return result;
@@ -569,62 +559,26 @@ class SockoptStreamSettings extends CommonClass {
 }
 
 class UdpMask extends CommonClass {
-    constructor(type = 'salamander', settings = {}) {
+    constructor(type = 'salamander', password = '') {
         super();
         this.type = type;
-        this.settings = this._getDefaultSettings(type, settings);
-    }
-
-    _getDefaultSettings(type, settings = {}) {
-        switch (type) {
-            case 'salamander':
-            case 'mkcp-aes128gcm':
-                return { password: settings.password || '' };
-            case 'header-dns':
-            case 'xdns':
-                return { domain: settings.domain || '' };
-            case 'mkcp-original':
-            case 'header-dtls':
-            case 'header-srtp':
-            case 'header-utp':
-            case 'header-wechat':
-            case 'header-wireguard':
-                return {}; // No settings needed
-            default:
-                return settings;
-        }
+        this.password = password;
     }
 
     static fromJson(json = {}) {
         return new UdpMask(
-            json.type || 'salamander',
-            json.settings || {}
+            json.type,
+            json.settings?.password || ''
         );
     }
 
     toJson() {
         return {
             type: this.type,
-            settings: (this.settings && Object.keys(this.settings).length > 0) ? this.settings : undefined
+            settings: {
+                password: this.password
+            }
         };
-    }
-}
-
-class FinalMaskStreamSettings extends CommonClass {
-    constructor(udp = []) {
-        super();
-        this.udp = Array.isArray(udp) ? udp.map(u => new UdpMask(u.type, u.settings)) : [new UdpMask(udp.type, udp.settings)];
-    }
-
-    static fromJson(json = {}) {
-        return new FinalMaskStreamSettings(json.udp || []);
-    }
-
-    toJson() {
-        return {
-            udp: this.udp.map(udp => udp.toJson())
-        };
-
     }
 }
 
@@ -641,7 +595,7 @@ class StreamSettings extends CommonClass {
         httpupgradeSettings = new HttpUpgradeStreamSettings(),
         xhttpSettings = new xHTTPStreamSettings(),
         hysteriaSettings = new HysteriaStreamSettings(),
-        finalmask = new FinalMaskStreamSettings(),
+        udpmasks = [],
         sockopt = undefined,
     ) {
         super();
@@ -656,22 +610,16 @@ class StreamSettings extends CommonClass {
         this.httpupgrade = httpupgradeSettings;
         this.xhttp = xhttpSettings;
         this.hysteria = hysteriaSettings;
-        this.finalmask = finalmask;
+        this.udpmasks = udpmasks;
         this.sockopt = sockopt;
     }
 
-    addUdpMask(type = 'salamander') {
-        this.finalmask.udp.push(new UdpMask(type));
+    addUdpMask() {
+        this.udpmasks.push(new UdpMask());
     }
 
     delUdpMask(index) {
-        if (this.finalmask.udp) {
-            this.finalmask.udp.splice(index, 1);
-        }
-    }
-
-    get hasFinalMask() {
-        return this.finalmask.udp && this.finalmask.udp.length > 0;
+        this.udpmasks.splice(index, 1);
     }
 
     get isTls() {
@@ -691,6 +639,7 @@ class StreamSettings extends CommonClass {
     }
 
     static fromJson(json = {}) {
+        const udpmasks = json.udpmasks ? json.udpmasks.map(mask => UdpMask.fromJson(mask)) : [];
         return new StreamSettings(
             json.network,
             json.security,
@@ -703,7 +652,7 @@ class StreamSettings extends CommonClass {
             HttpUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
             xHTTPStreamSettings.fromJson(json.xhttpSettings),
             HysteriaStreamSettings.fromJson(json.hysteriaSettings),
-            FinalMaskStreamSettings.fromJson(json.finalmask),
+            udpmasks,
             SockoptStreamSettings.fromJson(json.sockopt),
         );
     }
@@ -722,7 +671,7 @@ class StreamSettings extends CommonClass {
             httpupgradeSettings: network === 'httpupgrade' ? this.httpupgrade.toJson() : undefined,
             xhttpSettings: network === 'xhttp' ? this.xhttp.toJson() : undefined,
             hysteriaSettings: network === 'hysteria' ? this.hysteria.toJson() : undefined,
-            finalmask: this.hasFinalMask ? this.finalmask.toJson() : undefined,
+            udpmasks: this.udpmasks.length > 0 ? this.udpmasks.map(mask => mask.toJson()) : undefined,
             sockopt: this.sockopt != undefined ? this.sockopt.toJson() : undefined,
         };
     }
@@ -1047,15 +996,7 @@ class Outbound extends CommonClass {
         stream.hysteria.up = urlParams.get('up') ?? '0';
         stream.hysteria.down = urlParams.get('down') ?? '0';
         stream.hysteria.udphopPort = urlParams.get('udphopPort') ?? '';
-        // Support both old single interval and new min/max range
-        if (urlParams.has('udphopInterval')) {
-            const interval = parseInt(urlParams.get('udphopInterval'));
-            stream.hysteria.udphopIntervalMin = interval;
-            stream.hysteria.udphopIntervalMax = interval;
-        } else {
-            stream.hysteria.udphopIntervalMin = parseInt(urlParams.get('udphopIntervalMin') ?? '30');
-            stream.hysteria.udphopIntervalMax = parseInt(urlParams.get('udphopIntervalMax') ?? '30');
-        }
+        stream.hysteria.udphopInterval = parseInt(urlParams.get('udphopInterval') ?? '30');
 
         // Optional QUIC parameters
         if (urlParams.has('initStreamReceiveWindow')) {
@@ -1344,14 +1285,11 @@ Outbound.VLESSSettings = class extends CommonClass {
             flow: this.flow,
             encryption: this.encryption,
         };
-        // Only include Vision settings when flow is set
-        if (this.flow && this.flow !== '') {
-            if (this.testpre > 0) {
-                result.testpre = this.testpre;
-            }
-            if (this.testseed && this.testseed.length >= 4) {
-                result.testseed = this.testseed;
-            }
+        if (this.testpre > 0) {
+            result.testpre = this.testpre;
+        }
+        if (this.testseed && this.testseed.length >= 4) {
+            result.testseed = this.testseed;
         }
         return result;
     }
@@ -1484,7 +1422,7 @@ Outbound.HttpSettings = class extends CommonClass {
 
 Outbound.WireguardSettings = class extends CommonClass {
     constructor(
-        mtu = 1420,
+        mtu = 1250,
         secretKey = '',
         address = [''],
         workers = 2,

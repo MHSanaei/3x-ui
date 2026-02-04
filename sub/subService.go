@@ -527,8 +527,33 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	// Set the new query values on the URL
 	url.RawQuery = q.Encode()
 
+	// Set the new query values on the URL
+	url.RawQuery = q.Encode()
+
 	url.Fragment = s.genRemark(inbound, email, "")
-	return url.String()
+
+	return s.appendReportUrl(url).String()
+}
+
+func (s *SubService) appendReportUrl(u *url.URL) *url.URL {
+	// Construct report URL: https://<panel_address>/<base_path>/report
+	// Assuming s.address is the domain/IP.
+	// We need to know the protocol (http/https). For now, infer or use simple heuristic.
+	// Or better: pass the full "reportUrl" if we can derive it.
+
+	// Since we don't have the full context here easily, let's construct it based on s.address
+	// Caveat: port might be missing if on 80/443.
+
+	reportUrl := fmt.Sprintf("https://%s/report", s.address)
+
+	// Append as query param 'reportUrl' to the fragment or the query string?
+	// Standard Xray/V2ray config doesn't use this. The client needs to parse it.
+	// Putting it in the query string is safer for link parsers.
+
+	q := u.Query()
+	q.Set("reportUrl", reportUrl)
+	u.RawQuery = q.Encode()
+	return u
 }
 
 func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string {

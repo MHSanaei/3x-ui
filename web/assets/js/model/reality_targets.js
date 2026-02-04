@@ -1,15 +1,18 @@
 // List of popular services for VLESS Reality Target/SNI randomization
 const REALITY_TARGETS = [
-    { target: 'www.apple.com:443', sni: 'www.apple.com' },
-    { target: 'www.icloud.com:443', sni: 'www.icloud.com' },
-    { target: 'www.amazon.com:443', sni: 'www.amazon.com' },
-    { target: 'aws.amazon.com:443', sni: 'aws.amazon.com' },
-    { target: 'www.oracle.com:443', sni: 'www.oracle.com' },
-    { target: 'www.nvidia.com:443', sni: 'www.nvidia.com' },
-    { target: 'www.amd.com:443', sni: 'www.amd.com' },
-    { target: 'www.intel.com:443', sni: 'www.intel.com' },
-    { target: 'www.tesla.com:443', sni: 'www.tesla.com' },
-    { target: 'www.sony.com:443', sni: 'www.sony.com' }
+    { target: 'www.icloud.com:443', sni: 'www.icloud.com,icloud.com' },
+    { target: 'www.apple.com:443', sni: 'www.apple.com,apple.com' },
+    { target: 'www.tesla.com:443', sni: 'www.tesla.com,tesla.com' },
+    { target: 'www.sony.com:443', sni: 'www.sony.com,sony.com' },
+    { target: 'www.nvidia.com:443', sni: 'www.nvidia.com,nvidia.com' },
+    { target: 'www.amd.com:443', sni: 'www.amd.com,amd.com' },
+    { target: 'azure.microsoft.com:443', sni: 'azure.microsoft.com,www.azure.com' },
+    { target: 'aws.amazon.com:443', sni: 'aws.amazon.com,amazon.com' },
+    { target: 'www.bing.com:443', sni: 'www.bing.com,bing.com' },
+    { target: 'www.oracle.com:443', sni: 'www.oracle.com,oracle.com' },
+    { target: 'www.intel.com:443', sni: 'www.intel.com,intel.com' },
+    { target: 'www.microsoft.com:443', sni: 'www.microsoft.com,microsoft.com' },
+    { target: 'www.amazon.com:443', sni: 'www.amazon.com,amazon.com' }
 ];
 
 /**
@@ -25,3 +28,4 @@ function getRandomRealityTarget() {
         sni: selected.sni
     };
 }
+
