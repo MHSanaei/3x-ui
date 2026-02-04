@@ -1087,12 +1087,59 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			return common.NewErrorf("Invalid geofile name: %s not in allowlist", fileName)
 		}
 	}
+
 	downloadFile := func(url, destPath string) error {
-		resp, err := http.Get(url)
+		var req *http.Request
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
+		}
+
+		var localFileModTime time.Time
+		if fileInfo, err := os.Stat(destPath); err == nil {
+			localFileModTime = fileInfo.ModTime()
+			if !localFileModTime.IsZero() {
+				req.Header.Set("If-Modified-Since", localFileModTime.UTC().Format(http.TimeFormat))
+			}
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 		if err != nil {
 			return common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
 		}
 		defer resp.Body.Close()
+
+		// Parse Last-Modified header from server
+		var serverModTime time.Time
+		serverModTimeStr := resp.Header.Get("Last-Modified")
+		if serverModTimeStr != "" {
+			parsedTime, err := time.Parse(http.TimeFormat, serverModTimeStr)
+			if err != nil {
+				logger.Warningf("Failed to parse Last-Modified header for %s: %v", url, err)
+			} else {
+				serverModTime = parsedTime
+			}
+		}
+
+		// Function to update local file's modification time
+		updateFileModTime := func() {
+			if !serverModTime.IsZero() {
+				if err := os.Chtimes(destPath, serverModTime, serverModTime); err != nil {
+					logger.Warningf("Failed to update modification time for %s: %v", destPath, err)
+				}
+			}
+		}
+
+		// Handle 304 Not Modified
+		if resp.StatusCode == http.StatusNotModified {
+			updateFileModTime()
+			return nil
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return common.NewErrorf("Failed to download Geofile from %s: received status code %d", url, resp.StatusCode)
+		}
 
 		file, err := os.Create(destPath)
 		if err != nil {
@@ -1105,6 +1152,7 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			return common.NewErrorf("Failed to save Geofile %s: %v", destPath, err)
 		}
 
+		updateFileModTime()
 		return nil
 	}
 
@@ -1114,7 +1162,6 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 		for _, file := range files {
 			// Sanitize the filename from our allowlist as an extra precaution
 			destPath := filepath.Join(config.GetBinFolderPath(), filepath.Base(file.FileName))
-
 			if err := downloadFile(file.URL, destPath); err != nil {
 				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
 			}
