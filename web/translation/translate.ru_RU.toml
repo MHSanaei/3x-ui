@@ -203,6 +203,11 @@
 "monitorDesc" = "Оставьте пустым для прослушивания всех IP-адресов"
 "meansNoLimit" = "= Без ограничений (значение: ГБ)"
 "totalFlow" = "Общий расход"
+"speedLimit" = "Ограничение скорости (входящий)"
+"speedLimitDesc" = "Ограничить скорость по порту входящего подключения (tc). 0 = Без ограничений (значение: KB/s)"
+"speedLimitAll" = "Все"
+"speedLimitUp" = "Загрузка"
+"speedLimitDown" = "Скачивание"
 "leaveBlankToNeverExpire" = "Оставьте пустым, чтобы было бесконечным"
 "noRecommendKeepDefault" = "Рекомендуется оставить настройки по умолчанию"
 "certificatePath" = "Путь к сертификату"
@@ -265,6 +270,11 @@
 "days" = "дней"
 "renew" = "Автопродление"
 "renewDesc" = "Автопродление после истечения срока действия. (0 = отключить)(единица: день)"
+"speedLimit" = "Ограничение скорости"
+"speedLimitDesc" = "Ограничить скорость клиента. 0 = Без ограничений (Единица: KB/s или MB/s)"
+"speedLimitAll" = "Все"
+"speedLimitUp" = "Загрузка"
+"speedLimitDown" = "Скачивание"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Никогда"

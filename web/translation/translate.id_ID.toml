@@ -203,6 +203,11 @@
 "monitorDesc" = "Biarkan kosong untuk mendengarkan semua IP"
 "meansNoLimit" = "= Unlimited. (unit: GB)"
 "totalFlow" = "Total Aliran"
+"speedLimit" = "Inbound Speed Limit"
+"speedLimitDesc" = "Limit inbound bandwidth by port (tc). 0 = Unlimited (Unit: KB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 "leaveBlankToNeverExpire" = "Biarkan kosong untuk tidak pernah kedaluwarsa"
 "noRecommendKeepDefault" = "Disarankan untuk tetap menggunakan pengaturan default"
 "certificatePath" = "Path Berkas"
@@ -265,6 +270,11 @@
 "days" = "Hari"
 "renew" = "Perpanjang Otomatis"
 "renewDesc" = "Perpanjangan otomatis setelah kedaluwarsa. (0 = nonaktif)(unit: hari)"
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Limit client speed. 0 = Unlimited (Unit: KB/s or MB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Tidak Pernah"

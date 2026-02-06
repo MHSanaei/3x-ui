@@ -30,7 +30,8 @@ RUN apk add --no-cache --update \
   tzdata \
   fail2ban \
   bash \
-  curl
+  curl \
+  iproute2
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/

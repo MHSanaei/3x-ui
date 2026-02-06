@@ -203,6 +203,11 @@
 "monitorDesc" = "سيبها فاضية لو عايز تستمع على كل الـ IPs"
 "meansNoLimit" = "= غير محدود. (الوحدة: جيجابايت)"
 "totalFlow" = "إجمالي التدفق"
+"speedLimit" = "Inbound Speed Limit"
+"speedLimitDesc" = "Limit inbound bandwidth by port (tc). 0 = Unlimited (Unit: KB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 "leaveBlankToNeverExpire" = "سيبها فاضية عشان ماتنتهيش"
 "noRecommendKeepDefault" = "ننصح باستخدام الافتراضي"
 "certificatePath" = "مسار الملف"
@@ -265,6 +270,11 @@
 "days" = "يوم/أيام"
 "renew" = "تجديد تلقائي"
 "renewDesc" = "تجديد تلقائي بعد انتهاء الصلاحية. (0 = تعطيل)(الوحدة: يوم)"
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Limit client speed. 0 = Unlimited (Unit: KB/s or MB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "أبداً"

@@ -203,6 +203,11 @@
 "monitorDesc" = "空白にするとすべてのIPを監視"
 "meansNoLimit" = "= 無制限（単位：GB）"
 "totalFlow" = "総トラフィック"
+"speedLimit" = "入站速度制限"
+"speedLimitDesc" = "入站ポートごとの帯域を制限します（tc）。0 = 無制限（単位: KB/s）"
+"speedLimitAll" = "すべて"
+"speedLimitUp" = "アップロード"
+"speedLimitDown" = "ダウンロード"
 "leaveBlankToNeverExpire" = "空白にすると期限なし"
 "noRecommendKeepDefault" = "デフォルト値を保持することをお勧めします"
 "certificatePath" = "ファイルパス"
@@ -265,6 +270,11 @@
 "days" = "日"
 "renew" = "自動更新"
 "renewDesc" = "期限が切れた後に自動更新。（0 = 無効）（単位：日）"
+"speedLimit" = "速度制限"
+"speedLimitDesc" = "クライアントの速度を制限します。0 = 無制限（単位: KB/s または MB/s）"
+"speedLimitAll" = "すべて"
+"speedLimitUp" = "アップロード"
+"speedLimitDown" = "ダウンロード"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "なし"

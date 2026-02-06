@@ -1,7 +1,7 @@
 {{ template "page/head_start" .}}
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .asset_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
+<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .asset_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 {{ template "page/head_end" .}}
 
@@ -120,8 +120,8 @@
   </a-layout>
 </a-layout>
 {{template "page/body_scripts" .}}
-<script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/outbound.js?{{ .asset_ver }}"></script>
+<script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .asset_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>

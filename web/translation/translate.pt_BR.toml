@@ -203,6 +203,11 @@
 "monitorDesc" = "Deixe em branco para ouvir todos os IPs"
 "meansNoLimit" = "= Ilimitado. (unidade: GB)"
 "totalFlow" = "Fluxo Total"
+"speedLimit" = "Inbound Speed Limit"
+"speedLimitDesc" = "Limit inbound bandwidth by port (tc). 0 = Unlimited (Unit: KB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 "leaveBlankToNeverExpire" = "Deixe em branco para nunca expirar"
 "noRecommendKeepDefault" = "Recomenda-se manter o padrão"
 "certificatePath" = "Caminho"
@@ -265,6 +270,11 @@
 "days" = "Dia(s)"
 "renew" = "Renovação Automática"
 "renewDesc" = "Renovação automática após expiração. (0 = desativado)(unidade: dia)"
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Limit client speed. 0 = Unlimited (Unit: KB/s or MB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Nunca"

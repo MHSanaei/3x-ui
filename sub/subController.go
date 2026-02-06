@@ -121,6 +121,7 @@ func (a *SUBController) subs(c *gin.Context) {
 				"title":        "subscription.title",
 				"site_name":    config.GetSiteName(),
 				"cur_ver":      config.GetVersion(),
+				"asset_ver":    config.GetAssetVersion(),
 				"host":         page.Host,
 				"base_path":    page.BasePath,
 				"sId":          page.SId,

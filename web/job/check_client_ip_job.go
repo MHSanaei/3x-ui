@@ -3,7 +3,6 @@ package job
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
