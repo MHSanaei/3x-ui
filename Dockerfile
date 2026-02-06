@@ -31,7 +31,7 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
-  iproute2
+  iproute2  # Required for tc (traffic control) used by port-based speed limiting
 
 COPY --from=builder /app/build/ /app/
 COPY --from=builder /app/DockerEntrypoint.sh /app/

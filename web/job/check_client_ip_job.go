@@ -305,7 +305,15 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		jsonIps, _ := json.Marshal(newIpsWithTime)
 		inboundClientIps.Ips = string(jsonIps)
 		db := database.GetDB()
-		db.Save(inboundClientIps)
+		// Use transaction for database update
+		tx := db.Begin()
+		err := tx.Save(inboundClientIps).Error
+		if err != nil {
+			tx.Rollback()
+			logger.Errorf("Failed to save inboundClientIps: %v", err)
+		} else {
+			tx.Commit()
+		}
 		return false
 	}
 
@@ -377,12 +385,16 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		inboundClientIps.Ips = string(jsonIps)
 	}
 
+	// Use transaction for database update
 	db := database.GetDB()
-	err = db.Save(inboundClientIps).Error
+	tx := db.Begin()
+	err = tx.Save(inboundClientIps).Error
 	if err != nil {
+		tx.Rollback()
 		logger.Error("failed to save inboundClientIps:", err)
 		return false
 	}
+	tx.Commit()
 
 	if len(j.disAllowedIps) > 0 {
 		logger.Infof("[LIMIT_IP] Client %s: Kept %d newest IPs, disconnected %d old IPs", clientEmail, limitIp, len(j.disAllowedIps))

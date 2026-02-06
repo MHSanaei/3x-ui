@@ -13,6 +13,27 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/logger"
 )
 
+const (
+	// Traffic control constants for bandwidth calculation
+	BytesPerKiB = 1024 // Bytes per KibiByte
+	BitsPerByte = 8    // Bits per Byte
+	BitsPerKbit = 1000 // Bits per Kilobit (using decimal, not binary)
+)
+
+// isValidDeviceName validates network device names to prevent command injection.
+// Device names must contain only alphanumeric characters, dashes, underscores, and dots.
+func isValidDeviceName(dev string) bool {
+	if len(dev) == 0 || len(dev) > 15 {
+		return false
+	}
+	for _, r := range dev {
+		if !(r >= 'a' && r <= 'z') && !(r >= 'A' && r <= 'Z') && !(r >= '0' && r <= '9') && r != '-' && r != '_' && r != '.' {
+			return false
+		}
+	}
+	return true
+}
+
 type inboundPortLimit struct {
 	port int
 	kbps int // KB/s, 0 means unlimited
@@ -34,8 +55,11 @@ func detectDefaultNetDev() string {
 	out, err := exec.Command("sh", "-c", "ip route show default 2>/dev/null | awk '{for(i=1;i<=NF;i++){if($i==\"dev\"){print $(i+1); exit}}}'").Output()
 	if err == nil {
 		dev := strings.TrimSpace(string(out))
-		if dev != "" {
+		if dev != "" && isValidDeviceName(dev) {
 			return dev
+		}
+		if dev != "" && !isValidDeviceName(dev) {
+			logger.Warningf("Detected invalid device name: %s, falling back to eth0", dev)
 		}
 	}
 	return "eth0"
@@ -92,8 +116,8 @@ func kbpsToKbit(kbps int) int {
 	if kbps <= 0 {
 		return 0
 	}
-	// KB/s -> bits/s (using KiB: 1024 bytes) -> kbit/s (1000 bits).
-	kbit := int(math.Ceil(float64(kbps) * 1024.0 * 8.0 / 1000.0))
+	// KB/s -> bits/s (using KiB: BytesPerKiB bytes) -> kbit/s (BitsPerKbit bits).
+	kbit := int(math.Ceil(float64(kbps) * float64(BytesPerKiB) * float64(BitsPerByte) / float64(BitsPerKbit)))
 	if kbit < 1 {
 		kbit = 1
 	}
@@ -123,7 +147,11 @@ func applyHTBEgressLimit(dev string, limits map[int]int) error {
 	}
 
 	// Start from a clean state (ignore errors if qdisc doesn't exist).
-	_, _ = runCmd("tc", "qdisc", "del", "dev", dev, "root")
+	if out, err := runCmd("tc", "qdisc", "del", "dev", dev, "root"); err != nil {
+		logger.Debugf("Failed to clean up existing qdisc on %s (might not exist): %v", dev, err)
+	} else if out != "" {
+		logger.Debugf("Cleaned up existing qdisc on %s", dev)
+	}
 
 	// Replace root qdisc with our HTB. Default class is unlimited (1:999).
 	if _, err := runCmd("tc", "qdisc", "replace", "dev", dev, "root", "handle", "1:", "htb", "default", "999"); err != nil {
@@ -153,8 +181,10 @@ func applyHTBEgressLimit(dev string, limits map[int]int) error {
 		_, _ = runCmd("tc", "filter", "add", "dev", dev, "protocol", "ip", "parent", "1:", "prio", "1",
 			"u32", "match", "ip", "sport", strconv.Itoa(port), "0xffff", "flowid", classid)
 		// IPv6 best-effort (ignore errors on kernels without u32 ip6 support).
-		_, _ = runCmd("tc", "filter", "add", "dev", dev, "protocol", "ipv6", "parent", "1:", "prio", "1",
-			"u32", "match", "ip6", "sport", strconv.Itoa(port), "0xffff", "flowid", classid)
+		if _, err := runCmd("tc", "filter", "add", "dev", dev, "protocol", "ipv6", "parent", "1:", "prio", "1",
+			"u32", "match", "ip6", "sport", strconv.Itoa(port), "0xffff", "flowid", classid); err != nil {
+			logger.Debugf("IPv6 egress filter not added for port %d (kernel may lack u32 ip6 support): %v", port, err)
+		}
 	}
 	return nil
 }
@@ -202,9 +232,11 @@ func applyHTBIngressLimit(dev string, ifb string, limits map[int]int) error {
 		_, _ = runCmd("tc", "filter", "add", "dev", dev, "parent", "ffff:", "protocol", "ip", "prio", "1",
 			"u32", "match", "ip", "dport", strconv.Itoa(port), "0xffff",
 			"action", "mirred", "egress", "redirect", "dev", ifb)
-		_, _ = runCmd("tc", "filter", "add", "dev", dev, "parent", "ffff:", "protocol", "ipv6", "prio", "1",
+		if _, err := runCmd("tc", "filter", "add", "dev", dev, "parent", "ffff:", "protocol", "ipv6", "prio", "1",
 			"u32", "match", "ip6", "dport", strconv.Itoa(port), "0xffff",
-			"action", "mirred", "egress", "redirect", "dev", ifb)
+			"action", "mirred", "egress", "redirect", "dev", ifb); err != nil {
+			logger.Debugf("IPv6 ingress filter not added for port %d (kernel may lack u32 ip6 support): %v", port, err)
+		}
 	}
 
 	// Shape on ifb egress based on dport.
@@ -227,8 +259,10 @@ func applyHTBIngressLimit(dev string, ifb string, limits map[int]int) error {
 		}
 		_, _ = runCmd("tc", "filter", "add", "dev", ifb, "protocol", "ip", "parent", "1:", "prio", "1",
 			"u32", "match", "ip", "dport", strconv.Itoa(port), "0xffff", "flowid", classid)
-		_, _ = runCmd("tc", "filter", "add", "dev", ifb, "protocol", "ipv6", "parent", "1:", "prio", "1",
-			"u32", "match", "ip6", "dport", strconv.Itoa(port), "0xffff", "flowid", classid)
+		if _, err := runCmd("tc", "filter", "add", "dev", ifb, "protocol", "ipv6", "parent", "1:", "prio", "1",
+			"u32", "match", "ip6", "dport", strconv.Itoa(port), "0xffff", "flowid", classid); err != nil {
+			logger.Debugf("IPv6 IFB filter not added for port %d (kernel may lack u32 ip6 support): %v", port, err)
+		}
 	}
 
 	return nil
@@ -265,9 +299,11 @@ func applyIngressPolice(dev string, limits map[int]int) error {
 			return err
 		}
 		// IPv6 best-effort (ignore errors on kernels without u32 ip6 support).
-		_, _ = runCmd("tc", "filter", "add", "dev", dev, "parent", "ffff:", "protocol", "ipv6", "prio", "1",
+		if _, err := runCmd("tc", "filter", "add", "dev", dev, "parent", "ffff:", "protocol", "ipv6", "prio", "1",
 			"u32", "match", "ip6", "dport", strconv.Itoa(port), "0xffff",
-			"police", "rate", rate, "burst", burst, "drop", "flowid", ":1")
+			"police", "rate", rate, "burst", burst, "drop", "flowid", ":1"); err != nil {
+			logger.Debugf("IPv6 police filter not added for port %d (kernel may lack u32 ip6 support): %v", port, err)
+		}
 	}
 
 	return nil
@@ -346,6 +382,10 @@ func applyInboundPortSpeedLimitWithTC(inbounds []*model.Inbound) error {
 // ApplyInboundPortSpeedLimits applies inbound-level speed limits (by port) using OS traffic control (tc).
 // This replaces the previous per-client policy bufferSize approach, which is not a real bandwidth limiter.
 func (s *XrayService) ApplyInboundPortSpeedLimits() {
+	if s == nil || s.inboundService == nil {
+		logger.Warning("Apply inbound speed limit: XrayService or inboundService is nil")
+		return
+	}
 	inbounds, err := s.inboundService.GetAllInbounds()
 	if err != nil {
 		logger.Warning("Apply inbound speed limit failed to list inbounds:", err)
