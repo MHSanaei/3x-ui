@@ -2322,9 +2322,9 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 	// If pre-configured URIs are available, use them directly
 	if subURI != "" {
 		if !strings.HasSuffix(subURI, "/") {
-			subURI = subURI + "/" 
+			subURI = subURI + "/"
 		}
-		subURL = fmt.Sprintf("%s%s", subURI, client.SubID) 
+		subURL = fmt.Sprintf("%s%s", subURI, client.SubID)
 	} else {
 		subURL = fmt.Sprintf("%s://%s%s%s", scheme, host, subPath, client.SubID)
 	}
@@ -2333,7 +2333,7 @@ func (t *Tgbot) buildSubscriptionURLs(email string) (string, string, error) {
 		if !strings.HasSuffix(subJsonURI, "/") {
 			subJsonURI = subJsonURI + "/"
 		}
-		subJsonURL = fmt.Sprintf("%s%s", subJsonURI, client.SubID) 
+		subJsonURL = fmt.Sprintf("%s%s", subJsonURI, client.SubID)
 	} else {
 
 		subJsonURL = fmt.Sprintf("%s://%s%s%s", scheme, host, subJsonPath, client.SubID)

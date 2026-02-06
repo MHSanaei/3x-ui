@@ -1,0 +1,31 @@
+name: Cleanup Caches
+on:
+  schedule:
+    - cron: '0 3 * * 0'   # every Sunday
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Delete caches older than 3 days
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          CUTOFF_DATE=$(date -d "3 days ago" -Ins --utc | sed 's/+0000/Z/')
+          echo "Deleting caches older than: $CUTOFF_DATE"
+          
+          CACHE_IDS=$(gh api --paginate repos/${{ github.repository }}/actions/caches \
+            --jq ".actions_caches[] | select(.last_accessed_at < \"$CUTOFF_DATE\") | .id" 2>/dev/null)
+          
+          if [ -z "$CACHE_IDS" ]; then
+            echo "No old caches found to delete."
+          else
+            echo "$CACHE_IDS" | while read CACHE_ID; do
+              echo "Deleting cache: $CACHE_ID"
+              gh api -X DELETE repos/${{ github.repository }}/actions/caches/$CACHE_ID
+            done
+            echo "Old caches deleted successfully."
+          fi
