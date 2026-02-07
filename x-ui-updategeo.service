@@ -1,0 +1,11 @@
+[Unit]
+Description=x-ui update all geofiles service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/x-ui update-all-geofiles
+
+[Install]
+WantedBy=multi-user.target

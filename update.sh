@@ -787,8 +787,12 @@ update_x-ui() {
             if [ -f "${xui_service}/x-ui.service" ]; then
                 systemctl stop x-ui >/dev/null 2>&1
                 systemctl disable x-ui >/dev/null 2>&1
+                if [ -f "${xui_service}/x-ui-updategeo.timer"] && [ -f "${xui_service}/x-ui-updategeo.service"]; then
+                    systemctl stop x-ui-updategeo.timer >/dev/null 2>&1
+                    systemctl disable x-ui-updategeo.timer >/dev/null 2>&1 
                 echo -e "${green}Removing old systemd unit version...${plain}"
                 rm ${xui_service}/x-ui.service -f >/dev/null 2>&1
+                rm ${xui_service}/x-ui-updategeo.{timer,service} -f >/dev/null 2>&1
                 systemctl daemon-reload >/dev/null 2>&1
             else
                 rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
@@ -801,6 +805,7 @@ update_x-ui() {
         rm ${xui_folder}/x-ui.service.debian -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.service.arch -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.service.rhel -f >/dev/null 2>&1
+        rm ${xui_folder}/x-ui-updategeo.{timer,service} -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui -f >/dev/null 2>&1
         rm ${xui_folder}/x-ui.sh -f >/dev/null 2>&1
         echo -e "${green}Removing old xray version...${plain}"
@@ -851,87 +856,61 @@ update_x-ui() {
     
     if [[ $release == "alpine" ]]; then
         echo -e "${green}Downloading and installing startup unit x-ui.rc...${plain}"
-        ${curl_bin} -fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
+
+        ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
         if [[ $? -ne 0 ]]; then
-            ${curl_bin} -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc >/dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
-            fi
+            _fail "ERROR: Failed to download startup unit x-ui.rc, please be sure that your server can access GitHub"
+            exit 1
         fi
         chmod +x /etc/init.d/x-ui >/dev/null 2>&1
         chown root:root /etc/init.d/x-ui >/dev/null 2>&1
         rc-update add x-ui >/dev/null 2>&1
         rc-service x-ui start >/dev/null 2>&1
     else
-        if [ -f "x-ui.service" ]; then
-            echo -e "${green}Installing systemd unit...${plain}"
-            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
-            if [[ $? -ne 0 ]]; then
-                echo -e "${red}Failed to copy x-ui.service${plain}"
-                exit 1
-            fi
-        else
-            service_installed=false
-            case "${release}" in
-                ubuntu | debian | armbian)
-                    if [ -f "x-ui.service.debian" ]; then
-                        echo -e "${green}Installing debian-like systemd unit...${plain}"
-                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                ;;
-                arch | manjaro | parch)
-                    if [ -f "x-ui.service.arch" ]; then
-                        echo -e "${green}Installing arch-like systemd unit...${plain}"
-                        cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                ;;
-                *)
-                    if [ -f "x-ui.service.rhel" ]; then
-                        echo -e "${green}Installing rhel-like systemd unit...${plain}"
-                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
-                        if [[ $? -eq 0 ]]; then
-                            service_installed=true
-                        fi
-                    fi
-                ;;
-            esac
-            
-            # If service file not found in tar.gz, download from GitHub
-            if [ "$service_installed" = false ]; then
-                echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
-                case "${release}" in
-                    ubuntu | debian | armbian)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
-                    ;;
-                    arch | manjaro | parch)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
-                    ;;
-                    *)
-                        ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
-                    ;;
-                esac
-                
-                if [[ $? -ne 0 ]]; then
-                    echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
-                    exit 1
-                fi
-            fi
+        echo -e "${green}Downloading and installing startup service x-ui...${plain}"
+        case "${release}" in
+            ubuntu | debian | armbian)
+                ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+            ;;
+            arch | manjaro | parch)
+                ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
+            ;;
+            *)
+                ${curl_bin} -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
+            ;;
+        esac
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+            _fail "ERROR: Failed to download startup service file, please be sure that your server can access GitHub"
+
+            exit 1
         fi
         chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
         chmod 644 ${xui_service}/x-ui.service >/dev/null 2>&1
         systemctl daemon-reload >/dev/null 2>&1
         systemctl enable x-ui >/dev/null 2>&1
         systemctl start x-ui >/dev/null 2>&1
+
+        echo -e "${green}Downloading and installing geo files update timer...${plain}"
+        curl -4fLRo ${xui_service}/x-ui-updategeo.timer https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui-updategeo.timer >/dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            _fail "ERROR: Failed to install x-ui-updategeo.timer from GitHub"
+            exit 1
+        fi
+        curl -4fLRo ${xui_service}/x-ui-updategeo.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui-updategeo.service >/dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            _fail "ERROR: Failed to install x-ui-updategeo.service from GitHub"
+            exit 1
+        fi
+        chown root:root ${xui_service}/x-ui-updategeo.{timer,service} >/dev/null 2>&1
+        chmod 644 ${xui_service}/x-ui-updategeo.{timer,service} >/dev/null 2>&1
+        systemctl daemon-reload
+        echo -e "${green}Optional: you could enable the x-ui-updategeo.timer after installing, by running:${plain}"
+        echo -e "${green}          systemctl enable --now x-ui-updategeo.timer${plain}"
     fi
-    
+
     config_after_update
-    
+
     echo -e "${green}x-ui ${tag_version}${plain} updating finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
