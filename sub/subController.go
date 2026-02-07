@@ -182,10 +182,24 @@ func (a *SUBController) ApplyCommonHeaders(
 ) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
-	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
-	c.Writer.Header().Set("Support-Url", profileSupportUrl)
-	c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
-	c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
+
+	//Basics
+	if profileTitle != "" {
+		c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
+	}
+	if profileSupportUrl != "" {
+		c.Writer.Header().Set("Support-Url", profileSupportUrl)
+	}
+	if profileUrl != "" {
+		c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
+	}
+	if profileAnnounce != "" {
+		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
+	}
+
+	//Advanced (Happ)
 	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
-	c.Writer.Header().Set("Routing", profileRoutingRules)
+	if profileRoutingRules != "" {
+		c.Writer.Header().Set("Routing", profileRoutingRules)
+	}
 }
