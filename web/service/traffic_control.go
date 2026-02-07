@@ -97,14 +97,14 @@ func tcShowQdisc(dev string) string {
 func shouldTakeOverRootQdisc(existing string) bool {
 	// We only takeover if the current root qdisc looks like the default (handle 0:).
 	// This avoids clobbering user-managed traffic control on the host.
-	// In containers, the default is typically: "qdisc noqueue 0: root ...".
+	// In containers, the default is typically: "qdisc noqueue 0: root ..." or "qdisc mq 0: root".
 	lines := strings.Split(existing, "\n")
 	for _, ln := range lines {
 		ln = strings.TrimSpace(ln)
 		if ln == "" {
 			continue
 		}
-		if strings.Contains(ln, " root ") {
+		if strings.Contains(ln, " root") {
 			return strings.Contains(ln, " 0: root")
 		}
 	}
