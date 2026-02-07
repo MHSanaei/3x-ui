@@ -181,11 +181,13 @@
   ];
 
   const outboundColumns = [
-    { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+    { title: "#", align: 'center', width: 60, scopedSlots: { customRender: 'action' } },
     { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
     { title: '{{ i18n "protocol"}}', align: 'center', width: 50, scopedSlots: { customRender: 'protocol' } },
     { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'center', width: 50, scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.xray.outbound.testResult" }}', align: 'center', width: 120, scopedSlots: { customRender: 'testResult' } },
+    { title: '{{ i18n "pages.xray.outbound.test" }}', align: 'center', width: 60, scopedSlots: { customRender: 'test' } },
   ];
 
   const reverseColumns = [
@@ -228,8 +230,11 @@
       },
       oldXraySetting: '',
       xraySetting: '',
+      outboundTestUrl: 'http://www.google.com/gen_204',
+      oldOutboundTestUrl: 'http://www.google.com/gen_204',
       inboundTags: [],
       outboundsTraffic: [],
+      outboundTestStates: {}, // Track testing state and results for each outbound
       saveBtnDisable: true,
       refreshing: false,
       restartResult: '',
@@ -375,12 +380,17 @@
           this.oldXraySetting = xs;
           this.xraySetting = xs;
           this.inboundTags = result.inboundTags;
+          this.outboundTestUrl = result.outboundTestUrl || 'http://www.google.com/gen_204';
+          this.oldOutboundTestUrl = this.outboundTestUrl;
           this.saveBtnDisable = true;
         }
       },
       async updateXraySetting() {
         this.loading(true);
-        const msg = await HttpUtil.post("/panel/xray/update", { xraySetting: this.xraySetting });
+        const msg = await HttpUtil.post("/panel/xray/update", {
+          xraySetting: this.xraySetting,
+          outboundTestUrl: this.outboundTestUrl || 'http://www.google.com/gen_204'
+        });
         this.loading(false);
         if (msg.success) {
           await this.getXraySetting();
@@ -594,6 +604,68 @@
         outbounds = this.templateSettings.outbounds;
         outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
         this.outboundSettings = JSON.stringify(outbounds);
+      },
+      async testOutbound(index) {
+        const outbound = this.templateSettings.outbounds[index];
+        if (!outbound) {
+          Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}');
+          return;
+        }
+
+        // Initialize test state for this outbound if not exists
+        if (!this.outboundTestStates[index]) {
+          this.$set(this.outboundTestStates, index, {
+            testing: false,
+            result: null
+          });
+        }
+
+        // Set testing state
+        this.$set(this.outboundTestStates[index], 'testing', true);
+        this.$set(this.outboundTestStates[index], 'result', null);
+
+        try {
+          const outboundJSON = JSON.stringify(outbound);
+          const testURL = this.outboundTestUrl || 'http://www.google.com/gen_204';
+          const allOutboundsJSON = JSON.stringify(this.templateSettings.outbounds || []);
+          
+          const msg = await HttpUtil.post("/panel/xray/testOutbound", {
+            outbound: outboundJSON,
+            testURL: testURL,
+            allOutbounds: allOutboundsJSON
+          });
+
+          // Update test state
+          this.$set(this.outboundTestStates[index], 'testing', false);
+
+          if (msg.success && msg.obj) {
+            const result = msg.obj;
+            this.$set(this.outboundTestStates[index], 'result', result);
+            
+            if (result.success) {
+              Vue.prototype.$message.success(
+                `{{ i18n "pages.xray.outbound.testSuccess" }}: ${result.delay}ms (HTTP ${result.statusCode})`
+              );
+            } else {
+              Vue.prototype.$message.error(
+                `{{ i18n "pages.xray.outbound.testFailed" }}: ${result.error || 'Unknown error'}`
+              );
+            }
+          } else {
+            this.$set(this.outboundTestStates[index], 'result', {
+              success: false,
+              error: msg.msg || '{{ i18n "pages.xray.outbound.testError" }}'
+            });
+            Vue.prototype.$message.error(msg.msg || '{{ i18n "pages.xray.outbound.testError" }}');
+          }
+        } catch (error) {
+          this.$set(this.outboundTestStates[index], 'testing', false);
+          this.$set(this.outboundTestStates[index], 'result', {
+            success: false,
+            error: error.message || '{{ i18n "pages.xray.outbound.testError" }}'
+          });
+          Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}: ' + error.message);
+        }
       },
       addReverse() {
         reverseModal.show({
@@ -981,7 +1053,7 @@
 
       while (true) {
         await PromiseUtil.sleep(800);
-        this.saveBtnDisable = this.oldXraySetting === this.xraySetting;
+        this.saveBtnDisable = this.oldXraySetting === this.xraySetting && this.oldOutboundTestUrl === this.outboundTestUrl;
       }
     },
     computed: {
