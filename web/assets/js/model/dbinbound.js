@@ -21,10 +21,19 @@ class DBInbound {
         this.tag = "";
         this.sniffing = "";
         this.clientStats = ""
+
+        // Inbound port speed limit (tc). Unit: KB/s. 0 = unlimited.
+        this.speedLimit = 0;
+        this.speedLimitType = "all"; // all/up/down
         if (data == null) {
             return;
         }
         ObjectUtil.cloneProps(this, data);
+        // Backward compatibility: tolerate missing/empty values from older DB rows.
+        this.speedLimit = Number(this.speedLimit) || 0;
+        if (!this.speedLimitType) {
+            this.speedLimitType = "all";
+        }
     }
 
     get totalGB() {

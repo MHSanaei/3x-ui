@@ -90,7 +90,8 @@ func html(c *gin.Context, name string, title string, data gin.H) {
 // getContext adds version and other context data to the provided gin.H.
 func getContext(h gin.H) gin.H {
 	a := gin.H{
-		"cur_ver":  config.GetVersion(),
+		"cur_ver":   config.GetVersion(),
+		"asset_ver": config.GetAssetVersion(),
 		"site_name": config.GetSiteName(),
 	}
 	for key, value := range h {

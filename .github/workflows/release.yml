@@ -89,7 +89,7 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.1.31/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v26.2.2/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget -q ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -173,21 +173,42 @@ jobs:
           go-version-file: go.mod
           check-latest: true
 
-      - name: Build 3X-UI for Windows
+      - name: Install MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-sqlite3
+            mingw-w64-x86_64-pkg-config
+
+      - name: Build 3X-UI for Windows (CGO)
+        shell: msys2 {0}
+        run: |
+          export PATH="/c/hostedtoolcache/windows/go/$(ls /c/hostedtoolcache/windows/go | sort -V | tail -n1)/x64/bin:$PATH"
+
+          export CGO_ENABLED=1
+          export GOOS=windows
+          export GOARCH=amd64
+          export CC=x86_64-w64-mingw32-gcc
+
+          which go
+          go version
+          gcc --version
+
+          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+
+      - name: Copy and download resources
         shell: pwsh
         run: |
-          $env:CGO_ENABLED="1"
-          $env:GOOS="windows"
-          $env:GOARCH="amd64"
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
-          
           mkdir x-ui
-          Copy-Item xui-release.exe x-ui\
+          Copy-Item xui-release.exe x-ui\x-ui.exe
           mkdir x-ui\bin
           cd x-ui\bin
           
           # Download Xray for Windows
-          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.1.31/"
+          $Xray_URL = "https://github.com/XTLS/Xray-core/releases/download/v26.2.2/"
           Invoke-WebRequest -Uri "${Xray_URL}Xray-windows-64.zip" -OutFile "Xray-windows-64.zip"
           Expand-Archive -Path "Xray-windows-64.zip" -DestinationPath .
           Remove-Item "Xray-windows-64.zip"

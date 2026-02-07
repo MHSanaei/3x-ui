@@ -203,6 +203,11 @@
 "monitorDesc" = "Dejar en blanco por defecto"
 "meansNoLimit" = "= illimitata. (unidad: GB)"
 "totalFlow" = "Flujo Total"
+"speedLimit" = "Inbound Speed Limit"
+"speedLimitDesc" = "Limit inbound bandwidth by port (tc). 0 = Unlimited (Unit: KB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 "leaveBlankToNeverExpire" = "Dejar en Blanco para Nunca Expirar"
 "noRecommendKeepDefault" = "No hay requisitos especiales para mantener la configuración predeterminada"
 "certificatePath" = "Ruta Cert"
@@ -265,6 +270,11 @@
 "days" = "Día(s)"
 "renew" = "Renovación automática"
 "renewDesc" = "Renovación automática después de la expiración. (0 = desactivar) (unidad: día)"
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Limit client speed. 0 = Unlimited (Unit: KB/s or MB/s)"
+"speedLimitAll" = "All"
+"speedLimitUp" = "Upload"
+"speedLimitDown" = "Download"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "Nunca"

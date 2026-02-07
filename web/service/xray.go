@@ -109,6 +109,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, inbound := range inbounds {
 		if !inbound.Enable {
 			continue
@@ -143,8 +144,9 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 						continue
 					}
 				}
+
 				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" {
+					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "level" {
 						delete(c, key)
 					}
 					if c["flow"] == "xtls-rprx-vision-udp443" {
@@ -191,6 +193,7 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		inboundConfig := inbound.GenXrayInboundConfig()
 		xrayConfig.InboundConfigs = append(xrayConfig.InboundConfigs, *inboundConfig)
 	}
+
 	return xrayConfig, nil
 }
 
@@ -239,6 +242,10 @@ func (s *XrayService) RestartXray(isForce bool) error {
 	if err != nil {
 		return err
 	}
+
+	// Apply inbound-level speed limits (tc) after Xray starts, so traffic control is present on boot/restart.
+	// This is independent from Xray config and does not require Xray API.
+	s.ApplyInboundPortSpeedLimits()
 
 	return nil
 }

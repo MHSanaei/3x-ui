@@ -596,8 +596,6 @@ class TlsStreamSettings extends XrayCommonClass {
         maxVersion = TLS_VERSION_OPTION.TLS13,
         cipherSuites = '',
         rejectUnknownSni = false,
-        verifyPeerCertByNames = ['dns.google', 'cloudflare-dns.com'],
-        pinnedPeerCertSha256 = [],
         disableSystemRoot = false,
         enableSessionResumption = false,
         certificates = [new TlsStreamSettings.Cert()],
@@ -612,8 +610,6 @@ class TlsStreamSettings extends XrayCommonClass {
         this.maxVersion = maxVersion;
         this.cipherSuites = cipherSuites;
         this.rejectUnknownSni = rejectUnknownSni;
-        this.verifyPeerCertByNames = Array.isArray(verifyPeerCertByNames) ? verifyPeerCertByNames.join(",") : verifyPeerCertByNames;
-        this.pinnedPeerCertSha256 = pinnedPeerCertSha256;
         this.disableSystemRoot = disableSystemRoot;
         this.enableSessionResumption = enableSessionResumption;
         this.certs = certificates;
@@ -647,8 +643,6 @@ class TlsStreamSettings extends XrayCommonClass {
             json.maxVersion,
             json.cipherSuites,
             json.rejectUnknownSni,
-            json.verifyPeerCertByNames || json.verifyPeerCertInNames,
-            json.pinnedPeerCertSha256 || [],
             json.disableSystemRoot,
             json.enableSessionResumption,
             certs,
@@ -666,8 +660,6 @@ class TlsStreamSettings extends XrayCommonClass {
             maxVersion: this.maxVersion,
             cipherSuites: this.cipherSuites,
             rejectUnknownSni: this.rejectUnknownSni,
-            verifyPeerCertByNames: this.verifyPeerCertByNames.split(","),
-            pinnedPeerCertSha256: this.pinnedPeerCertSha256.length > 0 ? this.pinnedPeerCertSha256 : undefined,
             disableSystemRoot: this.disableSystemRoot,
             enableSessionResumption: this.enableSessionResumption,
             certificates: TlsStreamSettings.toJsonArray(this.certs),
@@ -975,7 +967,7 @@ class SockoptStreamSettings extends XrayCommonClass {
     }
 }
 
-class FinalMask extends XrayCommonClass {
+class UdpMask extends XrayCommonClass {
     constructor(type = 'salamander', settings = {}) {
         super();
         this.type = type;
@@ -990,6 +982,8 @@ class FinalMask extends XrayCommonClass {
             case 'header-dns':
             case 'xdns':
                 return { domain: settings.domain || '' };
+            case 'xicmp':
+                return { ip: settings.ip || '', id: settings.id ?? 0 };
             case 'mkcp-original':
             case 'header-dtls':
             case 'header-srtp':
@@ -1003,20 +997,35 @@ class FinalMask extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        return new FinalMask(
+        return new UdpMask(
             json.type || 'salamander',
             json.settings || {}
         );
     }
 
     toJson() {
-        const result = {
-            type: this.type
+        return {
+            type: this.type,
+            settings: (this.settings && Object.keys(this.settings).length > 0) ? this.settings : undefined
         };
-        if (this.settings && Object.keys(this.settings).length > 0) {
-            result.settings = this.settings;
-        }
-        return result;
+    }
+}
+
+class FinalMaskStreamSettings extends XrayCommonClass {
+    constructor(udp = []) {
+        super();
+        this.udp = Array.isArray(udp) ? udp.map(u => new UdpMask(u.type, u.settings)) : [new UdpMask(udp.type, udp.settings)];
+    }
+
+    static fromJson(json = {}) {
+        return new FinalMaskStreamSettings(json.udp || []);
+    }
+
+    toJson() {
+        return {
+            udp: this.udp.map(udp => udp.toJson())
+        };
+
     }
 }
 
@@ -1032,7 +1041,7 @@ class StreamSettings extends XrayCommonClass {
         grpcSettings = new GrpcStreamSettings(),
         httpupgradeSettings = new HTTPUpgradeStreamSettings(),
         xhttpSettings = new xHTTPStreamSettings(),
-        finalmask = { udp: [] },
+        finalmask = new FinalMaskStreamSettings(),
         sockopt = undefined,
     ) {
         super();
@@ -1052,16 +1061,17 @@ class StreamSettings extends XrayCommonClass {
     }
 
     addUdpMask(type = 'salamander') {
-        if (!this.finalmask.udp) {
-            this.finalmask.udp = [];
-        }
-        this.finalmask.udp.push(new FinalMask(type));
+        this.finalmask.udp.push(new UdpMask(type));
     }
 
     delUdpMask(index) {
         if (this.finalmask.udp) {
             this.finalmask.udp.splice(index, 1);
         }
+    }
+
+    get hasFinalMask() {
+        return this.finalmask.udp && this.finalmask.udp.length > 0;
     }
 
     get isTls() {
@@ -1098,14 +1108,6 @@ class StreamSettings extends XrayCommonClass {
     }
 
     static fromJson(json = {}) {
-        let finalmask = { udp: [] };
-        if (json.finalmask) {
-            if (Array.isArray(json.finalmask)) {
-                finalmask.udp = json.finalmask.map(mask => FinalMask.fromJson(mask));
-            } else if (json.finalmask.udp) {
-                finalmask.udp = json.finalmask.udp.map(mask => FinalMask.fromJson(mask));
-            }
-        }
         return new StreamSettings(
             json.network,
             json.security,
@@ -1118,7 +1120,7 @@ class StreamSettings extends XrayCommonClass {
             GrpcStreamSettings.fromJson(json.grpcSettings),
             HTTPUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
             xHTTPStreamSettings.fromJson(json.xhttpSettings),
-            finalmask,
+            FinalMaskStreamSettings.fromJson(json.finalmask),
             SockoptStreamSettings.fromJson(json.sockopt),
         );
     }
@@ -1137,9 +1139,7 @@ class StreamSettings extends XrayCommonClass {
             grpcSettings: network === 'grpc' ? this.grpc.toJson() : undefined,
             httpupgradeSettings: network === 'httpupgrade' ? this.httpupgrade.toJson() : undefined,
             xhttpSettings: network === 'xhttp' ? this.xhttp.toJson() : undefined,
-            finalmask: (this.finalmask.udp && this.finalmask.udp.length > 0) ? {
-                udp: this.finalmask.udp.map(mask => mask.toJson())
-            } : undefined,
+            finalmask: this.hasFinalMask ? this.finalmask.toJson() : undefined,
             sockopt: this.sockopt != undefined ? this.sockopt.toJson() : undefined,
         };
     }
@@ -1310,14 +1310,6 @@ class Inbound extends XrayCommonClass {
         return null;
     }
 
-    get kcpType() {
-        return this.stream.kcp.type;
-    }
-
-    get kcpSeed() {
-        return this.stream.kcp.seed;
-    }
-
     get serviceName() {
         return this.stream.grpc.serviceName;
     }
@@ -1394,8 +1386,6 @@ class Inbound extends XrayCommonClass {
             }
         } else if (network === 'kcp') {
             const kcp = this.stream.kcp;
-            obj.type = kcp.type;
-            obj.path = kcp.seed;
         } else if (network === 'ws') {
             const ws = this.stream.ws;
             obj.path = ws.path;
@@ -1458,8 +1448,6 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
-                params.set("headerType", kcp.type);
-                params.set("seed", kcp.seed);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1563,8 +1551,6 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
-                params.set("headerType", kcp.type);
-                params.set("seed", kcp.seed);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1644,8 +1630,6 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
-                params.set("headerType", kcp.type);
-                params.set("seed", kcp.seed);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1911,7 +1895,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.VmessSettings(
             Protocols.VMESS,
-            json.clients.map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
+            (json.clients || []).map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
     }
 
@@ -1936,7 +1920,9 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined
+        updated_at = undefined,
+        speedLimit = 0,
+        speedLimitType = 'all'
     ) {
         super();
         this.id = id;
@@ -1952,6 +1938,9 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        // Backward compatibility: tolerate missing value and stringified numbers.
+        this.speedLimit = Number(speedLimit) || 0;
+        this.speedLimitType = speedLimitType || 'all';
     }
 
     static fromJson(json = {}) {
@@ -1969,6 +1958,8 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.speedLimit ?? json.speed_limit,
+            json.speedLimitType ?? json.speed_limit_type,
         );
     }
     get _expiryTime() {
@@ -2091,7 +2082,9 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined
+        updated_at = undefined,
+        speedLimit = 0,
+        speedLimitType = 'all'
     ) {
         super();
         this.id = id;
@@ -2107,6 +2100,9 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        // Backward compatibility: tolerate missing value and stringified numbers.
+        this.speedLimit = Number(speedLimit) || 0;
+        this.speedLimitType = speedLimitType || 'all';
     }
 
     static fromJson(json = {}) {
@@ -2124,6 +2120,8 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.speedLimit ?? json.speed_limit,
+            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 
@@ -2211,7 +2209,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
-            json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
+            (json.clients || []).map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
             Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
     }
 
@@ -2236,7 +2234,9 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined
+        updated_at = undefined,
+        speedLimit = 0,
+        speedLimitType = 'all'
     ) {
         super();
         this.password = password;
@@ -2251,6 +2251,9 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        // Backward compatibility: tolerate missing value and stringified numbers.
+        this.speedLimit = Number(speedLimit) || 0;
+        this.speedLimitType = speedLimitType || 'all';
     }
 
     toJson() {
@@ -2267,6 +2270,8 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             reset: this.reset,
             created_at: this.created_at,
             updated_at: this.updated_at,
+            speedLimit: this.speedLimit,
+            speedLimitType: this.speedLimitType,
         };
     }
 
@@ -2284,6 +2289,8 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.speedLimit ?? json.speed_limit,
+            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 
@@ -2375,7 +2382,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.method,
             json.password,
             json.network,
-            json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            (json.clients || []).map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
             json.ivCheck,
         );
     }
@@ -2405,7 +2412,9 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined
+        updated_at = undefined,
+        speedLimit = 0,
+        speedLimitType = 'all'
     ) {
         super();
         this.method = method;
@@ -2421,6 +2430,9 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        // Backward compatibility: tolerate missing value and stringified numbers.
+        this.speedLimit = Number(speedLimit) || 0;
+        this.speedLimitType = speedLimitType || 'all';
     }
 
     toJson() {
@@ -2438,6 +2450,8 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             reset: this.reset,
             created_at: this.created_at,
             updated_at: this.updated_at,
+            speedLimit: this.speedLimit,
+            speedLimitType: this.speedLimitType,
         };
     }
 
@@ -2456,6 +2470,8 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.speedLimit ?? json.speed_limit,
+            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 

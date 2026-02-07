@@ -70,15 +70,6 @@
     <a-form-item label="Session Resumption">
       <a-switch v-model="inbound.stream.tls.enableSessionResumption"></a-switch>
     </a-form-item>
-    <a-form-item label="verifyPeerCertByNames">
-      <a-input v-model.trim="inbound.stream.tls.verifyPeerCertByNames"></a-input>
-    </a-form-item>
-    <a-form-item label="pinned Peer Cert Sha256">
-      <a-select mode="tags" v-model="inbound.stream.tls.pinnedPeerCertSha256"
-        :dropdown-class-name="themeSwitcher.currentTheme"
-        placeholder="Enter SHA256 fingerprints (base64)">
-      </a-select>
-    </a-form-item>
     <a-divider :style="{ margin: '3px 0' }"></a-divider>
     <template v-for="cert,index in inbound.stream.tls.certs">
       <a-form-item label='{{ i18n "certificate" }}'>

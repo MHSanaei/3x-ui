@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 //go:embed version
@@ -33,6 +34,14 @@ const (
 // GetVersion returns the version string of the 3x-ui application.
 func GetVersion() string {
 	return strings.TrimSpace(version)
+}
+
+// AssetVersion is used to bust browser cache for static assets. It stays stable for the process lifetime.
+var assetVersion = fmt.Sprintf("%s-%d", GetVersion(), time.Now().Unix())
+
+// GetAssetVersion returns a cache-busting version string for static assets.
+func GetAssetVersion() string {
+	return assetVersion
 }
 
 // GetName returns the name of the 3x-ui application.

@@ -53,6 +53,11 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+
+	// Inbound port speed limit (implemented via OS traffic control, e.g. tc).
+	// Unit: KB/s. 0 means unlimited.
+	SpeedLimit     int    `json:"speedLimit" form:"speedLimit" gorm:"default:0"`
+	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType" gorm:"default:all"` // "all", "up", "down"
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -106,19 +111,21 @@ type Setting struct {
 
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
-	ID         string `json:"id"`                           // Unique client identifier
-	Security   string `json:"security"`                     // Security method (e.g., "auto", "aes-128-gcm")
-	Password   string `json:"password"`                     // Client password
-	Flow       string `json:"flow"`                         // Flow control (XTLS)
-	Email      string `json:"email"`                        // Client email identifier
-	LimitIP    int    `json:"limitIp"`                      // IP limit for this client
-	TotalGB    int64  `json:"totalGB" form:"totalGB"`       // Total traffic limit in GB
-	ExpiryTime int64  `json:"expiryTime" form:"expiryTime"` // Expiration timestamp
-	Enable     bool   `json:"enable" form:"enable"`         // Whether the client is enabled
-	TgID       int64  `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
-	SubID      string `json:"subId" form:"subId"`           // Subscription identifier
-	Comment    string `json:"comment" form:"comment"`       // Client comment
-	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
-	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
-	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
+	ID             string `json:"id"`                                   // Unique client identifier
+	Security       string `json:"security"`                             // Security method (e.g., "auto", "aes-128-gcm")
+	Password       string `json:"password"`                             // Client password
+	Flow           string `json:"flow"`                                 // Flow control (XTLS)
+	Email          string `json:"email"`                                // Client email identifier
+	LimitIP        int    `json:"limitIp"`                              // IP limit for this client
+	TotalGB        int64  `json:"totalGB" form:"totalGB"`               // Total traffic limit in GB
+	ExpiryTime     int64  `json:"expiryTime" form:"expiryTime"`         // Expiration timestamp
+	Enable         bool   `json:"enable" form:"enable"`                 // Whether the client is enabled
+	TgID           int64  `json:"tgId" form:"tgId"`                     // Telegram user ID for notifications
+	SubID          string `json:"subId" form:"subId"`                   // Subscription identifier
+	Comment        string `json:"comment" form:"comment"`               // Client comment
+	Reset          int    `json:"reset" form:"reset"`                   // Reset period in days
+	CreatedAt      int64  `json:"created_at,omitempty"`                 // Creation timestamp
+	UpdatedAt      int64  `json:"updated_at,omitempty"`                 // Last update timestamp
+	SpeedLimit     int    `json:"speedLimit" form:"speedLimit"`         // Speed limit in KB/s (0 = unlimited)
+	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType"` // "all", "up", "down"
 }

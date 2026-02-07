@@ -203,6 +203,11 @@
 "monitorDesc" = "留空表示監聽所有 IP"
 "meansNoLimit" = "= 無限制（單位：GB)"
 "totalFlow" = "總流量"
+"speedLimit" = "入站限速"
+"speedLimitDesc" = "按入站連接埠限速（tc）。0 = 不限速（單位：KB/s）"
+"speedLimitAll" = "全部"
+"speedLimitUp" = "上傳"
+"speedLimitDown" = "下載"
 "leaveBlankToNeverExpire" = "留空表示永不過期"
 "noRecommendKeepDefault" = "建議保留預設值"
 "certificatePath" = "檔案路徑"
@@ -265,6 +270,11 @@
 "days" = "天"
 "renew" = "自動續訂"
 "renewDesc" = "到期後自動續訂。(0 = 禁用)(單位: 天)"
+"speedLimit" = "網速限制"
+"speedLimitDesc" = "限制客戶端的網速。0 = 不限速（單位：KB/s 或 MB/s）"
+"speedLimitAll" = "全部"
+"speedLimitUp" = "上傳"
+"speedLimitDown" = "下載"
 
 [pages.inbounds.periodicTrafficReset]
 "never" = "從不"
