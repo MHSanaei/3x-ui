@@ -3,7 +3,6 @@ package job
 import (
 	"bufio"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"os"
@@ -388,7 +387,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 // disconnectClientTemporarily removes and re-adds a client to force disconnect old connections
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
-	
+
 	// Get panel settings for API port
 	db := database.GetDB()
 	var apiPort int
@@ -396,7 +395,7 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	if err := db.Where("key = ?", "xrayApiPort").First(&apiPortSetting).Error; err == nil {
 		apiPort, _ = strconv.Atoi(apiPortSetting.Value)
 	}
-	
+
 	if apiPort == 0 {
 		apiPort = 10085 // Default API port
 	}
