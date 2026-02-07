@@ -382,8 +382,8 @@ func applyInboundPortSpeedLimitWithTC(inbounds []*model.Inbound) error {
 // ApplyInboundPortSpeedLimits applies inbound-level speed limits (by port) using OS traffic control (tc).
 // This replaces the previous per-client policy bufferSize approach, which is not a real bandwidth limiter.
 func (s *XrayService) ApplyInboundPortSpeedLimits() {
-	if s == nil || s.inboundService == nil {
-		logger.Warning("Apply inbound speed limit: XrayService or inboundService is nil")
+	if s == nil {
+		logger.Warning("Apply inbound speed limit: XrayService is nil")
 		return
 	}
 	inbounds, err := s.inboundService.GetAllInbounds()
