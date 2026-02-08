@@ -3,7 +3,6 @@ package service
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"os/exec"
 	"sort"
 	"strconv"
@@ -14,10 +13,8 @@ import (
 )
 
 const (
-	// Traffic control constants for bandwidth calculation
-	BytesPerKiB = 1024 // Bytes per KibiByte
-	BitsPerByte = 8    // Bits per Byte
-	BitsPerKbit = 1000 // Bits per Kilobit (using decimal, not binary)
+	// Traffic control: 1 Mbps = 1000 kbit/s
+	KbitPerMbps = 1000
 )
 
 // isValidDeviceName validates network device names to prevent command injection.
@@ -36,7 +33,7 @@ func isValidDeviceName(dev string) bool {
 
 type inboundPortLimit struct {
 	port int
-	kbps int // KB/s, 0 means unlimited
+	mbps int // Mbps, 0 means unlimited
 	typ  string
 }
 
@@ -112,16 +109,11 @@ func shouldTakeOverRootQdisc(existing string) bool {
 	return false
 }
 
-func kbpsToKbit(kbps int) int {
-	if kbps <= 0 {
+func mbpsToKbit(mbps int) int {
+	if mbps <= 0 {
 		return 0
 	}
-	// KB/s -> bits/s (using KiB: BytesPerKiB bytes) -> kbit/s (BitsPerKbit bits).
-	kbit := int(math.Ceil(float64(kbps) * float64(BytesPerKiB) * float64(BitsPerByte) / float64(BitsPerKbit)))
-	if kbit < 1 {
-		kbit = 1
-	}
-	return kbit
+	return mbps * KbitPerMbps
 }
 
 func formatPortLimits(m map[int]int) string {
@@ -135,7 +127,7 @@ func formatPortLimits(m map[int]int) string {
 	sort.Ints(ports)
 	parts := make([]string, 0, len(ports))
 	for _, p := range ports {
-		parts = append(parts, fmt.Sprintf("%d=%dKB/s", p, m[p]))
+		parts = append(parts, fmt.Sprintf("%d=%dMbps", p, m[p]))
 	}
 	return "[" + strings.Join(parts, ", ") + "]"
 }
@@ -168,8 +160,8 @@ func applyHTBEgressLimit(dev string, limits map[int]int) error {
 
 	minor := 10
 	for _, port := range ports {
-		kbps := limits[port]
-		kbit := kbpsToKbit(kbps)
+		mbps := limits[port]
+		kbit := mbpsToKbit(mbps)
 		classid := fmt.Sprintf("1:%d", minor)
 		rate := fmt.Sprintf("%dkbit", kbit)
 		minor++
@@ -248,8 +240,8 @@ func applyHTBIngressLimit(dev string, ifb string, limits map[int]int) error {
 
 	minor := 10
 	for _, port := range ports {
-		kbps := limits[port]
-		kbit := kbpsToKbit(kbps)
+		mbps := limits[port]
+		kbit := mbpsToKbit(mbps)
 		classid := fmt.Sprintf("1:%d", minor)
 		rate := fmt.Sprintf("%dkbit", kbit)
 		minor++
@@ -288,7 +280,7 @@ func applyIngressPolice(dev string, limits map[int]int) error {
 	sort.Ints(ports)
 
 	for _, port := range ports {
-		kbit := kbpsToKbit(limits[port])
+		kbit := mbpsToKbit(limits[port])
 		rate := fmt.Sprintf("%dkbit", kbit)
 		burst := "32k"
 
@@ -315,7 +307,7 @@ func applyInboundPortSpeedLimitWithTC(inbounds []*model.Inbound) error {
 		return nil
 	}
 
-	down := map[int]int{} // port -> KB/s
+	down := map[int]int{} // port -> Mbps
 	up := map[int]int{}
 
 	for _, inbound := range inbounds {

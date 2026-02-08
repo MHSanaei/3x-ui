@@ -55,7 +55,7 @@ type Inbound struct {
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
 
 	// Inbound port speed limit (implemented via OS traffic control, e.g. tc).
-	// Unit: KB/s. 0 means unlimited.
+	// Unit: Mbps. 0 means unlimited.
 	SpeedLimit     int    `json:"speedLimit" form:"speedLimit" gorm:"default:0"`
 	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType" gorm:"default:all"` // "all", "up", "down"
 }
@@ -126,6 +126,6 @@ type Client struct {
 	Reset          int    `json:"reset" form:"reset"`                   // Reset period in days
 	CreatedAt      int64  `json:"created_at,omitempty"`                 // Creation timestamp
 	UpdatedAt      int64  `json:"updated_at,omitempty"`                 // Last update timestamp
-	SpeedLimit     int    `json:"speedLimit" form:"speedLimit"`         // Speed limit in KB/s (0 = unlimited)
+	SpeedLimit     int    `json:"speedLimit" form:"speedLimit"`         // Speed limit in Mbps (0 = unlimited)
 	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType"` // "all", "up", "down"
 }
