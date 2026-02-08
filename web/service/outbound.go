@@ -238,8 +238,24 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []in
 		Settings: json_util.RawMessage(`{"auth":"noauth","udp":true}`),
 	}
 
-	// Outbounds: copy all as-is, no tag or structure changes
-	outboundsJSON, _ := json.Marshal(allOutbounds)
+	// Outbounds: copy all, but set noKernelTun=true for WireGuard outbounds
+	processedOutbounds := make([]interface{}, len(allOutbounds))
+	for i, ob := range allOutbounds {
+		outbound := ob.(map[string]interface{})
+		if protocol, ok := outbound["protocol"].(string); ok && protocol == "wireguard" {
+			// Set noKernelTun to true for WireGuard outbounds
+			if settings, ok := outbound["settings"].(map[string]interface{}); ok {
+				settings["noKernelTun"] = true
+			} else {
+				// Create settings if it doesn't exist
+				outbound["settings"] = map[string]interface{}{
+					"noKernelTun": true,
+				}
+			}
+		}
+		processedOutbounds[i] = outbound
+	}
+	outboundsJSON, _ := json.Marshal(processedOutbounds)
 
 	// Create routing rule to route all traffic through test outbound
 	routingRules := []map[string]interface{}{
