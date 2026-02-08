@@ -427,6 +427,8 @@
 "information" = "Информация"
 "language" = "Язык интерфейса"
 "telegramBotLanguage" = "Язык Telegram-бота"
+"outboundTestURL" = "URL для тестирования исходящего подключения"
+"outboundTestURLDesc" = "URL, используемый для тестирования исходящего подключения"
 
 [pages.xray]
 "title" = "Настройки Xray"
@@ -460,6 +462,8 @@
 "FreedomStrategyDesc" = "Установка стратегии вывода сети в протоколе Freedom"
 "RoutingStrategy" = "Настройка маршрутизации доменов"
 "RoutingStrategyDesc" = "Установка общей стратегии маршрутизации разрешения DNS"
+"outboundTestUrl" = "URL для теста исходящего"
+"outboundTestUrlDesc" = "URL для проверки подключения исходящего. По умолчанию: http://www.google.com/gen_204"
 "Torrent" = "Заблокировать BitTorrent"
 "Inbounds" = "Входящие подключения"
 "InboundsDesc" = "Изменение шаблона конфигурации для подключения определенных клиентов"

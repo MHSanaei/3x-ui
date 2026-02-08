@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Установити стратегію виведення для мережі в протоколі свободи."
 "RoutingStrategy" = "Загальна стратегія маршрутизації"
 "RoutingStrategyDesc" = "Установити загальну стратегію маршрутизації трафіку для вирішення всіх запитів."
+"outboundTestUrl" = "URL тесту outbound"
+"outboundTestUrlDesc" = "URL для перевірки з'єднання outbound"
 "Torrent" = "Блокувати протокол BitTorrent"
 "Inbounds" = "Вхідні"
 "InboundsDesc" = "Прийняття певних клієнтів."

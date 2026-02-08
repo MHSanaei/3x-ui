@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Freedomプロトコル内のネットワークの出力戦略を設定する"
 "RoutingStrategy" = "ルーティングドメイン戦略設定"
 "RoutingStrategyDesc" = "DNS解決の全体的なルーティング戦略を設定する"
+"outboundTestUrl" = "アウトバウンドテスト URL"
+"outboundTestUrlDesc" = "アウトバウンド接続テストに使用する URL。既定値"
 "Torrent" = "BitTorrent プロトコルをブロック"
 "Inbounds" = "インバウンドルール"
 "InboundsDesc" = "特定のクライアントからのトラフィックを受け入れる"

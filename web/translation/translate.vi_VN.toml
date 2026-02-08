@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Đặt chiến lược đầu ra của mạng trong Giao thức Freedom."
 "RoutingStrategy" = "Cấu hình Chiến lược Định tuyến Tên miền"
 "RoutingStrategyDesc" = "Đặt chiến lược định tuyến tổng thể cho việc giải quyết DNS."
+"outboundTestUrl" = "URL kiểm tra outbound"
+"outboundTestUrlDesc" = "URL dùng khi kiểm tra kết nối outbound"
 "Torrent" = "Cấu hình sử dụng BitTorrent"
 "Inbounds" = "Đầu vào"
 "InboundsDesc" = "Thay đổi mẫu cấu hình để chấp nhận các máy khách cụ thể."

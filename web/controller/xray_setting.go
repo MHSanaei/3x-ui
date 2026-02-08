@@ -1,6 +1,9 @@
 package controller
 
 import (
+	"encoding/json"
+
+	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -34,9 +37,10 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/warp/:action", a.warp)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
+	g.POST("/testOutbound", a.testOutbound)
 }
 
-// getXraySetting retrieves the Xray configuration template and inbound tags.
+// getXraySetting retrieves the Xray configuration template, inbound tags, and outbound test URL.
 func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	xraySetting, err := a.SettingService.GetXrayConfigTemplate()
 	if err != nil {
@@ -48,15 +52,28 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
 		return
 	}
-	xrayResponse := "{ \"xraySetting\": " + xraySetting + ", \"inboundTags\": " + inboundTags + " }"
+	outboundTestUrl, _ := a.SettingService.GetXrayOutboundTestUrl()
+	if outboundTestUrl == "" {
+		outboundTestUrl = "http://www.google.com/gen_204"
+	}
+	urlJSON, _ := json.Marshal(outboundTestUrl)
+	xrayResponse := "{ \"xraySetting\": " + xraySetting + ", \"inboundTags\": " + inboundTags + ", \"outboundTestUrl\": " + string(urlJSON) + " }"
 	jsonObj(c, xrayResponse, nil)
 }
 
 // updateSetting updates the Xray configuration settings.
 func (a *XraySettingController) updateSetting(c *gin.Context) {
 	xraySetting := c.PostForm("xraySetting")
-	err := a.XraySettingService.SaveXraySetting(xraySetting)
-	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+	if err := a.XraySettingService.SaveXraySetting(xraySetting); err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), err)
+		return
+	}
+	outboundTestUrl := c.PostForm("outboundTestUrl")
+	if outboundTestUrl == "" {
+		outboundTestUrl = "http://www.google.com/gen_204"
+	}
+	_ = a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl)
+	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), nil)
 }
 
 // getDefaultXrayConfig retrieves the default Xray configuration.
@@ -117,4 +134,25 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 		return
 	}
 	jsonObj(c, "", nil)
+}
+
+// testOutbound tests an outbound configuration and returns the delay/response time.
+// Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
+func (a *XraySettingController) testOutbound(c *gin.Context) {
+	outboundJSON := c.PostForm("outbound")
+	testURL := c.PostForm("testURL")
+	allOutboundsJSON := c.PostForm("allOutbounds")
+
+	if outboundJSON == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("outbound parameter is required"))
+		return
+	}
+
+	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	jsonObj(c, result, nil)
 }

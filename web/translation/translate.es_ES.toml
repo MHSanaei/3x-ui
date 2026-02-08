@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Establece la estrategia de salida de la red en el Protocolo Freedom."
 "RoutingStrategy" = "Configurar Estrategia de Enrutamiento de Dominios"
 "RoutingStrategyDesc" = "Establece la estrategia general de enrutamiento para la resolución de DNS."
+"outboundTestUrl" = "URL de prueba de outbound"
+"outboundTestUrlDesc" = "URL usada al probar la conectividad del outbound"
 "Torrent" = "Prohibir Uso de BitTorrent"
 "Inbounds" = "Entrante"
 "InboundsDesc" = "Cambia la plantilla de configuración para aceptar clientes específicos."
