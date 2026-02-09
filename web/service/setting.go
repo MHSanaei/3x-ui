@@ -78,6 +78,8 @@ var defaultValueMap = map[string]string{
 	"warp":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
+	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
+
 	// LDAP defaults
 	"ldapEnable":            "false",
 	"ldapHost":              "",
@@ -99,7 +101,6 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
-	"xrayOutboundTestUrl":   "http://www.google.com/gen_204",
 }
 
 // SettingService provides business logic for application settings management.

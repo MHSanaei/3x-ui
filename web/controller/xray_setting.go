@@ -54,7 +54,7 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	}
 	outboundTestUrl, _ := a.SettingService.GetXrayOutboundTestUrl()
 	if outboundTestUrl == "" {
-		outboundTestUrl = "http://www.google.com/gen_204"
+		outboundTestUrl = "https://www.google.com/generate_204"
 	}
 	urlJSON, _ := json.Marshal(outboundTestUrl)
 	xrayResponse := "{ \"xraySetting\": " + xraySetting + ", \"inboundTags\": " + inboundTags + ", \"outboundTestUrl\": " + string(urlJSON) + " }"
@@ -70,7 +70,7 @@ func (a *XraySettingController) updateSetting(c *gin.Context) {
 	}
 	outboundTestUrl := c.PostForm("outboundTestUrl")
 	if outboundTestUrl == "" {
-		outboundTestUrl = "http://www.google.com/gen_204"
+		outboundTestUrl = "https://www.google.com/generate_204"
 	}
 	_ = a.SettingService.SetXrayOutboundTestUrl(outboundTestUrl)
 	jsonMsg(c, I18nWeb(c, "pages.settings.toasts.modifySettings"), nil)

@@ -1,12 +1,15 @@
 package service
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -23,6 +26,9 @@ import (
 // OutboundService provides business logic for managing Xray outbound configurations.
 // It handles outbound traffic monitoring and statistics.
 type OutboundService struct{}
+
+// testSemaphore limits concurrent outbound tests to prevent resource exhaustion.
+var testSemaphore sync.Mutex
 
 func (s *OutboundService) AddTraffic(traffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
 	var err error
@@ -125,11 +131,20 @@ type TestOutboundResult struct {
 // Only the test inbound and a route rule (to the tested outbound tag) are added.
 func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allOutboundsJSON string) (*TestOutboundResult, error) {
 	if testURL == "" {
-		testURL = "http://www.google.com/gen_204"
+		testURL = "https://www.google.com/generate_204"
 	}
 
+	// Limit to one concurrent test at a time
+	if !testSemaphore.TryLock() {
+		return &TestOutboundResult{
+			Success: false,
+			Error:   "Another outbound test is already running, please wait",
+		}, nil
+	}
+	defer testSemaphore.Unlock()
+
 	// Parse the outbound being tested to get its tag
-	var testOutbound map[string]interface{}
+	var testOutbound map[string]any
 	if err := json.Unmarshal([]byte(outboundJSON), &testOutbound); err != nil {
 		return &TestOutboundResult{
 			Success: false,
@@ -143,9 +158,15 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 			Error:   "Outbound has no tag",
 		}, nil
 	}
+	if protocol, _ := testOutbound["protocol"].(string); protocol == "blackhole" || outboundTag == "blocked" {
+		return &TestOutboundResult{
+			Success: false,
+			Error:   "Blocked/blackhole outbound cannot be tested",
+		}, nil
+	}
 
 	// Use all outbounds when provided; otherwise fall back to single outbound
-	var allOutbounds []interface{}
+	var allOutbounds []any
 	if allOutboundsJSON != "" {
 		if err := json.Unmarshal([]byte(allOutboundsJSON), &allOutbounds); err != nil {
 			return &TestOutboundResult{
@@ -155,7 +176,7 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 		}
 	}
 	if len(allOutbounds) == 0 {
-		allOutbounds = []interface{}{testOutbound}
+		allOutbounds = []any{testOutbound}
 	}
 
 	// Find an available port for test inbound
@@ -185,8 +206,6 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 	defer func() {
 		if testProcess.IsRunning() {
 			testProcess.Stop()
-			// Give it a moment to clean up
-			time.Sleep(500 * time.Millisecond)
 		}
 	}()
 
@@ -198,8 +217,20 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 		}, nil
 	}
 
-	// Wait a bit for xray to start
-	time.Sleep(1 * time.Second)
+	// Wait for xray to start listening on the test port
+	if err := waitForPort(testPort, 3*time.Second); err != nil {
+		if !testProcess.IsRunning() {
+			result := testProcess.GetResult()
+			return &TestOutboundResult{
+				Success: false,
+				Error:   fmt.Sprintf("Xray process exited: %s", result),
+			}, nil
+		}
+		return &TestOutboundResult{
+			Success: false,
+			Error:   fmt.Sprintf("Xray failed to start listening: %v", err),
+		}, nil
+	}
 
 	// Check if process is still running
 	if !testProcess.IsRunning() {
@@ -228,7 +259,7 @@ func (s *OutboundService) TestOutbound(outboundJSON string, testURL string, allO
 
 // createTestConfig creates a test config by copying all outbounds unchanged and adding
 // only the test inbound (SOCKS) and a route rule that sends traffic to the given outbound tag.
-func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []interface{}, testPort int) *xray.Config {
+func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []any, testPort int) *xray.Config {
 	// Test inbound (SOCKS proxy) - only addition to inbounds
 	testInbound := xray.InboundConfig{
 		Tag:      "test-inbound",
@@ -239,16 +270,20 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []in
 	}
 
 	// Outbounds: copy all, but set noKernelTun=true for WireGuard outbounds
-	processedOutbounds := make([]interface{}, len(allOutbounds))
+	processedOutbounds := make([]any, len(allOutbounds))
 	for i, ob := range allOutbounds {
-		outbound := ob.(map[string]interface{})
+		outbound, ok := ob.(map[string]any)
+		if !ok {
+			processedOutbounds[i] = ob
+			continue
+		}
 		if protocol, ok := outbound["protocol"].(string); ok && protocol == "wireguard" {
 			// Set noKernelTun to true for WireGuard outbounds
-			if settings, ok := outbound["settings"].(map[string]interface{}); ok {
+			if settings, ok := outbound["settings"].(map[string]any); ok {
 				settings["noKernelTun"] = true
 			} else {
 				// Create settings if it doesn't exist
-				outbound["settings"] = map[string]interface{}{
+				outbound["settings"] = map[string]any{
 					"noKernelTun": true,
 				}
 			}
@@ -258,7 +293,7 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []in
 	outboundsJSON, _ := json.Marshal(processedOutbounds)
 
 	// Create routing rule to route all traffic through test outbound
-	routingRules := []map[string]interface{}{
+	routingRules := []map[string]any{
 		{
 			"type":        "field",
 			"outboundTag": outboundTag,
@@ -266,19 +301,23 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []in
 		},
 	}
 
-	routingJSON, _ := json.Marshal(map[string]interface{}{
+	routingJSON, _ := json.Marshal(map[string]any{
 		"domainStrategy": "AsIs",
 		"rules":          routingRules,
 	})
 
+	// Disable logging for test process to avoid creating orphaned log files
+	logConfig := map[string]any{
+		"loglevel": "warning",
+		"access":   "none",
+		"error":    "none",
+		"dnsLog":   false,
+	}
+	logJSON, _ := json.Marshal(logConfig)
+
 	// Create minimal config
-	config := &xray.Config{
-		LogConfig: json_util.RawMessage(`{
-			"loglevel":"info",
-			"access":"` + config.GetBinFolderPath() + `/access_tests.log",
-			"error":"` + config.GetBinFolderPath() + `/error_tests.log",
-			"dnsLog":true
-		}`),
+	cfg := &xray.Config{
+		LogConfig: json_util.RawMessage(logJSON),
 		InboundConfigs: []xray.InboundConfig{
 			testInbound,
 		},
@@ -288,10 +327,12 @@ func (s *OutboundService) createTestConfig(outboundTag string, allOutbounds []in
 		Stats:           json_util.RawMessage(`{}`),
 	}
 
-	return config
+	return cfg
 }
 
-// testConnection tests the connection through the proxy and measures delay
+// testConnection tests the connection through the proxy and measures delay.
+// It performs a warmup request first to establish the SOCKS connection and populate DNS caches,
+// then measures the second request for a more accurate latency reading.
 func (s *OutboundService) testConnection(proxyPort int, testURL string) (int64, int, error) {
 	// Create SOCKS5 proxy URL
 	proxyURL := fmt.Sprintf("socks5://127.0.0.1:%d", proxyPort)
@@ -302,18 +343,32 @@ func (s *OutboundService) testConnection(proxyPort int, testURL string) (int64, 
 		return 0, 0, common.NewErrorf("Invalid proxy URL: %v", err)
 	}
 
-	// Create HTTP client with proxy
+	// Create HTTP client with proxy and keep-alive for connection reuse
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: 10 * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(proxyURLParsed),
 			DialContext: (&net.Dialer{
-				Timeout: 10 * time.Second,
+				Timeout:   5 * time.Second,
+				KeepAlive: 30 * time.Second,
 			}).DialContext,
+			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+			MaxIdleConns:       1,
+			IdleConnTimeout:    10 * time.Second,
+			DisableCompression: true,
 		},
 	}
 
-	// Measure time
+	// Warmup request: establishes SOCKS/TLS connection, DNS, and TCP to the target.
+	// This mirrors real-world usage where connections are reused.
+	warmupResp, err := client.Get(testURL)
+	if err != nil {
+		return 0, 0, common.NewErrorf("Request failed: %v", err)
+	}
+	io.Copy(io.Discard, warmupResp.Body)
+	warmupResp.Body.Close()
+
+	// Measure the actual request on the warm connection
 	startTime := time.Now()
 	resp, err := client.Get(testURL)
 	delay := time.Since(startTime).Milliseconds()
@@ -321,9 +376,24 @@ func (s *OutboundService) testConnection(proxyPort int, testURL string) (int64, 
 	if err != nil {
 		return 0, 0, common.NewErrorf("Request failed: %v", err)
 	}
-	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body)
+	resp.Body.Close()
 
 	return delay, resp.StatusCode, nil
+}
+
+// waitForPort polls until the given TCP port is accepting connections or the timeout expires.
+func waitForPort(port int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("127.0.0.1:%d", port), 100*time.Millisecond)
+		if err == nil {
+			conn.Close()
+			return nil
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	return fmt.Errorf("port %d not ready after %v", port, timeout)
 }
 
 // findAvailablePort finds an available port for testing
@@ -339,7 +409,7 @@ func findAvailablePort() (int, error) {
 }
 
 // createTestConfigPath returns a unique path for a temporary xray config file in the bin folder.
-// The file is not created; the path is reserved by creating and then removing an empty temp file.
+// The temp file is created and closed so the path is reserved; Start() will overwrite it.
 func createTestConfigPath() (string, error) {
 	tmpFile, err := os.CreateTemp(config.GetBinFolderPath(), "xray_test_*.json")
 	if err != nil {
@@ -348,9 +418,6 @@ func createTestConfigPath() (string, error) {
 	path := tmpFile.Name()
 	if err := tmpFile.Close(); err != nil {
 		os.Remove(path)
-		return "", err
-	}
-	if err := os.Remove(path); err != nil {
 		return "", err
 	}
 	return path, nil

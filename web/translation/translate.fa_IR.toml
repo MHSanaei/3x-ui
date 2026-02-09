@@ -427,8 +427,6 @@
 "information" = "اطلاعات"
 "language" = "زبان"
 "telegramBotLanguage" = "زبان ربات تلگرام"
-"outboundTestURL" = "آدرس تست خروجی"
-"outboundTestURLDesc" = "آدرسی که برای تست اتصال خروجی استفاده می‌شود"
 
 [pages.xray]
 "title" = "پیکربندی ایکس‌ری"
@@ -463,7 +461,7 @@
 "RoutingStrategy" = "استراتژی کلی مسیریابی"
 "RoutingStrategyDesc" = "استراتژی کلی مسیریابی برای حل تمام درخواست‌ها را تعیین می‌کند"
 "outboundTestUrl" = "آدرس تست خروجی"
-"outboundTestUrlDesc" = "آدرسی که برای تست اتصال خروجی استفاده می‌شود. پیش‌فرض: http://www.google.com/gen_204"
+"outboundTestUrlDesc" = "آدرسی که برای تست اتصال خروجی استفاده می‌شود."
 "Torrent" = "مسدودسازی پروتکل بیت‌تورنت"
 "Inbounds" = "ورودی‌ها"
 "InboundsDesc" = "پذیرش کلاینت خاص"

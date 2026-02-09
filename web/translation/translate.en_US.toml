@@ -427,8 +427,6 @@
 "information" = "Information"
 "language" = "Language"
 "telegramBotLanguage" = "Telegram Bot Language"
-"outboundTestURL" = "Outbound Test URL"
-"outboundTestURLDesc" = "URL used to test outbound connection"
 
 [pages.xray]
 "title" = "Xray Configs"
@@ -463,7 +461,7 @@
 "RoutingStrategy" = "Overall Routing Strategy"
 "RoutingStrategyDesc" = "Set the overall traffic routing strategy for resolving all requests."
 "outboundTestUrl" = "Outbound Test URL"
-"outboundTestUrlDesc" = "URL used when testing outbound connectivity. Default is http://www.google.com/gen_204"
+"outboundTestUrlDesc" = "URL used when testing outbound connectivity."
 "Torrent" = "Block BitTorrent Protocol"
 "Inbounds" = "Inbounds"
 "InboundsDesc" = "Accepting the specific clients."

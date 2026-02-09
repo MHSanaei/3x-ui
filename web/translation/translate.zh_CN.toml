@@ -427,8 +427,6 @@
 "information" = "信息"
 "language" = "语言"
 "telegramBotLanguage" = "Telegram 机器人语言"
-"outboundTestURL" = "出站测试 URL"
-"outboundTestURLDesc" = "用于测试出站连接的 URL"
 
 [pages.xray]
 "title" = "Xray 配置"
@@ -463,7 +461,7 @@
 "RoutingStrategy" = "配置路由域策略"
 "RoutingStrategyDesc" = "设置 DNS 解析的整体路由策略"
 "outboundTestUrl" = "出站测试 URL"
-"outboundTestUrlDesc" = "测试出站连接时使用的 URL，默认为 http://www.google.com/gen_204"
+"outboundTestUrlDesc" = "测试出站连接时使用的 URL"
 "Torrent" = "屏蔽 BitTorrent 协议"
 "Inbounds" = "入站规则"
 "InboundsDesc" = "接受来自特定客户端的流量"
