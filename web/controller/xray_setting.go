@@ -56,9 +56,17 @@ func (a *XraySettingController) getXraySetting(c *gin.Context) {
 	if outboundTestUrl == "" {
 		outboundTestUrl = "https://www.google.com/generate_204"
 	}
-	urlJSON, _ := json.Marshal(outboundTestUrl)
-	xrayResponse := "{ \"xraySetting\": " + xraySetting + ", \"inboundTags\": " + inboundTags + ", \"outboundTestUrl\": " + string(urlJSON) + " }"
-	jsonObj(c, xrayResponse, nil)
+	xrayResponse := map[string]interface{}{
+		"xraySetting":     json.RawMessage(xraySetting),
+		"inboundTags":     json.RawMessage(inboundTags),
+		"outboundTestUrl": outboundTestUrl,
+	}
+	result, err := json.Marshal(xrayResponse)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.settings.toasts.getSettings"), err)
+		return
+	}
+	jsonObj(c, string(result), nil)
 }
 
 // updateSetting updates the Xray configuration settings.
@@ -140,13 +148,15 @@ func (a *XraySettingController) resetOutboundsTraffic(c *gin.Context) {
 // Optional form "allOutbounds": JSON array of all outbounds; used to resolve sockopt.dialerProxy dependencies.
 func (a *XraySettingController) testOutbound(c *gin.Context) {
 	outboundJSON := c.PostForm("outbound")
-	testURL := c.PostForm("testURL")
 	allOutboundsJSON := c.PostForm("allOutbounds")
 
 	if outboundJSON == "" {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), common.NewError("outbound parameter is required"))
 		return
 	}
+
+	// Load the test URL from server settings to prevent SSRF via user-controlled URLs
+	testURL, _ := a.SettingService.GetXrayOutboundTestUrl()
 
 	result, err := a.OutboundService.TestOutbound(outboundJSON, testURL, allOutboundsJSON)
 	if err != nil {

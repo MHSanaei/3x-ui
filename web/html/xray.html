@@ -654,12 +654,10 @@
 
         try {
           const outboundJSON = JSON.stringify(outbound);
-          const testURL = this.outboundTestUrl || 'https://www.google.com/generate_204';
           const allOutboundsJSON = JSON.stringify(this.templateSettings.outbounds || []);
           
           const msg = await HttpUtil.post("/panel/xray/testOutbound", {
             outbound: outboundJSON,
-            testURL: testURL,
             allOutbounds: allOutboundsJSON
           });
 

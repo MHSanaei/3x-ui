@@ -1,7 +1,6 @@
 package service
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -352,7 +351,6 @@ func (s *OutboundService) testConnection(proxyPort int, testURL string) (int64, 
 				Timeout:   5 * time.Second,
 				KeepAlive: 30 * time.Second,
 			}).DialContext,
-			TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 			MaxIdleConns:       1,
 			IdleConnTimeout:    10 * time.Second,
 			DisableCompression: true,
