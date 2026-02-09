@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "设置 Freedom 协议中网络的输出策略"
 "RoutingStrategy" = "配置路由域策略"
 "RoutingStrategyDesc" = "设置 DNS 解析的整体路由策略"
+"outboundTestUrl" = "出站测试 URL"
+"outboundTestUrlDesc" = "测试出站连接时使用的 URL"
 "Torrent" = "屏蔽 BitTorrent 协议"
 "Inbounds" = "入站规则"
 "InboundsDesc" = "接受来自特定客户端的流量"

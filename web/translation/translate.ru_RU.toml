@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Установка стратегии вывода сети в протоколе Freedom"
 "RoutingStrategy" = "Настройка маршрутизации доменов"
 "RoutingStrategyDesc" = "Установка общей стратегии маршрутизации разрешения DNS"
+"outboundTestUrl" = "URL для теста исходящего"
+"outboundTestUrlDesc" = "URL для проверки подключения исходящего"
 "Torrent" = "Заблокировать BitTorrent"
 "Inbounds" = "Входящие подключения"
 "InboundsDesc" = "Изменение шаблона конфигурации для подключения определенных клиентов"

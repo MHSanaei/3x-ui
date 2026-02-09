@@ -78,6 +78,8 @@ var defaultValueMap = map[string]string{
 	"warp":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
+	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
+
 	// LDAP defaults
 	"ldapEnable":            "false",
 	"ldapHost":              "",
@@ -269,6 +271,14 @@ func (s *SettingService) setInt(key string, value int) error {
 
 func (s *SettingService) GetXrayConfigTemplate() (string, error) {
 	return s.getString("xrayTemplateConfig")
+}
+
+func (s *SettingService) GetXrayOutboundTestUrl() (string, error) {
+	return s.getString("xrayOutboundTestUrl")
+}
+
+func (s *SettingService) SetXrayOutboundTestUrl(url string) error {
+	return s.setString("xrayOutboundTestUrl", url)
 }
 
 func (s *SettingService) GetListen() (string, error) {

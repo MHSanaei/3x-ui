@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Atur strategi output untuk jaringan dalam Protokol Freedom."
 "RoutingStrategy" = "Strategi Pengalihan Keseluruhan"
 "RoutingStrategyDesc" = "Atur strategi pengalihan lalu lintas keseluruhan untuk menyelesaikan semua permintaan."
+"outboundTestUrl" = "URL tes outbound"
+"outboundTestUrlDesc" = "URL yang digunakan saat menguji konektivitas outbound"
 "Torrent" = "Blokir Protokol BitTorrent"
 "Inbounds" = "Masuk"
 "InboundsDesc" = "Menerima klien tertentu."
