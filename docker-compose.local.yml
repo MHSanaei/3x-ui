@@ -18,9 +18,5 @@ services:
     ports:
       - "2053:2053"
       - "2096:2096"
-      - "1234:1234"
-      - "1235:1235"
-    cap_add:
-      - NET_ADMIN  # Required for tc (traffic control) port speed limiting
     tty: true
     restart: unless-stopped

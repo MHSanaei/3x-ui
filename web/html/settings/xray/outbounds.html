@@ -4,17 +4,22 @@
         <a-col :xs="12" :sm="12" :lg="12">
             <a-space direction="horizontal" size="small">
                 <a-button type="primary" icon="plus" @click="addOutbound">
-                    <span v-if="!isMobile">{{ i18n "pages.xray.outbound.addOutbound" }}</span>
+                    <span v-if="!isMobile">{{ i18n
+                        "pages.xray.outbound.addOutbound" }}</span>
                 </a-button>
-                <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
+                <a-button type="primary" icon="cloud"
+                    @click="showWarp()">WARP</a-button>
             </a-space>
         </a-col>
         <a-col :xs="12" :sm="12" :lg="12" :style="{ textAlign: 'right' }">
             <a-button-group>
-                <a-button icon="sync" @click="refreshOutboundTraffic()" :loading="refreshing"></a-button>
-                <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
+                <a-button icon="sync" @click="refreshOutboundTraffic()"
+                    :loading="refreshing"></a-button>
+                <a-popconfirm placement="topRight"
+                    @confirm="resetOutboundTraffic(-1)"
                     title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
-                    :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}'
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    ok-text='{{ i18n "reset"}}'
                     cancel-text='{{ i18n "cancel"}}'>
                     <a-icon slot="icon" type="question-circle-o"
                         :style="{ color: themeSwitcher.isDarkTheme ? '#008771' : '#008771' }"></a-icon>
@@ -23,8 +28,10 @@
             </a-button-group>
         </a-col>
     </a-row>
-    <a-table :columns="outboundColumns" bordered :row-key="r => r.key" :data-source="outboundData"
-        :scroll="isMobile ? {} : { x: 800 }" :pagination="false" :indent-size="0"
+    <a-table :columns="outboundColumns" bordered :row-key="r => r.key"
+        :data-source="outboundData"
+        :scroll="isMobile ? {} : { x: 800 }" :pagination="false"
+        :indent-size="0"
         :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
         <template slot="action" slot-scope="text, outbound, index">
             <span>[[ index+1 ]]</span>
@@ -32,7 +39,8 @@
                 <a-icon @click="e => e.preventDefault()" type="more"
                     :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
                 <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                    <a-menu-item v-if="index>0" @click="setFirstOutbound(index)">
+                    <a-menu-item v-if="index>0"
+                        @click="setFirstOutbound(index)">
                         <a-icon type="vertical-align-top"></a-icon>
                         <span>{{ i18n "pages.xray.rules.first"}}</span>
                     </a-menu-item>
@@ -56,20 +64,63 @@
             </a-dropdown>
         </template>
         <template slot="address" slot-scope="text, outbound, index">
-            <p :style="{ margin: '0 5px' }" v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
+            <p :style="{ margin: '0 5px' }"
+                v-for="addr in findOutboundAddress(outbound)">[[ addr ]]</p>
         </template>
         <template slot="protocol" slot-scope="text, outbound, index">
-            <a-tag :style="{ margin: '0' }" color="purple">[[ outbound.protocol ]]</a-tag>
+            <a-tag :style="{ margin: '0' }" color="purple">[[ outbound.protocol
+                ]]</a-tag>
             <template
                 v-if="[Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(outbound.protocol)">
-                <a-tag :style="{ margin: '0' }" color="blue">[[ outbound.streamSettings.network ]]</a-tag>
-                <a-tag :style="{ margin: '0' }" v-if="outbound.streamSettings.security=='tls'" color="green">tls</a-tag>
-                <a-tag :style="{ margin: '0' }" v-if="outbound.streamSettings.security=='reality'"
+                <a-tag :style="{ margin: '0' }" color="blue">[[
+                    outbound.streamSettings.network ]]</a-tag>
+                <a-tag :style="{ margin: '0' }"
+                    v-if="outbound.streamSettings.security=='tls'"
+                    color="green">tls</a-tag>
+                <a-tag :style="{ margin: '0' }"
+                    v-if="outbound.streamSettings.security=='reality'"
                     color="green">reality</a-tag>
             </template>
         </template>
         <template slot="traffic" slot-scope="text, outbound, index">
             <a-tag color="green">[[ findOutboundTraffic(outbound) ]]</a-tag>
+        </template>
+        <template slot="test" slot-scope="text, outbound, index">
+            <a-tooltip>
+                <template slot="title">{{ i18n "pages.xray.outbound.test"
+                    }}</template>
+                <a-button
+                    type="primary"
+                    shape="circle"
+                    icon="thunderbolt"
+                    :loading="outboundTestStates[index] && outboundTestStates[index].testing"
+                    @click="testOutbound(index)"
+                    :disabled="(outbound.protocol === 'blackhole' || outbound.tag === 'blocked') || (outboundTestStates[index] && outboundTestStates[index].testing)">
+                </a-button>
+            </a-tooltip>
+        </template>
+        <template slot="testResult" slot-scope="text, outbound, index">
+            <div
+                v-if="outboundTestStates[index] && outboundTestStates[index].result">
+                <a-tag v-if="outboundTestStates[index].result.success"
+                    color="green">
+                    [[ outboundTestStates[index].result.delay ]]ms
+                    <span v-if="outboundTestStates[index].result.statusCode">
+                        ([[ outboundTestStates[index].result.statusCode
+                        ]])</span>
+                </a-tag>
+                <a-tooltip v-else
+                    :title="outboundTestStates[index].result.error">
+                    <a-tag color="red">
+                        Failed
+                    </a-tag>
+                </a-tooltip>
+            </div>
+            <span
+                v-else-if="outboundTestStates[index] && outboundTestStates[index].testing">
+                <a-icon type="loading" />
+            </span>
+            <span v-else>-</span>
         </template>
     </a-table>
 </a-space>

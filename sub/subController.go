@@ -121,7 +121,6 @@ func (a *SUBController) subs(c *gin.Context) {
 				"title":        "subscription.title",
 				"site_name":    config.GetSiteName(),
 				"cur_ver":      config.GetVersion(),
-				"asset_ver":    config.GetAssetVersion(),
 				"host":         page.Host,
 				"base_path":    page.BasePath,
 				"sId":          page.SId,
@@ -145,7 +144,11 @@ func (a *SUBController) subs(c *gin.Context) {
 
 		// Add headers
 		header := fmt.Sprintf("upload=%d; download=%d; total=%d; expire=%d", traffic.Up, traffic.Down, traffic.Total, traffic.ExpiryTime/1000)
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		profileUrl := a.subProfileUrl  
+		if profileUrl == "" {
+			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		}
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)  
 
 		if a.subEncrypt {
 			c.String(200, base64.StdEncoding.EncodeToString([]byte(result)))
@@ -158,13 +161,17 @@ func (a *SUBController) subs(c *gin.Context) {
 // subJsons handles HTTP requests for JSON subscription configurations.
 func (a *SUBController) subJsons(c *gin.Context) {
 	subId := c.Param("subid")
-	_, host, _, _ := a.subService.ResolveRequest(c)
+	scheme, host, hostWithPort, _ := a.subService.ResolveRequest(c)
 	jsonSub, header, err := a.subJsonService.GetJson(subId, host)
 	if err != nil || len(jsonSub) == 0 {
 		c.String(400, "Error!")
 	} else {
 		// Add headers
-		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, a.subProfileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
+		profileUrl := a.subProfileUrl
+		if profileUrl == "" {
+			profileUrl = fmt.Sprintf("%s://%s%s", scheme, hostWithPort, c.Request.RequestURI)
+		}
+		a.ApplyCommonHeaders(c, header, a.updateInterval, a.subTitle, a.subSupportUrl, profileUrl, a.subAnnounce, a.subEnableRouting, a.subRoutingRules)
 
 		c.String(200, jsonSub)
 	}
@@ -184,10 +191,24 @@ func (a *SUBController) ApplyCommonHeaders(
 ) {
 	c.Writer.Header().Set("Subscription-Userinfo", header)
 	c.Writer.Header().Set("Profile-Update-Interval", updateInterval)
-	c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
-	c.Writer.Header().Set("Support-Url", profileSupportUrl)
-	c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
-	c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
+
+	//Basics
+	if profileTitle != "" {
+		c.Writer.Header().Set("Profile-Title", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileTitle)))
+	}
+	if profileSupportUrl != "" {
+		c.Writer.Header().Set("Support-Url", profileSupportUrl)
+	}
+	if profileUrl != "" {
+		c.Writer.Header().Set("Profile-Web-Page-Url", profileUrl)
+	}
+	if profileAnnounce != "" {
+		c.Writer.Header().Set("Announce", "base64:"+base64.StdEncoding.EncodeToString([]byte(profileAnnounce)))
+	}
+
+	//Advanced (Happ)
 	c.Writer.Header().Set("Routing-Enable", strconv.FormatBool(profileEnableRouting))
-	c.Writer.Header().Set("Routing", profileRoutingRules)
+	if profileRoutingRules != "" {
+		c.Writer.Header().Set("Routing", profileRoutingRules)
+	}
 }

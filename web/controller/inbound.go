@@ -126,8 +126,6 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Apply/reconcile inbound port speed limits immediately (tc) so local testing doesn't need to wait for restart.
-	a.xrayService.ApplyInboundPortSpeedLimits()
 	// Broadcast inbounds update via WebSocket
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)
 	websocket.BroadcastInbounds(inbounds)
@@ -149,8 +147,6 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Reconcile inbound port speed limits after inbound deletion.
-	a.xrayService.ApplyInboundPortSpeedLimits()
 	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)
@@ -181,8 +177,6 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Apply/reconcile inbound port speed limits immediately (tc).
-	a.xrayService.ApplyInboundPortSpeedLimits()
 	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)

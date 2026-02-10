@@ -45,7 +45,7 @@
                 if (this.clients[index].expiryTime < 0) {
                     this.delayedStart = true;
                 }
-                this.oldClientId = this.getClientId(dbInbound.protocol, this.clients[this.index]);
+                this.oldClientId = this.getClientId(dbInbound.protocol, clients[index]);
             } else {
                 this.addClient(this.inbound, this.clients);
             }

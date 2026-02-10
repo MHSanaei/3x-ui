@@ -305,15 +305,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		jsonIps, _ := json.Marshal(newIpsWithTime)
 		inboundClientIps.Ips = string(jsonIps)
 		db := database.GetDB()
-		// Use transaction for database update
-		tx := db.Begin()
-		err := tx.Save(inboundClientIps).Error
-		if err != nil {
-			tx.Rollback()
-			logger.Errorf("Failed to save inboundClientIps: %v", err)
-		} else {
-			tx.Commit()
-		}
+		db.Save(inboundClientIps)
 		return false
 	}
 
@@ -385,16 +377,12 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		inboundClientIps.Ips = string(jsonIps)
 	}
 
-	// Use transaction for database update
 	db := database.GetDB()
-	tx := db.Begin()
-	err = tx.Save(inboundClientIps).Error
+	err = db.Save(inboundClientIps).Error
 	if err != nil {
-		tx.Rollback()
 		logger.Error("failed to save inboundClientIps:", err)
 		return false
 	}
-	tx.Commit()
 
 	if len(j.disAllowedIps) > 0 {
 		logger.Infof("[LIMIT_IP] Client %s: Kept %d newest IPs, disconnected %d old IPs", clientEmail, limitIp, len(j.disAllowedIps))
@@ -406,7 +394,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 // disconnectClientTemporarily removes and re-adds a client to force disconnect old connections
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
-	
+
 	// Get panel settings for API port
 	db := database.GetDB()
 	var apiPort int
@@ -414,7 +402,7 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	if err := db.Where("key = ?", "xrayApiPort").First(&apiPortSetting).Error; err == nil {
 		apiPort, _ = strconv.Atoi(apiPortSetting.Value)
 	}
-	
+
 	if apiPort == 0 {
 		apiPort = 10085 // Default API port
 	}

@@ -1895,7 +1895,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.VmessSettings(
             Protocols.VMESS,
-            (json.clients || []).map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
+            json.clients.map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
     }
 
@@ -1920,9 +1920,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined,
-        speedLimit = 0,
-        speedLimitType = 'all'
+        updated_at = undefined
     ) {
         super();
         this.id = id;
@@ -1938,9 +1936,6 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
-        // Backward compatibility: tolerate missing value and stringified numbers.
-        this.speedLimit = Number(speedLimit) || 0;
-        this.speedLimitType = speedLimitType || 'all';
     }
 
     static fromJson(json = {}) {
@@ -1958,8 +1953,6 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
-            json.speedLimit ?? json.speed_limit,
-            json.speedLimitType ?? json.speed_limit_type,
         );
     }
     get _expiryTime() {
@@ -2082,9 +2075,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined,
-        speedLimit = 0,
-        speedLimitType = 'all'
+        updated_at = undefined
     ) {
         super();
         this.id = id;
@@ -2100,9 +2091,6 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
-        // Backward compatibility: tolerate missing value and stringified numbers.
-        this.speedLimit = Number(speedLimit) || 0;
-        this.speedLimitType = speedLimitType || 'all';
     }
 
     static fromJson(json = {}) {
@@ -2120,8 +2108,6 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
-            json.speedLimit ?? json.speed_limit,
-            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 
@@ -2209,7 +2195,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
-            (json.clients || []).map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
+            json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
             Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
     }
 
@@ -2234,9 +2220,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined,
-        speedLimit = 0,
-        speedLimitType = 'all'
+        updated_at = undefined
     ) {
         super();
         this.password = password;
@@ -2251,9 +2235,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
-        // Backward compatibility: tolerate missing value and stringified numbers.
-        this.speedLimit = Number(speedLimit) || 0;
-        this.speedLimitType = speedLimitType || 'all';
     }
 
     toJson() {
@@ -2270,8 +2251,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             reset: this.reset,
             created_at: this.created_at,
             updated_at: this.updated_at,
-            speedLimit: this.speedLimit,
-            speedLimitType: this.speedLimitType,
         };
     }
 
@@ -2289,8 +2268,6 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
-            json.speedLimit ?? json.speed_limit,
-            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 
@@ -2382,7 +2359,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.method,
             json.password,
             json.network,
-            (json.clients || []).map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
             json.ivCheck,
         );
     }
@@ -2412,9 +2389,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined,
-        speedLimit = 0,
-        speedLimitType = 'all'
+        updated_at = undefined
     ) {
         super();
         this.method = method;
@@ -2430,9 +2405,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
-        // Backward compatibility: tolerate missing value and stringified numbers.
-        this.speedLimit = Number(speedLimit) || 0;
-        this.speedLimitType = speedLimitType || 'all';
     }
 
     toJson() {
@@ -2450,8 +2422,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             reset: this.reset,
             created_at: this.created_at,
             updated_at: this.updated_at,
-            speedLimit: this.speedLimit,
-            speedLimitType: this.speedLimitType,
         };
     }
 
@@ -2470,8 +2440,6 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
-            json.speedLimit ?? json.speed_limit,
-            json.speedLimitType ?? json.speed_limit_type,
         );
     }
 
