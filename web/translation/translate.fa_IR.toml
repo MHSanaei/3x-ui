@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "تعیین می‌کند Freedom استراتژی خروجی شبکه را برای پروتکل"
 "RoutingStrategy" = "استراتژی کلی مسیریابی"
 "RoutingStrategyDesc" = "استراتژی کلی مسیریابی برای حل تمام درخواست‌ها را تعیین می‌کند"
+"outboundTestUrl" = "آدرس تست خروجی"
+"outboundTestUrlDesc" = "آدرسی که برای تست اتصال خروجی استفاده می‌شود."
 "Torrent" = "مسدودسازی پروتکل بیت‌تورنت"
 "Inbounds" = "ورودی‌ها"
 "InboundsDesc" = "پذیرش کلاینت خاص"

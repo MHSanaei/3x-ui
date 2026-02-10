@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Freedom Protokolünde ağın çıkış stratejisini ayarlayın."
 "RoutingStrategy" = "Genel Yönlendirme Stratejisi"
 "RoutingStrategyDesc" = "Tüm istekleri çözmek için genel trafik yönlendirme stratejisini ayarlayın."
+"outboundTestUrl" = "Outbound test URL"
+"outboundTestUrlDesc" = "Outbound bağlantı testinde kullanılan URL"
 "Torrent" = "BitTorrent Protokolünü Engelle"
 "Inbounds" = "Gelenler"
 "InboundsDesc" = "Belirli müşterileri kabul eder."

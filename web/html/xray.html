@@ -1,7 +1,10 @@
 {{ template "page/head_start" .}}
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .cur_ver }}">
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
-<link rel="stylesheet" href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
+<link rel="stylesheet"
+  href="{{ .base_path }}assets/codemirror/codemirror.min.css?{{ .cur_ver }}">
+<link rel="stylesheet"
+  href="{{ .base_path }}assets/codemirror/fold/foldgutter.css">
+<link rel="stylesheet"
+  href="{{ .base_path }}assets/codemirror/xq.min.css?{{ .cur_ver }}">
 <link rel="stylesheet" href="{{ .base_path }}assets/codemirror/lint/lint.css">
 {{ template "page/head_end" .}}
 
@@ -10,10 +13,13 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+      <a-spin :spinning="loadingStates.spinning" :delay="500"
+        tip='{{ i18n "loading"}}'>
         <transition name="list" appear>
-          <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
-            message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
+          <a-alert type="error" v-if="showAlert && loadingStates.fetched"
+            :style="{ marginBottom: '10px' }"
+            message='{{ i18n "secAlertTitle" }}' color="red"
+            description='{{ i18n "secAlertSsl" }}' show-icon closable>
           </a-alert>
         </transition>
         <transition name="list" appear>
@@ -26,19 +32,25 @@
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
             <a-col>
               <a-card hoverable>
-                <a-row :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
+                <a-row
+                  :style="{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }">
                   <a-col :xs="24" :sm="10" :style="{ padding: '4px' }">
                     <a-space direction="horizontal">
-                      <a-button type="primary" :disabled="saveBtnDisable" @click="updateXraySetting">
+                      <a-button type="primary" :disabled="saveBtnDisable"
+                        @click="updateXraySetting">
                         {{ i18n "pages.xray.save" }}
                       </a-button>
-                      <a-button type="danger" :disabled="!saveBtnDisable" @click="restartXray">
+                      <a-button type="danger" :disabled="!saveBtnDisable"
+                        @click="restartXray">
                         {{ i18n "pages.xray.restart" }}
                       </a-button>
-                      <a-popover v-if="restartResult" :overlay-class-name="themeSwitcher.currentTheme">
-                        <span slot="title">{{ i18n "pages.index.xrayErrorPopoverTitle" }}</span>
+                      <a-popover v-if="restartResult"
+                        :overlay-class-name="themeSwitcher.currentTheme">
+                        <span slot="title">{{ i18n
+                          "pages.index.xrayErrorPopoverTitle" }}</span>
                         <template slot="content">
-                          <span :style="{ maxWidth: '400px' }" v-for="line in restartResult.split('\n')">[[ line
+                          <span :style="{ maxWidth: '400px' }"
+                            v-for="line in restartResult.split('\n')">[[ line
                             ]]</span>
                         </template>
                         <a-icon type="question-circle"></a-icon>
@@ -48,10 +60,13 @@
                   <a-col :xs="24" :sm="14">
                     <template>
                       <div>
-                        <a-back-top :target="() => document.getElementById('content-layout')"
+                        <a-back-top
+                          :target="() => document.getElementById('content-layout')"
                           visibility-height="200"></a-back-top>
-                        <a-alert type="warning" :style="{ float: 'right', width: 'fit-content' }"
-                          message='{{ i18n "pages.settings.infoDesc" }}' show-icon>
+                        <a-alert type="warning"
+                          :style="{ float: 'right', width: 'fit-content' }"
+                          message='{{ i18n "pages.settings.infoDesc" }}'
+                          show-icon>
                         </a-alert>
                       </div>
                     </template>
@@ -60,7 +75,8 @@
               </a-card>
             </a-col>
             <a-col>
-              <a-tabs default-active-key="tpl-basic" @change="(activeKey) => { this.changePage(activeKey); }"
+              <a-tabs default-active-key="tpl-basic"
+                @change="(activeKey) => { this.changePage(activeKey); }"
                 :class="themeSwitcher.currentTheme">
                 <a-tab-pane key="tpl-basic" :style="{ paddingTop: '20px' }">
                   <template #tab>
@@ -83,21 +99,24 @@
                   </template>
                   {{ template "settings/xray/outbounds" . }}
                 </a-tab-pane>
-                <a-tab-pane key="tpl-reverse" :style="{ paddingTop: '20px' }" force-render="true">
+                <a-tab-pane key="tpl-reverse" :style="{ paddingTop: '20px' }"
+                  force-render="true">
                   <template #tab>
                     <a-icon type="import"></a-icon>
                     <span>{{ i18n "pages.xray.outbound.reverse"}}</span>
                   </template>
                   {{ template "settings/xray/reverse" . }}
                 </a-tab-pane>
-                <a-tab-pane key="tpl-balancer" :style="{ paddingTop: '20px' }" force-render="true">
+                <a-tab-pane key="tpl-balancer" :style="{ paddingTop: '20px' }"
+                  force-render="true">
                   <template #tab>
                     <a-icon type="cluster"></a-icon>
                     <span>{{ i18n "pages.xray.Balancers"}}</span>
                   </template>
                   {{ template "settings/xray/balancers" . }}
                 </a-tab-pane>
-                <a-tab-pane key="tpl-dns" :style="{ paddingTop: '20px' }" force-render="true">
+                <a-tab-pane key="tpl-dns" :style="{ paddingTop: '20px' }"
+                  force-render="true">
                   <template #tab>
                     <a-icon type="database"></a-icon>
                     <span>DNS</span>
@@ -120,14 +139,18 @@
   </a-layout>
 </a-layout>
 {{template "page/body_scripts" .}}
-<script src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
+<script
+  src="{{ .base_path }}assets/js/model/outbound.js?{{ .cur_ver }}"></script>
+<script
+  src="{{ .base_path }}assets/codemirror/codemirror.min.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/codemirror/javascript.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jshint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/jsonlint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/lint/lint.js"></script>
-<script src="{{ .base_path }}assets/codemirror/lint/javascript-lint.js"></script>
-<script src="{{ .base_path }}assets/codemirror/hint/javascript-hint.js"></script>
+<script
+  src="{{ .base_path }}assets/codemirror/lint/javascript-lint.js"></script>
+<script
+  src="{{ .base_path }}assets/codemirror/hint/javascript-hint.js"></script>
 <script src="{{ .base_path }}assets/codemirror/fold/foldcode.js"></script>
 <script src="{{ .base_path }}assets/codemirror/fold/foldgutter.js"></script>
 <script src="{{ .base_path }}assets/codemirror/fold/brace-fold.js"></script>
@@ -181,11 +204,13 @@
   ];
 
   const outboundColumns = [
-    { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
+    { title: "#", align: 'center', width: 60, scopedSlots: { customRender: 'action' } },
     { title: '{{ i18n "pages.xray.outbound.tag"}}', dataIndex: 'tag', align: 'center', width: 50 },
     { title: '{{ i18n "protocol"}}', align: 'center', width: 50, scopedSlots: { customRender: 'protocol' } },
     { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'center', width: 50, scopedSlots: { customRender: 'address' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'center', width: 50, scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.xray.outbound.testResult" }}', align: 'center', width: 120, scopedSlots: { customRender: 'testResult' } },
+    { title: '{{ i18n "pages.xray.outbound.test" }}', align: 'center', width: 60, scopedSlots: { customRender: 'test' } },
   ];
 
   const reverseColumns = [
@@ -228,8 +253,11 @@
       },
       oldXraySetting: '',
       xraySetting: '',
+      outboundTestUrl: 'https://www.google.com/generate_204',
+      oldOutboundTestUrl: 'https://www.google.com/generate_204',
       inboundTags: [],
       outboundsTraffic: [],
+      outboundTestStates: {}, // Track testing state and results for each outbound
       saveBtnDisable: true,
       refreshing: false,
       restartResult: '',
@@ -337,14 +365,14 @@
       },
       defaultObservatory: {
         subjectSelector: [],
-        probeURL: "http://www.google.com/gen_204",
+        probeURL: "https://www.google.com/generate_204",
         probeInterval: "10m",
         enableConcurrency: true
       },
       defaultBurstObservatory: {
         subjectSelector: [],
         pingConfig: {
-          destination: "http://www.google.com/gen_204",
+          destination: "https://www.google.com/generate_204",
           interval: "30m",
           connectivity: "http://connectivitycheck.platform.hicloud.com/generate_204",
           timeout: "10s",
@@ -375,12 +403,17 @@
           this.oldXraySetting = xs;
           this.xraySetting = xs;
           this.inboundTags = result.inboundTags;
+          this.outboundTestUrl = result.outboundTestUrl || 'https://www.google.com/generate_204';
+          this.oldOutboundTestUrl = this.outboundTestUrl;
           this.saveBtnDisable = true;
         }
       },
       async updateXraySetting() {
         this.loading(true);
-        const msg = await HttpUtil.post("/panel/xray/update", { xraySetting: this.xraySetting });
+        const msg = await HttpUtil.post("/panel/xray/update", {
+          xraySetting: this.xraySetting,
+          outboundTestUrl: this.outboundTestUrl || 'https://www.google.com/generate_204'
+        });
         this.loading(false);
         if (msg.success) {
           await this.getXraySetting();
@@ -594,6 +627,71 @@
         outbounds = this.templateSettings.outbounds;
         outbounds.splice(0, 0, outbounds.splice(index, 1)[0]);
         this.outboundSettings = JSON.stringify(outbounds);
+      },
+      async testOutbound(index) {
+        const outbound = this.templateSettings.outbounds[index];
+        if (!outbound) {
+          Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}');
+          return;
+        }
+
+        if (outbound.protocol === 'blackhole' || outbound.tag === 'blocked') {
+          Vue.prototype.$message.warning('{{ i18n "pages.xray.outbound.testError" }}: blocked/blackhole outbound');
+          return;
+        }
+
+        // Initialize test state for this outbound if not exists
+        if (!this.outboundTestStates[index]) {
+          this.$set(this.outboundTestStates, index, {
+            testing: false,
+            result: null
+          });
+        }
+
+        // Set testing state
+        this.$set(this.outboundTestStates[index], 'testing', true);
+        this.$set(this.outboundTestStates[index], 'result', null);
+
+        try {
+          const outboundJSON = JSON.stringify(outbound);
+          const allOutboundsJSON = JSON.stringify(this.templateSettings.outbounds || []);
+          
+          const msg = await HttpUtil.post("/panel/xray/testOutbound", {
+            outbound: outboundJSON,
+            allOutbounds: allOutboundsJSON
+          });
+
+          // Update test state
+          this.$set(this.outboundTestStates[index], 'testing', false);
+
+          if (msg.success && msg.obj) {
+            const result = msg.obj;
+            this.$set(this.outboundTestStates[index], 'result', result);
+            
+            if (result.success) {
+              Vue.prototype.$message.success(
+                `{{ i18n "pages.xray.outbound.testSuccess" }}: ${result.delay}ms (${result.statusCode})`
+              );
+            } else {
+              Vue.prototype.$message.error(
+                `{{ i18n "pages.xray.outbound.testFailed" }}: ${result.error || 'Unknown error'}`
+              );
+            }
+          } else {
+            this.$set(this.outboundTestStates[index], 'result', {
+              success: false,
+              error: msg.msg || '{{ i18n "pages.xray.outbound.testError" }}'
+            });
+            Vue.prototype.$message.error(msg.msg || '{{ i18n "pages.xray.outbound.testError" }}');
+          }
+        } catch (error) {
+          this.$set(this.outboundTestStates[index], 'testing', false);
+          this.$set(this.outboundTestStates[index], 'result', {
+            success: false,
+            error: error.message || '{{ i18n "pages.xray.outbound.testError" }}'
+          });
+          Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}: ' + error.message);
+        }
       },
       addReverse() {
         reverseModal.show({
@@ -981,7 +1079,7 @@
 
       while (true) {
         await PromiseUtil.sleep(800);
-        this.saveBtnDisable = this.oldXraySetting === this.xraySetting;
+        this.saveBtnDisable = this.oldXraySetting === this.xraySetting && this.oldOutboundTestUrl === this.outboundTestUrl;
       }
     },
     computed: {

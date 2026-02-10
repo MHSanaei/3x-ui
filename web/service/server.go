@@ -1057,43 +1057,78 @@ func (s *ServerService) IsValidGeofileName(filename string) bool {
 }
 
 func (s *ServerService) UpdateGeofile(fileName string) error {
-	files := []struct {
+	type geofileEntry struct {
 		URL      string
 		FileName string
-	}{
-		{"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
-		{"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
-		{"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
-		{"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
-		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
-		{"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
+	}
+	geofileAllowlist := map[string]geofileEntry{
+		"geoip.dat":      {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip.dat"},
+		"geosite.dat":    {"https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite.dat"},
+		"geoip_IR.dat":   {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat", "geoip_IR.dat"},
+		"geosite_IR.dat": {"https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat", "geosite_IR.dat"},
+		"geoip_RU.dat":   {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat", "geoip_RU.dat"},
+		"geosite_RU.dat": {"https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat", "geosite_RU.dat"},
 	}
 
 	// Strict allowlist check to avoid writing uncontrolled files
 	if fileName != "" {
-		// Use the centralized validation function
-		if !s.IsValidGeofileName(fileName) {
-			return common.NewErrorf("Invalid geofile name: contains unsafe path characters: %s", fileName)
-		}
-
-		// Ensure the filename matches exactly one from our allowlist
-		isAllowed := false
-		for _, file := range files {
-			if fileName == file.FileName {
-				isAllowed = true
-				break
-			}
-		}
-		if !isAllowed {
-			return common.NewErrorf("Invalid geofile name: %s not in allowlist", fileName)
+		if _, ok := geofileAllowlist[fileName]; !ok {
+			return common.NewErrorf("Invalid geofile name: %q not in allowlist", fileName)
 		}
 	}
+
 	downloadFile := func(url, destPath string) error {
-		resp, err := http.Get(url)
+		var req *http.Request
+		req, err := http.NewRequest("GET", url, nil)
+		if err != nil {
+			return common.NewErrorf("Failed to create HTTP request for %s: %v", url, err)
+		}
+
+		var localFileModTime time.Time
+		if fileInfo, err := os.Stat(destPath); err == nil {
+			localFileModTime = fileInfo.ModTime()
+			if !localFileModTime.IsZero() {
+				req.Header.Set("If-Modified-Since", localFileModTime.UTC().Format(http.TimeFormat))
+			}
+		}
+
+		client := &http.Client{}
+		resp, err := client.Do(req)
 		if err != nil {
 			return common.NewErrorf("Failed to download Geofile from %s: %v", url, err)
 		}
 		defer resp.Body.Close()
+
+		// Parse Last-Modified header from server
+		var serverModTime time.Time
+		serverModTimeStr := resp.Header.Get("Last-Modified")
+		if serverModTimeStr != "" {
+			parsedTime, err := time.Parse(http.TimeFormat, serverModTimeStr)
+			if err != nil {
+				logger.Warningf("Failed to parse Last-Modified header for %s: %v", url, err)
+			} else {
+				serverModTime = parsedTime
+			}
+		}
+
+		// Function to update local file's modification time
+		updateFileModTime := func() {
+			if !serverModTime.IsZero() {
+				if err := os.Chtimes(destPath, serverModTime, serverModTime); err != nil {
+					logger.Warningf("Failed to update modification time for %s: %v", destPath, err)
+				}
+			}
+		}
+
+		// Handle 304 Not Modified
+		if resp.StatusCode == http.StatusNotModified {
+			updateFileModTime()
+			return nil
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			return common.NewErrorf("Failed to download Geofile from %s: received status code %d", url, resp.StatusCode)
+		}
 
 		file, err := os.Create(destPath)
 		if err != nil {
@@ -1106,39 +1141,25 @@ func (s *ServerService) UpdateGeofile(fileName string) error {
 			return common.NewErrorf("Failed to save Geofile %s: %v", destPath, err)
 		}
 
+		updateFileModTime()
 		return nil
 	}
 
 	var errorMessages []string
 
 	if fileName == "" {
-		for _, file := range files {
-			// Sanitize the filename from our allowlist as an extra precaution
-			destPath := filepath.Join(config.GetBinFolderPath(), filepath.Base(file.FileName))
-
-			if err := downloadFile(file.URL, destPath); err != nil {
-				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", file.FileName, err))
+		// Download all geofiles
+		for _, entry := range geofileAllowlist {
+			destPath := filepath.Join(config.GetBinFolderPath(), entry.FileName)
+			if err := downloadFile(entry.URL, destPath); err != nil {
+				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", entry.FileName, err))
 			}
 		}
 	} else {
-		// Use filepath.Base to ensure we only get the filename component, no path traversal
-		safeName := filepath.Base(fileName)
-		destPath := filepath.Join(config.GetBinFolderPath(), safeName)
-
-		var fileURL string
-		for _, file := range files {
-			if file.FileName == fileName {
-				fileURL = file.URL
-				break
-			}
-		}
-
-		if fileURL == "" {
-			errorMessages = append(errorMessages, fmt.Sprintf("File '%s' not found in the list of Geofiles", fileName))
-		} else {
-			if err := downloadFile(fileURL, destPath); err != nil {
-				errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", fileName, err))
-			}
+		entry := geofileAllowlist[fileName]
+		destPath := filepath.Join(config.GetBinFolderPath(), entry.FileName)
+		if err := downloadFile(entry.URL, destPath); err != nil {
+			errorMessages = append(errorMessages, fmt.Sprintf("Error downloading Geofile '%s': %v", entry.FileName, err))
 		}
 	}
 

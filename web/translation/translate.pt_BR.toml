@@ -460,6 +460,8 @@
 "FreedomStrategyDesc" = "Definir a estratégia de saída para a rede no Protocolo Freedom."
 "RoutingStrategy" = "Estratégia Geral de Roteamento"
 "RoutingStrategyDesc" = "Definir a estratégia geral de roteamento de tráfego para resolver todas as solicitações."
+"outboundTestUrl" = "URL de teste de outbound"
+"outboundTestUrlDesc" = "URL usada ao testar conectividade do outbound"
 "Torrent" = "Bloquear Protocolo BitTorrent"
 "Inbounds" = "Inbounds"
 "InboundsDesc" = "Aceitar clientes específicos."
