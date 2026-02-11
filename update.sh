@@ -687,8 +687,11 @@ config_after_update() {
     )
     local server_ip=""
     for ip_address in "${URL_lists[@]}"; do
-        server_ip=$(${curl_bin} -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
-        if [[ -n "${server_ip}" ]]; then
+        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2>/dev/null)
+        local http_code=$(echo "$response" | tail -n1)
+        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]')
+        if [[ "${http_code}" == "200" && -n "${ip_result}" ]]; then
+            server_ip="${ip_result}"
             break
         fi
     done
