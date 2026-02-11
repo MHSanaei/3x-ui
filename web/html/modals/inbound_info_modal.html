@@ -260,15 +260,31 @@
               v-if="app.ipLimitEnable && infoModal.clientSettings.limitIp > 0">
               <td>{{ i18n "pages.inbounds.IPLimitlog" }}</td>
               <td>
-                <a-tag>[[ infoModal.clientIps ]]</a-tag>
-                <a-icon type="sync" :spin="refreshing" @click="refreshIPs"
-                  :style="{ margin: '0 5px' }"></a-icon>
-                <a-tooltip :title="[[ dbInbound.address ]]">
-                  <template slot="title">
-                    <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
-                  </template>
-                  <a-icon type="delete" @click="clearClientIps"></a-icon>
-                </a-tooltip>
+                <div
+                  style="max-height: 150px; overflow-y: auto; text-align: left;">
+                  <div
+                    v-if="infoModal.clientIpsArray && infoModal.clientIpsArray.length > 0">
+                    <a-tag
+                      v-for="(ipInfo, idx) in infoModal.clientIpsArray"
+                      :key="idx"
+                      color="blue"
+                      style="margin: 2px 0; display: block; font-family: monospace; font-size: 11px;">
+                      [[ formatIpInfo(ipInfo) ]]
+                    </a-tag>
+                  </div>
+                  <a-tag v-else>[[ infoModal.clientIps || 'No IP Record'
+                    ]]</a-tag>
+                </div>
+                <div style="margin-top: 5px;">
+                  <a-icon type="sync" :spin="refreshing" @click="refreshIPs"
+                    :style="{ margin: '0 5px' }"></a-icon>
+                  <a-tooltip>
+                    <template slot="title">
+                      <span>{{ i18n "pages.inbounds.IPLimitlogclear" }}</span>
+                    </template>
+                    <a-icon type="delete" @click="clearClientIps"></a-icon>
+                  </a-tooltip>
+                </div>
               </td>
             </tr>
           </table>
@@ -542,12 +558,73 @@
       <script>
   function refreshIPs(email) {
     return HttpUtil.post(`/panel/api/inbounds/clientIps/${email}`).then((msg) => {
-      if (msg.success) {
-        try {
-          return JSON.parse(msg.obj).join(', ');
-        } catch (e) {
-          return msg.obj;
+      if (!msg.success) {
+        return { text: 'No IP Record', array: [] };
+      }
+
+      const formatIpRecord = (record) => {
+        if (record == null) {
+          return '';
         }
+        if (typeof record === 'string' || typeof record === 'number') {
+          return String(record);
+        }
+        const ip = record.ip || record.IP || '';
+        const timestamp = record.timestamp || record.Timestamp || 0;
+        if (!ip) {
+          return String(record);
+        }
+        if (!timestamp) {
+          return String(ip);
+        }
+        const date = new Date(Number(timestamp) * 1000);
+        const timeStr = date
+          .toLocaleString('en-GB', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          })
+          .replace(',', '');
+        return `${ip} (${timeStr})`;
+      };
+
+      try {
+        let ips = msg.obj;
+        // If msg.obj is a string, try to parse it
+        if (typeof ips === 'string') {
+          try {
+            ips = JSON.parse(ips);
+          } catch (e) {
+            return { text: String(ips), array: [String(ips)] };
+          }
+        }
+
+        // Normalize single object response to array
+        if (ips && !Array.isArray(ips) && typeof ips === 'object') {
+          ips = [ips];
+        }
+
+        // New format or object array
+        if (Array.isArray(ips) && ips.length > 0 && typeof ips[0] === 'object') {
+          const result = ips.map((item) => formatIpRecord(item)).filter(Boolean);
+          return { text: result.join(' | '), array: result };
+        }
+
+        // Old format - simple array of IPs
+        if (Array.isArray(ips) && ips.length > 0) {
+          const result = ips.map((ip) => String(ip));
+          return { text: result.join(', '), array: result };
+        }
+
+        // Fallback for any other format
+        return { text: String(ips), array: [String(ips)] };
+
+      } catch (e) {
+        return { text: 'Error loading IPs', array: [] };
       }
     });
   }
@@ -566,6 +643,7 @@
     subLink: '',
     subJsonLink: '',
     clientIps: '',
+    clientIpsArray: [],
     show(dbInbound, index) {
       this.index = index;
       this.inbound = dbInbound.toInbound();
@@ -583,8 +661,9 @@
         ].includes(this.inbound.protocol)
       ) {
         if (app.ipLimitEnable && this.clientSettings.limitIp) {
-          refreshIPs(this.clientStats.email).then((ips) => {
-            this.clientIps = ips;
+          refreshIPs(this.clientStats.email).then((result) => {
+            this.clientIps = result.text;
+            this.clientIpsArray = result.array;
           })
         }
       }
@@ -655,6 +734,35 @@
       },
     },
     methods: {
+      formatIpInfo(ipInfo) {
+        if (ipInfo == null) {
+          return '';
+        }
+        if (typeof ipInfo === 'string' || typeof ipInfo === 'number') {
+          return String(ipInfo);
+        }
+        const ip = ipInfo.ip || ipInfo.IP || '';
+        const timestamp = ipInfo.timestamp || ipInfo.Timestamp || 0;
+        if (!ip) {
+          return String(ipInfo);
+        }
+        if (!timestamp) {
+          return String(ip);
+        }
+        const date = new Date(Number(timestamp) * 1000);
+        const timeStr = date
+          .toLocaleString('en-GB', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          })
+          .replace(',', '');
+        return `${ip} (${timeStr})`;
+      },
       copy(content) {
         ClipboardManager
           .copyText(content)
@@ -672,8 +780,9 @@
       refreshIPs() {
         this.refreshing = true;
         refreshIPs(this.infoModal.clientStats.email)
-          .then((ips) => {
-            this.infoModal.clientIps = ips;
+          .then((result) => {
+            this.infoModal.clientIps = result.text;
+            this.infoModal.clientIpsArray = result.array;
           })
           .finally(() => {
             this.refreshing = false;
@@ -686,6 +795,7 @@
               return;
             }
             this.infoModal.clientIps = 'No IP Record';
+            this.infoModal.clientIpsArray = [];
           })
           .catch(() => {});
       },

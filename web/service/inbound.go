@@ -2141,6 +2141,43 @@ func (s *InboundService) GetInboundClientIps(clientEmail string) (string, error)
 	if err != nil {
 		return "", err
 	}
+	
+	if InboundClientIps.Ips == "" {
+		return "", nil
+	}
+	
+	// Try to parse as new format (with timestamps)
+	type IPWithTimestamp struct {
+		IP        string `json:"ip"`
+		Timestamp int64  `json:"timestamp"`
+	}
+	
+	var ipsWithTime []IPWithTimestamp
+	err = json.Unmarshal([]byte(InboundClientIps.Ips), &ipsWithTime)
+	
+	// If successfully parsed as new format, return with timestamps
+	if err == nil && len(ipsWithTime) > 0 {
+		return InboundClientIps.Ips, nil
+	}
+	
+	// Otherwise, assume it's old format (simple string array)
+	// Try to parse as simple array and convert to new format
+	var oldIps []string
+	err = json.Unmarshal([]byte(InboundClientIps.Ips), &oldIps)
+	if err == nil && len(oldIps) > 0 {
+		// Convert old format to new format with current timestamp
+		newIpsWithTime := make([]IPWithTimestamp, len(oldIps))
+		for i, ip := range oldIps {
+			newIpsWithTime[i] = IPWithTimestamp{
+				IP:        ip,
+				Timestamp: time.Now().Unix(),
+			}
+		}
+		result, _ := json.Marshal(newIpsWithTime)
+		return string(result), nil
+	}
+	
+	// Return as-is if parsing fails
 	return InboundClientIps.Ips, nil
 }
 

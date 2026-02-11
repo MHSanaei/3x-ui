@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"embed"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -3083,9 +3084,41 @@ func (t *Tgbot) searchClientIps(chatId int64, email string, messageID ...int) {
 		ips = t.I18nBot("tgbot.noIpRecord")
 	}
 
+	formattedIps := ips
+	if err == nil && len(ips) > 0 {
+		type ipWithTimestamp struct {
+			IP        string `json:"ip"`
+			Timestamp int64  `json:"timestamp"`
+		}
+
+		var ipsWithTime []ipWithTimestamp
+		if json.Unmarshal([]byte(ips), &ipsWithTime) == nil && len(ipsWithTime) > 0 {
+			lines := make([]string, 0, len(ipsWithTime))
+			for _, item := range ipsWithTime {
+				if item.IP == "" {
+					continue
+				}
+				if item.Timestamp > 0 {
+					ts := time.Unix(item.Timestamp, 0).Format("2006-01-02 15:04:05")
+					lines = append(lines, fmt.Sprintf("%s (%s)", item.IP, ts))
+					continue
+				}
+				lines = append(lines, item.IP)
+			}
+			if len(lines) > 0 {
+				formattedIps = strings.Join(lines, "\n")
+			}
+		} else {
+			var oldIps []string
+			if json.Unmarshal([]byte(ips), &oldIps) == nil && len(oldIps) > 0 {
+				formattedIps = strings.Join(oldIps, "\n")
+			}
+		}
+	}
+
 	output := ""
 	output += t.I18nBot("tgbot.messages.email", "Email=="+email)
-	output += t.I18nBot("tgbot.messages.ips", "IPs=="+ips)
+	output += t.I18nBot("tgbot.messages.ips", "IPs=="+formattedIps)
 	output += t.I18nBot("tgbot.messages.refreshedOn", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 
 	inlineKeyboard := tu.InlineKeyboard(
