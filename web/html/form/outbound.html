@@ -700,14 +700,12 @@
           <a-form-item label="ECH Config List">
             <a-input v-model.trim="outbound.stream.tls.echConfigList"></a-input>
           </a-form-item>
-          <a-form-item label="Allow Insecure">
-            <a-switch v-model="outbound.stream.tls.allowInsecure"></a-switch>
-          </a-form-item>
           <a-form-item label="verify Peer Cert By Name">
             <a-input
-              v-model.trim="outbound.stream.tls.verifyPeerCertByName"></a-input>
+              v-model.trim="outbound.stream.tls.verifyPeerCertByName"
+              placeholder="cloudflare-dns.com"></a-input>
           </a-form-item>
-          <a-form-item label="pinned Peer Cert Sha256">
+          <a-form-item label=" pinned Peer Cert Sha256">
             <a-input v-model.trim="outbound.stream.tls.pinnedPeerCertSha256"
               placeholder="Enter SHA256 fingerprints (base64)">
             </a-input>
@@ -772,7 +770,8 @@
           <a-switch v-model="outbound.stream.sockopt.tcpFastOpen"></a-switch>
         </a-form-item>
         <a-form-item label="Multipath TCP">
-          <a-switch v-model.trim="outbound.stream.sockopt.tcpMptcp"></a-switch>
+          <a-switch
+            v-model.trim="outbound.stream.sockopt.tcpMptcp"></a-switch>
         </a-form-item>
         <a-form-item label="Penetrate">
           <a-switch v-model="outbound.stream.sockopt.penetrate"></a-switch>
@@ -799,7 +798,8 @@
         </a-form-item>
         <template v-if="outbound.mux.enabled">
           <a-form-item label="Concurrency">
-            <a-input-number v-model.number="outbound.mux.concurrency" :min="-1"
+            <a-input-number v-model.number="outbound.mux.concurrency"
+              :min="-1"
               :max="1024"></a-input-number>
           </a-form-item>
           <a-form-item label="xudp Concurrency">
