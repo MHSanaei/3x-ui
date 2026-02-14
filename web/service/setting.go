@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-    "net"
+	"net"
 	"reflect"
 	"strconv"
 	"strings"
@@ -719,25 +719,25 @@ func (s *SettingService) GetDefaultXrayConfig() (any, error) {
 }
 
 func extractHostname(host string) string {
-    h, _, err := net.SplitHostPort(host)
-    // Err is not nil means host does not contain port
-    if err != nil {
-        h = host
-    }
+	h, _, err := net.SplitHostPort(host)
+	// Err is not nil means host does not contain port
+	if err != nil {
+		h = host
+	}
 
-    ip := net.ParseIP(h)
-    // If it's not an IP, return as is
-    if ip == nil {
-        return h
-    }
+	ip := net.ParseIP(h)
+	// If it's not an IP, return as is
+	if ip == nil {
+		return h
+	}
 
-    // If it's an IPv4, return as is
-    if ip.To4() != nil {
-        return h
-    }
+	// If it's an IPv4, return as is
+	if ip.To4() != nil {
+		return h
+	}
 
-    // IPv6 needs bracketing
-    return "[" + h + "]"
+	// IPv6 needs bracketing
+	return "[" + h + "]"
 }
 
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
