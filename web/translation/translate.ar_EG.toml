@@ -525,6 +525,12 @@
 "accountInfo" = "معلومات الحساب"
 "outboundStatus" = "حالة المخرج"
 "sendThrough" = "أرسل من خلال"
+"test" = "اختبار"
+"testResult" = "نتيجة الاختبار"
+"testing" = "جاري اختبار الاتصال..."
+"testSuccess" = "الاختبار ناجح"
+"testFailed" = "فشل الاختبار"
+"testError" = "فشل اختبار المخرج"
 
 [pages.xray.balancer]
 "addBalancer" = "أضف موازن تحميل"

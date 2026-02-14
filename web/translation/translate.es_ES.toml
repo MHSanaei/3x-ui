@@ -525,6 +525,12 @@
 "accountInfo" = "Información de la Cuenta"
 "outboundStatus" = "Estado de Salida"
 "sendThrough" = "Enviar a través de"
+"test" = "Probar"
+"testResult" = "Resultado de la prueba"
+"testing" = "Probando conexión..."
+"testSuccess" = "Prueba exitosa"
+"testFailed" = "Prueba fallida"
+"testError" = "Error al probar la salida"
 
 [pages.xray.balancer]
 "addBalancer" = "Agregar equilibrador"

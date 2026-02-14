@@ -525,6 +525,12 @@
 "accountInfo" = "帳戶資訊"
 "outboundStatus" = "出站狀態"
 "sendThrough" = "傳送通過"
+"test" = "測試"
+"testResult" = "測試結果"
+"testing" = "正在測試連接..."
+"testSuccess" = "測試成功"
+"testFailed" = "測試失敗"
+"testError" = "測試出站失敗"
 
 [pages.xray.balancer]
 "addBalancer" = "新增負載均衡"

@@ -525,6 +525,12 @@
 "accountInfo" = "اطلاعات حساب"
 "outboundStatus" = "وضعیت خروجی"
 "sendThrough" = "ارسال با"
+"test" = "تست"
+"testResult" = "نتیجه تست"
+"testing" = "در حال تست اتصال..."
+"testSuccess" = "تست موفقیت‌آمیز"
+"testFailed" = "تست ناموفق"
+"testError" = "خطا در تست خروجی"
 
 [pages.xray.balancer]
 "addBalancer" = "افزودن بالانسر"

@@ -525,6 +525,12 @@
 "accountInfo" = "Informasi Akun"
 "outboundStatus" = "Status Keluar"
 "sendThrough" = "Kirim Melalui"
+"test" = "Tes"
+"testResult" = "Hasil Tes"
+"testing" = "Menguji koneksi..."
+"testSuccess" = "Tes berhasil"
+"testFailed" = "Tes gagal"
+"testError" = "Gagal menguji outbound"
 
 [pages.xray.balancer]
 "addBalancer" = "Tambahkan Penyeimbang"

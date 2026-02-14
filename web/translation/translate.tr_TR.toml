@@ -525,6 +525,12 @@
 "accountInfo" = "Hesap Bilgileri"
 "outboundStatus" = "Giden Durumu"
 "sendThrough" = "Üzerinden Gönder"
+"test" = "Test"
+"testResult" = "Test Sonucu"
+"testing" = "Bağlantı test ediliyor..."
+"testSuccess" = "Test başarılı"
+"testFailed" = "Test başarısız"
+"testError" = "Giden test edilemedi"
 
 [pages.xray.balancer]
 "addBalancer" = "Dengeleyici Ekle"

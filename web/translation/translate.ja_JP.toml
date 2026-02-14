@@ -525,6 +525,12 @@
 "accountInfo" = "アカウント情報"
 "outboundStatus" = "アウトバウンドステータス"
 "sendThrough" = "送信経路"
+"test" = "テスト"
+"testResult" = "テスト結果"
+"testing" = "接続をテスト中..."
+"testSuccess" = "テスト成功"
+"testFailed" = "テスト失敗"
+"testError" = "アウトバウンドのテストに失敗しました"
 
 [pages.xray.balancer]
 "addBalancer" = "負荷分散追加"

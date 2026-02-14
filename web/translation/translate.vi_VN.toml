@@ -525,6 +525,12 @@
 "accountInfo" = "Thông tin tài khoản"
 "outboundStatus" = "Trạng thái đầu ra"
 "sendThrough" = "Gửi qua"
+"test" = "Kiểm tra"
+"testResult" = "Kết quả kiểm tra"
+"testing" = "Đang kiểm tra kết nối..."
+"testSuccess" = "Kiểm tra thành công"
+"testFailed" = "Kiểm tra thất bại"
+"testError" = "Không thể kiểm tra đầu ra"
 
 [pages.xray.balancer]
 "addBalancer" = "Thêm cân bằng"

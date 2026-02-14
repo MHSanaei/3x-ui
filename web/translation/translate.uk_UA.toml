@@ -525,6 +525,12 @@
 "accountInfo" = "Інформація про обліковий запис"
 "outboundStatus" = "Статус виходу"
 "sendThrough" = "Надіслати через"
+"test" = "Тест"
+"testResult" = "Результат тесту"
+"testing" = "Тестування з'єднання..."
+"testSuccess" = "Тест успішний"
+"testFailed" = "Тест не пройдено"
+"testError" = "Не вдалося протестувати вихідне з'єднання"
 
 [pages.xray.balancer]
 "addBalancer" = "Додати балансир"
