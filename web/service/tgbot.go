@@ -2585,8 +2585,12 @@ func (t *Tgbot) SendBackupToAdmins() {
 	if !t.IsRunning() {
 		return
 	}
-	for _, adminId := range adminIds {
+	for i, adminId := range adminIds {
 		t.sendBackup(int64(adminId))
+		// Add delay between sends to avoid Telegram rate limits
+		if i < len(adminIds)-1 {
+			time.Sleep(1 * time.Second)
+		}
 	}
 }
 
@@ -3596,13 +3600,17 @@ func (t *Tgbot) sendBackup(chatId int64) {
 		logger.Error("Error in trigger a checkpoint operation: ", err)
 	}
 
+	// Send database backup
 	file, err := os.Open(config.GetDBPath())
 	if err == nil {
+		defer file.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		document := tu.Document(
 			tu.ID(chatId),
 			tu.File(file),
 		)
-		_, err = bot.SendDocument(context.Background(), document)
+		_, err = bot.SendDocument(ctx, document)
 		if err != nil {
 			logger.Error("Error in uploading backup: ", err)
 		}
@@ -3610,13 +3618,20 @@ func (t *Tgbot) sendBackup(chatId int64) {
 		logger.Error("Error in opening db file for backup: ", err)
 	}
 
+	// Small delay between file sends
+	time.Sleep(500 * time.Millisecond)
+
+	// Send config.json backup
 	file, err = os.Open(xray.GetConfigPath())
 	if err == nil {
+		defer file.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
 		document := tu.Document(
 			tu.ID(chatId),
 			tu.File(file),
 		)
-		_, err = bot.SendDocument(context.Background(), document)
+		_, err = bot.SendDocument(ctx, document)
 		if err != nil {
 			logger.Error("Error in uploading config.json: ", err)
 		}
