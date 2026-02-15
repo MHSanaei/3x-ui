@@ -1,7 +1,7 @@
 # ========================================================
 # Stage: Builder
 # ========================================================
-FROM golang:1.25-alpine AS builder
+FROM golang:1.22-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
 
@@ -16,13 +16,13 @@ COPY . .
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
 RUN go build -ldflags "-w -s" -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+RUN if [ -f "./DockerInit.sh" ]; then chmod +x ./DockerInit.sh && ./DockerInit.sh "$TARGETARCH"; fi
 
 # ========================================================
 # Stage: Final Image of 3x-ui
 # ========================================================
-FROM alpine
-ENV TZ=Asia/Tehran
+FROM alpine:latest
+ENV TZ=Asia/Cairo
 WORKDIR /app
 
 RUN apk add --no-cache --update \
@@ -33,10 +33,17 @@ RUN apk add --no-cache --update \
   curl \
   openssl
 
+# --------------------------------------------------------
+# [هام] إضافة ملفات GeoIP و GeoSite لتجنب توقف السيرفر مستقبلاً
+# --------------------------------------------------------
+RUN mkdir -p /app/bin \
+    && curl -L -o /app/bin/geoip.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat \
+    && curl -L -o /app/bin/geosite.dat https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
+
 COPY --from=builder /app/build/ /app/
+# تأكدنا هنا من نسخ السكربتات الضرورية
 COPY --from=builder /app/DockerEntrypoint.sh /app/
 COPY --from=builder /app/x-ui.sh /usr/bin/x-ui
-
 
 # Configure fail2ban
 RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
@@ -51,6 +58,7 @@ RUN chmod +x \
   /usr/bin/x-ui
 
 ENV XUI_ENABLE_FAIL2BAN="true"
+ENV XRAY_LOCATION_ASSET=/app/bin/
 EXPOSE 2053
 VOLUME [ "/etc/x-ui" ]
 CMD [ "./x-ui" ]
