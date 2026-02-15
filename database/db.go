@@ -1,5 +1,5 @@
 // Package database provides database initialization, migration, and management utilities
-// for the 3x-ui panel using GORM with SQLite.
+// for the 3x-ui panel using GORM with SQLite and optional MySQL split storage.
 package database
 
 import (
@@ -11,33 +11,37 @@ import (
 	"os"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 var db *gorm.DB
+var inboundDB *gorm.DB
 
 const (
 	defaultUsername = "admin"
 	defaultPassword = "admin"
 )
 
-func initModels() error {
+func initSQLiteModels(includeInboundModels bool) error {
 	models := []any{
 		&model.User{},
-		&model.Inbound{},
 		&model.OutboundTraffics{},
 		&model.Setting{},
 		&model.InboundClientIps{},
-		&xray.ClientTraffic{},
 		&model.HistoryOfSeeders{},
+	}
+	if includeInboundModels {
+		models = append(models, &model.Inbound{}, &xray.ClientTraffic{})
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model); err != nil {
@@ -46,6 +50,87 @@ func initModels() error {
 		}
 	}
 	return nil
+}
+
+func initInboundModels() error {
+	if inboundDB == nil {
+		return errors.New("inbound database is nil")
+	}
+	models := []any{
+		&model.Inbound{},
+		&xray.ClientTraffic{},
+	}
+	for _, model := range models {
+		if err := inboundDB.AutoMigrate(model); err != nil {
+			log.Printf("Error auto migrating inbound model: %v", err)
+			return err
+		}
+	}
+	return nil
+}
+
+func migrateInboundDataIfNeeded() error {
+	if inboundDB == nil || db == nil || inboundDB == db {
+		return nil
+	}
+
+	var mysqlInboundCount int64
+	if err := inboundDB.Model(&model.Inbound{}).Count(&mysqlInboundCount).Error; err != nil {
+		return err
+	}
+	if mysqlInboundCount == 0 {
+		var sqliteInbounds []model.Inbound
+		if err := db.Model(&model.Inbound{}).Find(&sqliteInbounds).Error; err != nil {
+			return err
+		}
+		if len(sqliteInbounds) > 0 {
+			if err := inboundDB.CreateInBatches(&sqliteInbounds, 200).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	var mysqlClientTrafficCount int64
+	if err := inboundDB.Model(&xray.ClientTraffic{}).Count(&mysqlClientTrafficCount).Error; err != nil {
+		return err
+	}
+	if mysqlClientTrafficCount == 0 {
+		var sqliteClientTraffics []xray.ClientTraffic
+		if err := db.Model(&xray.ClientTraffic{}).Find(&sqliteClientTraffics).Error; err != nil {
+			return err
+		}
+		if len(sqliteClientTraffics) > 0 {
+			if err := inboundDB.CreateInBatches(&sqliteClientTraffics, 500).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func getMySQLDSN() string {
+	if dsn := strings.TrimSpace(os.Getenv("XUI_MYSQL_DSN")); dsn != "" {
+		return dsn
+	}
+
+	host := strings.TrimSpace(os.Getenv("XUI_MYSQL_HOST"))
+	port := strings.TrimSpace(os.Getenv("XUI_MYSQL_PORT"))
+	user := strings.TrimSpace(os.Getenv("XUI_MYSQL_USER"))
+	pass := os.Getenv("XUI_MYSQL_PASSWORD")
+	dbName := strings.TrimSpace(os.Getenv("XUI_MYSQL_DB"))
+	params := strings.TrimSpace(os.Getenv("XUI_MYSQL_PARAMS"))
+
+	if host == "" || user == "" || dbName == "" {
+		return ""
+	}
+	if port == "" {
+		port = "3306"
+	}
+	if params == "" {
+		params = "charset=utf8mb4&parseTime=True&loc=Local"
+	}
+	return user + ":" + pass + "@tcp(" + host + ":" + port + ")/" + dbName + "?" + params
 }
 
 // initUser creates a default admin user if the users table is empty.
@@ -142,9 +227,28 @@ func InitDB(dbPath string) error {
 	if err != nil {
 		return err
 	}
+	inboundDB = db
 
-	if err := initModels(); err != nil {
+	mysqlDSN := getMySQLDSN()
+	useDedicatedInboundDB := mysqlDSN != ""
+	if useDedicatedInboundDB {
+		mysqlInboundDB, mysqlErr := gorm.Open(mysql.Open(mysqlDSN), c)
+		if mysqlErr != nil {
+			return mysqlErr
+		}
+		inboundDB = mysqlInboundDB
+	}
+
+	if err := initSQLiteModels(!useDedicatedInboundDB); err != nil {
 		return err
+	}
+	if useDedicatedInboundDB {
+		if err := initInboundModels(); err != nil {
+			return err
+		}
+		if err := migrateInboundDataIfNeeded(); err != nil {
+			return err
+		}
 	}
 
 	isUsersEmpty, err := isTableEmpty("users")
@@ -160,18 +264,43 @@ func InitDB(dbPath string) error {
 
 // CloseDB closes the database connection if it exists.
 func CloseDB() error {
+	var closeErr error
+	if inboundDB != nil && db != nil && inboundDB != db {
+		sqlInboundDB, err := inboundDB.DB()
+		if err != nil {
+			closeErr = err
+		} else {
+			closeErr = sqlInboundDB.Close()
+		}
+	}
 	if db != nil {
 		sqlDB, err := db.DB()
 		if err != nil {
+			if closeErr != nil {
+				return closeErr
+			}
 			return err
 		}
-		return sqlDB.Close()
+		if err = sqlDB.Close(); err != nil {
+			if closeErr != nil {
+				return closeErr
+			}
+			return err
+		}
 	}
-	return nil
+	return closeErr
 }
 
 // GetDB returns the global GORM database instance.
 func GetDB() *gorm.DB {
+	return db
+}
+
+// GetInboundDB returns the DB used for inbounds and client traffics.
+func GetInboundDB() *gorm.DB {
+	if inboundDB != nil {
+		return inboundDB
+	}
 	return db
 }
 
