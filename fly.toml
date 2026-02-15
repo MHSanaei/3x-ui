@@ -1,10 +1,10 @@
-# fly.toml app configuration file generated for 3x-ui-eagpya on 2026-02-15T05:42:12Z
+# fly.toml app configuration file generated for 3x-ui--cxykg on 2026-02-15T05:56:23Z
 #
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = '3x-ui-eagpya'
-primary_region = 'fra'
+app = '3x-ui--cxykg'
+primary_region = 'iad'
 
 [build]
 
@@ -20,4 +20,4 @@ primary_region = 'fra'
   memory = '1gb'
   cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 2048
+  memory_mb = 1024
