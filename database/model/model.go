@@ -117,6 +117,7 @@ type Client struct {
 	Enable     bool   `json:"enable" form:"enable"`         // Whether the client is enabled
 	TgID       int64  `json:"tgId" form:"tgId"`             // Telegram user ID for notifications
 	SubID      string `json:"subId" form:"subId"`           // Subscription identifier
+	SubHost    string `json:"subHost,omitempty"`            // Optional host/IP override for exported client links
 	Comment    string `json:"comment" form:"comment"`       // Client comment
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp

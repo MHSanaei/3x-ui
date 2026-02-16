@@ -63,6 +63,7 @@ var defaultValueMap = map[string]string{
 	"subPort":                     "2096",
 	"subPath":                     "/sub/",
 	"subDomain":                   "",
+	"subDefaultHost":              "",
 	"subCertFile":                 "",
 	"subKeyFile":                  "",
 	"subUpdates":                  "12",
@@ -515,6 +516,10 @@ func (s *SettingService) GetSubDomain() (string, error) {
 	return s.getString("subDomain")
 }
 
+func (s *SettingService) GetSubDefaultHost() (string, error) {
+	return s.getString("subDefaultHost")
+}
+
 func (s *SettingService) SetSubCertFile(subCertFile string) error {
 	return s.setString("subCertFile", subCertFile)
 }
@@ -754,6 +759,9 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subTitle":      func() (any, error) { return s.GetSubTitle() },
 		"subURI":        func() (any, error) { return s.GetSubURI() },
 		"subJsonURI":    func() (any, error) { return s.GetSubJsonURI() },
+		"subDefaultHost": func() (any, error) {
+			return s.GetSubDefaultHost()
+		},
 		"remarkModel":   func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":    func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
