@@ -2,25 +2,16 @@ name: Release 3X-UI
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to upload release assets to (e.g. v2.6.1-tt). Leave empty to build without uploading.'
+        required: false
+        type: string
   release:
     types: [published]
   push:
-    branches:
-      - main
-      - claude/add-trusttunnel-protocol-vZFzn
     tags:
       - "v*.*.*"
-    paths:
-      - '**.js'
-      - '**.css'
-      - '**.html'
-      - '**.sh'
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'x-ui.service.debian'
-      - 'x-ui.service.arch'
-      - 'x-ui.service.rhel'
 
 jobs:
   build:
@@ -142,11 +133,12 @@ jobs:
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
         if: |
-          (github.event_name == 'release' && github.event.action == 'published') ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+          github.event_name == 'release' ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.tag || github.ref }}
           file: x-ui-linux-${{ matrix.platform }}.tar.gz
           asset_name: x-ui-linux-${{ matrix.platform }}.tar.gz
           overwrite: true
@@ -239,11 +231,12 @@ jobs:
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
         if: |
-          (github.event_name == 'release' && github.event.action == 'published') ||
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+          github.event_name == 'release' ||
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+          (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '')
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ github.ref }}
+          tag: ${{ github.event.inputs.tag || github.ref }}
           file: x-ui-windows-amd64.zip
           asset_name: x-ui-windows-amd64.zip
           overwrite: true
