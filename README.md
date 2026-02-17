@@ -42,7 +42,11 @@ This fork adds support for [TrustTunnel](https://github.com/TrustTunnel/TrustTun
 curl -fsSL https://raw.githubusercontent.com/TrustTunnel/TrustTunnel/refs/heads/master/scripts/install.sh | sh -s --
 ```
 
-2. Install/update 3x-ui as usual (the panel will auto-detect the TrustTunnel binary)
+2. Install/update 3x-ui from this fork:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/yelloduxx/3x-ui/master/install.sh)
+```
 
 3. In the panel, create a new inbound and select `trusttunnel` as the protocol
 
@@ -70,7 +74,7 @@ TrustTunnel integration is designed for minimal merge conflicts:
 ## Quick Start
 
 ```bash
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
+bash <(curl -Ls https://raw.githubusercontent.com/yelloduxx/3x-ui/master/install.sh)
 ```
 
 For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
