@@ -8,6 +8,7 @@ const Protocols = {
     HTTP: 'http',
     WIREGUARD: 'wireguard',
     TUN: 'tun',
+    TRUSTTUNNEL: 'trusttunnel',
 };
 
 const SSMethods = {
@@ -1201,6 +1202,7 @@ class Inbound extends XrayCommonClass {
             case Protocols.VLESS: return this.settings.vlesses;
             case Protocols.TROJAN: return this.settings.trojans;
             case Protocols.SHADOWSOCKS: return this.isSSMultiUser ? this.settings.shadowsockses : null;
+            case Protocols.TRUSTTUNNEL: return this.settings.clients;
             default: return null;
         }
     }
@@ -1827,6 +1829,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
             case Protocols.TUN: return new Inbound.TunSettings(protocol);
+            case Protocols.TRUSTTUNNEL: return new Inbound.TrustTunnelSettings(protocol);
             default: return null;
         }
     }
@@ -1842,6 +1845,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
             case Protocols.TUN: return Inbound.TunSettings.fromJson(json);
+            case Protocols.TRUSTTUNNEL: return Inbound.TrustTunnelSettings.fromJson(json);
             default: return null;
         }
     }
@@ -2705,6 +2709,126 @@ Inbound.TunSettings = class extends Inbound.Settings {
             name: this.name || 'xray0',
             mtu: this.mtu || 1500,
             userLevel: this.userLevel || 0,
+        };
+    }
+};
+
+Inbound.TrustTunnelSettings = class extends Inbound.Settings {
+    constructor(
+        protocol,
+        hostname = '',
+        certFile = '',
+        keyFile = '',
+        enableHttp1 = true,
+        enableHttp2 = true,
+        enableQuic = true,
+        ipv6Available = true,
+        allowPrivateNetwork = false,
+        clients = [new Inbound.TrustTunnelSettings.Client()],
+    ) {
+        super(protocol);
+        this.hostname = hostname;
+        this.certFile = certFile;
+        this.keyFile = keyFile;
+        this.enableHttp1 = enableHttp1;
+        this.enableHttp2 = enableHttp2;
+        this.enableQuic = enableQuic;
+        this.ipv6Available = ipv6Available;
+        this.allowPrivateNetwork = allowPrivateNetwork;
+        this.clients = clients;
+    }
+
+    addClient() {
+        this.clients.push(new Inbound.TrustTunnelSettings.Client());
+    }
+
+    delClient(index) {
+        this.clients.splice(index, 1);
+    }
+
+    static fromJson(json = {}) {
+        return new Inbound.TrustTunnelSettings(
+            Protocols.TRUSTTUNNEL,
+            json.hostname,
+            json.certFile,
+            json.keyFile,
+            json.enableHttp1 ?? true,
+            json.enableHttp2 ?? true,
+            json.enableQuic ?? true,
+            json.ipv6Available ?? true,
+            json.allowPrivateNetwork ?? false,
+            (json.clients || []).map(c => Inbound.TrustTunnelSettings.Client.fromJson(c)),
+        );
+    }
+
+    toJson() {
+        return {
+            hostname: this.hostname,
+            certFile: this.certFile,
+            keyFile: this.keyFile,
+            enableHttp1: this.enableHttp1,
+            enableHttp2: this.enableHttp2,
+            enableQuic: this.enableQuic,
+            ipv6Available: this.ipv6Available,
+            allowPrivateNetwork: this.allowPrivateNetwork,
+            clients: this.clients.map(c => c.toJson()),
+        };
+    }
+};
+
+Inbound.TrustTunnelSettings.Client = class extends XrayCommonClass {
+    constructor(
+        email = RandomUtil.randomText(8) + '@trusttunnel',
+        password = RandomUtil.randomSeq(16),
+        enable = true,
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        tgId = '',
+        subId = RandomUtil.randomText(16),
+        comment = '',
+        reset = 0,
+    ) {
+        super();
+        this.email = email;
+        this.password = password;
+        this.enable = enable;
+        this.limitIp = limitIp;
+        this.totalGB = totalGB;
+        this.expiryTime = expiryTime;
+        this.tgId = tgId;
+        this.subId = subId;
+        this.comment = comment;
+        this.reset = reset;
+    }
+
+    static fromJson(json = {}) {
+        return new Inbound.TrustTunnelSettings.Client(
+            json.email,
+            json.password,
+            json.enable ?? true,
+            json.limitIp,
+            json.totalGB,
+            json.expiryTime,
+            json.tgId,
+            json.subId,
+            json.comment,
+            json.reset,
+        );
+    }
+
+    toJson() {
+        return {
+            email: this.email,
+            password: this.password,
+            enable: this.enable,
+            limitIp: this.limitIp,
+            totalGB: this.totalGB,
+            expiryTime: this.expiryTime,
+            tgId: this.tgId,
+            subId: this.subId,
+            comment: this.comment,
+            reset: this.reset,
         };
     }
 };

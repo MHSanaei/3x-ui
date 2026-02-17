@@ -15,7 +15,7 @@
         </template>
         <a-input v-model.trim="client.email"></a-input>
     </a-form-item>
-    <a-form-item v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS">
+    <a-form-item v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.SHADOWSOCKS || inbound.protocol === Protocols.TRUSTTUNNEL">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
@@ -23,7 +23,7 @@
                 </template>
                 {{ i18n "password" }}
                 <a-icon v-if="inbound.protocol === Protocols.SHADOWSOCKS" @click="client.password = RandomUtil.randomShadowsocksPassword(inbound.settings.method)" type="sync"></a-icon>
-                <a-icon v-if="inbound.protocol === Protocols.TROJAN" @click="client.password = RandomUtil.randomSeq(10)"type="sync"> </a-icon>
+                <a-icon v-if="inbound.protocol === Protocols.TROJAN || inbound.protocol === Protocols.TRUSTTUNNEL" @click="client.password = RandomUtil.randomSeq(10)"type="sync"> </a-icon>
             </a-tooltip>
         </template>
         <a-input v-model.trim="client.password"></a-input>

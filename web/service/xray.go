@@ -113,6 +113,10 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		if !inbound.Enable {
 			continue
 		}
+		// Skip TrustTunnel inbounds — they are managed by TrustTunnelService, not Xray
+		if inbound.Protocol == "trusttunnel" {
+			continue
+		}
 		// get settings clients
 		settings := map[string]any{}
 		json.Unmarshal([]byte(inbound.Settings), &settings)

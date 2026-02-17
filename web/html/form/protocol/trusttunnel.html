@@ -1,0 +1,100 @@
+{{define "form/trusttunnel"}}
+<a-form :colon="false" :label-col="{ md: {span:8} }"
+    :wrapper-col="{ md: {span:14} }">
+
+    <a-form-item label="Hostname">
+        <a-input v-model.trim="inbound.settings.hostname"
+            placeholder="example.com"></a-input>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.certificate" }}</span>
+                </template>
+                Certificate Path
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="inbound.settings.certFile"
+            placeholder="/path/to/fullchain.pem"></a-input>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.key" }}</span>
+                </template>
+                Private Key Path
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="inbound.settings.keyFile"
+            placeholder="/path/to/privkey.pem"></a-input>
+    </a-form-item>
+
+    <a-divider :style="{ margin: '10px 0' }">Transport Protocols</a-divider>
+
+    <a-form-item label="HTTP/1.1">
+        <a-switch v-model="inbound.settings.enableHttp1"></a-switch>
+    </a-form-item>
+
+    <a-form-item label="HTTP/2">
+        <a-switch v-model="inbound.settings.enableHttp2"></a-switch>
+    </a-form-item>
+
+    <a-form-item label="QUIC (HTTP/3)">
+        <a-switch v-model="inbound.settings.enableQuic"></a-switch>
+    </a-form-item>
+
+    <a-divider :style="{ margin: '10px 0' }">Network</a-divider>
+
+    <a-form-item label="IPv6">
+        <a-switch v-model="inbound.settings.ipv6Available"></a-switch>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>Allow connections to private network addresses (10.x, 192.168.x, etc.)</span>
+                </template>
+                Private Network
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-switch v-model="inbound.settings.allowPrivateNetwork"></a-switch>
+    </a-form-item>
+
+    <a-divider :style="{ margin: '10px 0' }">
+        Clients
+        <a-button icon="plus" type="primary" size="small"
+            @click="inbound.settings.addClient()"></a-button>
+    </a-divider>
+
+    <a-form v-for="(client, index) in inbound.settings.clients" :colon="false"
+        :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+        <a-divider :style="{ margin: '0' }">
+            Client [[ index + 1 ]]
+            <a-icon v-if="inbound.settings.clients.length > 1" type="delete"
+                @click="() => inbound.settings.delClient(index)"
+                :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }">
+            </a-icon>
+        </a-divider>
+
+        <a-form-item label="Username">
+            <a-input v-model.trim="client.email"></a-input>
+        </a-form-item>
+
+        <a-form-item label='{{ i18n "password" }}'>
+            <a-input v-model.trim="client.password"></a-input>
+        </a-form-item>
+
+        <a-form-item label='{{ i18n "enable" }}'>
+            <a-switch v-model="client.enable"></a-switch>
+        </a-form-item>
+    </a-form>
+</a-form>
+{{end}}

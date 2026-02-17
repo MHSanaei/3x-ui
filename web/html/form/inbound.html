@@ -152,6 +152,11 @@
     {{template "form/tun"}}
 </template>
 
+<!-- trusttunnel -->
+<template v-if="inbound.protocol === Protocols.TRUSTTUNNEL">
+    {{template "form/trusttunnel"}}
+</template>
+
 <!-- stream settings -->
 <template v-if="inbound.canEnableStream()">
     {{template "form/streamSettings"}}

@@ -63,6 +63,10 @@ class DBInbound {
         return this.protocol === Protocols.WIREGUARD;
     }
 
+    get isTrustTunnel() {
+        return this.protocol === Protocols.TRUSTTUNNEL;
+    }
+
     get address() {
         let address = location.hostname;
         if (!ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0") {
@@ -124,6 +128,7 @@ class DBInbound {
             case Protocols.VMESS:
             case Protocols.VLESS:
             case Protocols.TROJAN:
+            case Protocols.TRUSTTUNNEL:
                 return true;
             case Protocols.SHADOWSOCKS:
                 return this.toInbound().isSSMultiUser;

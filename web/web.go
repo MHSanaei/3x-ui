@@ -101,9 +101,10 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   service.Tgbot
+	xrayService        service.XrayService
+	settingService     service.SettingService
+	tgbotService       service.Tgbot
+	trustTunnelService *service.TrustTunnelService
 
 	wsHub *websocket.Hub
 
@@ -117,8 +118,9 @@ type Server struct {
 func NewServer() *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Server{
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:                ctx,
+		cancel:             cancel,
+		trustTunnelService: service.NewTrustTunnelService(),
 	}
 }
 
@@ -299,6 +301,11 @@ func (s *Server) startTask() {
 	if err != nil {
 		logger.Warning("start xray failed:", err)
 	}
+
+	// Start TrustTunnel processes for all enabled TrustTunnel inbounds
+	service.SetTrustTunnelService(s.trustTunnelService)
+	s.trustTunnelService.StartAll()
+
 	// Check whether xray is running every second
 	s.cron.AddJob("@every 1s", job.NewCheckXrayRunningJob())
 
@@ -317,6 +324,12 @@ func (s *Server) startTask() {
 		// Statistics every 10 seconds, start the delay for 5 seconds for the first time, and staggered with the time to restart xray
 		s.cron.AddJob("@every 10s", job.NewXrayTrafficJob())
 	}()
+
+	// Check for crashed TrustTunnel processes every 30 seconds
+	ttService := s.trustTunnelService
+	s.cron.AddFunc("@every 30s", func() {
+		ttService.CheckAndRestart()
+	})
 
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
@@ -455,6 +468,9 @@ func (s *Server) Start() (err error) {
 func (s *Server) Stop() error {
 	s.cancel()
 	s.xrayService.StopXray()
+	if s.trustTunnelService != nil {
+		s.trustTunnelService.StopAll()
+	}
 	if s.cron != nil {
 		s.cron.Stop()
 	}

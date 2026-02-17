@@ -270,6 +270,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "trusttunnel":
+			if client.Password == "" {
+				return inbound, false, common.NewError("empty client password")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -299,7 +303,14 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 	}
 
 	needRestart := false
-	if inbound.Enable {
+	if inbound.Enable && inbound.Protocol == "trusttunnel" {
+		// TrustTunnel inbounds are managed by TrustTunnelService, not Xray
+		if tt := GetTrustTunnelService(); tt != nil {
+			if err1 := tt.RestartForInbound(inbound); err1 != nil {
+				logger.Warning("Failed to start TrustTunnel:", err1)
+			}
+		}
+	} else if inbound.Enable {
 		s.xrayApi.Init(p.GetAPIPort())
 		inboundJson, err1 := json.MarshalIndent(inbound.GenXrayInboundConfig(), "", "  ")
 		if err1 != nil {
@@ -327,19 +338,33 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 
 	var tag string
 	needRestart := false
-	result := db.Model(model.Inbound{}).Select("tag").Where("id = ? and enable = ?", id, true).First(&tag)
-	if result.Error == nil {
-		s.xrayApi.Init(p.GetAPIPort())
-		err1 := s.xrayApi.DelInbound(tag)
-		if err1 == nil {
-			logger.Debug("Inbound deleted by api:", tag)
-		} else {
-			logger.Debug("Unable to delete inbound by api:", err1)
-			needRestart = true
+
+	// Check if this is a TrustTunnel inbound (skip xray API for those)
+	var protocol string
+	db.Model(model.Inbound{}).Select("protocol").Where("id = ?", id).First(&protocol)
+	isTrustTunnel := protocol == string(model.TrustTunnel)
+
+	if isTrustTunnel {
+		// Stop TrustTunnel process for this inbound
+		db.Model(model.Inbound{}).Select("tag").Where("id = ?", id).First(&tag)
+		if tt := GetTrustTunnelService(); tt != nil && tag != "" {
+			tt.StopForInbound(tag)
 		}
-		s.xrayApi.Close()
 	} else {
-		logger.Debug("No enabled inbound founded to removing by api", tag)
+		result := db.Model(model.Inbound{}).Select("tag").Where("id = ? and enable = ?", id, true).First(&tag)
+		if result.Error == nil {
+			s.xrayApi.Init(p.GetAPIPort())
+			err1 := s.xrayApi.DelInbound(tag)
+			if err1 == nil {
+				logger.Debug("Inbound deleted by api:", tag)
+			} else {
+				logger.Debug("Unable to delete inbound by api:", err1)
+				needRestart = true
+			}
+			s.xrayApi.Close()
+		} else {
+			logger.Debug("No enabled inbound founded to removing by api", tag)
+		}
 	}
 
 	// Delete client traffics of inbounds
@@ -489,6 +514,20 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 
 	needRestart := false
+	if oldInbound.Protocol == "trusttunnel" {
+		// TrustTunnel inbounds are managed by TrustTunnelService
+		err = tx.Save(oldInbound).Error
+		if err != nil {
+			return inbound, false, err
+		}
+		if tt := GetTrustTunnelService(); tt != nil {
+			if err1 := tt.RestartForInbound(oldInbound); err1 != nil {
+				logger.Warning("Failed to restart TrustTunnel:", err1)
+			}
+		}
+		return inbound, false, nil
+	}
+
 	s.xrayApi.Init(p.GetAPIPort())
 	if s.xrayApi.DelInbound(tag) == nil {
 		logger.Debug("Old inbound deleted by api:", tag)
@@ -606,6 +645,10 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
+		case "trusttunnel":
+			if client.Password == "" {
+				return false, common.NewError("empty client password")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -643,6 +686,25 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}()
 
 	needRestart := false
+	if oldInbound.Protocol == "trusttunnel" {
+		// TrustTunnel: just save client stats and restart the TrustTunnel process
+		for _, client := range clients {
+			if len(client.Email) > 0 {
+				s.AddClientStat(tx, data.Id, &client)
+			}
+		}
+		err = tx.Save(oldInbound).Error
+		if err != nil {
+			return false, err
+		}
+		if tt := GetTrustTunnelService(); tt != nil {
+			if err1 := tt.RestartForInbound(oldInbound); err1 != nil {
+				logger.Warning("Failed to restart TrustTunnel:", err1)
+			}
+		}
+		return false, nil
+	}
+
 	s.xrayApi.Init(p.GetAPIPort())
 	for _, client := range clients {
 		if len(client.Email) > 0 {
@@ -693,7 +755,7 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 	if oldInbound.Protocol == "trojan" {
 		client_key = "password"
 	}
-	if oldInbound.Protocol == "shadowsocks" {
+	if oldInbound.Protocol == "shadowsocks" || oldInbound.Protocol == "trusttunnel" {
 		client_key = "email"
 	}
 
@@ -745,6 +807,19 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 			return false, err
 		}
 		if needApiDel && notDepleted {
+			if oldInbound.Protocol == "trusttunnel" {
+				// TrustTunnel: save and restart process instead of xray API
+				err = db.Save(oldInbound).Error
+				if err != nil {
+					return false, err
+				}
+				if tt := GetTrustTunnelService(); tt != nil {
+					if err1 := tt.RestartForInbound(oldInbound); err1 != nil {
+						logger.Warning("Failed to restart TrustTunnel:", err1)
+					}
+				}
+				return false, nil
+			}
 			s.xrayApi.Init(p.GetAPIPort())
 			err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email)
 			if err1 == nil {
@@ -798,7 +873,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		case "trojan":
 			oldClientId = oldClient.Password
 			newClientId = clients[0].Password
-		case "shadowsocks":
+		case "shadowsocks", "trusttunnel":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
 		default:
@@ -896,6 +971,20 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		}
 	}
 	needRestart := false
+	if oldInbound.Protocol == "trusttunnel" {
+		// TrustTunnel: save and restart process instead of xray API
+		err = tx.Save(oldInbound).Error
+		if err != nil {
+			return false, err
+		}
+		if tt := GetTrustTunnelService(); tt != nil {
+			if err1 := tt.RestartForInbound(oldInbound); err1 != nil {
+				logger.Warning("Failed to restart TrustTunnel:", err1)
+			}
+		}
+		return false, nil
+	}
+
 	if len(oldEmail) > 0 {
 		s.xrayApi.Init(p.GetAPIPort())
 		if oldClients[clientIndex].Enable {
@@ -2490,6 +2579,18 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 		}
 
 		if needApiDel {
+			if oldInbound.Protocol == "trusttunnel" {
+				err = db.Save(oldInbound).Error
+				if err != nil {
+					return false, err
+				}
+				if tt := GetTrustTunnelService(); tt != nil {
+					if err1 := tt.RestartForInbound(oldInbound); err1 != nil {
+						logger.Warning("Failed to restart TrustTunnel:", err1)
+					}
+				}
+				return false, nil
+			}
 			s.xrayApi.Init(p.GetAPIPort())
 			if err1 := s.xrayApi.RemoveUser(oldInbound.Tag, email); err1 == nil {
 				logger.Debug("Client deleted by api:", email)
