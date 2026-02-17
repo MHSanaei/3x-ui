@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - claude/add-trusttunnel-protocol-vZFzn
     tags:
       - "v*.*.*"
     paths:
