@@ -769,14 +769,19 @@ install_x-ui() {
 
     # Download resources
     if [ $# == 0 ]; then
+        # Try /releases/latest first (skips prereleases), then fall back to first entry in /releases
         tag_version=$(curl -Ls "https://api.github.com/repos/${GH_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
-            echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version=$(curl -4 -Ls "https://api.github.com/repos/${GH_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-            if [[ ! -n "$tag_version" ]]; then
-                echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
-                exit 1
-            fi
+            echo -e "${yellow}No stable release found, checking all releases (including pre-releases)...${plain}"
+            tag_version=$(curl -Ls "https://api.github.com/repos/${GH_REPO}/releases" | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+        fi
+        if [[ ! -n "$tag_version" ]]; then
+            echo -e "${yellow}Trying with IPv4...${plain}"
+            tag_version=$(curl -4 -Ls "https://api.github.com/repos/${GH_REPO}/releases" | grep '"tag_name":' | head -n 1 | sed -E 's/.*"([^"]+)".*/\1/')
+        fi
+        if [[ ! -n "$tag_version" ]]; then
+            echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
+            exit 1
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz "https://github.com/${GH_REPO}/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
