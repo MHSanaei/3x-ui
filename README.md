@@ -22,6 +22,51 @@
 
 As an enhanced fork of the original X-UI project, 3X-UI provides improved stability, broader protocol support, and additional features.
 
+## TrustTunnel Support
+
+This fork adds support for [TrustTunnel](https://github.com/TrustTunnel/TrustTunnel) — a fast VPN protocol by AdGuard, written in Rust. TrustTunnel runs as a separate process alongside Xray and can be managed through the same panel UI.
+
+### How it works
+
+- TrustTunnel appears as a protocol option (`trusttunnel`) when creating a new inbound
+- Each TrustTunnel inbound runs its own process independently of Xray
+- Supports multiple clients with username/password authentication
+- Supports HTTP/1.1, HTTP/2, and QUIC (HTTP/3) transports
+- Uses its own TLS certificates (configured per inbound)
+
+### Installation
+
+1. Install the TrustTunnel binary:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TrustTunnel/TrustTunnel/refs/heads/master/scripts/install.sh | sh -s --
+```
+
+2. Install/update 3x-ui as usual (the panel will auto-detect the TrustTunnel binary)
+
+3. In the panel, create a new inbound and select `trusttunnel` as the protocol
+
+### Configuration
+
+When creating a TrustTunnel inbound, you need to specify:
+
+| Field | Description |
+|-------|-------------|
+| **Port** | Listen port (e.g., 443) |
+| **Hostname** | Domain name for TLS SNI matching |
+| **Certificate Path** | Path to TLS certificate chain (PEM) |
+| **Private Key Path** | Path to TLS private key (PEM) |
+| **Transport Protocols** | Enable/disable HTTP/1.1, HTTP/2, QUIC |
+| **Clients** | Username/password pairs for authentication |
+
+### Upgrading 3x-ui
+
+TrustTunnel integration is designed for minimal merge conflicts:
+
+- **3 new files** are fully isolated (`trusttunnel/process.go`, `web/service/trusttunnel.go`, `web/html/form/protocol/trusttunnel.html`)
+- Changes to existing files are small and clearly marked
+- No database schema changes — settings are stored as JSON in the existing `Settings` field
+
 ## Quick Start
 
 ```bash
