@@ -1,0 +1,304 @@
+{{ template "page/head_start" .}}
+{{ template "page/head_end" .}}
+
+{{ template "page/body_start" .}}
+<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' clients-page'">
+  <a-sidebar></a-sidebar>
+  <a-layout id="content-layout">
+    <a-layout-content>
+      <a-spin :spinning="loading" :delay="200" tip="Loading...">
+        <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]">
+          <a-col>
+            <a-card hoverable>
+              <template #title>
+                <a-space>
+                  <a-button type="primary" icon="plus" @click="openAdd">Add Master Client</a-button>
+                  <a-button icon="sync" @click="refresh">Refresh</a-button>
+                </a-space>
+              </template>
+              <a-alert
+                v-if="errorMsg"
+                type="error"
+                :message="errorMsg"
+                show-icon
+                closable
+                @close="errorMsg = ''"
+                :style="{ marginBottom: '12px' }"
+              ></a-alert>
+              <a-table
+                :columns="columns"
+                :data-source="clients"
+                row-key="id"
+                :scroll="isMobile ? {} : { x: 1000 }"
+                :pagination="{ pageSize: 10 }"
+              >
+                <template slot="assignments" slot-scope="text, row">
+                  <a-space wrap>
+                    <a-tag v-for="ib in row.assignments" :key="`${row.id}-${ib.id}`" color="blue">
+                      [[ ib.remark ]] ([[ ib.port ]])
+                    </a-tag>
+                  </a-space>
+                </template>
+                <template slot="usage" slot-scope="text, row">
+                  [[ SizeFormatter.sizeFormat((row.usageUp || 0) + (row.usageDown || 0)) ]]
+                </template>
+                <template slot="expiry" slot-scope="text, row">
+                  [[ formatExpiry(row.expiryTime) ]]
+                </template>
+                <template slot="actions" slot-scope="text, row">
+                  <a-space>
+                    <a-button size="small" @click="openEdit(row)">Edit</a-button>
+                    <a-popconfirm
+                      title="Delete this master client and detach all assignments?"
+                      @confirm="remove(row)"
+                      ok-text="Delete"
+                      cancel-text="Cancel"
+                    >
+                      <a-button size="small" type="danger">Delete</a-button>
+                    </a-popconfirm>
+                  </a-space>
+                </template>
+              </a-table>
+            </a-card>
+          </a-col>
+        </a-row>
+
+        <a-modal
+          :visible="modal.visible"
+          :title="modal.editingId ? 'Edit Master Client' : 'Add Master Client'"
+          @ok="submit"
+          @cancel="closeModal"
+          ok-text="Save"
+        >
+          <a-form layout="vertical">
+            <a-form-item label="Display Name">
+              <a-input v-model.trim="form.name" placeholder="e.g. Team-A Premium"></a-input>
+            </a-form-item>
+            <a-form-item label="Email Prefix (for generated assignment emails)">
+              <a-input v-model.trim="form.emailPrefix" placeholder="e.g. teama"></a-input>
+            </a-form-item>
+            <a-row :gutter="12">
+              <a-col :span="12">
+                <a-form-item label="Traffic Quota (GB)">
+                  <a-input-number v-model="form.totalGB" :min="0" :style="{ width: '100%' }"></a-input-number>
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="IP Limit">
+                  <a-input-number v-model="form.limitIp" :min="0" :style="{ width: '100%' }"></a-input-number>
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-form-item label="Expiry Date">
+              <a-date-picker
+                show-time
+                :style="{ width: '100%' }"
+                :value="form.expiryMoment"
+                @change="onExpiryChange"
+                format="YYYY-MM-DD HH:mm"
+              ></a-date-picker>
+            </a-form-item>
+            <a-form-item label="Assigned Inbounds">
+              <a-select
+                mode="multiple"
+                v-model="form.inboundIds"
+                :style="{ width: '100%' }"
+                placeholder="Select inbounds"
+              >
+                <a-select-option v-for="ib in availableInbounds" :key="ib.id" :value="ib.id">
+                  [[ ib.remark ]] (port [[ ib.port ]], [[ ib.protocol ]])
+                </a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item>
+              <a-switch v-model="form.enable"></a-switch>
+              <span :style="{ marginLeft: '8px' }">Enabled</span>
+            </a-form-item>
+            <a-form-item label="Comment">
+              <a-input v-model.trim="form.comment" placeholder="Optional note"></a-input>
+            </a-form-item>
+          </a-form>
+        </a-modal>
+      </a-spin>
+    </a-layout-content>
+  </a-layout>
+</a-layout>
+{{template "page/body_scripts" .}}
+{{template "component/aSidebar" .}}
+{{template "component/aThemeSwitch" .}}
+<script>
+  const app = new Vue({
+    delimiters: ['[[', ']]'],
+    mixins: [MediaQueryMixin],
+    el: '#app',
+    data: {
+      themeSwitcher,
+      loading: false,
+      errorMsg: '',
+      clients: [],
+      availableInbounds: [],
+      columns: [
+        { title: 'Name', dataIndex: 'name', key: 'name' },
+        { title: 'Prefix', dataIndex: 'emailPrefix', key: 'emailPrefix' },
+        { title: 'Quota', dataIndex: 'totalGB', key: 'totalGB', customRender: (v) => `${v} GB` },
+        { title: 'IP Limit', dataIndex: 'limitIp', key: 'limitIp' },
+        { title: 'Expiry', key: 'expiry', scopedSlots: { customRender: 'expiry' } },
+        { title: 'Assigned Inbounds', key: 'assignments', scopedSlots: { customRender: 'assignments' } },
+        { title: 'Usage', key: 'usage', scopedSlots: { customRender: 'usage' } },
+        {
+          title: 'Enabled',
+          dataIndex: 'enable',
+          key: 'enable',
+          customRender: (v) => v ? 'Yes' : 'No'
+        },
+        { title: 'Actions', key: 'actions', scopedSlots: { customRender: 'actions' } },
+      ],
+      modal: {
+        visible: false,
+        editingId: 0,
+      },
+      form: {
+        name: '',
+        emailPrefix: '',
+        totalGB: 0,
+        expiryTime: 0,
+        expiryMoment: null,
+        limitIp: 0,
+        enable: true,
+        comment: '',
+        inboundIds: [],
+      },
+    },
+    methods: {
+      formatExpiry(ts) {
+        if (!ts || ts <= 0) return 'Never';
+        return moment(ts).format('YYYY-MM-DD HH:mm');
+      },
+      onExpiryChange(value) {
+        this.form.expiryMoment = value;
+        this.form.expiryTime = value ? value.valueOf() : 0;
+      },
+      resetForm() {
+        this.form = {
+          name: '',
+          emailPrefix: '',
+          totalGB: 0,
+          expiryTime: 0,
+          expiryMoment: null,
+          limitIp: 0,
+          enable: true,
+          comment: '',
+          inboundIds: [],
+        };
+      },
+      closeModal() {
+        this.modal.visible = false;
+        this.modal.editingId = 0;
+        this.resetForm();
+      },
+      openAdd() {
+        this.resetForm();
+        this.modal.editingId = 0;
+        this.modal.visible = true;
+      },
+      openEdit(row) {
+        this.form = {
+          name: row.name,
+          emailPrefix: row.emailPrefix,
+          totalGB: row.totalGB,
+          expiryTime: row.expiryTime || 0,
+          expiryMoment: row.expiryTime > 0 ? moment(row.expiryTime) : null,
+          limitIp: row.limitIp,
+          enable: !!row.enable,
+          comment: row.comment || '',
+          inboundIds: (row.assignments || []).map(a => a.id),
+        };
+        this.modal.editingId = row.id;
+        this.modal.visible = true;
+      },
+      async fetchInbounds() {
+        const res = await axios.get('panel/api/clients/inbounds');
+        if (!res.data.success) {
+          throw new Error(res.data.msg || 'Failed to fetch inbounds');
+        }
+        this.availableInbounds = res.data.obj || [];
+      },
+      async fetchClients() {
+        const res = await axios.get('panel/api/clients/list');
+        if (!res.data.success) {
+          throw new Error(res.data.msg || 'Failed to fetch clients');
+        }
+        this.clients = res.data.obj || [];
+      },
+      async refresh() {
+        this.loading = true;
+        this.errorMsg = '';
+        try {
+          await Promise.all([this.fetchInbounds(), this.fetchClients()]);
+        } catch (e) {
+          this.errorMsg = e.message || String(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+      async submit() {
+        if (!this.form.name) {
+          return app.$message.error('Name is required');
+        }
+        if (!this.form.emailPrefix) {
+          return app.$message.error('Email prefix is required');
+        }
+        const payload = {
+          name: this.form.name,
+          emailPrefix: this.form.emailPrefix,
+          totalGB: this.form.totalGB || 0,
+          expiryTime: this.form.expiryTime || 0,
+          limitIp: this.form.limitIp || 0,
+          enable: !!this.form.enable,
+          comment: this.form.comment || '',
+          inboundIds: this.form.inboundIds || [],
+        };
+        this.loading = true;
+        this.errorMsg = '';
+        try {
+          let res;
+          if (this.modal.editingId) {
+            res = await axios.post(`panel/api/clients/update/${this.modal.editingId}`, payload);
+          } else {
+            res = await axios.post('panel/api/clients/add', payload);
+          }
+          if (!res.data.success) {
+            throw new Error(res.data.msg || 'Save failed');
+          }
+          app.$message.success(res.data.msg || 'Saved');
+          this.closeModal();
+          await this.refresh();
+        } catch (e) {
+          this.errorMsg = e.message || String(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+      async remove(row) {
+        this.loading = true;
+        this.errorMsg = '';
+        try {
+          const res = await axios.post(`panel/api/clients/del/${row.id}`);
+          if (!res.data.success) {
+            throw new Error(res.data.msg || 'Delete failed');
+          }
+          app.$message.success(res.data.msg || 'Deleted');
+          await this.refresh();
+        } catch (e) {
+          this.errorMsg = e.message || String(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+    },
+    async mounted() {
+      await this.refresh();
+    },
+  });
+</script>
+{{template "page/body_end" .}}

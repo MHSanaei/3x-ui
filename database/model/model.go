@@ -122,3 +122,30 @@ type Client struct {
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
 }
+
+// MasterClient stores centralized client profile data managed from the Clients page.
+// Actual protocol clients are still created per inbound and linked via MasterClientInbound.
+type MasterClient struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserId      int    `json:"userId" gorm:"index"`
+	Name        string `json:"name"`
+	EmailPrefix string `json:"emailPrefix" gorm:"index"`
+	TotalGB     int64  `json:"totalGB"`
+	ExpiryTime  int64  `json:"expiryTime"`
+	LimitIP     int    `json:"limitIp"`
+	Enable      bool   `json:"enable" gorm:"default:true"`
+	Comment     string `json:"comment"`
+	CreatedAt   int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt   int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
+
+// MasterClientInbound maps a master client to a concrete inbound client record.
+type MasterClientInbound struct {
+	Id              int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	MasterClientId  int    `json:"masterClientId" gorm:"index;uniqueIndex:idx_master_inbound,priority:1"`
+	InboundId       int    `json:"inboundId" gorm:"index;uniqueIndex:idx_master_inbound,priority:2"`
+	AssignmentEmail string `json:"assignmentEmail" gorm:"uniqueIndex"`
+	ClientKey       string `json:"clientKey"` // id/password/email key used by inbound update/delete endpoints
+	CreatedAt       int64  `json:"createdAt" gorm:"autoCreateTime:milli"`
+	UpdatedAt       int64  `json:"updatedAt" gorm:"autoUpdateTime:milli"`
+}
