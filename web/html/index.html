@@ -19,7 +19,7 @@
                 <a-spin tip='{{ i18n "loading" }}'></a-spin>
               </a-card>
             </a-row>
-            <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
+            <a-row class="dashboard-grid" :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
               <a-col>
                 <a-card hoverable>
                   <a-row :gutter="[0, isMobile ? 16 : 0]">

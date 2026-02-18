@@ -1,8 +1,12 @@
 {{define "component/sidebar/content"}}
 <template>
     <div class="ant-sidebar">
-        <a-layout-sider :theme="themeSwitcher.currentTheme" collapsible :collapsed="collapsed"
+        <a-layout-sider :theme="themeSwitcher.currentTheme" :width="228" :collapsed-width="72" collapsible :collapsed="collapsed"
             @collapse="(isCollapsed, type) => collapseHandle(isCollapsed, type)" breakpoint="md">
+            <div class="panel-brand" :class="{ collapsed: collapsed }">
+                <span class="panel-brand-mark">3X</span>
+                <span class="panel-brand-text" v-if="!collapsed">Control Grid</span>
+            </div>
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
                 @click="({key}) => openLink(key)">
@@ -16,6 +20,10 @@
             :wrap-class-name="themeSwitcher.currentTheme" :wrap-style="{ padding: 0 }" :style="{ height: '100%' }">
             <div class="drawer-handle" @click="toggleDrawer" slot="handle">
                 <a-icon :type="visible ? 'close' : 'menu-fold'"></a-icon>
+            </div>
+            <div class="panel-brand">
+                <span class="panel-brand-mark">3X</span>
+                <span class="panel-brand-text">Control Grid</span>
             </div>
             <a-theme-switch></a-theme-switch>
             <a-menu :theme="themeSwitcher.currentTheme" mode="inline" :selected-keys="activeTab"
@@ -34,6 +42,27 @@
 <style>
     .ant-sidebar>.ant-layout-sider {
         height: 100%;
+    }
+    .panel-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 10px 10px 4px;
+        padding: 8px 10px;
+        border-radius: 2px;
+    }
+    .panel-brand-mark {
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+        padding: 3px 6px;
+        border-radius: 2px;
+    }
+    .panel-brand-text {
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.85;
     }
 </style>
 
