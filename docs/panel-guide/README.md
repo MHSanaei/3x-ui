@@ -17,7 +17,10 @@ This folder is the focused replacement for the monolithic `PANEL_GUIDE_SOURCE_OF
 11. `11-troubleshooting-runbook.md`
 12. `12-change-management-and-rollout.md`
 13. `13-feature-file-map-and-decision-log.md`
-14. `99-session-context-transfer-2026-02-18.md`
+14. `14-marzban-inspired-roadmap.md`
+15. `15-remnawave-hiddify-analysis.md`
+16. `16-unified-product-roadmap.md`
+17. `99-session-context-transfer-2026-02-18.md`
 
 ## Recommended read order
 
@@ -32,7 +35,10 @@ This folder is the focused replacement for the monolithic `PANEL_GUIDE_SOURCE_OF
 9. Read `11` for incident/debug operation.
 10. Read `12` before any risky rollout/migration.
 11. Read `13` before modifying custom feature code.
-12. Read `99` for full session handoff context.
+12. Read `14` for Marzban-inspired implementation roadmap.
+13. Read `15` for Remnawave + Hiddify inspiration and adoption phases.
+14. Read `16` for the complete unified execution roadmap.
+15. Read `99` for full session handoff context.
 
 ## Scope note
 

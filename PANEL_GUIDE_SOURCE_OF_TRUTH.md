@@ -1228,6 +1228,7 @@ Index:
 - `docs/panel-guide/11-troubleshooting-runbook.md`
 - `docs/panel-guide/12-change-management-and-rollout.md`
 - `docs/panel-guide/13-feature-file-map-and-decision-log.md`
+- `docs/panel-guide/14-marzban-inspired-roadmap.md`
 - `docs/panel-guide/99-session-context-transfer-2026-02-18.md`
 
 Use those files for day-to-day operations and implementation reference.
