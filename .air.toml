@@ -1,0 +1,35 @@
+root = "."
+tmp_dir = "tmp/bin"
+
+[build]
+cmd = "go build -o ./tmp/bin/3x-ui-dev ."
+entrypoint = "./tmp/bin/3x-ui-dev"
+full_bin = "XUI_DB_FOLDER=$PWD/tmp/db XUI_LOG_FOLDER=$PWD/tmp/logs XUI_DEBUG=true ./tmp/bin/3x-ui-dev run"
+include_ext = ["go", "html", "toml", "js", "css"]
+exclude_dir = ["tmp", ".git", ".vscode", "node_modules", "output", ".playwright-cli"]
+exclude_file = []
+delay = 1000
+stop_on_error = true
+send_interrupt = true
+kill_delay = 500
+
+[log]
+time = true
+
+[misc]
+clean_on_exit = false
+
+[screen]
+clear_on_rebuild = false
+keep_scroll = true
+
+[proxy]
+enabled = false
+proxy_port = 0
+app_port = 0
+
+[pre_cmd]
+commands = [
+  "mkdir -p tmp/db tmp/logs tmp/bin",
+  "[ -f tmp/db/x-ui.db ] || XUI_DB_FOLDER=$PWD/tmp/db XUI_LOG_FOLDER=$PWD/tmp/logs XUI_DEBUG=true go run . setting -port 2099 -username admin -password admin"
+]
