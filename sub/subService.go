@@ -1081,70 +1081,44 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
 // It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
 func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
-	// Input validation
-	if subId == "" {
-		return "", ""
-	}
-
-	// Get configured URIs first (highest priority)
 	configuredSubURI, _ := s.settingService.GetSubURI()
-	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
-
-	// Determine base scheme and host (cached to avoid duplicate calls)
-	var baseScheme, baseHostWithPort string
-	if configuredSubURI == "" || configuredSubJsonURI == "" {
-		baseScheme, baseHostWithPort = s.getBaseSchemeAndHost(scheme, hostWithPort)
-	}
-
-	// Build subscription URL
-	subURL = s.buildSingleURL(configuredSubURI, baseScheme, baseHostWithPort, subPath, subId)
-
-	// Build JSON subscription URL
-	subJsonURL = s.buildSingleURL(configuredSubJsonURI, baseScheme, baseHostWithPort, subJsonPath, subId)
-
-	return subURL, subJsonURL
-}
-
-// getBaseSchemeAndHost determines the base scheme and host from settings or falls back to request values
-func (s *SubService) getBaseSchemeAndHost(requestScheme, requestHostWithPort string) (string, string) {
-	subDomain, err := s.settingService.GetSubDomain()
-	if err != nil || subDomain == "" {
-		return requestScheme, requestHostWithPort
-	}
-
-	// Get port and TLS settings
+	configuredSubJSONURI, _ := s.settingService.GetSubJsonURI()
+	subDomain, _ := s.settingService.GetSubDomain()
 	subPort, _ := s.settingService.GetSubPort()
 	subKeyFile, _ := s.settingService.GetSubKeyFile()
 	subCertFile, _ := s.settingService.GetSubCertFile()
+	subJSONEnabled, _ := s.settingService.GetSubJsonEnable()
 
-	// Determine scheme from TLS configuration
-	scheme := "http"
-	if subKeyFile != "" && subCertFile != "" {
-		scheme = "https"
+	subURL, subJsonURL, err := service.BuildSubscriptionURLs(service.SubscriptionURLInput{
+		SubID: subId,
+
+		ConfiguredSubURI:     configuredSubURI,
+		ConfiguredSubJSONURI: configuredSubJSONURI,
+
+		SubDomain:   subDomain,
+		SubPort:     subPort,
+		SubPath:     subPath,
+		SubJSONPath: subJsonPath,
+
+		SubKeyFile:  subKeyFile,
+		SubCertFile: subCertFile,
+
+		RequestScheme:       requestSchemeOrDefault(scheme),
+		RequestHostWithPort: hostWithPort,
+
+		JSONEnabled: subJSONEnabled,
+	})
+	if err != nil {
+		return "", ""
 	}
-
-	// Build host:port, always include port for clarity
-	hostWithPort := fmt.Sprintf("%s:%d", subDomain, subPort)
-
-	return scheme, hostWithPort
+	return subURL, subJsonURL
 }
 
-// buildSingleURL constructs a single URL using configured URI or base components
-func (s *SubService) buildSingleURL(configuredURI, baseScheme, baseHostWithPort, basePath, subId string) string {
-	if configuredURI != "" {
-		return s.joinPathWithID(configuredURI, subId)
+func requestSchemeOrDefault(scheme string) string {
+	if scheme == "" {
+		return "http"
 	}
-
-	baseURL := fmt.Sprintf("%s://%s", baseScheme, baseHostWithPort)
-	return s.joinPathWithID(baseURL+basePath, subId)
-}
-
-// joinPathWithID safely joins a base path with a subscription ID
-func (s *SubService) joinPathWithID(basePath, subId string) string {
-	if strings.HasSuffix(basePath, "/") {
-		return basePath + subId
-	}
-	return basePath + "/" + subId
+	return scheme
 }
 
 // BuildPageData parses header and prepares the template view model.

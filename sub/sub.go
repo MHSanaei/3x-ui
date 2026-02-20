@@ -4,7 +4,6 @@ package sub
 
 import (
 	"context"
-	"crypto/tls"
 	"html/template"
 	"io"
 	"io/fs"
@@ -16,11 +15,11 @@ import (
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/serverutil"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	webpkg "github.com/mhsanaei/3x-ui/v2/web"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
 	"github.com/mhsanaei/3x-ui/v2/web/middleware"
-	"github.com/mhsanaei/3x-ui/v2/web/network"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 
 	"github.com/gin-gonic/gin"
@@ -330,21 +329,14 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
-
-	if certFile != "" || keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err == nil {
-			c := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
-			listener = network.NewAutoHttpsListener(listener)
-			listener = tls.NewListener(listener, c)
-			logger.Info("Sub server running HTTPS on", listener.Addr())
-		} else {
-			logger.Error("Error loading certificates:", err)
-			logger.Info("Sub server running HTTP on", listener.Addr())
-		}
+	wrapped := serverutil.WrapListenerWithOptionalTLS(listener, certFile, keyFile)
+	if wrapped.HTTPS {
+		listener = wrapped.Listener
+		logger.Info("Sub server running HTTPS on", listener.Addr())
 	} else {
+		if wrapped.CertErr != nil {
+			logger.Error("Error loading certificates:", wrapped.CertErr)
+		}
 		logger.Info("Sub server running HTTP on", listener.Addr())
 	}
 	s.listener = listener

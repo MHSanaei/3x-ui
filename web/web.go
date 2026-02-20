@@ -4,7 +4,6 @@ package web
 
 import (
 	"context"
-	"crypto/tls"
 	"embed"
 	"html/template"
 	"io"
@@ -18,12 +17,12 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/mhsanaei/3x-ui/v2/serverutil"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/web/controller"
 	"github.com/mhsanaei/3x-ui/v2/web/job"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
 	"github.com/mhsanaei/3x-ui/v2/web/middleware"
-	"github.com/mhsanaei/3x-ui/v2/web/network"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/websocket"
 
@@ -414,20 +413,14 @@ func (s *Server) Start() (err error) {
 	if err != nil {
 		return err
 	}
-	if certFile != "" || keyFile != "" {
-		cert, err := tls.LoadX509KeyPair(certFile, keyFile)
-		if err == nil {
-			c := &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
-			listener = network.NewAutoHttpsListener(listener)
-			listener = tls.NewListener(listener, c)
-			logger.Info("Web server running HTTPS on", listener.Addr())
-		} else {
-			logger.Error("Error loading certificates:", err)
-			logger.Info("Web server running HTTP on", listener.Addr())
-		}
+	wrapped := serverutil.WrapListenerWithOptionalTLS(listener, certFile, keyFile)
+	if wrapped.HTTPS {
+		listener = wrapped.Listener
+		logger.Info("Web server running HTTPS on", listener.Addr())
 	} else {
+		if wrapped.CertErr != nil {
+			logger.Error("Error loading certificates:", wrapped.CertErr)
+		}
 		logger.Info("Web server running HTTP on", listener.Addr())
 	}
 	s.listener = listener
