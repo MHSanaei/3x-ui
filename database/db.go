@@ -35,6 +35,7 @@ func initModels() error {
 		&model.Inbound{},
 		&model.OutboundTraffics{},
 		&model.Setting{},
+		&model.AppSettings{},
 		&model.InboundClientIps{},
 		&model.MasterClient{},
 		&model.MasterClientInbound{},
@@ -146,6 +147,9 @@ func InitDB(dbPath string) error {
 	}
 
 	if err := initModels(); err != nil {
+		return err
+	}
+	if err := initAppSettings(); err != nil {
 		return err
 	}
 

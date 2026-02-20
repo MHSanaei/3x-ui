@@ -3,7 +3,6 @@ package service
 import (
 	_ "embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net"
 	"reflect"
@@ -15,7 +14,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
-	"github.com/mhsanaei/3x-ui/v2/util/random"
 	"github.com/mhsanaei/3x-ui/v2/util/reflect_util"
 	"github.com/mhsanaei/3x-ui/v2/web/entity"
 	"github.com/mhsanaei/3x-ui/v2/xray"
@@ -24,85 +22,7 @@ import (
 //go:embed config.json
 var xrayTemplateConfig string
 
-var defaultValueMap = map[string]string{
-	"xrayTemplateConfig":          xrayTemplateConfig,
-	"webListen":                   "",
-	"webDomain":                   "",
-	"webPort":                     "2053",
-	"webCertFile":                 "",
-	"webKeyFile":                  "",
-	"secret":                      random.Seq(32),
-	"webBasePath":                 "/",
-	"sessionMaxAge":               "360",
-	"pageSize":                    "25",
-	"expireDiff":                  "0",
-	"trafficDiff":                 "0",
-	"remarkModel":                 "-ieo",
-	"timeLocation":                "Local",
-	"tgBotEnable":                 "false",
-	"tgBotToken":                  "",
-	"tgBotProxy":                  "",
-	"tgBotAPIServer":              "",
-	"tgBotChatId":                 "",
-	"tgRunTime":                   "@daily",
-	"tgBotBackup":                 "false",
-	"tgBotLoginNotify":            "true",
-	"tgCpu":                       "80",
-	"tgLang":                      "en-US",
-	"twoFactorEnable":             "false",
-	"twoFactorToken":              "",
-	"subEnable":                   "true",
-	"subJsonEnable":               "false",
-	"subTitle":                    "",
-	"subSupportUrl":               "",
-	"subProfileUrl":               "",
-	"subAnnounce":                 "",
-	"subEnableRouting":            "true",
-	"subRoutingRules":             "",
-	"subListen":                   "",
-	"subPort":                     "2096",
-	"subPath":                     "/sub/",
-	"subDomain":                   "",
-	"subCertFile":                 "",
-	"subKeyFile":                  "",
-	"subUpdates":                  "12",
-	"subEncrypt":                  "true",
-	"subShowInfo":                 "true",
-	"subURI":                      "",
-	"subJsonPath":                 "/json/",
-	"subJsonURI":                  "",
-	"subJsonFragment":             "",
-	"subJsonNoises":               "",
-	"subJsonMux":                  "",
-	"subJsonRules":                "",
-	"datepicker":                  "gregorian",
-	"warp":                        "",
-	"externalTrafficInformEnable": "false",
-	"externalTrafficInformURI":    "",
-	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
-
-	// LDAP defaults
-	"ldapEnable":            "false",
-	"ldapHost":              "",
-	"ldapPort":              "389",
-	"ldapUseTLS":            "false",
-	"ldapBindDN":            "",
-	"ldapPassword":          "",
-	"ldapBaseDN":            "",
-	"ldapUserFilter":        "(objectClass=person)",
-	"ldapUserAttr":          "mail",
-	"ldapVlessField":        "vless_enabled",
-	"ldapSyncCron":          "@every 1m",
-	"ldapFlagField":         "",
-	"ldapTruthyValues":      "true,1,yes,on",
-	"ldapInvertFlag":        "false",
-	"ldapInboundTags":       "",
-	"ldapAutoCreate":        "false",
-	"ldapAutoDelete":        "false",
-	"ldapDefaultTotalGB":    "0",
-	"ldapDefaultExpiryDays": "0",
-	"ldapDefaultLimitIP":    "0",
-}
+var defaultValueMap = model.DefaultSettingValues(xrayTemplateConfig)
 
 // SettingService provides business logic for application settings management.
 // It handles configuration storage, retrieval, and validation for all system settings.
@@ -118,74 +38,37 @@ func (s *SettingService) GetDefaultJsonConfig() (any, error) {
 }
 
 func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
-	db := database.GetDB()
-	settings := make([]*model.Setting, 0)
-	err := db.Model(model.Setting{}).Not("key = ?", "xrayTemplateConfig").Find(&settings).Error
-	if err != nil {
-		return nil, err
-	}
 	allSetting := &entity.AllSetting{}
 	t := reflect.TypeOf(allSetting).Elem()
 	v := reflect.ValueOf(allSetting).Elem()
 	fields := reflect_util.GetFields(t)
-
-	setSetting := func(key, value string) (err error) {
-		defer func() {
-			panicErr := recover()
-			if panicErr != nil {
-				err = errors.New(fmt.Sprint(panicErr))
-			}
-		}()
-
-		var found bool
-		var field reflect.StructField
-		for _, f := range fields {
-			if f.Tag.Get("json") == key {
-				field = f
-				found = true
-				break
-			}
-		}
-
-		if !found {
-			// Some settings are automatically generated, no need to return to the front end to modify the user
-			return nil
-		}
-
-		fieldV := v.FieldByName(field.Name)
-		switch t := fieldV.Interface().(type) {
-		case int:
-			n, err := strconv.ParseInt(value, 10, 64)
-			if err != nil {
-				return err
-			}
-			fieldV.SetInt(n)
-		case string:
-			fieldV.SetString(value)
-		case bool:
-			fieldV.SetBool(value == "true")
-		default:
-			return common.NewErrorf("unknown field %v type %v", key, t)
-		}
-		return
-	}
-
-	keyMap := map[string]bool{}
-	for _, setting := range settings {
-		err := setSetting(setting.Key, setting.Value)
-		if err != nil {
-			return nil, err
-		}
-		keyMap[setting.Key] = true
-	}
-
-	for key, value := range defaultValueMap {
-		if keyMap[key] {
+	for _, field := range fields {
+		key := field.Tag.Get("json")
+		if key == "" {
 			continue
 		}
-		err := setSetting(key, value)
+		value, err := s.getString(key)
 		if err != nil {
 			return nil, err
+		}
+		fieldV := v.FieldByName(field.Name)
+		switch fieldV.Kind() {
+		case reflect.String:
+			fieldV.SetString(value)
+		case reflect.Bool:
+			parsed, err := strconv.ParseBool(value)
+			if err != nil {
+				return nil, err
+			}
+			fieldV.SetBool(parsed)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			parsed, err := strconv.ParseInt(value, 10, 64)
+			if err != nil {
+				return nil, err
+			}
+			fieldV.SetInt(parsed)
+		default:
+			return nil, common.NewErrorf("unknown field %v type %v", key, fieldV.Kind())
 		}
 	}
 
@@ -194,15 +77,16 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 
 func (s *SettingService) ResetSettings() error {
 	db := database.GetDB()
-	err := db.Where("1 = 1").Delete(model.Setting{}).Error
-	if err != nil {
+	if err := db.Where("1 = 1").Delete(model.Setting{}).Error; err != nil {
 		return err
 	}
-	return db.Model(model.User{}).
-		Where("1 = 1").Error
+	if err := db.Where("1 = 1").Delete(model.AppSettings{}).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
-func (s *SettingService) getSetting(key string) (*model.Setting, error) {
+func (s *SettingService) getLegacySetting(key string) (*model.Setting, error) {
 	db := database.GetDB()
 	setting := &model.Setting{}
 	err := db.Model(model.Setting{}).Where("key = ?", key).First(setting).Error
@@ -212,24 +96,45 @@ func (s *SettingService) getSetting(key string) (*model.Setting, error) {
 	return setting, nil
 }
 
-func (s *SettingService) saveSetting(key string, value string) error {
-	setting, err := s.getSetting(key)
+func (s *SettingService) saveLegacySetting(key string, value string) error {
 	db := database.GetDB()
-	if database.IsNotFound(err) {
-		return db.Create(&model.Setting{
-			Key:   key,
-			Value: value,
-		}).Error
-	} else if err != nil {
+	setting := &model.Setting{}
+	return db.Where("key = ?", key).Assign(model.Setting{
+		Key:   key,
+		Value: value,
+	}).FirstOrCreate(setting).Error
+}
+
+func (s *SettingService) saveSetting(key string, value string) error {
+	repo := settingsRepository{}
+	recognized, err := repo.set(key, value)
+	if err != nil {
 		return err
 	}
-	setting.Key = key
-	setting.Value = value
-	return db.Save(setting).Error
+	// Keep shadow write for one release as compatibility fallback.
+	if legacyErr := s.saveLegacySetting(key, value); legacyErr != nil {
+		return legacyErr
+	}
+	if recognized {
+		return nil
+	}
+	return nil
 }
 
 func (s *SettingService) getString(key string) (string, error) {
-	setting, err := s.getSetting(key)
+	repo := settingsRepository{}
+	if value, recognized, err := repo.get(key); err == nil && recognized {
+		if key == "xrayTemplateConfig" && value == "" {
+			defaultTemplate := defaultValueMap[key]
+			_ = s.saveSetting(key, defaultTemplate)
+			return defaultTemplate, nil
+		}
+		return value, nil
+	} else if err != nil {
+		return "", err
+	}
+
+	setting, err := s.getLegacySetting(key)
 	if database.IsNotFound(err) {
 		value, ok := defaultValueMap[key]
 		if !ok {
