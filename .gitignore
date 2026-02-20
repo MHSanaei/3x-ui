@@ -10,6 +10,7 @@
 # Ignore temporary files
 tmp/
 *.tar.gz
+3x-ui-custom-*.zip
 
 # Ignore build and distribution directories
 backup/
