@@ -344,8 +344,7 @@
         const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = this.allSetting;
         const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
 
-        let base = webBasePath ? webBasePath.replace(/^\//, "") : "";
-        if (base && !base.endsWith("/")) base += "/";
+        const base = PathUtil.stripLeadingSlash(PathUtil.normalizePath(webBasePath));
 
         if (!this.entryIsIP) {
           const url = new URL(window.location.href);
@@ -604,20 +603,20 @@
       confAlerts: {
         get: function () {
           if (!this.allSetting) return [];
-          var alerts = []
+          const alerts = [];
           if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
           if (this.allSetting.webPort === 2053) alerts.push('{{ i18n "secAlertPanelPort" }}');
-          panelPath = window.location.pathname.split('/').length < 4
+          const panelPath = window.location.pathname.split('/').length < 4;
           if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
           if (this.allSetting.subEnable) {
-            subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
+            const subPath = PathUtil.normalizePath(this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath);
             if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
           }
           if (this.allSetting.subJsonEnable) {
-            subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
+            const subJsonPath = PathUtil.normalizePath(this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath);
             if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
           }
-          return alerts
+          return alerts;
         }
       }
     },

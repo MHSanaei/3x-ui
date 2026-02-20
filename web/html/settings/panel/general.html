@@ -46,7 +46,9 @@
             <template #title>{{ i18n "pages.settings.panelUrlPath"}}</template>
             <template #description>{{ i18n "pages.settings.panelUrlPathDesc"}}</template>
             <template #control>
-                <a-input type="text" v-model="allSetting.webBasePath"></a-input>
+                <a-input type="text" v-model="allSetting.webBasePath"
+                    @input="allSetting.webBasePath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
+                    @blur="allSetting.webBasePath = PathUtil.normalizePath(allSetting.webBasePath)"></a-input>
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">

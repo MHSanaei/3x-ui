@@ -717,6 +717,23 @@ class URLBuilder {
     }
 }
 
+class PathUtil {
+    static normalizePath(path) {
+        let normalized = path || "/";
+        if (!normalized.startsWith("/")) {
+            normalized = `/${normalized}`;
+        }
+        if (!normalized.endsWith("/")) {
+            normalized = `${normalized}/`;
+        }
+        return normalized.replace(/\/+/g, "/");
+    }
+
+    static stripLeadingSlash(path) {
+        return (path || "").replace(/^\/+/, "");
+    }
+}
+
 class LanguageManager {
     static supportedLanguages = [
         {
