@@ -30,6 +30,12 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
 
+## Settings Storage Migration
+
+The panel now uses a typed single-row settings model (`app_settings`) as the primary store.
+Legacy key/value settings are still read as a compatibility fallback for one release window.
+
+
 ## A Special Thanks to
 
 - [alireza0](https://github.com/alireza0/)

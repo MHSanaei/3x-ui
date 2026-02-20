@@ -54,3 +54,19 @@ api-clients-list: api-login
 # Remove local temp artifacts
 clean-tmp:
     rm -rf tmp
+
+
+# Run all unit tests
+test:
+    GOPROXY=direct go test ./...
+
+# Run static checks
+vet:
+    GOPROXY=direct go vet ./...
+
+staticcheck:
+    if command -v staticcheck >/dev/null 2>&1; then staticcheck ./...; else echo "staticcheck not installed"; fi
+
+# Print cyclomatic complexity snapshot
+complexity:
+    if command -v gocyclo >/dev/null 2>&1; then gocyclo -avg $(rg --files -g '*.go'); else echo "gocyclo not installed"; fi
