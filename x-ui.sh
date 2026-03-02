@@ -1671,234 +1671,11 @@ run_speedtest() {
     speedtest
 }
 
-run_librespeed() {
-    echo -e "${yellow}What do you want to do?\n1) Use\n2) Install/Update\n3) Delete"
-    read -p ": " action
-
-    if [ "$action" = 1 ]; then
-        if command -v librespeed-cli &>/dev/null; then
-            librespeed-cli
-        else
-            echo -e "${red}LibreSpeed is not installed!"
-        fi
-    
-    elif [ "$action" = 2 ]; then
-        echo -e "${yellow} Installing\Updating LibreSpeed..."
-        #Uninstall old version, or actual version
-        rm -f librespeed-cli_*_linux_amd64.tar.gz && rm -rf /usr/bin/librespeed-cli
-        VERSION=$(curl -s "https://api.github.com/repos/librespeed/speedtest-cli/releases/latest"| grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
-        wget https://github.com/librespeed/speedtest-cli/releases/download/v${VERSION}/librespeed-cli_${VERSION}_linux_amd64.tar.gz
-        tar -xzvf librespeed-cli_${VERSION}_linux_amd64.tar.gz && mv librespeed-cli /usr/bin
-        echo -e "${green}Starting libreSpeed... (Delete old archive)"
-        librespeed-cli
-    elif [ "$action" = 3 ]; then
-        #Uninstall LibreSpeed
-        rm -f librespeed-cli_*_linux_amd64.tar.gz && rm -rf /usr/bin/librespeed-cli
-        echo -e "${green}LibreSpeed was deleted!"
-    fi
-}
-
-create_honeypot() {
-    local server_ip=$(curl -s --max-time 3 https://4.ident.me)
-
-    echo -e "${plain}Do you want to use: ${green}Apache ${plain}or ${green}Nginx"
-
-    read -p "Apache or Nginx: " nginx_or_apache
-
-    echo -e "${yellow}Downloading sources and Utilites..."
-
-    if [ "$nginx_or_apache" = "Apache" ]; then
-        case "${release}" in
-        ubuntu)
-            apt-get update
-            apt-get install apache2 -y
-            ;;
-        debian)
-            apt-get update
-            apt-get install -y apache2
-            ;;
-        armbian)
-            apt-get update && apt-get install apache2 -y
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf -y install httpd
-            ;;
-        centos)
-            yum -y install apache2
-            ;;
-        arch | manjaro | parch)
-            pacman -Syu --noconfirm apache
-            ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1
-            ;;
-        esac
-
-        # Start apache server for HoneyPot
-        case "${release}" in
-        ubuntu)
-            systemctl enable apache2
-            systemctl start apache2
-            ;;
-        debian)
-            systemctl enable apache2
-            systemctl start apache2
-            ;;
-        armbian)
-            systemctl enable apache2
-            systemctl start apache2
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            systemctl enable httpd
-            systemctl start httpd
-            ;;
-        centos)
-            systemctl enable httpd
-            systemctl start httpd
-            ;;
-        arch | manjaro | parch)
-            systemctl enable apache
-            systemctl start apache
-            ;;
-        *)
-            echo -e "${red}Cannot start apache service.${plain}\n"
-            exit 1
-            ;;
-        esac
 
 
-        echo -e "${yellow}Installing HoneyPot..."
-        mv SpaceSaver/ /var/www/html/
-
-        # Config for apache2
-        echo """
-<VirtualHost *:80>
-    ServerName SpaceSaver
-    DocumentRoot /var/www/html/SpaceSaver
-
-    <Directory /var/www/html/SpaceSaver>
-        Options Indexes FollowSymLinks
-        AllowOverride All 
-        Require all granted
-    </Directory>
-
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
-</VirtualHost>""" >> /etc/apache2/sites-available/spacesaver.conf
-
-        ln -sf /etc/apache2/sites-available/spacesaver.conf /etc/apache2/sites-enabled/
-    
-        # Restarting apache server
-        case "${release}" in
-        ubuntu)
-            systemctl reload apache2
-            ;;
-        debian)
-            systemctl reload apache2
-            ;;
-        armbian)
-            systemctl reload apache2
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            systemctl reload httpd
-            ;;
-        centos)
-            systemctl reload httpd
-            ;;
-        arch | manjaro | parch)
-            systemctl reload httpd
-            ;;
-        *)
-            echo -e "${red}Cannot reload apache service.${plain}\n"
-            exit 1
-            ;;
-        esac
-
-        # Access rights to HoneyPot's files
-        chown -R www-data:www-data /var/www/html/SpaceSaver
-        chmod -R 755 /var/www/html/SpaceSaver
-        chmod 644 /var/www/html/SpaceSaver/index.html
-
-        echo -e "${plain}Done!"
-        echo -e "${green}Available here -> http://$server_ip:80"
-
-    elif [ "$nginx_or_apache" = "Nginx" ]; then
-        case "${release}" in
-        ubuntu)
-            apt-get update
-            apt-get install nginx -y
-            ;;
-        debian)
-            apt-get update
-            apt-get install -y nginx
-            ;;
-        armbian)
-            apt-get update && apt-get install nginx -y
-            ;;
-        fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf -y install nginx
-            ;;
-        centos)
-            yum -y install nginx
-            ;;
-        arch | manjaro | parch)
-            pacman -Syu --noconfirm nginx
-            ;;
-        *)
-            echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"
-            exit 1
-            ;;
-        esac
-
-        # Start nginx server for HoneyPot
-        systemctl enable nginx
-        systemctl start nginx
-
-        mv SpaceSaver/ /var/www/html/
-
-        # Config for nginx
-        tee /etc/nginx/sites-available/spacesaver.conf >/dev/null << 'EOF'
-        server {
-        listen 80 default_server;                  # ← важно для локального доступа
-        server_name 127.0.0.1 localhost SpaceSaver _;
-
-        root /var/www/html/SpaceSaver;
-        index index.html;
-
-        # Security Headers
-        add_header X-Content-Type-Options           nosniff always;
-        add_header X-Frame-Options                  SAMEORIGIN always;
-        add_header X-XSS-Protection                "1; mode=block" always;
-        add_header Referrer-Policy                 strict-origin-when-cross-origin always;
-        add_header Permissions-Policy              "interest-cohort=()" always;
-        add_header Strict-Transport-Security       "max-age=31536000; includeSubDomains" always;
-
-        server_tokens off;
-
-        location / {
-            try_files $uri $uri/ /index.html;
-            }
-
-        location ~ /\. {
-            deny all;
-            access_log off;
-            log_not_found off;
-            }
-
-        access_log /var/log/nginx/spacesaver.access.log;
-        error_log  /var/log/nginx/spacesaver.error.log;
-        }
-EOF
-
-        rm -f /etc/nginx/sites-enabled/default
-        ln -sf /etc/nginx/sites-available/spacesaver.conf /etc/nginx/sites-enabled/
-        systemctl reload nginx
-
-        echo -e "${plain}Done!"
-        echo -e "${green}Available here -> http://$server_ip:80"
-
-    fi
+ip_validation() {
+    ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
+    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
 }
 
 change_dns() {
@@ -1929,11 +1706,6 @@ change_dns() {
         fi
     fi
     echo -e "${green}${plain}Done!"
-}
-
-ip_validation() {
-    ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
-    ipv4_regex="^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9][0-9]?|0)$"
 }
 
 iplimit_main() {
@@ -2470,17 +2242,15 @@ show_menu() {
 │  ${green}21.${plain} IP Limit Management                       │
 │  ${green}22.${plain} Firewall Management                       │
 │  ${green}23.${plain} SSH Port Forwarding Management            │
-│  ${green}24.${plain} HoneyPot (Fakesite)                       │
-│  ${green}25.${plain} DNS Changer                               │
+│  ${green}24.${plain} DNS Changer                               │
 │────────────────────────────────────────────────│
-│  ${green}26.${plain} Enable BBR                                │
-│  ${green}27.${plain} Update Geo Files                          │
-│  ${green}28.${plain} Speedtest by Ookla                        │
-│  ${green}29.${plain} Librespeed                                │
+│  ${green}24.${plain} Enable BBR                                │
+│  ${green}25.${plain} Update Geo Files                          │
+│  ${green}26.${plain} Speedtest by Ookla                        │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-29]: " num
+    echo && read -rp "Please enter your selection [0-26]: " num
 
     case "${num}" in
     0)
@@ -2556,25 +2326,16 @@ show_menu() {
         SSH_port_forwarding
         ;;
     24)
-        create_honeypot
-        ;;
-    25)
-        change_dns
-        ;;
-    26)
         bbr_menu
         ;;
-    27)
+    25)
         update_geo
         ;;
-    28)
+    26)
         run_speedtest
         ;;
-    29)
-        run_librespeed
-        ;;
     *)
-        LOGE "Please enter the correct number [0-29]"
+        LOGE "Please enter the correct number [0-26]"
         ;;
     esac
 }
