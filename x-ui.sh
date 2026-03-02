@@ -1671,6 +1671,32 @@ run_speedtest() {
     speedtest
 }
 
+run_librespeed() {
+    echo -e "${yellow}What do you want to do?\n1) Use\n2) Install/Update\n3) Delete"
+    read -p ": " action
+
+    if [ "$action" = 1 ]; then
+        if command -v librespeed-cli &>/dev/null; then
+            librespeed-cli
+        else
+            echo -e "${red}LibreSpeed is not installed!"
+        fi
+    
+    elif [ "$action" = 2 ]; then
+        echo -e "${yellow} Installing\Updating LibreSpeed..."
+        #Uninstall old version, or actual version
+        rm -f librespeed-cli_*_linux_amd64.tar.gz && rm -rf /usr/bin/librespeed-cli
+        VERSION=$(curl -s "https://api.github.com/repos/librespeed/speedtest-cli/releases/latest"| grep '"tag_name":' | sed -E 's/.*"v?([^"]+)".*/\1/')
+        wget https://github.com/librespeed/speedtest-cli/releases/download/v${VERSION}/librespeed-cli_${VERSION}_linux_amd64.tar.gz
+        tar -xzvf librespeed-cli_${VERSION}_linux_amd64.tar.gz && mv librespeed-cli /usr/bin
+        echo -e "${green}Starting libreSpeed... (Delete old archive)"
+        librespeed-cli
+    elif [ "$action" = 3 ]; then
+        #Uninstall LibreSpeed
+        rm -f librespeed-cli_*_linux_amd64.tar.gz && rm -rf /usr/bin/librespeed-cli
+        echo -e "${green}LibreSpeed was deleted!"
+    fi
+}
 
 
 ip_validation() {
@@ -2216,10 +2242,11 @@ show_menu() {
 │  ${green}24.${plain} Enable BBR                                │
 │  ${green}25.${plain} Update Geo Files                          │
 │  ${green}26.${plain} Speedtest by Ookla                        │
+│  ${green}27.${plain} Librespeed                                │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-26]: " num
+    echo && read -rp "Please enter your selection [0-27]: " num
 
     case "${num}" in
     0)
@@ -2303,8 +2330,11 @@ show_menu() {
     26)
         run_speedtest
         ;;
+    27)
+        run_librespeed
+        ;;
     *)
-        LOGE "Please enter the correct number [0-26]"
+        LOGE "Please enter the correct number [0-27]"
         ;;
     esac
 }
