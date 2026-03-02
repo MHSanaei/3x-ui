@@ -1698,6 +1698,35 @@ run_librespeed() {
     fi
 }
 
+change_dns() {
+    echo -e "${yellow}Changing DNS resolver"
+    echo -e "${plain}Enter resolver (default: quad9): "
+    read resolver
+
+    IPv6_on=$(cat /proc/sys/net/ipv6/conf/all/disable_ipv6)
+    echo $IPv6_on
+
+    if [ "$IPv6_on" = 0 ]; then
+        echo -e "${green}Your server using IPv6!"
+        echo -e "${plain}Enter server for IPv6"
+        read -p ": " resolver_ipv6
+        if [ -n "$resolver" ] && [ -n "$resolver_ipv6" ]; then
+            echo "nameserver    $resolver" > /etc/resolv.conf
+            echo "nameserver    $resolver_ipv6" > /etc/resolv.conf
+        else
+            echo "nameserver    9.9.9.9" > /etc/resolv.conf 
+            echo "nameserver    2620:fe::fe" > /etc/resolv.conf
+        fi
+    else
+        echo -e "${green}IPv6 is disabled!"
+        if [ -n "$resolver" ]; then
+            echo "nameserver    $resolver" > /etc/resolv.conf
+        else
+            echo "nameserver    9.9.9.9" > /etc/resolv.conf
+        fi
+    fi
+    echo -e "${green}${plain}Done!"
+}
 
 ip_validation() {
     ipv6_regex="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))$"
@@ -2238,15 +2267,16 @@ show_menu() {
 │  ${green}21.${plain} IP Limit Management                       │
 │  ${green}22.${plain} Firewall Management                       │
 │  ${green}23.${plain} SSH Port Forwarding Management            │
+│  ${green}24.${plain} DNS Changer                               │
 │────────────────────────────────────────────────│
-│  ${green}24.${plain} Enable BBR                                │
-│  ${green}25.${plain} Update Geo Files                          │
-│  ${green}26.${plain} Speedtest by Ookla                        │
-│  ${green}27.${plain} Librespeed                                │
+│  ${green}25.${plain} Enable BBR                                │
+│  ${green}26.${plain} Update Geo Files                          │
+│  ${green}27.${plain} Speedtest by Ookla                        │
+│  ${green}28.${plain} Librespeed                                │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-27]: " num
+    echo && read -rp "Please enter your selection [0-28]: " num
 
     case "${num}" in
     0)
@@ -2322,19 +2352,22 @@ show_menu() {
         SSH_port_forwarding
         ;;
     24)
-        bbr_menu
+        change_dns
         ;;
     25)
-        update_geo
+        bbr_menu
         ;;
     26)
-        run_speedtest
+        update_geo
         ;;
     27)
+        run_speedtest
+        ;;
+    28)
         run_librespeed
         ;;
     *)
-        LOGE "Please enter the correct number [0-27]"
+        LOGE "Please enter the correct number [0-28]"
         ;;
     esac
 }
