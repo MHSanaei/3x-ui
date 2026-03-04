@@ -663,6 +663,7 @@
 "userSaved" = "✅ Telegramユーザーが保存されました。"
 "loginSuccess" = "✅ パネルに正常にログインしました。\r\n"
 "loginFailed" = "❗️ パネルのログインに失敗しました。\r\n"
+"2faFailed" = "2FAエラー"
 "report" = "🕰 定期報告：{{ .RunTime }}\r\n"
 "datetime" = "⏰ 日時：{{ .DateTime }}\r\n"
 "hostname" = "💻 ホスト名：{{ .Hostname }}\r\n"

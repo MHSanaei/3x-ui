@@ -663,6 +663,7 @@
 "userSaved" = "✅ Пользователь Telegram сохранен."
 "loginSuccess" = "✅ Успешный вход в панель.\r\n"
 "loginFailed" = "❗️ Ошибка входа в панель.\r\n"
+"2faFailed" = "Ошибка 2FA"
 "report" = "🕰 Запланированные отчеты: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Дата и время: {{ .DateTime }}\r\n"
 "hostname" = "💻 Имя хоста: {{ .Hostname }}\r\n"
