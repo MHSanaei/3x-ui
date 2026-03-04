@@ -720,6 +720,7 @@
 "error_add_client" = "⚠️ Lỗi:\n\n {{ .error }}"
 "using_default_value" = "Được rồi, tôi sẽ sử dụng giá trị mặc định. 😊"
 "incorrect_input" = "Dữ liệu bạn nhập không hợp lệ.\nCác chuỗi phải liền mạch và không có dấu cách.\nVí dụ đúng: aaaaaa\nVí dụ sai: aaa aaa 🚫"
+"invalid_subid" = "Định dạng không hợp lệ.\nSub ID chỉ có thể chứa chữ cái, số, dấu gạch ngang (-) và dấu gạch dưới (_).\nKhông cho phép khoảng trắng và các ký tự đặc biệt. 🚫"
 "AreYouSure" = "Bạn có chắc không? 🤔"
 "not_specified" = "Không xác định"
 "SuccessResetTraffic" = "📧 Email: {{ .ClientEmail }}\n🏁 Kết quả: ✅ Thành công"
@@ -769,7 +770,7 @@
 "change_comment" = "⚙️💬 Bình Luận"
 "change_subid" = "📝 Sub ID"
 "change_flow" = "🌊 Flow"
-"flow_empty" = "Trống"
+"flow_none" = "None"
 "ResetAllTraffics" = "Đặt lại tất cả lưu lượng"
 "SortedTrafficUsageReport" = "Báo cáo sử dụng lưu lượng đã sắp xếp"
 

@@ -720,6 +720,7 @@
 "error_add_client" = "⚠️ 錯誤:\n\n {{ .error }}"
 "using_default_value" = "好的，我會使用預設值。 😊"
 "incorrect_input" = "您的輸入無效。\n短語應連續輸入，不能有空格。\n正確示例: aaaaaa\n錯誤示例: aaa aaa 🚫"
+"invalid_subid" = "格式無效。\nSub ID 只能包含字母、數字、連字號 (-) 和底線 (_)。\n不允許使用空格和特殊字元。 🚫"
 "AreYouSure" = "你確定嗎？🤔"
 "not_specified" = "未指定"
 "SuccessResetTraffic" = "📧 電子郵件: {{ .ClientEmail }}\n🏁 結果: ✅ 成功"
@@ -769,7 +770,7 @@
 "change_comment" = "⚙️💬 評論"
 "change_subid" = "📝 Sub ID"
 "change_flow" = "🌊 Flow"
-"flow_empty" = "空"
+"flow_none" = "無"
 "ResetAllTraffics" = "重設所有流量"
 "SortedTrafficUsageReport" = "排序過的流量使用報告"
 

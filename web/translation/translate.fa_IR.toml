@@ -720,6 +720,9 @@
 "error_add_client" = "⚠️ خطا:\n\n {{ .error }}"
 "using_default_value" = "باشه، از مقدار پیش‌فرض استفاده می‌کنم. 😊"
 "incorrect_input" = "ورودی شما معتبر نیست.\nعبارت‌ها باید بدون فاصله باشند.\nمثال صحیح: aaaaaa\nمثال نادرست: aaa aaa 🚫"
+"invalid_subid" = "فرمت نامعتبر است.\nشناسه Sub ID فقط می‌تواند شامل حروف، اعداد، خط تیره (-) و خط زیر (_) باشد.\nاستفاده از فاصله و کاراکترهای خاص مجاز نیست. 🚫"
+"client_subid" = "شناسه اشتراک (Sub ID):"
+"client_flow" = "جریان (Flow):"
 "AreYouSure" = "مطمئنی؟ 🤔"
 "not_specified" = "مشخص نشده"
 "SuccessResetTraffic" = "📧 ایمیل: {{ .ClientEmail }}\n🏁 نتیجه: ✅ موفقیت‌آمیز"
@@ -769,7 +772,7 @@
 "change_comment" = "⚙️💬 نظر"
 "change_subid" = "📝 Sub ID"
 "change_flow" = "🌊 Flow"
-"flow_empty" = "خالی"
+"flow_none" = "هیچ"
 "ResetAllTraffics" = "بازنشانی همه ترافیک‌ها"
 "SortedTrafficUsageReport" = "گزارش استفاده از ترافیک مرتب‌شده"
 

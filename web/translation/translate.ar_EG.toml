@@ -720,6 +720,9 @@
 "error_add_client" = "⚠️ حصل خطأ:\n\n {{ .error }}"
 "using_default_value" = "تمام، هشيل على القيمة الافتراضية. 😊"
 "incorrect_input" = "المدخلات مش صحيحة.\nالكلمات لازم تكون متصلة من غير فراغات.\nمثال صحيح: aaaaaa\nمثال غلط: aaa aaa 🚫"
+"invalid_subid" = "تنسيق غير صالح.\nيمكن أن يحتوي Sub ID فقط على أحرف وأرقام وشرطات (-) وشرطات سفلية (_).\nالمسافات والأحرف الخاصة غير مسموح بها. 🚫"
+"client_subid" = "معرف الاشتراك (Sub ID):"
+"client_flow" = "التوجيه (Flow):"
 "AreYouSure" = "إنت متأكد؟ 🤔"
 "not_specified" = "غير محدد"
 "SuccessResetTraffic" = "📧 البريد الإلكتروني: {{ .ClientEmail }}\n🏁 النتيجة: ✅ تم بنجاح"
@@ -769,7 +772,7 @@
 "change_comment" = "⚙️💬 تعليق"
 "change_subid" = "📝 Sub ID"
 "change_flow" = "🌊 Flow"
-"flow_empty" = "فارغ"
+"flow_none" = "مفيش"
 "ResetAllTraffics" = "إعادة ضبط جميع الترافيك"
 "SortedTrafficUsageReport" = "تقرير استخدام الترافيك المرتب"
 
