@@ -408,6 +408,16 @@ restart() {
     fi
 }
 
+restart_xray() {
+    systemctl reload x-ui
+    LOGI "xray-core Restart signal sent successfully, Please check the log information to confirm whether xray restarted successfully"
+    sleep 2
+    show_xray_status
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
 status() {
     if [[ $release == "alpine" ]]; then
         rc-service x-ui status
@@ -421,7 +431,7 @@ status() {
 
 enable() {
     if [[ $release == "alpine" ]]; then
-        rc-update add x-ui
+        rc-update add x-ui default
     else
         systemctl enable x-ui
     fi
@@ -2154,6 +2164,7 @@ show_usage() {
 │  ${blue}x-ui start${plain}                 - Start                            │
 │  ${blue}x-ui stop${plain}                  - Stop                             │
 │  ${blue}x-ui restart${plain}               - Restart                          │
+|  ${blue}x-ui restart-xray${plain}          - Restart Xray                     │
 │  ${blue}x-ui status${plain}                - Current Status                   │
 │  ${blue}x-ui settings${plain}              - Current Settings                 │
 │  ${blue}x-ui enable${plain}                - Enable Autostart on OS Startup   │
@@ -2189,25 +2200,26 @@ show_menu() {
 │  ${green}11.${plain} Start                                     │
 │  ${green}12.${plain} Stop                                      │
 │  ${green}13.${plain} Restart                                   │
-│  ${green}14.${plain} Check Status                              │
-│  ${green}15.${plain} Logs Management                           │
+|  ${green}14.${plain} Restart Xray                              │
+│  ${green}15.${plain} Check Status                              │
+│  ${green}16.${plain} Logs Management                           │
 │────────────────────────────────────────────────│
-│  ${green}16.${plain} Enable Autostart                          │
-│  ${green}17.${plain} Disable Autostart                         │
+│  ${green}17.${plain} Enable Autostart                          │
+│  ${green}18.${plain} Disable Autostart                         │
 │────────────────────────────────────────────────│
-│  ${green}18.${plain} SSL Certificate Management                │
-│  ${green}19.${plain} Cloudflare SSL Certificate                │
-│  ${green}20.${plain} IP Limit Management                       │
-│  ${green}21.${plain} Firewall Management                       │
-│  ${green}22.${plain} SSH Port Forwarding Management            │
+│  ${green}19.${plain} SSL Certificate Management                │
+│  ${green}20.${plain} Cloudflare SSL Certificate                │
+│  ${green}21.${plain} IP Limit Management                       │
+│  ${green}22.${plain} Firewall Management                       │
+│  ${green}23.${plain} SSH Port Forwarding Management            │
 │────────────────────────────────────────────────│
-│  ${green}23.${plain} Enable BBR                                │
-│  ${green}24.${plain} Update Geo Files                          │
-│  ${green}25.${plain} Speedtest by Ookla                        │
+│  ${green}24.${plain} Enable BBR                                │
+│  ${green}25.${plain} Update Geo Files                          │
+│  ${green}26.${plain} Speedtest by Ookla                        │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-25]: " num
+    echo && read -rp "Please enter your selection [0-26]: " num
 
     case "${num}" in
     0)
@@ -2253,43 +2265,46 @@ show_menu() {
         check_install && restart
         ;;
     14)
-        check_install && status
+        check_install && restart_xray
         ;;
     15)
-        check_install && show_log
+        check_install && status
         ;;
     16)
-        check_install && enable
+        check_install && show_log
         ;;
     17)
-        check_install && disable
+        check_install && enable
         ;;
     18)
-        ssl_cert_issue_main
+        check_install && disable
         ;;
     19)
-        ssl_cert_issue_CF
+        ssl_cert_issue_main
         ;;
     20)
-        iplimit_main
+        ssl_cert_issue_CF
         ;;
     21)
-        firewall_menu
+        iplimit_main
         ;;
     22)
-        SSH_port_forwarding
+        firewall_menu
         ;;
     23)
-        bbr_menu
+        SSH_port_forwarding
         ;;
     24)
-        update_geo
+        bbr_menu
         ;;
     25)
+        update_geo
+        ;;
+    26)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-25]"
+        LOGE "Please enter the correct number [0-26]"
         ;;
     esac
 }
@@ -2304,6 +2319,9 @@ if [[ $# > 0 ]]; then
         ;;
     "restart")
         check_install 0 && restart 0
+        ;;
+    "restart-xray")
+        check_install 0 && restart_xray 0
         ;;
     "status")
         check_install 0 && status 0

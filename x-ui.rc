@@ -11,3 +11,8 @@ depend() {
 start_pre(){
     cd /usr/local/x-ui
 }
+reload() {
+  ebegin "Reloading ${RC_SVCNAME}"
+  kill -USR1  $pidfile
+  eend $?
+}

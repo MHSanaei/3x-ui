@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"math/big"
 	"net"
@@ -15,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -651,7 +653,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
-		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+message.From.FirstName)
+		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
 		}
@@ -2718,7 +2720,7 @@ func (t *Tgbot) prepareServerUsageInfo() string {
 		info += t.I18nBot("tgbot.messages.ip", "IP=="+t.I18nBot("tgbot.unknown"))
 		info += "\r\n"
 	} else {
-		for i := 0; i < len(netInterfaces); i++ {
+		for i := range netInterfaces {
 			if (netInterfaces[i].Flags & net.FlagUp) != 0 {
 				addrs, _ := netInterfaces[i].Addrs()
 
@@ -2787,29 +2789,29 @@ func (t *Tgbot) UserLoginNotify(username string, password string, ip string, tim
 
 // getInboundUsages retrieves and formats inbound usage information.
 func (t *Tgbot) getInboundUsages() string {
-	info := ""
+	var info strings.Builder
 	// get traffic
 	inbounds, err := t.inboundService.GetAllInbounds()
 	if err != nil {
 		logger.Warning("GetAllInbounds run failed:", err)
-		info += t.I18nBot("tgbot.answers.getInboundsFailed")
+		info.WriteString(t.I18nBot("tgbot.answers.getInboundsFailed"))
 	} else {
 		// NOTE:If there no any sessions here,need to notify here
 		// TODO:Sub-node push, automatic conversion format
 		for _, inbound := range inbounds {
-			info += t.I18nBot("tgbot.messages.inbound", "Remark=="+inbound.Remark)
-			info += t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port))
-			info += t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down))
+			info.WriteString(t.I18nBot("tgbot.messages.inbound", "Remark=="+inbound.Remark))
+			info.WriteString(t.I18nBot("tgbot.messages.port", "Port=="+strconv.Itoa(inbound.Port)))
+			info.WriteString(t.I18nBot("tgbot.messages.traffic", "Total=="+common.FormatTraffic((inbound.Up+inbound.Down)), "Upload=="+common.FormatTraffic(inbound.Up), "Download=="+common.FormatTraffic(inbound.Down)))
 
 			if inbound.ExpiryTime == 0 {
-				info += t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited"))
+				info.WriteString(t.I18nBot("tgbot.messages.expire", "Time=="+t.I18nBot("tgbot.unlimited")))
 			} else {
-				info += t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05"))
+				info.WriteString(t.I18nBot("tgbot.messages.expire", "Time=="+time.Unix((inbound.ExpiryTime/1000), 0).Format("2006-01-02 15:04:05")))
 			}
-			info += "\r\n"
+			info.WriteString("\r\n")
 		}
 	}
-	return info
+	return info.String()
 }
 
 // getInbounds creates an inline keyboard with all inbounds.
@@ -3059,12 +3061,9 @@ func (t *Tgbot) clientInfoMsg(
 	status := t.I18nBot("tgbot.offline")
 	isOnline := false
 	if p.IsRunning() {
-		for _, online := range p.GetOnlineClients() {
-			if online == traffic.Email {
-				status = t.I18nBot("tgbot.online")
-				isOnline = true
-				break
-			}
+		if slices.Contains(p.GetOnlineClients(), traffic.Email) {
+			status = t.I18nBot("tgbot.online")
+			isOnline = true
 		}
 	}
 
@@ -3429,11 +3428,11 @@ func (t *Tgbot) searchInbound(chatId int64, remark string) {
 		t.SendMsgToTgbot(chatId, info)
 
 		if len(inbound.ClientStats) > 0 {
-			output := ""
+			var output strings.Builder
 			for _, traffic := range inbound.ClientStats {
-				output += t.clientInfoMsg(&traffic, true, true, true, true, true, true)
+				output.WriteString(t.clientInfoMsg(&traffic, true, true, true, true, true, true))
 			}
-			t.SendMsgToTgbot(chatId, output)
+			t.SendMsgToTgbot(chatId, output.String())
 		}
 	}
 }
