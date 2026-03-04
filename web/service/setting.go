@@ -108,7 +108,7 @@ var defaultValueMap = map[string]string{
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
 
-func (s *SettingService) GetDefaultJsonConfig() (any, error) {
+func (s *SettingService) GetDefaultJSONConfig() (any, error) {
 	var jsonData any
 	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		return nil, err
 	}
 	allSetting := &entity.AllSetting{}
-	t := reflect.TypeOf(allSetting).Elem()
+	t := reflect.TypeFor[entity.AllSetting]()
 	v := reflect.ValueOf(allSetting).Elem()
 	fields := reflect_util.GetFields(t)
 
@@ -607,7 +607,7 @@ func (s *SettingService) GetIpLimitEnable() (bool, error) {
 	return (accessLogPath != "none" && accessLogPath != ""), nil
 }
 
-// LDAP exported getters
+// GetLdapEnable returns whether LDAP is enabled.
 func (s *SettingService) GetLdapEnable() (bool, error) {
 	return s.getBool("ldapEnable")
 }
@@ -694,7 +694,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	}
 
 	v := reflect.ValueOf(allSetting).Elem()
-	t := reflect.TypeOf(allSetting).Elem()
+	t := reflect.TypeFor[entity.AllSetting]()
 	fields := reflect_util.GetFields(t)
 	errs := make([]error, 0)
 	for _, field := range fields {
