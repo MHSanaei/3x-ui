@@ -3402,7 +3402,7 @@ func (t *Tgbot) addClient(chatId int64, msg string, messageID ...int) {
 			network, _ := streamSettings["network"].(string)
 			security, _ := streamSettings["security"].(string)
 
-			// Строго: только TCP и только с TLS или REALITY
+			// Strict: only TCP and only with TLS or REALITY
 			if network == "tcp" && (security == "tls" || security == "reality") {
 				canUseFlow = true
 			}
