@@ -709,6 +709,8 @@
 "received_email" = "📧📥 Email đã được cập nhật."
 "received_comment" = "💬📥 Bình luận đã được cập nhật."
 "received_subid" = "Sub ID đã được thay đổi thành công!"
+"client_subid" = "Sub ID:"
+"client_flow" = "Flow:"
 "id_prompt" = "🔑 ID mặc định: {{ .ClientId }}\n\nVui lòng nhập ID của bạn."
 "pass_prompt" = "🔑 Mật khẩu mặc định: {{ .ClientPassword }}\n\nVui lòng nhập mật khẩu của bạn."
 "email_prompt" = "📧 Email mặc định: {{ .ClientEmail }}\n\nVui lòng nhập email của bạn."

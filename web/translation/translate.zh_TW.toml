@@ -709,6 +709,8 @@
 "received_email" = "📧📥 電子郵件已更新。"
 "received_comment" = "💬📥 評論已更新。"
 "received_subid" = "Sub ID 修改成功！"
+"client_subid" = "Sub ID:"
+"client_flow" = "Flow:"
 "id_prompt" = "🔑 預設 ID: {{ .ClientId }}\n\n請輸入您的 ID。"
 "pass_prompt" = "🔑 預設密碼: {{ .ClientPassword }}\n\n請輸入您的密碼。"
 "email_prompt" = "📧 預設電子郵件: {{ .ClientEmail }}\n\n請輸入您的電子郵件。"

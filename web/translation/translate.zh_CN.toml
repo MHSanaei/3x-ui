@@ -709,6 +709,8 @@
 "received_email" = "📧📥 邮箱已更新。"
 "received_comment" = "💬📥 评论已更新。"
 "received_subid" = "Sub ID 修改成功！"
+"client_subid" = "Sub ID:"
+"client_flow" = "Flow:"
 "id_prompt" = "🔑 默认 ID: {{ .ClientId }}\n\n请输入您的 ID。"
 "pass_prompt" = "🔑 默认密码: {{ .ClientPassword }}\n\n请输入您的密码。"
 "email_prompt" = "📧 默认邮箱: {{ .ClientEmail }}\n\n请输入您的邮箱。"
