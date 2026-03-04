@@ -431,7 +431,7 @@ status() {
 
 enable() {
     if [[ $release == "alpine" ]]; then
-        rc-update add x-ui
+        rc-update add x-ui default
     else
         systemctl enable x-ui
     fi
