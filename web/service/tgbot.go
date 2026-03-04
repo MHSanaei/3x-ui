@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"math/big"
 	"net"
@@ -651,7 +652,7 @@ func (t *Tgbot) answerCommand(message *telego.Message, chatId int64, isAdmin boo
 		msg += t.I18nBot("tgbot.commands.help")
 		msg += t.I18nBot("tgbot.commands.pleaseChoose")
 	case "start":
-		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+message.From.FirstName)
+		msg += t.I18nBot("tgbot.commands.start", "Firstname=="+html.EscapeString(message.From.FirstName))
 		if isAdmin {
 			msg += t.I18nBot("tgbot.commands.welcome", "Hostname=="+hostname)
 		}
