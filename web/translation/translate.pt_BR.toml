@@ -663,6 +663,7 @@
 "userSaved" = "✅ Usuário do Telegram salvo."
 "loginSuccess" = "✅ Conectado ao painel com sucesso.\r\n"
 "loginFailed" = "❗️Tentativa de login no painel falhou.\r\n"
+"2faFailed" = "Falha no 2FA"
 "report" = "🕰 Relatórios agendados: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Data&Hora: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"

@@ -663,6 +663,7 @@
 "userSaved" = "✅ کاربر تلگرام ذخیره شد."
 "loginSuccess" = "✅ با موفقیت به پنل وارد شدید.\r\n"
 "loginFailed" = "❗️ ورود به پنل ناموفق‌بود \r\n"
+"2faFailed" = "خطای 2FA"
 "report" = "🕰 گزارشات‌زمان‌بندی‌شده: {{ .RunTime }}\r\n"
 "datetime" = "⏰ تاریخ‌وزمان: {{ .DateTime }}\r\n"
 "hostname" = "💻 نام‌میزبان: {{ .Hostname }}\r\n"

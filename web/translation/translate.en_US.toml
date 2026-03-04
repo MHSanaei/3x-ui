@@ -663,6 +663,7 @@
 "userSaved" = "✅ Telegram User saved."
 "loginSuccess" = "✅ Logged in to the panel successfully.\r\n"
 "loginFailed" = "❗️Login attempt to the panel failed.\r\n"
+"2faFailed" = "2FA Failed"
 "report" = "🕰 Scheduled Reports: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Date&Time: {{ .DateTime }}\r\n"
 "hostname" = "💻 Host: {{ .Hostname }}\r\n"

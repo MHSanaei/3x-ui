@@ -663,6 +663,7 @@
 "userSaved" = "✅ 電報使用者已儲存。"
 "loginSuccess" = "✅ 成功登入到面板。\r\n"
 "loginFailed" = "❗️ 面板登入失敗。\r\n"
+"2faFailed" = "2FA 失敗"
 "report" = "🕰 定時報告：{{ .RunTime }}\r\n"
 "datetime" = "⏰ 日期時間：{{ .DateTime }}\r\n"
 "hostname" = "💻 主機名：{{ .Hostname }}\r\n"
