@@ -1725,10 +1725,25 @@ class Inbound extends XrayCommonClass {
         }
     }
 
-    genAllLinks(remark = '', remarkModel = '-ieo', client) {
+    resolveLinkHost(client, defaultHost = '') {
+        if (client?.subHost && client.subHost.trim().length > 0) {
+            return client.subHost.trim();
+        }
+        if (this.settings?.subHost && this.settings.subHost.trim().length > 0) {
+            return this.settings.subHost.trim();
+        }
+        if (defaultHost && defaultHost.trim().length > 0) {
+            return defaultHost.trim();
+        }
+        return !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" && this.listen !== "::" && this.listen !== "::0"
+            ? this.listen
+            : location.hostname;
+    }
+
+    genAllLinks(remark = '', remarkModel = '-ieo', client, defaultHost = '') {
         let result = [];
         let email = client ? client.email : '';
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        let addr = this.resolveLinkHost(client, defaultHost);
         let port = this.port;
         const separationChar = remarkModel.charAt(0);
         const orderChars = remarkModel.slice(1);
@@ -1756,12 +1771,12 @@ class Inbound extends XrayCommonClass {
         return result;
     }
 
-    genInboundLinks(remark = '', remarkModel = '-ieo') {
-        let addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+    genInboundLinks(remark = '', remarkModel = '-ieo', defaultHost = '') {
+        let addr = this.resolveLinkHost(null, defaultHost);
         if (this.clients) {
             let links = [];
             this.clients.forEach((client) => {
-                this.genAllLinks(remark, remarkModel, client).forEach(l => {
+                this.genAllLinks(remark, remarkModel, client, defaultHost).forEach(l => {
                     links.push(l.link);
                 })
             });
@@ -1811,9 +1826,10 @@ class Inbound extends XrayCommonClass {
 }
 
 Inbound.Settings = class extends XrayCommonClass {
-    constructor(protocol) {
+    constructor(protocol, subHost = '') {
         super();
         this.protocol = protocol;
+        this.subHost = subHost;
     }
 
     static getSettings(protocol) {
@@ -1877,15 +1893,18 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.VmessSettings(
+        const obj = new Inbound.VmessSettings(
             Protocols.VMESS,
             json.clients.map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
+        obj.subHost = json.subHost || '';
+        return obj;
     }
 
     toJson() {
         return {
             clients: Inbound.VmessSettings.toJsonArray(this.vmesses),
+            subHost: this.subHost || undefined,
         };
     }
 };
@@ -1901,6 +1920,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        subHost = '',
         comment = '',
         reset = 0,
         created_at = undefined,
@@ -1916,6 +1936,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.subHost = subHost;
         this.comment = comment;
         this.reset = reset;
         this.created_at = created_at;
@@ -1933,6 +1954,7 @@ Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.subHost,
             json.comment,
             json.reset,
             json.created_at,
@@ -2009,6 +2031,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
             json.selectedAuth,
             testseed
         );
+        obj.subHost = json.subHost || '';
         return obj;
     }
 
@@ -2031,6 +2054,9 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         }
         if (this.selectedAuth) {
             json.selectedAuth = this.selectedAuth;
+        }
+        if (this.subHost) {
+            json.subHost = this.subHost;
         }
 
         // Only include testseed if at least one client has a flow set
@@ -2056,6 +2082,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        subHost = '',
         comment = '',
         reset = 0,
         created_at = undefined,
@@ -2071,6 +2098,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.subHost = subHost;
         this.comment = comment;
         this.reset = reset;
         this.created_at = created_at;
@@ -2088,6 +2116,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.subHost,
             json.comment,
             json.reset,
             json.created_at,
@@ -2177,16 +2206,19 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.TrojanSettings(
+        const obj = new Inbound.TrojanSettings(
             Protocols.TROJAN,
             json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
             Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
+        obj.subHost = json.subHost || '';
+        return obj;
     }
 
     toJson() {
         return {
             clients: Inbound.TrojanSettings.toJsonArray(this.trojans),
-            fallbacks: Inbound.TrojanSettings.toJsonArray(this.fallbacks)
+            fallbacks: Inbound.TrojanSettings.toJsonArray(this.fallbacks),
+            subHost: this.subHost || undefined,
         };
     }
 };
@@ -2201,6 +2233,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        subHost = '',
         comment = '',
         reset = 0,
         created_at = undefined,
@@ -2215,6 +2248,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.subHost = subHost;
         this.comment = comment;
         this.reset = reset;
         this.created_at = created_at;
@@ -2231,6 +2265,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            subHost: this.subHost,
             comment: this.comment,
             reset: this.reset,
             created_at: this.created_at,
@@ -2248,6 +2283,7 @@ Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.subHost,
             json.comment,
             json.reset,
             json.created_at,
@@ -2338,7 +2374,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
     }
 
     static fromJson(json = {}) {
-        return new Inbound.ShadowsocksSettings(
+        const obj = new Inbound.ShadowsocksSettings(
             Protocols.SHADOWSOCKS,
             json.method,
             json.password,
@@ -2346,6 +2382,8 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
             json.ivCheck,
         );
+        obj.subHost = json.subHost || '';
+        return obj;
     }
 
     toJson() {
@@ -2355,6 +2393,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             network: this.network,
             clients: Inbound.ShadowsocksSettings.toJsonArray(this.shadowsockses),
             ivCheck: this.ivCheck,
+            subHost: this.subHost || undefined,
         };
     }
 };
@@ -2370,6 +2409,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         enable = true,
         tgId = '',
         subId = RandomUtil.randomLowerAndNum(16),
+        subHost = '',
         comment = '',
         reset = 0,
         created_at = undefined,
@@ -2385,6 +2425,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         this.enable = enable;
         this.tgId = tgId;
         this.subId = subId;
+        this.subHost = subHost;
         this.comment = comment;
         this.reset = reset;
         this.created_at = created_at;
@@ -2402,6 +2443,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             enable: this.enable,
             tgId: this.tgId,
             subId: this.subId,
+            subHost: this.subHost,
             comment: this.comment,
             reset: this.reset,
             created_at: this.created_at,
@@ -2420,6 +2462,7 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
             json.enable,
             json.tgId,
             json.subId,
+            json.subHost,
             json.comment,
             json.reset,
             json.created_at,
