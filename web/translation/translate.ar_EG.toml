@@ -663,6 +663,7 @@
 "userSaved" = "✅ حفظت بيانات مستخدم Telegram."
 "loginSuccess" = "✅ تسجيل الدخول للبانل تم بنجاح.\r\n"
 "loginFailed" = "❗️فشل محاولة تسجيل الدخول للبانل.\r\n"
+"2faFailed" = "فشل 2FA"
 "report" = "🕰 التقارير المجدولة: {{ .RunTime }}\r\n"
 "datetime" = "⏰ التاريخ والوقت: {{ .DateTime }}\r\n"
 "hostname" = "💻 السيرفر: {{ .Hostname }}\r\n"

@@ -663,6 +663,7 @@
 "userSaved" = "✅ Người dùng Telegram đã được lưu."
 "loginSuccess" = "✅ Đăng nhập thành công vào bảng điều khiển.\r\n"
 "loginFailed" = "❗️ Đăng nhập vào bảng điều khiển thất bại.\r\n"
+"2faFailed" = "Lỗi 2FA"
 "report" = "🕰 Báo cáo định kỳ: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Ngày-Giờ: {{ .DateTime }}\r\n"
 "hostname" = "💻 Tên máy chủ: {{ .Hostname }}\r\n"
