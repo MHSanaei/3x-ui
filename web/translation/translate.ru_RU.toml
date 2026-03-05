@@ -149,7 +149,7 @@
 "geofileUpdateDialogDesc" = "Это обновит файл #filename#."
 "geofilesUpdateDialogDesc" = "Это обновит все геофайлы."
 "geofilesUpdateAll" = "Обновить все"
-"geofileUpdatePopover" = "Геофайл успешно обновлён"
+"geofileUpdatePopover" = "Геофайлы успешно обновлены"
 "dontRefresh" = "Установка в процессе. Не обновляйте страницу"
 "logs" = "Журнал"
 "config" = "Конфигурация"
