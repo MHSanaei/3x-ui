@@ -105,10 +105,12 @@ install_base() {
 
 gen_random_string() {
     local length="$1"
-    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
-    echo "$random_string"
+    # openssl output base64，no need /dev/urandom + tr
+    openssl rand -base64 $(( length * 2 )) \
+        | tr -dc 'a-zA-Z0-9' \
+        | head -c "$length"
 }
-
+    
 install_acme() {
     echo -e "${green}Installing acme.sh for SSL certificate management...${plain}"
     cd ~ || return 1
