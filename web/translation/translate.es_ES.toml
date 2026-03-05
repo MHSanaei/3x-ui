@@ -525,6 +525,12 @@
 "accountInfo" = "Información de la Cuenta"
 "outboundStatus" = "Estado de Salida"
 "sendThrough" = "Enviar a través de"
+"test" = "Probar"
+"testResult" = "Resultado de la prueba"
+"testing" = "Probando conexión..."
+"testSuccess" = "Prueba exitosa"
+"testFailed" = "Prueba fallida"
+"testError" = "Error al probar la salida"
 
 [pages.xray.balancer]
 "addBalancer" = "Agregar equilibrador"
@@ -657,6 +663,7 @@
 "userSaved" = "✅ Usuario de Telegram guardado."
 "loginSuccess" = "✅ Has iniciado sesión en el panel con éxito.\r\n"
 "loginFailed" = "❗️ Falló el inicio de sesión en el panel.\r\n"
+"2faFailed" = "Error de 2FA"
 "report" = "🕰 Informes programados: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Fecha y Hora: {{ .DateTime }}\r\n"
 "hostname" = "💻 Nombre del Host: {{ .Hostname }}\r\n"

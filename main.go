@@ -16,6 +16,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/sub"
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
+	"github.com/mhsanaei/3x-ui/v2/util/sys"
 	"github.com/mhsanaei/3x-ui/v2/web"
 	"github.com/mhsanaei/3x-ui/v2/web/global"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
@@ -70,7 +71,7 @@ func runWebServer() {
 
 	sigCh := make(chan os.Signal, 1)
 	// Trap shutdown signals
-	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGHUP, syscall.SIGTERM, sys.SIGUSR1)
 	for {
 		sig := <-sigCh
 
@@ -108,6 +109,12 @@ func runWebServer() {
 				return
 			}
 			log.Println("Sub server restarted successfully.")
+		case sys.SIGUSR1:
+			logger.Info("Received USR1 signal, restarting xray-core...")
+			err := server.RestartXray()
+			if err != nil {
+				logger.Error("Failed to restart xray-core:", err)
+			}
 
 		default:
 			// --- FIX FOR TELEGRAM BOT CONFLICT (409) on full shutdown ---

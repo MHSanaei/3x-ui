@@ -76,7 +76,7 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
             dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
@@ -654,8 +654,11 @@ config_after_install() {
     )
     local server_ip=""
     for ip_address in "${URL_lists[@]}"; do
-        server_ip=$(curl -s --max-time 3 "${ip_address}" 2>/dev/null | tr -d '[:space:]')
-        if [[ -n "${server_ip}" ]]; then
+        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2>/dev/null)
+        local http_code=$(echo "$response" | tail -n1)
+        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]')
+        if [[ "${http_code}" == "200" && -n "${ip_result}" ]]; then
+            server_ip="${ip_result}"
             break
         fi
     done

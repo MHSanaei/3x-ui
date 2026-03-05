@@ -9,6 +9,7 @@ Environment="XRAY_VMESS_AEAD_FORCED=false"
 Type=simple
 WorkingDirectory=/usr/local/x-ui/
 ExecStart=/usr/local/x-ui/x-ui
+ExecReload=kill -USR1 $MAINPID
 Restart=on-failure
 RestartSec=5s
 

@@ -7,10 +7,13 @@ import (
 	"encoding/binary"
 	"fmt"
 	"sync"
+	"syscall"
 
 	"github.com/shirou/gopsutil/v4/net"
 	"golang.org/x/sys/unix"
 )
+
+var SIGUSR1 = syscall.SIGUSR1
 
 func GetTCPCount() (int, error) {
 	stats, err := net.Connections("tcp")

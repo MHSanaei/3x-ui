@@ -525,6 +525,12 @@
 "accountInfo" = "アカウント情報"
 "outboundStatus" = "アウトバウンドステータス"
 "sendThrough" = "送信経路"
+"test" = "テスト"
+"testResult" = "テスト結果"
+"testing" = "接続をテスト中..."
+"testSuccess" = "テスト成功"
+"testFailed" = "テスト失敗"
+"testError" = "アウトバウンドのテストに失敗しました"
 
 [pages.xray.balancer]
 "addBalancer" = "負荷分散追加"
@@ -657,6 +663,7 @@
 "userSaved" = "✅ Telegramユーザーが保存されました。"
 "loginSuccess" = "✅ パネルに正常にログインしました。\r\n"
 "loginFailed" = "❗️ パネルのログインに失敗しました。\r\n"
+"2faFailed" = "2FAエラー"
 "report" = "🕰 定期報告：{{ .RunTime }}\r\n"
 "datetime" = "⏰ 日時：{{ .DateTime }}\r\n"
 "hostname" = "💻 ホスト名：{{ .Hostname }}\r\n"
