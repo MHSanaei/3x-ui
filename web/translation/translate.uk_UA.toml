@@ -525,6 +525,12 @@
 "accountInfo" = "Інформація про обліковий запис"
 "outboundStatus" = "Статус виходу"
 "sendThrough" = "Надіслати через"
+"test" = "Тест"
+"testResult" = "Результат тесту"
+"testing" = "Тестування з'єднання..."
+"testSuccess" = "Тест успішний"
+"testFailed" = "Тест не пройдено"
+"testError" = "Не вдалося протестувати вихідне з'єднання"
 
 [pages.xray.balancer]
 "addBalancer" = "Додати балансир"
@@ -657,6 +663,7 @@
 "userSaved" = "✅ Користувача Telegram збережено."
 "loginSuccess" = "✅ Успішно ввійшли в панель\r\n"
 "loginFailed" = "❗️ Помилка входу в панель.\r\n"
+"2faFailed" = "Помилка 2FA"
 "report" = "🕰 Заплановані звіти: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Дата й час: {{ .DateTime }}\r\n"
 "hostname" = "💻 Хост: {{ .Hostname }}\r\n"

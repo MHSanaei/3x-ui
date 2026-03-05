@@ -33,7 +33,7 @@ func (s *UserService) GetFirstUser() (*model.User, error) {
 	return user, nil
 }
 
-func (s *UserService) CheckUser(username string, password string, twoFactorCode string) *model.User {
+func (s *UserService) CheckUser(username string, password string, twoFactorCode string) (*model.User, error) {
 	db := database.GetDB()
 
 	user := &model.User{}
@@ -43,17 +43,16 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		First(user).
 		Error
 	if err == gorm.ErrRecordNotFound {
-		return nil
+		return nil, errors.New("invalid credentials")
 	} else if err != nil {
 		logger.Warning("check user err:", err)
-		return nil
+		return nil, err
 	}
 
-	// If LDAP enabled and local password check fails, attempt LDAP auth
 	if !crypto.CheckPasswordHash(user.Password, password) {
 		ldapEnabled, _ := s.settingService.GetLdapEnable()
 		if !ldapEnabled {
-			return nil
+			return nil, errors.New("invalid credentials")
 		}
 
 		host, _ := s.settingService.GetLdapHost()
@@ -77,15 +76,14 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		}
 		ok, err := ldaputil.AuthenticateUser(cfg, username, password)
 		if err != nil || !ok {
-			return nil
+			return nil, errors.New("invalid credentials")
 		}
-		// On successful LDAP auth, continue 2FA checks below
 	}
 
 	twoFactorEnable, err := s.settingService.GetTwoFactorEnable()
 	if err != nil {
 		logger.Warning("check two factor err:", err)
-		return nil
+		return nil, err
 	}
 
 	if twoFactorEnable {
@@ -93,15 +91,15 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 
 		if err != nil {
 			logger.Warning("check two factor token err:", err)
-			return nil
+			return nil, err
 		}
 
 		if gotp.NewDefaultTOTP(twoFactorToken).Now() != twoFactorCode {
-			return nil
+			return nil, errors.New("invalid 2fa code") 
 		}
 	}
 
-	return user
+	return user, nil
 }
 
 func (s *UserService) UpdateUser(id int, username string, password string) error {

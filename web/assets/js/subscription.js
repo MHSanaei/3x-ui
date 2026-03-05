@@ -144,7 +144,7 @@
         return this.app.subUrl;
       },
       happUrl() {
-        return `happ://add/${encodeURIComponent(this.app.subUrl)}`;
+        return `happ://add/${this.app.subUrl}`;
       }
     },
     methods: {

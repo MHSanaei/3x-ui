@@ -37,7 +37,7 @@ type SettingService interface {
 
 // InitLocalizer initializes the internationalization system with embedded translation files.
 func InitLocalizer(i18nFS embed.FS, settingService SettingService) error {
-	// set default bundle to english
+	// set default bundle to English
 	i18nBundle = i18n.NewBundle(language.MustParse("en-US"))
 	i18nBundle.RegisterUnmarshalFunc("toml", toml.Unmarshal)
 

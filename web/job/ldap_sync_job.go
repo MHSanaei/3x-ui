@@ -271,10 +271,7 @@ func (j *LdapSyncJob) deleteClientsNotInLDAP(inboundTag string, ldapEmails map[s
 
 		// Delete in batches
 		for i := 0; i < len(toDelete); i += batchSize {
-			end := i + batchSize
-			if end > len(toDelete) {
-				end = len(toDelete)
-			}
+			end := min(i+batchSize, len(toDelete))
 			batch := toDelete[i:end]
 
 			for _, c := range batch {

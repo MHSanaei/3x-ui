@@ -493,3 +493,7 @@ func (s *Server) GetCron() *cron.Cron {
 func (s *Server) GetWSHub() any {
 	return s.wsHub
 }
+
+func (s *Server) RestartXray() error {
+	return s.xrayService.RestartXray(true)
+}

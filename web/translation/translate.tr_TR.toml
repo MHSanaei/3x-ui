@@ -525,6 +525,12 @@
 "accountInfo" = "Hesap Bilgileri"
 "outboundStatus" = "Giden Durumu"
 "sendThrough" = "Üzerinden Gönder"
+"test" = "Test"
+"testResult" = "Test Sonucu"
+"testing" = "Bağlantı test ediliyor..."
+"testSuccess" = "Test başarılı"
+"testFailed" = "Test başarısız"
+"testError" = "Giden test edilemedi"
 
 [pages.xray.balancer]
 "addBalancer" = "Dengeleyici Ekle"
@@ -657,6 +663,7 @@
 "userSaved" = "✅ Telegram Kullanıcısı kaydedildi."
 "loginSuccess" = "✅ Panele başarıyla giriş yapıldı.\r\n"
 "loginFailed" = "❗️Panele giriş denemesi başarısız oldu.\r\n"
+"2faFailed" = "2FA Hatası"
 "report" = "🕰 Planlanmış Raporlar: {{ .RunTime }}\r\n"
 "datetime" = "⏰ Tarih&Zaman: {{ .DateTime }}\r\n"
 "hostname" = "💻 Sunucu: {{ .Hostname }}\r\n"

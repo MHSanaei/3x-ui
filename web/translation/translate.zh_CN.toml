@@ -525,6 +525,12 @@
 "accountInfo" = "帐户信息"
 "outboundStatus" = "出站状态"
 "sendThrough" = "发送通过"
+"test" = "测试"
+"testResult" = "测试结果"
+"testing" = "正在测试连接..."
+"testSuccess" = "测试成功"
+"testFailed" = "测试失败"
+"testError" = "测试出站失败"
 
 [pages.xray.balancer]
 "addBalancer" = "添加负载均衡"
@@ -657,6 +663,7 @@
 "userSaved" = "✅ 电报用户已保存。"
 "loginSuccess" = "✅ 成功登录到面板。\r\n"
 "loginFailed" = "❗️ 面板登录失败。\r\n"
+"2faFailed" = "2FA 失败"
 "report" = "🕰 定时报告：{{ .RunTime }}\r\n"
 "datetime" = "⏰ 日期时间：{{ .DateTime }}\r\n"
 "hostname" = "💻 主机名：{{ .Hostname }}\r\n"

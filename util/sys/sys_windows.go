@@ -12,6 +12,8 @@ import (
 	"github.com/shirou/gopsutil/v4/net"
 )
 
+var SIGUSR1 = syscall.Signal(0)
+
 // GetConnectionCount returns the number of active connections for the specified protocol ("tcp" or "udp").
 func GetConnectionCount(proto string) (int, error) {
 	if proto != "tcp" && proto != "udp" {
