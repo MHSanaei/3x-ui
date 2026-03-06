@@ -166,6 +166,7 @@
 {{template "modals/dnsPresetsModal"}}
 {{template "modals/fakednsModal"}}
 {{template "modals/warpModal"}}
+{{template "modals/nordModal"}}
 <script>
   const rulesColumns = [
     { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
@@ -1057,6 +1058,9 @@
       },
       showWarp() {
         warpModal.show();
+      },
+      showNord() {
+        nordModal.show();
       }
     },
     async mounted() {
@@ -1397,6 +1401,19 @@
           this.templateRuleSetter({ outboundTag: "warp", property: "domain", data: newValue });
         }
       },
+      nordTag: {
+        get: function () {
+          return this.templateSettings ? (this.templateSettings.outbounds.find((o) => o.tag.startsWith("nord-")) || { tag: "nord" }).tag : "nord";
+        }
+      },
+      nordDomains: {
+        get: function () {
+          return this.templateRuleGetter({ outboundTag: this.nordTag, property: "domain" });
+        },
+        set: function (newValue) {
+          this.templateRuleSetter({ outboundTag: this.nordTag, property: "domain", data: newValue });
+        }
+      },
       torrentSettings: {
         get: function () {
           return ArrayUtils.doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
@@ -1412,6 +1429,11 @@
       WarpExist: {
         get: function () {
           return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp") >= 0 : false;
+        },
+      },
+      NordExist: {
+        get: function () {
+          return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag.startsWith("nord-")) >= 0 : false;
         },
       },
       enableDNS: {
