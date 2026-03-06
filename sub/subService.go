@@ -1043,37 +1043,44 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 		scheme = "https"
 	}
 
-	// base host (no port)
-	if h, err := getHostFromXFH(c.GetHeader("X-Forwarded-Host")); err == nil && h != "" {
-		host = h
-	}
-	if host == "" {
-		host = c.GetHeader("X-Real-IP")
-	}
-	if host == "" {
-		var err error
-		host, _, err = net.SplitHostPort(c.Request.Host)
-		if err != nil {
-			host = c.Request.Host
+	forwardedHost := getFirstHeaderValue(c.GetHeader("X-Forwarded-Host"))
+	requestHost := strings.TrimSpace(c.Request.Host)
+
+	// prefer forwarded host set by reverse proxy.
+	if forwardedHost != "" {
+		hostWithPort = forwardedHost
+		if h, err := getHostFromXFH(forwardedHost); err == nil && h != "" {
+			host = h
 		}
 	}
 
-	// host:port for URLs
-	hostWithPort = c.GetHeader("X-Forwarded-Host")
+    // host:port for URLs from request, if not reverse-proxuy
 	if hostWithPort == "" {
-		hostWithPort = c.Request.Host
+		hostWithPort = requestHost
+	}
+
+	// resolve bare host from request host if proxy host is absent/invalid.
+	if host == "" && requestHost != "" {
+		if h, err := getHostFromXFH(requestHost); err == nil && h != "" {
+			host = h
+		}
+	}
+	if host == "" && hostWithPort != "" {
+		if h, err := getHostFromXFH(hostWithPort); err == nil && h != "" {
+			host = h
+		}
+	}
+	if host == "" {
+		host = hostWithPort
 	}
 	if hostWithPort == "" {
 		hostWithPort = host
 	}
 
-	// header display host
-	hostHeader = c.GetHeader("X-Forwarded-Host")
+	// fix: invalid host header. older: used client ip in header and title.
+	hostHeader = host
 	if hostHeader == "" {
-		hostHeader = c.GetHeader("X-Real-IP")
-	}
-	if hostHeader == "" {
-		hostHeader = host
+		hostHeader = hostWithPort
 	}
 	return
 }
@@ -1188,12 +1195,41 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 }
 
 func getHostFromXFH(s string) (string, error) {
-	if strings.Contains(s, ":") {
-		realHost, _, err := net.SplitHostPort(s)
-		if err != nil {
-			return "", err
-		}
-		return realHost, nil
+	s = getFirstHeaderValue(s)
+	if s == "" {
+		return "", nil
 	}
-	return s, nil
+
+	if strings.Contains(s, "://") {
+		u, err := url.Parse(s)
+		if err == nil && u.Host != "" {
+			s = u.Host
+		}
+	}
+
+	if strings.HasPrefix(s, "[") {
+		if realHost, _, err := net.SplitHostPort(s); err == nil {
+			return strings.Trim(realHost, "[]"), nil
+		}
+
+		return strings.Trim(s, "[]"), nil
+	}
+
+	if strings.Contains(s, ":") && strings.Count(s, ":") == 1 {
+		if realHost, _, err := net.SplitHostPort(s); err == nil {
+			return realHost, nil
+		}
+	}
+
+	return strings.Trim(s, "[]"), nil
+}
+
+func getFirstHeaderValue(value string) string {
+	parts := strings.Split(value, ",")
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	return strings.TrimSpace(parts[0])
 }

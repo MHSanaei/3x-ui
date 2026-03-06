@@ -154,10 +154,14 @@ func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, 
 
 	externalProxies, ok := stream["externalProxy"].([]any)
 	if !ok || len(externalProxies) == 0 {
+		dest := host
+		if inbound.Listen != "" && inbound.Listen != "0.0.0.0" && inbound.Listen != "::" && inbound.Listen != "::0" {
+			dest = inbound.Listen
+		}
 		externalProxies = []any{
 			map[string]any{
 				"forceTls": "same",
-				"dest":     host,
+				"dest":     dest,
 				"port":     float64(inbound.Port),
 				"remark":   "",
 			},
