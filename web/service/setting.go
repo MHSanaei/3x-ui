@@ -77,6 +77,7 @@ var defaultValueMap = map[string]string{
 	"subJsonRules":                "",
 	"datepicker":                  "gregorian",
 	"warp":                        "",
+	"nord":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
@@ -581,6 +582,14 @@ func (s *SettingService) GetWarp() (string, error) {
 
 func (s *SettingService) SetWarp(data string) error {
 	return s.setString("warp", data)
+}
+
+func (s *SettingService) GetNord() (string, error) {
+	return s.getString("nord")
+}
+
+func (s *SettingService) SetNord(data string) error {
+	return s.setString("nord", data)
 }
 
 func (s *SettingService) GetExternalTrafficInformEnable() (bool, error) {
