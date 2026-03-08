@@ -30,6 +30,14 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subDefaultHost"}}</template>
+            <template #description>{{ i18n "pages.settings.subDefaultHostDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model.trim="allSetting.subDefaultHost"
+                    placeholder="public.example.com"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subPort"}}</template>
             <template #description>{{ i18n "pages.settings.subPortDesc"}}</template>
             <template #control>
