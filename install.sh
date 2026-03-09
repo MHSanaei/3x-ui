@@ -105,7 +105,6 @@ install_base() {
 
 gen_random_string() {
     local length="$1"
-    # openssl output base64, no need /dev/urandom + tr
     openssl rand -base64 $(( length * 2 )) \
         | tr -dc 'a-zA-Z0-9' \
         | head -c "$length"
