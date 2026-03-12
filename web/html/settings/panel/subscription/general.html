@@ -16,6 +16,13 @@
             </template>
         </a-setting-list-item>
         <a-setting-list-item paddings="small">
+            <template #title>Clash / Mihomo Subscription</template>
+            <template #description>Enable direct Clash Party and Mihomo YAML subscriptions.</template>
+            <template #control>
+                <a-switch v-model="allSetting.subClashEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subListen"}}</template>
             <template #description>{{ i18n "pages.settings.subListenDesc"}}</template>
             <template #control>
