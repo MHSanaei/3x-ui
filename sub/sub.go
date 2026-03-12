@@ -91,8 +91,17 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		return nil, err
 	}
 
-	// Determine if JSON subscription endpoint is enabled
+	ClashPath, err := s.settingService.GetSubClashPath()
+	if err != nil {
+		return nil, err
+	}
+
 	subJsonEnable, err := s.settingService.GetSubJsonEnable()
+	if err != nil {
+		return nil, err
+	}
+
+	subClashEnable, err := s.settingService.GetSubClashEnable()
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +264,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	g := engine.Group("/")
 
 	s.sub = NewSUBController(
-		g, LinksPath, JsonPath, subJsonEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
+		g, LinksPath, JsonPath, ClashPath, subJsonEnable, subClashEnable, Encrypt, ShowInfo, RemarkModel, SubUpdates,
 		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules, SubTitle, SubSupportUrl,
 		SubProfileUrl, SubAnnounce, SubEnableRouting, SubRoutingRules)
 
