@@ -1,8 +1,8 @@
 {{define "settings/panel/subscription/json"}}
 <a-collapse default-active-key="1">
     <a-collapse-panel key="1" header='{{ i18n "pages.xray.generalConfigs"}}'>
-        <a-setting-list-item paddings="small">
-            <template #title>{{ i18n "pages.settings.subPath"}}</template>
+        <a-setting-list-item paddings="small" v-if="allSetting.subJsonEnable">
+            <template #title>{{ i18n "pages.settings.subPath"}} (JSON)</template>
             <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
             <template #control>
                 <a-input type="text" v-model="allSetting.subJsonPath"
@@ -11,12 +11,30 @@
                     placeholder="/json/"></a-input>
             </template>
         </a-setting-list-item>
-        <a-setting-list-item paddings="small">
-            <template #title>{{ i18n "pages.settings.subURI"}}</template>
+        <a-setting-list-item paddings="small" v-if="allSetting.subJsonEnable">
+            <template #title>{{ i18n "pages.settings.subURI"}} (JSON)</template>
             <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
             <template #control>
                 <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
                     v-model="allSetting.subJsonURI"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small" v-if="allSetting.subClashEnable">
+            <template #title>{{ i18n "pages.settings.subPath"}} (Clash)</template>
+            <template #description>{{ i18n "pages.settings.subPathDesc"}}</template>
+            <template #control>
+                <a-input type="text" v-model="allSetting.subClashPath"
+                    @input="allSetting.subClashPath = ((typeof $event === 'string' ? $event : ($event && $event.target ? $event.target.value : '')) || '').replace(/[:*]/g, '')"
+                    @blur="allSetting.subClashPath = (p => { p = p || '/'; if (!p.startsWith('/')) p='/' + p; if (!p.endsWith('/')) p += '/'; return p.replace(/\/+/g,'/'); })(allSetting.subClashPath)"
+                    placeholder="/clash/"></a-input>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small" v-if="allSetting.subClashEnable">
+            <template #title>{{ i18n "pages.settings.subURI"}} (Clash)</template>
+            <template #description>{{ i18n "pages.settings.subURIDesc"}}</template>
+            <template #control>
+                <a-input type="text" placeholder="(http|https)://domain[:port]/path/"
+                    v-model="allSetting.subClashURI"></a-input>
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
