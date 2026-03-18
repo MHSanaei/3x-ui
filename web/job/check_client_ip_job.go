@@ -414,6 +414,16 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
+	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
+ 	protocol := string(inbound.Protocol)
+ 	switch protocol {
+ 	case "vmess", "vless", "trojan", "shadowsocks":
+ 		// supported protocols, continue
+ 	default:
+ 		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
+ 		return
+ 	}
+
 	// Remove user to disconnect all connections
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
@@ -425,7 +435,7 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	time.Sleep(100 * time.Millisecond)
 
 	// Re-add user to allow new connections
-	err = xrayAPI.AddUser(string(inbound.Protocol), inbound.Tag, clientConfig)
+	err = xrayAPI.AddUser(protocol, inbound.Tag, clientConfig)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to re-add user %s: %v", clientEmail, err)
 	}
