@@ -472,7 +472,6 @@ func getAPIPortFromConfigData(configData []byte) (int, error) {
 	return 0, errors.New("api inbound port not found")
 }
 
-
 func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound, error) {
 	db := database.GetDB()
 	inbound := &model.Inbound{}
