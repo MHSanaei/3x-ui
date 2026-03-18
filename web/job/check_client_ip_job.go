@@ -424,6 +424,19 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
  		return
  	}
 
+	// For Shadowsocks, ensure the required "cipher" field is present by
+ 	// reading it from the inbound settings (e.g., settings["method"]).
+ 	if string(inbound.Protocol) == "shadowsocks" {
+ 		var inboundSettings map[string]any
+ 		if err := json.Unmarshal([]byte(inbound.Settings), &inboundSettings); err != nil {
+ 			logger.Warningf("[LIMIT_IP] Failed to parse inbound settings for shadowsocks cipher: %v", err)
+ 		} else {
+ 			if method, ok := inboundSettings["method"].(string); ok && method != "" {
+ 				clientConfig["cipher"] = method
+ 			}
+ 		}
+ 	}
+
 	// Remove user to disconnect all connections
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
