@@ -456,17 +456,33 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 
 // resolveXrayAPIPort returns the API inbound port from running config, then template config, then default.
 func (j *CheckClientIpJob) resolveXrayAPIPort() int {
+	var configErr error
+ 	var templateErr error
+
 	if port, err := getAPIPortFromConfigPath(xray.GetConfigPath()); err == nil {
 		return port
-	}
+	} else {
+ 		configErr = err
+ 	}
 
 	db := database.GetDB()
 	var template model.Setting
 	if err := db.Where("key = ?", "xrayTemplateConfig").First(&template).Error; err == nil {
 		if port, parseErr := getAPIPortFromConfigData([]byte(template.Value)); parseErr == nil {
 			return port
-		}
-	}
+		} else {
+ 			templateErr = parseErr
+ 		}
+	} else {
+ 		templateErr = err
+ 	}
+
+	logger.Warningf(
+ 		"[LIMIT_IP] Could not determine Xray API port from config or template; falling back to default port %d (config error: %v, template error: %v)",
+ 		defaultXrayAPIPort,
+ 		configErr,
+ 		templateErr,
+ 	)
 
 	return defaultXrayAPIPort
 }
