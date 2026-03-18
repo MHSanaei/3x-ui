@@ -3,6 +3,7 @@ package job
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -31,6 +32,8 @@ type CheckClientIpJob struct {
 }
 
 var job *CheckClientIpJob
+
+const defaultXrayAPIPort = 62789
 
 // NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
@@ -387,18 +390,7 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 // disconnectClientTemporarily removes and re-adds a client to force disconnect banned connections
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
-
-	// Get panel settings for API port
-	db := database.GetDB()
-	var apiPort int
-	var apiPortSetting model.Setting
-	if err := db.Where("key = ?", "xrayApiPort").First(&apiPortSetting).Error; err == nil {
-		apiPort, _ = strconv.Atoi(apiPortSetting.Value)
-	}
-
-	if apiPort == 0 {
-		apiPort = 10085 // Default API port
-	}
+	apiPort := j.resolveXrayAPIPort()
 
 	err := xrayAPI.Init(apiPort)
 	if err != nil {
@@ -437,6 +429,47 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to re-add user %s: %v", clientEmail, err)
 	}
+}
+
+// resolveXrayAPIPort returns the API inbound port from running config, then template config, then default.
+func (j *CheckClientIpJob) resolveXrayAPIPort() int {
+	if port, err := getAPIPortFromConfigPath(xray.GetConfigPath()); err == nil {
+		return port
+	}
+
+	db := database.GetDB()
+	var template model.Setting
+	if err := db.Where("key = ?", "xrayTemplateConfig").First(&template).Error; err == nil {
+		if port, parseErr := getAPIPortFromConfigData([]byte(template.Value)); parseErr == nil {
+			return port
+		}
+	}
+
+	return defaultXrayAPIPort
+}
+
+func getAPIPortFromConfigPath(configPath string) (int, error) {
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		return 0, err
+	}
+
+	return getAPIPortFromConfigData(configData)
+}
+
+func getAPIPortFromConfigData(configData []byte) (int, error) {
+	xrayConfig := &xray.Config{}
+	if err := json.Unmarshal(configData, xrayConfig); err != nil {
+		return 0, err
+	}
+
+	for _, inboundConfig := range xrayConfig.InboundConfigs {
+		if inboundConfig.Tag == "api" && inboundConfig.Port > 0 {
+			return inboundConfig.Port, nil
+		}
+	}
+
+	return 0, errors.New("api inbound port not found")
 }
 
 
