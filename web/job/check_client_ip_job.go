@@ -415,27 +415,27 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	}
 
 	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
- 	protocol := string(inbound.Protocol)
- 	switch protocol {
- 	case "vmess", "vless", "trojan", "shadowsocks":
- 		// supported protocols, continue
- 	default:
- 		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
- 		return
- 	}
+	protocol := string(inbound.Protocol)
+	switch protocol {
+	case "vmess", "vless", "trojan", "shadowsocks":
+		// supported protocols, continue
+	default:
+		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
+		return
+	}
 
 	// For Shadowsocks, ensure the required "cipher" field is present by
- 	// reading it from the inbound settings (e.g., settings["method"]).
- 	if string(inbound.Protocol) == "shadowsocks" {
- 		var inboundSettings map[string]any
- 		if err := json.Unmarshal([]byte(inbound.Settings), &inboundSettings); err != nil {
- 			logger.Warningf("[LIMIT_IP] Failed to parse inbound settings for shadowsocks cipher: %v", err)
- 		} else {
- 			if method, ok := inboundSettings["method"].(string); ok && method != "" {
- 				clientConfig["cipher"] = method
- 			}
- 		}
- 	}
+	// reading it from the inbound settings (e.g., settings["method"]).
+	if string(inbound.Protocol) == "shadowsocks" {
+		var inboundSettings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &inboundSettings); err != nil {
+			logger.Warningf("[LIMIT_IP] Failed to parse inbound settings for shadowsocks cipher: %v", err)
+		} else {
+			if method, ok := inboundSettings["method"].(string); ok && method != "" {
+				clientConfig["cipher"] = method
+			}
+		}
+	}
 
 	// Remove user to disconnect all connections
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
@@ -457,13 +457,13 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 // resolveXrayAPIPort returns the API inbound port from running config, then template config, then default.
 func (j *CheckClientIpJob) resolveXrayAPIPort() int {
 	var configErr error
- 	var templateErr error
+	var templateErr error
 
 	if port, err := getAPIPortFromConfigPath(xray.GetConfigPath()); err == nil {
 		return port
 	} else {
- 		configErr = err
- 	}
+		configErr = err
+	}
 
 	db := database.GetDB()
 	var template model.Setting
@@ -471,18 +471,18 @@ func (j *CheckClientIpJob) resolveXrayAPIPort() int {
 		if port, parseErr := getAPIPortFromConfigData([]byte(template.Value)); parseErr == nil {
 			return port
 		} else {
- 			templateErr = parseErr
- 		}
+			templateErr = parseErr
+		}
 	} else {
- 		templateErr = err
- 	}
+		templateErr = err
+	}
 
 	logger.Warningf(
- 		"[LIMIT_IP] Could not determine Xray API port from config or template; falling back to default port %d (config error: %v, template error: %v)",
- 		defaultXrayAPIPort,
- 		configErr,
- 		templateErr,
- 	)
+		"[LIMIT_IP] Could not determine Xray API port from config or template; falling back to default port %d (config error: %v, template error: %v)",
+		defaultXrayAPIPort,
+		configErr,
+		templateErr,
+	)
 
 	return defaultXrayAPIPort
 }
