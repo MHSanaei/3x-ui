@@ -50,6 +50,59 @@ is_domain() {
     [[ "$1" =~ ^([A-Za-z0-9](-*[A-Za-z0-9])*\.)+(xn--[a-z0-9]{2,}|[A-Za-z]{2,})$ ]] && return 0 || return 1
 }
 
+# Detect server IP - tries local interface first, then external services
+# Usage: get_server_ip [interactive]
+#   - No argument: returns IP silently (for scripts)
+#   - "interactive": shows IP and allows user to correct it
+# Sets global variable: DETECTED_SERVER_IP
+get_server_ip() {
+    local interactive="${1:-}"
+    local ip=""
+    
+    # Method 1: Try to get IP from network interface (avoids proxy issues)
+    if command -v ip >/dev/null 2>&1; then
+        ip=$(ip -4 addr show scope global 2>/dev/null | grep -oP 'inet \K[\d.]+' | head -n1)
+    fi
+    
+    # Method 2: Fallback to external services (multiple for reliability)
+    if [ -z "$ip" ]; then
+        local URL_lists=(
+            "https://api.ipify.org"
+            "https://api4.ipify.org"
+            "https://ipv4.icanhazip.com"
+            "https://v4.api.ipinfo.io/ip"
+            "https://ipv4.myexternalip.com/raw"
+            "https://4.ident.me"
+            "https://check-host.net/ip"
+        )
+        for url in "${URL_lists[@]}"; do
+            local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${url}" 2>/dev/null)
+            local http_code=$(echo "$response" | tail -n1)
+            local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]')
+            if [[ "${http_code}" == "200" && -n "${ip_result}" ]]; then
+                ip="${ip_result}"
+                break
+            fi
+        done
+    fi
+    
+    # Interactive mode: show IP and allow user to change
+    if [ "$interactive" = "interactive" ]; then
+        if [ -n "$ip" ]; then
+            echo -e "${green}[INF] Server IP detected: ${ip}${plain}" >&2
+        else
+            echo -e "${yellow}Could not detect server IP automatically.${plain}" >&2
+        fi
+        read -rp "Press Enter to use this IP, or type a different IP: " user_input </dev/tty
+        if [ -n "$user_input" ]; then
+            ip="$user_input"
+        fi
+    fi
+    
+    DETECTED_SERVER_IP="$ip"
+    echo "$ip"
+}
+
 # check root
 [[ $EUID -ne 0 ]] && LOGE "ERROR: You must be root to run this script! \n" && exit 1
 
@@ -291,10 +344,7 @@ check_config() {
     local existing_webBasePath=$(echo "$info" | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(echo "$info" | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
-    fi
+    local server_ip=$(get_server_ip)
 
     if [[ -n "$existing_cert" ]]; then
         local domain=$(basename "$(dirname "$existing_cert")")
@@ -1128,18 +1178,13 @@ ssl_cert_issue_for_ip() {
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
     
-    # Get server IP
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
-    fi
+    # Get server IP (local interface first, then external services)
+    local server_ip=$(get_server_ip interactive)
     
     if [ -z "$server_ip" ]; then
         LOGE "Failed to get server IP address"
         return 1
     fi
-    
-    LOGI "Server IP detected: ${server_ip}"
     
     # Ask for optional IPv6
     local ipv6_addr=""
@@ -2062,24 +2107,7 @@ iplimit_remove_conflicts() {
 }
 
 SSH_port_forwarding() {
-    local URL_lists=(
-        "https://api4.ipify.org"
-		"https://ipv4.icanhazip.com"
-		"https://v4.api.ipinfo.io/ip"
-		"https://ipv4.myexternalip.com/raw"
-		"https://4.ident.me"
-		"https://check-host.net/ip"
-    )
-    local server_ip=""
-    for ip_address in "${URL_lists[@]}"; do
-        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2>/dev/null)
-        local http_code=$(echo "$response" | tail -n1)
-        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]')
-        if [[ "${http_code}" == "200" && -n "${ip_result}" ]]; then
-            server_ip="${ip_result}"
-            break
-        fi
-    done
+    local server_ip=$(get_server_ip)
 
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
