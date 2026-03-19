@@ -1,0 +1,306 @@
+{{define "modals/nordModal"}}
+<a-modal id="nord-modal" v-model="nordModal.visible" title="NordVPN NordLynx"
+         :confirm-loading="nordModal.confirmLoading" :closable="true" :mask-closable="true"
+         :footer="null" :class="themeSwitcher.currentTheme">
+    <template v-if="nordModal.nordData == null">
+        <a-tabs default-active-key="token" :class="themeSwitcher.currentTheme">
+            <a-tab-pane key="token" tab='{{ i18n "pages.xray.outbound.accessToken" }}'>
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '20px' }">
+                    <a-form-item label='{{ i18n "pages.xray.outbound.accessToken" }}'>
+                        <a-input v-model="nordModal.token" placeholder='{{ i18n "pages.xray.outbound.accessToken" }}'></a-input>
+                        <div :style="{ marginTop: '10px' }">
+                            <a-button type="primary" icon="login" @click="login()" :loading="nordModal.confirmLoading">{{ i18n "login" }}</a-button>
+                        </div>
+                    </a-form-item>
+                </a-form>
+            </a-tab-pane>
+            <a-tab-pane key="key" tab='{{ i18n "pages.xray.outbound.privateKey" }}'>
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '20px' }">
+                    <a-form-item label='{{ i18n "pages.xray.outbound.privateKey" }}'>
+                        <a-input v-model="nordModal.manualKey" placeholder='{{ i18n "pages.xray.outbound.privateKey" }}'></a-input>
+                        <div :style="{ marginTop: '10px' }">
+                            <a-button type="primary" icon="save" @click="saveKey()" :loading="nordModal.confirmLoading">{{ i18n "save" }}</a-button>
+                        </div>
+                    </a-form-item>
+                </a-form>
+            </a-tab-pane>
+        </a-tabs>
+    </template>
+    <template v-else>
+        <table :style="{ margin: '5px 0', width: '100%' }">
+            <tr class="client-table-odd-row" v-if="nordModal.nordData.token">
+                <td>{{ i18n "pages.xray.outbound.accessToken" }}</td>
+                <td>[[ nordModal.nordData.token ]]</td>
+            </tr>
+            <tr>
+                <td>{{ i18n "pages.xray.outbound.privateKey" }}</td>
+                <td>[[ nordModal.nordData.private_key ]]</td>
+            </tr>
+        </table>
+        <a-button @click="logout" :loading="nordModal.confirmLoading" type="danger">{{ i18n "logout" }}</a-button>
+        <a-divider :style="{ margin: '0' }">{{ i18n "pages.xray.outbound.settings" }}</a-divider>
+        <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '10px' }">
+            <a-form-item label='{{ i18n "pages.xray.outbound.country" }}'>
+                <a-select v-model="nordModal.countryId" @change="fetchServers" show-search option-filter-prop="label">
+                    <a-select-option v-for="c in nordModal.countries" :key="c.id" :value="c.id" :label="c.name">
+                        [[ c.name ]] ([[ c.code ]])
+                    </a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.xray.outbound.city" }}' v-if="nordModal.cities.length > 0">
+                <a-select v-model="nordModal.cityId" @change="onCityChange" show-search option-filter-prop="label">
+                    <a-select-option :key="0" :value="null" label='{{ i18n "pages.xray.outbound.allCities" }}'>
+                        {{ i18n "pages.xray.outbound.allCities" }}
+                    </a-select-option>
+                    <a-select-option v-for="c in nordModal.cities" :key="c.id" :value="c.id" :label="c.name">
+                        [[ c.name ]]
+                    </a-select-option>
+                </a-select>
+            </a-form-item>
+            <a-form-item label='{{ i18n "pages.xray.outbound.server" }}' v-if="filteredServers.length > 0">
+                <a-select v-model="nordModal.serverId">
+                    <a-select-option v-for="s in filteredServers" :key="s.id" :value="s.id">
+                        [[ s.cityName ]] - [[ s.name ]] ({{ i18n "pages.xray.outbound.load" }}: [[ s.load ]]%)
+                    </a-select-option>
+                </a-select>
+            </a-form-item>
+        </a-form>
+        <a-divider :style="{ margin: '10px 0' }">{{ i18n "pages.xray.outbound.outboundStatus" }}</a-divider>
+        <a-form :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
+            <template v-if="nordOutboundIndex>=0">
+                <a-tag color="green" :style="{ lineHeight: '31px' }">{{ i18n "enabled" }}</a-tag>
+                <a-button @click="resetOutbound" :loading="nordModal.confirmLoading" type="danger">{{ i18n "reset" }}</a-button>
+            </template>
+            <template v-else>
+                <a-tag color="orange" :style="{ lineHeight: '31px' }">{{ i18n "disabled" }}</a-tag>
+                <a-button @click="addOutbound" :disabled="!nordModal.serverId" :loading="nordModal.confirmLoading" type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+            </template>
+        </a-form>
+    </template>
+</a-modal>
+
+<script>
+    const nordModal = {
+        visible: false,
+        confirmLoading: false,
+        nordData: null,
+        token: '',
+        manualKey: '',
+        countries: [],
+        countryId: null,
+        cities: [],
+        cityId: null,
+        servers: [],
+        serverId: null,
+        show() {
+            this.visible = true;
+            this.getData();
+        },
+        close() {
+            this.visible = false;
+        },
+        loading(loading = true) {
+            this.confirmLoading = loading;
+        },
+        async getData() {
+            this.loading(true);
+            const msg = await HttpUtil.post('/panel/xray/nord/data');
+            if (msg.success) {
+                this.nordData = msg.obj ? JSON.parse(msg.obj) : null;
+                if (this.nordData) {
+                    await this.fetchCountries();
+                }
+            }
+            this.loading(false);
+        },
+        async login() {
+            this.loading(true);
+            const msg = await HttpUtil.post('/panel/xray/nord/reg', { token: this.token });
+            if (msg.success) {
+                this.nordData = JSON.parse(msg.obj);
+                await this.fetchCountries();
+            }
+            this.loading(false);
+        },
+        async saveKey() {
+            this.loading(true);
+            const msg = await HttpUtil.post('/panel/xray/nord/setKey', { key: this.manualKey });
+            if (msg.success) {
+                this.nordData = JSON.parse(msg.obj);
+                await this.fetchCountries();
+            }
+            this.loading(false);
+        },
+        async logout(index) {
+            this.loading(true);
+            const msg = await HttpUtil.post('/panel/xray/nord/del');
+            if (msg.success) {
+                this.delOutbound(index);
+                this.delRouting();
+                this.nordData = null;
+                this.token = '';
+                this.manualKey = '';
+                this.countries = [];
+                this.cities = [];
+                this.servers = [];
+                this.countryId = null;
+                this.cityId = null;
+            }
+            this.loading(false);
+        },
+        async fetchCountries() {
+            const msg = await HttpUtil.post('/panel/xray/nord/countries');
+            if (msg.success) {
+                this.countries = JSON.parse(msg.obj);
+            }
+        },
+        async fetchServers() {
+            this.loading(true);
+            this.servers = [];
+            this.cities = [];
+            this.serverId = null;
+            this.cityId = null;
+            const msg = await HttpUtil.post('/panel/xray/nord/servers', { countryId: this.countryId });
+            if (msg.success) {
+                const data = JSON.parse(msg.obj);
+                const locations = data.locations || [];
+                const locToCity = {};
+                const citiesMap = new Map();
+                locations.forEach(loc => {
+                    if (loc.country && loc.country.city) {
+                        citiesMap.set(loc.country.city.id, loc.country.city);
+                        locToCity[loc.id] = loc.country.city;
+                    }
+                });
+                this.cities = Array.from(citiesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+                
+                this.servers = (data.servers || []).map(s => {
+                    const firstLocId = (s.location_ids || [])[0];
+                    const city = locToCity[firstLocId];
+                    s.cityId = city ? city.id : null;
+                    s.cityName = city ? city.name : 'Unknown';
+                    return s;
+                }).sort((a, b) => a.load - b.load);
+
+                if (this.servers.length > 0) {
+                    this.serverId = this.servers[0].id;
+                }
+
+                if (this.servers.length === 0) {
+                    app.$message.warning('No servers found for the selected country');
+                }
+            }
+            this.loading(false);
+        },
+        addOutbound() {
+            const server = this.servers.find(s => s.id === this.serverId);
+            if (!server) return;
+            
+            const tech = server.technologies.find(t => t.id === 35);
+            const publicKey = tech.metadata.find(m => m.name === 'public_key').value;
+
+            const outbound = {
+                tag: `nord-${server.hostname}`,
+                protocol: 'wireguard',
+                settings: {
+                    secretKey: this.nordData.private_key,
+                    address: ['10.5.0.2/32'],
+                    peers: [{
+                        publicKey: publicKey,
+                        endpoint: server.station + ':51820'
+                    }],
+                    noKernelTun: false
+                }
+            };
+
+            app.templateSettings.outbounds.push(outbound);
+            app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+            this.close();
+            app.$message.success('NordVPN outbound added');
+        },
+        resetOutbound(index) {
+            const server = this.servers.find(s => s.id === this.serverId);
+            if (!server || index === -1) return;
+            
+            const tech = server.technologies.find(t => t.id === 35);
+            const publicKey = tech.metadata.find(m => m.name === 'public_key').value;
+
+            const oldTag = app.templateSettings.outbounds[index].tag;
+            const newTag = `nord-${server.hostname}`;
+
+            const outbound = {
+                tag: newTag,
+                protocol: 'wireguard',
+                settings: {
+                    secretKey: this.nordData.private_key,
+                    address: ['10.5.0.2/32'],
+                    peers: [{
+                        publicKey: publicKey,
+                        endpoint: server.station + ':51820'
+                    }],
+                    noKernelTun: false
+                }
+            };
+            app.templateSettings.outbounds[index] = outbound;
+            
+            // Sync routing rules
+            app.templateSettings.routing.rules.forEach(r => {
+                if (r.outboundTag === oldTag) {
+                    r.outboundTag = newTag;
+                }
+            });
+
+            app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+            this.close();
+            app.$message.success('NordVPN outbound updated');
+        },
+        delOutbound(index) {
+            if (index !== -1) {
+                app.templateSettings.outbounds.splice(index, 1);
+                app.outboundSettings = JSON.stringify(app.templateSettings.outbounds);
+            }
+        },
+        delRouting() {
+            if (app.templateSettings && app.templateSettings.routing) {
+                app.templateSettings.routing.rules = app.templateSettings.routing.rules.filter(r => !r.outboundTag.startsWith("nord-"));
+            }
+        }
+    };
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: '#nord-modal',
+        data: {
+            nordModal: nordModal,
+        },
+        methods: {
+            login: () => nordModal.login(),
+            saveKey: () => nordModal.saveKey(),
+            logout() { nordModal.logout(this.nordOutboundIndex) },
+            fetchServers: () => nordModal.fetchServers(),
+            addOutbound: () => nordModal.addOutbound(),
+            resetOutbound() { nordModal.resetOutbound(this.nordOutboundIndex) },
+            onCityChange() {
+                if (this.filteredServers.length > 0) {
+                    this.nordModal.serverId = this.filteredServers[0].id;
+                } else {
+                    this.nordModal.serverId = null;
+                }
+            }
+        },
+        computed: {
+            nordOutboundIndex: {
+                get: function () {
+                    return app.templateSettings ? app.templateSettings.outbounds.findIndex((o) => o.tag.startsWith("nord-")) : -1;
+                }
+            },
+            filteredServers: function() {
+                if (!this.nordModal.cityId) {
+                    return this.nordModal.servers;
+                }
+                return this.nordModal.servers.filter(s => s.cityId === this.nordModal.cityId);
+            }
+        }
+    });
+</script>
+{{end}}
