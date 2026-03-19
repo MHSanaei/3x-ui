@@ -51,6 +51,18 @@
             </template>
             <a-input v-model.trim="clientsBulkModal.subId"></a-input>
         </a-form-item>
+        <a-form-item v-if="app.subSettings?.enable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        <span>{{ i18n "pages.settings.subClientHostDesc" }}</span>
+                    </template>
+                    {{ i18n "pages.settings.subClientHost" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input v-model.trim="clientsBulkModal.subHost" placeholder="client.example.com"></a-input>
+        </a-form-item>
         <a-form-item v-if="app.tgBotEnable">
             <template slot="label">
                 <a-tooltip>
@@ -144,6 +156,7 @@
         emailPrefix: "",
         emailPostfix: "",
         subId: "",
+        subHost: "",
         tgId: '',
         security: "auto",
         flow: "",
@@ -167,6 +180,7 @@
                 if (method == 4) newClient.email = "";
                 newClient.email += useNum ? prefix + i.toString() + postfix : prefix + postfix;
                 if (clientsBulkModal.subId.length > 0) newClient.subId = clientsBulkModal.subId;
+                if (clientsBulkModal.subHost.length > 0) newClient.subHost = clientsBulkModal.subHost;
                 newClient.tgId = clientsBulkModal.tgId;
                 newClient.security = clientsBulkModal.security;
                 newClient.limitIp = clientsBulkModal.limitIp;
@@ -200,6 +214,7 @@
             this.emailPrefix = "";
             this.emailPostfix = "";
             this.subId = "";
+            this.subHost = "";
             this.tgId = '';
             this.security = "auto";
             this.flow = "";

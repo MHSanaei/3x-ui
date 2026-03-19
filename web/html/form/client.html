@@ -56,6 +56,18 @@
         </template>
         <a-input v-model.trim="client.subId"></a-input>
     </a-form-item>
+    <a-form-item v-if="client.email && app.subSettings?.enable">
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.settings.subClientHostDesc" }}</span>
+                </template>
+                {{ i18n "pages.settings.subClientHost" }}
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="client.subHost" placeholder="client.example.com"></a-input>
+    </a-form-item>
     <a-form-item v-if="client.email && app.tgBotEnable">
         <template slot="label">
             <a-tooltip>

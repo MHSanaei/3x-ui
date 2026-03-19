@@ -76,6 +76,8 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	if err != nil || len(inbounds) == 0 {
 		return "", "", err
 	}
+	requestHost := strings.TrimSpace(host)
+	defaultClientHost := s.SubService.getDefaultClientHost()
 
 	var header string
 	var traffic xray.ClientTraffic
@@ -103,7 +105,8 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
 				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
-				newConfigs := s.getConfig(inbound, client, host)
+				clientHost := s.SubService.ResolveClientHostWithDefault(inbound, client, requestHost, defaultClientHost)
+				newConfigs := s.getConfig(inbound, client, clientHost)
 				configArray = append(configArray, newConfigs...)
 			}
 		}
