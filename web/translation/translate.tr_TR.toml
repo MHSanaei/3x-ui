@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "Belirtilen aralıklarla trafik sayacını otomatik olarak sıfırla"
 "lastReset" = "Son Sıfırlama"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "Müşteri Ekle"
 "edit" = "Müşteriyi Düzenle"

@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "指定された間隔でトラフィックカウンタを自動的にリセット"
 "lastReset" = "最後のリセット"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "クライアント追加"
 "edit" = "クライアント編集"

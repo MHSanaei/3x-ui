@@ -20,11 +20,17 @@ class DBInbound {
         this.streamSettings = "";
         this.tag = "";
         this.sniffing = "";
+        this.speedLimit = 0;
+        this.speedLimitType = "all";
         this.clientStats = ""
         if (data == null) {
             return;
         }
         ObjectUtil.cloneProps(this, data);
+        this.speedLimit = Number(this.speedLimit) || 0;
+        if (!this.speedLimitType) {
+            this.speedLimitType = "all";
+        }
     }
 
     get totalGB() {
@@ -115,6 +121,8 @@ class DBInbound {
             tag: this.tag,
             sniffing: sniffing,
             clientStats: this.clientStats,
+            speedLimit: this.speedLimit,
+            speedLimitType: this.speedLimitType,
         };
         return Inbound.fromJson(config);
     }

@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "Автоматический сброс счетчика трафика через указанные интервалы"
 "lastReset" = "Последний сброс"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "Добавить клиента"
 "edit" = "Редактировать клиента"

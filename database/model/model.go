@@ -53,6 +53,11 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+
+	// Inbound port speed limit (implemented via OS traffic control, e.g. tc).
+	// Unit: Mbps. 0 means unlimited.
+	SpeedLimit     int    `json:"speedLimit" form:"speedLimit" gorm:"default:0"`
+	SpeedLimitType string `json:"speedLimitType" form:"speedLimitType" gorm:"default:all"` // "all", "up", "down"
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.

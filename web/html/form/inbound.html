@@ -53,6 +53,28 @@
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
+                    <span>{{ i18n "pages.inbounds.speedLimitDesc" }}</span>
+                </template>
+                {{ i18n "pages.inbounds.speedLimit" }}
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <a-select v-model="dbInbound.speedLimitType" style="width: 96px; flex-shrink: 0;"
+                :dropdown-class-name="themeSwitcher.currentTheme">
+                <a-select-option value="all">{{ i18n "pages.inbounds.speedLimitModeAll" }}</a-select-option>
+                <a-select-option value="up">{{ i18n "pages.inbounds.speedLimitModeUp" }}</a-select-option>
+                <a-select-option value="down">{{ i18n "pages.inbounds.speedLimitModeDown" }}</a-select-option>
+            </a-select>
+            <a-input-number v-model.number="dbInbound.speedLimit" :min="0" style="flex: 1;"></a-input-number>
+            <span style="white-space: nowrap;">Mbps</span>
+        </div>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
                     <span>{{ i18n "pages.inbounds.periodicTrafficResetDesc"
                         }}</span>
                     <br

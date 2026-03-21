@@ -592,11 +592,11 @@
   </a-layout>
 </a-layout>
 {{template "page/body_scripts" .}}
-<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/uri/URI.min.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/js/model/reality_targets.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/js/model/inbound.js?{{ .cur_ver }}"></script>
-<script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .cur_ver }}"></script>
+<script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .asset_ver }}"></script>
+<script src="{{ .base_path }}assets/uri/URI.min.js?{{ .asset_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/reality_targets.js?{{ .asset_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/inbound.js?{{ .asset_ver }}"></script>
+<script src="{{ .base_path }}assets/js/model/dbinbound.js?{{ .asset_ver }}"></script>
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
@@ -1017,6 +1017,8 @@
           expiryTime: dbInbound.expiryTime,
           trafficReset: dbInbound.trafficReset,
           lastTrafficResetTime: dbInbound.lastTrafficResetTime,
+          speedLimit: dbInbound.speedLimit,
+          speedLimitType: dbInbound.speedLimitType,
 
           listen: '',
           port: RandomUtil.randomInteger(10000, 60000),
@@ -1038,8 +1040,17 @@
           isEdit: false
         });
       },
-      openEditInbound(dbInboundId) {
-        dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+      async openEditInbound(dbInboundId) {
+        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) {
+          return;
+        }
+        const msg = await HttpUtil.get(`/panel/api/inbounds/get/${dbInboundId}`);
+        if (msg.success && msg.obj) {
+          dbInbound = new DBInbound(msg.obj);
+        } else {
+          dbInbound = new DBInbound(dbInbound);
+        }
         const inbound = dbInbound.toInbound();
         inModal.show({
           title: '{{ i18n "pages.inbounds.modifyInbound"}}',
@@ -1063,6 +1074,8 @@
           expiryTime: dbInbound.expiryTime,
           trafficReset: dbInbound.trafficReset,
           lastTrafficResetTime: dbInbound.lastTrafficResetTime,
+          speedLimit: dbInbound.speedLimit,
+          speedLimitType: dbInbound.speedLimitType,
 
           listen: inbound.listen,
           port: inbound.port,
@@ -1088,6 +1101,8 @@
           expiryTime: dbInbound.expiryTime,
           trafficReset: dbInbound.trafficReset,
           lastTrafficResetTime: dbInbound.lastTrafficResetTime,
+          speedLimit: dbInbound.speedLimit,
+          speedLimitType: dbInbound.speedLimitType,
 
           listen: inbound.listen,
           port: inbound.port,

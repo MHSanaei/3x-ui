@@ -20,6 +20,13 @@ type InboundController struct {
 	xrayService    service.XrayService
 }
 
+func (a *InboundController) reconcileInboundSpeedLimits(needRestart bool) {
+	if needRestart {
+		return
+	}
+	a.xrayService.ApplyInboundPortSpeedLimits()
+}
+
 // NewInboundController creates a new InboundController and sets up its routes.
 func NewInboundController(g *gin.RouterGroup) *InboundController {
 	a := &InboundController{}
@@ -127,6 +134,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	// Broadcast inbounds update via WebSocket
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)
 	websocket.BroadcastInbounds(inbounds)
@@ -148,6 +156,7 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)
@@ -178,6 +187,7 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
+	a.reconcileInboundSpeedLimits(needRestart)
 	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
 	inbounds, _ := a.inboundService.GetInbounds(user.Id)
@@ -379,6 +389,9 @@ func (a *InboundController) importInbound(c *gin.Context) {
 	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundCreateSuccess"), inbound, err)
 	if err == nil && needRestart {
 		a.xrayService.SetToNeedRestart()
+	}
+	if err == nil {
+		a.reconcileInboundSpeedLimits(needRestart)
 	}
 }
 

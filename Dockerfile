@@ -4,6 +4,7 @@
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
+ARG XUI_ASSET_VERSION=""
 
 RUN apk --no-cache --update add \
   build-base \
@@ -15,8 +16,9 @@ COPY . .
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-RUN go build -ldflags "-w -s" -o build/x-ui main.go
-RUN ./DockerInit.sh "$TARGETARCH"
+RUN go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v2/config.AssetVersion=${XUI_ASSET_VERSION}" -o build/x-ui main.go
+RUN sed -i 's/\r$//' ./DockerInit.sh ./DockerEntrypoint.sh ./x-ui.sh \
+  && sh ./DockerInit.sh "$TARGETARCH"
 
 # ========================================================
 # Stage: Final Image of 3x-ui
@@ -31,6 +33,7 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
+  iproute2 \
   openssl
 
 COPY --from=builder /app/build/ /app/
@@ -48,6 +51,9 @@ RUN rm -f /etc/fail2ban/jail.d/alpine-ssh.conf \
 RUN chmod +x \
   /app/DockerEntrypoint.sh \
   /app/x-ui \
+  /usr/bin/x-ui
+RUN sed -i 's/\r$//' \
+  /app/DockerEntrypoint.sh \
   /usr/bin/x-ui
 
 ENV XUI_ENABLE_FAIL2BAN="true"

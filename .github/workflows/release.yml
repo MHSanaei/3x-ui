@@ -51,6 +51,11 @@ jobs:
           export CGO_ENABLED=1
           export GOOS=linux
           export GOARCH=${{ matrix.platform }}
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            ASSET_VERSION="${GITHUB_REF_NAME}"
+          else
+            ASSET_VERSION="${GITHUB_SHA}"
+          fi
           # Use Bootlin prebuilt cross-toolchains (musl 1.2.5 in stable series)
           case "${{ matrix.platform }}" in
             amd64) BOOTLIN_ARCH="x86-64" ;;
@@ -74,7 +79,7 @@ jobs:
           export CC=$(realpath "$(find "$TOOLCHAIN_DIR/bin" -name '*-gcc.br_real' -type f -executable | head -n1)")
           [ -z "$CC" ] && { echo "No gcc.br_real found in $TOOLCHAIN_DIR/bin" >&2; exit 1; }
           cd -
-          go build -ldflags "-w -s -linkmode external -extldflags '-static'" -o xui-release -v main.go
+          go build -ldflags "-w -s -linkmode external -extldflags '-static' -X github.com/mhsanaei/3x-ui/v2/config.AssetVersion=${ASSET_VERSION}" -o xui-release -v main.go
           file xui-release
           ldd xui-release || echo "Static binary confirmed"
           
@@ -192,12 +197,17 @@ jobs:
           export GOOS=windows
           export GOARCH=amd64
           export CC=x86_64-w64-mingw32-gcc
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            ASSET_VERSION="${GITHUB_REF_NAME}"
+          else
+            ASSET_VERSION="${GITHUB_SHA}"
+          fi
 
           which go
           go version
           gcc --version
 
-          go build -ldflags "-w -s" -o xui-release.exe -v main.go
+          go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v2/config.AssetVersion=${ASSET_VERSION}" -o xui-release.exe -v main.go
 
       - name: Copy and download resources
         shell: pwsh

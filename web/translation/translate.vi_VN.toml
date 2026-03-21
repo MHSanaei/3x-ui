@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "Tự động đặt lại bộ đếm lưu lượng theo khoảng thời gian xác định"
 "lastReset" = "Đặt lại lần cuối"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "Thêm người dùng"
 "edit" = "Chỉnh sửa người dùng"
