@@ -93,40 +93,46 @@
         data: {
             inModal: inModal,
             delayedStart: false,
-            get inbound() {
-                return inModal.inbound;
+        },
+        computed: {
+            inbound() {
+                return this.inModal.inbound;
             },
-            get dbInbound() {
-                return inModal.dbInbound;
+            dbInbound() {
+                return this.inModal.dbInbound;
             },
-            get isEdit() {
-                return inModal.isEdit;
+            isEdit() {
+                return this.inModal.isEdit;
             },
-            get client() {
-                return inModal.inbound && inModal.inbound.clients && inModal.inbound.clients.length > 0 ? inModal.inbound.clients[0] : null;
+            client() {
+                return this.inModal.inbound && this.inModal.inbound.clients && this.inModal.inbound.clients.length > 0 ? this.inModal.inbound.clients[0] : null;
             },
-            get datepicker() {
+            datepicker() {
                 return app.datepicker;
             },
-            get delayedExpireDays() {
-                return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
+            delayedExpireDays: {
+                get() {
+                    return this.client && this.client.expiryTime < 0 ? this.client.expiryTime / -86400000 : 0;
+                },
+                set(days) {
+                    this.client.expiryTime = -86400000 * days;
+                }
             },
-            set delayedExpireDays(days) {
-                this.client.expiryTime = -86400000 * days;
-            },
-            get externalProxy() {
-                return this.inbound.stream.externalProxy.length > 0;
-            },
-            set externalProxy(value) {
-                if (value) {
-                    inModal.inbound.stream.externalProxy = [{
-                        forceTls: "same",
-                        dest: window.location.hostname,
-                        port: inModal.inbound.port,
-                        remark: ""
-                    }];
-                } else {
-                    inModal.inbound.stream.externalProxy = [];
+            externalProxy: {
+                get() {
+                    return this.inbound.stream.externalProxy.length > 0;
+                },
+                set(value) {
+                    if (value) {
+                        this.inModal.inbound.stream.externalProxy = [{
+                            forceTls: "same",
+                            dest: window.location.hostname,
+                            port: this.inModal.inbound.port,
+                            remark: ""
+                        }];
+                    } else {
+                        this.inModal.inbound.stream.externalProxy = [];
+                    }
                 }
             }
         },
