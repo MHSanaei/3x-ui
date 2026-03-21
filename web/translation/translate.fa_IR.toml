@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "بازنشانی خودکار شمارنده ترافیک در فواصل زمانی مشخص"
 "lastReset" = "آخرین بازنشانی"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "کاربر جدید"
 "edit" = "ویرایش کاربر"

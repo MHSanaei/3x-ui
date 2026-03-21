@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "إعادة تعيين عداد حركة المرور تلقائيًا في فترات محددة"
 "lastReset" = "آخر إعادة تعيين"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "أضف عميل"
 "edit" = "تعديل عميل"

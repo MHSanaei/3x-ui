@@ -1040,8 +1040,17 @@
           isEdit: false
         });
       },
-      openEditInbound(dbInboundId) {
-        dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+      async openEditInbound(dbInboundId) {
+        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) {
+          return;
+        }
+        const msg = await HttpUtil.get(`/panel/api/inbounds/get/${dbInboundId}`);
+        if (msg.success && msg.obj) {
+          dbInbound = new DBInbound(msg.obj);
+        } else {
+          dbInbound = new DBInbound(dbInbound);
+        }
         const inbound = dbInbound.toInbound();
         inModal.show({
           title: '{{ i18n "pages.inbounds.modifyInbound"}}',

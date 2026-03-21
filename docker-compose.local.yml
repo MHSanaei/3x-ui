@@ -15,7 +15,10 @@ services:
       XUI_ENABLE_FAIL2BAN: "true"
       XUI_KEEP_ACCESS_LOG: "true"
       XUI_SITE_NAME: "local"
+    cap_add:
+      - NET_ADMIN
     ports:
+      - "1234:1234"
       - "2053:2053"
       - "2096:2096"
     tty: true

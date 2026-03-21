@@ -49,24 +49,22 @@
             :min="0"></a-input-number>
     </a-form-item>
 
-    <a-form-item label="Speed Limit">
+    <a-form-item>
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
-                    <span>0 = no limit</span>
-                    <br>
-                    <span>Apply tc-based inbound bandwidth limit in Mbps.</span>
+                    <span>{{ i18n "pages.inbounds.speedLimitDesc" }}</span>
                 </template>
-                Speed Limit
+                {{ i18n "pages.inbounds.speedLimit" }}
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
         <div style="display: flex; gap: 8px; align-items: center;">
             <a-select v-model="dbInbound.speedLimitType" style="width: 96px; flex-shrink: 0;"
                 :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option value="all">All</a-select-option>
-                <a-select-option value="up">Up</a-select-option>
-                <a-select-option value="down">Down</a-select-option>
+                <a-select-option value="all">{{ i18n "pages.inbounds.speedLimitModeAll" }}</a-select-option>
+                <a-select-option value="up">{{ i18n "pages.inbounds.speedLimitModeUp" }}</a-select-option>
+                <a-select-option value="down">{{ i18n "pages.inbounds.speedLimitModeDown" }}</a-select-option>
             </a-select>
             <a-input-number v-model.number="dbInbound.speedLimit" :min="0" style="flex: 1;"></a-input-number>
             <span style="white-space: nowrap;">Mbps</span>

@@ -248,6 +248,12 @@
 "periodicTrafficResetDesc" = "Reset otomatis penghitung trafik pada interval tertentu"
 "lastReset" = "Reset Terakhir"
 
+"speedLimit" = "Speed Limit"
+"speedLimitDesc" = "Apply an inbound-level bandwidth limit via tc. All clients under this inbound share this limit. 0 = Unlimited. Unit: Mbps."
+"speedLimitModeAll" = "All"
+"speedLimitModeUp" = "Up"
+"speedLimitModeDown" = "Down"
+
 [pages.client]
 "add" = "Tambah Klien"
 "edit" = "Edit Klien"
