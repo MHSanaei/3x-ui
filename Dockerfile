@@ -31,6 +31,7 @@ RUN apk add --no-cache --update \
   fail2ban \
   bash \
   curl \
+  iproute2 \
   openssl
 
 COPY --from=builder /app/build/ /app/
