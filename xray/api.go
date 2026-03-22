@@ -204,6 +204,28 @@ func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
 	return nil
 }
 
+// DrainUserTraffic reads and resets the uplink and downlink counters for a specific user
+// from the Xray stats service. Returns 0,0,nil if no counters exist for the user.
+func (x *XrayAPI) DrainUserTraffic(email string) (up int64, down int64, err error) {
+	if x.StatsServiceClient == nil {
+		return 0, 0, common.NewError("xray StatsServiceClient is not initialized")
+	}
+	client := *x.StatsServiceClient
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	uplinkName := fmt.Sprintf("user>>>%s>>>traffic>>>uplink", email)
+	downlinkName := fmt.Sprintf("user>>>%s>>>traffic>>>downlink", email)
+
+	if resp, e := client.GetStats(ctx, &statsService.GetStatsRequest{Name: uplinkName, Reset_: true}); e == nil {
+		up = resp.GetStat().GetValue()
+	}
+	if resp, e := client.GetStats(ctx, &statsService.GetStatsRequest{Name: downlinkName, Reset_: true}); e == nil {
+		down = resp.GetStat().GetValue()
+	}
+	return up, down, nil
+}
+
 // GetTraffic queries traffic statistics from the Xray core, optionally resetting counters.
 func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {

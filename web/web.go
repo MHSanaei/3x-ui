@@ -19,6 +19,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/util/iptables"
 	"github.com/mhsanaei/3x-ui/v2/web/controller"
 	"github.com/mhsanaei/3x-ui/v2/web/job"
 	"github.com/mhsanaei/3x-ui/v2/web/locale"
@@ -295,6 +296,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask() {
+	// Ensure the 3X-UI-BLOCK iptables chain exists and flush any stale rules from a prior run
+	if err := iptables.EnsureChain(); err != nil {
+		logger.Warning("iptables EnsureChain failed (continuing without IP blocking):", err)
+	} else {
+		if err := iptables.FlushChain(); err != nil {
+			logger.Warning("iptables FlushChain failed:", err)
+		}
+	}
+
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
 		logger.Warning("start xray failed:", err)
@@ -305,6 +315,8 @@ func (s *Server) startTask() {
 	// Check if xray needs to be restarted every 30 seconds
 	s.cron.AddFunc("@every 30s", func() {
 		if s.xrayService.IsNeedRestartAndSetFalse() {
+			// Flush pending traffic before restart so in-memory counters are not lost
+			s.xrayService.FlushTrafficToDB()
 			err := s.xrayService.RestartXray(false)
 			if err != nil {
 				logger.Error("restart xray failed:", err)
@@ -320,6 +332,9 @@ func (s *Server) startTask() {
 
 	// check client ips from log file every 10 sec
 	s.cron.AddJob("@every 10s", job.NewCheckClientIpJob())
+
+	// Clean up expired iptables block rules every 5 minutes
+	s.cron.AddJob("@every 5m", job.NewUnblockIPsJob())
 
 	// check client ips from log file every day
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
