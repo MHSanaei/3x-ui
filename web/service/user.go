@@ -95,7 +95,7 @@ func (s *UserService) CheckUser(username string, password string, twoFactorCode 
 		}
 
 		if gotp.NewDefaultTOTP(twoFactorToken).Now() != twoFactorCode {
-			return nil, errors.New("invalid 2fa code") 
+			return nil, errors.New("invalid 2fa code")
 		}
 	}
 

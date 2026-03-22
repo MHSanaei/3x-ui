@@ -318,12 +318,12 @@ check_config() {
                 start >/dev/null 2>&1
             else
                 LOGE "IP certificate setup failed."
-                echo -e "${yellow}You can try again via option 18 (SSL Certificate Management).${plain}"
+                echo -e "${yellow}You can try again via option 19 (SSL Certificate Management).${plain}"
                 start >/dev/null 2>&1
             fi
         else
             echo -e "${yellow}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
-            echo -e "${yellow}For security, please configure SSL certificate using option 18 (SSL Certificate Management)${plain}"
+            echo -e "${yellow}For security, please configure SSL certificate using option 19 (SSL Certificate Management)${plain}"
         fi
     fi
 }
@@ -2013,7 +2013,7 @@ EOF
     cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
-failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
+failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 ignoreregex =
 EOF
 
