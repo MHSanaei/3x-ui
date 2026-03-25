@@ -271,6 +271,7 @@
 "daily" = "每日"
 "weekly" = "每周"
 "monthly" = "每月"
+"hourly" = "hourly"
 
 [pages.inbounds.toasts]
 "obtain" = "获取"

@@ -271,6 +271,7 @@
 "daily" = "毎日"
 "weekly" = "毎週"
 "monthly" = "毎月"
+"hourly" = "hourly"
 
 [pages.inbounds.toasts]
 "obtain" = "取得"

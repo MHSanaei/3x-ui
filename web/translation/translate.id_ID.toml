@@ -271,6 +271,7 @@
 "daily" = "Harian"
 "weekly" = "Mingguan"
 "monthly" = "Bulanan"
+"hourly" = "hourly"
 
 [pages.inbounds.toasts]
 "obtain" = "Dapatkan"

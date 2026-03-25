@@ -271,6 +271,7 @@
 "daily" = "Ежедневно"
 "weekly" = "Еженедельно"
 "monthly" = "Ежемесячно"
+"hourly" = "Ежечасно"
 
 [pages.inbounds.toasts]
 "obtain" = "Получить"

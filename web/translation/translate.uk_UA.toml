@@ -271,6 +271,7 @@
 "daily" = "Щодня"
 "weekly" = "Щотижня"
 "monthly" = "Щомісяця"
+"hourly" = "hourly"
 
 [pages.inbounds.toasts]
 "obtain" = "Отримати"
