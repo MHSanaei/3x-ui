@@ -262,6 +262,7 @@
       refreshing: false,
       restartResult: '',
       showAlert: false,
+      customGeoAliasLabelSuffix: '{{ i18n "pages.index.customGeoAliasLabelSuffix" }}',
       advSettings: 'xraySetting',
       obsSettings: '',
       cm: null,
@@ -1057,6 +1058,31 @@
       },
       showWarp() {
         warpModal.show();
+      },
+      async loadCustomGeoAliases() {
+        try {
+          const msg = await HttpUtil.get('/panel/api/custom-geo/aliases');
+          if (!msg.success) {
+            console.warn('Failed to load custom geo aliases:', msg.msg || 'request failed');
+            return;
+          }
+          if (!msg.obj) return;
+          const { geoip = [], geosite = [] } = msg.obj;
+          const geoSuffix = this.customGeoAliasLabelSuffix || '';
+          geoip.forEach((x) => {
+            this.settingsData.IPsOptions.push({
+              label: x.alias + geoSuffix,
+              value: x.extExample,
+            });
+          });
+          geosite.forEach((x) => {
+            const opt = { label: x.alias + geoSuffix, value: x.extExample };
+            this.settingsData.DomainsOptions.push(opt);
+            this.settingsData.BlockDomainsOptions.push(opt);
+          });
+        } catch (e) {
+          console.error('Failed to load custom geo aliases:', e);
+        }
       }
     },
     async mounted() {
@@ -1064,6 +1090,7 @@
         this.showAlert = true;
       }
       await this.getXraySetting();
+      await this.loadCustomGeoAliases();
       await this.getXrayResult();
       await this.getOutboundsTraffic();
 
