@@ -190,23 +190,7 @@ func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (stri
 	if err != nil {
 		return "", err
 	}
-	allEmails, err := s.getAllEmails()
-	if err != nil {
-		return "", err
-	}
-	var emails []string
-	for _, client := range clients {
-		if client.Email != "" {
-			if s.contains(emails, client.Email) {
-				return client.Email, nil
-			}
-			if s.contains(allEmails, client.Email) {
-				return client.Email, nil
-			}
-			emails = append(emails, client.Email)
-		}
-	}
-	return "", nil
+	return s.checkEmailsExistForClients(clients)
 }
 
 // AddInbound creates a new inbound configuration.
@@ -339,7 +323,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 		}
 		s.xrayApi.Close()
 	} else {
-		logger.Debug("No enabled inbound founded to removing by api", tag)
+		logger.Debug("No enabled inbound found to remove by api for inbound id:", id)
 	}
 
 	// Delete client traffics of inbounds
@@ -1280,12 +1264,8 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
 					logger.Debug("User is already disabled. Nothing to do more...")
 				} else {
-					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-						logger.Debug("User is already disabled. Nothing to do more...")
-					} else {
-						logger.Debug("Error in disabling client by api:", err1)
-						needRestart = true
-					}
+					logger.Debug("Error in disabling client by api:", err1)
+					needRestart = true
 				}
 			}
 		}
@@ -1458,16 +1438,16 @@ func (s *InboundService) SetClientTelegramUserID(trafficId int, tgId int64) (boo
 		return false, err
 	}
 	clients := settings["clients"].([]any)
-	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["tgId"] = tgId
 			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
+			clients[client_index] = c
+			break
 		}
 	}
-	settings["clients"] = newClients
+	settings["clients"] = clients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return false, err
@@ -1545,16 +1525,16 @@ func (s *InboundService) ToggleClientEnableByEmail(clientEmail string) (bool, bo
 		return false, false, err
 	}
 	clients := settings["clients"].([]any)
-	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["enable"] = !clientOldEnabled
 			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
+			clients[client_index] = c
+			break
 		}
 	}
-	settings["clients"] = newClients
+	settings["clients"] = clients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return false, false, err
@@ -1625,16 +1605,16 @@ func (s *InboundService) ResetClientIpLimitByEmail(clientEmail string, count int
 		return false, err
 	}
 	clients := settings["clients"].([]any)
-	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["limitIp"] = count
 			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
+			clients[client_index] = c
+			break
 		}
 	}
-	settings["clients"] = newClients
+	settings["clients"] = clients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return false, err
@@ -1684,16 +1664,16 @@ func (s *InboundService) ResetClientExpiryTimeByEmail(clientEmail string, expiry
 		return false, err
 	}
 	clients := settings["clients"].([]any)
-	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["expiryTime"] = expiry_time
 			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
+			clients[client_index] = c
+			break
 		}
 	}
-	settings["clients"] = newClients
+	settings["clients"] = clients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return false, err
@@ -1746,16 +1726,16 @@ func (s *InboundService) ResetClientTrafficLimitByEmail(clientEmail string, tota
 		return false, err
 	}
 	clients := settings["clients"].([]any)
-	var newClients []any
 	for client_index := range clients {
 		c := clients[client_index].(map[string]any)
 		if c["email"] == clientEmail {
 			c["totalGB"] = totalGB * 1024 * 1024 * 1024
 			c["updated_at"] = time.Now().Unix() * 1000
-			newClients = append(newClients, any(c))
+			clients[client_index] = c
+			break
 		}
 	}
-	settings["clients"] = newClients
+	settings["clients"] = clients
 	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 	if err != nil {
 		return false, err

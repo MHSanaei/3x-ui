@@ -198,8 +198,7 @@ func (s *SettingService) ResetSettings() error {
 	if err != nil {
 		return err
 	}
-	return db.Model(model.User{}).
-		Where("1 = 1").Error
+	return db.Where("1 = 1").Delete(model.User{}).Error
 }
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {

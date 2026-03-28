@@ -30,7 +30,7 @@ func (j *CheckCpuJob) Run() {
 
 	// get latest status of server
 	percent, err := cpu.Percent(1*time.Minute, false)
-	if err == nil && percent[0] > float64(threshold) {
+	if err == nil && len(percent) > 0 && percent[0] > float64(threshold) {
 		msg := j.tgbotService.I18nBot("tgbot.messages.cpuThreshold",
 			"Percent=="+strconv.FormatFloat(percent[0], 'f', 2, 64),
 			"Threshold=="+strconv.Itoa(threshold))

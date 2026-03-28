@@ -33,35 +33,34 @@ var upgrader = ws.Upgrader{
 	ReadBufferSize:  4096, // Increased from 1024 for better performance
 	WriteBufferSize: 4096, // Increased from 1024 for better performance
 	CheckOrigin: func(r *http.Request) bool {
-		// Check origin for security
 		origin := r.Header.Get("Origin")
 		if origin == "" {
 			// Allow connections without Origin header (same-origin requests)
 			return true
 		}
-		// Get the host from the request
-		host := r.Host
-		// Extract scheme and host from origin
-		originURL := origin
-		// Simple check: origin should match the request host
-		// This prevents cross-origin WebSocket hijacking
-		if strings.HasPrefix(originURL, "http://") || strings.HasPrefix(originURL, "https://") {
-			// Extract host from origin
-			originHost := strings.TrimPrefix(strings.TrimPrefix(originURL, "http://"), "https://")
+
+		// Extract host from origin
+		originHost := origin
+		if strings.HasPrefix(originHost, "http://") || strings.HasPrefix(originHost, "https://") {
+			originHost = strings.TrimPrefix(strings.TrimPrefix(originHost, "http://"), "https://")
 			if idx := strings.Index(originHost, "/"); idx != -1 {
 				originHost = originHost[:idx]
 			}
-			if idx := strings.Index(originHost, ":"); idx != -1 {
-				originHost = originHost[:idx]
-			}
-			// Compare hosts (without port)
-			requestHost := host
-			if idx := strings.Index(requestHost, ":"); idx != -1 {
-				requestHost = requestHost[:idx]
-			}
-			return originHost == requestHost || originHost == "" || requestHost == ""
 		}
-		return false
+
+		// Normalize host for comparison (strip ports and IPv6 brackets)
+		normalizeHost := func(h string) string {
+			h = strings.TrimPrefix(h, "[")
+			if idx := strings.LastIndex(h, "]:"); idx != -1 {
+				h = h[:idx+1]
+			}
+			if idx := strings.LastIndex(h, ":"); idx != -1 && !strings.Contains(h[:idx], "]") {
+				h = h[:idx]
+			}
+			return h
+		}
+
+		return normalizeHost(originHost) == normalizeHost(r.Host)
 	},
 }
 

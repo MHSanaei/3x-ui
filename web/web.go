@@ -344,7 +344,6 @@ func (s *Server) startTask() {
 	}
 
 	// Make a traffic condition every day, 8:30
-	var entry cron.EntryID
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
 	if (err == nil) && (isTgbotenabled) {
 		runtime, err := s.settingService.GetTgbotRuntime()
@@ -367,8 +366,6 @@ func (s *Server) startTask() {
 		if (err == nil) && (cpuThreshold > 0) {
 			s.cron.AddJob("@every 10s", job.NewCheckCpuJob())
 		}
-	} else {
-		s.cron.Remove(entry)
 	}
 }
 
@@ -453,7 +450,6 @@ func (s *Server) Start() (err error) {
 
 // Stop gracefully shuts down the web server, stops Xray, cron jobs, and Telegram bot.
 func (s *Server) Stop() error {
-	s.cancel()
 	s.xrayService.StopXray()
 	if s.cron != nil {
 		s.cron.Stop()
@@ -468,11 +464,15 @@ func (s *Server) Stop() error {
 	var err1 error
 	var err2 error
 	if s.httpServer != nil {
-		err1 = s.httpServer.Shutdown(s.ctx)
+		// Use a fresh timeout context for graceful shutdown
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		err1 = s.httpServer.Shutdown(shutdownCtx)
 	}
 	if s.listener != nil {
 		err2 = s.listener.Close()
 	}
+	s.cancel()
 	return common.Combine(err1, err2)
 }
 
