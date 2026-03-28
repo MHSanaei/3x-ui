@@ -325,7 +325,7 @@ func (a *ServerController) getNewEchCert(c *gin.Context) {
 	sni := c.PostForm("sni")
 	cert, err := a.serverService.GetNewEchCert(sni)
 	if err != nil {
-		jsonMsg(c, "get ech certificate", err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonObj(c, cert, nil)
@@ -345,7 +345,7 @@ func (a *ServerController) getNewVlessEnc(c *gin.Context) {
 func (a *ServerController) getNewUUID(c *gin.Context) {
 	uuidResp, err := a.serverService.GetNewUUID()
 	if err != nil {
-		jsonMsg(c, "Failed to generate UUID", err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 
@@ -356,7 +356,7 @@ func (a *ServerController) getNewUUID(c *gin.Context) {
 func (a *ServerController) getNewmlkem768(c *gin.Context) {
 	out, err := a.serverService.GetNewmlkem768()
 	if err != nil {
-		jsonMsg(c, "Failed to generate mlkem768 keys", err)
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
 	}
 	jsonObj(c, out, nil)
