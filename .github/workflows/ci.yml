@@ -3,9 +3,19 @@ name: CI
 on:
   workflow_dispatch:
   pull_request:
-  push:
-    branches:
-      - main
+    types:
+      - synchronize
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'web/**'
+      - 'Dockerfile'
+      - 'DockerInit.sh'
+      - 'DockerEntrypoint.sh'
+      - 'x-ui.sh'
+      - '.dockerignore'
+      - '.github/workflows/ci.yml'
 
 permissions:
   contents: read
@@ -15,6 +25,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect-scope:
+    name: Detect Build Scope
+    runs-on: ubuntu-latest
+    outputs:
+      docker: ${{ steps.scope.outputs.docker }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect Docker-related changes
+        id: scope
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "docker=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base_sha="${{ github.event.pull_request.base.sha }}"
+          head_sha="${{ github.event.pull_request.head.sha }}"
+          docker=false
+
+          echo "Comparing changes from $base_sha to $head_sha"
+          while IFS= read -r file; do
+            [ -z "$file" ] && continue
+            echo "changed: $file"
+            case "$file" in
+              Dockerfile|DockerInit.sh|DockerEntrypoint.sh|.dockerignore|x-ui.sh|go.mod|go.sum|.github/workflows/ci.yml)
+                docker=true
+                break
+                ;;
+            esac
+          done < <(git diff --name-only "$base_sha" "$head_sha")
+
+          echo "docker=$docker" >> "$GITHUB_OUTPUT"
+
   go-check:
     name: Go Checks
     runs-on: ubuntu-latest
@@ -56,7 +105,10 @@ jobs:
   docker-build:
     name: Docker Build Check
     runs-on: ubuntu-latest
-    needs: go-check
+    needs:
+      - detect-scope
+      - go-check
+    if: needs.detect-scope.outputs.docker == 'true'
 
     steps:
       - name: Checkout repository
