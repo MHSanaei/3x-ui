@@ -39,6 +39,9 @@
                 <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
             </a-select>
         </a-form-item>
+        <a-form-item v-if="clientsBulkModal.inbound.protocol === Protocols.VLESS && clientsBulkModal.inbound.network === 'xhttp'" label='XHTTP Extra raw JSON'>
+            <a-textarea v-model.trim="clientsBulkModal.extra" :auto-size="{ minRows: 2, maxRows: 5 }" placeholder='{"xmux":{"maxConnections":1}}'></a-textarea>
+        </a-form-item>
         <a-form-item v-if="app.subSettings?.enable">
             <template slot="label">
                 <a-tooltip>
@@ -147,6 +150,7 @@
         tgId: '',
         security: "auto",
         flow: "",
+        extra: "",
         delayedStart: false,
         reset: 0,
         ok() {
@@ -174,6 +178,9 @@
                 newClient._expiryTime = clientsBulkModal.expiryTime;
                 if (clientsBulkModal.inbound.canEnableTlsFlow()) {
                     newClient.flow = clientsBulkModal.flow;
+                }
+                if (clientsBulkModal.inbound.protocol === Protocols.VLESS && clientsBulkModal.inbound.network === 'xhttp') {
+                    newClient.extra = clientsBulkModal.extra;
                 }
                 newClient.reset = clientsBulkModal.reset;
                 clients.push(newClient);
@@ -203,6 +210,7 @@
             this.tgId = '';
             this.security = "auto";
             this.flow = "";
+            this.extra = "";
             this.dbInbound = new DBInbound(dbInbound);
             this.inbound = dbInbound.toInbound();
             this.delayedStart = false;

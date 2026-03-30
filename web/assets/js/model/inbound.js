@@ -1418,7 +1418,7 @@ class Inbound extends XrayCommonClass {
         return 'vmess://' + Base64.encode(JSON.stringify(obj, null, 2));
     }
 
-    genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow) {
+    genVLESSLink(address = '', port = this.port, forceTls, remark = '', clientId, flow, extra = '') {
         const uuid = clientId;
         const type = this.stream.network;
         const security = forceTls == 'same' ? this.stream.security : forceTls;
@@ -1465,6 +1465,12 @@ class Inbound extends XrayCommonClass {
                 params.set("path", xhttp.path);
                 params.set("host", xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host'));
                 params.set("mode", xhttp.mode);
+                if (extra && extra.trim() !== "") {
+                    // xray handles it but let's make sure it's valid json structure.
+                    // The client already inputs it or handles it.
+                    // We just pass the string.
+                    params.set("extra", extra.trim());
+                }
                 break;
         }
 
@@ -1716,7 +1722,7 @@ class Inbound extends XrayCommonClass {
             case Protocols.VMESS:
                 return this.genVmessLink(address, port, forceTls, remark, client.id, client.security);
             case Protocols.VLESS:
-                return this.genVLESSLink(address, port, forceTls, remark, client.id, client.flow);
+                return this.genVLESSLink(address, port, forceTls, remark, client.id, client.flow, client.extra);
             case Protocols.SHADOWSOCKS:
                 return this.genSSLink(address, port, forceTls, remark, this.isSSMultiUser ? client.password : '');
             case Protocols.TROJAN:
@@ -2059,7 +2065,8 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         comment = '',
         reset = 0,
         created_at = undefined,
-        updated_at = undefined
+        updated_at = undefined,
+        extra = ''
     ) {
         super();
         this.id = id;
@@ -2075,6 +2082,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
         this.reset = reset;
         this.created_at = created_at;
         this.updated_at = updated_at;
+        this.extra = extra;
     }
 
     static fromJson(json = {}) {
@@ -2092,6 +2100,7 @@ Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
             json.reset,
             json.created_at,
             json.updated_at,
+            json.extra
         );
     }
 

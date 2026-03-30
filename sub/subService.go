@@ -406,6 +406,9 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params["host"] = searchHost(headers)
 		}
 		params["mode"] = xhttp["mode"].(string)
+		if clients[clientIndex].Extra != "" {
+			params["extra"] = clients[clientIndex].Extra
+		}
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {

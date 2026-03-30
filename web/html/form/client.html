@@ -113,6 +113,9 @@
             <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
         </a-select>
     </a-form-item>
+    <a-form-item v-if="inbound.protocol === Protocols.VLESS && inbound.network === 'xhttp'" label='XHTTP Extra raw JSON'>
+        <a-textarea v-model.trim="client.extra" :auto-size="{ minRows: 2, maxRows: 5 }" placeholder='{"xmux":{"maxConnections":1}}'></a-textarea>
+    </a-form-item>
     <a-form-item>
         <template slot="label">
             <a-tooltip>

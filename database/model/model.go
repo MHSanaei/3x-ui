@@ -121,4 +121,5 @@ type Client struct {
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
+	Extra      string `json:"extra,omitempty" form:"extra"` // XHTTP extra raw JSON
 }
