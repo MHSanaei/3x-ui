@@ -76,37 +76,38 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
+            dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates openssl
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y curl tar tzdata socat ca-certificates
+                yum -y update && yum install -y curl tar tzdata socat ca-certificates openssl
             else
-                dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
+                dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates openssl
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata socat ca-certificates
+            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata socat ca-certificates openssl
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y curl tar timezone socat ca-certificates
+            zypper refresh && zypper -q install -y curl tar timezone socat ca-certificates openssl
         ;;
         alpine)
-            apk update && apk add curl tar tzdata socat ca-certificates
+            apk update && apk add curl tar tzdata socat ca-certificates openssl
         ;;
         *)
-            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
+            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates openssl
         ;;
     esac
 }
 
 gen_random_string() {
     local length="$1"
-    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
-    echo "$random_string"
+    openssl rand -base64 $(( length * 2 )) \
+        | tr -dc 'a-zA-Z0-9' \
+        | head -c "$length"
 }
 
 install_acme() {

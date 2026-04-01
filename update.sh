@@ -100,37 +100,38 @@ is_port_in_use() {
 
 gen_random_string() {
     local length="$1"
-    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
-    echo "$random_string"
+    openssl rand -base64 $(( length * 2 )) \
+        | tr -dc 'a-zA-Z0-9' \
+        | head -c "$length"
 }
 
 install_base() {
     echo -e "${green}Updating and install dependency packages...${plain}"
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt-get install -y -q curl tar tzdata socat openssl >/dev/null 2>&1
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat >/dev/null 2>&1
+            dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat openssl >/dev/null 2>&1
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata socat >/dev/null 2>&1
+                yum -y update >/dev/null 2>&1 && yum install -y -q curl tar tzdata socat openssl >/dev/null 2>&1
             else
-                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat >/dev/null 2>&1
+                dnf -y update >/dev/null 2>&1 && dnf install -y -q curl tar tzdata socat openssl >/dev/null 2>&1
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata socat >/dev/null 2>&1
+            pacman -Syu >/dev/null 2>&1 && pacman -Syu --noconfirm curl tar tzdata socat openssl >/dev/null 2>&1
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone socat >/dev/null 2>&1
+            zypper refresh >/dev/null 2>&1 && zypper -q install -y curl tar timezone socat openssl >/dev/null 2>&1
         ;;
         alpine)
-            apk update >/dev/null 2>&1 && apk add curl tar tzdata socat >/dev/null 2>&1
+            apk update >/dev/null 2>&1 && apk add curl tar tzdata socat openssl>/dev/null 2>&1
         ;;
         *)
-            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata socat >/dev/null 2>&1
+            apt-get update >/dev/null 2>&1 && apt install -y -q curl tar tzdata socat openssl >/dev/null 2>&1
         ;;
     esac
 }
