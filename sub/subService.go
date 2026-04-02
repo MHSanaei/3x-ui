@@ -492,6 +492,14 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			} else {
 				params["security"] = security
 			}
+
+			// Allow externalProxy to override SNI (useful when the
+			// inbound has extra serverNames for fallback routing that
+			// should not appear in subscription links).
+			if sni, ok := ep["sni"].(string); ok && len(sni) > 0 {
+				params["sni"] = sni
+			}
+
 			url, _ := url.Parse(link)
 			q := url.Query()
 
@@ -687,6 +695,14 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			} else {
 				params["security"] = security
 			}
+
+			// Allow externalProxy to override SNI (useful when the
+			// inbound has extra serverNames for fallback routing that
+			// should not appear in subscription links).
+			if sni, ok := ep["sni"].(string); ok && len(sni) > 0 {
+				params["sni"] = sni
+			}
+
 			url, _ := url.Parse(link)
 			q := url.Query()
 
@@ -854,6 +870,14 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			} else {
 				params["security"] = security
 			}
+
+			// Allow externalProxy to override SNI (useful when the
+			// inbound has extra serverNames for fallback routing that
+			// should not appear in subscription links).
+			if sni, ok := ep["sni"].(string); ok && len(sni) > 0 {
+				params["sni"] = sni
+			}
+
 			url, _ := url.Parse(link)
 			q := url.Query()
 
