@@ -435,34 +435,37 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
+	// Extract Reality params unconditionally so they're available when
+	// externalProxy overrides security to "reality" via forceTls.
+	realitySetting, _ := stream["realitySettings"].(map[string]any)
+	realitySettings, _ := searchKey(realitySetting, "settings")
+	if realitySetting != nil {
+		if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
+			sNames, _ := sniValue.([]any)
+			params["sni"] = sNames[random.Num(len(sNames))].(string)
+		}
+		if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
+			params["pbk"], _ = pbkValue.(string)
+		}
+		if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
+			shortIds, _ := sidValue.([]any)
+			params["sid"] = shortIds[random.Num(len(shortIds))].(string)
+		}
+		if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
+			if fp, ok := fpValue.(string); ok && len(fp) > 0 {
+				params["fp"] = fp
+			}
+		}
+		if pqvValue, ok := searchKey(realitySettings, "mldsa65Verify"); ok {
+			if pqv, ok := pqvValue.(string); ok && len(pqv) > 0 {
+				params["pqv"] = pqv
+			}
+		}
+		params["spx"] = "/" + random.Seq(15)
+	}
+
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySetting, _ := stream["realitySettings"].(map[string]any)
-		realitySettings, _ := searchKey(realitySetting, "settings")
-		if realitySetting != nil {
-			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
-				sNames, _ := sniValue.([]any)
-				params["sni"] = sNames[random.Num(len(sNames))].(string)
-			}
-			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
-				params["pbk"], _ = pbkValue.(string)
-			}
-			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
-				shortIds, _ := sidValue.([]any)
-				params["sid"] = shortIds[random.Num(len(shortIds))].(string)
-			}
-			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
-				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
-					params["fp"] = fp
-				}
-			}
-			if pqvValue, ok := searchKey(realitySettings, "mldsa65Verify"); ok {
-				if pqv, ok := pqvValue.(string); ok && len(pqv) > 0 {
-					params["pqv"] = pqv
-				}
-			}
-			params["spx"] = "/" + random.Seq(15)
-		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
 			params["flow"] = clients[clientIndex].Flow
@@ -627,34 +630,37 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		}
 	}
 
+	// Extract Reality params unconditionally so they're available when
+	// externalProxy overrides security to "reality" via forceTls.
+	realitySetting, _ := stream["realitySettings"].(map[string]any)
+	realitySettings, _ := searchKey(realitySetting, "settings")
+	if realitySetting != nil {
+		if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
+			sNames, _ := sniValue.([]any)
+			params["sni"] = sNames[random.Num(len(sNames))].(string)
+		}
+		if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
+			params["pbk"], _ = pbkValue.(string)
+		}
+		if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
+			shortIds, _ := sidValue.([]any)
+			params["sid"] = shortIds[random.Num(len(shortIds))].(string)
+		}
+		if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
+			if fp, ok := fpValue.(string); ok && len(fp) > 0 {
+				params["fp"] = fp
+			}
+		}
+		if pqvValue, ok := searchKey(realitySettings, "mldsa65Verify"); ok {
+			if pqv, ok := pqvValue.(string); ok && len(pqv) > 0 {
+				params["pqv"] = pqv
+			}
+		}
+		params["spx"] = "/" + random.Seq(15)
+	}
+
 	if security == "reality" {
 		params["security"] = "reality"
-		realitySetting, _ := stream["realitySettings"].(map[string]any)
-		realitySettings, _ := searchKey(realitySetting, "settings")
-		if realitySetting != nil {
-			if sniValue, ok := searchKey(realitySetting, "serverNames"); ok {
-				sNames, _ := sniValue.([]any)
-				params["sni"] = sNames[random.Num(len(sNames))].(string)
-			}
-			if pbkValue, ok := searchKey(realitySettings, "publicKey"); ok {
-				params["pbk"], _ = pbkValue.(string)
-			}
-			if sidValue, ok := searchKey(realitySetting, "shortIds"); ok {
-				shortIds, _ := sidValue.([]any)
-				params["sid"] = shortIds[random.Num(len(shortIds))].(string)
-			}
-			if fpValue, ok := searchKey(realitySettings, "fingerprint"); ok {
-				if fp, ok := fpValue.(string); ok && len(fp) > 0 {
-					params["fp"] = fp
-				}
-			}
-			if pqvValue, ok := searchKey(realitySettings, "mldsa65Verify"); ok {
-				if pqv, ok := pqvValue.(string); ok && len(pqv) > 0 {
-					params["pqv"] = pqv
-				}
-			}
-			params["spx"] = "/" + random.Seq(15)
-		}
 
 		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
 			params["flow"] = clients[clientIndex].Flow

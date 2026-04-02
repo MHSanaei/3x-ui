@@ -1738,7 +1738,7 @@ class Inbound extends XrayCommonClass {
             'o': '',
         };
         if (ObjectUtil.isArrEmpty(this.stream.externalProxy)) {
-            let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
+            let r = orderChars.split('').map(char => orders[char]).filter(x => x && x.length > 0).join(separationChar);
             result.push({
                 remark: r,
                 link: this.genLink(addr, port, 'same', r, client)
@@ -1746,7 +1746,7 @@ class Inbound extends XrayCommonClass {
         } else {
             this.stream.externalProxy.forEach((ep) => {
                 orders['o'] = ep.remark;
-                let r = orderChars.split('').map(char => orders[char]).filter(x => x.length > 0).join(separationChar);
+                let r = orderChars.split('').map(char => orders[char]).filter(x => x && x.length > 0).join(separationChar);
                 result.push({
                     remark: r,
                     link: this.genLink(ep.dest, ep.port, ep.forceTls, r, client)
