@@ -1730,4 +1730,18 @@
     },
   });
 </script>
+<style>
+  #content-layout > .ant-layout-content > .ant-spin-nested-loading > div > .ant-spin {
+    position: fixed !important;
+    top: 50vh !important;
+    left: calc(50vw + 100px) !important;
+    transform: translate(-50%, -50%);
+    z-index: 99999 !important;
+  }
+  @media (max-width: 768px) {
+    #content-layout > .ant-layout-content > .ant-spin-nested-loading > div > .ant-spin {
+      left: 50vw !important;
+    }
+  }
+</style>
 {{ template "page/body_end" .}}
