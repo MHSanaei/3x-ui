@@ -101,4 +101,3 @@ func BroadcastInvalidate(dataType MessageType) {
 		hub.broadcastInvalidate(dataType)
 	}
 }
-
