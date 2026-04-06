@@ -14,7 +14,7 @@
   <a-layout id="content-layout">
     <a-layout-content>
       <a-spin :spinning="loadingStates.spinning" :delay="500"
-        tip='{{ i18n "loading"}}'>
+        tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched"
             :style="{ marginBottom: '10px' }"
@@ -24,10 +24,7 @@
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card
-              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-              <a-spin tip='{{ i18n "loading" }}'></a-spin>
-            </a-card>
+            <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
           </a-row>
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
             <a-col>

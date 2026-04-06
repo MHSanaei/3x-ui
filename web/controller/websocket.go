@@ -30,8 +30,10 @@ const (
 )
 
 var upgrader = ws.Upgrader{
-	ReadBufferSize:  4096, // Increased from 1024 for better performance
-	WriteBufferSize: 4096, // Increased from 1024 for better performance
+	ReadBufferSize:    32768, // Huge buffers for huge databases
+	WriteBufferSize:   32768, // Huge buffers to reduce TCP fragmentation
+	EnableCompression: true,  // Automatically GZIP large messages unconditionally
+
 	CheckOrigin: func(r *http.Request) bool {
 		// Check origin for security
 		origin := r.Header.Get("Origin")

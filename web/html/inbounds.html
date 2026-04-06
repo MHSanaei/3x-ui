@@ -6,7 +6,7 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
             message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
@@ -14,10 +14,7 @@
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card
-              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-              <a-spin tip='{{ i18n "loading" }}'></a-spin>
-            </a-card>
+            <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
           </a-row>
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
             <a-col>
@@ -1304,7 +1301,6 @@
         if (!clients || !Array.isArray(clients)) return;
         index = this.findIndexOfClient(dbInbound.protocol, clients, client);
         if (index < 0 || !clients[index]) return;
-        clients[index].enable = !clients[index].enable;
         clientId = this.getClientId(dbInbound.protocol, clients[index]);
         await this.updateClient(clients[index], dbInboundId, clientId);
         this.loading(false);
@@ -1317,7 +1313,7 @@
       },
       getInboundClients(dbInbound) {
         if (!dbInbound) return null;
-        const inbound = dbInbound.toInbound();
+        const inbound = this.inbounds.find(ib => ib.id === dbInbound.id) || dbInbound.toInbound();
         return inbound && inbound.clients ? inbound.clients : null;
       },
       resetClientTraffic(client, dbInboundId, confirmation = true) {
@@ -1367,42 +1363,54 @@
       isExpiry(dbInbound, index) {
         return dbInbound.toInbound().isExpiry(index);
       },
+      getClientStats(dbInbound, email) {
+        if (!dbInbound) return null;
+        if (!dbInbound._clientStatsMap) {
+            dbInbound._clientStatsMap = new Map();
+            if (dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
+                for (const stats of dbInbound.clientStats) {
+                    dbInbound._clientStatsMap.set(stats.email, stats);
+                }
+            }
+        }
+        return dbInbound._clientStatsMap.get(email);
+      },
       getUpStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.up : 0;
       },
       getDownStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.down : 0;
       },
       getSumStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.up + clientStats.down : 0;
       },
       getAllTimeClient(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
         return clientStats.allTime || (clientStats.up + clientStats.down);
       },
       getRemStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
-        remained = clientStats.total - (clientStats.up + clientStats.down);
+        let remained = clientStats.total - (clientStats.up + clientStats.down);
         return remained > 0 ? remained : 0;
       },
       clientStatsColor(dbInbound, email) {
-        if (email.length == 0) return ColorUtils.clientUsageColor();
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return ColorUtils.clientUsageColor();
+        let clientStats = this.getClientStats(dbInbound, email);
         return ColorUtils.clientUsageColor(clientStats, app.trafficDiff)
       },
       statsProgress(dbInbound, email) {
-        if (email.length == 0) return 100;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 100;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
         if (clientStats.total == 0) return 100;
         return 100 * (clientStats.down + clientStats.up) / clientStats.total;
@@ -1415,11 +1423,11 @@
         return 100 * (1 - (remainedSeconds / resetSeconds));
       },
       statsExpColor(dbInbound, email) {
-        if (email.length == 0) return '#7a316f';
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return '#7a316f';
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return '#7a316f';
-        statsColor = ColorUtils.usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
-        expColor = ColorUtils.usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
+        let statsColor = ColorUtils.usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
+        let expColor = ColorUtils.usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
         switch (true) {
           case statsColor == "red" || expColor == "red":
             return "#cf3c3c"; // Red
@@ -1432,12 +1440,12 @@
         }
       },
       isClientEnabled(dbInbound, email) {
-        clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null;
+        let clientStats = dbInbound ? this.getClientStats(dbInbound, email) : null;
         return clientStats ? clientStats['enable'] : true;
       },
       isClientDepleted(dbInbound, email) {
-        if (!email || !dbInbound || !dbInbound.clientStats) return false;
-        const stats = dbInbound.clientStats.find(s => s.email === email);
+        if (!email || !dbInbound) return false;
+        const stats = this.getClientStats(dbInbound, email);
         if (!stats) return false;
         const total = stats.total ?? 0;
         const used = (stats.up ?? 0) + (stats.down ?? 0);
@@ -1557,12 +1565,18 @@
       pagination(obj) {
         if (this.pageSize > 0 && obj.length > this.pageSize) {
           // Set page options based on object size
-          sizeOptions = [];
-          for (i = this.pageSize; i <= obj.length; i = i + this.pageSize) {
-            sizeOptions.push(i.toString());
+          let sizeOptions = [this.pageSize.toString()];
+          const increments = [2, 5, 10, 20];
+          for (const m of increments) {
+            const val = this.pageSize * m;
+            if (val < obj.length && val <= 1000) {
+              sizeOptions.push(val.toString());
+            }
           }
           // Add option to see all in one page
-          sizeOptions.push(i.toString());
+          if (!sizeOptions.includes(obj.length.toString())) {
+             sizeOptions.push(obj.length.toString());
+          }
 
           p = {
             showSizeChanger: true,
