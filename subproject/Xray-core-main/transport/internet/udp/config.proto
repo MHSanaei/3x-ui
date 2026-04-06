@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-package xray.transport.internet.udp;
-option csharp_namespace = "Xray.Transport.Internet.Udp";
-option go_package = "github.com/xtls/xray-core/transport/internet/udp";
-option java_package = "com.xray.transport.internet.udp";
-option java_multiple_files = true;
-
-message Config {}
