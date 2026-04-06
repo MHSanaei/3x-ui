@@ -21,6 +21,7 @@ const (
 	MessageTypeNotification MessageType = "notification" // System notification
 	MessageTypeXrayState    MessageType = "xray_state"   // Xray state change
 	MessageTypeOutbounds    MessageType = "outbounds"    // Outbounds list update
+	MessageTypeInvalidate   MessageType = "invalidate"   // Lightweight signal telling frontend to re-fetch data via REST
 )
 
 // Message represents a WebSocket message
@@ -259,6 +260,11 @@ func (h *Hub) Broadcast(messageType MessageType, payload any) {
 		return
 	}
 
+	// Skip all work if no clients are connected
+	if h.GetClientCount() == 0 {
+		return
+	}
+
 	msg := Message{
 		Type:    messageType,
 		Payload: payload,
@@ -271,10 +277,12 @@ func (h *Hub) Broadcast(messageType MessageType, payload any) {
 		return
 	}
 
-	// Limit message size to prevent memory issues
+	// If message exceeds size limit, send a lightweight invalidate notification
+	// instead of dropping it entirely — the frontend will re-fetch via REST API
 	const maxMessageSize = 1024 * 1024 // 1MB
 	if len(data) > maxMessageSize {
-		logger.Warningf("WebSocket message too large: %d bytes, dropping", len(data))
+		logger.Debugf("WebSocket message too large (%d bytes) for type %s, sending invalidate signal", len(data), messageType)
+		h.broadcastInvalidate(messageType)
 		return
 	}
 
@@ -298,6 +306,11 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 		return
 	}
 
+	// Skip all work if no clients are connected
+	if h.GetClientCount() == 0 {
+		return
+	}
+
 	msg := Message{
 		Type:    messageType,
 		Payload: payload,
@@ -310,10 +323,11 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 		return
 	}
 
-	// Limit message size to prevent memory issues
+	// If message exceeds size limit, send a lightweight invalidate notification
 	const maxMessageSize = 1024 * 1024 // 1MB
 	if len(data) > maxMessageSize {
-		logger.Warningf("WebSocket message too large: %d bytes, dropping", len(data))
+		logger.Debugf("WebSocket message too large (%d bytes) for type %s, sending invalidate signal", len(data), messageType)
+		h.broadcastInvalidate(messageType)
 		return
 	}
 
@@ -371,6 +385,31 @@ func (h *Hub) Stop() {
 	}
 	if h.cancel != nil {
 		h.cancel()
+	}
+}
+
+// broadcastInvalidate sends a lightweight invalidate message to all clients,
+// telling them to re-fetch the specified data type via REST API.
+// This is used when the full payload exceeds the WebSocket message size limit.
+func (h *Hub) broadcastInvalidate(originalType MessageType) {
+	msg := Message{
+		Type:    MessageTypeInvalidate,
+		Payload: map[string]string{"type": string(originalType)},
+		Time:    getCurrentTimestamp(),
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		logger.Error("Failed to marshal invalidate message:", err)
+		return
+	}
+
+	// Non-blocking send with timeout
+	select {
+	case h.broadcast <- data:
+	case <-time.After(100 * time.Millisecond):
+		logger.Warning("WebSocket broadcast channel is full, dropping invalidate message")
+	case <-h.ctx.Done():
 	}
 }
 

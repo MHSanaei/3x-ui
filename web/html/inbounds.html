@@ -1605,11 +1605,25 @@
           }
         });
 
+        // Listen for invalidate signals (sent when payload is too large for WebSocket)
+        // The server sends a lightweight notification and we re-fetch via REST API
+        let invalidateTimer = null;
+        window.wsClient.on('invalidate', (payload) => {
+          if (payload && (payload.type === 'inbounds' || payload.type === 'traffic')) {
+            // Debounce to avoid flooding the REST API with multiple invalidate signals
+            if (invalidateTimer) clearTimeout(invalidateTimer);
+            invalidateTimer = setTimeout(() => {
+              invalidateTimer = null;
+              this.getDBInbounds();
+            }, 1000);
+          }
+        });
+
         // Listen for traffic updates
         window.wsClient.on('traffic', (payload) => {
           // Note: Do NOT update total consumed traffic (stats.up, stats.down) from this event
           // because clientTraffics contains delta/incremental values, not total accumulated values.
-          // Total traffic is updated via the 'inbounds' event which contains accumulated values from database.
+          // Total traffic is updated via the 'inbounds' WebSocket event (or 'invalidate' fallback for large panels).
           
           // Update online clients list in real-time
           if (payload && Array.isArray(payload.onlineClients)) {
@@ -1627,22 +1641,27 @@
             this.onlineClients = nextOnlineClients;
             if (onlineChanged) {
               // Recalculate client counts to update online status
+              // Use $set for Vue 2 reactivity — direct array index assignment is not reactive
               this.dbInbounds.forEach(dbInbound => {
                 const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
                 if (inbound && this.clientCount[dbInbound.id]) {
-                  this.clientCount[dbInbound.id] = this.getClientCounts(dbInbound, inbound);
+                  this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
                 }
               });
 
+              // Always trigger UI refresh — not just when filter is enabled
               if (this.enableFilter) {
                 this.filterInbounds();
+              } else {
+                this.searchInbounds(this.searchKey);
               }
             }
           }
           
           // Update last online map in real-time
+          // Replace entirely (server sends the full map) to avoid unbounded growth from deleted clients
           if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
-            this.lastOnlineMap = { ...this.lastOnlineMap, ...payload.lastOnlineMap };
+            this.lastOnlineMap = payload.lastOnlineMap;
           }
         });
 

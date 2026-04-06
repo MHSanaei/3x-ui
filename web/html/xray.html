@@ -1075,6 +1075,14 @@
               this.$forceUpdate();
             }
           });
+
+          // Handle invalidate signals (sent when payload is too large for WebSocket,
+          // or when traffic job notifies about data changes)
+          window.wsClient.on('invalidate', (payload) => {
+            if (payload && payload.type === 'outbounds') {
+              this.refreshOutboundTraffic();
+            }
+          });
       }
 
       while (true) {
