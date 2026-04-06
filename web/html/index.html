@@ -695,7 +695,7 @@
       this.logicalPro = data.logicalPro;
       this.cpuSpeedMhz = data.cpuSpeedMhz;
       this.disk = new CurTotal(data.disk.current, data.disk.total);
-      this.loads = data.loads.map(load => NumberFormatter.toFixed(load, 2));
+      this.loads = (data.loads || [0, 0, 0]).map(load => NumberFormatter.toFixed(load, 2));
       this.mem = new CurTotal(data.mem.current, data.mem.total);
       this.netIO = data.netIO;
       this.netTraffic = data.netTraffic;
@@ -905,17 +905,19 @@
         try {
           const msg = await HttpUtil.get('/panel/api/server/status');
           if (msg.success) {
-            if (!this.loadingStates.fetched) {
-              this.loadingStates.fetched = true;
-            }
-
-            this.setStatus(msg.obj, true);
+            this.setStatus(msg.obj);
+          } else if (!this.loadingStates.fetched) {
+            this.loadingStates.fetched = true;
           }
         } catch (e) {
           console.error("Failed to get status:", e);
+          if (!this.loadingStates.fetched) {
+            this.loadingStates.fetched = true;
+          }
         }
       },
       setStatus(data) {
+        this.loadingStates.fetched = true;
         this.status = new Status(data);
         // Push CPU percent into history (clamped 0..100)
         const v = Math.max(0, Math.min(100, Number(data?.cpu ?? 0)))
