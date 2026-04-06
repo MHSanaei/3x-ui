@@ -23,7 +23,8 @@ import (
 // It handles CRUD operations for inbounds, client management, traffic monitoring,
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
-	xrayApi xray.XrayAPI
+	xrayApi          xray.XrayAPI
+	speedLimitService SpeedLimitService
 }
 
 // GetInbounds retrieves all inbounds for a specific user.
@@ -316,6 +317,12 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 		s.xrayApi.Close()
 	}
 
+	if err == nil {
+		if applyErr := s.speedLimitService.ApplySpeedLimit(inbound); applyErr != nil {
+			logger.Warningf("AddInbound: speed limit: %v", applyErr)
+		}
+	}
+
 	return inbound, needRestart, err
 }
 
@@ -361,6 +368,9 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 			return false, err
 		}
 	}
+
+	// Remove tc speed limit rules before deleting the record.
+	s.speedLimitService.RemoveSpeedLimit(inbound)
 
 	return needRestart, db.Delete(model.Inbound{}, id).Error
 }
@@ -510,7 +520,18 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	}
 	s.xrayApi.Close()
 
-	return inbound, needRestart, tx.Save(oldInbound).Error
+	// Propagate the new speed limits to tc after a successful save.
+	// Speed limits are applied after tx.Save so that a rollback does not leave
+	// stale tc rules pointing at settings that were never persisted.
+	oldInbound.SpeedLimitDown = inbound.SpeedLimitDown
+	oldInbound.SpeedLimitUp = inbound.SpeedLimitUp
+	saveErr := tx.Save(oldInbound).Error
+	if saveErr == nil {
+		if applyErr := s.speedLimitService.ApplySpeedLimit(oldInbound); applyErr != nil {
+			logger.Warningf("UpdateInbound: speed limit: %v", applyErr)
+		}
+	}
+	return inbound, needRestart, saveErr
 }
 
 func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {

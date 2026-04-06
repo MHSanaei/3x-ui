@@ -101,9 +101,10 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   service.Tgbot
+	xrayService       service.XrayService
+	settingService    service.SettingService
+	tgbotService      service.Tgbot
+	speedLimitService service.SpeedLimitService
 
 	wsHub *websocket.Hub
 
@@ -299,6 +300,18 @@ func (s *Server) startTask() {
 	if err != nil {
 		logger.Warning("start xray failed:", err)
 	}
+
+	// Restore per-inbound tc speed-limit rules (non-persistent across reboots).
+	go func() {
+		inboundService := service.InboundService{}
+		inbounds, err := inboundService.GetAllInbounds()
+		if err != nil {
+			logger.Warning("speed limit restore: failed to get inbounds:", err)
+			return
+		}
+		s.speedLimitService.RestoreAllLimits(inbounds)
+	}()
+
 	// Check whether xray is running every second
 	s.cron.AddJob("@every 1s", job.NewCheckXrayRunningJob())
 

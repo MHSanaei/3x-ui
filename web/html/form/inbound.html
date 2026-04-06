@@ -53,6 +53,34 @@
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
+                    <span>{{ i18n "pages.inbounds.speedLimitDesc" }}</span>
+                </template>
+                {{ i18n "pages.inbounds.downloadSpeedLimit" }}
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input-number v-model.number="dbInbound.speedLimitDown"
+            :min="0"></a-input-number>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.inbounds.speedLimitDesc" }}</span>
+                </template>
+                {{ i18n "pages.inbounds.uploadSpeedLimit" }}
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input-number v-model.number="dbInbound.speedLimitUp"
+            :min="0"></a-input-number>
+    </a-form-item>
+
+    <a-form-item>
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
                     <span>{{ i18n "pages.inbounds.periodicTrafficResetDesc"
                         }}</span>
                     <br

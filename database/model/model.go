@@ -45,6 +45,10 @@ type Inbound struct {
 	LastTrafficResetTime int64                `json:"lastTrafficResetTime" form:"lastTrafficResetTime" gorm:"default:0"`                               // Last traffic reset timestamp
 	ClientStats          []xray.ClientTraffic `gorm:"foreignKey:InboundId;references:Id" json:"clientStats" form:"clientStats"`                        // Client traffic statistics
 
+	// Speed limit fields (KB/s, 0 = unlimited)
+	SpeedLimitDown int64 `json:"speedLimitDown" form:"speedLimitDown" gorm:"default:0"` // Download speed limit in KB/s
+	SpeedLimitUp   int64 `json:"speedLimitUp" form:"speedLimitUp" gorm:"default:0"`     // Upload speed limit in KB/s
+
 	// Xray configuration fields
 	Listen         string   `json:"listen" form:"listen"`
 	Port           int      `json:"port" form:"port"`
