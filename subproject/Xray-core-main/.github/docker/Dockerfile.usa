@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:latest
+FROM --platform=$BUILDPLATFORM golang:latest AS build
+
+# Build xray-core
+WORKDIR /src
+COPY . .
+ARG TARGETOS
+ARG TARGETARCH
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH CGO_ENABLED=0 go build -o xray -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags "-s -w -buildid=" ./main
+
+# Download geodat into a staging directory
+ADD https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geoip.dat /tmp/geodat/geoip.dat
+ADD https://raw.githubusercontent.com/Loyalsoldier/v2ray-rules-dat/release/geosite.dat /tmp/geodat/geosite.dat
+
+RUN mkdir -p /tmp/empty
+
+# Create config files with empty JSON content
+RUN mkdir -p /tmp/usr/local/etc/xray
+RUN cat <<EOF >/tmp/usr/local/etc/xray/00_log.json
+{
+  "log": {
+    "error": "/var/log/xray/error.log",
+    "loglevel": "warning",
+    "access": "none",
+    "dnsLog": false
+  }
+}
+EOF
+RUN echo '{}' >/tmp/usr/local/etc/xray/01_api.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/02_dns.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/03_routing.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/04_policy.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/05_inbounds.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/06_outbounds.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/07_transport.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/08_stats.json
+RUN echo '{}' >/tmp/usr/local/etc/xray/09_reverse.json
+
+# Create log files
+RUN mkdir -p /tmp/var/log/xray && touch \
+  /tmp/var/log/xray/access.log \
+  /tmp/var/log/xray/error.log
+
+# Build finally image
+# Note on Distroless Base Image and Architecture Support:
+# - The official 'gcr.io/distroless/static' image provided by Google only supports a limited set of architectures for Linux:
+#   - linux/amd64
+#   - linux/arm/v7
+#   - linux/arm64/v8
+#   - linux/ppc64le
+#   - linux/s390x
+# - Upon inspection, the blob contents of the Distroless images across these architectures are nearly identical, with only minor differences in metadata (e.g., 'Architecture' field in the manifest).
+# - Due to this similarity in content, it is feasible to forcibly specify a single platform (e.g., '--platform=linux/amd64') for unsupported architectures, as the core image content remains compatible with statically compiled binaries like Go applications.
+FROM --platform=linux/amd64 gcr.io/distroless/static:nonroot
+
+COPY --from=build --chown=0:0 --chmod=755 /src/xray /usr/local/bin/xray
+COPY --from=build --chown=0:0 --chmod=755 /tmp/empty /usr/local/share/xray
+COPY --from=build --chown=0:0 --chmod=644 /tmp/geodat/*.dat /usr/local/share/xray/
+COPY --from=build --chown=0:0 --chmod=755 /tmp/empty /usr/local/etc/xray
+COPY --from=build --chown=0:0 --chmod=644 /tmp/usr/local/etc/xray/*.json /usr/local/etc/xray/
+COPY --from=build --chown=0:0 --chmod=755 /tmp/empty /var/log/xray
+COPY --from=build --chown=65532:65532 --chmod=600 /tmp/var/log/xray/*.log /var/log/xray/
+
+VOLUME /usr/local/etc/xray
+VOLUME /var/log/xray
+
+ARG TZ=Etc/UTC
+ENV TZ=$TZ
+
+ENTRYPOINT [ "/usr/local/bin/xray" ]
+CMD [ "-confdir", "/usr/local/etc/xray/" ]

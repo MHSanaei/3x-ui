@@ -1,0 +1,287 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Restore Geodat Cache
+        uses: actions/cache/restore@v5
+        with:
+          path: resources
+          key: xray-geodat-
+
+      - name: Restore Wintun Cache
+        uses: actions/cache/restore@v5
+        with:
+          path: resources
+          key: xray-wintun-
+
+      - name: Check Assets Existence
+        id: check-assets
+        run: |
+          [ -d 'resources' ] || mkdir resources
+          LIST=('geoip.dat' 'geosite.dat')
+          for FILE_NAME in "${LIST[@]}"
+          do
+            echo -e "Checking ${FILE_NAME}..."
+            if [ -s "./resources/${FILE_NAME}" ]; then
+              echo -e "${FILE_NAME} exists."
+            else
+              echo -e "${FILE_NAME} does not exist."
+              echo "missing=true" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+          LIST=('amd64' 'x86' 'arm64')
+          for ARCHITECTURE in "${LIST[@]}"
+          do
+            echo -e "Checking wintun.dll for ${ARCHITECTURE}..."
+            if [ -s "./resources/wintun/bin/${ARCHITECTURE}/wintun.dll" ]; then
+              echo -e "wintun.dll for ${ARCHITECTURE} exists."
+            else
+              echo -e "wintun.dll for ${ARCHITECTURE} is missing."
+              echo "missing=true" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+
+      - name: Trigger Asset Update Workflow if Assets Missing
+        if: steps.check-assets.outputs.missing == 'true'
+        uses: actions/github-script@v8
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id: 'scheduled-assets-update.yml',
+              ref: context.ref
+            });
+            console.log('Triggered scheduled-assets-update.yml due to missing assets on branch:', context.ref);
+
+      - name: Sleep for 90 seconds if Assets Missing
+        if: steps.check-assets.outputs.missing == 'true'
+        run: sleep 90
+
+  build:
+    needs: check-assets
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        # Include amd64 on all platforms.
+        goos: [windows, freebsd, openbsd, linux, darwin]
+        goarch: [amd64, 386]
+        patch-assetname: [""]
+        exclude:
+          # Exclude i386 on darwin
+          - goarch: 386
+            goos: darwin
+        include:
+          # BEGIN MacOS ARM64
+          - goos: darwin
+            goarch: arm64
+          # END MacOS ARM64
+          # BEGIN Linux ARM 5 6 7
+          - goos: linux
+            goarch: arm
+            goarm: 7
+          - goos: linux
+            goarch: arm
+            goarm: 6
+          - goos: linux
+            goarch: arm
+            goarm: 5
+          # END Linux ARM 5 6 7
+          # BEGIN Android ARM 8
+          - goos: android
+            goarch: arm64
+          # END Android ARM 8
+          # BEGIN Android AMD64
+          - goos: android
+            goarch: amd64
+            patch-assetname: android-amd64
+          # END Android AMD64
+          # Windows ARM
+          - goos: windows
+            goarch: arm64
+          # BEGIN Other architectures
+          # BEGIN riscv64 & ARM64 & LOONG64
+          - goos: linux
+            goarch: arm64
+          - goos: linux
+            goarch: riscv64
+          - goos: linux
+            goarch: loong64
+          # END riscv64 & ARM64 & LOONG64
+          # BEGIN MIPS
+          - goos: linux
+            goarch: mips64
+          - goos: linux
+            goarch: mips64le
+          - goos: linux
+            goarch: mipsle
+          - goos: linux
+            goarch: mips
+          # END MIPS
+          # BEGIN PPC
+          - goos: linux
+            goarch: ppc64
+          - goos: linux
+            goarch: ppc64le
+          # END PPC
+          # BEGIN FreeBSD ARM
+          - goos: freebsd
+            goarch: arm64
+          - goos: freebsd
+            goarch: arm
+            goarm: 7
+          # END FreeBSD ARM
+          # BEGIN S390X
+          - goos: linux
+            goarch: s390x
+          # END S390X
+          # END Other architectures
+          # BEGIN OPENBSD ARM
+          - goos: openbsd
+            goarch: arm64
+          - goos: openbsd
+            goarch: arm
+            goarm: 7
+          # END OPENBSD ARM
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+    env:
+      GOOS: ${{ matrix.goos }}
+      GOARCH: ${{ matrix.goarch }}
+      GOARM: ${{ matrix.goarm }}
+      CGO_ENABLED: 0
+    steps:
+      - name: Checkout codebase
+        uses: actions/checkout@v6
+
+      - name: Set up NDK
+        if: matrix.goos == 'android'
+        run: |
+          wget -qO android-ndk.zip https://dl.google.com/android/repository/android-ndk-r28b-linux.zip
+          unzip android-ndk.zip
+          rm android-ndk.zip
+          declare -A arches=(
+            ["amd64"]="x86_64-linux-android24-clang"
+            ["arm64"]="aarch64-linux-android24-clang"
+          )
+          echo CC="$(realpath android-ndk-*/toolchains/llvm/prebuilt/linux-x86_64/bin)/${arches[${{ matrix.goarch }}]}" >> $GITHUB_ENV
+          echo CGO_ENABLED=1 >> $GITHUB_ENV
+
+      - name: Show workflow information
+        run: |
+          _NAME=${{ matrix.patch-assetname }}
+          [ -n "$_NAME" ] || _NAME=$(jq ".[\"$GOOS-$GOARCH$GOARM$GOMIPS\"].friendlyName" -r < .github/build/friendly-filenames.json)
+          echo "GOOS: $GOOS, GOARCH: $GOARCH, GOARM: $GOARM, GOMIPS: $GOMIPS, RELEASE_NAME: $_NAME"
+          echo "ASSET_NAME=$_NAME" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Get project dependencies
+        run: go mod download
+
+      - name: Build Xray
+        run: |
+          mkdir -p build_assets
+          COMMID=$(git describe --always --dirty)
+          if [[ ${GOOS} == 'windows' ]]; then
+            echo 'Building Xray for Windows...'
+            go build -o build_assets/xray.exe -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=${COMMID} -s -w -buildid=" -v ./main
+            # The line below is for without running conhost.exe version. Commented for not being used. Provided for reference.
+            # go build -o build_assets/wxray.exe -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-H windowsgui -X github.com/xtls/xray-core/core.build=${COMMID} -s -w -buildid=" -v ./main
+          else
+            echo 'Building Xray...'
+            if [[ ${GOARCH} == 'mips' || ${GOARCH} == 'mipsle' ]]; then
+              go build -o build_assets/xray -trimpath -buildvcs=false -gcflags="-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=${COMMID} -s -w -buildid=" -v ./main
+              echo 'Building soft-float Xray for MIPS/MIPSLE 32-bit...'
+              GOMIPS=softfloat go build -o build_assets/xray_softfloat -trimpath -buildvcs=false -gcflags="-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=${COMMID} -s -w -buildid=" -v ./main
+            else
+              go build -o build_assets/xray -trimpath -buildvcs=false -gcflags="all=-l=4" -ldflags="-X github.com/xtls/xray-core/core.build=${COMMID} -s -w -buildid=" -v ./main
+            fi
+          fi
+
+      - name: Restore Geodat Cache
+        uses: actions/cache/restore@v5
+        with:
+          path: resources
+          key: xray-geodat-
+
+      - name: Restore Wintun Cache
+        if: matrix.goos == 'windows'
+        uses: actions/cache/restore@v5
+        with:
+          path: resources
+          key: xray-wintun-
+
+      - name: Add additional assets into package
+        run: |
+          mv -f resources/geo* build_assets/
+          if [[ ${GOOS} == 'windows' ]]; then
+            echo 'CreateObject("Wscript.Shell").Run "xray.exe -config config.json",0' > build_assets/xray_no_window.vbs
+            echo 'Start-Process -FilePath ".\xray.exe" -ArgumentList "-config .\config.json" -WindowStyle Hidden' > build_assets/xray_no_window.ps1
+            if [[ ${GOARCH} == 'amd64' ]]; then
+              mv resources/wintun/bin/amd64/wintun.dll build_assets/
+            fi
+            if [[ ${GOARCH} == '386' ]]; then
+              mv resources/wintun/bin/x86/wintun.dll build_assets/
+            fi
+            if [[ ${GOARCH} == 'arm64' ]]; then
+              mv resources/wintun/bin/arm64/wintun.dll build_assets/
+            fi
+            mv resources/wintun/LICENSE.txt build_assets/LICENSE-wintun.txt
+          fi
+
+      - name: Copy README.md & LICENSE
+        run: |
+          cp ${GITHUB_WORKSPACE}/README.md ./build_assets/README.md
+          cp ${GITHUB_WORKSPACE}/LICENSE ./build_assets/LICENSE
+
+      - name: Create ZIP archive
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          pushd build_assets || exit 1
+          touch -mt $(date +%Y01010000) *
+          zip -9vr ../Xray-${{ env.ASSET_NAME }}.zip .
+          popd || exit 1
+          FILE=./Xray-${{ env.ASSET_NAME }}.zip
+          DGST=$FILE.dgst
+          for METHOD in {"md5","sha1","sha256","sha512"}
+          do
+            openssl dgst -$METHOD $FILE | sed 's/([^)]*)//g' >>$DGST
+          done
+
+      - name: Upload binaries to release
+        uses: svenstaro/upload-release-action@v2
+        if: github.event_name == 'release'
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ./Xray-${{ env.ASSET_NAME }}.zip*
+          tag: ${{ github.ref }}
+          file_glob: true
+
+      - name: Upload files to Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Xray-${{ env.ASSET_NAME }}
+          path: |
+            ./build_assets/*

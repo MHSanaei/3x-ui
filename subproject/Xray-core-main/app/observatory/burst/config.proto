@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package xray.core.app.observatory.burst;
+option csharp_namespace = "Xray.App.Observatory.Burst";
+option go_package = "github.com/xtls/xray-core/app/observatory/burst";
+option java_package = "com.xray.app.observatory.burst";
+option java_multiple_files = true;
+
+message Config {
+  /* @Document The selectors for outbound under observation
+  */
+  repeated string subject_selector = 2;
+
+  HealthPingConfig ping_config = 3;
+}
+
+message HealthPingConfig {
+  // destination url, need 204 for success return
+  // default https://connectivitycheck.gstatic.com/generate_204
+  string destination = 1;
+  // connectivity check url
+  string connectivity = 2;
+  // health check interval, int64 values of time.Duration
+  int64 interval = 3;
+  // sampling count is the amount of recent ping results which are kept for calculation
+  int32 samplingCount = 4;
+  // ping timeout, int64 values of time.Duration
+  int64 timeout = 5;
+  // http method to make request
+  string httpMethod = 6;
+
+}

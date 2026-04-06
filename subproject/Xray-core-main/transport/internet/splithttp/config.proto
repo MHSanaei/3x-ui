@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package xray.transport.internet.splithttp;
+option csharp_namespace = "Xray.Transport.Internet.SplitHttp";
+option go_package = "github.com/xtls/xray-core/transport/internet/splithttp";
+option java_package = "com.xray.transport.internet.splithttp";
+option java_multiple_files = true;
+
+import "transport/internet/config.proto";
+
+message RangeConfig {
+  int32 from = 1;
+  int32 to = 2;
+}
+
+message XmuxConfig {
+  RangeConfig maxConcurrency = 1;
+  RangeConfig maxConnections = 2;
+  RangeConfig cMaxReuseTimes = 3;
+  RangeConfig hMaxRequestTimes = 4;
+  RangeConfig hMaxReusableSecs = 5;
+  int64 hKeepAlivePeriod = 6;
+}
+
+message Config {
+  string host = 1;
+  string path = 2;
+  string mode = 3;
+  map<string, string> headers = 4;
+  RangeConfig xPaddingBytes = 5;
+  bool noGRPCHeader = 6;
+  bool noSSEHeader = 7;
+  RangeConfig scMaxEachPostBytes = 8;
+  RangeConfig scMinPostsIntervalMs = 9;
+  int64 scMaxBufferedPosts = 10;
+  RangeConfig scStreamUpServerSecs = 11;
+  XmuxConfig xmux = 12;
+  xray.transport.internet.StreamConfig downloadSettings = 13;
+  bool xPaddingObfsMode = 14;
+  string xPaddingKey = 15;
+  string xPaddingHeader = 16;
+  string xPaddingPlacement = 17;
+  string xPaddingMethod = 18;
+  string uplinkHTTPMethod = 19;
+  string sessionPlacement = 20;
+  string sessionKey = 21;
+  string seqPlacement = 22;
+  string seqKey = 23;
+  string uplinkDataPlacement = 24;
+  string uplinkDataKey = 25;
+  RangeConfig uplinkChunkSize = 26;
+  int32 serverMaxHeaderBytes = 27;
+}

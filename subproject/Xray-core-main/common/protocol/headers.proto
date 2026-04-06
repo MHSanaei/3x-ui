@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package xray.common.protocol;
+option csharp_namespace = "Xray.Common.Protocol";
+option go_package = "github.com/xtls/xray-core/common/protocol";
+option java_package = "com.xray.common.protocol";
+option java_multiple_files = true;
+
+enum SecurityType {
+  UNKNOWN = 0;
+  AUTO = 2;
+  AES128_GCM = 3;
+  CHACHA20_POLY1305 = 4;
+  NONE = 5; // [DEPRECATED 2023-06] 
+  ZERO = 6;
+}
+
+message SecurityConfig {
+  SecurityType type = 1;
+}

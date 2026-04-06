@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package xray.core;
+option csharp_namespace = "Xray.Core";
+option go_package = "github.com/xtls/xray-core/core";
+option java_package = "com.xray.core";
+option java_multiple_files = true;
+
+import "common/serial/typed_message.proto";
+
+// Config is the master config of Xray. Xray takes this config as input and
+// functions accordingly.
+message Config {
+  // Inbound handler configurations. Must have at least one item.
+  repeated InboundHandlerConfig inbound = 1;
+
+  // Outbound handler configurations. Must have at least one item. The first
+  // item is used as default for routing.
+  repeated OutboundHandlerConfig outbound = 2;
+
+  reserved 3;
+
+  // App is for configurations of all features in Xray. A feature must
+  // implement the Feature interface, and its config type must be registered
+  // through common.RegisterConfig.
+  repeated xray.common.serial.TypedMessage app = 4;
+
+  // Configuration for extensions. The config may not work if corresponding
+  // extension is not loaded into Xray. Xray will ignore such config during
+  // initialization.
+  repeated xray.common.serial.TypedMessage extension = 6;
+}
+
+// InboundHandlerConfig is the configuration for inbound handler.
+message InboundHandlerConfig {
+  // Tag of the inbound handler. The tag must be unique among all inbound
+  // handlers
+  string tag = 1;
+  // Settings for how this inbound proxy is handled.
+  xray.common.serial.TypedMessage receiver_settings = 2;
+  // Settings for inbound proxy. Must be one of the inbound proxies.
+  xray.common.serial.TypedMessage proxy_settings = 3;
+}
+
+// OutboundHandlerConfig is the configuration for outbound handler.
+message OutboundHandlerConfig {
+  // Tag of this outbound handler.
+  string tag = 1;
+  // Settings for how to dial connection for this outbound handler.
+  xray.common.serial.TypedMessage sender_settings = 2;
+  // Settings for this outbound proxy. Must be one of the outbound proxies.
+  xray.common.serial.TypedMessage proxy_settings = 3;
+  // If not zero, this outbound will be expired in seconds. Not used for now.
+  int64 expire = 4;
+  // Comment of this outbound handler. Not used for now.
+  string comment = 5;
+}

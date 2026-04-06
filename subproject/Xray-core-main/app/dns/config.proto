@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package xray.app.dns;
+option csharp_namespace = "Xray.App.Dns";
+option go_package = "github.com/xtls/xray-core/app/dns";
+option java_package = "com.xray.app.dns";
+option java_multiple_files = true;
+
+import "common/net/destination.proto";
+import "app/router/config.proto";
+
+message NameServer {
+  xray.common.net.Endpoint address = 1;
+  bytes client_ip = 5;
+  bool skipFallback = 6;
+
+  message PriorityDomain {
+    DomainMatchingType type = 1;
+    string domain = 2;
+  }
+
+  message OriginalRule {
+    string rule = 1;
+    uint32 size = 2;
+  }
+
+  repeated PriorityDomain prioritized_domain = 2;
+  repeated xray.app.router.GeoIP expected_geoip = 3;
+  repeated OriginalRule original_rules = 4;
+  QueryStrategy query_strategy = 7;
+  bool actPrior = 8;
+  string tag = 9;
+  uint64 timeoutMs = 10;
+  optional bool disableCache = 11;
+  optional bool serveStale = 15;
+  optional uint32 serveExpiredTTL = 16;
+  bool finalQuery = 12;
+  repeated xray.app.router.GeoIP unexpected_geoip = 13;
+  bool actUnprior = 14;
+  uint32 policyID = 17;
+}
+
+enum DomainMatchingType {
+  Full = 0;
+  Subdomain = 1;
+  Keyword = 2;
+  Regex = 3;
+}
+
+enum QueryStrategy {
+  USE_IP = 0;
+  USE_IP4 = 1;
+  USE_IP6 = 2;
+  USE_SYS = 3;
+}
+
+message Config {
+  // NameServer list used by this DNS client.
+  // A special value 'localhost' as a domain address can be set to use DNS on local system.
+  repeated NameServer name_server = 5;
+
+  // Client IP for EDNS client subnet. Must be 4 bytes (IPv4) or 16 bytes
+  // (IPv6).
+  bytes client_ip = 3;
+
+  message HostMapping {
+    DomainMatchingType type = 1;
+    string domain = 2;
+
+    repeated bytes ip = 3;
+
+    // ProxiedDomain indicates the mapped domain has the same IP address on this
+    // domain. Xray will use this domain for IP queries.
+    string proxied_domain = 4;
+  }
+
+  repeated HostMapping static_hosts = 4;
+
+  // Tag is the inbound tag of DNS client.
+  string tag = 6;
+
+  reserved 7;
+
+  // DisableCache disables DNS cache
+  bool disableCache = 8;
+  bool serveStale = 12;
+  uint32 serveExpiredTTL = 13;
+
+  QueryStrategy query_strategy = 9;
+
+  bool disableFallback = 10;
+  bool disableFallbackIfMatch = 11;
+
+  bool enableParallelQuery = 14;
+}

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package xray.proxy.http;
+option csharp_namespace = "Xray.Proxy.Http";
+option go_package = "github.com/xtls/xray-core/proxy/http";
+option java_package = "com.xray.proxy.http";
+option java_multiple_files = true;
+
+import "common/protocol/server_spec.proto";
+
+message Account {
+  string username = 1;
+  string password = 2;
+}
+
+// Config for HTTP proxy server.
+message ServerConfig {
+  map<string, string> accounts = 2;
+  bool allow_transparent = 3;
+  uint32 user_level = 4;
+}
+
+message Header {
+  string key = 1;
+  string value = 2;
+}
+
+// ClientConfig is the protobuf config for HTTP proxy client.
+message ClientConfig {
+  // Sever is a list of HTTP server addresses.
+  xray.common.protocol.ServerEndpoint server = 1;
+  repeated Header header = 2;
+}

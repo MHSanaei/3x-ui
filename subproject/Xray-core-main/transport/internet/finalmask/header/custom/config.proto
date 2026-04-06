@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.header.custom;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Header.Custom";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/header/custom";
+option java_package = "com.xray.transport.internet.finalmask.header.custom";
+option java_multiple_files = true;
+
+message TCPItem {
+    int64 delay_min = 1;
+    int64 delay_max = 2;
+    int32 rand = 3;
+    int32 rand_min = 4;
+    int32 rand_max = 5;
+    bytes packet = 6;
+}
+
+message TCPSequence {
+    repeated TCPItem sequence = 1;
+}
+
+message TCPConfig {
+    repeated TCPSequence clients = 1;
+    repeated TCPSequence servers = 2;
+    repeated TCPSequence errors = 3;
+}
+
+message UDPItem {
+    int32 rand = 1;
+    int32 rand_min = 2;
+    int32 rand_max = 3;
+    bytes packet = 4;
+}
+
+message UDPConfig {
+    repeated UDPItem client = 1;
+    repeated UDPItem server = 2;
+}

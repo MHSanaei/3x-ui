@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package xray.app.stats;
+option csharp_namespace = "Xray.App.Stats";
+option go_package = "github.com/xtls/xray-core/app/stats";
+option java_package = "com.xray.app.stats";
+option java_multiple_files = true;
+
+message Config {}
+
+message ChannelConfig {
+  bool Blocking = 1;
+  int32 SubscriberLimit = 2;
+  int32 BufferSize = 3;
+}

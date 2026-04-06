@@ -1,0 +1,68 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# macOS specific files
+.DS_Store
+
+# IDE/editor specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives and compressed files
+*.zip
+*.tar.gz
+*.tar
+*.gz
+*.bz2
+
+# Go build binaries
+xray
+xray_softfloat
+mockgen
+vprotogen
+!infra/vprotogen/
+errorgen
+!common/errors/errorgen/
+*.dat
+
+# Build assets
+/build_assets/
+
+# Output from dlv test
+**/debug.*
+
+# Certificates and keys
+*.crt
+*.key
+
+# Dependency directories (uncomment if needed)
+# vendor/
+
+# Logs
+*.log
+
+# Coverage reports
+coverage.*
+
+# Node modules (in case of frontend assets)
+node_modules/
+
+# System files
+Thumbs.db
+ehthumbs.db
+
+# Other common ignores
+*.bak
+*.tmp

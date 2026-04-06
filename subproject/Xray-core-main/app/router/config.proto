@@ -1,0 +1,170 @@
+syntax = "proto3";
+
+package xray.app.router;
+option csharp_namespace = "Xray.App.Router";
+option go_package = "github.com/xtls/xray-core/app/router";
+option java_package = "com.xray.app.router";
+option java_multiple_files = true;
+
+import "common/serial/typed_message.proto";
+import "common/net/port.proto";
+import "common/net/network.proto";
+
+// Domain for routing decision.
+message Domain {
+  // Type of domain value.
+  enum Type {
+    // The value is used as is.
+    Plain = 0;
+    // The value is used as a regular expression.
+    Regex = 1;
+    // The value is a root domain.
+    Domain = 2;
+    // The value is a domain.
+    Full = 3;
+  }
+
+  // Domain matching type.
+  Type type = 1;
+
+  // Domain value.
+  string value = 2;
+
+  message Attribute {
+    string key = 1;
+
+    oneof typed_value {
+      bool bool_value = 2;
+      int64 int_value = 3;
+    }
+  }
+
+  // Attributes of this domain. May be used for filtering.
+  repeated Attribute attribute = 3;
+}
+
+// IP for routing decision, in CIDR form.
+message CIDR {
+  // IP address, should be either 4 or 16 bytes.
+  bytes ip = 1;
+
+  // Number of leading ones in the network mask.
+  uint32 prefix = 2;
+}
+
+message GeoIP {
+  string country_code = 1;
+  repeated CIDR cidr = 2;
+  bool reverse_match = 3;
+}
+
+message GeoIPList {
+  repeated GeoIP entry = 1;
+}
+
+message GeoSite {
+  string country_code = 1;
+  repeated Domain domain = 2;
+}
+
+message GeoSiteList {
+  repeated GeoSite entry = 1;
+}
+
+message RoutingRule {
+  oneof target_tag {
+    // Tag of outbound that this rule is pointing to.
+    string tag = 1;
+
+    // Tag of routing balancer.
+    string balancing_tag = 12;
+  }
+    string rule_tag = 19;
+
+  // List of domains for target domain matching.
+  repeated Domain domain = 2;
+
+  // List of GeoIPs for target IP address matching. If this entry exists, the
+  // cidr above will have no effect. GeoIP fields with the same country code are
+  // supposed to contain exactly same content. They will be merged during
+  // runtime. For customized GeoIPs, please leave country code empty.
+  repeated GeoIP geoip = 10;
+
+  // List of ports.
+  xray.common.net.PortList port_list = 14;
+
+  // List of networks for matching.
+  repeated xray.common.net.Network networks = 13;
+
+  // List of GeoIPs for source IP address matching. If this entry exists, the
+  // source_cidr above will have no effect.
+  repeated GeoIP source_geoip = 11;
+
+  // List of ports for source port matching.
+  xray.common.net.PortList source_port_list = 16;
+
+  repeated string user_email = 7;
+  repeated string inbound_tag = 8;
+  repeated string protocol = 9;
+
+  map<string, string> attributes = 15;
+
+  repeated GeoIP local_geoip = 17;
+  xray.common.net.PortList local_port_list = 18;
+
+  xray.common.net.PortList vless_route_list = 20;
+  repeated string process = 21;
+  WebhookConfig webhook = 22;
+}
+
+message WebhookConfig {
+  string url = 1;
+  uint32 deduplication = 2;
+  map<string, string> headers = 3;
+}
+
+message BalancingRule {
+  string tag = 1;
+  repeated string outbound_selector = 2;
+  string strategy = 3;
+  xray.common.serial.TypedMessage strategy_settings = 4;
+  string fallback_tag = 5;
+}
+
+message StrategyWeight {
+  bool regexp = 1;
+  string match = 2;
+  float value =3;
+}
+
+message StrategyLeastLoadConfig {
+  // weight settings
+  repeated StrategyWeight costs = 2;
+  // RTT baselines for selecting, int64 values of time.Duration
+  repeated int64 baselines = 3;
+  // expected nodes count to select
+  int32 expected = 4;
+  // max acceptable rtt, filter away high delay nodes. default 0
+  int64 maxRTT = 5;
+  // acceptable failure rate
+  float tolerance = 6;
+}
+
+message Config {
+  enum DomainStrategy {
+    // Use domain as is.
+    AsIs = 0;
+
+    // [Deprecated] Always resolve IP for domains.
+    // UseIp = 1;
+
+    // Resolve to IP if the domain doesn't match any rules.
+    IpIfNonMatch = 2;
+
+    // Resolve to IP if any rule requires IP matching.
+    IpOnDemand = 3;
+  }
+  DomainStrategy domain_strategy = 1;
+  repeated RoutingRule rule = 2;
+  repeated BalancingRule balancing_rule = 3;
+}

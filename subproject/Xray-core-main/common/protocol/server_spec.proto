@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package xray.common.protocol;
+option csharp_namespace = "Xray.Common.Protocol";
+option go_package = "github.com/xtls/xray-core/common/protocol";
+option java_package = "com.xray.common.protocol";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/protocol/user.proto";
+
+message ServerEndpoint {
+  xray.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+  xray.common.protocol.User user = 3;
+}

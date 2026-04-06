@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package xray.proxy.dns;
+option csharp_namespace = "Xray.Proxy.Dns";
+option go_package = "github.com/xtls/xray-core/proxy/dns";
+option java_package = "com.xray.proxy.dns";
+option java_multiple_files = true;
+
+import "common/net/destination.proto";
+
+message Config {
+  // Server is the DNS server address. If specified, this address overrides the
+  // original one.
+  xray.common.net.Endpoint server = 1;
+  uint32 user_level = 2;
+  string non_IP_query = 3;
+  repeated int32 block_types = 4;
+}

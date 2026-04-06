@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package xray.common.net;
+option csharp_namespace = "Xray.Common.Net";
+option go_package = "github.com/xtls/xray-core/common/net";
+option java_package = "com.xray.common.net";
+option java_multiple_files = true;
+
+import "common/net/network.proto";
+import "common/net/address.proto";
+
+// Endpoint of a network connection.
+message Endpoint {
+  Network network = 1;
+  IPOrDomain address = 2;
+  uint32 port = 3;
+}

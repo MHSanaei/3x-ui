@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package xray.proxy.dokodemo;
+option csharp_namespace = "Xray.Proxy.Dokodemo";
+option go_package = "github.com/xtls/xray-core/proxy/dokodemo";
+option java_package = "com.xray.proxy.dokodemo";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/net/network.proto";
+
+message Config {
+  xray.common.net.IPOrDomain address = 1;
+  uint32 port = 2;
+
+  map<string, string> port_map = 3;
+
+  // List of networks that the Dokodemo accepts.
+  repeated xray.common.net.Network networks = 7;
+
+  bool follow_redirect = 5;
+  uint32 user_level = 6;
+}

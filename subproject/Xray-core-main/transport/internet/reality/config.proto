@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package xray.transport.internet.reality;
+option csharp_namespace = "Xray.Transport.Internet.Reality";
+option go_package = "github.com/xtls/xray-core/transport/internet/reality";
+option java_package = "com.xray.transport.internet.reality";
+option java_multiple_files = true;
+
+message Config {
+  bool show = 1;
+  string dest = 2;
+  string type = 3;
+  uint64 xver = 4;
+  repeated string server_names = 5;
+  bytes private_key = 6;
+  bytes min_client_ver = 7;
+  bytes max_client_ver = 8;
+  uint64 max_time_diff = 9;
+  repeated bytes short_ids = 10;
+
+  bytes mldsa65_seed = 11;
+  LimitFallback limit_fallback_upload = 12;
+  LimitFallback limit_fallback_download = 13;
+
+  string Fingerprint = 21;
+  string server_name = 22;
+  bytes public_key = 23;
+  bytes short_id = 24;
+  bytes mldsa65_verify = 25;
+  string spider_x = 26;
+  repeated int64 spider_y = 27;
+
+  string master_key_log = 31;
+}
+
+message LimitFallback {
+  uint64 after_bytes = 1;
+  uint64 bytes_per_sec = 2;
+  uint64 burst_bytes_per_sec = 3;
+}

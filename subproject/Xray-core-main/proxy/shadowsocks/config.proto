@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+package xray.proxy.shadowsocks;
+option csharp_namespace = "Xray.Proxy.Shadowsocks";
+option go_package = "github.com/xtls/xray-core/proxy/shadowsocks";
+option java_package = "com.xray.proxy.shadowsocks";
+option java_multiple_files = true;
+
+import "common/net/network.proto";
+import "common/protocol/user.proto";
+import "common/protocol/server_spec.proto";
+
+message Account {
+  string password = 1;
+  CipherType cipher_type = 2;
+
+  bool iv_check = 3;
+}
+
+enum CipherType {
+  UNKNOWN = 0;
+  AES_128_GCM = 5;
+  AES_256_GCM = 6;
+  CHACHA20_POLY1305 = 7;
+  XCHACHA20_POLY1305 = 8;
+  NONE = 9;
+}
+
+message ServerConfig {
+  repeated xray.common.protocol.User users = 1;
+  repeated xray.common.net.Network network = 2;
+}
+
+message ClientConfig {
+  xray.common.protocol.ServerEndpoint server = 1;
+}

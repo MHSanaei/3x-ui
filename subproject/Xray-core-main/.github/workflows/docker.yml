@@ -1,0 +1,133 @@
+name: Build and Push Docker Image
+
+on:
+  release:
+    types:
+      - published
+      - released
+
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Docker image tag:"
+        required: true
+      latest:
+        description: "Set to latest"
+        type: boolean
+        default: false
+
+jobs:
+  build-and-push:
+    if: (github.event.action != 'published') || (github.event.action == 'published' && github.event.release.prerelease == true)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Set repository and image name to lowercase
+        env:
+          IMAGE_NAME: "${{ github.repository }}"
+        run: |
+          echo "IMAGE_NAME=${IMAGE_NAME,,}" >>${GITHUB_ENV}
+          echo "FULL_IMAGE_NAME=ghcr.io/${IMAGE_NAME,,}" >>${GITHUB_ENV}
+
+      - name: Validate and extract tag
+        run: |
+          SOURCE_TAG="${{ github.event.inputs.tag }}"
+          if [[ -z "$SOURCE_TAG" ]]; then
+            SOURCE_TAG="${{ github.ref_name }}"
+          fi
+          if [[ -z "$SOURCE_TAG" ]]; then
+            SOURCE_TAG="${{ github.event.release.tag_name }}"
+          fi
+
+          if [[ -z "$SOURCE_TAG" ]]; then
+            echo "Error: Could not determine a valid tag source. Input tag and context tag (github.ref_name) are both empty."
+            exit 1
+          fi
+
+          if [[ "$SOURCE_TAG" =~ ^v[0-9]+\.[0-9] ]]; then
+            IMAGE_TAG="${SOURCE_TAG#v}"
+          else
+            IMAGE_TAG="$SOURCE_TAG"
+          fi
+
+          echo "Docker image tag: '$IMAGE_TAG'."
+          echo "IMAGE_TAG=$IMAGE_TAG" >>${GITHUB_ENV}
+
+          LATEST=false
+          if [[ "${{ github.event_name }}" == "release" && "${{ github.event.release.prerelease }}" == "false" ]] || [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.latest }}" == "true" ]]; then
+            LATEST=true
+          fi
+
+          echo "Latest: '$LATEST'."
+          echo "LATEST=$LATEST" >>${GITHUB_ENV}
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image (main architectures)
+        id: build_main_arches
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: .github/docker/Dockerfile
+          platforms: |
+            linux/amd64
+            linux/arm/v7
+            linux/arm64/v8
+            linux/ppc64le
+            linux/s390x
+          provenance: false
+          outputs: type=image,name=${{ env.FULL_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Build Docker image (additional architectures)
+        id: build_additional_arches
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: .github/docker/Dockerfile.usa
+          platforms: |
+            linux/386
+            linux/arm/v6
+            linux/riscv64
+            linux/loong64
+          provenance: false
+          outputs: type=image,name=${{ env.FULL_IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
+
+      - name: Create manifest list and push
+        run: |
+          echo "Creating multi-arch manifest with tag: '${{ env.FULL_IMAGE_NAME }}:${{ env.IMAGE_TAG }}'."
+          docker buildx imagetools create \
+            --tag ${{ env.FULL_IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            ${{ env.FULL_IMAGE_NAME }}@${{ steps.build_main_arches.outputs.digest }} \
+            ${{ env.FULL_IMAGE_NAME }}@${{ steps.build_additional_arches.outputs.digest }}
+
+          if [[ "${{ env.LATEST }}" == "true" ]]; then
+            echo "Adding 'latest' tag to manifest: '${{ env.FULL_IMAGE_NAME }}:latest'."
+            docker buildx imagetools create \
+            --tag ${{ env.FULL_IMAGE_NAME }}:latest \
+            ${{ env.FULL_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          fi
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.FULL_IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+
+          if [[ "${{ env.LATEST }}" == "true" ]]; then
+            docker buildx imagetools inspect ${{ env.FULL_IMAGE_NAME }}:latest
+          fi

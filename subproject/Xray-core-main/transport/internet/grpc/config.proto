@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package xray.transport.internet.grpc.encoding;
+option go_package = "github.com/xtls/xray-core/transport/internet/grpc";
+
+message Config {
+  string authority = 1;
+  string service_name = 2;
+  bool multi_mode = 3;
+  int32 idle_timeout = 4;
+  int32 health_check_timeout = 5;
+  bool permit_without_stream = 6;
+  int32 initial_windows_size = 7;
+  string user_agent = 8;
+}

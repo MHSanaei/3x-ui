@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.mkcp.aes128gcm;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Mkcp.Aes128Gcm";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/mkcp/aes128gcm";
+option java_package = "com.xray.transport.internet.finalmask.mkcp.aes128gcm";
+option java_multiple_files = true;
+
+message Config {
+    string password = 1;
+}

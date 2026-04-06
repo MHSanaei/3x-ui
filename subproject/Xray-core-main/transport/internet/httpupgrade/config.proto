@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package xray.transport.internet.httpupgrade;
+option csharp_namespace = "Xray.Transport.Internet.HttpUpgrade";
+option go_package = "github.com/xtls/xray-core/transport/internet/httpupgrade";
+option java_package = "com.xray.transport.internet.httpupgrade";
+option java_multiple_files = true;
+
+message Config {
+  string host = 1;
+  string path = 2;
+  map<string, string> header = 3;
+  bool accept_proxy_protocol = 4;
+  uint32 ed = 5;
+}

@@ -1,0 +1,78 @@
+name: bug反馈
+description: "提交 Xray-core bug"
+body:
+  - type: checkboxes
+    attributes:
+      label: 完整性要求
+      description: |-
+        请勾选以下所有选项以证明您已经阅读并理解了以下要求，否则该 issue 将被关闭。
+      options:
+        - label: 我读完了 issue 模板中的所有注释，确保填写符合要求。
+          required: true
+        - label: 我保证阅读了文档，了解所有我编写的配置文件项的含义，而不是大量堆砌看似有用的选项或默认值。
+          required: true
+        - label: 我提供了完整的配置文件和日志，而不是出于自己的判断只给出截取的部分。
+          required: true
+        - label: 我搜索了 issues, 没有发现已提出的类似问题。
+          required: true
+        - label: 问题在 Release 最新的版本上可以成功复现
+          required: true
+  - type: textarea
+    attributes:
+      label: 描述
+      description: |-
+        请提供错误的详细描述。以及你认为有价值的信息。
+        如果问题在更新后出现，请提供**具体**出现问题的版本号。
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 重现方式
+      description: |-
+        基于你下面提供的配置，提供重现BUG方法。
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |-
+        ## 配置与日志部分
+        
+        ### 对于配置文件
+        请提供可以重现问题的配置文件，包括服务端和客户端。
+        不要直接在这里黏贴一大段导出的 config 文件。去掉无用的出入站、规则、选项，这可以帮助确定问题，如果你真的想得到帮助。
+        在去掉不影响复现的部分后，提供实际运行的**完整**文件。
+        完整的含义：可以直接使用这个配置启动核心，**不是截取的部分配置**。对于密钥等参数使用重新生成未实际使用的有效参数填充。
+        
+        ### 对于日志
+        请先将日志等级设置为 debug, dnsLog 设置为true.
+        重启 Xray-core ，再按复现方式操作，尽量减少日志中的无关部分。
+        记得删除有关个人信息（如UUID与IP）的部分。
+        提供 Xray-core 的日志，而不是面板或者别的东西输出的日志。
+
+        ### 最后
+        把下面的每格具体内容需要放在 ```<details><pre><code>``` 和 ```</code></pre></details>``` 中间，如
+        ```
+        <details><pre><code>
+        (config)
+        </code></pre></details>
+        ```
+  - type: textarea
+    attributes:
+      label: 客户端配置
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 服务端配置
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 客户端日志
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 服务端日志
+    validations:
+      required: true

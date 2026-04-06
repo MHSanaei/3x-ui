@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package xray.app.log.command;
+option csharp_namespace = "Xray.App.Log.Command";
+option go_package = "github.com/xtls/xray-core/app/log/command";
+option java_package = "com.xray.app.log.command";
+option java_multiple_files = true;
+
+message Config {}
+
+message RestartLoggerRequest {}
+
+message RestartLoggerResponse {}
+
+service LoggerService {
+  rpc RestartLogger(RestartLoggerRequest) returns (RestartLoggerResponse) {}
+}

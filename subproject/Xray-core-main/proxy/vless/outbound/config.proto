@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package xray.proxy.vless.outbound;
+option csharp_namespace = "Xray.Proxy.Vless.Outbound";
+option go_package = "github.com/xtls/xray-core/proxy/vless/outbound";
+option java_package = "com.xray.proxy.vless.outbound";
+option java_multiple_files = true;
+
+import "common/protocol/server_spec.proto";
+
+message Config {
+  xray.common.protocol.ServerEndpoint vnext = 1;
+}

@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.header.wireguard;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Header.Wireguard";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/header/wireguard";
+option java_package = "com.xray.transport.internet.finalmask.header.wireguard";
+option java_multiple_files = true;
+
+message Config {}

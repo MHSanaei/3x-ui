@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.xdns;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Xdns";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/xdns";
+option java_package = "com.xray.transport.internet.finalmask.xdns";
+option java_multiple_files = true;
+
+message Config {
+  string domain = 1;
+}
+

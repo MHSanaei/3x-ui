@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package xray.proxy.loopback;
+option csharp_namespace = "Xray.Proxy.Loopback";
+option go_package = "github.com/xtls/xray-core/proxy/loopback";
+option java_package = "com.xray.proxy.loopback";
+option java_multiple_files = true;
+
+message Config {
+  string inbound_tag = 1;
+}

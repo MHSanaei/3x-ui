@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.header.wechat;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Header.Wechat";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/header/wechat";
+option java_package = "com.xray.transport.internet.finalmask.header.wechat";
+option java_multiple_files = true;
+
+message Config {}

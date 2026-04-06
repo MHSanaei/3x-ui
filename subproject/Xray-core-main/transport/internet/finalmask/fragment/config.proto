@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.fragment;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Fragment";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/fragment";
+option java_package = "com.xray.transport.internet.finalmask.fragment";
+option java_multiple_files = true;
+
+message Config {
+  int64 packets_from = 1;
+  int64 packets_to = 2;
+  int64 length_min = 3;
+  int64 length_max = 4;
+  int64 delay_min = 5;
+  int64 delay_max = 6;
+  int64 max_split_min = 7;
+  int64 max_split_max = 8;
+}

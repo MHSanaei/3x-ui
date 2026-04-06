@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package xray.app.log;
+option csharp_namespace = "Xray.App.Log";
+option go_package = "github.com/xtls/xray-core/app/log";
+option java_package = "com.xray.app.log";
+option java_multiple_files = true;
+
+import "common/log/log.proto";
+
+enum LogType {
+  None = 0;
+  Console = 1;
+  File = 2;
+  Event = 3;
+}
+
+message Config {
+  LogType error_log_type = 1;
+  xray.common.log.Severity error_log_level = 2;
+  string error_log_path = 3;
+
+  LogType access_log_type = 4;
+  string access_log_path = 5;
+  bool enable_dns_log = 6;
+  string mask_address= 7;
+}

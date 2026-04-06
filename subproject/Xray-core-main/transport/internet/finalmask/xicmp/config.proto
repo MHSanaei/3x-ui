@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package xray.transport.internet.finalmask.xicmp;
+option csharp_namespace = "Xray.Transport.Internet.Finalmask.Xicmp";
+option go_package = "github.com/xtls/xray-core/transport/internet/finalmask/xicmp";
+option java_package = "com.xray.transport.internet.finalmask.xicmp";
+option java_multiple_files = true;
+
+message Config {
+  string ip = 1;
+  int32 id = 2;
+}
+

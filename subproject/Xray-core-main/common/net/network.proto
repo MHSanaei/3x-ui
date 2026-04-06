@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package xray.common.net;
+option csharp_namespace = "Xray.Common.Net";
+option go_package = "github.com/xtls/xray-core/common/net";
+option java_package = "com.xray.common.net";
+option java_multiple_files = true;
+
+enum Network {
+  Unknown = 0;
+
+  TCP = 2;
+  UDP = 3;
+  UNIX = 4;
+}
+
+// NetworkList is a list of Networks.
+message NetworkList { repeated Network network = 1; }

@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package xray.proxy.vless.inbound;
+option csharp_namespace = "Xray.Proxy.Vless.Inbound";
+option go_package = "github.com/xtls/xray-core/proxy/vless/inbound";
+option java_package = "com.xray.proxy.vless.inbound";
+option java_multiple_files = true;
+
+import "common/protocol/user.proto";
+
+message Fallback {
+  string name = 1;
+  string alpn = 2;
+  string path = 3;
+  string type = 4;
+  string dest = 5;
+  uint64 xver = 6;
+}
+
+message Config {
+  repeated xray.common.protocol.User clients = 1;
+  repeated Fallback fallbacks = 2;
+
+  string decryption = 3;
+  uint32 xorMode = 4;
+  int64 seconds_from = 5;
+  int64 seconds_to = 6;
+  string padding = 7;
+}

@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package xray.transport.internet.kcp;
+option csharp_namespace = "Xray.Transport.Internet.Kcp";
+option go_package = "github.com/xtls/xray-core/transport/internet/kcp";
+option java_package = "com.xray.transport.internet.kcp";
+option java_multiple_files = true;
+
+import "common/serial/typed_message.proto";
+
+// Maximum Transmission Unit, in bytes.
+message MTU {
+  uint32 value = 1;
+}
+
+// Transmission Time Interview, in milli-sec.
+message TTI {
+  uint32 value = 1;
+}
+
+// Uplink capacity, in MB.
+message UplinkCapacity {
+  uint32 value = 1;
+}
+
+// Downlink capacity, in MB.
+message DownlinkCapacity {
+  uint32 value = 1;
+}
+
+message WriteBuffer {
+  // Buffer size in bytes.
+  uint32 size = 1;
+}
+
+message ReadBuffer {
+  // Buffer size in bytes.
+  uint32 size = 1;
+}
+
+message ConnectionReuse {
+  bool enable = 1;
+}
+
+// Pre-shared secret between client and server. It is used for traffic obfuscation.
+// Note that if seed is absent in the config, the traffic will still be obfuscated,
+// but by a predefined algorithm.
+message EncryptionSeed {
+  string seed = 1;
+}
+
+message Config {
+  MTU mtu = 1;
+  TTI tti = 2;
+  UplinkCapacity uplink_capacity = 3;
+  DownlinkCapacity downlink_capacity = 4;
+  bool congestion = 5;
+  WriteBuffer write_buffer = 6;
+  ReadBuffer read_buffer = 7;
+  xray.common.serial.TypedMessage header_config = 8;
+  reserved 9;
+  EncryptionSeed seed = 10;
+}

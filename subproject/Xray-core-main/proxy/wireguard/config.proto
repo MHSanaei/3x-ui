@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package xray.proxy.wireguard;
+option csharp_namespace = "Xray.Proxy.WireGuard";
+option go_package = "github.com/xtls/xray-core/proxy/wireguard";
+option java_package = "com.xray.proxy.wireguard";
+option java_multiple_files = true;
+
+message PeerConfig {
+  string public_key = 1;
+  string pre_shared_key = 2;
+  string endpoint = 3;
+  uint32 keep_alive = 4;
+  repeated string allowed_ips = 5;
+}
+
+message DeviceConfig {
+  enum DomainStrategy {
+    FORCE_IP = 0;
+    FORCE_IP4 = 1;
+    FORCE_IP6 = 2;
+    FORCE_IP46 = 3;
+    FORCE_IP64 = 4;
+  }
+  string secret_key = 1;
+  repeated string endpoint = 2;
+  repeated PeerConfig peers = 3;
+  int32 mtu = 4;
+  int32 num_workers = 5;
+  bytes reserved = 6;
+  DomainStrategy domain_strategy = 7;
+  bool is_client = 8;
+  bool no_kernel_tun = 9;
+}

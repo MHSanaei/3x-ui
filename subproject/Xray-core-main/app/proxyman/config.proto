@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package xray.app.proxyman;
+option csharp_namespace = "Xray.App.Proxyman";
+option go_package = "github.com/xtls/xray-core/app/proxyman";
+option java_package = "com.xray.app.proxyman";
+option java_multiple_files = true;
+
+import "common/net/address.proto";
+import "common/net/port.proto";
+import "transport/internet/config.proto";
+import "common/serial/typed_message.proto";
+
+message InboundConfig {}
+
+message SniffingConfig {
+  // Whether or not to enable content sniffing on an inbound connection.
+  bool enabled = 1;
+
+  // Override target destination if sniff'ed protocol is in the given list.
+  // Supported values are "http", "tls", "fakedns".
+  repeated string destination_override = 2;
+  repeated string domains_excluded = 3;
+
+  // Whether should only try to sniff metadata without waiting for client input.
+  // Can be used to support SMTP like protocol where server send the first
+  // message.
+  bool metadata_only = 4;
+
+  bool route_only = 5;
+}
+
+message ReceiverConfig {
+  // PortList specifies the ports which the Receiver should listen on.
+  xray.common.net.PortList port_list = 1;
+  // Listen specifies the IP address that the Receiver should listen on.
+  xray.common.net.IPOrDomain listen = 2;
+  xray.transport.internet.StreamConfig stream_settings = 3;
+  bool receive_original_destination = 4;
+  reserved 5;
+  SniffingConfig sniffing_settings = 6;
+}
+
+message InboundHandlerConfig {
+  string tag = 1;
+  xray.common.serial.TypedMessage receiver_settings = 2;
+  xray.common.serial.TypedMessage proxy_settings = 3;
+}
+
+message OutboundConfig {}
+
+message SenderConfig {
+  // Send traffic through the given IP. Only IP is allowed.
+  xray.common.net.IPOrDomain via = 1;
+  xray.transport.internet.StreamConfig stream_settings = 2;
+  xray.transport.internet.ProxyConfig proxy_settings = 3;
+  MultiplexingConfig multiplex_settings = 4;
+  string via_cidr = 5;
+  xray.transport.internet.DomainStrategy target_strategy = 6;
+}
+
+message MultiplexingConfig {
+  // Whether or not Mux is enabled.
+  bool enabled = 1;
+  // Max number of concurrent connections that one Mux connection can handle.
+  int32 concurrency = 2;
+  // Transport XUDP in another Mux.
+  int32 xudpConcurrency = 3;
+  // "reject" (default), "allow" or "skip".
+  string xudpProxyUDP443 = 4;
+}

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package xray.proxy.trojan;
+option csharp_namespace = "Xray.Proxy.Trojan";
+option go_package = "github.com/xtls/xray-core/proxy/trojan";
+option java_package = "com.xray.proxy.trojan";
+option java_multiple_files = true;
+
+import "common/protocol/user.proto";
+import "common/protocol/server_spec.proto";
+
+message Account {
+  string password = 1;
+}
+
+message Fallback {
+  string name = 1;
+  string alpn = 2;
+  string path = 3;
+  string type = 4;
+  string dest = 5;
+  uint64 xver = 6;
+}
+
+message ClientConfig {
+  xray.common.protocol.ServerEndpoint server = 1;
+}
+
+message ServerConfig {
+  repeated xray.common.protocol.User users = 1;
+  repeated Fallback fallbacks = 2;
+}
