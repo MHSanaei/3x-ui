@@ -23,7 +23,7 @@ import (
 // It handles CRUD operations for inbounds, client management, traffic monitoring,
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
-	xrayApi          xray.XrayAPI
+	xrayApi           xray.XrayAPI
 	speedLimitService SpeedLimitService
 }
 
