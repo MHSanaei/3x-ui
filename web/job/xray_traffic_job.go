@@ -85,8 +85,8 @@ func (j *XrayTrafficJob) Run() {
 		logger.Warning("get all outbounds for websocket failed:", err)
 	}
 
-	// The web socket hub will automatically check the payload size.
-	// If < 1MB, it pushes real-time. If > 1MB, it sends a lightweight 'invalidate' signal.
+	// The WebSocket hub will automatically check the payload size.
+	// If it exceeds 100MB, it sends a lightweight 'invalidate' signal instead.
 	if updatedInbounds != nil {
 		websocket.BroadcastInbounds(updatedInbounds)
 	}
