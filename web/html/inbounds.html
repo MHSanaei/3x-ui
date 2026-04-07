@@ -1098,7 +1098,10 @@
         }
         data.sniffing = inbound.sniffing.toString();
 
-        await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, data, inModal);
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+        await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, formData, inModal);
       },
       openAddClient(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1288,9 +1291,36 @@
         infoModal.show(newDbInbound, index);
       },
       switchEnable(dbInboundId, state) {
-        dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) return;
         dbInbound.enable = state;
-        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, dbInbound);
+        let inbound = dbInbound.toInbound();
+        const data = {
+          up: dbInbound.up,
+          down: dbInbound.down,
+          total: dbInbound.total,
+          remark: dbInbound.remark,
+          enable: dbInbound.enable,
+          expiryTime: dbInbound.expiryTime,
+          trafficReset: dbInbound.trafficReset,
+          lastTrafficResetTime: dbInbound.lastTrafficResetTime,
+
+          listen: inbound.listen,
+          port: inbound.port,
+          protocol: inbound.protocol,
+          settings: inbound.settings.toString(),
+        };
+        if (inbound.canEnableStream()) {
+          data.streamSettings = inbound.stream.toString();
+        } else if (inbound.stream?.sockopt) {
+          data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
+        }
+        data.sniffing = inbound.sniffing.toString();
+
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, formData);
       },
       async switchEnableClient(dbInboundId, client) {
         this.loading()
