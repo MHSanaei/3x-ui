@@ -102,13 +102,6 @@ func SwitchDatabase(target *config.DatabaseConfig) error {
 	if err := MigrateModels(targetConn); err != nil {
 		return err
 	}
-	isEmpty, err := IsDatabaseEmpty(targetConn)
-	if err != nil {
-		return err
-	}
-	if !isEmpty {
-		return errors.New("target database must be empty before switching")
-	}
 
 	if err := ApplySnapshot(targetConn, sourceSnapshot); err != nil {
 		return err
