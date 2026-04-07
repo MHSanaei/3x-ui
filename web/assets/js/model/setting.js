@@ -87,3 +87,34 @@ class AllSetting {
         return ObjectUtil.equals(this, other);
     }
 }
+
+class DatabaseSetting {
+
+    constructor(data) {
+        this.driver = "sqlite";
+        this.configSource = "default";
+        this.readOnly = false;
+        this.sqlitePath = "";
+        this.postgresMode = "external";
+        this.postgresHost = "127.0.0.1";
+        this.postgresPort = 5432;
+        this.postgresDBName = "";
+        this.postgresUser = "";
+        this.postgresPassword = "";
+        this.postgresPasswordSet = false;
+        this.postgresSSLMode = "disable";
+        this.managedLocally = false;
+        this.localInstalled = false;
+        this.canInstallLocally = false;
+        this.nativeSQLiteExportAvailable = true;
+
+        if (data == null) {
+            return;
+        }
+        ObjectUtil.cloneProps(this, data);
+    }
+
+    equals(other) {
+        return ObjectUtil.equals(this, other);
+    }
+}

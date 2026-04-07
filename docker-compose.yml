@@ -11,6 +11,31 @@ services:
     environment:
       XRAY_VMESS_AEAD_FORCED: "false"
       XUI_ENABLE_FAIL2BAN: "true"
+      # XUI_DB_DRIVER: "postgres"
+      # XUI_DB_MODE: "external"
+      # XUI_DB_HOST: "127.0.0.1"
+      # XUI_DB_PORT: "5432"
+      # XUI_DB_NAME: "xui"
+      # XUI_DB_USER: "xui"
+      # XUI_DB_PASSWORD: "change-me"
+      # XUI_DB_SSLMODE: "disable"
     tty: true
     network_mode: host
     restart: unless-stopped
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:17-alpine
+    container_name: 3xui_postgres
+    environment:
+      POSTGRES_DB: xui
+      POSTGRES_USER: xui
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

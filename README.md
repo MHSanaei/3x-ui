@@ -30,6 +30,76 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 For full documentation, please visit the [project Wiki](https://github.com/MHSanaei/3x-ui/wiki).
 
+## Database Backends
+
+3X-UI supports both `SQLite` and `PostgreSQL` as interchangeable backends. All application logic is written against [GORM](https://gorm.io/) — Go's database-agnostic ORM — so queries work identically on either engine. You can switch backends at any time through the panel UI without data loss.
+
+### Choosing a Backend
+
+| | SQLite | PostgreSQL |
+|---|---|---|
+| Setup | Zero config, file-based | Requires a running PG server |
+| Best for | Single-node, low traffic | Multi-node, high concurrency |
+| Backups | Portable + native file export | Portable export |
+
+### Switching Backends (Panel UI)
+
+1. Open **Settings → General → Database**.
+2. Select a backend (`SQLite` or `PostgreSQL`) and fill in connection details.
+3. Click **Test Connection** to verify.
+4. Click **Switch Database** — the panel will:
+   - Save a portable backup of current data automatically.
+   - Migrate all data to the new backend.
+   - Restart itself.
+
+> The target database must be empty before switching. Use **Test Connection** before switching to catch misconfigurations early.
+
+### Local PostgreSQL (panel-managed)
+
+When selecting **Local (panel-managed)** mode, the panel installs and manages PostgreSQL automatically (Linux, root only):
+
+```bash
+# The panel uses postgres-manager.sh internally.
+# No manual PostgreSQL setup required.
+```
+
+### External PostgreSQL
+
+Point the panel at any existing PostgreSQL 13+ server:
+
+1. Create a dedicated database and user.
+2. Enter the connection details in Settings → Database.
+3. Use **Test Connection**, then **Switch Database**.
+
+### Environment Variable Override
+
+For Docker and infrastructure-as-code deployments, set these environment variables to control the backend without touching the UI:
+
+```bash
+XUI_DB_DRIVER=postgres        # or: sqlite
+XUI_DB_HOST=127.0.0.1
+XUI_DB_PORT=5432
+XUI_DB_NAME=x-ui
+XUI_DB_USER=x-ui
+XUI_DB_PASSWORD=change-me
+XUI_DB_SSLMODE=disable        # or: require, verify-ca, verify-full
+XUI_DB_MODE=external          # or: local
+XUI_DB_PATH=/etc/x-ui/db/x-ui.db   # SQLite only
+```
+
+When any `XUI_DB_*` variable is set, the Database section in the panel UI becomes read-only.
+
+### Backup & Restore
+
+| Format | Works with | When to use |
+|---|---|---|
+| **Portable** (`.xui-backup`) | SQLite + PostgreSQL | Switching backends, Telegram bot backups, long-term storage |
+| **Native SQLite** (`.db`) | SQLite only | Quick raw file backup while on SQLite |
+
+- The Telegram bot sends a **portable backup** automatically — this works regardless of which backend is active.
+- Portable backups can be imported back on either SQLite or PostgreSQL.
+- Legacy `.db` files from older 3x-ui versions can be imported even while PostgreSQL is active.
+
 ## A Special Thanks to
 
 - [alireza0](https://github.com/alireza0/)

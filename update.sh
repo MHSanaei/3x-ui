@@ -822,6 +822,9 @@ update_x-ui() {
     rm x-ui-linux-$(arch).tar.gz -f >/dev/null 2>&1
     cd x-ui >/dev/null 2>&1
     chmod +x x-ui >/dev/null 2>&1
+    if [[ -f postgres-manager.sh ]]; then
+        chmod +x postgres-manager.sh >/dev/null 2>&1
+    fi
     
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then

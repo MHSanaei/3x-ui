@@ -2,6 +2,7 @@ package controller
 
 import (
 	"errors"
+	"net/http"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
@@ -25,6 +26,7 @@ type SettingController struct {
 	settingService service.SettingService
 	userService    service.UserService
 	panelService   service.PanelService
+	databaseService service.DatabaseService
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -44,6 +46,15 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+
+	database := g.Group("/database")
+	database.POST("/get", a.getDatabaseSetting)
+	database.POST("/test", a.testDatabaseSetting)
+	database.POST("/install-postgres", a.installLocalPostgres)
+	database.POST("/switch", a.switchDatabase)
+	database.POST("/export", a.exportDatabase)
+	database.GET("/export", a.exportDatabase)
+	database.POST("/import", a.importDatabase)
 }
 
 // getAllSetting retrieves all current settings.
@@ -118,4 +129,98 @@ func (a *SettingController) getDefaultXrayConfig(c *gin.Context) {
 		return
 	}
 	jsonObj(c, defaultJsonConfig, nil)
+}
+
+func (a *SettingController) getDatabaseSetting(c *gin.Context) {
+	setting, err := a.databaseService.GetSetting()
+	if err != nil {
+		jsonMsg(c, "Failed to load database settings", err)
+		return
+	}
+	jsonObj(c, setting, nil)
+}
+
+func (a *SettingController) testDatabaseSetting(c *gin.Context) {
+	setting := &entity.DatabaseSetting{}
+	if err := c.ShouldBind(setting); err != nil {
+		jsonMsg(c, "Failed to parse database settings", err)
+		return
+	}
+	if err := a.databaseService.TestSetting(setting); err != nil {
+		jsonMsg(c, "Connection test failed", err)
+		return
+	}
+	jsonMsg(c, "Database connection test succeeded", nil)
+}
+
+func (a *SettingController) installLocalPostgres(c *gin.Context) {
+	output, err := a.databaseService.InstallLocalPostgres()
+	if err != nil {
+		jsonMsg(c, "Failed to install PostgreSQL", err)
+		return
+	}
+	jsonObj(c, output, nil)
+}
+
+func (a *SettingController) switchDatabase(c *gin.Context) {
+	setting := &entity.DatabaseSetting{}
+	if err := c.ShouldBind(setting); err != nil {
+		jsonMsg(c, "Failed to parse database settings", err)
+		return
+	}
+	err := a.databaseService.SwitchDatabase(setting)
+	if err == nil {
+		err = a.panelService.RestartPanel(3 * time.Second)
+	}
+	jsonMsg(c, "Database switch scheduled", err)
+}
+
+func (a *SettingController) exportDatabase(c *gin.Context) {
+	exportType := c.Query("type")
+	if exportType == "" {
+		exportType = c.PostForm("type")
+	}
+	if exportType == "" {
+		exportType = "portable"
+	}
+
+	var (
+		data     []byte
+		filename string
+		err      error
+	)
+
+	switch exportType {
+	case "sqlite":
+		data, filename, err = a.databaseService.ExportNativeSQLite()
+	default:
+		data, filename, err = a.databaseService.ExportPortableBackup()
+	}
+	if err != nil {
+		jsonMsg(c, "Failed to export database", err)
+		return
+	}
+
+	c.Header("Content-Type", "application/octet-stream")
+	c.Header("Content-Disposition", "attachment; filename="+filename)
+	c.Data(http.StatusOK, "application/octet-stream", data)
+}
+
+func (a *SettingController) importDatabase(c *gin.Context) {
+	file, _, err := c.Request.FormFile("backup")
+	if err != nil {
+		jsonMsg(c, "Failed to read uploaded backup", err)
+		return
+	}
+	defer file.Close()
+
+	backupType, err := a.databaseService.ImportBackup(file)
+	if err == nil {
+		err = a.panelService.RestartPanel(3 * time.Second)
+	}
+	if err != nil {
+		jsonMsg(c, "Failed to import database backup", err)
+		return
+	}
+	jsonObj(c, backupType, nil)
 }

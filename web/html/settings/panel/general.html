@@ -108,7 +108,130 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="4" header='{{ i18n "pages.settings.externalTraffic" }}'>
+    <a-collapse-panel key="4" header='{{ i18n "pages.settings.database.sectionTitle" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.database.backend" }}</template>
+            <template #description>{{ i18n "pages.settings.database.backendDesc" }}</template>
+            <template #control>
+                <a-radio-group v-model="databaseSetting.driver" :disabled="databaseSetting.readOnly" button-style="solid">
+                    <a-radio-button value="sqlite">SQLite</a-radio-button>
+                    <a-radio-button value="postgres">PostgreSQL</a-radio-button>
+                </a-radio-group>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small" v-if="databaseSetting.readOnly || databaseSetting.configSource === 'default'">
+            <template #title>{{ i18n "pages.settings.database.configSource" }}</template>
+            <template #description v-if="databaseSetting.readOnly">{{ i18n "pages.settings.database.configSourceEnvDesc" }}</template>
+            <template #description v-else>{{ i18n "pages.settings.database.configSourceDefaultDesc" }}</template>
+            <template #control>
+                <a-tag :color="databaseSetting.readOnly ? 'red' : 'orange'">[[ databaseSetting.readOnly ? 'env' : 'default' ]]</a-tag>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small" v-if="databaseSetting.driver === 'sqlite'">
+            <template #title>{{ i18n "pages.settings.database.sqlitePath" }}</template>
+            <template #control>
+                <a-input type="text" v-model="databaseSetting.sqlitePath" :disabled="databaseSetting.readOnly"></a-input>
+            </template>
+        </a-setting-list-item>
+        <template v-if="databaseSetting.driver === 'postgres'">
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.database.postgresMode" }}</template>
+                <template #description>
+                    <span v-if="databaseSetting.postgresMode === 'local'">{{ i18n "pages.settings.database.postgresModeLocalDesc" }}</span>
+                    <span v-else>{{ i18n "pages.settings.database.postgresModeExternalDesc" }}</span>
+                </template>
+                <template #control>
+                    <a-radio-group v-model="databaseSetting.postgresMode" :disabled="databaseSetting.readOnly" button-style="solid">
+                        <a-radio-button value="local">{{ i18n "pages.settings.database.postgresModeLocal" }}</a-radio-button>
+                        <a-radio-button value="external">{{ i18n "pages.settings.database.postgresModeExternal" }}</a-radio-button>
+                    </a-radio-group>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small" v-if="databaseSetting.postgresMode === 'local'">
+                <template #title>{{ i18n "pages.settings.database.postgresInstallation" }}</template>
+                <template #description>
+                    <span v-if="databaseSetting.localInstalled"><a-tag color="green">✓</a-tag> {{ i18n "pages.settings.database.postgresInstallReady" }}</span>
+                    <span v-else-if="!databaseSetting.canInstallLocally"><a-tag color="orange">!</a-tag> {{ i18n "pages.settings.database.postgresInstallNeedRoot" }}</span>
+                    <span v-else><a-tag color="orange">!</a-tag> {{ i18n "pages.settings.database.postgresInstallHint" }}</span>
+                </template>
+                <template #control>
+                    <a-button @click="installLocalPostgres" :disabled="databaseSetting.readOnly || !databaseSetting.canInstallLocally || databaseSetting.localInstalled">
+                        <span v-if="databaseSetting.localInstalled">{{ i18n "pages.settings.database.postgresAlreadyInstalled" }}</span>
+                        <span v-else>{{ i18n "pages.settings.database.postgresInstallBtn" }}</span>
+                    </a-button>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small" v-if="databaseSetting.postgresMode === 'external'">
+                <template #title>{{ i18n "pages.settings.database.host" }}</template>
+                <template #control>
+                    <a-input type="text" v-model="databaseSetting.postgresHost" :disabled="databaseSetting.readOnly"></a-input>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small" v-if="databaseSetting.postgresMode === 'external'">
+                <template #title>{{ i18n "pages.settings.database.port" }}</template>
+                <template #control>
+                    <a-input-number :min="1" :max="65535" v-model="databaseSetting.postgresPort" :style="{ width: '100%' }" :disabled="databaseSetting.readOnly"></a-input-number>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.database.dbName" }}</template>
+                <template #control>
+                    <a-input type="text" v-model="databaseSetting.postgresDBName" :disabled="databaseSetting.readOnly"></a-input>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.database.user" }}</template>
+                <template #control>
+                    <a-input type="text" v-model="databaseSetting.postgresUser" :disabled="databaseSetting.readOnly"></a-input>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.database.password" }}</template>
+                <template #description v-if="databaseSetting.postgresPasswordSet">{{ i18n "pages.settings.database.passwordHint" }}</template>
+                <template #control>
+                    <a-input type="password" v-model="databaseSetting.postgresPassword" :disabled="databaseSetting.readOnly"></a-input>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small" v-if="databaseSetting.postgresMode === 'external'">
+                <template #title>{{ i18n "pages.settings.database.sslMode" }}</template>
+                <template #control>
+                    <a-select v-model="databaseSetting.postgresSSLMode" :disabled="databaseSetting.readOnly"
+                        :dropdown-class-name="themeSwitcher.currentTheme" :style="{ width: '100%' }">
+                        <a-select-option value="disable">disable</a-select-option>
+                        <a-select-option value="require">require</a-select-option>
+                        <a-select-option value="verify-ca">verify-ca</a-select-option>
+                        <a-select-option value="verify-full">verify-full</a-select-option>
+                    </a-select>
+                </template>
+            </a-setting-list-item>
+        </template>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.database.actions" }}</template>
+            <template #description>{{ i18n "pages.settings.database.actionsDesc" }}</template>
+            <template #control>
+                <a-space wrap>
+                    <a-button @click="testDatabaseSetting" :disabled="databaseSetting.readOnly">{{ i18n "pages.settings.database.testConnection" }}</a-button>
+                    <a-button type="primary" @click="switchDatabase" :disabled="databaseSetting.readOnly">{{ i18n "pages.settings.database.switchDatabase" }}</a-button>
+                </a-space>
+            </template>
+        </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.database.backupRestore" }}</template>
+            <template #description>
+                <b>{{ i18n "pages.settings.database.exportPortableLabel" }}</b> — {{ i18n "pages.settings.database.exportPortableDesc" }}<br>
+                <b>{{ i18n "pages.settings.database.exportNativeSQLiteLabel" }}</b> — {{ i18n "pages.settings.database.exportNativeSQLiteDesc" }}<br>
+                <b>{{ i18n "pages.settings.database.importLabel" }}</b> — {{ i18n "pages.settings.database.importDesc" }}
+            </template>
+            <template #control>
+                <a-space wrap>
+                    <a-button @click="exportPortableBackup">{{ i18n "pages.settings.database.exportPortableBtn" }}</a-button>
+                    <a-button @click="exportNativeSQLite" :disabled="!databaseSetting.nativeSQLiteExportAvailable">{{ i18n "pages.settings.database.exportNativeSQLiteBtn" }}</a-button>
+                    <a-button @click="importDatabaseBackup">{{ i18n "pages.settings.database.importBtn" }}</a-button>
+                </a-space>
+            </template>
+        </a-setting-list-item>
+    </a-collapse-panel>
+    <a-collapse-panel key="5" header='{{ i18n "pages.settings.externalTraffic" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.externalTrafficInformEnable"}}</template>
             <template #description>{{ i18n "pages.settings.externalTrafficInformEnableDesc"}}</template>
@@ -125,7 +248,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="5" header='{{ i18n "pages.settings.dateAndTime" }}'>
+    <a-collapse-panel key="6" header='{{ i18n "pages.settings.dateAndTime" }}'>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.timeZone"}}</template>
             <template #description>{{ i18n "pages.settings.timeZoneDesc"}}</template>
@@ -146,7 +269,7 @@
             </template>
         </a-setting-list-item>
     </a-collapse-panel>
-    <a-collapse-panel key="6" header='LDAP'>
+    <a-collapse-panel key="7" header='LDAP'>
         <a-setting-list-item paddings="small">
             <template #title>Enable LDAP sync</template>
             <template #control>

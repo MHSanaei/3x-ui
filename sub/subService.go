@@ -114,17 +114,28 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
 	db := database.GetDB()
-	var inbounds []*model.Inbound
-	err := db.Model(model.Inbound{}).Preload("ClientStats").Where(`id in (
-		SELECT DISTINCT inbounds.id
-		FROM inbounds,
-			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client 
-		WHERE
-			protocol in ('vmess','vless','trojan','shadowsocks')
-			AND JSON_EXTRACT(client.value, '$.subId') = ? AND enable = ?
-	)`, subId, true).Find(&inbounds).Error
+	var candidates []*model.Inbound
+	err := db.Model(model.Inbound{}).
+		Preload("ClientStats").
+		Where("protocol IN ?", []string{"vmess", "vless", "trojan", "shadowsocks"}).
+		Where("enable = ?", true).
+		Find(&candidates).Error
 	if err != nil {
 		return nil, err
+	}
+
+	inbounds := make([]*model.Inbound, 0)
+	for _, inbound := range candidates {
+		clients, clientsErr := s.inboundService.GetClients(inbound)
+		if clientsErr != nil {
+			return nil, clientsErr
+		}
+		for _, client := range clients {
+			if client.SubID == subId {
+				inbounds = append(inbounds, inbound)
+				break
+			}
+		}
 	}
 	return inbounds, nil
 }
@@ -140,13 +151,40 @@ func (s *SubService) getClientTraffics(traffics []xray.ClientTraffic, email stri
 
 func (s *SubService) getFallbackMaster(dest string, streamSettings string) (string, int, string, error) {
 	db := database.GetDB()
-	var inbound *model.Inbound
-	err := db.Model(model.Inbound{}).
-		Where("JSON_TYPE(settings, '$.fallbacks') = 'array'").
-		Where("EXISTS (SELECT * FROM json_each(settings, '$.fallbacks') WHERE json_extract(value, '$.dest') = ?)", dest).
-		Find(&inbound).Error
+	var inbounds []model.Inbound
+	err := db.Model(model.Inbound{}).Find(&inbounds).Error
 	if err != nil {
 		return "", 0, "", err
+	}
+
+	var inbound *model.Inbound
+	for i := range inbounds {
+		settings := map[string]any{}
+		if json.Unmarshal([]byte(inbounds[i].Settings), &settings) != nil {
+			continue
+		}
+		fallbacks, ok := settings["fallbacks"].([]any)
+		if !ok {
+			continue
+		}
+		found := false
+		for _, fallback := range fallbacks {
+			fallbackMap, ok := fallback.(map[string]any)
+			if !ok {
+				continue
+			}
+			if fallbackDest, ok := fallbackMap["dest"].(string); ok && fallbackDest == dest {
+				found = true
+				break
+			}
+		}
+		if found {
+			inbound = &inbounds[i]
+			break
+		}
+	}
+	if inbound == nil {
+		return "", 0, "", fmt.Errorf("fallback master not found")
 	}
 
 	var stream map[string]any

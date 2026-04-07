@@ -3,11 +3,13 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	_ "unsafe"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/util/crypto"
 	"github.com/mhsanaei/3x-ui/v2/util/sys"
 	"github.com/mhsanaei/3x-ui/v2/web"
+	"github.com/mhsanaei/3x-ui/v2/web/entity"
 	"github.com/mhsanaei/3x-ui/v2/web/global"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 
@@ -46,7 +49,7 @@ func runWebServer() {
 
 	godotenv.Load()
 
-	err := database.InitDB(config.GetDBPath())
+	err := database.InitDB()
 	if err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
@@ -131,7 +134,7 @@ func runWebServer() {
 
 // resetSetting resets all panel settings to their default values.
 func resetSetting() {
-	err := database.InitDB(config.GetDBPath())
+	err := database.InitDB()
 	if err != nil {
 		fmt.Println("Failed to initialize database:", err)
 		return
@@ -154,10 +157,22 @@ func showSetting(show bool) {
 		if err != nil {
 			fmt.Println("get current port failed, error info:", err)
 		}
+		subPort, err := settingService.GetSubPort()
+		if err != nil {
+			fmt.Println("get current sub port failed, error info:", err)
+		}
 
 		webBasePath, err := settingService.GetBasePath()
 		if err != nil {
 			fmt.Println("get webBasePath failed, error info:", err)
+		}
+		listen, err := settingService.GetListen()
+		if err != nil {
+			fmt.Println("get current listen failed, error info:", err)
+		}
+		subListen, err := settingService.GetSubListen()
+		if err != nil {
+			fmt.Println("get current sub listen failed, error info:", err)
 		}
 
 		certFile, err := settingService.GetCertFile()
@@ -192,6 +207,9 @@ func showSetting(show bool) {
 
 		fmt.Println("hasDefaultCredential:", hasDefaultCredential)
 		fmt.Println("port:", port)
+		fmt.Println("listen:", listen)
+		fmt.Println("subPort:", subPort)
+		fmt.Println("subListen:", subListen)
 		fmt.Println("webBasePath:", webBasePath)
 	}
 }
@@ -218,7 +236,7 @@ func updateTgbotEnableSts(status bool) {
 
 // updateTgbotSetting updates Telegram bot settings including token, chat ID, and runtime schedule.
 func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime string) {
-	err := database.InitDB(config.GetDBPath())
+	err := database.InitDB()
 	if err != nil {
 		fmt.Println("Error initializing database:", err)
 		return
@@ -254,9 +272,9 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 	}
 }
 
-// updateSetting updates various panel settings including port, credentials, base path, listen IP, and two-factor authentication.
-func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) {
-	err := database.InitDB(config.GetDBPath())
+// updateSetting updates various panel settings including ports, credentials, base path, listen IPs, and two-factor authentication.
+func updateSetting(port int, subPort int, username string, password string, webBasePath string, listenIP string, subListenIP string, resetTwoFactor bool) {
+	err := database.InitDB()
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
 		return
@@ -308,14 +326,32 @@ func updateSetting(port int, username string, password string, webBasePath strin
 		if err != nil {
 			fmt.Println("Failed to set listen IP:", err)
 		} else {
-			fmt.Printf("listen %v set successfully", listenIP)
+			fmt.Printf("listen %v set successfully\n", listenIP)
+		}
+	}
+
+	if subPort > 0 {
+		err := settingService.SetSubPort(subPort)
+		if err != nil {
+			fmt.Println("Failed to set sub port:", err)
+		} else {
+			fmt.Printf("Sub port set successfully: %v\n", subPort)
+		}
+	}
+
+	if subListenIP != "" {
+		err := settingService.SetSubListen(subListenIP)
+		if err != nil {
+			fmt.Println("Failed to set sub listen IP:", err)
+		} else {
+			fmt.Printf("sub listen %v set successfully\n", subListenIP)
 		}
 	}
 }
 
 // updateCert updates the SSL certificate files for the panel.
 func updateCert(publicKey string, privateKey string) {
-	err := database.InitDB(config.GetDBPath())
+	err := database.InitDB()
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -392,13 +428,168 @@ func GetListenIP(getListen bool) {
 func migrateDb() {
 	inboundService := service.InboundService{}
 
-	err := database.InitDB(config.GetDBPath())
+	err := database.InitDB()
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Start migrating database...")
 	inboundService.MigrateDB()
 	fmt.Println("Migration done!")
+}
+
+func defaultDatabaseSetting() *entity.DatabaseSetting {
+	databaseService := &service.DatabaseService{}
+	setting, err := databaseService.GetSetting()
+	if err == nil && setting != nil {
+		return setting
+	}
+	return entity.DatabaseSettingFromConfig(config.DefaultDatabaseConfig())
+}
+
+func addDatabaseFlags(fs *flag.FlagSet, setting *entity.DatabaseSetting) {
+	fs.StringVar(&setting.Driver, "driver", setting.Driver, "Database driver: sqlite or postgres")
+	fs.StringVar(&setting.SQLitePath, "sqlite-path", setting.SQLitePath, "SQLite database path")
+	fs.StringVar(&setting.PostgresMode, "postgres-mode", setting.PostgresMode, "PostgreSQL mode: local or external")
+	fs.StringVar(&setting.PostgresHost, "postgres-host", setting.PostgresHost, "PostgreSQL host")
+	fs.IntVar(&setting.PostgresPort, "postgres-port", setting.PostgresPort, "PostgreSQL port")
+	fs.StringVar(&setting.PostgresDBName, "postgres-db", setting.PostgresDBName, "PostgreSQL database name")
+	fs.StringVar(&setting.PostgresUser, "postgres-user", setting.PostgresUser, "PostgreSQL user")
+	fs.StringVar(&setting.PostgresPassword, "postgres-password", "", "PostgreSQL password")
+	fs.StringVar(&setting.PostgresSSLMode, "postgres-sslmode", setting.PostgresSSLMode, "PostgreSQL sslmode")
+	fs.BoolVar(&setting.ManagedLocally, "postgres-local", setting.ManagedLocally, "Treat PostgreSQL as locally managed")
+}
+
+func writeExportFile(outputPath string, defaultName string, data []byte) (string, error) {
+	targetPath := outputPath
+	if targetPath == "" {
+		targetPath = defaultName
+	} else if info, err := os.Stat(targetPath); err == nil && info.IsDir() {
+		targetPath = filepath.Join(targetPath, defaultName)
+	}
+
+	if err := os.WriteFile(targetPath, data, 0o600); err != nil {
+		return "", err
+	}
+	return targetPath, nil
+}
+
+func handleDatabaseCommand(args []string) {
+	if len(args) == 0 {
+		fmt.Println("Usage:")
+		fmt.Println("  x-ui database show")
+		fmt.Println("  x-ui database test [database flags]")
+		fmt.Println("  x-ui database switch [database flags]")
+		fmt.Println("  x-ui database export -type portable|sqlite [-out path]")
+		fmt.Println("  x-ui database import -file backup.xui-backup")
+		fmt.Println("  x-ui database install-postgres")
+		return
+	}
+
+	databaseService := service.DatabaseService{}
+
+	switch args[0] {
+	case "show":
+		setting, err := databaseService.GetSetting()
+		if err != nil {
+			fmt.Println("Failed to load database settings:", err)
+			return
+		}
+		contents, err := json.MarshalIndent(setting, "", "  ")
+		if err != nil {
+			fmt.Println("Failed to serialize database settings:", err)
+			return
+		}
+		fmt.Println(string(contents))
+	case "test":
+		setting := defaultDatabaseSetting()
+		testCmd := flag.NewFlagSet("database test", flag.ExitOnError)
+		addDatabaseFlags(testCmd, setting)
+		_ = testCmd.Parse(args[1:])
+		if err := databaseService.TestSetting(setting); err != nil {
+			fmt.Println("Database connection test failed:", err)
+			return
+		}
+		fmt.Println("Database connection test succeeded.")
+	case "switch":
+		setting := defaultDatabaseSetting()
+		switchCmd := flag.NewFlagSet("database switch", flag.ExitOnError)
+		addDatabaseFlags(switchCmd, setting)
+		_ = switchCmd.Parse(args[1:])
+		if err := databaseService.SwitchDatabase(setting); err != nil {
+			fmt.Println("Database switch failed:", err)
+			return
+		}
+		fmt.Println("Database configuration updated. Restart the panel service to apply changes.")
+	case "export":
+		exportCmd := flag.NewFlagSet("database export", flag.ExitOnError)
+		exportType := exportCmd.String("type", "portable", "Export type: portable or sqlite")
+		outputPath := exportCmd.String("out", "", "Output path or directory")
+		_ = exportCmd.Parse(args[1:])
+
+		if err := database.InitDB(); err != nil {
+			fmt.Println("Failed to initialize database:", err)
+			return
+		}
+
+		var (
+			data     []byte
+			filename string
+			err      error
+		)
+		switch *exportType {
+		case "sqlite":
+			data, filename, err = databaseService.ExportNativeSQLite()
+		default:
+			data, filename, err = databaseService.ExportPortableBackup()
+		}
+		if err != nil {
+			fmt.Println("Export failed:", err)
+			return
+		}
+
+		targetPath, err := writeExportFile(*outputPath, filename, data)
+		if err != nil {
+			fmt.Println("Failed to write backup:", err)
+			return
+		}
+		fmt.Println("Backup exported to:", targetPath)
+	case "import":
+		importCmd := flag.NewFlagSet("database import", flag.ExitOnError)
+		backupFile := importCmd.String("file", "", "Path to .xui-backup or legacy SQLite .db file")
+		_ = importCmd.Parse(args[1:])
+		if *backupFile == "" {
+			fmt.Println("Import requires -file")
+			return
+		}
+
+		if err := database.InitDB(); err != nil {
+			fmt.Println("Failed to initialize database:", err)
+			return
+		}
+
+		file, err := os.Open(*backupFile)
+		if err != nil {
+			fmt.Println("Failed to open backup file:", err)
+			return
+		}
+		defer file.Close()
+
+		backupType, err := databaseService.ImportBackup(file)
+		if err != nil {
+			fmt.Println("Import failed:", err)
+			return
+		}
+		fmt.Println("Import completed using", backupType, "backup. Restart the panel service to apply changes.")
+	case "install-postgres":
+		output, err := databaseService.InstallLocalPostgres()
+		if err != nil {
+			fmt.Println("PostgreSQL installation failed:", err)
+			return
+		}
+		fmt.Print(output)
+	default:
+		fmt.Println("Unknown database subcommand:", args[0])
+	}
 }
 
 // main is the entry point of the 3x-ui application.
@@ -416,10 +607,12 @@ func main() {
 
 	settingCmd := flag.NewFlagSet("setting", flag.ExitOnError)
 	var port int
+	var subPort int
 	var username string
 	var password string
 	var webBasePath string
 	var listenIP string
+	var subListenIP string
 	var getListen bool
 	var webCertFile string
 	var webKeyFile string
@@ -434,10 +627,12 @@ func main() {
 	settingCmd.BoolVar(&reset, "reset", false, "Reset all settings")
 	settingCmd.BoolVar(&show, "show", false, "Display current settings")
 	settingCmd.IntVar(&port, "port", 0, "Set panel port number")
+	settingCmd.IntVar(&subPort, "subPort", 0, "Set subscription port number")
 	settingCmd.StringVar(&username, "username", "", "Set login username")
 	settingCmd.StringVar(&password, "password", "", "Set login password")
 	settingCmd.StringVar(&webBasePath, "webBasePath", "", "Set base path for Panel")
 	settingCmd.StringVar(&listenIP, "listenIP", "", "set panel listenIP IP")
+	settingCmd.StringVar(&subListenIP, "subListenIP", "", "set subscription listenIP IP")
 	settingCmd.BoolVar(&resetTwoFactor, "resetTwoFactor", false, "Reset two-factor authentication settings")
 	settingCmd.BoolVar(&getListen, "getListen", false, "Display current panel listenIP IP")
 	settingCmd.BoolVar(&getCert, "getCert", false, "Display current certificate settings")
@@ -456,6 +651,7 @@ func main() {
 		fmt.Println("    run            run web panel")
 		fmt.Println("    migrate        migrate form other/old x-ui")
 		fmt.Println("    setting        set settings")
+		fmt.Println("    database       manage database backend")
 	}
 
 	flag.Parse()
@@ -483,7 +679,7 @@ func main() {
 		if reset {
 			resetSetting()
 		} else {
-			updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor)
+			updateSetting(port, subPort, username, password, webBasePath, listenIP, subListenIP, resetTwoFactor)
 		}
 		if show {
 			showSetting(show)
@@ -511,6 +707,8 @@ func main() {
 		} else {
 			updateCert(webCertFile, webKeyFile)
 		}
+	case "database":
+		handleDatabaseCommand(os.Args[2:])
 	default:
 		fmt.Println("Invalid subcommands")
 		fmt.Println()
