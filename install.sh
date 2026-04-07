@@ -457,16 +457,25 @@ ssl_cert_issue() {
     fi
 
     # install the certificate
-    # acme.sh may exit non-zero when reloadcmd fails even if cert files are installed.
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+    local installOutput=""
+    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1 || true
+        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
+    local installRc=$?
+    echo "${installOutput}"
 
-    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" ]]; then
+    local installWroteFiles=0
+    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
+        installWroteFiles=1
+    fi
+
+    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && ( ${installRc} -eq 0 || ${installWroteFiles} -eq 1 ) ]]; then
         echo -e "${green}Installing certificate succeeded, enabling auto renew...${plain}"
     else
         echo -e "${red}Installing certificate failed, exiting.${plain}"
-        rm -rf ~/.acme.sh/${domain}
+        if [[ ${cert_exists} -eq 0 ]]; then
+            rm -rf ~/.acme.sh/${domain}
+        fi
         systemctl start x-ui 2>/dev/null || rc-service x-ui start 2>/dev/null
         return 1
     fi
