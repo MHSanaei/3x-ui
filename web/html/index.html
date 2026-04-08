@@ -1139,9 +1139,7 @@
       // timeout of 6 seconds guarantees the loading screen always clears.
       await (async () => {
         const failsafeTimer = setTimeout(() => {
-          if (!this.loadingStates.fetched) {
-            this.loadingStates.fetched = true;
-          }
+          this.loadingStates.fetched = true;
         }, 6000);
         const maxRetries = 5;
         for (let i = 0; i < maxRetries; i++) {

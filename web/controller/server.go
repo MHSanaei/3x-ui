@@ -114,9 +114,6 @@ func (a *ServerController) status(c *gin.Context) {
 func (a *ServerController) GetLastStatus() any {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	if a.lastStatus == nil {
-		return nil
-	}
 	return a.lastStatus
 }
 
