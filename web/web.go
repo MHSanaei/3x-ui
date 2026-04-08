@@ -276,7 +276,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	go s.wsHub.Run()
 
 	// Initialize WebSocket controller
-	s.ws = controller.NewWebSocketController(s.wsHub)
+	s.ws = controller.NewWebSocketController(s.wsHub, s.api.StatusProvider())
 	// Register WebSocket route with basePath (g already has basePath prefix)
 	g.GET("/ws", s.ws.HandleWebSocket)
 

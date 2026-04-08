@@ -364,6 +364,31 @@ func (h *Hub) Unregister(client *Client) {
 	}
 }
 
+// SendToClient sends a message to a specific client
+func (h *Hub) SendToClient(client *Client, messageType MessageType, payload any) {
+	if h == nil || client == nil || payload == nil {
+		return
+	}
+
+	msg := Message{
+		Type:    messageType,
+		Payload: payload,
+		Time:    getCurrentTimestamp(),
+	}
+
+	data, err := json.Marshal(msg)
+	if err != nil {
+		logger.Error("Failed to marshal WebSocket message:", err)
+		return
+	}
+
+	select {
+	case client.Send <- data:
+	default:
+		logger.Debugf("WebSocket client %s send buffer full when sending initial status", client.ID)
+	}
+}
+
 // Stop gracefully stops the hub and closes all connections
 func (h *Hub) Stop() {
 	if h == nil {

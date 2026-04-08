@@ -24,6 +24,15 @@ func GetHub() *Hub {
 	return wsHub
 }
 
+// SendStatusToClient sends the current server status directly to a single client.
+// Used to push an immediate status snapshot to a newly connected WebSocket client.
+func SendStatusToClient(client *Client, status any) {
+	hub := GetHub()
+	if hub != nil && client != nil && status != nil {
+		hub.SendToClient(client, MessageTypeStatus, status)
+	}
+}
+
 // BroadcastStatus broadcasts server status update to all connected clients
 func BroadcastStatus(status any) {
 	hub := GetHub()

@@ -68,13 +68,17 @@ var upgrader = ws.Upgrader{
 // WebSocketController handles WebSocket connections for real-time updates
 type WebSocketController struct {
 	BaseController
-	hub *websocket.Hub
+	hub           *websocket.Hub
+	statusProvider func() any // returns current server status (may be nil)
 }
 
-// NewWebSocketController creates a new WebSocket controller
-func NewWebSocketController(hub *websocket.Hub) *WebSocketController {
+// NewWebSocketController creates a new WebSocket controller.
+// statusProvider is an optional function that returns the current server status;
+// if provided, the status is pushed immediately to each newly connected client.
+func NewWebSocketController(hub *websocket.Hub, statusProvider func() any) *WebSocketController {
 	return &WebSocketController{
-		hub: hub,
+		hub:           hub,
+		statusProvider: statusProvider,
 	}
 }
 
@@ -106,6 +110,14 @@ func (w *WebSocketController) HandleWebSocket(c *gin.Context) {
 	// Register client
 	w.hub.Register(client)
 	logger.Debugf("WebSocket client %s registered from %s", clientID, getRemoteIp(c))
+
+	// Push current status immediately so the frontend does not have to wait
+	// for the next 2-second cron tick to clear the loading screen.
+	if w.statusProvider != nil {
+		if s := w.statusProvider(); s != nil {
+			websocket.SendStatusToClient(client, s)
+		}
+	}
 
 	// Start goroutines for reading and writing
 	go w.writePump(client, conn)
