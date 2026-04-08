@@ -1,42 +1,41 @@
 {
   "remarks": "",
   "dns": {
-    "tag": "dns_out",
-    "queryStrategy": "UseIP",
     "servers": [
-      {
-        "address": "8.8.8.8",
-        "skipFallback": false
-      }
-    ]
+      "https://8.8.8.8/dns-query",
+      "https://1.1.1.1/dns-query",
+      "208.67.222.222",
+      "208.67.220.220",
+      "https+local://doh.opendns.com/dns-query",
+      "https+local://cloudflare-dns.com/dns-query",
+      "77.88.8.8",
+      "77.88.8.1"
+    ],
+    "queryStrategy": "UseIPv4",
+    "disableCache": false
+  },
+  "assets": {
+    "geoipUrl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat",
+    "geositeUrl": "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
   },
   "inbounds": [
     {
+      "listen": "127.0.0.1",
       "port": 10808,
-      "protocol": "mixed",
+      "protocol": "socks",
       "settings": {
         "auth": "noauth",
-        "udp": true,
-        "userLevel": 8
+        "udp": true
       },
       "sniffing": {
+        "enabled": true,
         "destOverride": [
           "http",
           "tls",
-          "quic",
-          "fakedns"
-        ],
-        "enabled": true
+          "quic"
+        ]
       },
-      "tag": "mixed"
-    },
-    {
-      "port": 10809,
-      "protocol": "http",
-      "settings": {
-        "userLevel": 8
-      },
-      "tag": "http"
+      "tag": "socks"
     }
   ],
   "log": {
