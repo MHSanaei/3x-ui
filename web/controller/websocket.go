@@ -68,7 +68,7 @@ var upgrader = ws.Upgrader{
 // WebSocketController handles WebSocket connections for real-time updates
 type WebSocketController struct {
 	BaseController
-	hub           *websocket.Hub
+	hub            *websocket.Hub
 	statusProvider func() any // returns current server status (may be nil)
 }
 
@@ -77,7 +77,7 @@ type WebSocketController struct {
 // if provided, the status is pushed immediately to each newly connected client.
 func NewWebSocketController(hub *websocket.Hub, statusProvider func() any) *WebSocketController {
 	return &WebSocketController{
-		hub:           hub,
+		hub:            hub,
 		statusProvider: statusProvider,
 	}
 }
