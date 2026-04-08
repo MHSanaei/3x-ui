@@ -56,3 +56,9 @@ func (a *APIController) initRouter(g *gin.RouterGroup) {
 func (a *APIController) BackuptoTgbot(c *gin.Context) {
 	a.Tgbot.SendBackupToAdmins()
 }
+
+// StatusProvider returns a function that provides the most recently collected server status.
+// Used by the WebSocket controller to push status to newly connected clients.
+func (a *APIController) StatusProvider() func() any {
+	return a.serverController.GetLastStatus
+}

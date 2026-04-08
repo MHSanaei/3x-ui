@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/web/global"
@@ -23,6 +24,7 @@ type ServerController struct {
 	serverService  service.ServerService
 	settingService service.SettingService
 
+	mu         sync.RWMutex
 	lastStatus *service.Status
 
 	lastVersions        []string
@@ -64,17 +66,32 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 
 // refreshStatus updates the cached server status and collects CPU history.
 func (a *ServerController) refreshStatus() {
-	a.lastStatus = a.serverService.GetStatus(a.lastStatus)
+	a.mu.RLock()
+	last := a.lastStatus
+	a.mu.RUnlock()
+
+	fresh := a.serverService.GetStatus(last)
+
+	a.mu.Lock()
+	a.lastStatus = fresh
+	a.mu.Unlock()
+
 	// collect cpu history when status is fresh
-	if a.lastStatus != nil {
-		a.serverService.AppendCpuSample(time.Now(), a.lastStatus.Cpu)
+	if fresh != nil {
+		a.serverService.AppendCpuSample(time.Now(), fresh.Cpu)
 		// Broadcast status update via WebSocket
-		websocket.BroadcastStatus(a.lastStatus)
+		websocket.BroadcastStatus(fresh)
 	}
 }
 
 // startTask initiates background tasks for continuous status monitoring.
+// It also triggers an immediate first refresh in the background so that
+// a.lastStatus is populated well before the first cron tick.
 func (a *ServerController) startTask() {
+	// Populate lastStatus immediately (in background) so the first HTTP poll
+	// or WebSocket connection does not receive a null response.
+	go a.refreshStatus()
+
 	webServer := global.GetWebServer()
 	c := webServer.GetCron()
 	c.AddFunc("@every 2s", func() {
@@ -85,7 +102,23 @@ func (a *ServerController) startTask() {
 }
 
 // status returns the current server status information.
-func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.lastStatus, nil) }
+func (a *ServerController) status(c *gin.Context) {
+	a.mu.RLock()
+	s := a.lastStatus
+	a.mu.RUnlock()
+	jsonObj(c, s, nil)
+}
+
+// GetLastStatus returns the most recently collected server status.
+// The returned value may be nil if the first collection has not yet completed.
+func (a *ServerController) GetLastStatus() any {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	if a.lastStatus == nil {
+		return nil
+	}
+	return a.lastStatus
+}
 
 // getCpuHistoryBucket retrieves aggregated CPU usage history based on the specified time bucket.
 func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {

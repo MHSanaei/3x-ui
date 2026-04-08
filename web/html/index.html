@@ -904,8 +904,12 @@
       async getStatus() {
         try {
           const msg = await HttpUtil.get('/panel/api/server/status');
-          if (msg.success) {
+          if (msg.success && msg.obj !== null && msg.obj !== undefined) {
             this.setStatus(msg.obj);
+          } else if (msg.success && msg.obj === null) {
+            // Server started but status not yet collected – return without
+            // marking fetched so the caller can decide to retry or fall back.
+            return false;
           } else if (!this.loadingStates.fetched) {
             this.loadingStates.fetched = true;
           }
@@ -915,6 +919,7 @@
             this.loadingStates.fetched = true;
           }
         }
+        return true;
       },
       setStatus(data) {
         this.loadingStates.fetched = true;
@@ -1129,8 +1134,29 @@
         this.ipLimitEnable = msg.obj.ipLimitEnable;
       }
 
-      // Initial status fetch
-      await this.getStatus();
+      // Initial status fetch – retry up to 5 times (500 ms apart) if the server
+      // returns null (status not yet collected on startup). A hard failsafe
+      // timeout of 6 seconds guarantees the loading screen always clears.
+      await (async () => {
+        const failsafeTimer = setTimeout(() => {
+          if (!this.loadingStates.fetched) {
+            this.loadingStates.fetched = true;
+          }
+        }, 6000);
+        const maxRetries = 5;
+        for (let i = 0; i < maxRetries; i++) {
+          const ok = await this.getStatus();
+          if (ok || this.loadingStates.fetched) {
+            clearTimeout(failsafeTimer);
+            return;
+          }
+          // Null status – wait briefly then retry
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        // All retries exhausted – show zeroed data
+        clearTimeout(failsafeTimer);
+        if (!this.loadingStates.fetched) this.loadingStates.fetched = true;
+      })();
 
       // Setup WebSocket for real-time updates
       if (window.wsClient) {

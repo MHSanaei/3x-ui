@@ -107,6 +107,7 @@ type ServerService struct {
 	cachedIPv4         string
 	cachedIPv6         string
 	noIPv6             bool
+	ipFetchOnce        sync.Once
 	mu                 sync.Mutex
 	lastCPUTimes       cpu.TimesStat
 	hasLastCPUSample   bool
@@ -346,47 +347,54 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 		logger.Warning("get udp connections failed:", err)
 	}
 
-	// IP fetching with caching
-	showIp4ServiceLists := []string{
-		"https://api4.ipify.org",
-		"https://ipv4.icanhazip.com",
-		"https://v4.api.ipinfo.io/ip",
-		"https://ipv4.myexternalip.com/raw",
-		"https://4.ident.me",
-		"https://check-host.net/ip",
-	}
-	showIp6ServiceLists := []string{
-		"https://api6.ipify.org",
-		"https://ipv6.icanhazip.com",
-		"https://v6.api.ipinfo.io/ip",
-		"https://ipv6.myexternalip.com/raw",
-		"https://6.ident.me",
-	}
-
-	if s.cachedIPv4 == "" {
-		for _, ip4Service := range showIp4ServiceLists {
-			s.cachedIPv4 = getPublicIP(ip4Service)
-			if s.cachedIPv4 != "N/A" {
-				break
+	// IP fetching with caching — resolved once in a background goroutine to avoid
+	// blocking the status collector on the very first call (could take up to 33 s).
+	s.ipFetchOnce.Do(func() {
+		go func() {
+			showIp4ServiceLists := []string{
+				"https://api4.ipify.org",
+				"https://ipv4.icanhazip.com",
+				"https://v4.api.ipinfo.io/ip",
+				"https://ipv4.myexternalip.com/raw",
+				"https://4.ident.me",
+				"https://check-host.net/ip",
 			}
-		}
-	}
-
-	if s.cachedIPv6 == "" && !s.noIPv6 {
-		for _, ip6Service := range showIp6ServiceLists {
-			s.cachedIPv6 = getPublicIP(ip6Service)
-			if s.cachedIPv6 != "N/A" {
-				break
+			showIp6ServiceLists := []string{
+				"https://api6.ipify.org",
+				"https://ipv6.icanhazip.com",
+				"https://v6.api.ipinfo.io/ip",
+				"https://ipv6.myexternalip.com/raw",
+				"https://6.ident.me",
 			}
-		}
-	}
 
-	if s.cachedIPv6 == "N/A" {
-		s.noIPv6 = true
-	}
+			var ipv4, ipv6 string
+			for _, svc := range showIp4ServiceLists {
+				ipv4 = getPublicIP(svc)
+				if ipv4 != "N/A" {
+					break
+				}
+			}
+			for _, svc := range showIp6ServiceLists {
+				ipv6 = getPublicIP(svc)
+				if ipv6 != "N/A" {
+					break
+				}
+			}
 
+			s.mu.Lock()
+			s.cachedIPv4 = ipv4
+			s.cachedIPv6 = ipv6
+			if ipv6 == "N/A" {
+				s.noIPv6 = true
+			}
+			s.mu.Unlock()
+		}()
+	})
+
+	s.mu.Lock()
 	status.PublicIP.IPv4 = s.cachedIPv4
 	status.PublicIP.IPv6 = s.cachedIPv6
+	s.mu.Unlock()
 
 	// Xray status
 	if s.xrayService.IsXrayRunning() {
