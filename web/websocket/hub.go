@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mhsanaei/3x-ui/v2/logger"
+	"github.com/kolxz2/3x-ui/v2/logger"
 )
 
 // MessageType represents the type of WebSocket message
