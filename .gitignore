@@ -36,6 +36,7 @@ x-ui.db
 # Ignore Docker specific files
 docker-compose.override.yml
 
-# Ignore .env (Environment Variables) file
-.env.gocache/
+# Ignore local env and Go cache folders
+.env
+.gocache/
 .gopath/
