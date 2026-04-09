@@ -49,6 +49,11 @@
     window.location.href = url;
   }
 
+  function isRtlLanguage(lang) {
+    if (!lang) return false;
+    return ['fa', 'ar'].some(prefix => lang.toLowerCase().startsWith(prefix));
+  }
+
   function drawQR(value) {
     try {
       new QRious({ element: document.getElementById('qrcode'), value, size: 220 });
@@ -113,6 +118,9 @@
       if (this._onResize) window.removeEventListener('resize', this._onResize);
     },
     computed: {
+      isRtl() {
+        return isRtlLanguage(this.lang || LanguageManager.getLanguage());
+      },
       isMobile() {
         return this.viewportWidth < 576;
       },

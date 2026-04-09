@@ -6,6 +6,24 @@
 <script src="{{ .base_path }}assets/js/util/index.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 <style>
+    .subscription-page.rtl {
+        direction: rtl;
+    }
+
+    .subscription-page.rtl .ant-descriptions-item-label {
+        text-align: right;
+    }
+
+    .subscription-page.rtl .ant-form-item-label > label {
+        float: right;
+    }
+
+    /* Keep technical URLs readable regardless of page direction */
+    .subscription-page.rtl .subscription-link-box {
+        direction: ltr;
+        text-align: left;
+    }
+
     .subscription-page .subscription-link-box {
         cursor: pointer;
         border-radius: 12px;
@@ -45,7 +63,8 @@
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
-<a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' subscription-page'">
+<a-layout id="app" v-cloak :class="[themeSwitcher.currentTheme, 'subscription-page', isRtl ? 'rtl' : 'ltr']"
+    :dir="isRtl ? 'rtl' : 'ltr'">
     <a-layout-content class="p-2">
         <a-row type="flex" justify="center" class="mt-2">
             <a-col :xs="24" :sm="22" :md="18" :lg="14" :xl="12">
