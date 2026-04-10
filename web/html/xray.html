@@ -366,17 +366,17 @@
       defaultObservatory: {
         subjectSelector: [],
         probeURL: "https://www.google.com/generate_204",
-        probeInterval: "10m",
+        probeInterval: "10s",
         enableConcurrency: true
       },
       defaultBurstObservatory: {
         subjectSelector: [],
         pingConfig: {
           destination: "https://www.google.com/generate_204",
-          interval: "30m",
+          interval: "15s",
           connectivity: "http://connectivitycheck.platform.hicloud.com/generate_204",
-          timeout: "10s",
-          sampling: 2
+          timeout: "5s",
+          sampling: 5
         }
       }
     },
@@ -865,7 +865,7 @@
               newTemplateSettings.burstObservatory.subjectSelector = newTemplateSettings.burstObservatory.subjectSelector.filter(s => s != oldTag);
             }
 
-            if (balancer.strategy && balancer.strategy != 'random') {
+            if (balancer.strategy && balancer.strategy != 'leastPing') {
               tmpBalancer.strategy = {
                 'type': balancer.strategy
               };
