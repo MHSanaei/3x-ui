@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"network\":\"ws\",\"wsSettings\":{\"path\":\"/vless\",\"headers\":{\"Host\":\"example.com\"}}}")

@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"inbounds\":[{\"listen\":\"127.0.0.1\",\"port\":8443,\"protocol\":\"vless\",\"settings\":{\"clients\":[{\"id\":\"11111111-1111-1111-1111-111111111111\"}],\"decryption\":\"none\"},\"streamSettings\":{\"network\":\"ws\",\"security\":\"tls\",\"wsSettings\":{\"path\":\"/ws\"},\"tlsSettings\":{\"serverName\":\"example.com\"}}}],\"outbounds\":[{\"protocol\":\"freedom\",\"tag\":\"direct\"}]}")

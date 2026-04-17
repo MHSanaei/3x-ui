@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"network\":\"tcp\",\"security\":\"reality\",\"realitySettings\":{\"dest\":\"example.com:443\",\"serverNames\":[\"example.com\"],\"privateKey\":\"short\",\"shortIds\":[\"00\"]}}")

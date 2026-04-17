@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"inbounds\":[{\"protocol\":\"vless\",\"port\":\"not-a-port\",\"settings\":{\"clients\":[]}}]}")
