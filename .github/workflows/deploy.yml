@@ -1,4 +1,4 @@
-name: Deploy to los2 (self-hosted)
+name: Build & Deploy 3xuidash
 
 on:
   workflow_dispatch:
@@ -14,22 +14,22 @@ on:
       - 'web/**'
       - 'config/**'
       - 'xray/**'
-      - '.github/workflows/deploy-los2.yml'
+      - '.github/workflows/deploy.yml'
 
 concurrency:
-  group: deploy-los2
+  group: deploy-3xuidash
   cancel-in-progress: false
 
-jobs:
-  deploy:
-    runs-on: [self-hosted, ca1]
-    timeout-minutes: 30
-    env:
-      IMAGE: xidahuang/3xuidash
-      TARBALL: /tmp/3xuidash-image.tar.gz
-      REMOTE_TARBALL: /tmp/3xuidash-image.tar.gz
-      REMOTE_COMPOSE_DIR: /root/3x-ui
+env:
+  IMAGE: xidahuang/3xuidash
+  TARBALL: /tmp/3xuidash-image.tar.gz
+  REMOTE_TARBALL: /tmp/3xuidash-image.tar.gz
+  REMOTE_COMPOSE_DIR: /root/3x-ui
 
+jobs:
+  build:
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,33 +52,46 @@ jobs:
           docker save "$IMAGE:latest" | gzip -1 > "$TARBALL"
           ls -lh "$TARBALL"
 
-      - name: Transfer image to los2
+  deploy:
+    needs: build
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [los1, los2, los3, ca1-self]
+    steps:
+      - name: Transfer to ${{ matrix.host }}
         run: |
-          scp -o StrictHostKeyChecking=accept-new "$TARBALL" "los2:$REMOTE_TARBALL"
+          scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "$TARBALL" "${{ matrix.host }}:$REMOTE_TARBALL"
 
-      - name: Load & restart on los2
+      - name: Load & restart on ${{ matrix.host }}
         run: |
-          ssh los2 "bash -s" <<REMOTE
+          ssh -o ConnectTimeout=15 ${{ matrix.host }} "bash -s" <<REMOTE
           set -euo pipefail
           cd "$REMOTE_COMPOSE_DIR"
-          echo "[los2] loading image..."
+          echo "[${{ matrix.host }}] loading image..."
           docker load < "$REMOTE_TARBALL"
-          echo "[los2] compose up -d (will recreate on image change)..."
+          echo "[${{ matrix.host }}] compose up -d..."
           docker compose up -d
-          echo "[los2] pruning dangling images..."
+          echo "[${{ matrix.host }}] pruning dangling..."
           docker image prune -f
-          echo "[los2] cleanup tar..."
+          echo "[${{ matrix.host }}] cleanup tar..."
           rm -f "$REMOTE_TARBALL"
-          echo "[los2] container status:"
+          echo "[${{ matrix.host }}] status:"
           docker ps --filter name=3xui_app --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
           REMOTE
 
+  cleanup:
+    needs: deploy
+    if: always()
+    runs-on: [self-hosted, ca1]
+    steps:
       - name: Cleanup tar on ca1
-        if: always()
         run: rm -f "$TARBALL"
 
-      - name: Prune old local image tags on ca1 (keep latest + 3 recent)
-        if: success()
+      - name: Prune old image tags on ca1 (keep latest + 3 sha tags)
+        if: needs.deploy.result == 'success'
         run: |
           docker images "$IMAGE" --format '{{.Tag}} {{.CreatedAt}}' \
             | grep -v '^latest ' \
