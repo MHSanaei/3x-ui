@@ -1,0 +1,63 @@
+name: Deploy to los2 (manual)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-3xuidash
+  cancel-in-progress: false
+
+env:
+  HOST: los2
+  IMAGE: xidahuang/3xuidash
+  TARBALL: /tmp/3xuidash-image.tar.gz
+  REMOTE_TARBALL: /tmp/3xuidash-incoming.tar.gz
+  REMOTE_COMPOSE_DIR: /root/3x-ui
+
+jobs:
+  build-deploy:
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 1
+
+      - name: Build image on ca1
+        run: |
+          docker build \
+            --build-arg XUI_ASSET_VERSION=${{ github.sha }} \
+            --build-arg TARGETARCH=amd64 \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.sha }}" \
+            .
+
+      - name: Save to tarball
+        run: |
+          rm -f "$TARBALL"
+          docker save "$IMAGE:latest" | gzip -1 > "$TARBALL"
+          ls -lh "$TARBALL"
+
+      - name: Transfer to $HOST
+        run: |
+          scp -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 "$TARBALL" "$HOST:$REMOTE_TARBALL"
+
+      - name: Load & restart on $HOST
+        run: |
+          ssh -o ConnectTimeout=15 "$HOST" "bash -s" <<REMOTE
+          set -euo pipefail
+          cd "$REMOTE_COMPOSE_DIR"
+          echo "[$HOST] loading image..."
+          docker load < "$REMOTE_TARBALL"
+          echo "[$HOST] compose up -d..."
+          docker compose up -d
+          echo "[$HOST] pruning dangling..."
+          docker image prune -f
+          rm -f "$REMOTE_TARBALL"
+          docker ps --filter name=3xui_app --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          REMOTE
+
+      - name: Cleanup tar on ca1
+        if: always()
+        run: rm -f "$TARBALL"
