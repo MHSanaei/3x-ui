@@ -5,9 +5,10 @@ permissions:
 
 on:
   workflow_dispatch:
-  push:
-    tags:
-      - 'v*'
+  # Disabled: deploy-los2.yml replaces this. Re-enable by restoring the push trigger below.
+  # push:
+  #   tags:
+  #     - 'v*'
 
 jobs:
   build:

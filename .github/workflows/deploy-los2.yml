@@ -1,0 +1,87 @@
+name: Deploy to los2 (self-hosted)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - '**.go'
+      - 'go.mod'
+      - 'go.sum'
+      - 'Dockerfile'
+      - 'DockerEntrypoint.sh'
+      - 'DockerInit.sh'
+      - 'web/**'
+      - 'config/**'
+      - 'xray/**'
+      - '.github/workflows/deploy-los2.yml'
+
+concurrency:
+  group: deploy-los2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, ca1]
+    timeout-minutes: 30
+    env:
+      IMAGE: xidahuang/3xuidash
+      TARBALL: /tmp/3xuidash-image.tar.gz
+      REMOTE_TARBALL: /tmp/3xuidash-image.tar.gz
+      REMOTE_COMPOSE_DIR: /root/3x-ui
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 1
+
+      - name: Build image on ca1
+        run: |
+          docker build \
+            --build-arg XUI_ASSET_VERSION=${{ github.sha }} \
+            --build-arg TARGETARCH=amd64 \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:${{ github.sha }}" \
+            .
+          docker images "$IMAGE" | head -5
+
+      - name: Save image to tarball
+        run: |
+          rm -f "$TARBALL"
+          docker save "$IMAGE:latest" | gzip -1 > "$TARBALL"
+          ls -lh "$TARBALL"
+
+      - name: Transfer image to los2
+        run: |
+          scp -o StrictHostKeyChecking=accept-new "$TARBALL" "los2:$REMOTE_TARBALL"
+
+      - name: Load & restart on los2
+        run: |
+          ssh los2 "bash -s" <<REMOTE
+          set -euo pipefail
+          cd "$REMOTE_COMPOSE_DIR"
+          echo "[los2] loading image..."
+          docker load < "$REMOTE_TARBALL"
+          echo "[los2] compose up -d (will recreate on image change)..."
+          docker compose up -d
+          echo "[los2] pruning dangling images..."
+          docker image prune -f
+          echo "[los2] cleanup tar..."
+          rm -f "$REMOTE_TARBALL"
+          echo "[los2] container status:"
+          docker ps --filter name=3xui_app --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+          REMOTE
+
+      - name: Cleanup tar on ca1
+        if: always()
+        run: rm -f "$TARBALL"
+
+      - name: Prune old local image tags on ca1 (keep latest + 3 recent)
+        if: success()
+        run: |
+          docker images "$IMAGE" --format '{{.Tag}} {{.CreatedAt}}' \
+            | grep -v '^latest ' \
+            | sort -k2 -r \
+            | awk 'NR>3 {print $1}' \
+            | xargs -I{} docker rmi "$IMAGE:{}" 2>/dev/null || true
