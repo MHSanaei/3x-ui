@@ -23,7 +23,7 @@ concurrency:
 env:
   IMAGE: xidahuang/3xuidash
   TARBALL: /tmp/3xuidash-image.tar.gz
-  REMOTE_TARBALL: /tmp/3xuidash-image.tar.gz
+  REMOTE_TARBALL: /tmp/3xuidash-incoming.tar.gz
   REMOTE_COMPOSE_DIR: /root/3x-ui
 
 jobs:
