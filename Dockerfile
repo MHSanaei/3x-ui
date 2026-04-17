@@ -4,7 +4,6 @@
 FROM golang:1.26-alpine AS builder
 WORKDIR /app
 ARG TARGETARCH
-ARG XUI_ASSET_VERSION=""
 
 RUN apk --no-cache --update add \
   build-base \
@@ -16,6 +15,7 @@ COPY . .
 
 ENV CGO_ENABLED=1
 ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+ARG XUI_ASSET_VERSION=""
 RUN go build -ldflags "-w -s -X github.com/mhsanaei/3x-ui/v2/config.AssetVersion=${XUI_ASSET_VERSION}" -o build/x-ui main.go
 RUN sed -i 's/\r$//' ./DockerInit.sh ./DockerEntrypoint.sh ./x-ui.sh \
   && sh ./DockerInit.sh "$TARGETARCH"

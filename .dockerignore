@@ -1,0 +1,35 @@
+# VCS
+.git
+.gitignore
+.gitattributes
+.gitmodules
+
+# CI / editor / platform
+.github
+.vscode
+.idea
+windows_files
+
+# Docs & media (not needed in image)
+*.md
+docs
+media
+*.png
+*.jpg
+*.jpeg
+*.gif
+
+# Compose files & systemd units (belong to host, not image)
+docker-compose*.yml
+docker-compose*.md
+x-ui.service.*
+
+# Runtime bind-mount placeholders
+access.log
+error.log
+db
+cert
+
+# Build metadata itself
+Dockerfile*
+.dockerignore
