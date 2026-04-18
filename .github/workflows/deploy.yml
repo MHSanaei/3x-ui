@@ -16,7 +16,6 @@ on:
       - 'web/**'
       - 'config/**'
       - 'xray/**'
-      - '.github/workflows/deploy.yml'
 
 concurrency:
   group: deploy-3xuidash
