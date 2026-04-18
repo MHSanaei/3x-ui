@@ -3,19 +3,8 @@ name: Build & Deploy 3xuidash
 on:
   workflow_dispatch:
   push:
-    branches: [main, master]
     tags:
       - 'v*'
-    paths:
-      - '**.go'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Dockerfile'
-      - 'DockerEntrypoint.sh'
-      - 'DockerInit.sh'
-      - 'web/**'
-      - 'config/**'
-      - 'xray/**'
 
 concurrency:
   group: deploy-3xuidash
