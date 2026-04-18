@@ -3,7 +3,7 @@ module github.com/mhsanaei/3x-ui/v2
 go 1.26.0
 
 require (
-	github.com/gin-contrib/gzip v1.2.5
+	github.com/gin-contrib/gzip v1.2.6
 	github.com/gin-contrib/sessions v1.1.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-ldap/ldap/v3 v3.4.13
@@ -25,7 +25,7 @@ require (
 	golang.org/x/crypto v0.49.0
 	golang.org/x/sys v0.42.0
 	golang.org/x/text v0.35.0
-	google.golang.org/grpc v1.79.3
+	google.golang.org/grpc v1.80.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
