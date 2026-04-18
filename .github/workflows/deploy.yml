@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main, master]
+    tags:
+      - 'v*'
     paths:
       - '**.go'
       - 'go.mod'
@@ -25,6 +27,7 @@ env:
   TARBALL: /tmp/3xuidash-image.tar.gz
   REMOTE_TARBALL: /tmp/3xuidash-incoming.tar.gz
   REMOTE_COMPOSE_DIR: /root/3x-ui
+  IMAGE_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || github.sha }}
 
 jobs:
   build:
@@ -39,10 +42,10 @@ jobs:
       - name: Build image on ca1
         run: |
           docker build \
-            --build-arg XUI_ASSET_VERSION=${{ github.sha }} \
+            --build-arg XUI_ASSET_VERSION=${{ env.IMAGE_VERSION }} \
             --build-arg TARGETARCH=amd64 \
             -t "$IMAGE:latest" \
-            -t "$IMAGE:${{ github.sha }}" \
+            -t "$IMAGE:${IMAGE_VERSION}" \
             .
           docker images "$IMAGE" | head -5
 
@@ -90,11 +93,11 @@ jobs:
       - name: Cleanup tar on ca1
         run: rm -f "$TARBALL"
 
-      - name: Prune old image tags on ca1 (keep latest + 3 sha tags)
+      - name: Prune old image tags on ca1 (keep latest + 3 recent non-latest tags)
         if: needs.deploy.result == 'success'
         run: |
           docker images "$IMAGE" --format '{{.Tag}} {{.CreatedAt}}' \
-            | grep -v '^latest ' \
+            | awk '$1 != "latest" { print }' \
             | sort -k2 -r \
             | awk 'NR>3 {print $1}' \
-            | xargs -I{} docker rmi "$IMAGE:{}" 2>/dev/null || true
+            | xargs -r -I{} docker rmi "$IMAGE:{}" 2>/dev/null || true

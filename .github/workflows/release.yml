@@ -1,10 +1,50 @@
 name: Release 3X-UI
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
 
 jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes
+        run: |
+          prev_tag="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          {
+            echo "## Release ${GITHUB_REF_NAME}"
+            echo
+            echo "Automated source release for tag \`${GITHUB_REF_NAME}\`."
+            echo
+            if [ -n "$prev_tag" ]; then
+              echo "Changes since \`${prev_tag}\`:"
+              echo
+              git log "${prev_tag}..HEAD" --pretty=format:"- %s (%h)"
+            else
+              echo "Initial tagged release in this repository."
+            fi
+          } > release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
   build:
+    if: false
     permissions:
       contents: write
     strategy:
@@ -142,6 +182,7 @@ jobs:
   #  Windows Build
   # =================================
   build-windows:
+    if: false
     name: Build for Windows
     permissions:
       contents: write
