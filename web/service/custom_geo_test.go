@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -17,7 +18,7 @@ import (
 func disableSSRFCheck(t *testing.T) {
 	t.Helper()
 	orig := checkSSRF
-	checkSSRF = func(string) error { return nil }
+	checkSSRF = func(_ context.Context, _ string) error { return nil }
 	t.Cleanup(func() { checkSSRF = orig })
 }
 

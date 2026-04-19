@@ -67,7 +67,7 @@ func mapCustomGeoErr(c *gin.Context, err error) error {
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlHost"))
 	case errors.Is(err, service.ErrCustomGeoPathTraversal):
 		logger.Warning("custom geo path traversal blocked:", err)
-		return errors.New(I18nWeb(c, "pages.index.customGeoErrAliasPattern"))
+		return errors.New(I18nWeb(c, "pages.index.customGeoErrDownload"))
 	default:
 		return err
 	}
