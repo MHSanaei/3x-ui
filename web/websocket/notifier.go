@@ -24,6 +24,16 @@ func GetHub() *Hub {
 	return wsHub
 }
 
+// HasClients returns true if there are any WebSocket clients connected.
+// Use this to skip expensive work (DB queries, serialization) when no browser is open.
+func HasClients() bool {
+	hub := GetHub()
+	if hub == nil {
+		return false
+	}
+	return hub.GetClientCount() > 0
+}
+
 // BroadcastStatus broadcasts server status update to all connected clients
 func BroadcastStatus(status any) {
 	hub := GetHub()
@@ -78,5 +88,16 @@ func BroadcastXrayState(state string, errorMsg string) {
 			"errorMsg": errorMsg,
 		}
 		hub.Broadcast(MessageTypeXrayState, stateUpdate)
+	}
+}
+
+// BroadcastInvalidate sends a lightweight invalidate signal for the given data type,
+// telling connected frontends to re-fetch data via REST API.
+// Use this instead of BroadcastInbounds/BroadcastOutbounds when you know the payload
+// will be too large, to avoid wasting resources on serialization.
+func BroadcastInvalidate(dataType MessageType) {
+	hub := GetHub()
+	if hub != nil {
+		hub.broadcastInvalidate(dataType)
 	}
 }
