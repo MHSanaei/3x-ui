@@ -313,6 +313,25 @@
                 </template>
             </template>
         </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.xray.nordRouting" }}</template>
+            <template #control>
+                <template v-if="NordExist">
+                    <a-select mode="tags" :style="{ width: '100%' }"
+                        v-model="nordDomains"
+                        :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option :value="p.value" :label="p.label"
+                            v-for="p in settingsData.ServicesOptions">
+                            <span>[[ p.label ]]</span>
+                        </a-select-option>
+                    </a-select>
+                </template>
+                <template v-else>
+                    <a-button type="primary" icon="api"
+                        @click="showNord()">{{ i18n "pages.xray.outbound.nordvpn" }}</a-button>
+                </template>
+            </template>
+        </a-setting-list-item>
     </a-collapse-panel>
     <a-collapse-panel key="6"
         header='{{ i18n "pages.settings.resetDefaultConfig"}}'>
