@@ -327,6 +327,8 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
 	// Inbound traffic reset jobs
+	// Run every hour
+	s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
 	// Run once a day, midnight
 	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
 	// Run once a week, midnight between Sat/Sun

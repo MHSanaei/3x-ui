@@ -312,6 +312,7 @@
 "daily" = "Hàng ngày"
 "weekly" = "Hàng tuần"
 "monthly" = "Hàng tháng"
+"hourly" = "Hàng giờ"
 
 [pages.inbounds.toasts]
 "obtain" = "Nhận"

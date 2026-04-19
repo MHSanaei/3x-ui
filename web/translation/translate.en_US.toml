@@ -312,6 +312,7 @@
 "daily" = "Daily"
 "weekly" = "Weekly"
 "monthly" = "Monthly"
+"hourly" = "Hourly"
 
 [pages.inbounds.toasts]
 "obtain" = "Obtain"

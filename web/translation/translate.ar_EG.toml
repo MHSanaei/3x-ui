@@ -312,6 +312,7 @@
 "daily" = "يومياً"
 "weekly" = "أسبوعياً"
 "monthly" = "شهرياً"
+"hourly" = "كل ساعة"
 
 [pages.inbounds.toasts]
 "obtain" = "تم الحصول عليه"

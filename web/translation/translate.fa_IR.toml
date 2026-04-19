@@ -312,6 +312,7 @@
 "daily" = "روزانه"
 "weekly" = "هفتگی"
 "monthly" = "ماهانه"
+"hourly" = "هر ساعت"
 
 [pages.inbounds.toasts]
 "obtain" = "فراهم‌سازی"

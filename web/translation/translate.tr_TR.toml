@@ -312,6 +312,7 @@
 "daily" = "Günlük"
 "weekly" = "Haftalık"
 "monthly" = "Aylık"
+"hourly" = "Saatlik"
 
 [pages.inbounds.toasts]
 "obtain" = "Elde Et"
