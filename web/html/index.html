@@ -1067,8 +1067,28 @@
       openBackup() {
         backupModal.show();
       },
-      exportDatabase() {
-        window.location = basePath + 'panel/api/server/getDb';
+      async exportDatabase() {
+        try {
+          const resp = await fetch(basePath + 'panel/api/server/getDb', {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+          });
+          if (!resp.ok) {
+            throw new Error('HTTP ' + resp.status);
+          }
+          const blob = await resp.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'x-ui.db';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.error('export db failed', e);
+        }
       },
       importDatabase() {
         const fileInput = document.createElement('input');

@@ -44,7 +44,7 @@ func (a *ServerController) initRouter(g *gin.RouterGroup) {
 	g.GET("/cpuHistory/:bucket", a.getCpuHistoryBucket)
 	g.GET("/getXrayVersion", a.getXrayVersion)
 	g.GET("/getConfigJson", a.getConfigJson)
-	g.GET("/getDb", a.getDb)
+	g.POST("/getDb", a.getDb)
 	g.GET("/getNewUUID", a.getNewUUID)
 	g.GET("/getNewX25519Cert", a.getNewX25519Cert)
 	g.GET("/getNewmldsa65", a.getNewmldsa65)
@@ -252,7 +252,13 @@ func (a *ServerController) getConfigJson(c *gin.Context) {
 }
 
 // getDb downloads the database file.
+// CSRF mitigation: requires X-Requested-With header (cannot be sent cross-origin
+// from a simple form/img/anchor without a preflight, which SameSite=Strict blocks).
 func (a *ServerController) getDb(c *gin.Context) {
+	if c.GetHeader("X-Requested-With") != "XMLHttpRequest" {
+		c.AbortWithStatus(http.StatusForbidden)
+		return
+	}
 	db, err := a.serverService.GetDb()
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.getDatabaseError"), err)
