@@ -65,6 +65,9 @@ func mapCustomGeoErr(c *gin.Context, err error) error {
 	case errors.Is(err, service.ErrCustomGeoSSRFBlocked):
 		logger.Warning("custom geo SSRF blocked:", err)
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlHost"))
+	case errors.Is(err, service.ErrCustomGeoPathTraversal):
+		logger.Warning("custom geo path traversal blocked:", err)
+		return errors.New(I18nWeb(c, "pages.index.customGeoErrAliasPattern"))
 	default:
 		return err
 	}

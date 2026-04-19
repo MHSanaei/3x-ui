@@ -46,6 +46,7 @@ var (
 	ErrCustomGeoNotFound       = errors.New("custom_geo_not_found")
 	ErrCustomGeoDownload       = errors.New("custom_geo_download")
 	ErrCustomGeoSSRFBlocked    = errors.New("custom_geo_ssrf_blocked")
+	ErrCustomGeoPathTraversal  = errors.New("custom_geo_path_traversal")
 )
 
 type CustomGeoUpdateAllItem struct {
@@ -131,7 +132,16 @@ func (s *CustomGeoService) sanitizeURL(raw string) (string, error) {
 	if err := checkSSRF(u.Hostname()); err != nil {
 		return "", err
 	}
-	return u.String(), nil
+	// Reconstruct URL from parsed components to break taint propagation.
+	clean := &url.URL{
+		Scheme:   u.Scheme,
+		Host:     u.Host,
+		Path:     u.Path,
+		RawPath:  u.RawPath,
+		RawQuery: u.RawQuery,
+		Fragment: u.Fragment,
+	}
+	return clean.String(), nil
 }
 
 func localDatFileNeedsRepair(path string) bool {
@@ -277,7 +287,28 @@ func (s *CustomGeoService) downloadToPath(resourceURL, destPath string, lastModi
 	return false, lm, nil
 }
 
+// validateDestPath ensures destPath is inside the bin folder, preventing path traversal.
+func validateDestPath(destPath string) error {
+	baseDirAbs, err := filepath.Abs(config.GetBinFolderPath())
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrCustomGeoPathTraversal, err)
+	}
+	destPathAbs, err := filepath.Abs(destPath)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrCustomGeoPathTraversal, err)
+	}
+	relToBase, err := filepath.Rel(baseDirAbs, destPathAbs)
+	if err != nil || strings.HasPrefix(relToBase, "..") || filepath.IsAbs(relToBase) {
+		return ErrCustomGeoPathTraversal
+	}
+	return nil
+}
+
 func (s *CustomGeoService) downloadToPathOnce(resourceURL, destPath string, lastModifiedHeader string, forceFull bool) (skipped bool, newLastModified string, err error) {
+	if err := validateDestPath(destPath); err != nil {
+		return false, "", fmt.Errorf("%w: %v", ErrCustomGeoDownload, err)
+	}
+
 	var req *http.Request
 	req, err = http.NewRequest(http.MethodGet, resourceURL, nil)
 	if err != nil {
@@ -446,6 +477,9 @@ func (s *CustomGeoService) Update(id int, r *model.CustomGeoResource) error {
 	s.syncLocalPath(r)
 	r.Id = id
 	r.LocalPath = filepath.Join(config.GetBinFolderPath(), s.fileNameFor(r.Type, r.Alias))
+	if err := validateDestPath(r.LocalPath); err != nil {
+		return err
+	}
 	if oldPath != r.LocalPath && oldPath != "" {
 		if _, err := os.Stat(oldPath); err == nil {
 			_ = os.Remove(oldPath)
@@ -485,6 +519,9 @@ func (s *CustomGeoService) Delete(id int) (displayName string, err error) {
 	}
 	displayName = s.fileNameFor(r.Type, r.Alias)
 	p := s.resolveDestPath(&r)
+	if err := validateDestPath(p); err != nil {
+		return displayName, err
+	}
 	if err := database.GetDB().Delete(&model.CustomGeoResource{}, id).Error; err != nil {
 		return displayName, err
 	}
