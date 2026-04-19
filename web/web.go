@@ -101,9 +101,10 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   service.Tgbot
+	xrayService      service.XrayService
+	settingService   service.SettingService
+	tgbotService     service.Tgbot
+	customGeoService *service.CustomGeoService
 
 	wsHub *websocket.Hub
 
@@ -268,7 +269,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	s.api = controller.NewAPIController(g)
+	s.api = controller.NewAPIController(g, s.customGeoService)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -295,6 +296,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask() {
+	s.customGeoService.EnsureOnStartup()
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
 		logger.Warning("start xray failed:", err)
@@ -387,6 +389,8 @@ func (s *Server) Start() (err error) {
 	}
 	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
 	s.cron.Start()
+
+	s.customGeoService = service.NewCustomGeoService()
 
 	engine, err := s.initRouter()
 	if err != nil {
