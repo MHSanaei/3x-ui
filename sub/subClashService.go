@@ -34,6 +34,9 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		return "", "", err
 	}
 
+	requestHost := strings.TrimSpace(host)
+	defaultClientHost := s.SubService.getDefaultClientHost()
+
 	var traffic xray.ClientTraffic
 	var clientTraffics []xray.ClientTraffic
 	var proxies []map[string]any
@@ -57,7 +60,8 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 		for _, client := range clients {
 			if client.Enable && client.SubID == subId {
 				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
-				proxies = append(proxies, s.getProxies(inbound, client, host)...)
+				resolvedHost := s.SubService.ResolveClientHostWithDefault(inbound, client, requestHost, defaultClientHost)
+				proxies = append(proxies, s.getProxies(inbound, client, resolvedHost)...)
 			}
 		}
 	}
