@@ -160,10 +160,10 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 
 func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client, stream map[string]any, extraRemark string) map[string]any {
 	proxy := map[string]any{
-		"name": s.SubService.genRemark(inbound, client.Email, extraRemark),
+		"name":   s.SubService.genRemark(inbound, client.Email, extraRemark),
 		"server": inbound.Listen,
-		"port": inbound.Port,
-		"udp": true,
+		"port":   inbound.Port,
+		"udp":    true,
 	}
 
 	network, _ := stream["network"].(string)
