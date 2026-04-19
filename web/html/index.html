@@ -6,7 +6,7 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip">
+      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip" size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched" class="mb-10"
             message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
@@ -15,9 +15,7 @@
         <transition name="list" appear>
           <template>
             <a-row v-if="!loadingStates.fetched">
-              <a-card class="card-placeholder text-center">
-                <a-spin tip='{{ i18n "loading" }}'></a-spin>
-              </a-card>
+              <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
             </a-row>
             <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
               <a-col>
