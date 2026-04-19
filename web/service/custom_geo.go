@@ -64,15 +64,15 @@ type CustomGeoUpdateAllResult struct {
 }
 
 type CustomGeoService struct {
-	serverService    ServerService
+	serverService    *ServerService
 	updateAllGetAll  func() ([]model.CustomGeoResource, error)
 	updateAllApply   func(id int, onStartup bool) (string, error)
 	updateAllRestart func() error
 }
 
-func NewCustomGeoService() CustomGeoService {
-	s := CustomGeoService{
-		serverService: ServerService{},
+func NewCustomGeoService() *CustomGeoService {
+	s := &CustomGeoService{
+		serverService: &ServerService{},
 	}
 	s.updateAllGetAll = s.GetAll
 	s.updateAllApply = s.applyDownloadAndPersist

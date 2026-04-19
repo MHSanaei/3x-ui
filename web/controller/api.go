@@ -18,7 +18,7 @@ type APIController struct {
 }
 
 // NewAPIController creates a new APIController instance and initializes its routes.
-func NewAPIController(g *gin.RouterGroup, customGeo service.CustomGeoService) *APIController {
+func NewAPIController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *APIController {
 	a := &APIController{}
 	a.initRouter(g, customGeo)
 	return a
@@ -35,7 +35,7 @@ func (a *APIController) checkAPIAuth(c *gin.Context) {
 }
 
 // initRouter sets up the API routes for inbounds, server, and other endpoints.
-func (a *APIController) initRouter(g *gin.RouterGroup, customGeo service.CustomGeoService) {
+func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.CustomGeoService) {
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)

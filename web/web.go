@@ -104,7 +104,7 @@ type Server struct {
 	xrayService      service.XrayService
 	settingService   service.SettingService
 	tgbotService     service.Tgbot
-	customGeoService service.CustomGeoService
+	customGeoService *service.CustomGeoService
 
 	wsHub *websocket.Hub
 

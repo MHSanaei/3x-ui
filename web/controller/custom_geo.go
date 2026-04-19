@@ -15,10 +15,10 @@ import (
 
 type CustomGeoController struct {
 	BaseController
-	customGeoService service.CustomGeoService
+	customGeoService *service.CustomGeoService
 }
 
-func NewCustomGeoController(g *gin.RouterGroup, customGeo service.CustomGeoService) *CustomGeoController {
+func NewCustomGeoController(g *gin.RouterGroup, customGeo *service.CustomGeoService) *CustomGeoController {
 	a := &CustomGeoController{customGeoService: customGeo}
 	a.initRouter(g)
 	return a
