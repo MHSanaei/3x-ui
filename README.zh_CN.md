@@ -22,6 +22,14 @@
 
 作为原始 X-UI 项目的增强版本，3X-UI 提供了更好的稳定性、更广泛的协议支持和额外的功能。
 
+## 自定义 GeoSite / GeoIP（DAT）
+
+管理员可在面板中从 URL 添加自定义 GeoSite 与 GeoIP `.dat` 文件（与内置地理文件相同的管理流程）。文件保存在 Xray 可执行文件所在目录（`XUI_BIN_FOLDER`，默认 `bin/`），文件名为 `geosite_&lt;alias&gt;.dat` 和 `geoip_&lt;alias&gt;.dat`。
+
+**路由：** 在规则中使用 `ext:` 形式，例如 `ext:geosite_myalias.dat:tag` 或 `ext:geoip_myalias.dat:tag`，其中 `tag` 为该 DAT 文件内的列表名（与内置区域文件如 `ext:geoip_IR.dat:ir` 相同）。
+
+**保留别名：** 仅在为判断是否命中保留名时，会对别名做规范化比较（`strings.ToLower`，`-` → `_`）。用户输入的别名与数据库中的名称不会被改写，且须符合 `^[a-z0-9_-]+$`。例如 `geoip-ir` 与 `geoip_ir` 视为同一保留项。
+
 ## 快速开始
 
 ```
