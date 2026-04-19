@@ -2,11 +2,25 @@
 {{ template "page/head_end" .}}
 
 {{ template "page/body_start" .}}
+<style>
+  body.dark .custom-geo-section code.custom-geo-ext-code {
+    color: var(--dark-color-text-primary, rgba(255, 255, 255, 0.85));
+    background: var(--dark-color-surface-200, #222d42);
+    border: 1px solid var(--dark-color-stroke, #2c3950);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  html[data-theme="ultra-dark"] body.dark .custom-geo-section code.custom-geo-ext-code {
+    color: var(--dark-color-text-primary, rgba(255, 255, 255, 0.88));
+    background: var(--dark-color-surface-700, #111929);
+    border-color: var(--dark-color-stroke, #2c3950);
+  }
+</style>
 <a-layout id="app" v-cloak :class="themeSwitcher.currentTheme + ' index-page'">
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip">
+      <a-spin :spinning="loadingStates.spinning" :delay="200" :tip="loadingTip" size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched" class="mb-10"
             message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
@@ -15,9 +29,7 @@
         <transition name="list" appear>
           <template>
             <a-row v-if="!loadingStates.fetched">
-              <a-card class="card-placeholder text-center">
-                <a-spin tip='{{ i18n "loading" }}'></a-spin>
-              </a-card>
+              <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
             </a-row>
             <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
               <a-col>
@@ -107,7 +119,7 @@
                           </a-row>
                         </span>
                         <template slot="content">
-                          <span class="max-w-400" v-for="line in status.xray.errorMsg.split('\n')">[[ line ]]</span>
+                          <span class="max-w-400" v-for="line in (status.xray.errorMsg || '').split('\n')">[[ line ]]</span>
                         </template>
                         <a-badge :text="status.xray.stateMsg" :color="status.xray.color"
                           :class="status.xray.color === 'red' ? 'xray-error-animation' : ''" />
@@ -115,7 +127,7 @@
                     </template>
                   </template>
                   <template #actions>
-                    <a-space v-if="app.ipLimitEnable" direction="horizontal" @click="openXrayLogs()" class="jc-center">
+                    <a-space v-if="ipLimitEnable" direction="horizontal" @click="openXrayLogs()" class="jc-center">
                       <a-icon type="bars"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.logs" }}</span>
                     </a-space>
@@ -330,7 +342,64 @@
         <div class="mt-5 d-flex justify-end"><a-button @click="updateGeofile('')">{{ i18n
             "pages.index.geofilesUpdateAll" }}</a-button></div>
       </a-collapse-panel>
+      <a-collapse-panel key="3" header='{{ i18n "pages.index.customGeoTitle" }}'>
+        <div class="custom-geo-section">
+        <a-alert type="info" show-icon class="mb-10"
+          message='{{ i18n "pages.index.customGeoRoutingHint" }}'></a-alert>
+        <div class="mb-10">
+          <a-button type="primary" icon="plus" @click="openCustomGeoModal(null)" :loading="customGeoLoading">
+            {{ i18n "pages.index.customGeoAdd" }}
+          </a-button>
+          <a-button class="ml-8" icon="reload" @click="updateAllCustomGeo" :loading="customGeoUpdatingAll">{{ i18n
+            "pages.index.geofilesUpdateAll" }}</a-button>
+        </div>
+        <a-table :columns="customGeoColumns" :data-source="customGeoList" :pagination="false" :row-key="r => r.id"
+          :loading="customGeoLoading" size="small" :scroll="{ x: 520 }">
+          <template slot="extDat" slot-scope="text, record">
+            <code class="custom-geo-ext-code">[[ customGeoExtDisplay(record) ]]</code>
+          </template>
+          <template slot="lastUpdatedAt" slot-scope="text, record">
+            <span v-if="record.lastUpdatedAt">[[ customGeoFormatTime(record.lastUpdatedAt) ]]</span>
+            <span v-else>—</span>
+          </template>
+          <template slot="action" slot-scope="text, record">
+            <a-space size="small">
+              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="title">{{ i18n "pages.index.customGeoEdit" }}</template>
+                <a-button type="link" size="small" icon="edit" @click="openCustomGeoModal(record)"></a-button>
+              </a-tooltip>
+              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="title">{{ i18n "pages.index.customGeoDownload" }}</template>
+                <a-button type="link" size="small" icon="reload" @click="downloadCustomGeo(record.id)" :loading="customGeoActionId === record.id"></a-button>
+              </a-tooltip>
+              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                <template slot="title">{{ i18n "pages.index.customGeoDelete" }}</template>
+                <a-button type="link" size="small" icon="delete" @click="confirmDeleteCustomGeo(record)"></a-button>
+              </a-tooltip>
+            </a-space>
+          </template>
+        </a-table>
+        </div>
+      </a-collapse-panel>
     </a-collapse>
+  </a-modal>
+  <a-modal v-model="customGeoModal.visible" :title="customGeoModal.editId ? '{{ i18n "pages.index.customGeoModalEdit" }}' : '{{ i18n "pages.index.customGeoModalAdd" }}'"
+    :confirm-loading="customGeoModal.saving" @ok="submitCustomGeo" :ok-text="'{{ i18n "pages.index.customGeoModalSave" }}'" :cancel-text="'{{ i18n "close" }}'"
+    :class="themeSwitcher.currentTheme">
+    <a-form layout="vertical">
+      <a-form-item label='{{ i18n "pages.index.customGeoType" }}'>
+        <a-select v-model="customGeoModal.form.type" :disabled="!!customGeoModal.editId" :dropdown-class-name="themeSwitcher.currentTheme">
+          <a-select-option value="geosite">geosite</a-select-option>
+          <a-select-option value="geoip">geoip</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.index.customGeoAlias" }}'>
+        <a-input v-model.trim="customGeoModal.form.alias" :disabled="!!customGeoModal.editId" placeholder='{{ i18n "pages.index.customGeoAliasPlaceholder" }}'></a-input>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.index.customGeoUrl" }}'>
+        <a-input v-model.trim="customGeoModal.form.url" placeholder="https://"></a-input>
+      </a-form-item>
+    </a-form>
   </a-modal>
   <a-modal id="log-modal" v-model="logModal.visible" :closable="true" @cancel="() => logModal.visible = false"
     :class="themeSwitcher.currentTheme" width="800px" footer="">
@@ -872,6 +941,12 @@
     },
   };
 
+  const customGeoColumns = [
+    { title: '{{ i18n "pages.index.customGeoExtColumn" }}', key: 'extDat', scopedSlots: { customRender: 'extDat' }, ellipsis: true },
+    { title: '{{ i18n "pages.index.customGeoLastUpdated" }}', key: 'lastUpdatedAt', scopedSlots: { customRender: 'lastUpdatedAt' }, width: 160 },
+    { title: '{{ i18n "pages.index.customGeoActions" }}', key: 'action', scopedSlots: { customRender: 'action' }, width: 120, fixed: 'right' },
+  ];
+
   const app = new Vue({
     delimiters: ['[[', ']]'],
     el: '#app',
@@ -895,6 +970,25 @@
       showAlert: false,
       showIp: false,
       ipLimitEnable: false,
+      customGeoColumns,
+      customGeoList: [],
+      customGeoLoading: false,
+      customGeoUpdatingAll: false,
+      customGeoActionId: null,
+      customGeoModal: {
+        visible: false,
+        editId: null,
+        saving: false,
+        form: {
+          type: 'geosite',
+          alias: '',
+          url: '',
+        },
+      },
+      customGeoValidation: {
+        alias: '{{ i18n "pages.index.customGeoValidationAlias" }}',
+        url: '{{ i18n "pages.index.customGeoValidationUrl" }}',
+      },
     },
     methods: {
       loading(spinning, tip = '{{ i18n "loading"}}') {
@@ -963,6 +1057,128 @@
           return;
         }
         versionModal.show(msg.obj);
+        this.loadCustomGeo();
+      },
+      customGeoFormatTime(ts) {
+        if (!ts) return '';
+        return typeof moment !== 'undefined' ? moment(ts * 1000).format('YYYY-MM-DD HH:mm') : String(ts);
+      },
+      customGeoExtDisplay(record) {
+        const fn = record.type === 'geoip'
+          ? `geoip_${record.alias}.dat`
+          : `geosite_${record.alias}.dat`;
+        return `ext:${fn}:tag`;
+      },
+      async loadCustomGeo() {
+        this.customGeoLoading = true;
+        try {
+          const msg = await HttpUtil.get('/panel/api/custom-geo/list');
+          if (msg.success && Array.isArray(msg.obj)) {
+            this.customGeoList = msg.obj;
+          }
+        } finally {
+          this.customGeoLoading = false;
+        }
+      },
+      openCustomGeoModal(record) {
+        if (record) {
+          this.customGeoModal.editId = record.id;
+          this.customGeoModal.form = {
+            type: record.type,
+            alias: record.alias,
+            url: record.url,
+          };
+        } else {
+          this.customGeoModal.editId = null;
+          this.customGeoModal.form = {
+            type: 'geosite',
+            alias: '',
+            url: '',
+          };
+        }
+        this.customGeoModal.visible = true;
+      },
+      validateCustomGeoForm() {
+        const f = this.customGeoModal.form;
+        const re = /^[a-z0-9_-]+$/;
+        if (!re.test(f.alias || '')) {
+          this.$message.error(this.customGeoValidation.alias);
+          return false;
+        }
+        const u = (f.url || '').trim();
+        if (!/^https?:\/\//i.test(u)) {
+          this.$message.error(this.customGeoValidation.url);
+          return false;
+        }
+        try {
+          const parsed = new URL(u);
+          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            this.$message.error(this.customGeoValidation.url);
+            return false;
+          }
+        } catch (e) {
+          this.$message.error(this.customGeoValidation.url);
+          return false;
+        }
+        return true;
+      },
+      async submitCustomGeo() {
+        if (!this.validateCustomGeoForm()) {
+          return;
+        }
+        const f = this.customGeoModal.form;
+        this.customGeoModal.saving = true;
+        try {
+          let msg;
+          if (this.customGeoModal.editId) {
+            msg = await HttpUtil.post(`/panel/api/custom-geo/update/${this.customGeoModal.editId}`, f);
+          } else {
+            msg = await HttpUtil.post('/panel/api/custom-geo/add', f);
+          }
+          if (msg && msg.success) {
+            this.customGeoModal.visible = false;
+            await this.loadCustomGeo();
+          }
+        } finally {
+          this.customGeoModal.saving = false;
+        }
+      },
+      confirmDeleteCustomGeo(record) {
+        this.$confirm({
+          title: '{{ i18n "pages.index.customGeoDelete" }}',
+          content: '{{ i18n "pages.index.customGeoDeleteConfirm" }}',
+          okText: '{{ i18n "confirm"}}',
+          cancelText: '{{ i18n "cancel"}}',
+          class: themeSwitcher.currentTheme,
+          onOk: async () => {
+            const msg = await HttpUtil.post(`/panel/api/custom-geo/delete/${record.id}`);
+            if (msg.success) {
+              await this.loadCustomGeo();
+            }
+          },
+        });
+      },
+      async downloadCustomGeo(id) {
+        this.customGeoActionId = id;
+        try {
+          const msg = await HttpUtil.post(`/panel/api/custom-geo/download/${id}`);
+          if (msg.success) {
+            await this.loadCustomGeo();
+          }
+        } finally {
+          this.customGeoActionId = null;
+        }
+      },
+      async updateAllCustomGeo() {
+        this.customGeoUpdatingAll = true;
+        try {
+          const msg = await HttpUtil.post('/panel/api/custom-geo/update-all');
+          if (msg.success || (msg.obj && Array.isArray(msg.obj.succeeded) && msg.obj.succeeded.length > 0)) {
+            await this.loadCustomGeo();
+          }
+        } finally {
+          this.customGeoUpdatingAll = false;
+        }
       },
       switchV2rayVersion(version) {
         this.$confirm({

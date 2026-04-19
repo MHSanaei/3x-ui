@@ -26,7 +26,7 @@
             <a-input v-model.trim="clientsBulkModal.emailPostfix"></a-input>
         </a-form-item>
         <a-form-item label='{{ i18n "pages.client.clientCount" }}' v-if="clientsBulkModal.emailMethod < 2">
-            <a-input-number v-model.number="clientsBulkModal.quantity" :min="1" :max="100"></a-input-number>
+            <a-input-number v-model.number="clientsBulkModal.quantity" :min="1" :max="500"></a-input-number>
         </a-form-item>
         <a-form-item label='{{ i18n "security" }}' v-if="inbound.protocol === Protocols.VMESS">
             <a-select v-model="clientsBulkModal.security" :dropdown-class-name="themeSwitcher.currentTheme">
@@ -204,7 +204,7 @@
             this.security = "auto";
             this.flow = "";
             this.dbInbound = new DBInbound(dbInbound);
-            this.inbound = dbInbound.toInbound();
+            this.inbound = Inbound.fromJson(dbInbound.toInbound().toJson());
             this.delayedStart = false;
             this.reset = 0;
         },
