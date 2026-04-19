@@ -34,6 +34,19 @@
         <a-input-number v-model.number="inbound.port" :min="1"
             :max="65535"></a-input-number>
     </a-form-item>
+    <a-form-item
+        v-if="[Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(inbound.protocol)">
+        <template slot="label">
+            <a-tooltip>
+                <template slot="title">
+                    <span>{{ i18n "pages.settings.subInboundHostDesc" }}</span>
+                </template>
+                {{ i18n "pages.settings.subInboundHost" }}
+                <a-icon type="question-circle"></a-icon>
+            </a-tooltip>
+        </template>
+        <a-input v-model.trim="inbound.settings.subHost" placeholder="cdn.example.com"></a-input>
+    </a-form-item>
 
     <a-form-item>
         <template slot="label">

@@ -167,8 +167,8 @@ class DBInbound {
         }
     }
 
-    genInboundLinks(remarkModel) {
+    genInboundLinks(remarkModel, defaultHost = '') {
         const inbound = this.toInbound();
-        return inbound.genInboundLinks(this.remark, remarkModel);
+        return inbound.genInboundLinks(this.remark, remarkModel, defaultHost);
     }
 }

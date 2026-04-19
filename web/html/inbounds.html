@@ -731,6 +731,7 @@
         subURI: '',
         subJsonURI: '',
         subJsonEnable: false,
+        defaultHost: '',
       },
       remarkModel: '-ieo',
       datepicker: 'gregorian',
@@ -788,6 +789,7 @@
             subURI: subURI,
             subJsonURI: subJsonURI,
             subJsonEnable: subJsonEnable,
+            defaultHost: subDefaultHost,
           };
           this.pageSize = pageSize;
           this.remarkModel = remarkModel;
@@ -1510,7 +1512,7 @@
       inboundLinks(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         newDbInbound = this.checkFallback(dbInbound);
-        txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(this.remarkModel), newDbInbound.remark);
+        txtModal.show('{{ i18n "pages.inbounds.export"}}', newDbInbound.genInboundLinks(this.remarkModel, this.subSettings.defaultHost), newDbInbound.remark);
       },
       exportSubs(dbInboundId) {
         const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1559,7 +1561,7 @@
       exportAllLinks() {
         let copyText = [];
         for (const dbInbound of this.dbInbounds) {
-          copyText.push(dbInbound.genInboundLinks(this.remarkModel));
+          copyText.push(dbInbound.genInboundLinks(this.remarkModel, this.subSettings.defaultHost));
         }
         txtModal.show('{{ i18n "pages.inbounds.export"}}', copyText.join('\r\n'), 'All-Inbounds');
       },

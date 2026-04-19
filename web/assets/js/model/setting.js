@@ -41,6 +41,7 @@ class AllSetting {
         this.subClashEnable = true;
         this.subClashPath = "/clash/";
         this.subDomain = "";
+        this.subDefaultHost = "";
         this.externalTrafficInformEnable = false;
         this.externalTrafficInformURI = "";
         this.subCertFile = "";
