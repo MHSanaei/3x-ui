@@ -14,6 +14,7 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
+	"github.com/mhsanaei/3x-ui/v2/util/iptables"
 	"github.com/mhsanaei/3x-ui/v2/xray"
 
 	"gorm.io/gorm"
@@ -1212,6 +1213,12 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 			err1 = s.xrayApi.AddUser(clientToAdd.protocol, clientToAdd.tag, clientToAdd.client)
 			if err1 != nil {
 				needRestart = true
+			} else {
+				// Client was re-added to Xray; remove any iptables block rules for it
+				email, _ := clientToAdd.client["email"].(string)
+				if email != "" {
+					s.unblockClientIPs(email)
+				}
 			}
 		}
 		s.xrayApi.Close()
@@ -1276,16 +1283,23 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			err1 := s.xrayApi.RemoveUser(result.Tag, result.Email)
 			if err1 == nil {
 				logger.Debug("Client disabled by api:", result.Email)
+				// Drain any traffic accumulated since the last GetTraffic(reset=true) call
+				up, down, derr := s.xrayApi.DrainUserTraffic(result.Email)
+				if derr == nil && (up > 0 || down > 0) {
+					tx.Model(xray.ClientTraffic{}).Where("email = ?", result.Email).
+						Updates(map[string]any{
+							"up":   gorm.Expr("up + ?", up),
+							"down": gorm.Expr("down + ?", down),
+						})
+				}
+				// Block active TCP connections for this client
+				s.blockClientIPs(result.Email)
 			} else {
 				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
 					logger.Debug("User is already disabled. Nothing to do more...")
 				} else {
-					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-						logger.Debug("User is already disabled. Nothing to do more...")
-					} else {
-						logger.Debug("Error in disabling client by api:", err1)
-						needRestart = true
-					}
+					logger.Debug("Error in disabling client by api:", err1)
+					needRestart = true
 				}
 			}
 		}
@@ -2516,4 +2530,56 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 	}
 
 	return needRestart, db.Save(oldInbound).Error
+}
+
+// clientIPsForFirewall returns the list of known IP addresses and the inbound port for a client.
+func (s *InboundService) clientIPsForFirewall(email string) ([]string, int) {
+	ipsJSON, err := s.GetInboundClientIps(email)
+	if err != nil || ipsJSON == "" {
+		return nil, 0
+	}
+	_, inbound, err := s.GetClientInboundByEmail(email)
+	if err != nil || inbound == nil {
+		return nil, 0
+	}
+
+	type IPWithTimestamp struct {
+		IP        string `json:"ip"`
+		Timestamp int64  `json:"timestamp"`
+	}
+	var ipsWithTime []IPWithTimestamp
+	if err := json.Unmarshal([]byte(ipsJSON), &ipsWithTime); err != nil {
+		var simpleIPs []string
+		if err2 := json.Unmarshal([]byte(ipsJSON), &simpleIPs); err2 != nil {
+			return nil, 0
+		}
+		return simpleIPs, inbound.Port
+	}
+	ips := make([]string, 0, len(ipsWithTime))
+	for _, entry := range ipsWithTime {
+		ips = append(ips, entry.IP)
+	}
+	return ips, inbound.Port
+}
+
+// blockClientIPs inserts iptables DROP rules for all known IPs of the given client.
+// Failures are logged as warnings so a missing iptables binary does not break the
+// normal disable flow.
+func (s *InboundService) blockClientIPs(email string) {
+	ips, port := s.clientIPsForFirewall(email)
+	for _, ip := range ips {
+		if err := iptables.BlockIP(ip, port); err != nil {
+			logger.Warning("blockClientIPs: failed to block", ip, err)
+		}
+	}
+}
+
+// unblockClientIPs removes iptables DROP rules for all known IPs of the given client.
+func (s *InboundService) unblockClientIPs(email string) {
+	ips, port := s.clientIPsForFirewall(email)
+	for _, ip := range ips {
+		if err := iptables.UnblockIP(ip, port); err != nil {
+			logger.Debug("unblockClientIPs: failed to unblock", ip, err)
+		}
+	}
 }

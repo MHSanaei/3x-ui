@@ -198,6 +198,19 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 	return xrayConfig, nil
 }
 
+// FlushTrafficToDB fetches current Xray traffic stats and persists them to the database.
+// Call this before restarting Xray to avoid losing in-memory counter data.
+func (s *XrayService) FlushTrafficToDB() {
+	traffics, clientTraffics, err := s.GetXrayTraffic()
+	if err != nil {
+		logger.Debug("FlushTrafficToDB: failed to get traffic:", err)
+		return
+	}
+	if err, _ := s.inboundService.AddTraffic(traffics, clientTraffics); err != nil {
+		logger.Warning("FlushTrafficToDB: failed to persist traffic:", err)
+	}
+}
+
 // GetXrayTraffic fetches the current traffic statistics from the running Xray process.
 func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, error) {
 	if !s.IsXrayRunning() {
