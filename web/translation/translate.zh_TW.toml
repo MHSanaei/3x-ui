@@ -271,7 +271,7 @@
 "daily" = "每日"
 "weekly" = "每週"
 "monthly" = "每月"
-"hourly" = "hourly"
+"hourly" = "每小時"
 
 [pages.inbounds.toasts]
 "obtain" = "獲取"

@@ -271,7 +271,7 @@
 "daily" = "Diariamente"
 "weekly" = "Semanalmente"
 "monthly" = "Mensualmente"
-"hourly" = "hourly"
+"hourly" = "Cada hora"
 
 [pages.inbounds.toasts]
 "obtain" = "Recibir"
