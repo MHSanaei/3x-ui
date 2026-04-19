@@ -11,6 +11,95 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
+# ─────────────────────────────────────────────
+# CI / Non-interactive mode defaults
+# ─────────────────────────────────────────────
+CI_MODE=false
+CI_PORT=""
+CI_USERNAME=""
+CI_PASSWORD=""
+CI_PATH=""
+CI_SSL=false          # SSL is OFF by default in --ci mode
+XUI_VERSION=""        # optional: pin a specific release tag
+
+# ─────────────────────────────────────────────
+# Argument parser
+# ─────────────────────────────────────────────
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --ci)
+                CI_MODE=true
+                shift
+                ;;
+            --port)
+                CI_PORT="$2"
+                shift 2
+                ;;
+            --username)
+                CI_USERNAME="$2"
+                shift 2
+                ;;
+            --password)
+                CI_PASSWORD="$2"
+                shift 2
+                ;;
+            --path)
+                # strip leading slash if present
+                CI_PATH="${2#/}"
+                shift 2
+                ;;
+            --ssl)
+                # Allow explicitly enabling SSL even in CI mode
+                CI_SSL=true
+                shift
+                ;;
+            --version)
+                XUI_VERSION="$2"
+                shift 2
+                ;;
+            -*)
+                echo -e "${yellow}Unknown option: $1 — ignored${plain}"
+                shift
+                ;;
+            *)
+                # Positional arg treated as version (legacy behaviour)
+                XUI_VERSION="$1"
+                shift
+                ;;
+        esac
+    done
+}
+
+parse_args "$@"
+
+# ─────────────────────────────────────────────
+# Validate --ci parameters
+# ─────────────────────────────────────────────
+if [[ "$CI_MODE" == true ]]; then
+    echo -e "${blue}[CI MODE] Non-interactive installation enabled${plain}"
+
+    # Port validation
+    if [[ -n "$CI_PORT" ]]; then
+        if ! [[ "$CI_PORT" =~ ^[0-9]+$ ]] || (( CI_PORT < 1 || CI_PORT > 65535 )); then
+            echo -e "${red}[CI MODE] Invalid --port value: ${CI_PORT}. Must be 1-65535.${plain}"
+            exit 1
+        fi
+    fi
+
+    # Path: must be at least 4 chars for x-ui to accept it without regenerating
+    if [[ -n "$CI_PATH" && ${#CI_PATH} -lt 4 ]]; then
+        echo -e "${red}[CI MODE] --path must be at least 4 characters long.${plain}"
+        exit 1
+    fi
+
+    echo -e "${blue}[CI MODE] SSL: ${CI_SSL}${plain}"
+    [[ -n "$CI_PORT"     ]] && echo -e "${blue}[CI MODE] Port: ${CI_PORT}${plain}"
+    [[ -n "$CI_USERNAME" ]] && echo -e "${blue}[CI MODE] Username: ${CI_USERNAME}${plain}"
+    [[ -n "$CI_PASSWORD" ]] && echo -e "${blue}[CI MODE] Password: (set)${plain}"
+    [[ -n "$CI_PATH"     ]] && echo -e "${blue}[CI MODE] WebBasePath: ${CI_PATH}${plain}"
+fi
+
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
@@ -18,7 +107,7 @@ xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 if [[ -f /etc/os-release ]]; then
     source /etc/os-release
     release=$ID
-    elif [[ -f /usr/lib/os-release ]]; then
+elif [[ -f /usr/lib/os-release ]]; then
     source /usr/lib/os-release
     release=$ID
 else
@@ -234,13 +323,15 @@ setup_ip_certificate() {
     # Set reload command for auto-renewal (add || true so it doesn't fail during first install)
     local reloadCmd="systemctl restart x-ui 2>/dev/null || rc-service x-ui restart 2>/dev/null || true"
 
-    # Choose port for HTTP-01 listener (default 80, prompt override)
-    local WebPort=""
-    read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
-    WebPort="${WebPort:-80}"
-    if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
-        echo -e "${red}Invalid port provided. Falling back to 80.${plain}"
-        WebPort=80
+    # Choose port for HTTP-01 listener
+    local WebPort=80
+    if [[ "$CI_MODE" != true ]]; then
+        read -rp "Port to use for ACME HTTP-01 listener (default 80): " WebPort
+        WebPort="${WebPort:-80}"
+        if ! [[ "${WebPort}" =~ ^[0-9]+$ ]] || ((WebPort < 1 || WebPort > 65535)); then
+            echo -e "${red}Invalid port provided. Falling back to 80.${plain}"
+            WebPort=80
+        fi
     fi
     echo -e "${green}Using port ${WebPort} for standalone validation.${plain}"
     if [[ "${WebPort}" -ne 80 ]]; then
@@ -248,10 +339,13 @@ setup_ip_certificate() {
     fi
 
     # Ensure chosen port is available
-    while true; do
-        if is_port_in_use "${WebPort}"; then
+    if is_port_in_use "${WebPort}"; then
+        if [[ "$CI_MODE" == true ]]; then
+            echo -e "${red}[CI MODE] Port ${WebPort} is in use. Cannot proceed with SSL in CI mode.${plain}"
+            return 1
+        fi
+        while true; do
             echo -e "${yellow}Port ${WebPort} is in use.${plain}"
-
             local alt_port=""
             read -rp "Enter another port for acme.sh standalone listener (leave empty to abort): " alt_port
             alt_port="${alt_port// /}"
@@ -264,12 +358,10 @@ setup_ip_certificate() {
                 return 1
             fi
             WebPort="${alt_port}"
-            continue
-        else
-            echo -e "${green}Port ${WebPort} is free and ready for standalone validation.${plain}"
-            break
-        fi
-    done
+            is_port_in_use "${WebPort}" || break
+        done
+    fi
+    echo -e "${green}Port ${WebPort} is free and ready for standalone validation.${plain}"
 
     # Issue certificate with shortlived profile
     echo -e "${green}Issuing IP certificate for ${ipv4}...${plain}"
@@ -287,7 +379,6 @@ setup_ip_certificate() {
     if [ $? -ne 0 ]; then
         echo -e "${red}Failed to issue IP certificate${plain}"
         echo -e "${yellow}Please ensure port ${WebPort} is reachable (or forwarded from external port 80)${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${ipv4} 2>/dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2>/dev/null
         rm -rf ${certDir} 2>/dev/null
@@ -297,17 +388,14 @@ setup_ip_certificate() {
     echo -e "${green}Certificate issued successfully, installing...${plain}"
 
     # Install certificate
-    # Note: acme.sh may report "Reload error" and exit non-zero if reloadcmd fails,
-    # but the cert files are still installed. We check for files instead of exit code.
     ~/.acme.sh/acme.sh --installcert -d ${ipv4} \
         --key-file "${certDir}/privkey.pem" \
         --fullchain-file "${certDir}/fullchain.pem" \
         --reloadcmd "${reloadCmd}" 2>&1 || true
 
-    # Verify certificate files exist (don't rely on exit code - reloadcmd failure causes non-zero)
+    # Verify certificate files exist
     if [[ ! -f "${certDir}/fullchain.pem" || ! -f "${certDir}/privkey.pem" ]]; then
         echo -e "${red}Certificate files not found after installation${plain}"
-        # Cleanup acme.sh data for both IPv4 and IPv6 if specified
         rm -rf ~/.acme.sh/${ipv4} 2>/dev/null
         [[ -n "$ipv6" ]] && rm -rf ~/.acme.sh/${ipv6} 2>/dev/null
         rm -rf ${certDir} 2>/dev/null
@@ -316,10 +404,10 @@ setup_ip_certificate() {
     
     echo -e "${green}Certificate files installed successfully${plain}"
 
-    # Enable auto-upgrade for acme.sh (ensures cron job runs)
+    # Enable auto-upgrade for acme.sh
     ~/.acme.sh/acme.sh --upgrade --auto-upgrade >/dev/null 2>&1
 
-    # Secure permissions: private key readable only by owner
+    # Secure permissions
     chmod 600 ${certDir}/privkey.pem 2>/dev/null
     chmod 644 ${certDir}/fullchain.pem 2>/dev/null
 
@@ -378,6 +466,7 @@ ssl_cert_issue() {
         
         break
     done
+
     echo -e "${green}Your domain is: ${domain}, checking it...${plain}"
     SSL_ISSUED_DOMAIN="${domain}"
 
@@ -485,13 +574,11 @@ ssl_cert_issue() {
     if [ $? -ne 0 ]; then
         echo -e "${yellow}Auto renew setup had issues, certificate details:${plain}"
         ls -lah /root/cert/${domain}/
-        # Secure permissions: private key readable only by owner
         chmod 600 $certPath/privkey.pem 2>/dev/null
         chmod 644 $certPath/fullchain.pem 2>/dev/null
     else
         echo -e "${green}Auto renew succeeded, certificate details:${plain}"
         ls -lah /root/cert/${domain}/
-        # Secure permissions: private key readable only by owner
         chmod 600 $certPath/privkey.pem 2>/dev/null
         chmod 644 $certPath/fullchain.pem 2>/dev/null
     fi
@@ -660,12 +747,16 @@ prompt_and_setup_ssl() {
     esac
 }
 
+# ─────────────────────────────────────────────
+# config_after_install
+# Handles both CI (non-interactive) and normal interactive flows.
+# ─────────────────────────────────────────────
 config_after_install() {
     local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
-    # Properly detect empty cert by checking if cert: line exists and has content after it
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+
     local URL_lists=(
         "https://api4.ipify.org"
         "https://ipv4.icanhazip.com"
@@ -684,7 +775,75 @@ config_after_install() {
             break
         fi
     done
-    
+
+    # ══════════════════════════════════════════
+    # CI MODE — fully non-interactive path
+    # ══════════════════════════════════════════
+    if [[ "$CI_MODE" == true ]]; then
+        echo -e "${blue}[CI MODE] Applying configuration...${plain}"
+
+        # Resolve values: use CLI param → fall back to existing → fall back to random
+        local config_username="${CI_USERNAME:-$(gen_random_string 10)}"
+        local config_password="${CI_PASSWORD:-$(gen_random_string 10)}"
+        local config_webBasePath="${CI_PATH:-$(gen_random_string 18)}"
+
+        if [[ -n "$CI_PORT" ]]; then
+            local config_port="$CI_PORT"
+        elif [[ -n "$existing_port" ]]; then
+            local config_port="$existing_port"
+        else
+            local config_port=$(shuf -i 1024-62000 -n 1)
+        fi
+
+        # Apply settings
+        ${xui_folder}/x-ui setting \
+            -username "${config_username}" \
+            -password "${config_password}" \
+            -port     "${config_port}" \
+            -webBasePath "${config_webBasePath}"
+
+        # SSL handling in CI mode
+        SSL_HOST="${server_ip}"
+        local protocol="http"
+
+        if [[ "$CI_SSL" == true ]]; then
+            echo -e "${blue}[CI MODE] SSL requested. Attempting IP certificate...${plain}"
+
+            # Stop panel for port 80
+            systemctl stop x-ui >/dev/null 2>&1 || rc-service x-ui stop >/dev/null 2>&1
+
+            setup_ip_certificate "${server_ip}" ""
+            if [ $? -eq 0 ]; then
+                protocol="https"
+                echo -e "${green}[CI MODE] SSL configured successfully.${plain}"
+            else
+                echo -e "${yellow}[CI MODE] SSL setup failed. Panel will run over HTTP.${plain}"
+            fi
+
+            # Restart panel after cert attempt
+            systemctl start x-ui >/dev/null 2>&1 || rc-service x-ui start >/dev/null 2>&1
+        else
+            echo -e "${blue}[CI MODE] SSL is disabled. Panel will run over HTTP.${plain}"
+        fi
+
+        ${xui_folder}/x-ui migrate
+
+        echo ""
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}     Panel Installation Complete! (CI)     ${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        echo -e "${green}Username:    ${config_username}${plain}"
+        echo -e "${green}Password:    ${config_password}${plain}"
+        echo -e "${green}Port:        ${config_port}${plain}"
+        echo -e "${green}WebBasePath: ${config_webBasePath}${plain}"
+        echo -e "${green}Access URL:  ${protocol}://${SSL_HOST}:${config_port}/${config_webBasePath}${plain}"
+        echo -e "${green}═══════════════════════════════════════════${plain}"
+        return
+    fi
+
+    # ══════════════════════════════════════════
+    # NORMAL / INTERACTIVE MODE (original logic)
+    # ══════════════════════════════════════════
     if [[ ${#existing_webBasePath} -lt 4 ]]; then
         if [[ "$existing_hasDefaultCredential" == "true" ]]; then
             local config_webBasePath=$(gen_random_string 18)
@@ -712,7 +871,6 @@ config_after_install() {
 
             prompt_and_setup_ssl "${config_port}" "${config_webBasePath}" "${server_ip}"
             
-            # Display final credentials and access information
             echo ""
             echo -e "${green}═══════════════════════════════════════════${plain}"
             echo -e "${green}     Panel Installation Complete!         ${plain}"
@@ -731,7 +889,6 @@ config_after_install() {
             ${xui_folder}/x-ui setting -webBasePath "${config_webBasePath}"
             echo -e "${green}New WebBasePath: ${config_webBasePath}${plain}"
 
-            # If the panel is already installed but no certificate is configured, prompt for SSL now
             if [[ -z "${existing_cert}" ]]; then
                 echo ""
                 echo -e "${green}═══════════════════════════════════════════${plain}"
@@ -742,7 +899,6 @@ config_after_install() {
                 prompt_and_setup_ssl "${existing_port}" "${config_webBasePath}" "${server_ip}"
                 echo -e "${green}Access URL:  https://${SSL_HOST}:${existing_port}/${config_webBasePath}${plain}"
             else
-                # If a cert already exists, just show the access URL
                 echo -e "${green}Access URL: https://${server_ip}:${existing_port}/${config_webBasePath}${plain}"
             fi
         fi
@@ -762,8 +918,6 @@ config_after_install() {
             echo -e "${green}Username, Password, and WebBasePath are properly set.${plain}"
         fi
 
-        # Existing install: if no cert configured, prompt user for SSL setup
-        # Properly detect empty cert by checking if cert: line exists and has content after it
         existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
         if [[ -z "$existing_cert" ]]; then
             echo ""
@@ -786,7 +940,7 @@ install_x-ui() {
     cd ${xui_folder%/x-ui}/
     
     # Download resources
-    if [ $# == 0 ]; then
+    if [[ -z "$XUI_VERSION" ]]; then
         tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
         if [[ ! -n "$tag_version" ]]; then
             echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
@@ -803,7 +957,7 @@ install_x-ui() {
             exit 1
         fi
     else
-        tag_version=$1
+        tag_version="$XUI_VERSION"
         tag_version_numeric=${tag_version#v}
         min_version="2.3.5"
         
@@ -813,13 +967,14 @@ install_x-ui() {
         fi
         
         url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
-        echo -e "Beginning to install x-ui $1"
+        echo -e "Beginning to install x-ui $tag_version"
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
         if [[ $? -ne 0 ]]; then
-            echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
+            echo -e "${red}Download x-ui $tag_version failed, please check if the version exists ${plain}"
             exit 1
         fi
     fi
+
     curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
         echo -e "${red}Failed to download x-ui.sh${plain}"
@@ -851,7 +1006,7 @@ install_x-ui() {
     fi
     chmod +x x-ui bin/xray-linux-$(arch)
     
-    # Update x-ui cli and se set permission
+    # Update x-ui cli and set permission
     mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
@@ -983,4 +1138,4 @@ install_x-ui() {
 
 echo -e "${green}Running...${plain}"
 install_base
-install_x-ui $1
+install_x-ui
