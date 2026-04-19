@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -11,6 +12,15 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 )
+
+// disableSSRFCheck disables the SSRF guard for the duration of a test,
+// allowing httptest servers on localhost. It restores the original on cleanup.
+func disableSSRFCheck(t *testing.T) {
+	t.Helper()
+	orig := checkSSRF
+	checkSSRF = func(_ context.Context, _ string) error { return nil }
+	t.Cleanup(func() { checkSSRF = orig })
+}
 
 func TestNormalizeAliasKey(t *testing.T) {
 	if got := NormalizeAliasKey("GeoIP-IR"); got != "geoip_ir" {
@@ -139,14 +149,16 @@ func TestCustomGeoValidateAlias(t *testing.T) {
 
 func TestCustomGeoValidateURL(t *testing.T) {
 	s := CustomGeoService{}
-	if err := s.validateURL(""); !errors.Is(err, ErrCustomGeoURLRequired) {
+	if _, err := s.sanitizeURL(""); !errors.Is(err, ErrCustomGeoURLRequired) {
 		t.Fatal("empty")
 	}
-	if err := s.validateURL("ftp://x"); !errors.Is(err, ErrCustomGeoURLScheme) {
+	if _, err := s.sanitizeURL("ftp://x"); !errors.Is(err, ErrCustomGeoURLScheme) {
 		t.Fatal("ftp")
 	}
-	if err := s.validateURL("https://example.com/a.dat"); err != nil {
+	if sanitized, err := s.sanitizeURL("https://example.com/a.dat"); err != nil {
 		t.Fatal(err)
+	} else if sanitized != "https://example.com/a.dat" {
+		t.Fatalf("unexpected sanitized URL: %s", sanitized)
 	}
 }
 
@@ -161,6 +173,7 @@ func TestCustomGeoValidateType(t *testing.T) {
 }
 
 func TestCustomGeoDownloadToPath(t *testing.T) {
+	disableSSRFCheck(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Test", "1")
 		if r.Header.Get("If-Modified-Since") != "" {
@@ -193,6 +206,7 @@ func TestCustomGeoDownloadToPath(t *testing.T) {
 }
 
 func TestCustomGeoDownloadToPath_missingLocalSendsNoIMSFromDB(t *testing.T) {
+	disableSSRFCheck(t)
 	lm := "Wed, 21 Oct 2015 07:28:00 GMT"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("If-Modified-Since") != "" {
@@ -221,6 +235,7 @@ func TestCustomGeoDownloadToPath_missingLocalSendsNoIMSFromDB(t *testing.T) {
 }
 
 func TestCustomGeoDownloadToPath_repairSkipsConditional(t *testing.T) {
+	disableSSRFCheck(t)
 	lm := "Wed, 21 Oct 2015 07:28:00 GMT"
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("If-Modified-Since") != "" {
@@ -264,6 +279,7 @@ func TestCustomGeoFileNameFor(t *testing.T) {
 
 func TestLocalDatFileNeedsRepair(t *testing.T) {
 	dir := t.TempDir()
+	t.Setenv("XUI_BIN_FOLDER", dir)
 	if !localDatFileNeedsRepair(filepath.Join(dir, "missing.dat")) {
 		t.Fatal("missing")
 	}
@@ -297,6 +313,7 @@ func TestLocalDatFileNeedsRepair(t *testing.T) {
 }
 
 func TestProbeCustomGeoURL_HEADOK(t *testing.T) {
+	disableSSRFCheck(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
 			w.WriteHeader(http.StatusOK)
@@ -311,6 +328,7 @@ func TestProbeCustomGeoURL_HEADOK(t *testing.T) {
 }
 
 func TestProbeCustomGeoURL_HEAD405GETRange(t *testing.T) {
+	disableSSRFCheck(t)
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodHead {
 			w.WriteHeader(http.StatusMethodNotAllowed)

@@ -77,9 +77,9 @@ type AllSetting struct {
 	SubURI                      string `json:"subURI" form:"subURI"`                                           // Subscription server URI
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`                                 // Path for JSON subscription endpoint
 	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`                                   // JSON subscription server URI
-	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                             // Enable Clash/Mihomo subscription endpoint
-	SubClashPath                string `json:"subClashPath" form:"subClashPath"`                                 // Path for Clash/Mihomo subscription endpoint
-	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`                                   // Clash/Mihomo subscription server URI
+	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                           // Enable Clash/Mihomo subscription endpoint
+	SubClashPath                string `json:"subClashPath" form:"subClashPath"`                               // Path for Clash/Mihomo subscription endpoint
+	SubClashURI                 string `json:"subClashURI" form:"subClashURI"`                                 // Clash/Mihomo subscription server URI
 	SubJsonFragment             string `json:"subJsonFragment" form:"subJsonFragment"`                         // JSON subscription fragment configuration
 	SubJsonNoises               string `json:"subJsonNoises" form:"subJsonNoises"`                             // JSON subscription noise configuration
 	SubJsonMux                  string `json:"subJsonMux" form:"subJsonMux"`                                   // JSON subscription mux configuration
