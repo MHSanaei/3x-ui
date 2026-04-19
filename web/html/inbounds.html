@@ -6,7 +6,7 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched" :style="{ marginBottom: '10px' }"
             message='{{ i18n "secAlertTitle" }}' color="red" description='{{ i18n "secAlertSsl" }}' show-icon closable>
@@ -14,10 +14,7 @@
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card
-              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-              <a-spin tip='{{ i18n "loading" }}'></a-spin>
-            </a-card>
+            <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
           </a-row>
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
             <a-col>
@@ -1101,7 +1098,10 @@
         }
         data.sniffing = inbound.sniffing.toString();
 
-        await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, data, inModal);
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+        await this.submit(`/panel/api/inbounds/update/${dbInbound.id}`, formData, inModal);
       },
       openAddClient(dbInboundId) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -1291,9 +1291,36 @@
         infoModal.show(newDbInbound, index);
       },
       switchEnable(dbInboundId, state) {
-        dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+        if (!dbInbound) return;
         dbInbound.enable = state;
-        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, dbInbound);
+        let inbound = dbInbound.toInbound();
+        const data = {
+          up: dbInbound.up,
+          down: dbInbound.down,
+          total: dbInbound.total,
+          remark: dbInbound.remark,
+          enable: dbInbound.enable,
+          expiryTime: dbInbound.expiryTime,
+          trafficReset: dbInbound.trafficReset,
+          lastTrafficResetTime: dbInbound.lastTrafficResetTime,
+
+          listen: inbound.listen,
+          port: inbound.port,
+          protocol: inbound.protocol,
+          settings: inbound.settings.toString(),
+        };
+        if (inbound.canEnableStream()) {
+          data.streamSettings = inbound.stream.toString();
+        } else if (inbound.stream?.sockopt) {
+          data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
+        }
+        data.sniffing = inbound.sniffing.toString();
+
+        const formData = new FormData();
+        Object.keys(data).forEach(key => formData.append(key, data[key]));
+
+        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, formData);
       },
       async switchEnableClient(dbInboundId, client) {
         this.loading()
@@ -1367,42 +1394,54 @@
       isExpiry(dbInbound, index) {
         return dbInbound.toInbound().isExpiry(index);
       },
+      getClientStats(dbInbound, email) {
+        if (!dbInbound) return null;
+        if (!dbInbound._clientStatsMap) {
+            dbInbound._clientStatsMap = new Map();
+            if (dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
+                for (const stats of dbInbound.clientStats) {
+                    dbInbound._clientStatsMap.set(stats.email, stats);
+                }
+            }
+        }
+        return dbInbound._clientStatsMap.get(email);
+      },
       getUpStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.up : 0;
       },
       getDownStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.down : 0;
       },
       getSumStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         return clientStats ? clientStats.up + clientStats.down : 0;
       },
       getAllTimeClient(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
         return clientStats.allTime || (clientStats.up + clientStats.down);
       },
       getRemStats(dbInbound, email) {
-        if (email.length == 0) return 0;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
-        remained = clientStats.total - (clientStats.up + clientStats.down);
+        let remained = clientStats.total - (clientStats.up + clientStats.down);
         return remained > 0 ? remained : 0;
       },
       clientStatsColor(dbInbound, email) {
-        if (email.length == 0) return ColorUtils.clientUsageColor();
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return ColorUtils.clientUsageColor();
+        let clientStats = this.getClientStats(dbInbound, email);
         return ColorUtils.clientUsageColor(clientStats, app.trafficDiff)
       },
       statsProgress(dbInbound, email) {
-        if (email.length == 0) return 100;
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return 100;
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
         if (clientStats.total == 0) return 100;
         return 100 * (clientStats.down + clientStats.up) / clientStats.total;
@@ -1415,11 +1454,11 @@
         return 100 * (1 - (remainedSeconds / resetSeconds));
       },
       statsExpColor(dbInbound, email) {
-        if (email.length == 0) return '#7a316f';
-        clientStats = dbInbound.clientStats.find(stats => stats.email === email);
+        if (!email || email.length == 0) return '#7a316f';
+        let clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return '#7a316f';
-        statsColor = ColorUtils.usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
-        expColor = ColorUtils.usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
+        let statsColor = ColorUtils.usageColor(clientStats.down + clientStats.up, this.trafficDiff, clientStats.total);
+        let expColor = ColorUtils.usageColor(new Date().getTime(), this.expireDiff, clientStats.expiryTime);
         switch (true) {
           case statsColor == "red" || expColor == "red":
             return "#cf3c3c"; // Red
@@ -1432,12 +1471,12 @@
         }
       },
       isClientEnabled(dbInbound, email) {
-        clientStats = dbInbound.clientStats ? dbInbound.clientStats.find(stats => stats.email === email) : null;
+        let clientStats = dbInbound ? this.getClientStats(dbInbound, email) : null;
         return clientStats ? clientStats['enable'] : true;
       },
       isClientDepleted(dbInbound, email) {
-        if (!email || !dbInbound || !dbInbound.clientStats) return false;
-        const stats = dbInbound.clientStats.find(s => s.email === email);
+        if (!email || !dbInbound) return false;
+        const stats = this.getClientStats(dbInbound, email);
         if (!stats) return false;
         const total = stats.total ?? 0;
         const used = (stats.up ?? 0) + (stats.down ?? 0);
@@ -1557,12 +1596,18 @@
       pagination(obj) {
         if (this.pageSize > 0 && obj.length > this.pageSize) {
           // Set page options based on object size
-          sizeOptions = [];
-          for (i = this.pageSize; i <= obj.length; i = i + this.pageSize) {
-            sizeOptions.push(i.toString());
+          let sizeOptions = [this.pageSize.toString()];
+          const increments = [2, 5, 10, 20];
+          for (const m of increments) {
+            const val = this.pageSize * m;
+            if (val < obj.length && val <= 1000) {
+              sizeOptions.push(val.toString());
+            }
           }
           // Add option to see all in one page
-          sizeOptions.push(i.toString());
+          if (!sizeOptions.includes(obj.length.toString())) {
+             sizeOptions.push(obj.length.toString());
+          }
 
           p = {
             showSizeChanger: true,
@@ -1605,11 +1650,25 @@
           }
         });
 
+        // Listen for invalidate signals (sent when payload is too large for WebSocket)
+        // The server sends a lightweight notification and we re-fetch via REST API
+        let invalidateTimer = null;
+        window.wsClient.on('invalidate', (payload) => {
+          if (payload && (payload.type === 'inbounds' || payload.type === 'traffic')) {
+            // Debounce to avoid flooding the REST API with multiple invalidate signals
+            if (invalidateTimer) clearTimeout(invalidateTimer);
+            invalidateTimer = setTimeout(() => {
+              invalidateTimer = null;
+              this.getDBInbounds();
+            }, 1000);
+          }
+        });
+
         // Listen for traffic updates
         window.wsClient.on('traffic', (payload) => {
           // Note: Do NOT update total consumed traffic (stats.up, stats.down) from this event
           // because clientTraffics contains delta/incremental values, not total accumulated values.
-          // Total traffic is updated via the 'inbounds' event which contains accumulated values from database.
+          // Total traffic is updated via the 'inbounds' WebSocket event (or 'invalidate' fallback for large panels).
           
           // Update online clients list in real-time
           if (payload && Array.isArray(payload.onlineClients)) {
@@ -1627,22 +1686,27 @@
             this.onlineClients = nextOnlineClients;
             if (onlineChanged) {
               // Recalculate client counts to update online status
+              // Use $set for Vue 2 reactivity — direct array index assignment is not reactive
               this.dbInbounds.forEach(dbInbound => {
                 const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
                 if (inbound && this.clientCount[dbInbound.id]) {
-                  this.clientCount[dbInbound.id] = this.getClientCounts(dbInbound, inbound);
+                  this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
                 }
               });
 
+              // Always trigger UI refresh — not just when filter is enabled
               if (this.enableFilter) {
                 this.filterInbounds();
+              } else {
+                this.searchInbounds(this.searchKey);
               }
             }
           }
           
           // Update last online map in real-time
+          // Replace entirely (server sends the full map) to avoid unbounded growth from deleted clients
           if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
-            this.lastOnlineMap = { ...this.lastOnlineMap, ...payload.lastOnlineMap };
+            this.lastOnlineMap = payload.lastOnlineMap;
           }
         });
 
@@ -1697,4 +1761,18 @@
     },
   });
 </script>
+<style>
+  #content-layout > .ant-layout-content > .ant-spin-nested-loading > div > .ant-spin {
+    position: fixed !important;
+    top: 50vh !important;
+    left: calc(50vw + 100px) !important;
+    transform: translate(-50%, -50%);
+    z-index: 99999 !important;
+  }
+  @media (max-width: 768px) {
+    #content-layout > .ant-layout-content > .ant-spin-nested-loading > div > .ant-spin {
+      left: 50vw !important;
+    }
+  }
+</style>
 {{ template "page/body_end" .}}

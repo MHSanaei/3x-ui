@@ -247,7 +247,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			headers, _ := xhttp["headers"].(map[string]any)
 			obj["host"] = searchHost(headers)
 		}
-		obj["mode"] = xhttp["mode"].(string)
+		obj["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	obj["tls"] = security
@@ -405,7 +405,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -601,7 +601,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -800,7 +800,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 
 	security, _ := stream["security"].(string)
