@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"protocol\":\"freedom\",\"tag\":\"direct\",\"settings\":{\"domainStrategy\":\"AsIs\"}}")

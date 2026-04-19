@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"protocol\":\"vless\",\"tag\":\"vless-out\",\"settings\":{\"vnext\":[{\"address\":\"example.com\",\"port\":443,\"users\":[{\"id\":\"11111111-1111-1111-1111-111111111111\",\"encryption\":\"none\"}]}]},\"streamSettings\":{\"network\":\"tcp\",\"security\":\"none\"}}")

@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"clients\":[{\"id\":\"not-a-uuid\"}],\"decryption\":\"none\"}")

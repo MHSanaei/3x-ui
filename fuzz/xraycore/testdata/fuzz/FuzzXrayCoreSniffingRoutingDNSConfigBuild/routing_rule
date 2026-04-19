@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"domainStrategy\":\"IPIfNonMatch\",\"rules\":[{\"type\":\"field\",\"domain\":[\"domain:example.com\"],\"outboundTag\":\"direct\"}]}")

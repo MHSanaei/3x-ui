@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"tag\":\"vless-in\",\"listen\":\"127.0.0.1\",\"port\":443,\"protocol\":\"vless\",\"settings\":{\"clients\":[{\"id\":\"11111111-1111-1111-1111-111111111111\"}],\"decryption\":\"none\"}}")
