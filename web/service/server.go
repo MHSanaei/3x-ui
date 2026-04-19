@@ -1091,7 +1091,7 @@ func NormalizeGeositeCountryCodes(path string) error {
 		return fmt.Errorf("failed to serialize normalized geosite file %s: %w", path, err)
 	}
 
-	if err := os.WriteFile(path, normalized, 0644); err != nil {
+	if err := os.WriteFile(path, normalized, 0o644); err != nil {
 		return fmt.Errorf("failed to write normalized geosite file %s: %w", path, err)
 	}
 

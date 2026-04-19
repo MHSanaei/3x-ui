@@ -313,6 +313,7 @@ func normalizeExistingGeositeFiles() {
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask() {
+	normalizeExistingGeositeFiles()
 	s.customGeoService.EnsureOnStartup()
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
