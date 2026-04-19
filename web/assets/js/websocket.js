@@ -43,7 +43,7 @@ class WebSocketClient {
       this.ws.onmessage = (event) => {
         try {
           // Validate message size (prevent memory issues)
-          const maxMessageSize = 100 * 1024 * 1024; // 100MB
+          const maxMessageSize = 10 * 1024 * 1024; // 10MB
           if (event.data && event.data.length > maxMessageSize) {
             console.error('WebSocket message too large:', event.data.length, 'bytes');
             this.ws.close();

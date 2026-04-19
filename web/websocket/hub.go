@@ -262,7 +262,7 @@ func (h *Hub) Broadcast(messageType MessageType, payload any) {
 
 	// If message exceeds size limit, send a lightweight invalidate notification
 	// instead of dropping it entirely — the frontend will re-fetch via REST API
-	const maxMessageSize = 100 * 1024 * 1024 // 100MB (User override)
+	const maxMessageSize = 10 * 1024 * 1024 // 10MB
 	if len(data) > maxMessageSize {
 		logger.Debugf("WebSocket message too large (%d bytes) for type %s, sending invalidate signal", len(data), messageType)
 		h.broadcastInvalidate(messageType)
@@ -307,7 +307,7 @@ func (h *Hub) BroadcastToTopic(messageType MessageType, payload any) {
 	}
 
 	// If message exceeds size limit, send a lightweight invalidate notification
-	const maxMessageSize = 100 * 1024 * 1024 // 100MB (User override)
+	const maxMessageSize = 10 * 1024 * 1024 // 10MB
 	if len(data) > maxMessageSize {
 		logger.Debugf("WebSocket message too large (%d bytes) for type %s, sending invalidate signal", len(data), messageType)
 		h.broadcastInvalidate(messageType)

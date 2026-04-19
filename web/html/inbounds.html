@@ -1331,6 +1331,7 @@
         if (!clients || !Array.isArray(clients)) return;
         index = this.findIndexOfClient(dbInbound.protocol, clients, client);
         if (index < 0 || !clients[index]) return;
+        clients[index].enable = !clients[index].enable;
         clientId = this.getClientId(dbInbound.protocol, clients[index]);
         await this.updateClient(clients[index], dbInboundId, clientId);
         this.loading(false);
@@ -1343,7 +1344,7 @@
       },
       getInboundClients(dbInbound) {
         if (!dbInbound) return null;
-        const inbound = this.inbounds.find(ib => ib.id === dbInbound.id) || dbInbound.toInbound();
+        const inbound = dbInbound.toInbound();
         return inbound && inbound.clients ? inbound.clients : null;
       },
       resetClientTraffic(client, dbInboundId, confirmation = true) {

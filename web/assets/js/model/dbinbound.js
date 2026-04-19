@@ -90,6 +90,11 @@ class DBInbound {
         return this.expiryTime < new Date().getTime();
     }
 
+    invalidateCache() {
+        this._cachedInbound = null;
+        this._clientStatsMap = null;
+    }
+
     toInbound() {
         if (this._cachedInbound) {
             return this._cachedInbound;
