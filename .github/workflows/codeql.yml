@@ -10,6 +10,8 @@ jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
     runs-on: ${{ (matrix.language == 'swift' && 'macos-latest') || 'ubuntu-latest' }}
+    env:
+      CODEQL_ACTION_FILE_COVERAGE_ON_PRS: true
     permissions:
       security-events: write
       packages: read
