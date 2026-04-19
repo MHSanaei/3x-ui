@@ -1,10 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"net/http"
 	"text/template"
 	"time"
-	"fmt"
 
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
@@ -79,12 +79,12 @@ func (a *IndexController) login(c *gin.Context) {
 
 	if user == nil {
 		logger.Warningf("wrong username: \"%s\", password: \"%s\", IP: \"%s\"", safeUser, safePass, getRemoteIp(c))
-		
-		notifyPass := safePass 
-		
+
+		notifyPass := safePass
+
 		if checkErr != nil && checkErr.Error() == "invalid 2fa code" {
 			translatedError := a.tgbot.I18nBot("tgbot.messages.2faFailed")
-			notifyPass = fmt.Sprintf("*** (%s)", translatedError) 
+			notifyPass = fmt.Sprintf("*** (%s)", translatedError)
 		}
 
 		a.tgbot.UserLoginNotify(safeUser, notifyPass, getRemoteIp(c), timeStr, 0)

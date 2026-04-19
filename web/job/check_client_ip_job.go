@@ -3,6 +3,7 @@ package job
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"io"
 	"log"
 	"os"
@@ -10,7 +11,6 @@ import (
 	"regexp"
 	"runtime"
 	"sort"
-	"strconv"
 	"time"
 
 	"github.com/mhsanaei/3x-ui/v2/database"
@@ -32,6 +32,8 @@ type CheckClientIpJob struct {
 }
 
 var job *CheckClientIpJob
+
+const defaultXrayAPIPort = 62789
 
 // NewCheckClientIpJob creates a new client IP monitoring job instance.
 func NewCheckClientIpJob() *CheckClientIpJob {
@@ -319,13 +321,14 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		}
 	}
 
-	// Convert back to slice and sort by timestamp (newest first)
+	// Convert back to slice and sort by timestamp (oldest first)
+	// This ensures we always protect the original/current connections and ban new excess ones.
 	allIps := make([]IPWithTimestamp, 0, len(ipMap))
 	for ip, timestamp := range ipMap {
 		allIps = append(allIps, IPWithTimestamp{IP: ip, Timestamp: timestamp})
 	}
 	sort.Slice(allIps, func(i, j int) bool {
-		return allIps[i].Timestamp > allIps[j].Timestamp // Descending order (newest first)
+		return allIps[i].Timestamp < allIps[j].Timestamp // Ascending order (oldest first)
 	})
 
 	shouldCleanLog := false
@@ -345,23 +348,23 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	if len(allIps) > limitIp {
 		shouldCleanLog = true
 
-		// Keep only the newest IPs (up to limitIp)
+		// Keep the oldest IPs (currently active connections) and ban the new excess ones.
 		keptIps := allIps[:limitIp]
-		disconnectedIps := allIps[limitIp:]
+		bannedIps := allIps[limitIp:]
 
-		// Log the disconnected IPs (old ones)
-		for _, ipTime := range disconnectedIps {
+		// Log banned IPs in the format fail2ban filters expect: [LIMIT_IP] Email = X || Disconnecting OLD IP = Y || Timestamp = Z
+		for _, ipTime := range bannedIps {
 			j.disAllowedIps = append(j.disAllowedIps, ipTime.IP)
 			log.Printf("[LIMIT_IP] Email = %s || Disconnecting OLD IP = %s || Timestamp = %d", clientEmail, ipTime.IP, ipTime.Timestamp)
 		}
 
-		// Actually disconnect old IPs by temporarily removing and re-adding user
-		// This forces Xray to drop existing connections from old IPs
-		if len(disconnectedIps) > 0 {
+		// Actually disconnect banned IPs by temporarily removing and re-adding user
+		// This forces Xray to drop existing connections from banned IPs
+		if len(bannedIps) > 0 {
 			j.disconnectClientTemporarily(inbound, clientEmail, clients)
 		}
 
-		// Update database with only the newest IPs
+		// Update database with only the currently active (kept) IPs
 		jsonIps, _ := json.Marshal(keptIps)
 		inboundClientIps.Ips = string(jsonIps)
 	} else {
@@ -378,27 +381,16 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	}
 
 	if len(j.disAllowedIps) > 0 {
-		logger.Infof("[LIMIT_IP] Client %s: Kept %d newest IPs, disconnected %d old IPs", clientEmail, limitIp, len(j.disAllowedIps))
+		logger.Infof("[LIMIT_IP] Client %s: Kept %d current IPs, queued %d new IPs for fail2ban", clientEmail, limitIp, len(j.disAllowedIps))
 	}
 
 	return shouldCleanLog
 }
 
-// disconnectClientTemporarily removes and re-adds a client to force disconnect old connections
+// disconnectClientTemporarily removes and re-adds a client to force disconnect banned connections
 func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, clientEmail string, clients []model.Client) {
 	var xrayAPI xray.XrayAPI
-
-	// Get panel settings for API port
-	db := database.GetDB()
-	var apiPort int
-	var apiPortSetting model.Setting
-	if err := db.Where("key = ?", "xrayApiPort").First(&apiPortSetting).Error; err == nil {
-		apiPort, _ = strconv.Atoi(apiPortSetting.Value)
-	}
-
-	if apiPort == 0 {
-		apiPort = 10085 // Default API port
-	}
+	apiPort := j.resolveXrayAPIPort()
 
 	err := xrayAPI.Init(apiPort)
 	if err != nil {
@@ -422,6 +414,29 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 		return
 	}
 
+	// Only perform remove/re-add for protocols supported by XrayAPI.AddUser
+	protocol := string(inbound.Protocol)
+	switch protocol {
+	case "vmess", "vless", "trojan", "shadowsocks":
+		// supported protocols, continue
+	default:
+		logger.Warningf("[LIMIT_IP] Temporary disconnect is not supported for protocol %s on inbound %s", protocol, inbound.Tag)
+		return
+	}
+
+	// For Shadowsocks, ensure the required "cipher" field is present by
+	// reading it from the inbound settings (e.g., settings["method"]).
+	if string(inbound.Protocol) == "shadowsocks" {
+		var inboundSettings map[string]any
+		if err := json.Unmarshal([]byte(inbound.Settings), &inboundSettings); err != nil {
+			logger.Warningf("[LIMIT_IP] Failed to parse inbound settings for shadowsocks cipher: %v", err)
+		} else {
+			if method, ok := inboundSettings["method"].(string); ok && method != "" {
+				clientConfig["cipher"] = method
+			}
+		}
+	}
+
 	// Remove user to disconnect all connections
 	err = xrayAPI.RemoveUser(inbound.Tag, clientEmail)
 	if err != nil {
@@ -433,10 +448,67 @@ func (j *CheckClientIpJob) disconnectClientTemporarily(inbound *model.Inbound, c
 	time.Sleep(100 * time.Millisecond)
 
 	// Re-add user to allow new connections
-	err = xrayAPI.AddUser(string(inbound.Protocol), inbound.Tag, clientConfig)
+	err = xrayAPI.AddUser(protocol, inbound.Tag, clientConfig)
 	if err != nil {
 		logger.Warningf("[LIMIT_IP] Failed to re-add user %s: %v", clientEmail, err)
 	}
+}
+
+// resolveXrayAPIPort returns the API inbound port from running config, then template config, then default.
+func (j *CheckClientIpJob) resolveXrayAPIPort() int {
+	var configErr error
+	var templateErr error
+
+	if port, err := getAPIPortFromConfigPath(xray.GetConfigPath()); err == nil {
+		return port
+	} else {
+		configErr = err
+	}
+
+	db := database.GetDB()
+	var template model.Setting
+	if err := db.Where("key = ?", "xrayTemplateConfig").First(&template).Error; err == nil {
+		if port, parseErr := getAPIPortFromConfigData([]byte(template.Value)); parseErr == nil {
+			return port
+		} else {
+			templateErr = parseErr
+		}
+	} else {
+		templateErr = err
+	}
+
+	logger.Warningf(
+		"[LIMIT_IP] Could not determine Xray API port from config or template; falling back to default port %d (config error: %v, template error: %v)",
+		defaultXrayAPIPort,
+		configErr,
+		templateErr,
+	)
+
+	return defaultXrayAPIPort
+}
+
+func getAPIPortFromConfigPath(configPath string) (int, error) {
+	configData, err := os.ReadFile(configPath)
+	if err != nil {
+		return 0, err
+	}
+
+	return getAPIPortFromConfigData(configData)
+}
+
+func getAPIPortFromConfigData(configData []byte) (int, error) {
+	xrayConfig := &xray.Config{}
+	if err := json.Unmarshal(configData, xrayConfig); err != nil {
+		return 0, err
+	}
+
+	for _, inboundConfig := range xrayConfig.InboundConfigs {
+		if inboundConfig.Tag == "api" && inboundConfig.Port > 0 {
+			return inboundConfig.Port, nil
+		}
+	}
+
+	return 0, errors.New("api inbound port not found")
 }
 
 func (j *CheckClientIpJob) getInboundByEmail(clientEmail string) (*model.Inbound, error) {
