@@ -1905,6 +1905,16 @@ func (s *InboundService) ResetAllTraffics() error {
 	return err
 }
 
+func (s *InboundService) ResetInboundTraffic(id int) error {
+	db := database.GetDB()
+
+	result := db.Model(model.Inbound{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"up": 0, "down": 0})
+
+	return result.Error
+}
+
 func (s *InboundService) DelDepletedClients(id int) (err error) {
 	db := database.GetDB()
 	tx := db.Begin()

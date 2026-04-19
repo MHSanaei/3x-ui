@@ -1371,14 +1371,15 @@ ssl_cert_issue() {
         break
     done
     LOGD "Your domain is: ${domain}, checking it..."
+    SSL_ISSUED_DOMAIN="${domain}"
 
-    # check if there already exists a certificate
-    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
-    if [ "${currentCert}" == "${domain}" ]; then
-        local certInfo=$(~/.acme.sh/acme.sh --list)
-        LOGE "System already has certificates for this domain. Cannot issue again. Current certificate details:"
-        LOGI "$certInfo"
-        exit 1
+    # detect existing certificate and reuse it if present
+    local cert_exists=0
+    if ~/.acme.sh/acme.sh --list 2>/dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+        cert_exists=1
+        local certInfo=$(~/.acme.sh/acme.sh --list 2>/dev/null | grep -F "${domain}")
+        LOGI "Existing certificate found for ${domain}, will reuse it."
+        [[ -n "${certInfo}" ]] && LOGI "${certInfo}"
     else
         LOGI "Your domain is ready for issuing certificates now..."
     fi
@@ -1401,15 +1402,19 @@ ssl_cert_issue() {
     fi
     LOGI "Will use port: ${WebPort} to issue certificates. Please make sure this port is open."
 
-    # issue the certificate
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
-    if [ $? -ne 0 ]; then
-        LOGE "Issuing certificate failed, please check logs."
-        rm -rf ~/.acme.sh/${domain}
-        exit 1
+    if [[ ${cert_exists} -eq 0 ]]; then
+        # issue the certificate
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        if [ $? -ne 0 ]; then
+            LOGE "Issuing certificate failed, please check logs."
+            rm -rf ~/.acme.sh/${domain}
+            exit 1
+        else
+            LOGE "Issuing certificate succeeded, installing certificates..."
+        fi
     else
-        LOGE "Issuing certificate succeeded, installing certificates..."
+        LOGI "Using existing certificate, installing certificates..."
     fi
 
     reloadCmd="x-ui restart"
@@ -1439,16 +1444,26 @@ ssl_cert_issue() {
     fi
 
     # install the certificate
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+    local installOutput=""
+    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}"
+        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
+    local installRc=$?
+    echo "${installOutput}"
 
-    if [ $? -ne 0 ]; then
-        LOGE "Installing certificate failed, exiting."
-        rm -rf ~/.acme.sh/${domain}
-        exit 1
-    else
+    local installWroteFiles=0
+    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
+        installWroteFiles=1
+    fi
+
+    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && ( ${installRc} -eq 0 || ${installWroteFiles} -eq 1 ) ]]; then
         LOGI "Installing certificate succeeded, enabling auto renew..."
+    else
+        LOGE "Installing certificate failed, exiting."
+        if [[ ${cert_exists} -eq 0 ]]; then
+            rm -rf ~/.acme.sh/${domain}
+        fi
+        exit 1
     fi
 
     # enable auto-renew
