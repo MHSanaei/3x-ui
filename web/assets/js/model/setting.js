@@ -38,6 +38,8 @@ class AllSetting {
         this.subPort = 2096;
         this.subPath = "/sub/";
         this.subJsonPath = "/json/";
+        this.subClashEnable = true;
+        this.subClashPath = "/clash/";
         this.subDomain = "";
         this.subDefaultHost = "";
         this.externalTrafficInformEnable = false;
@@ -49,6 +51,7 @@ class AllSetting {
         this.subShowInfo = true;
         this.subURI = "";
         this.subJsonURI = "";
+        this.subClashURI = "";
         this.subJsonFragment = "";
         this.subJsonNoises = "";
         this.subJsonMux = "";

@@ -296,7 +296,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string, requestH
 			headers, _ := xhttp["headers"].(map[string]any)
 			obj["host"] = searchHost(headers)
 		}
-		obj["mode"] = xhttp["mode"].(string)
+		obj["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	obj["tls"] = security
@@ -442,7 +442,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string, requestH
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -630,7 +630,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string, request
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -821,7 +821,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string, re
 			headers, _ := xhttp["headers"].(map[string]any)
 			params["host"] = searchHost(headers)
 		}
-		params["mode"] = xhttp["mode"].(string)
+		params["mode"], _ = xhttp["mode"].(string)
 	}
 
 	security, _ := stream["security"].(string)
@@ -1053,6 +1053,7 @@ type PageData struct {
 	TotalByte    int64
 	SubUrl       string
 	SubJsonUrl   string
+	SubClashUrl  string
 	Result       []string
 }
 
@@ -1102,29 +1103,25 @@ func (s *SubService) ResolveRequest(c *gin.Context) (scheme string, host string,
 
 // BuildURLs constructs absolute subscription and JSON subscription URLs for a given subscription ID.
 // It prioritizes configured URIs, then individual settings, and finally falls back to request-derived components.
-func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subId string) (subURL, subJsonURL string) {
-	// Input validation
+func (s *SubService) BuildURLs(scheme, hostWithPort, subPath, subJsonPath, subClashPath, subId string) (subURL, subJsonURL, subClashURL string) {
 	if subId == "" {
-		return "", ""
+		return "", "", ""
 	}
 
-	// Get configured URIs first (highest priority)
 	configuredSubURI, _ := s.settingService.GetSubURI()
 	configuredSubJsonURI, _ := s.settingService.GetSubJsonURI()
+	configuredSubClashURI, _ := s.settingService.GetSubClashURI()
 
-	// Determine base scheme and host (cached to avoid duplicate calls)
 	var baseScheme, baseHostWithPort string
-	if configuredSubURI == "" || configuredSubJsonURI == "" {
+	if configuredSubURI == "" || configuredSubJsonURI == "" || configuredSubClashURI == "" {
 		baseScheme, baseHostWithPort = s.getBaseSchemeAndHost(scheme, hostWithPort)
 	}
 
-	// Build subscription URL
 	subURL = s.buildSingleURL(configuredSubURI, baseScheme, baseHostWithPort, subPath, subId)
-
-	// Build JSON subscription URL
 	subJsonURL = s.buildSingleURL(configuredSubJsonURI, baseScheme, baseHostWithPort, subJsonPath, subId)
+	subClashURL = s.buildSingleURL(configuredSubClashURI, baseScheme, baseHostWithPort, subClashPath, subId)
 
-	return subURL, subJsonURL
+	return subURL, subJsonURL, subClashURL
 }
 
 // getBaseSchemeAndHost determines the base scheme and host from settings or falls back to request values
@@ -1171,7 +1168,7 @@ func (s *SubService) joinPathWithID(basePath, subId string) string {
 
 // BuildPageData parses header and prepares the template view model.
 // BuildPageData constructs page data for rendering the subscription information page.
-func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL string, basePath string) PageData {
+func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray.ClientTraffic, lastOnline int64, subs []string, subURL, subJsonURL, subClashURL string, basePath string) PageData {
 	download := common.FormatTraffic(traffic.Down)
 	upload := common.FormatTraffic(traffic.Up)
 	total := "∞"
@@ -1205,6 +1202,7 @@ func (s *SubService) BuildPageData(subId string, hostHeader string, traffic xray
 		TotalByte:    traffic.Total,
 		SubUrl:       subURL,
 		SubJsonUrl:   subJsonURL,
+		SubClashUrl:  subClashURL,
 		Result:       subs,
 	}
 }
