@@ -6,6 +6,7 @@ package iptables
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -48,10 +49,23 @@ func FlushChain() error {
 
 // BlockIP inserts a DROP rule for the given source IP on the given TCP destination
 // port into the custom chain. The comment embeds the current Unix timestamp so
-// the rule can be age-checked later.
+// the rule can be age-checked later. Duplicate rules are skipped.
 func BlockIP(ip string, port int) error {
+	if net.ParseIP(ip) == nil {
+		return fmt.Errorf("invalid IP address: %s", ip)
+	}
+
+	// Skip if an identical rule already exists
+	_, err := run("iptables", "-C", chain,
+		"-s", ip,
+		"-p", "tcp", "--dport", strconv.Itoa(port),
+		"-j", "DROP")
+	if err == nil {
+		return nil
+	}
+
 	comment := fmt.Sprintf("3xui:block:%d", time.Now().Unix())
-	_, err := run("iptables", "-I", chain,
+	_, err = run("iptables", "-I", chain,
 		"-s", ip,
 		"-p", "tcp", "--dport", strconv.Itoa(port),
 		"-m", "comment", "--comment", comment,
@@ -64,6 +78,9 @@ func BlockIP(ip string, port int) error {
 
 // UnblockIP removes the DROP rule for the given source IP and TCP destination port.
 func UnblockIP(ip string, port int) error {
+	if net.ParseIP(ip) == nil {
+		return fmt.Errorf("invalid IP address: %s", ip)
+	}
 	_, err := run("iptables", "-D", chain,
 		"-s", ip,
 		"-p", "tcp", "--dport", strconv.Itoa(port),
@@ -154,7 +171,7 @@ func findComment(ip string, port int) string {
 	if err != nil {
 		return ""
 	}
-	needle := fmt.Sprintf("-s %s", ip)
+	needle := fmt.Sprintf("-s %s/32", ip)
 	dport := fmt.Sprintf("--dport %d", port)
 	for _, line := range strings.Split(out, "\n") {
 		if strings.Contains(line, needle) && strings.Contains(line, dport) {

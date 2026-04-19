@@ -2532,19 +2532,16 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 	return needRestart, db.Save(oldInbound).Error
 }
 
-// blockClientIPs inserts iptables DROP rules for all known IPs of the given client.
-// Failures are logged as warnings so a missing iptables binary does not break the
-// normal disable flow.
-func (s *InboundService) blockClientIPs(email string) {
+// clientIPsForFirewall returns the list of known IP addresses and the inbound port for a client.
+func (s *InboundService) clientIPsForFirewall(email string) ([]string, int) {
 	ipsJSON, err := s.GetInboundClientIps(email)
 	if err != nil || ipsJSON == "" {
-		return
+		return nil, 0
 	}
 	_, inbound, err := s.GetClientInboundByEmail(email)
 	if err != nil || inbound == nil {
-		return
+		return nil, 0
 	}
-	port := inbound.Port
 
 	type IPWithTimestamp struct {
 		IP        string `json:"ip"`
@@ -2552,57 +2549,37 @@ func (s *InboundService) blockClientIPs(email string) {
 	}
 	var ipsWithTime []IPWithTimestamp
 	if err := json.Unmarshal([]byte(ipsJSON), &ipsWithTime); err != nil {
-		// Try simple string-array format
 		var simpleIPs []string
 		if err2 := json.Unmarshal([]byte(ipsJSON), &simpleIPs); err2 != nil {
-			return
+			return nil, 0
 		}
-		for _, ip := range simpleIPs {
-			if berr := iptables.BlockIP(ip, port); berr != nil {
-				logger.Warning("blockClientIPs: failed to block", ip, berr)
-			}
-		}
-		return
+		return simpleIPs, inbound.Port
 	}
+	ips := make([]string, 0, len(ipsWithTime))
 	for _, entry := range ipsWithTime {
-		if berr := iptables.BlockIP(entry.IP, port); berr != nil {
-			logger.Warning("blockClientIPs: failed to block", entry.IP, berr)
+		ips = append(ips, entry.IP)
+	}
+	return ips, inbound.Port
+}
+
+// blockClientIPs inserts iptables DROP rules for all known IPs of the given client.
+// Failures are logged as warnings so a missing iptables binary does not break the
+// normal disable flow.
+func (s *InboundService) blockClientIPs(email string) {
+	ips, port := s.clientIPsForFirewall(email)
+	for _, ip := range ips {
+		if err := iptables.BlockIP(ip, port); err != nil {
+			logger.Warning("blockClientIPs: failed to block", ip, err)
 		}
 	}
 }
 
 // unblockClientIPs removes iptables DROP rules for all known IPs of the given client.
 func (s *InboundService) unblockClientIPs(email string) {
-	ipsJSON, err := s.GetInboundClientIps(email)
-	if err != nil || ipsJSON == "" {
-		return
-	}
-	_, inbound, err := s.GetClientInboundByEmail(email)
-	if err != nil || inbound == nil {
-		return
-	}
-	port := inbound.Port
-
-	type IPWithTimestamp struct {
-		IP        string `json:"ip"`
-		Timestamp int64  `json:"timestamp"`
-	}
-	var ipsWithTime []IPWithTimestamp
-	if err := json.Unmarshal([]byte(ipsJSON), &ipsWithTime); err != nil {
-		var simpleIPs []string
-		if err2 := json.Unmarshal([]byte(ipsJSON), &simpleIPs); err2 != nil {
-			return
-		}
-		for _, ip := range simpleIPs {
-			if uerr := iptables.UnblockIP(ip, port); uerr != nil {
-				logger.Debug("unblockClientIPs: failed to unblock", ip, uerr)
-			}
-		}
-		return
-	}
-	for _, entry := range ipsWithTime {
-		if uerr := iptables.UnblockIP(entry.IP, port); uerr != nil {
-			logger.Debug("unblockClientIPs: failed to unblock", entry.IP, uerr)
+	ips, port := s.clientIPsForFirewall(email)
+	for _, ip := range ips {
+		if err := iptables.UnblockIP(ip, port); err != nil {
+			logger.Debug("unblockClientIPs: failed to unblock", ip, err)
 		}
 	}
 }
