@@ -14,13 +14,18 @@ type NordService struct {
 	SettingService
 }
 
+var nordHTTPClient = &http.Client{Timeout: 15 * time.Second}
+
+// maxResponseSize limits the maximum size of NordVPN API responses (10 MB).
+const maxResponseSize = 10 << 20
+
 func (s *NordService) GetCountries() (string, error) {
-	resp, err := http.Get("https://api.nordvpn.com/v1/countries")
+	resp, err := nordHTTPClient.Get("https://api.nordvpn.com/v1/countries")
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
 	}
@@ -28,13 +33,19 @@ func (s *NordService) GetCountries() (string, error) {
 }
 
 func (s *NordService) GetServers(countryId string) (string, error) {
+	// Validate countryId is numeric to prevent URL injection
+	for _, c := range countryId {
+		if c < '0' || c > '9' {
+			return "", common.NewError("invalid country ID")
+		}
+	}
 	url := fmt.Sprintf("https://api.nordvpn.com/v2/servers?limit=0&filters[servers_technologies][id]=35&filters[country_id]=%s", countryId)
-	resp, err := http.Get(url)
+	resp, err := nordHTTPClient.Get(url)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
 	}
@@ -63,12 +74,18 @@ func (s *NordService) GetServers(countryId string) (string, error) {
 }
 
 func (s *NordService) SetKey(privateKey string) (string, error) {
+	if privateKey == "" {
+		return "", common.NewError("private key cannot be empty")
+	}
 	nordData := map[string]string{
 		"private_key": privateKey,
-		"token":       "", // No token for manual key
+		"token":       "",
 	}
 	data, _ := json.Marshal(nordData)
-	s.SettingService.SetNord(string(data))
+	err := s.SettingService.SetNord(string(data))
+	if err != nil {
+		return "", err
+	}
 	return string(data), nil
 }
 
@@ -91,7 +108,7 @@ func (s *NordService) GetCredentials(token string) (string, error) {
 		return "", common.NewErrorf("NordVPN API error: %s", resp.Status)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseSize))
 	if err != nil {
 		return "", err
 	}
@@ -111,7 +128,10 @@ func (s *NordService) GetCredentials(token string) (string, error) {
 		"token":       token,
 	}
 	data, _ := json.Marshal(nordData)
-	s.SettingService.SetNord(string(data))
+	err = s.SettingService.SetNord(string(data))
+	if err != nil {
+		return "", err
+	}
 
 	return string(data), nil
 }

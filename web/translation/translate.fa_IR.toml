@@ -582,6 +582,8 @@
 "country" = "کشور"
 "server" = "سرور"
 "privateKey" = "کلید خصوصی"
+"city" = "شهر"
+"allCities" = "همه شهرها"
 "load" = "فشار سرور"
 
 [pages.xray.balancer]
