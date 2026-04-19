@@ -1,9 +1,11 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -43,6 +45,7 @@ var (
 	ErrCustomGeoDuplicateAlias = errors.New("custom_geo_duplicate_alias")
 	ErrCustomGeoNotFound       = errors.New("custom_geo_not_found")
 	ErrCustomGeoDownload       = errors.New("custom_geo_download")
+	ErrCustomGeoSSRFBlocked    = errors.New("custom_geo_ssrf_blocked")
 )
 
 type CustomGeoUpdateAllItem struct {
@@ -111,21 +114,24 @@ func (s *CustomGeoService) validateAlias(alias string) error {
 	return nil
 }
 
-func (s *CustomGeoService) validateURL(raw string) error {
+func (s *CustomGeoService) sanitizeURL(raw string) (string, error) {
 	if raw == "" {
-		return ErrCustomGeoURLRequired
+		return "", ErrCustomGeoURLRequired
 	}
 	u, err := url.Parse(raw)
 	if err != nil {
-		return ErrCustomGeoInvalidURL
+		return "", ErrCustomGeoInvalidURL
 	}
 	if u.Scheme != "http" && u.Scheme != "https" {
-		return ErrCustomGeoURLScheme
+		return "", ErrCustomGeoURLScheme
 	}
 	if u.Host == "" {
-		return ErrCustomGeoURLHost
+		return "", ErrCustomGeoURLHost
 	}
-	return nil
+	if err := checkSSRF(u.Hostname()); err != nil {
+		return "", err
+	}
+	return u.String(), nil
 }
 
 func localDatFileNeedsRepair(path string) bool {
@@ -143,8 +149,46 @@ func CustomGeoLocalFileNeedsRepair(path string) bool {
 	return localDatFileNeedsRepair(path)
 }
 
+func isBlockedIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast() ||
+		ip.IsLinkLocalMulticast() || ip.IsUnspecified()
+}
+
+// checkSSRFDefault validates that the given host does not resolve to a private/internal IP.
+func checkSSRFDefault(hostname string) error {
+	ips, err := net.LookupIP(hostname)
+	if err != nil {
+		return fmt.Errorf("%w: cannot resolve host %s", ErrCustomGeoSSRFBlocked, hostname)
+	}
+	for _, ip := range ips {
+		if isBlockedIP(ip) {
+			return fmt.Errorf("%w: %s resolves to blocked address %s", ErrCustomGeoSSRFBlocked, hostname, ip)
+		}
+	}
+	return nil
+}
+
+// checkSSRF is the active SSRF guard. Override in tests to allow localhost test servers.
+var checkSSRF = checkSSRFDefault
+
+func ssrfSafeTransport() *http.Transport {
+	return &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, fmt.Errorf("%w: %v", ErrCustomGeoSSRFBlocked, err)
+			}
+			if err := checkSSRF(host); err != nil {
+				return nil, err
+			}
+			var dialer net.Dialer
+			return dialer.DialContext(ctx, network, addr)
+		},
+	}
+}
+
 func probeCustomGeoURLWithGET(rawURL string) error {
-	client := &http.Client{Timeout: customGeoProbeTimeout}
+	client := &http.Client{Timeout: customGeoProbeTimeout, Transport: ssrfSafeTransport()}
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err
@@ -165,7 +209,7 @@ func probeCustomGeoURLWithGET(rawURL string) error {
 }
 
 func probeCustomGeoURL(rawURL string) error {
-	client := &http.Client{Timeout: customGeoProbeTimeout}
+	client := &http.Client{Timeout: customGeoProbeTimeout, Transport: ssrfSafeTransport()}
 	req, err := http.NewRequest(http.MethodHead, rawURL, nil)
 	if err != nil {
 		return err
@@ -199,10 +243,12 @@ func (s *CustomGeoService) EnsureOnStartup() {
 	logger.Infof("custom geo startup: checking %d custom geofile(s)", n)
 	for i := range list {
 		r := &list[i]
-		if err := s.validateURL(r.Url); err != nil {
+		sanitizedURL, err := s.sanitizeURL(r.Url)
+		if err != nil {
 			logger.Warningf("custom geo startup id=%d: invalid url: %v", r.Id, err)
 			continue
 		}
+		r.Url = sanitizedURL
 		s.syncLocalPath(r)
 		localPath := r.LocalPath
 		if !localDatFileNeedsRepair(localPath) {
@@ -250,7 +296,7 @@ func (s *CustomGeoService) downloadToPathOnce(resourceURL, destPath string, last
 		}
 	}
 
-	client := &http.Client{Timeout: 10 * time.Minute}
+	client := &http.Client{Timeout: 10 * time.Minute, Transport: ssrfSafeTransport()}
 	resp, err := client.Do(req)
 	if err != nil {
 		return false, "", fmt.Errorf("%w: %v", ErrCustomGeoDownload, err)
@@ -338,9 +384,11 @@ func (s *CustomGeoService) Create(r *model.CustomGeoResource) error {
 	if err := s.validateAlias(r.Alias); err != nil {
 		return err
 	}
-	if err := s.validateURL(r.Url); err != nil {
+	sanitizedURL, err := s.sanitizeURL(r.Url)
+	if err != nil {
 		return err
 	}
+	r.Url = sanitizedURL
 	var existing int64
 	database.GetDB().Model(&model.CustomGeoResource{}).
 		Where("geo_type = ? AND alias = ?", r.Type, r.Alias).Count(&existing)
@@ -380,9 +428,11 @@ func (s *CustomGeoService) Update(id int, r *model.CustomGeoResource) error {
 	if err := s.validateAlias(r.Alias); err != nil {
 		return err
 	}
-	if err := s.validateURL(r.Url); err != nil {
+	sanitizedURL, err := s.sanitizeURL(r.Url)
+	if err != nil {
 		return err
 	}
+	r.Url = sanitizedURL
 	if cur.Type != r.Type || cur.Alias != r.Alias {
 		var cnt int64
 		database.GetDB().Model(&model.CustomGeoResource{}).
@@ -468,7 +518,11 @@ func (s *CustomGeoService) applyDownloadAndPersist(id int, onStartup bool) (disp
 	}
 	displayName = s.fileNameFor(r.Type, r.Alias)
 	s.syncLocalPath(&r)
-	skipped, lm, err := s.downloadToPath(r.Url, r.LocalPath, r.LastModified)
+	sanitizedURL, sanitizeErr := s.sanitizeURL(r.Url)
+	if sanitizeErr != nil {
+		return displayName, sanitizeErr
+	}
+	skipped, lm, err := s.downloadToPath(sanitizedURL, r.LocalPath, r.LastModified)
 	if err != nil {
 		if onStartup {
 			logger.Warningf("custom geo startup download id=%d: %v", id, err)

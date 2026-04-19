@@ -758,13 +758,13 @@ func extractHostname(host string) string {
 func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 	type settingFunc func() (any, error)
 	settings := map[string]settingFunc{
-		"expireDiff":    func() (any, error) { return s.GetExpireDiff() },
-		"trafficDiff":   func() (any, error) { return s.GetTrafficDiff() },
-		"pageSize":      func() (any, error) { return s.GetPageSize() },
-		"defaultCert":   func() (any, error) { return s.GetCertFile() },
-		"defaultKey":    func() (any, error) { return s.GetKeyFile() },
-		"tgBotEnable":   func() (any, error) { return s.GetTgbotEnabled() },
-		"subEnable":     func() (any, error) { return s.GetSubEnable() },
+		"expireDiff":     func() (any, error) { return s.GetExpireDiff() },
+		"trafficDiff":    func() (any, error) { return s.GetTrafficDiff() },
+		"pageSize":       func() (any, error) { return s.GetPageSize() },
+		"defaultCert":    func() (any, error) { return s.GetCertFile() },
+		"defaultKey":     func() (any, error) { return s.GetKeyFile() },
+		"tgBotEnable":    func() (any, error) { return s.GetTgbotEnabled() },
+		"subEnable":      func() (any, error) { return s.GetSubEnable() },
 		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
 		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },
 		"subTitle":       func() (any, error) { return s.GetSubTitle() },
@@ -772,8 +772,8 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"subJsonURI":     func() (any, error) { return s.GetSubJsonURI() },
 		"subClashURI":    func() (any, error) { return s.GetSubClashURI() },
 		"remarkModel":    func() (any, error) { return s.GetRemarkModel() },
-		"datepicker":    func() (any, error) { return s.GetDatepicker() },
-		"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
+		"datepicker":     func() (any, error) { return s.GetDatepicker() },
+		"ipLimitEnable":  func() (any, error) { return s.GetIpLimitEnable() },
 	}
 
 	result := make(map[string]any)

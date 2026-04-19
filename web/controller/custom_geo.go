@@ -62,6 +62,9 @@ func mapCustomGeoErr(c *gin.Context, err error) error {
 	case errors.Is(err, service.ErrCustomGeoDownload):
 		logger.Warning("custom geo download:", err)
 		return errors.New(I18nWeb(c, "pages.index.customGeoErrDownload"))
+	case errors.Is(err, service.ErrCustomGeoSSRFBlocked):
+		logger.Warning("custom geo SSRF blocked:", err)
+		return errors.New(I18nWeb(c, "pages.index.customGeoErrUrlHost"))
 	default:
 		return err
 	}
