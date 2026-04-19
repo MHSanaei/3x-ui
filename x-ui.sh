@@ -243,8 +243,9 @@ reset_user() {
 
 gen_random_string() {
     local length="$1"
-    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
-    echo "$random_string"
+    openssl rand -base64 $(( length * 2 )) \
+        | tr -dc 'a-zA-Z0-9' \
+        | head -c "$length"
 }
 
 reset_webbasepath() {
@@ -317,12 +318,12 @@ check_config() {
                 start >/dev/null 2>&1
             else
                 LOGE "IP certificate setup failed."
-                echo -e "${yellow}You can try again via option 18 (SSL Certificate Management).${plain}"
+                echo -e "${yellow}You can try again via option 19 (SSL Certificate Management).${plain}"
                 start >/dev/null 2>&1
             fi
         else
             echo -e "${yellow}Access URL: http://${server_ip}:${existing_port}${existing_webBasePath}${plain}"
-            echo -e "${yellow}For security, please configure SSL certificate using option 18 (SSL Certificate Management)${plain}"
+            echo -e "${yellow}For security, please configure SSL certificate using option 19 (SSL Certificate Management)${plain}"
         fi
     fi
 }
@@ -408,6 +409,16 @@ restart() {
     fi
 }
 
+restart_xray() {
+    systemctl reload x-ui
+    LOGI "xray-core Restart signal sent successfully, Please check the log information to confirm whether xray restarted successfully"
+    sleep 2
+    show_xray_status
+    if [[ $# == 0 ]]; then
+        before_show_menu
+    fi
+}
+
 status() {
     if [[ $release == "alpine" ]]; then
         rc-service x-ui status
@@ -421,7 +432,7 @@ status() {
 
 enable() {
     if [[ $release == "alpine" ]]; then
-        rc-update add x-ui
+        rc-update add x-ui default
     else
         systemctl enable x-ui
     fi
@@ -1360,14 +1371,15 @@ ssl_cert_issue() {
         break
     done
     LOGD "Your domain is: ${domain}, checking it..."
+    SSL_ISSUED_DOMAIN="${domain}"
 
-    # check if there already exists a certificate
-    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
-    if [ "${currentCert}" == "${domain}" ]; then
-        local certInfo=$(~/.acme.sh/acme.sh --list)
-        LOGE "System already has certificates for this domain. Cannot issue again. Current certificate details:"
-        LOGI "$certInfo"
-        exit 1
+    # detect existing certificate and reuse it if present
+    local cert_exists=0
+    if ~/.acme.sh/acme.sh --list 2>/dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+        cert_exists=1
+        local certInfo=$(~/.acme.sh/acme.sh --list 2>/dev/null | grep -F "${domain}")
+        LOGI "Existing certificate found for ${domain}, will reuse it."
+        [[ -n "${certInfo}" ]] && LOGI "${certInfo}"
     else
         LOGI "Your domain is ready for issuing certificates now..."
     fi
@@ -1390,15 +1402,19 @@ ssl_cert_issue() {
     fi
     LOGI "Will use port: ${WebPort} to issue certificates. Please make sure this port is open."
 
-    # issue the certificate
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
-    if [ $? -ne 0 ]; then
-        LOGE "Issuing certificate failed, please check logs."
-        rm -rf ~/.acme.sh/${domain}
-        exit 1
+    if [[ ${cert_exists} -eq 0 ]]; then
+        # issue the certificate
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        if [ $? -ne 0 ]; then
+            LOGE "Issuing certificate failed, please check logs."
+            rm -rf ~/.acme.sh/${domain}
+            exit 1
+        else
+            LOGE "Issuing certificate succeeded, installing certificates..."
+        fi
     else
-        LOGE "Issuing certificate succeeded, installing certificates..."
+        LOGI "Using existing certificate, installing certificates..."
     fi
 
     reloadCmd="x-ui restart"
@@ -1428,16 +1444,26 @@ ssl_cert_issue() {
     fi
 
     # install the certificate
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+    local installOutput=""
+    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}"
+        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
+    local installRc=$?
+    echo "${installOutput}"
 
-    if [ $? -ne 0 ]; then
-        LOGE "Installing certificate failed, exiting."
-        rm -rf ~/.acme.sh/${domain}
-        exit 1
-    else
+    local installWroteFiles=0
+    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
+        installWroteFiles=1
+    fi
+
+    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && ( ${installRc} -eq 0 || ${installWroteFiles} -eq 1 ) ]]; then
         LOGI "Installing certificate succeeded, enabling auto renew..."
+    else
+        LOGE "Installing certificate failed, exiting."
+        if [[ ${cert_exists} -eq 0 ]]; then
+            rm -rf ~/.acme.sh/${domain}
+        fi
+        exit 1
     fi
 
     # enable auto-renew
@@ -2002,7 +2028,7 @@ EOF
     cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
 datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
-failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*SRC\s*=\s*<ADDR>
+failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 ignoreregex =
 EOF
 
@@ -2154,6 +2180,7 @@ show_usage() {
 │  ${blue}x-ui start${plain}                 - Start                            │
 │  ${blue}x-ui stop${plain}                  - Stop                             │
 │  ${blue}x-ui restart${plain}               - Restart                          │
+|  ${blue}x-ui restart-xray${plain}          - Restart Xray                     │
 │  ${blue}x-ui status${plain}                - Current Status                   │
 │  ${blue}x-ui settings${plain}              - Current Settings                 │
 │  ${blue}x-ui enable${plain}                - Enable Autostart on OS Startup   │
@@ -2189,25 +2216,26 @@ show_menu() {
 │  ${green}11.${plain} Start                                     │
 │  ${green}12.${plain} Stop                                      │
 │  ${green}13.${plain} Restart                                   │
-│  ${green}14.${plain} Check Status                              │
-│  ${green}15.${plain} Logs Management                           │
+|  ${green}14.${plain} Restart Xray                              │
+│  ${green}15.${plain} Check Status                              │
+│  ${green}16.${plain} Logs Management                           │
 │────────────────────────────────────────────────│
-│  ${green}16.${plain} Enable Autostart                          │
-│  ${green}17.${plain} Disable Autostart                         │
+│  ${green}17.${plain} Enable Autostart                          │
+│  ${green}18.${plain} Disable Autostart                         │
 │────────────────────────────────────────────────│
-│  ${green}18.${plain} SSL Certificate Management                │
-│  ${green}19.${plain} Cloudflare SSL Certificate                │
-│  ${green}20.${plain} IP Limit Management                       │
-│  ${green}21.${plain} Firewall Management                       │
-│  ${green}22.${plain} SSH Port Forwarding Management            │
+│  ${green}19.${plain} SSL Certificate Management                │
+│  ${green}20.${plain} Cloudflare SSL Certificate                │
+│  ${green}21.${plain} IP Limit Management                       │
+│  ${green}22.${plain} Firewall Management                       │
+│  ${green}23.${plain} SSH Port Forwarding Management            │
 │────────────────────────────────────────────────│
-│  ${green}23.${plain} Enable BBR                                │
-│  ${green}24.${plain} Update Geo Files                          │
-│  ${green}25.${plain} Speedtest by Ookla                        │
+│  ${green}24.${plain} Enable BBR                                │
+│  ${green}25.${plain} Update Geo Files                          │
+│  ${green}26.${plain} Speedtest by Ookla                        │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-25]: " num
+    echo && read -rp "Please enter your selection [0-26]: " num
 
     case "${num}" in
     0)
@@ -2253,43 +2281,46 @@ show_menu() {
         check_install && restart
         ;;
     14)
-        check_install && status
+        check_install && restart_xray
         ;;
     15)
-        check_install && show_log
+        check_install && status
         ;;
     16)
-        check_install && enable
+        check_install && show_log
         ;;
     17)
-        check_install && disable
+        check_install && enable
         ;;
     18)
-        ssl_cert_issue_main
+        check_install && disable
         ;;
     19)
-        ssl_cert_issue_CF
+        ssl_cert_issue_main
         ;;
     20)
-        iplimit_main
+        ssl_cert_issue_CF
         ;;
     21)
-        firewall_menu
+        iplimit_main
         ;;
     22)
-        SSH_port_forwarding
+        firewall_menu
         ;;
     23)
-        bbr_menu
+        SSH_port_forwarding
         ;;
     24)
-        update_geo
+        bbr_menu
         ;;
     25)
+        update_geo
+        ;;
+    26)
         run_speedtest
         ;;
     *)
-        LOGE "Please enter the correct number [0-25]"
+        LOGE "Please enter the correct number [0-26]"
         ;;
     esac
 }
@@ -2304,6 +2335,9 @@ if [[ $# > 0 ]]; then
         ;;
     "restart")
         check_install 0 && restart 0
+        ;;
+    "restart-xray")
+        check_install 0 && restart_xray 0
         ;;
     "status")
         check_install 0 && status 0

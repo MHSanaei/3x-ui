@@ -71,6 +71,9 @@ var defaultValueMap = map[string]string{
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
+	"subClashEnable":              "true",
+	"subClashPath":                "/clash/",
+	"subClashURI":                 "",
 	"subJsonFragment":             "",
 	"subJsonNoises":               "",
 	"subJsonMux":                  "",
@@ -109,7 +112,7 @@ var defaultValueMap = map[string]string{
 // It handles configuration storage, retrieval, and validation for all system settings.
 type SettingService struct{}
 
-func (s *SettingService) GetDefaultJsonConfig() (any, error) {
+func (s *SettingService) GetDefaultJSONConfig() (any, error) {
 	var jsonData any
 	err := json.Unmarshal([]byte(xrayTemplateConfig), &jsonData)
 	if err != nil {
@@ -126,7 +129,7 @@ func (s *SettingService) GetAllSetting() (*entity.AllSetting, error) {
 		return nil, err
 	}
 	allSetting := &entity.AllSetting{}
-	t := reflect.TypeOf(allSetting).Elem()
+	t := reflect.TypeFor[entity.AllSetting]()
 	v := reflect.ValueOf(allSetting).Elem()
 	fields := reflect_util.GetFields(t)
 
@@ -556,6 +559,18 @@ func (s *SettingService) GetSubJsonURI() (string, error) {
 	return s.getString("subJsonURI")
 }
 
+func (s *SettingService) GetSubClashEnable() (bool, error) {
+	return s.getBool("subClashEnable")
+}
+
+func (s *SettingService) GetSubClashPath() (string, error) {
+	return s.getString("subClashPath")
+}
+
+func (s *SettingService) GetSubClashURI() (string, error) {
+	return s.getString("subClashURI")
+}
+
 func (s *SettingService) GetSubJsonFragment() (string, error) {
 	return s.getString("subJsonFragment")
 }
@@ -616,7 +631,7 @@ func (s *SettingService) GetIpLimitEnable() (bool, error) {
 	return (accessLogPath != "none" && accessLogPath != ""), nil
 }
 
-// LDAP exported getters
+// GetLdapEnable returns whether LDAP is enabled.
 func (s *SettingService) GetLdapEnable() (bool, error) {
 	return s.getBool("ldapEnable")
 }
@@ -703,7 +718,7 @@ func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {
 	}
 
 	v := reflect.ValueOf(allSetting).Elem()
-	t := reflect.TypeOf(allSetting).Elem()
+	t := reflect.TypeFor[entity.AllSetting]()
 	fields := reflect_util.GetFields(t)
 	errs := make([]error, 0)
 	for _, field := range fields {
@@ -759,11 +774,13 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		"defaultKey":    func() (any, error) { return s.GetKeyFile() },
 		"tgBotEnable":   func() (any, error) { return s.GetTgbotEnabled() },
 		"subEnable":     func() (any, error) { return s.GetSubEnable() },
-		"subJsonEnable": func() (any, error) { return s.GetSubJsonEnable() },
-		"subTitle":      func() (any, error) { return s.GetSubTitle() },
-		"subURI":        func() (any, error) { return s.GetSubURI() },
-		"subJsonURI":    func() (any, error) { return s.GetSubJsonURI() },
-		"remarkModel":   func() (any, error) { return s.GetRemarkModel() },
+		"subJsonEnable":  func() (any, error) { return s.GetSubJsonEnable() },
+		"subClashEnable": func() (any, error) { return s.GetSubClashEnable() },
+		"subTitle":       func() (any, error) { return s.GetSubTitle() },
+		"subURI":         func() (any, error) { return s.GetSubURI() },
+		"subJsonURI":     func() (any, error) { return s.GetSubJsonURI() },
+		"subClashURI":    func() (any, error) { return s.GetSubClashURI() },
+		"remarkModel":    func() (any, error) { return s.GetRemarkModel() },
 		"datepicker":    func() (any, error) { return s.GetDatepicker() },
 		"ipLimitEnable": func() (any, error) { return s.GetIpLimitEnable() },
 	}
@@ -785,12 +802,19 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 			subJsonEnable = b
 		}
 	}
-	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") {
+	subClashEnable := false
+	if v, ok := result["subClashEnable"]; ok {
+		if b, ok2 := v.(bool); ok2 {
+			subClashEnable = b
+		}
+	}
+	if (subEnable && result["subURI"].(string) == "") || (subJsonEnable && result["subJsonURI"].(string) == "") || (subClashEnable && result["subClashURI"].(string) == "") {
 		subURI := ""
 		subTitle, _ := s.GetSubTitle()
 		subPort, _ := s.GetSubPort()
 		subPath, _ := s.GetSubPath()
 		subJsonPath, _ := s.GetSubJsonPath()
+		subClashPath, _ := s.GetSubClashPath()
 		subDomain, _ := s.GetSubDomain()
 		subKeyFile, _ := s.GetSubKeyFile()
 		subCertFile, _ := s.GetSubCertFile()
@@ -819,6 +843,9 @@ func (s *SettingService) GetDefaultSettings(host string) (any, error) {
 		}
 		if subJsonEnable && result["subJsonURI"].(string) == "" {
 			result["subJsonURI"] = subURI + subJsonPath
+		}
+		if subClashEnable && result["subClashURI"].(string) == "" {
+			result["subClashURI"] = subURI + subClashPath
 		}
 	}
 

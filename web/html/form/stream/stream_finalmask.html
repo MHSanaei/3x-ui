@@ -18,7 +18,7 @@
             </a-divider>
             <a-form-item label='Type'>
                 <a-select v-model="mask.type"
-                    @change="(type) => mask.settings = mask._getDefaultSettings(type, {})"
+                    @change="(type) => { mask.settings = mask._getDefaultSettings(type, {}); if(inbound.stream.network === 'kcp') { inbound.stream.kcp.mtu = type === 'xdns' ? 900 : 1350; } }"
                     :dropdown-class-name="themeSwitcher.currentTheme">
                     <!-- mKCP-specific masks -->
                     <a-select-option v-if="inbound.stream.network === 'kcp'"
@@ -48,9 +48,9 @@
                     <a-select-option v-if="inbound.stream.network === 'kcp'"
                         value="xicmp">
                         xICMP (Experimental)</a-select-option>
-                    <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP -->
+                    <!-- xDNS for TCP/WS/HTTPUpgrade/XHTTP/KCP -->
                     <a-select-option
-                        v-if="['tcp', 'ws', 'httpupgrade', 'xhttp'].includes(inbound.stream.network)"
+                        v-if="['tcp', 'ws', 'httpupgrade', 'xhttp', 'kcp'].includes(inbound.stream.network)"
                         value="xdns">
                         xDNS (Experimental)</a-select-option>
                 </a-select>

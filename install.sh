@@ -76,37 +76,38 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
+            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y curl tar tzdata socat ca-certificates
+                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl
             else
-                dnf -y update && dnf install -y -q curl tar tzdata socat ca-certificates
+                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm curl tar tzdata socat ca-certificates
+            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y curl tar timezone socat ca-certificates
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
         ;;
         alpine)
-            apk update && apk add curl tar tzdata socat ca-certificates
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl
         ;;
         *)
-            apt-get update && apt-get install -y -q curl tar tzdata socat ca-certificates
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
         ;;
     esac
 }
 
 gen_random_string() {
     local length="$1"
-    local random_string=$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | fold -w "$length" | head -n 1)
-    echo "$random_string"
+    openssl rand -base64 $(( length * 2 )) \
+        | tr -dc 'a-zA-Z0-9' \
+        | head -c "$length"
 }
 
 install_acme() {
@@ -378,15 +379,15 @@ ssl_cert_issue() {
         break
     done
     echo -e "${green}Your domain is: ${domain}, checking it...${plain}"
+    SSL_ISSUED_DOMAIN="${domain}"
 
-    # check if there already exists a certificate
-    local currentCert=$(~/.acme.sh/acme.sh --list | tail -1 | awk '{print $1}')
-    if [ "${currentCert}" == "${domain}" ]; then
-        local certInfo=$(~/.acme.sh/acme.sh --list)
-        echo -e "${red}System already has certificates for this domain. Cannot issue again.${plain}"
-        echo -e "${yellow}Current certificate details:${plain}"
-        echo "$certInfo"
-        return 1
+    # detect existing certificate and reuse it if present
+    local cert_exists=0
+    if ~/.acme.sh/acme.sh --list 2>/dev/null | awk '{print $1}' | grep -Fxq "${domain}"; then
+        cert_exists=1
+        local certInfo=$(~/.acme.sh/acme.sh --list 2>/dev/null | grep -F "${domain}")
+        echo -e "${yellow}Existing certificate found for ${domain}, will reuse it.${plain}"
+        [[ -n "${certInfo}" ]] && echo "$certInfo"
     else
         echo -e "${green}Your domain is ready for issuing certificates now...${plain}"
     fi
@@ -413,16 +414,20 @@ ssl_cert_issue() {
     echo -e "${yellow}Stopping panel temporarily...${plain}"
     systemctl stop x-ui 2>/dev/null || rc-service x-ui stop 2>/dev/null
 
-    # issue the certificate
-    ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
-    ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
-    if [ $? -ne 0 ]; then
-        echo -e "${red}Issuing certificate failed, please check logs.${plain}"
-        rm -rf ~/.acme.sh/${domain}
-        systemctl start x-ui 2>/dev/null || rc-service x-ui start 2>/dev/null
-        return 1
+    if [[ ${cert_exists} -eq 0 ]]; then
+        # issue the certificate
+        ~/.acme.sh/acme.sh --set-default-ca --server letsencrypt --force
+        ~/.acme.sh/acme.sh --issue -d ${domain} --listen-v6 --standalone --httpport ${WebPort} --force
+        if [ $? -ne 0 ]; then
+            echo -e "${red}Issuing certificate failed, please check logs.${plain}"
+            rm -rf ~/.acme.sh/${domain}
+            systemctl start x-ui 2>/dev/null || rc-service x-ui start 2>/dev/null
+            return 1
+        else
+            echo -e "${green}Issuing certificate succeeded, installing certificates...${plain}"
+        fi
     else
-        echo -e "${green}Issuing certificate succeeded, installing certificates...${plain}"
+        echo -e "${green}Using existing certificate, installing certificates...${plain}"
     fi
 
     # Setup reload command
@@ -452,17 +457,27 @@ ssl_cert_issue() {
     fi
 
     # install the certificate
-    ~/.acme.sh/acme.sh --installcert -d ${domain} \
+    local installOutput=""
+    installOutput=$(~/.acme.sh/acme.sh --installcert -d ${domain} \
         --key-file /root/cert/${domain}/privkey.pem \
-        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}"
+        --fullchain-file /root/cert/${domain}/fullchain.pem --reloadcmd "${reloadCmd}" 2>&1)
+    local installRc=$?
+    echo "${installOutput}"
 
-    if [ $? -ne 0 ]; then
+    local installWroteFiles=0
+    if echo "${installOutput}" | grep -q "Installing key to:" && echo "${installOutput}" | grep -q "Installing full chain to:"; then
+        installWroteFiles=1
+    fi
+
+    if [[ -f "/root/cert/${domain}/privkey.pem" && -f "/root/cert/${domain}/fullchain.pem" && ( ${installRc} -eq 0 || ${installWroteFiles} -eq 1 ) ]]; then
+        echo -e "${green}Installing certificate succeeded, enabling auto renew...${plain}"
+    else
         echo -e "${red}Installing certificate failed, exiting.${plain}"
-        rm -rf ~/.acme.sh/${domain}
+        if [[ ${cert_exists} -eq 0 ]]; then
+            rm -rf ~/.acme.sh/${domain}
+        fi
         systemctl start x-ui 2>/dev/null || rc-service x-ui start 2>/dev/null
         return 1
-    else
-        echo -e "${green}Installing certificate succeeded, enabling auto renew...${plain}"
     fi
 
     # enable auto-renew
@@ -535,14 +550,21 @@ prompt_and_setup_ssl() {
     1)
         # User chose Let's Encrypt domain option
         echo -e "${green}Using Let's Encrypt for domain certificate...${plain}"
-        ssl_cert_issue
-        # Extract the domain that was used from the certificate
-        local cert_domain=$(~/.acme.sh/acme.sh --list 2>/dev/null | tail -1 | awk '{print $1}')
-        if [[ -n "${cert_domain}" ]]; then
-            SSL_HOST="${cert_domain}"
-            echo -e "${green}✓ SSL certificate configured successfully with domain: ${cert_domain}${plain}"
+        if ssl_cert_issue; then
+            local cert_domain="${SSL_ISSUED_DOMAIN}"
+            if [[ -z "${cert_domain}" ]]; then
+                cert_domain=$(~/.acme.sh/acme.sh --list 2>/dev/null | tail -1 | awk '{print $1}')
+            fi
+
+            if [[ -n "${cert_domain}" ]]; then
+                SSL_HOST="${cert_domain}"
+                echo -e "${green}✓ SSL certificate configured successfully with domain: ${cert_domain}${plain}"
+            else
+                echo -e "${yellow}SSL setup may have completed, but domain extraction failed${plain}"
+                SSL_HOST="${server_ip}"
+            fi
         else
-            echo -e "${yellow}SSL setup may have completed, but domain extraction failed${plain}"
+            echo -e "${red}SSL certificate setup failed for domain mode.${plain}"
             SSL_HOST="${server_ip}"
         fi
         ;;
@@ -580,7 +602,7 @@ prompt_and_setup_ssl() {
 
         # 3.1 Request Domain to compose Panel URL later
         read -rp "Please enter domain name certificate issued for: " custom_domain
-        custom_domain="${custom_domain// /}" # Убираем пробелы
+        custom_domain="${custom_domain// /}" # Remove spaces
 
         # 3.2 Loop for Certificate Path
         while true; do
