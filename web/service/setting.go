@@ -13,6 +13,7 @@ import (
 
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
+	"gorm.io/gorm"
 	"github.com/mhsanaei/3x-ui/v2/logger"
 	"github.com/mhsanaei/3x-ui/v2/util/common"
 	"github.com/mhsanaei/3x-ui/v2/util/random"
@@ -207,12 +208,15 @@ func (s *SettingService) ResetSettings() error {
 
 func (s *SettingService) getSetting(key string) (*model.Setting, error) {
 	db := database.GetDB()
-	setting := &model.Setting{}
-	err := db.Model(model.Setting{}).Where("key = ?", key).First(setting).Error
+	var settings []*model.Setting
+	err := db.Model(model.Setting{}).Where("key = ?", key).Limit(1).Find(&settings).Error
 	if err != nil {
 		return nil, err
 	}
-	return setting, nil
+	if len(settings) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return settings[0], nil
 }
 
 func (s *SettingService) saveSetting(key string, value string) error {
@@ -502,8 +506,16 @@ func (s *SettingService) GetSubListen() (string, error) {
 	return s.getString("subListen")
 }
 
+func (s *SettingService) SetSubListen(ip string) error {
+	return s.setString("subListen", ip)
+}
+
 func (s *SettingService) GetSubPort() (int, error) {
 	return s.getInt("subPort")
+}
+
+func (s *SettingService) SetSubPort(port int) error {
+	return s.setInt("subPort", port)
 }
 
 func (s *SettingService) GetSubPath() (string, error) {

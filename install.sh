@@ -660,7 +660,121 @@ prompt_and_setup_ssl() {
     esac
 }
 
+configure_database_backend() {
+    local db_config_path="/etc/x-ui/database.json"
+    if [[ -f "${db_config_path}" ]] || compgen -G "/etc/x-ui/*.db" >/dev/null; then
+        echo -e "${green}Existing database configuration detected. Keeping current backend.${plain}"
+        return 0
+    fi
+
+    local db_choice=""
+    echo ""
+    echo -e "${green}═══════════════════════════════════════════${plain}"
+    echo -e "${green}          Database Backend Setup          ${plain}"
+    echo -e "${green}═══════════════════════════════════════════${plain}"
+    echo -e "${green}1.${plain} SQLite"
+    echo -e "${green}2.${plain} PostgreSQL"
+    read -rp "Choose database backend (default 1): " db_choice
+    db_choice="${db_choice// /}"
+
+    if [[ "${db_choice}" != "2" ]]; then
+        echo -e "${green}Using SQLite as the panel database backend.${plain}"
+        return 0
+    fi
+
+    local pg_mode=""
+    local pg_host="127.0.0.1"
+    local pg_port="5432"
+    local pg_db="xui"
+    local pg_user="xui"
+    local pg_password=""
+    local pg_sslmode="disable"
+
+    echo -e "${green}1.${plain} Local PostgreSQL"
+    echo -e "${green}2.${plain} External PostgreSQL"
+    read -rp "Choose PostgreSQL mode (default 1): " pg_mode
+    pg_mode="${pg_mode// /}"
+
+    if [[ "${pg_mode}" != "2" ]]; then
+        if [[ ! -x "${xui_folder}/postgres-manager.sh" ]]; then
+            echo -e "${red}postgres-manager.sh is missing from the installation package.${plain}"
+            exit 1
+        fi
+
+        local pg_status
+        pg_status=$(bash "${xui_folder}/postgres-manager.sh" status 2>/dev/null || true)
+        if [[ "${pg_status}" != *"installed=true"* ]]; then
+            local install_pg=""
+            read -rp "PostgreSQL is not installed. Install automatically now? [Y/n]: " install_pg
+            if [[ -z "${install_pg}" || "${install_pg}" == "y" || "${install_pg}" == "Y" ]]; then
+                bash "${xui_folder}/postgres-manager.sh" install
+            else
+                echo -e "${red}PostgreSQL installation was declined. Aborting PostgreSQL setup.${plain}"
+                exit 1
+            fi
+        fi
+
+        read -rp "PostgreSQL host [127.0.0.1]: " pg_host
+        pg_host="${pg_host:-127.0.0.1}"
+        read -rp "PostgreSQL port [5432]: " pg_port
+        pg_port="${pg_port:-5432}"
+        read -rp "PostgreSQL database name [xui]: " pg_db
+        pg_db="${pg_db:-xui}"
+        read -rp "PostgreSQL username [xui]: " pg_user
+        pg_user="${pg_user:-xui}"
+        read -rp "PostgreSQL password [random]: " pg_password
+        [[ -z "${pg_password}" ]] && pg_password=$(gen_random_string 18)
+
+        ${xui_folder}/x-ui database switch \
+            -driver postgres \
+            -postgres-mode local \
+            -postgres-host "${pg_host}" \
+            -postgres-port "${pg_port}" \
+            -postgres-db "${pg_db}" \
+            -postgres-user "${pg_user}" \
+            -postgres-password "${pg_password}" \
+            -postgres-local true
+    else
+        read -rp "External PostgreSQL host: " pg_host
+        if [[ -z "${pg_host}" ]]; then
+            echo -e "${red}PostgreSQL host is required.${plain}"
+            exit 1
+        fi
+        read -rp "External PostgreSQL port [5432]: " pg_port
+        pg_port="${pg_port:-5432}"
+        read -rp "Database name [xui]: " pg_db
+        pg_db="${pg_db:-xui}"
+        read -rp "Username [xui]: " pg_user
+        pg_user="${pg_user:-xui}"
+        read -rp "Password: " pg_password
+        if [[ -z "${pg_password}" ]]; then
+            echo -e "${red}PostgreSQL password is required for external connections.${plain}"
+            exit 1
+        fi
+        read -rp "SSL mode [disable]: " pg_sslmode
+        pg_sslmode="${pg_sslmode:-disable}"
+
+        ${xui_folder}/x-ui database switch \
+            -driver postgres \
+            -postgres-mode external \
+            -postgres-host "${pg_host}" \
+            -postgres-port "${pg_port}" \
+            -postgres-db "${pg_db}" \
+            -postgres-user "${pg_user}" \
+            -postgres-password "${pg_password}" \
+            -postgres-sslmode "${pg_sslmode}" \
+            -postgres-local false
+    fi
+
+    if [[ $? -ne 0 ]]; then
+        echo -e "${red}Failed to configure PostgreSQL backend.${plain}"
+        exit 1
+    fi
+    echo -e "${green}Database backend configured successfully.${plain}"
+}
+
 config_after_install() {
+    configure_database_backend
     local existing_hasDefaultCredential=$(${xui_folder}/x-ui setting -show true | grep -Eo 'hasDefaultCredential: .+' | awk '{print $2}')
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}' | sed 's#^/##')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
@@ -843,6 +957,9 @@ install_x-ui() {
     cd x-ui
     chmod +x x-ui
     chmod +x x-ui.sh
+    if [[ -f postgres-manager.sh ]]; then
+        chmod +x postgres-manager.sh
+    fi
     
     # Check the system's architecture and rename the file accordingly
     if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then

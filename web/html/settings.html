@@ -116,6 +116,8 @@
       },
       oldAllSetting: new AllSetting(),
       allSetting: new AllSetting(),
+      oldDatabaseSetting: new DatabaseSetting(),
+      databaseSetting: new DatabaseSetting(),
       saveBtnDisable: true,
       entryHost: null,
       entryPort: null,
@@ -273,6 +275,14 @@
           this.saveBtnDisable = true;
         }
       },
+      async getDatabaseSetting() {
+        const msg = await HttpUtil.post("/panel/setting/database/get");
+        if (!msg.success) {
+          return;
+        }
+        this.oldDatabaseSetting = new DatabaseSetting(msg.obj);
+        this.databaseSetting = new DatabaseSetting(msg.obj);
+      },
       async loadInboundTags() {
         const msg = await HttpUtil.get("/panel/api/inbounds/list");
         if (msg && msg.success && Array.isArray(msg.obj)) {
@@ -291,6 +301,78 @@
         if (msg.success) {
           await this.getAllSetting();
         }
+      },
+      async testDatabaseSetting() {
+        this.loading(true);
+        await HttpUtil.post("/panel/setting/database/test", this.databaseSetting);
+        this.loading(false);
+      },
+      async installLocalPostgres() {
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/database/install-postgres");
+        this.loading(false);
+        if (msg.success) {
+          await this.getDatabaseSetting();
+        }
+      },
+      async switchDatabase() {
+        await new Promise(resolve => {
+          this.$confirm({
+            title: '{{ i18n "pages.settings.database.switchDatabaseTitle" }}',
+            content: '{{ i18n "pages.settings.database.switchDatabaseConfirm" }}',
+            class: themeSwitcher.currentTheme,
+            okText: '{{ i18n "sure" }}',
+            cancelText: '{{ i18n "cancel" }}',
+            onOk: () => resolve(),
+          });
+        });
+
+        this.loading(true);
+        const msg = await HttpUtil.post("/panel/setting/database/switch", this.databaseSetting);
+        this.loading(false);
+        if (!msg.success) {
+          return;
+        }
+
+        await PromiseUtil.sleep(5000);
+        window.location.reload();
+      },
+      downloadDatabaseExport(type) {
+        window.location = `${basePath}panel/setting/database/export?type=${type}`;
+      },
+      exportPortableBackup() {
+        this.downloadDatabaseExport('portable');
+      },
+      exportNativeSQLite() {
+        this.downloadDatabaseExport('sqlite');
+      },
+      importDatabaseBackup() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.xui-backup,.db,.zip';
+        fileInput.addEventListener('change', async (event) => {
+          const backupFile = event.target.files[0];
+          if (!backupFile) {
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('backup', backupFile);
+          this.loading(true);
+          const msg = await HttpUtil.post('/panel/setting/database/import', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            }
+          });
+          this.loading(false);
+          if (!msg.success) {
+            return;
+          }
+
+          await PromiseUtil.sleep(5000);
+          window.location.reload();
+        });
+        fileInput.click();
       },
       async updateUser() {
         const sendUpdateUserRequest = async () => {
@@ -624,6 +706,7 @@
       this.entryProtocol = window.location.protocol;
       this.entryIsIP = this._isIp(this.entryHost);
       await this.getAllSetting();
+      await this.getDatabaseSetting();
       await this.loadInboundTags();
       while (true) {
         await PromiseUtil.sleep(1000);

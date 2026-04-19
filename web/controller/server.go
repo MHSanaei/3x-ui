@@ -20,8 +20,9 @@ var filenameRegex = regexp.MustCompile(`^[a-zA-Z0-9_\-.]+$`)
 type ServerController struct {
 	BaseController
 
-	serverService  service.ServerService
-	settingService service.SettingService
+	serverService   service.ServerService
+	settingService  service.SettingService
+	databaseService service.DatabaseService
 
 	lastStatus *service.Status
 
@@ -253,13 +254,26 @@ func (a *ServerController) getConfigJson(c *gin.Context) {
 
 // getDb downloads the database file.
 func (a *ServerController) getDb(c *gin.Context) {
-	db, err := a.serverService.GetDb()
+	exportType := c.Query("type")
+	if exportType == "" {
+		exportType = "portable"
+	}
+
+	var (
+		data     []byte
+		filename string
+		err      error
+	)
+	switch exportType {
+	case "sqlite":
+		data, filename, err = a.databaseService.ExportNativeSQLite()
+	default:
+		data, filename, err = a.databaseService.ExportPortableBackup()
+	}
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.getDatabaseError"), err)
 		return
 	}
-
-	filename := "x-ui.db"
 
 	if !isValidFilename(filename) {
 		c.AbortWithError(http.StatusBadRequest, fmt.Errorf("invalid filename"))
@@ -271,7 +285,7 @@ func (a *ServerController) getDb(c *gin.Context) {
 	c.Header("Content-Disposition", "attachment; filename="+filename)
 
 	// Write the file contents to the response
-	c.Writer.Write(db)
+	c.Writer.Write(data)
 }
 
 func isValidFilename(filename string) bool {
@@ -284,15 +298,14 @@ func (a *ServerController) importDB(c *gin.Context) {
 	// Get the file from the request body
 	file, _, err := c.Request.FormFile("db")
 	if err != nil {
-		jsonMsg(c, I18nWeb(c, "pages.index.readDatabaseError"), err)
-		return
+		file, _, err = c.Request.FormFile("backup")
+		if err != nil {
+			jsonMsg(c, I18nWeb(c, "pages.index.readDatabaseError"), err)
+			return
+		}
 	}
 	defer file.Close()
-	// Always restart Xray before return
-	defer a.serverService.RestartXrayService()
-	// lastGetStatusTime removed; no longer needed
-	// Import it
-	err = a.serverService.ImportDB(file)
+	_, err = a.databaseService.ImportBackup(file)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "pages.index.importDatabaseError"), err)
 		return

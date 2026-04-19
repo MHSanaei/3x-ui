@@ -1011,7 +1011,7 @@ func (s *ServerService) ImportDB(file multipart.File) error {
 	}
 
 	// Open & migrate new DB
-	if err = database.InitDB(config.GetDBPath()); err != nil {
+	if err = database.InitDB(); err != nil {
 		if errRename := os.Rename(fallbackPath, config.GetDBPath()); errRename != nil {
 			return common.NewErrorf("Error migrating db and restoring fallback: %v", errRename)
 		}

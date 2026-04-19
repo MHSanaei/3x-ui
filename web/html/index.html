@@ -479,15 +479,22 @@
     <a-list class="ant-backup-list w-100" bordered>
       <a-list-item class="ant-backup-list-item">
         <a-list-item-meta>
-          <template #title>{{ i18n "pages.index.exportDatabase" }}</template>
-          <template #description>{{ i18n "pages.index.exportDatabaseDesc" }}</template>
+          <template #title>Export Portable Backup</template>
+          <template #description>Portable backups work for both SQLite and PostgreSQL.</template>
         </a-list-item-meta>
-        <a-button @click="exportDatabase()" type="primary" icon="download" />
+        <a-button @click="exportDatabase('portable')" type="primary" icon="download" />
       </a-list-item>
       <a-list-item class="ant-backup-list-item">
         <a-list-item-meta>
-          <template #title>{{ i18n "pages.index.importDatabase" }}</template>
-          <template #description>{{ i18n "pages.index.importDatabaseDesc" }}</template>
+          <template #title>Export Native SQLite</template>
+          <template #description>Downloads the raw SQLite database file when SQLite is the active backend.</template>
+        </a-list-item-meta>
+        <a-button @click="exportDatabase('sqlite')" type="primary" icon="download" :disabled="!backupModal.nativeSQLiteExportAvailable" />
+      </a-list-item>
+      <a-list-item class="ant-backup-list-item">
+        <a-list-item-meta>
+          <template #title>Import Backup</template>
+          <template #description>Accepts portable `.xui-backup` files and legacy SQLite `.db` backups.</template>
         </a-list-item-meta>
         <a-button @click="importDatabase()" type="primary" icon="upload" />
       </a-list-item>
@@ -933,6 +940,7 @@
     };
   const backupModal = {
     visible: false,
+    nativeSQLiteExportAvailable: false,
     show() {
       this.visible = true;
     },
@@ -1280,24 +1288,28 @@
         }
         txtModal.show('config.json', JSON.stringify(msg.obj, null, 2), 'config.json');
       },
-      openBackup() {
+      async openBackup() {
+        const dbMsg = await HttpUtil.post('/panel/setting/database/get');
+        if (dbMsg.success) {
+          backupModal.nativeSQLiteExportAvailable = !!dbMsg.obj.nativeSQLiteExportAvailable;
+        }
         backupModal.show();
       },
-      exportDatabase() {
-        window.location = basePath + 'panel/api/server/getDb';
+      exportDatabase(type = 'portable') {
+        window.location = `${basePath}panel/setting/database/export?type=${type}`;
       },
       importDatabase() {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
-        fileInput.accept = '.db';
+        fileInput.accept = '.xui-backup,.db,.zip';
         fileInput.addEventListener('change', async (event) => {
-          const dbFile = event.target.files[0];
-          if (dbFile) {
+          const backupFile = event.target.files[0];
+          if (backupFile) {
             const formData = new FormData();
-            formData.append('db', dbFile);
+            formData.append('backup', backupFile);
             backupModal.hide();
             this.loading(true);
-            const uploadMsg = await HttpUtil.post('/panel/api/server/importDB', formData, {
+            const uploadMsg = await HttpUtil.post('/panel/setting/database/import', formData, {
               headers: {
                 'Content-Type': 'multipart/form-data',
               }
@@ -1307,13 +1319,8 @@
               return;
             }
             this.loading(true);
-            const restartMsg = await HttpUtil.post("/panel/setting/restartPanel");
-            this.loading(false);
-            if (restartMsg.success) {
-              this.loading(true);
-              await PromiseUtil.sleep(5000);
-              location.reload();
-            }
+            await PromiseUtil.sleep(5000);
+            location.reload();
           }
         });
         fileInput.click();

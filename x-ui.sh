@@ -1687,6 +1687,133 @@ run_speedtest() {
     speedtest
 }
 
+database_management() {
+    echo -e "\n${green}\t1.${plain} Show Current Database Backend"
+    echo -e "${green}\t2.${plain} Install Local PostgreSQL"
+    echo -e "${green}\t3.${plain} Switch Database Backend"
+    echo -e "${green}\t4.${plain} Export Portable Backup"
+    echo -e "${green}\t5.${plain} Export Native SQLite"
+    echo -e "${green}\t6.${plain} Import Backup"
+    echo -e "${green}\t0.${plain} Back to Main Menu"
+    read -rp "Choose an option: " db_choice
+
+    case "${db_choice}" in
+    0)
+        show_menu
+        ;;
+    1)
+        ${xui_folder}/x-ui database show
+        before_show_menu
+        ;;
+    2)
+        ${xui_folder}/x-ui database install-postgres
+        before_show_menu
+        ;;
+    3)
+        local db_backend=""
+        local pg_mode=""
+        local sqlite_path=""
+        local pg_host="127.0.0.1"
+        local pg_port="5432"
+        local pg_db="xui"
+        local pg_user="xui"
+        local pg_pass=""
+        local pg_sslmode="disable"
+
+        echo -e "${green}1.${plain} SQLite"
+        echo -e "${green}2.${plain} PostgreSQL"
+        read -rp "Choose database backend (default 1): " db_backend
+        db_backend="${db_backend// /}"
+
+        if [[ "${db_backend}" != "2" ]]; then
+            read -rp "SQLite path [/etc/x-ui/x-ui.db]: " sqlite_path
+            sqlite_path="${sqlite_path:-/etc/x-ui/x-ui.db}"
+            ${xui_folder}/x-ui database switch -driver sqlite -sqlite-path "${sqlite_path}"
+            confirm_restart
+            return
+        fi
+
+        echo -e "${green}1.${plain} Local PostgreSQL"
+        echo -e "${green}2.${plain} External PostgreSQL"
+        read -rp "Choose PostgreSQL mode (default 1): " pg_mode
+        pg_mode="${pg_mode// /}"
+
+        if [[ "${pg_mode}" != "2" ]]; then
+            read -rp "Host [127.0.0.1]: " pg_host
+            pg_host="${pg_host:-127.0.0.1}"
+            read -rp "Port [5432]: " pg_port
+            pg_port="${pg_port:-5432}"
+            read -rp "Database name [xui]: " pg_db
+            pg_db="${pg_db:-xui}"
+            read -rp "Username [xui]: " pg_user
+            pg_user="${pg_user:-xui}"
+            read -rp "Password [random]: " pg_pass
+            [[ -z "${pg_pass}" ]] && pg_pass=$(gen_random_string 18)
+            ${xui_folder}/x-ui database switch \
+                -driver postgres \
+                -postgres-mode local \
+                -postgres-host "${pg_host}" \
+                -postgres-port "${pg_port}" \
+                -postgres-db "${pg_db}" \
+                -postgres-user "${pg_user}" \
+                -postgres-password "${pg_pass}" \
+                -postgres-local true
+        else
+            read -rp "Host: " pg_host
+            if [[ -z "${pg_host}" ]]; then
+                LOGE "Host is required."
+                before_show_menu
+                return
+            fi
+            read -rp "Port [5432]: " pg_port
+            pg_port="${pg_port:-5432}"
+            read -rp "Database name [xui]: " pg_db
+            pg_db="${pg_db:-xui}"
+            read -rp "Username [xui]: " pg_user
+            pg_user="${pg_user:-xui}"
+            read -rp "Password: " pg_pass
+            read -rp "SSL mode [disable]: " pg_sslmode
+            pg_sslmode="${pg_sslmode:-disable}"
+            ${xui_folder}/x-ui database switch \
+                -driver postgres \
+                -postgres-mode external \
+                -postgres-host "${pg_host}" \
+                -postgres-port "${pg_port}" \
+                -postgres-db "${pg_db}" \
+                -postgres-user "${pg_user}" \
+                -postgres-password "${pg_pass}" \
+                -postgres-sslmode "${pg_sslmode}" \
+                -postgres-local false
+        fi
+        confirm_restart
+        ;;
+    4)
+        read -rp "Output path or directory [current directory]: " export_path
+        ${xui_folder}/x-ui database export -type portable -out "${export_path}"
+        before_show_menu
+        ;;
+    5)
+        read -rp "Output path or directory [current directory]: " export_path
+        ${xui_folder}/x-ui database export -type sqlite -out "${export_path}"
+        before_show_menu
+        ;;
+    6)
+        read -rp "Backup file path: " import_path
+        if [[ -z "${import_path}" ]]; then
+            LOGE "Backup file path is required."
+            before_show_menu
+            return
+        fi
+        ${xui_folder}/x-ui database import -file "${import_path}"
+        confirm_restart
+        ;;
+    *)
+        LOGE "Invalid option."
+        database_management
+        ;;
+    esac
+}
+
 
 
 ip_validation() {
@@ -2232,10 +2359,11 @@ show_menu() {
 │  ${green}24.${plain} Enable BBR                                │
 │  ${green}25.${plain} Update Geo Files                          │
 │  ${green}26.${plain} Speedtest by Ookla                        │
+│  ${green}27.${plain} Database Management                       │
 ╚────────────────────────────────────────────────╝
 "
     show_status
-    echo && read -rp "Please enter your selection [0-26]: " num
+    echo && read -rp "Please enter your selection [0-27]: " num
 
     case "${num}" in
     0)
@@ -2319,8 +2447,11 @@ show_menu() {
     26)
         run_speedtest
         ;;
+    27)
+        database_management
+        ;;
     *)
-        LOGE "Please enter the correct number [0-26]"
+        LOGE "Please enter the correct number [0-27]"
         ;;
     esac
 }

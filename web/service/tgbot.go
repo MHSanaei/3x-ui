@@ -3636,29 +3636,47 @@ func (t *Tgbot) sendBackup(chatId int64) {
 		logger.Error("Error in trigger a checkpoint operation: ", err)
 	}
 
-	// Send database backup
-	file, err := os.Open(config.GetDBPath())
+	// Send portable database backup
+	backupData, err := database.EncodeCurrentPortableBackup()
 	if err == nil {
-		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 		document := tu.Document(
 			tu.ID(chatId),
-			tu.File(file),
+			tu.FileFromBytes(backupData, fmt.Sprintf("x-ui-%s.xui-backup", time.Now().Format("20060102-150405"))),
 		)
 		_, err = bot.SendDocument(ctx, document)
 		if err != nil {
-			logger.Error("Error in uploading backup: ", err)
+			logger.Error("Error in uploading portable backup: ", err)
 		}
 	} else {
-		logger.Error("Error in opening db file for backup: ", err)
+		logger.Error("Error in creating portable backup: ", err)
+	}
+
+	if database.IsSQLite() {
+		file, err := os.Open(config.GetDBPath())
+		if err == nil {
+			defer file.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			document := tu.Document(
+				tu.ID(chatId),
+				tu.File(file),
+			)
+			_, err = bot.SendDocument(ctx, document)
+			if err != nil {
+				logger.Error("Error in uploading native SQLite backup: ", err)
+			}
+		} else {
+			logger.Error("Error in opening db file for backup: ", err)
+		}
 	}
 
 	// Small delay between file sends
 	time.Sleep(500 * time.Millisecond)
 
 	// Send config.json backup
-	file, err = os.Open(xray.GetConfigPath())
+	file, err := os.Open(xray.GetConfigPath())
 	if err == nil {
 		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
