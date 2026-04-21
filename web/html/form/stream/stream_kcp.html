@@ -33,7 +33,7 @@
   <a-form-item label="CWND Multiplier">
     <a-input-number
       v-model.number="inbound.stream.kcp.cwndMultiplier"
-      :min="0"
+      :min="1"
     ></a-input-number>
   </a-form-item>
   <a-form-item label="Max Sending Window">
