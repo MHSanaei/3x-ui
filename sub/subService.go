@@ -888,7 +888,6 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 }
 
 func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) string {
-	address := s.address
 	if inbound.Protocol != model.Hysteria {
 		return ""
 	}
@@ -903,7 +902,6 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 	auth := clients[clientIndex].Auth
-	port := inbound.Port
 	params := make(map[string]string)
 
 	params["security"] = "tls"
@@ -932,6 +930,26 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		}
 	}
 
+	// salamander obfs (Hysteria2). The panel-side link generator already
+	// emits these; keep the subscription output in sync so a client has
+	// the obfs password to match the server.
+	if finalmask, ok := stream["finalmask"].(map[string]interface{}); ok {
+		if udpMasks, ok := finalmask["udp"].([]interface{}); ok {
+			for _, m := range udpMasks {
+				mask, _ := m.(map[string]interface{})
+				if mask == nil || mask["type"] != "salamander" {
+					continue
+				}
+				settings, _ := mask["settings"].(map[string]interface{})
+				if pw, ok := settings["password"].(string); ok && pw != "" {
+					params["obfs"] = "salamander"
+					params["obfs-password"] = pw
+					break
+				}
+			}
+		}
+	}
+
 	var settings map[string]interface{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
 	version, _ := settings["version"].(float64)
@@ -940,7 +958,35 @@ func (s *SubService) genHysteriaLink(inbound *model.Inbound, email string) strin
 		protocol = "hysteria"
 	}
 
-	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, address, port)
+	// Fan out one link per External Proxy entry if any. Previously this
+	// generator ignored `externalProxy` entirely, so the link kept the
+	// server's own IP/port even when the admin configured an alternate
+	// endpoint (e.g. a CDN hostname + port that forwards to the node).
+	// Matches the behaviour of genVlessLink / genTrojanLink / ….
+	externalProxies, _ := stream["externalProxy"].([]interface{})
+	if len(externalProxies) > 0 {
+		links := make([]string, 0, len(externalProxies))
+		for _, externalProxy := range externalProxies {
+			ep, _ := externalProxy.(map[string]interface{})
+			dest, _ := ep["dest"].(string)
+			epPort := int(ep["port"].(float64))
+			epRemark, _ := ep["remark"].(string)
+
+			link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, dest, epPort)
+			u, _ := url.Parse(link)
+			q := u.Query()
+			for k, v := range params {
+				q.Add(k, v)
+			}
+			u.RawQuery = q.Encode()
+			u.Fragment = s.genRemark(inbound, email, epRemark)
+			links = append(links, u.String())
+		}
+		return strings.Join(links, "\n")
+	}
+
+	// No external proxy configured — fall back to the request host.
+	link := fmt.Sprintf("%s://%s@%s:%d", protocol, auth, s.address, inbound.Port)
 	url, _ := url.Parse(link)
 	q := url.Query()
 	for k, v := range params {
