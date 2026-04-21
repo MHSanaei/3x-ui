@@ -930,7 +930,13 @@ class Outbound extends CommonClass {
         } else if (network === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(json.path, json.host);
         } else if (network === 'xhttp') {
-            stream.xhttp = new xHTTPStreamSettings(json.path, json.host, json.mode);
+            // xHTTPStreamSettings positional args are (path, host, headers, ..., mode);
+            // passing `json.mode` as the 3rd argument used to land in the `headers`
+            // slot, dropping the mode on the floor. Build the object and set mode
+            // explicitly to avoid that.
+            const xh = new xHTTPStreamSettings(json.path, json.host);
+            if (json.mode) xh.mode = json.mode;
+            stream.xhttp = xh;
         }
 
         if (json.tls && json.tls == 'tls') {
@@ -972,7 +978,25 @@ class Outbound extends CommonClass {
         } else if (type === 'httpupgrade') {
             stream.httpupgrade = new HttpUpgradeStreamSettings(path, host);
         } else if (type === 'xhttp') {
-            stream.xhttp = new xHTTPStreamSettings(path, host, mode);
+            // Same positional bug as in the VMess-JSON branch above:
+            // passing `mode` as the 3rd positional arg put it into the
+            // `headers` slot. Build explicitly instead.
+            const xh = new xHTTPStreamSettings(path, host);
+            if (mode) xh.mode = mode;
+            const xpb = url.searchParams.get('x_padding_bytes');
+            if (xpb) xh.xPaddingBytes = xpb;
+            const extraRaw = url.searchParams.get('extra');
+            if (extraRaw) {
+                try {
+                    const extra = JSON.parse(extraRaw);
+                    if (typeof extra.xPaddingBytes === 'string' && extra.xPaddingBytes) xh.xPaddingBytes = extra.xPaddingBytes;
+                    if (extra.xPaddingObfsMode === true) xh.xPaddingObfsMode = true;
+                    ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
+                        if (typeof extra[k] === 'string' && extra[k]) xh[k] = extra[k];
+                    });
+                } catch (_) { /* ignore malformed extra */ }
+            }
+            stream.xhttp = xh;
         }
 
         if (security == 'tls') {

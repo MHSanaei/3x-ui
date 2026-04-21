@@ -365,16 +365,16 @@
       defaultObservatory: {
         subjectSelector: [],
         probeURL: "https://www.google.com/generate_204",
-        probeInterval: "10m",
+        probeInterval: "1m",
         enableConcurrency: true
       },
       defaultBurstObservatory: {
         subjectSelector: [],
         pingConfig: {
           destination: "https://www.google.com/generate_204",
-          interval: "30m",
+          interval: "1m",
           connectivity: "http://connectivitycheck.platform.hicloud.com/generate_204",
-          timeout: "10s",
+          timeout: "5s",
           sampling: 2
         }
       }
@@ -937,6 +937,15 @@
         // Update balancers property to an empty array if there are no more balancers
         if (newTemplateSettings.routing.balancers.length === 0) {
           delete newTemplateSettings.routing.balancers;
+        }
+
+        // Remove orphaned balancer references from routing rules
+        if (newTemplateSettings.routing.rules) {
+          newTemplateSettings.routing.rules.forEach((rule) => {
+            if (rule.balancerTag && rule.balancerTag === removedBalancer.tag) {
+              delete rule.balancerTag;
+            }
+          });
         }
         this.templateSettings = newTemplateSettings;
         this.updateObservatorySelectors();

@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -21,14 +21,6 @@
 > This project is only for personal usage, please do not use it for illegal purposes, and please do not use it in a production environment.
 
 As an enhanced fork of the original X-UI project, 3X-UI provides improved stability, broader protocol support, and additional features.
-
-## Custom GeoSite / GeoIP DAT sources
-
-Administrators can add custom GeoSite and GeoIP `.dat` files from URLs in the panel (same workflow as updating built-in geofiles). Files are stored under the same directory as the Xray binary (`XUI_BIN_FOLDER`, default `bin/`) with deterministic names: `geosite_&lt;alias&gt;.dat` and `geoip_&lt;alias&gt;.dat`.
-
-**Routing:** Xray resolves extra lists using the `ext:` form, for example `ext:geosite_myalias.dat:tag` or `ext:geoip_myalias.dat:tag`, where `tag` is a list name inside that DAT file (same pattern as built-in regional files such as `ext:geoip_IR.dat:ir`).
-
-**Reserved aliases:** Only for deciding whether a name is reserved, the panel compares a normalized form of the alias (`strings.ToLower`, `-` → `_`). User-entered aliases and generated file names are not rewritten in the database; they must still match `^[a-z0-9_-]+$`. For example, `geoip-ir` and `geoip_ir` collide with the same reserved entry.
 
 ## Quick Start
 

@@ -1317,6 +1317,60 @@ class Inbound extends XrayCommonClass {
         return this.clientStats;
     }
 
+    // Copy the xPadding* settings into the query-string of a vless/trojan/ss
+    // link. Without this, the admin's custom xPaddingBytes range and (in
+    // obfs mode) the custom xPaddingKey / xPaddingHeader / placement /
+    // method never reach the client — the client keeps xray / sing-box's
+    // internal defaults and the server rejects every handshake with
+    // `invalid padding (...) length: 0`.
+    //
+    // Two encodings are emitted so each client family can pick at least
+    // one up:
+    //   - x_padding_bytes=<range>       flat, for sing-box-family clients
+    //   - extra=<url-encoded-json>       full blob, for xray-core clients
+    //
+    // Fields are only included when they actually have a value, so a
+    // default inbound yields the same URL it did before this helper.
+    static applyXhttpPaddingToParams(xhttp, params) {
+        if (!xhttp) return;
+        if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
+            params.set("x_padding_bytes", xhttp.xPaddingBytes);
+        }
+        const extra = {};
+        if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
+            extra.xPaddingBytes = xhttp.xPaddingBytes;
+        }
+        if (xhttp.xPaddingObfsMode === true) {
+            extra.xPaddingObfsMode = true;
+            ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
+                if (typeof xhttp[k] === 'string' && xhttp[k].length > 0) {
+                    extra[k] = xhttp[k];
+                }
+            });
+        }
+        if (Object.keys(extra).length > 0) {
+            params.set("extra", JSON.stringify(extra));
+        }
+    }
+
+    // VMess variant: VMess links are a base64-encoded JSON object, so we
+    // copy the padding fields directly into the JSON instead of building
+    // a query string.
+    static applyXhttpPaddingToObj(xhttp, obj) {
+        if (!xhttp || !obj) return;
+        if (typeof xhttp.xPaddingBytes === 'string' && xhttp.xPaddingBytes.length > 0) {
+            obj.x_padding_bytes = xhttp.xPaddingBytes;
+        }
+        if (xhttp.xPaddingObfsMode === true) {
+            obj.xPaddingObfsMode = true;
+            ["xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"].forEach(k => {
+                if (typeof xhttp[k] === 'string' && xhttp[k].length > 0) {
+                    obj[k] = xhttp[k];
+                }
+            });
+        }
+    }
+
     get clients() {
         switch (this.protocol) {
             case Protocols.VMESS: return this.settings.vmesses;
@@ -1530,6 +1584,7 @@ class Inbound extends XrayCommonClass {
             obj.path = xhttp.path;
             obj.host = xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host');
             obj.type = xhttp.mode;
+            Inbound.applyXhttpPaddingToObj(xhttp, obj);
         }
 
         if (tls === 'tls') {
@@ -1594,6 +1649,7 @@ class Inbound extends XrayCommonClass {
                 params.set("path", xhttp.path);
                 params.set("host", xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host'));
                 params.set("mode", xhttp.mode);
+                Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
 
@@ -1694,6 +1750,7 @@ class Inbound extends XrayCommonClass {
                 params.set("path", xhttp.path);
                 params.set("host", xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host'));
                 params.set("mode", xhttp.mode);
+                Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
 
@@ -1770,6 +1827,7 @@ class Inbound extends XrayCommonClass {
                 params.set("path", xhttp.path);
                 params.set("host", xhttp.host?.length > 0 ? xhttp.host : this.getHeader(xhttp, 'host'));
                 params.set("mode", xhttp.mode);
+                Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
 
@@ -1827,7 +1885,7 @@ class Inbound extends XrayCommonClass {
         if (this.stream.tls.settings.fingerprint?.length > 0) params.set("fp", this.stream.tls.settings.fingerprint);
         if (this.stream.tls.alpn?.length > 0) params.set("alpn", this.stream.tls.alpn);
         if (this.stream.tls.settings.allowInsecure) params.set("insecure", "1");
-        if (this.stream.tls.settings.echConfigList?.length > 0) params.set("ech", this.stream.tls.settings.echConfigList.join(','));
+        if (this.stream.tls.settings.echConfigList?.length > 0) params.set("ech", this.stream.tls.settings.echConfigList);
         if (this.stream.tls.sni?.length > 0) params.set("sni", this.stream.tls.sni);
 
         const udpMasks = this.stream?.finalmask?.udp;

@@ -307,6 +307,12 @@
                 this.inbound.stream.tls.settings.echConfigList = "";
             },
             async getNewVlessEnc() {
+                const selected = inModal.inbound.settings.selectedAuth;
+                if (!selected) {
+                    this.clearVlessEnc();
+                    return;
+                }
+
                 inModal.loading(true);
                 const msg = await HttpUtil.get("/panel/api/server/getNewVlessEnc");
                 inModal.loading(false);
@@ -316,7 +322,6 @@
                 }
 
                 const auths = msg.obj.auths || [];
-                const selected = inModal.inbound.settings.selectedAuth;
                 const block = auths.find((a) => a.label === selected);
 
                 if (!block) {
