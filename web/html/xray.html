@@ -14,7 +14,7 @@
   <a-layout id="content-layout">
     <a-layout-content>
       <a-spin :spinning="loadingStates.spinning" :delay="500"
-        tip='{{ i18n "loading"}}'>
+        tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="showAlert && loadingStates.fetched"
             :style="{ marginBottom: '10px' }"
@@ -24,10 +24,7 @@
         </transition>
         <transition name="list" appear>
           <a-row v-if="!loadingStates.fetched">
-            <a-card
-              :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-              <a-spin tip='{{ i18n "loading" }}'></a-spin>
-            </a-card>
+            <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
           </a-row>
           <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
             <a-col>
@@ -166,6 +163,7 @@
 {{template "modals/dnsPresetsModal"}}
 {{template "modals/fakednsModal"}}
 {{template "modals/warpModal"}}
+{{template "modals/nordModal"}}
 <script>
   const rulesColumns = [
     { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
@@ -262,6 +260,7 @@
       refreshing: false,
       restartResult: '',
       showAlert: false,
+      customGeoAliasLabelSuffix: '{{ i18n "pages.index.customGeoAliasLabelSuffix" }}',
       advSettings: 'xraySetting',
       obsSettings: '',
       cm: null,
@@ -1057,6 +1056,34 @@
       },
       showWarp() {
         warpModal.show();
+      },
+      showNord() {
+        nordModal.show();
+      },
+      async loadCustomGeoAliases() {
+        try {
+          const msg = await HttpUtil.get('/panel/api/custom-geo/aliases');
+          if (!msg.success) {
+            console.warn('Failed to load custom geo aliases:', msg.msg || 'request failed');
+            return;
+          }
+          if (!msg.obj) return;
+          const { geoip = [], geosite = [] } = msg.obj;
+          const geoSuffix = this.customGeoAliasLabelSuffix || '';
+          geoip.forEach((x) => {
+            this.settingsData.IPsOptions.push({
+              label: x.alias + geoSuffix,
+              value: x.extExample,
+            });
+          });
+          geosite.forEach((x) => {
+            const opt = { label: x.alias + geoSuffix, value: x.extExample };
+            this.settingsData.DomainsOptions.push(opt);
+            this.settingsData.BlockDomainsOptions.push(opt);
+          });
+        } catch (e) {
+          console.error('Failed to load custom geo aliases:', e);
+        }
       }
     },
     async mounted() {
@@ -1064,6 +1091,7 @@
         this.showAlert = true;
       }
       await this.getXraySetting();
+      await this.loadCustomGeoAliases();
       await this.getXrayResult();
       await this.getOutboundsTraffic();
 
@@ -1073,6 +1101,14 @@
             if (payload) {
               this.outboundsTraffic = payload;
               this.$forceUpdate();
+            }
+          });
+
+          // Handle invalidate signals (sent when payload is too large for WebSocket,
+          // or when traffic job notifies about data changes)
+          window.wsClient.on('invalidate', (payload) => {
+            if (payload && payload.type === 'outbounds') {
+              this.refreshOutboundTraffic();
             }
           });
       }
@@ -1397,6 +1433,19 @@
           this.templateRuleSetter({ outboundTag: "warp", property: "domain", data: newValue });
         }
       },
+      nordTag: {
+        get: function () {
+          return this.templateSettings ? (this.templateSettings.outbounds.find((o) => o.tag.startsWith("nord-")) || { tag: "nord" }).tag : "nord";
+        }
+      },
+      nordDomains: {
+        get: function () {
+          return this.templateRuleGetter({ outboundTag: this.nordTag, property: "domain" });
+        },
+        set: function (newValue) {
+          this.templateRuleSetter({ outboundTag: this.nordTag, property: "domain", data: newValue });
+        }
+      },
       torrentSettings: {
         get: function () {
           return ArrayUtils.doAllItemsExist(this.settingsData.protocols.bittorrent, this.blockedProtocols);
@@ -1412,6 +1461,11 @@
       WarpExist: {
         get: function () {
           return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag == "warp") >= 0 : false;
+        },
+      },
+      NordExist: {
+        get: function () {
+          return this.templateSettings ? this.templateSettings.outbounds.findIndex((o) => o.tag.startsWith("nord-")) >= 0 : false;
         },
       },
       enableDNS: {

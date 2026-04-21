@@ -9,6 +9,7 @@
     sId: el.getAttribute('data-sid') || '',
     subUrl: el.getAttribute('data-sub-url') || '',
     subJsonUrl: el.getAttribute('data-subjson-url') || '',
+    subClashUrl: el.getAttribute('data-subclash-url') || '',
     download: el.getAttribute('data-download') || '',
     upload: el.getAttribute('data-upload') || '',
     used: el.getAttribute('data-used') || '',
@@ -98,12 +99,18 @@
       this.lang = LanguageManager.getLanguage();
       const tpl = document.getElementById('subscription-data');
       const sj = tpl ? tpl.getAttribute('data-subjson-url') : '';
+      const sc = tpl ? tpl.getAttribute('data-subclash-url') : '';
       if (sj) this.app.subJsonUrl = sj;
+      if (sc) this.app.subClashUrl = sc;
       drawQR(this.app.subUrl);
       try {
         const elJson = document.getElementById('qrcode-subjson');
         if (elJson && this.app.subJsonUrl) {
           new QRious({ element: elJson, value: this.app.subJsonUrl, size: 220 });
+        }
+        const elClash = document.getElementById('qrcode-subclash');
+        if (elClash && this.app.subClashUrl) {
+          new QRious({ element: elClash, value: this.app.subClashUrl, size: 220 });
         }
       } catch (e) { /* ignore */ }
       this._onResize = () => { this.viewportWidth = window.innerWidth; };

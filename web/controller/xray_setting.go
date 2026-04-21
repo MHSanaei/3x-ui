@@ -17,6 +17,7 @@ type XraySettingController struct {
 	OutboundService    service.OutboundService
 	XrayService        service.XrayService
 	WarpService        service.WarpService
+	NordService        service.NordService
 }
 
 // NewXraySettingController creates a new XraySettingController and initializes its routes.
@@ -35,6 +36,7 @@ func (a *XraySettingController) initRouter(g *gin.RouterGroup) {
 
 	g.POST("/", a.getXraySetting)
 	g.POST("/warp/:action", a.warp)
+	g.POST("/nord/:action", a.nord)
 	g.POST("/update", a.updateSetting)
 	g.POST("/resetOutboundsTraffic", a.resetOutboundsTraffic)
 	g.POST("/testOutbound", a.testOutbound)
@@ -118,6 +120,32 @@ func (a *XraySettingController) warp(c *gin.Context) {
 	case "license":
 		license := c.PostForm("license")
 		resp, err = a.WarpService.SetWarpLicense(license)
+	}
+
+	jsonObj(c, resp, err)
+}
+
+// nord handles NordVPN-related operations based on the action parameter.
+func (a *XraySettingController) nord(c *gin.Context) {
+	action := c.Param("action")
+	var resp string
+	var err error
+	switch action {
+	case "countries":
+		resp, err = a.NordService.GetCountries()
+	case "servers":
+		countryId := c.PostForm("countryId")
+		resp, err = a.NordService.GetServers(countryId)
+	case "reg":
+		token := c.PostForm("token")
+		resp, err = a.NordService.GetCredentials(token)
+	case "setKey":
+		key := c.PostForm("key")
+		resp, err = a.NordService.SetKey(key)
+	case "data":
+		resp, err = a.NordService.GetNordData()
+	case "del":
+		err = a.NordService.DelNordData()
 	}
 
 	jsonObj(c, resp, err)

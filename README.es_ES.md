@@ -22,6 +22,14 @@
 
 Como una versión mejorada del proyecto X-UI original, 3X-UI proporciona mayor estabilidad, soporte más amplio de protocolos y características adicionales.
 
+## Fuentes DAT personalizadas GeoSite / GeoIP
+
+Los administradores pueden añadir archivos `.dat` de GeoSite y GeoIP desde URLs en el panel (mismo flujo que los geoficheros integrados). Los archivos se guardan junto al binario de Xray (`XUI_BIN_FOLDER`, por defecto `bin/`) con nombres fijos: `geosite_&lt;alias&gt;.dat` y `geoip_&lt;alias&gt;.dat`.
+
+**Enrutamiento:** use la forma `ext:`, por ejemplo `ext:geosite_myalias.dat:tag` o `ext:geoip_myalias.dat:tag`, donde `tag` es un nombre de lista dentro del DAT (igual que en archivos regionales como `ext:geoip_IR.dat:ir`).
+
+**Alias reservados:** solo para comprobar si un nombre está reservado se compara una forma normalizada (`strings.ToLower`, `-` → `_`). Los alias introducidos y los nombres en la base de datos no se reescriben; deben cumplir `^[a-z0-9_-]+$`. Por ejemplo, `geoip-ir` y `geoip_ir` chocan con la misma entrada reservada.
+
 ## Inicio Rápido
 
 ```

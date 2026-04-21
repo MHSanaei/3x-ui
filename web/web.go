@@ -12,6 +12,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -101,9 +102,10 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   service.Tgbot
+	xrayService      service.XrayService
+	settingService   service.SettingService
+	tgbotService     service.Tgbot
+	customGeoService *service.CustomGeoService
 
 	wsHub *websocket.Hub
 
@@ -208,14 +210,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	store := cookie.NewStore(secret)
 	// Configure default session cookie options, including expiration (MaxAge)
-	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
-		store.Options(sessions.Options{
-			Path:     "/",
-			MaxAge:   sessionMaxAge * 60, // minutes -> seconds
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
+	sessionOptions := sessions.Options{
+		Path:     basePath,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
+	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil && sessionMaxAge > 0 {
+		sessionOptions.MaxAge = sessionMaxAge * 60 // minutes -> seconds
+	}
+	store.Options(sessionOptions)
 	engine.Use(sessions.Sessions("3x-ui", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
@@ -271,7 +274,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	s.api = controller.NewAPIController(g)
+	s.api = controller.NewAPIController(g, s.customGeoService)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -295,9 +298,27 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	return engine, nil
 }
 
+// normalizeExistingGeositeFiles normalizes country codes in all geosite .dat
+// files found in the bin directory so Xray-core can locate entries correctly.
+func normalizeExistingGeositeFiles() {
+	binDir := config.GetBinFolderPath()
+	matches, err := filepath.Glob(filepath.Join(binDir, "geosite*.dat"))
+	if err != nil {
+		logger.Warningf("Failed to glob geosite files: %v", err)
+		return
+	}
+	for _, path := range matches {
+		if err := service.NormalizeGeositeCountryCodes(path); err != nil {
+			logger.Warningf("Failed to normalize geosite country codes in %s: %v", path, err)
+		}
+	}
+}
+
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask() {
+	normalizeExistingGeositeFiles()
+	s.customGeoService.EnsureOnStartup()
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
 		logger.Warning("start xray failed:", err)
@@ -328,6 +349,8 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
 	// Inbound traffic reset jobs
+	// Run every hour
+	s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
 	// Run once a day, midnight
 	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
 	// Run once a week, midnight between Sat/Sun
@@ -390,6 +413,8 @@ func (s *Server) Start() (err error) {
 	}
 	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
 	s.cron.Start()
+
+	s.customGeoService = service.NewCustomGeoService()
 
 	engine, err := s.initRouter()
 	if err != nil {

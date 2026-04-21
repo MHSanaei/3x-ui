@@ -50,8 +50,17 @@ func jsonMsgObj(c *gin.Context, msg string, obj any, err error) {
 		}
 	} else {
 		m.Success = false
-		m.Msg = msg + " (" + err.Error() + ")"
-		logger.Warning(msg+" "+I18nWeb(c, "fail")+": ", err)
+		errStr := err.Error()
+		if errStr != "" {
+			m.Msg = msg + " (" + errStr + ")"
+			logger.Warning(msg+" "+I18nWeb(c, "fail")+": ", err)
+		} else if msg != "" {
+			m.Msg = msg
+			logger.Warning(msg + " " + I18nWeb(c, "fail"))
+		} else {
+			m.Msg = I18nWeb(c, "somethingWentWrong")
+			logger.Warning(I18nWeb(c, "somethingWentWrong") + " " + I18nWeb(c, "fail"))
+		}
 	}
 	c.JSON(http.StatusOK, m)
 }

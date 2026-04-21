@@ -5,10 +5,9 @@
     {{template "form/inbound"}}
 </a-modal>
 <script>
-
     // Make inModal globally available to ensure it works with any base path
-    const inModal = window.inModal = {
-        title: '',
+    const inModal = (window.inModal = {
+        title: "",
         visible: false,
         confirmLoading: false,
         okText: '{{ i18n "sure" }}',
@@ -19,7 +18,14 @@
         ok() {
             ObjectUtil.execute(inModal.confirm, inModal.inbound, inModal.dbInbound);
         },
-        show({ title = '', okText = '{{ i18n "sure" }}', inbound = null, dbInbound = null, confirm = (inbound, dbInbound) => { }, isEdit = false }) {
+        show({
+            title = "",
+            okText = '{{ i18n "sure" }}',
+            inbound = null,
+            dbInbound = null,
+            confirm = (inbound, dbInbound) => { },
+            isEdit = false,
+        }) {
             this.title = title;
             this.okText = okText;
             if (inbound) {
@@ -30,7 +36,11 @@
             // Always ensure testseed is initialized for VLESS protocol (even if vision flow is not set yet)
             // This ensures Vue reactivity works properly
             if (this.inbound.protocol === Protocols.VLESS && this.inbound.settings) {
-                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed) || this.inbound.settings.testseed.length < 4) {
+                if (
+                    !this.inbound.settings.testseed ||
+                    !Array.isArray(this.inbound.settings.testseed) ||
+                    this.inbound.settings.testseed.length < 4
+                ) {
                     // Create a new array to ensure Vue reactivity
                     this.inbound.settings.testseed = [900, 500, 900, 256].slice();
                 }
@@ -56,7 +66,10 @@
             // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
             // Ensure testseed is initialized
-            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed)) {
+            if (
+                !inModal.inbound.settings.testseed ||
+                !Array.isArray(inModal.inbound.settings.testseed)
+            ) {
                 inModal.inbound.settings.testseed = [900, 500, 900, 256];
             }
             // Ensure array has enough elements
@@ -70,26 +83,35 @@
             // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
             // Ensure testseed is initialized
-            if (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4) {
+            if (
+                !inModal.inbound.settings.testseed ||
+                !Array.isArray(inModal.inbound.settings.testseed) ||
+                inModal.inbound.settings.testseed.length < 4
+            ) {
                 inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
             }
             // Create new array with random values
-            inModal.inbound.settings.testseed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
+            inModal.inbound.settings.testseed = [
+                Math.floor(Math.random() * 1000),
+                Math.floor(Math.random() * 1000),
+                Math.floor(Math.random() * 1000),
+                Math.floor(Math.random() * 1000),
+            ];
         },
         resetTestseed() {
             // Use inModal.inbound explicitly to ensure correct context
             if (!inModal.inbound || !inModal.inbound.settings) return;
             // Reset testseed to default values
             inModal.inbound.settings.testseed = [900, 500, 900, 256].slice();
-        }
-    };
+        },
+    });
 
     // Store Vue instance globally to ensure methods are always accessible
     let inboundModalVueInstance = null;
-    
+
     inboundModalVueInstance = new Vue({
-        delimiters: ['[[', ']]'],
-        el: '#inbound-modal',
+        delimiters: ["[[", "]]"],
+        el: "#inbound-modal",
         data: {
             inModal: inModal,
             delayedStart: false,
@@ -134,63 +156,92 @@
                         this.inModal.inbound.stream.externalProxy = [];
                     }
                 }
-            }
+            },
         },
         watch: {
-            'inModal.inbound.stream.security'(newVal, oldVal) {
+            "inModal.inbound.stream.security"(newVal, oldVal) {
                 // Clear flow when security changes from reality/tls to none
-                if (inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
-                    inModal.inbound.settings.vlesses.forEach(client => {
+                if (
+                    inModal.inbound.protocol == Protocols.VLESS &&
+                    !inModal.inbound.canEnableTlsFlow()
+                ) {
+                    inModal.inbound.settings.vlesses.forEach((client) => {
                         client.flow = "";
                     });
                 }
             },
             // Ensure testseed is always initialized when vision flow is enabled
-            'inModal.inbound.settings.vlesses': {
+            "inModal.inbound.settings.vlesses": {
                 handler() {
-                    if (inModal.inbound.protocol === Protocols.VLESS && inModal.inbound.settings && inModal.inbound.settings.vlesses) {
-                        const hasVisionFlow = inModal.inbound.settings.vlesses.some(c => c.flow === 'xtls-rprx-vision' || c.flow === 'xtls-rprx-vision-udp443');
-                        if (hasVisionFlow && (!inModal.inbound.settings.testseed || !Array.isArray(inModal.inbound.settings.testseed) || inModal.inbound.settings.testseed.length < 4)) {
+                    if (
+                        inModal.inbound.protocol === Protocols.VLESS &&
+                        inModal.inbound.settings &&
+                        inModal.inbound.settings.vlesses
+                    ) {
+                        const hasVisionFlow = inModal.inbound.settings.vlesses.some(
+                            (c) =>
+                                c.flow === "xtls-rprx-vision" ||
+                                c.flow === "xtls-rprx-vision-udp443",
+                        );
+                        if (
+                            hasVisionFlow &&
+                            (!inModal.inbound.settings.testseed ||
+                                !Array.isArray(inModal.inbound.settings.testseed) ||
+                                inModal.inbound.settings.testseed.length < 4)
+                        ) {
                             inModal.inbound.settings.testseed = [900, 500, 900, 256];
                         }
                     }
                 },
-                deep: true
-            }
+                deep: true,
+            },
         },
         methods: {
             streamNetworkChange() {
                 if (!inModal.inbound.canEnableTls()) {
-                    this.inModal.inbound.stream.security = 'none';
+                    this.inModal.inbound.stream.security = "none";
                 }
                 if (!inModal.inbound.canEnableReality()) {
                     this.inModal.inbound.reality = false;
                 }
-                if (this.inModal.inbound.protocol == Protocols.VLESS && !inModal.inbound.canEnableTlsFlow()) {
-                    this.inModal.inbound.settings.vlesses.forEach(client => {
+                if (
+                    this.inModal.inbound.protocol == Protocols.VLESS &&
+                    !inModal.inbound.canEnableTlsFlow()
+                ) {
+                    this.inModal.inbound.settings.vlesses.forEach((client) => {
                         client.flow = "";
                     });
                 }
+                if (inModal.inbound.stream.network != "kcp") {
+                    inModal.inbound.stream.finalmask.udp = [];
+                }
             },
             SSMethodChange() {
-                this.inModal.inbound.settings.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
+                this.inModal.inbound.settings.password =
+                    RandomUtil.randomShadowsocksPassword(
+                        this.inModal.inbound.settings.method,
+                    );
 
                 if (this.inModal.inbound.isSSMultiUser) {
                     if (this.inModal.inbound.settings.shadowsockses.length == 0) {
-                        this.inModal.inbound.settings.shadowsockses = [new Inbound.ShadowsocksSettings.Shadowsocks()];
+                        this.inModal.inbound.settings.shadowsockses = [
+                            new Inbound.ShadowsocksSettings.Shadowsocks(),
+                        ];
                     }
                     if (!this.inModal.inbound.isSS2022) {
-                        this.inModal.inbound.settings.shadowsockses.forEach(client => {
+                        this.inModal.inbound.settings.shadowsockses.forEach((client) => {
                             client.method = this.inModal.inbound.settings.method;
-                        })
+                        });
                     } else {
-                        this.inModal.inbound.settings.shadowsockses.forEach(client => {
+                        this.inModal.inbound.settings.shadowsockses.forEach((client) => {
                             client.method = "";
-                        })
+                        });
                     }
-                    this.inModal.inbound.settings.shadowsockses.forEach(client => {
-                        client.password = RandomUtil.randomShadowsocksPassword(this.inModal.inbound.settings.method)
-                    })
+                    this.inModal.inbound.settings.shadowsockses.forEach((client) => {
+                        client.password = RandomUtil.randomShadowsocksPassword(
+                            this.inModal.inbound.settings.method,
+                        );
+                    });
                 } else {
                     if (this.inModal.inbound.settings.shadowsockses.length > 0) {
                         this.inModal.inbound.settings.shadowsockses = [];
@@ -203,7 +254,7 @@
             },
             async getNewX25519Cert() {
                 inModal.loading(true);
-                const msg = await HttpUtil.get('/panel/api/server/getNewX25519Cert');
+                const msg = await HttpUtil.get("/panel/api/server/getNewX25519Cert");
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -212,12 +263,12 @@
                 inModal.inbound.stream.reality.settings.publicKey = msg.obj.publicKey;
             },
             clearX25519Cert() {
-                this.inbound.stream.reality.privateKey = '';
-                this.inbound.stream.reality.settings.publicKey = '';
+                this.inbound.stream.reality.privateKey = "";
+                this.inbound.stream.reality.settings.publicKey = "";
             },
             async getNewmldsa65() {
                 inModal.loading(true);
-                const msg = await HttpUtil.get('/panel/api/server/getNewmldsa65');
+                const msg = await HttpUtil.get("/panel/api/server/getNewmldsa65");
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
@@ -226,11 +277,11 @@
                 inModal.inbound.stream.reality.settings.mldsa65Verify = msg.obj.verify;
             },
             clearMldsa65() {
-                this.inbound.stream.reality.mldsa65Seed = '';
-                this.inbound.stream.reality.settings.mldsa65Verify = '';
+                this.inbound.stream.reality.mldsa65Seed = "";
+                this.inbound.stream.reality.settings.mldsa65Verify = "";
             },
             randomizeRealityTarget() {
-                if (typeof getRandomRealityTarget !== 'undefined') {
+                if (typeof getRandomRealityTarget !== "undefined") {
                     const randomTarget = getRandomRealityTarget();
                     this.inbound.stream.reality.target = randomTarget.target;
                     this.inbound.stream.reality.serverNames = randomTarget.sni;
@@ -238,21 +289,24 @@
             },
             async getNewEchCert() {
                 inModal.loading(true);
-                const msg = await HttpUtil.post('/panel/api/server/getNewEchCert', { sni: inModal.inbound.stream.tls.sni });
+                const msg = await HttpUtil.post("/panel/api/server/getNewEchCert", {
+                    sni: inModal.inbound.stream.tls.sni,
+                });
                 inModal.loading(false);
                 if (!msg.success) {
                     return;
                 }
                 inModal.inbound.stream.tls.echServerKeys = msg.obj.echServerKeys;
-                inModal.inbound.stream.tls.settings.echConfigList = msg.obj.echConfigList;
+                inModal.inbound.stream.tls.settings.echConfigList =
+                    msg.obj.echConfigList;
             },
             clearEchCert() {
-                this.inbound.stream.tls.echServerKeys = '';
-                this.inbound.stream.tls.settings.echConfigList = '';
+                this.inbound.stream.tls.echServerKeys = "";
+                this.inbound.stream.tls.settings.echConfigList = "";
             },
             async getNewVlessEnc() {
                 inModal.loading(true);
-                const msg = await HttpUtil.get('/panel/api/server/getNewVlessEnc');
+                const msg = await HttpUtil.get("/panel/api/server/getNewVlessEnc");
                 inModal.loading(false);
 
                 if (!msg.success) {
@@ -261,7 +315,7 @@
 
                 const auths = msg.obj.auths || [];
                 const selected = inModal.inbound.settings.selectedAuth;
-                const block = auths.find(a => a.label === selected);
+                const block = auths.find((a) => a.label === selected);
 
                 if (!block) {
                     console.error("No auth block for", selected);
@@ -272,15 +326,18 @@
                 inModal.inbound.settings.encryption = block.encryption;
             },
             clearVlessEnc() {
-                this.inbound.settings.decryption = 'none';
-                this.inbound.settings.encryption = 'none';
+                this.inbound.settings.decryption = "none";
+                this.inbound.settings.encryption = "none";
                 this.inbound.settings.selectedAuth = undefined;
             },
             // Vision Seed methods - must be in Vue methods for proper binding
             updateTestseed(index, value) {
                 // Ensure testseed is initialized
-                if (!this.inbound.settings.testseed || !Array.isArray(this.inbound.settings.testseed)) {
-                    this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
+                if (
+                    !this.inbound.settings.testseed ||
+                    !Array.isArray(this.inbound.settings.testseed)
+                ) {
+                    this.$set(this.inbound.settings, "testseed", [900, 500, 900, 256]);
                 }
                 // Ensure array has enough elements
                 while (this.inbound.settings.testseed.length <= index) {
@@ -291,15 +348,19 @@
             },
             setRandomTestseed() {
                 // Create new array with random values and use Vue.set for reactivity
-                const newSeed = [Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000), Math.floor(Math.random()*1000)];
-                this.$set(this.inbound.settings, 'testseed', newSeed);
+                const newSeed = [
+                    Math.floor(Math.random() * 1000),
+                    Math.floor(Math.random() * 1000),
+                    Math.floor(Math.random() * 1000),
+                    Math.floor(Math.random() * 1000),
+                ];
+                this.$set(this.inbound.settings, "testseed", newSeed);
             },
             resetTestseed() {
                 // Reset testseed to default values using Vue.set for reactivity
-                this.$set(this.inbound.settings, 'testseed', [900, 500, 900, 256]);
-            }
+                this.$set(this.inbound.settings, "testseed", [900, 500, 900, 256]);
+            },
         },
     });
-
 </script>
 {{end}}

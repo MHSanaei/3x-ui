@@ -95,12 +95,6 @@ func (a *IndexController) login(c *gin.Context) {
 	logger.Infof("%s logged in successfully, Ip Address: %s\n", safeUser, getRemoteIp(c))
 	a.tgbot.UserLoginNotify(safeUser, ``, getRemoteIp(c), timeStr, 1)
 
-	sessionMaxAge, err := a.settingService.GetSessionMaxAge()
-	if err != nil {
-		logger.Warning("Unable to get session's max age from DB")
-	}
-
-	session.SetMaxAge(c, sessionMaxAge*60)
 	session.SetLoginUser(c, user)
 	if err := sessions.Default(c).Save(); err != nil {
 		logger.Warning("Unable to save session: ", err)
