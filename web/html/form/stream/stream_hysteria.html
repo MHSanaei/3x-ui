@@ -4,21 +4,6 @@
   :label-col="{ md: {span:8} }"
   :wrapper-col="{ md: {span:14} }"
 >
-  <a-form-item>
-    <template slot="label">
-      <a-tooltip>
-        <template slot="title">
-          <span>{{ i18n "reset" }}</span>
-        </template>
-        Auth Password
-        <a-icon
-          @click="inbound.stream.hysteria.auth = RandomUtil.randomSeq(10)"
-          type="sync"
-        ></a-icon>
-      </a-tooltip>
-    </template>
-    <a-input v-model.trim="inbound.stream.hysteria.auth"></a-input>
-  </a-form-item>
   <a-form-item label="UDP Idle Timeout">
     <a-input-number
       v-model.number="inbound.stream.hysteria.udpIdleTimeout"
