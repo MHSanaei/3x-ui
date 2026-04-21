@@ -1,10 +1,14 @@
 {{define "modals/clientsModal"}}
-<a-modal id="client-modal" v-model="clientModal.visible" :title="clientModal.title" @ok="clientModal.ok"
-         :confirm-loading="clientModal.confirmLoading" :closable="true" :mask-closable="false"
-         :class="themeSwitcher.currentTheme"
-         :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
+<a-modal id="client-modal" v-model="clientModal.visible"
+    :title="clientModal.title" @ok="clientModal.ok"
+    :confirm-loading="clientModal.confirmLoading" :closable="true"
+    :mask-closable="false"
+    :class="themeSwitcher.currentTheme"
+    :ok-text="clientModal.okText" cancel-text='{{ i18n "close" }}'>
     <template v-if="isEdit">
-        <a-tag v-if="isExpiry || isTrafficExhausted" color="red" :style="{ marginBottom: '10px', display: 'block', textAlign: 'center' }">Account is (Expired|Traffic Ended) And Disabled</a-tag>
+        <a-tag v-if="isExpiry || isTrafficExhausted" color="red"
+            :style="{ marginBottom: '10px', display: 'block', textAlign: 'center' }">Account
+            is (Expired|Traffic Ended) And Disabled</a-tag>
     </template>
     {{template "form/client"}}
 </a-modal>
@@ -37,7 +41,7 @@
             this.okText = okText;
             this.isEdit = isEdit;
             this.dbInbound = new DBInbound(dbInbound);
-            this.inbound = dbInbound.toInbound();
+            this.inbound = Inbound.fromJson(dbInbound.toInbound().toJson());
             this.clients = this.inbound.clients;
             this.index = index === null ? this.clients.length : index;
             this.delayedStart = false;
@@ -56,6 +60,7 @@
             switch (protocol) {
                 case Protocols.TROJAN: return client.password;
                 case Protocols.SHADOWSOCKS: return client.email;
+                case Protocols.HYSTERIA: return client.auth;
                 default: return client.id;
             }
         },
@@ -65,6 +70,7 @@
                 case Protocols.VLESS: return clients.push(new Inbound.VLESSSettings.VLESS());
                 case Protocols.TROJAN: return clients.push(new Inbound.TrojanSettings.Trojan());
                 case Protocols.SHADOWSOCKS: return clients.push(new Inbound.ShadowsocksSettings.Shadowsocks(clients[0].method, RandomUtil.randomShadowsocksPassword(inbound.settings.method)));
+                case Protocols.HYSTERIA: return clients.push(new Inbound.HysteriaSettings.Hysteria());
                 default: return null;
             }
         },
@@ -98,9 +104,9 @@
                 return app.datepicker;
             },
             get isTrafficExhausted() {
-                if (!clientStats) return false
-                if (clientStats.total <= 0) return false
-                if (clientStats.up + clientStats.down < clientStats.total) return false
+                if (!this.clientStats) return false
+                if (this.clientStats.total <= 0) return false
+                if (this.clientStats.up + this.clientStats.down < this.clientStats.total) return false
                 return true
             },
             get isExpiry() {

@@ -1,0 +1,115 @@
+{{define "form/streamHysteria"}}
+<a-form
+  :colon="false"
+  :label-col="{ md: {span:8} }"
+  :wrapper-col="{ md: {span:14} }"
+>
+  <a-form-item>
+    <template slot="label">
+      <a-tooltip>
+        <template slot="title">
+          <span>{{ i18n "reset" }}</span>
+        </template>
+        Auth Password
+        <a-icon
+          @click="inbound.stream.hysteria.auth = RandomUtil.randomSeq(10)"
+          type="sync"
+        ></a-icon>
+      </a-tooltip>
+    </template>
+    <a-input v-model.trim="inbound.stream.hysteria.auth"></a-input>
+  </a-form-item>
+  <a-form-item label="UDP Idle Timeout">
+    <a-input-number
+      v-model.number="inbound.stream.hysteria.udpIdleTimeout"
+      :min="0"
+    ></a-input-number>
+  </a-form-item>
+  <a-form-item label="Masquerade">
+    <a-switch v-model="inbound.stream.hysteria.masqueradeSwitch"></a-switch>
+  </a-form-item>
+  <template v-if="inbound.stream.hysteria.masqueradeSwitch">
+    <a-divider :style="{ margin: '5px 0 0' }">Masquerade</a-divider>
+    <a-form-item label="Type">
+      <a-select
+        v-model="inbound.stream.hysteria.masquerade.type"
+        :dropdown-class-name="themeSwitcher.currentTheme"
+      >
+        <a-select-option value="file">File</a-select-option>
+        <a-select-option value="proxy">Proxy</a-select-option>
+        <a-select-option value="string">String</a-select-option>
+      </a-select>
+    </a-form-item>
+    <a-form-item
+      label="Dir"
+      v-if="inbound.stream.hysteria.masquerade.type === 'file'"
+    >
+      <a-input v-model.trim="inbound.stream.hysteria.masquerade.dir"></a-input>
+    </a-form-item>
+    <template v-if="inbound.stream.hysteria.masquerade.type === 'proxy'">
+      <a-form-item label="URL">
+        <a-input
+          v-model.trim="inbound.stream.hysteria.masquerade.url"
+        ></a-input>
+      </a-form-item>
+      <a-form-item label="Rewrite Host">
+        <a-switch
+          v-model="inbound.stream.hysteria.masquerade.rewriteHost"
+        ></a-switch>
+      </a-form-item>
+      <a-form-item label="Insecure">
+        <a-switch
+          v-model="inbound.stream.hysteria.masquerade.insecure"
+        ></a-switch>
+      </a-form-item>
+    </template>
+    <template v-if="inbound.stream.hysteria.masquerade.type === 'string'">
+      <a-form-item label="Content">
+        <a-input
+          v-model.trim="inbound.stream.hysteria.masquerade.content"
+        ></a-input>
+      </a-form-item>
+      <a-form-item label='{{ i18n "pages.inbounds.stream.tcp.requestHeader" }}'>
+        <a-button
+          size="small"
+          @click="inbound.stream.hysteria.masquerade.addHeader('', '')"
+          >+</a-button
+        >
+      </a-form-item>
+      <a-form-item :wrapper-col="{span:24}">
+        <a-input-group
+          compact
+          v-for="(header, index) in inbound.stream.hysteria.masquerade.headers"
+        >
+          <a-input
+            style="width: 50%"
+            v-model.trim="header.name"
+            placeholder='{{ i18n "pages.inbounds.stream.general.name"}}'
+          >
+            <template slot="addonBefore" style="margin: 0"
+              >[[ index+1 ]]</template
+            >
+          </a-input>
+          <a-input
+            style="width: 50%"
+            v-model.trim="header.value"
+            placeholder='{{ i18n "pages.inbounds.stream.general.value" }}'
+          >
+            <a-button
+              slot="addonAfter"
+              size="small"
+              @click="inbound.stream.hysteria.masquerade.removeHeader(index)"
+              >-</a-button
+            >
+          </a-input>
+        </a-input-group>
+      </a-form-item>
+      <a-form-item label="Status Code">
+        <a-input-number
+          v-model.number="inbound.stream.hysteria.masquerade.statusCode"
+        ></a-input-number>
+      </a-form-item>
+    </template>
+  </template>
+</a-form>
+{{end}}

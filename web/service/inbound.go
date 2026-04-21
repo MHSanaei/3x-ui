@@ -273,6 +273,10 @@ func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, boo
 			if client.Email == "" {
 				return inbound, false, common.NewError("empty client ID")
 			}
+		case "hysteria":
+			if client.Auth == "" {
+				return inbound, false, common.NewError("empty client ID")
+			}
 		default:
 			if client.ID == "" {
 				return inbound, false, common.NewError("empty client ID")
@@ -502,23 +506,88 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 		logger.Debug("Old inbound deleted by api:", tag)
 	}
 	if inbound.Enable {
-		inboundJson, err2 := json.MarshalIndent(oldInbound.GenXrayInboundConfig(), "", "  ")
+		runtimeInbound, err2 := s.buildRuntimeInboundForAPI(tx, oldInbound)
 		if err2 != nil {
-			logger.Debug("Unable to marshal updated inbound config:", err2)
+			logger.Debug("Unable to prepare runtime inbound config:", err2)
 			needRestart = true
 		} else {
-			err2 = s.xrayApi.AddInbound(inboundJson)
-			if err2 == nil {
-				logger.Debug("Updated inbound added by api:", oldInbound.Tag)
-			} else {
-				logger.Debug("Unable to update inbound by api:", err2)
+			inboundJson, err2 := json.MarshalIndent(runtimeInbound.GenXrayInboundConfig(), "", "  ")
+			if err2 != nil {
+				logger.Debug("Unable to marshal updated inbound config:", err2)
 				needRestart = true
+			} else {
+				err2 = s.xrayApi.AddInbound(inboundJson)
+				if err2 == nil {
+					logger.Debug("Updated inbound added by api:", oldInbound.Tag)
+				} else {
+					logger.Debug("Unable to update inbound by api:", err2)
+					needRestart = true
+				}
 			}
 		}
 	}
 	s.xrayApi.Close()
 
 	return inbound, needRestart, tx.Save(oldInbound).Error
+}
+
+func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.Inbound) (*model.Inbound, error) {
+	if inbound == nil {
+		return nil, fmt.Errorf("inbound is nil")
+	}
+
+	runtimeInbound := *inbound
+	settings := map[string]any{}
+	if err := json.Unmarshal([]byte(inbound.Settings), &settings); err != nil {
+		return nil, err
+	}
+
+	clients, ok := settings["clients"].([]any)
+	if !ok {
+		return &runtimeInbound, nil
+	}
+
+	var clientStats []xray.ClientTraffic
+	err := tx.Model(xray.ClientTraffic{}).
+		Where("inbound_id = ?", inbound.Id).
+		Select("email", "enable").
+		Find(&clientStats).Error
+	if err != nil {
+		return nil, err
+	}
+
+	enableMap := make(map[string]bool, len(clientStats))
+	for _, clientTraffic := range clientStats {
+		enableMap[clientTraffic.Email] = clientTraffic.Enable
+	}
+
+	finalClients := make([]any, 0, len(clients))
+	for _, client := range clients {
+		c, ok := client.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		email, _ := c["email"].(string)
+		if enable, exists := enableMap[email]; exists && !enable {
+			continue
+		}
+
+		if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+			continue
+		}
+
+		finalClients = append(finalClients, c)
+	}
+
+	settings["clients"] = finalClients
+	modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+	runtimeInbound.Settings = string(modifiedSettings)
+
+	return &runtimeInbound, nil
 }
 
 func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
@@ -614,6 +683,10 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 			if client.Email == "" {
 				return false, common.NewError("empty client ID")
 			}
+		case "hysteria":
+			if client.Auth == "" {
+				return false, common.NewError("empty client ID")
+			}
 		default:
 			if client.ID == "" {
 				return false, common.NewError("empty client ID")
@@ -663,6 +736,7 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 				err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
 					"email":    client.Email,
 					"id":       client.ID,
+					"auth":     client.Auth,
 					"security": client.Security,
 					"flow":     client.Flow,
 					"password": client.Password,
@@ -698,11 +772,13 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 
 	email := ""
 	client_key := "id"
-	if oldInbound.Protocol == "trojan" {
+	switch oldInbound.Protocol {
+	case "trojan":
 		client_key = "password"
-	}
-	if oldInbound.Protocol == "shadowsocks" {
+	case "shadowsocks":
 		client_key = "email"
+	case "hysteria":
+		client_key = "auth"
 	}
 
 	interfaceClients := settings["clients"].([]any)
@@ -809,6 +885,9 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		case "shadowsocks":
 			oldClientId = oldClient.Email
 			newClientId = clients[0].Email
+		case "hysteria":
+			oldClientId = oldClient.Auth
+			newClientId = clients[0].Auth
 		default:
 			oldClientId = oldClient.ID
 			newClientId = clients[0].ID
@@ -929,6 +1008,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 				"id":       clients[0].ID,
 				"security": clients[0].Security,
 				"flow":     clients[0].Flow,
+				"auth":     clients[0].Auth,
 				"password": clients[0].Password,
 				"cipher":   cipher,
 			})
@@ -1821,6 +1901,7 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 				err1 := s.xrayApi.AddUser(string(inbound.Protocol), inbound.Tag, map[string]any{
 					"email":    client.Email,
 					"id":       client.ID,
+					"auth":     client.Auth,
 					"security": client.Security,
 					"flow":     client.Flow,
 					"password": client.Password,
@@ -1897,6 +1978,16 @@ func (s *InboundService) ResetAllTraffics() error {
 
 	err := result.Error
 	return err
+}
+
+func (s *InboundService) ResetInboundTraffic(id int) error {
+	db := database.GetDB()
+
+	result := db.Model(model.Inbound{}).
+		Where("id = ?", id).
+		Updates(map[string]any{"up": 0, "down": 0})
+
+	return result.Error
 }
 
 func (s *InboundService) DelDepletedClients(id int) (err error) {
@@ -2040,7 +2131,6 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 		return nil, err
 	}
 	if t != nil && client != nil {
-		t.Enable = client.Enable
 		t.UUID = client.ID
 		t.SubId = client.SubID
 		return t, nil

@@ -118,36 +118,40 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 		json.Unmarshal([]byte(inbound.Settings), &settings)
 		clients, ok := settings["clients"].([]any)
 		if ok {
-			// check users active or not
+			// Fast O(N) lookup map for client traffic enablement
 			clientStats := inbound.ClientStats
+			enableMap := make(map[string]bool, len(clientStats))
 			for _, clientTraffic := range clientStats {
-				indexDecrease := 0
-				for index, client := range clients {
-					c := client.(map[string]any)
-					if c["email"] == clientTraffic.Email {
-						if !clientTraffic.Enable {
-							clients = RemoveIndex(clients, index-indexDecrease)
-							indexDecrease++
-							logger.Infof("Remove Inbound User %s due to expiration or traffic limit", c["email"])
-						}
-					}
-				}
+				enableMap[clientTraffic.Email] = clientTraffic.Enable
 			}
 
-			// clear client config for additional parameters
+			// filter and clean clients
 			var final_clients []any
 			for _, client := range clients {
-				c := client.(map[string]any)
-				if c["enable"] != nil {
-					if enable, ok := c["enable"].(bool); ok && !enable {
-						continue
-					}
+				c, ok := client.(map[string]any)
+				if !ok {
+					continue
 				}
+
+				email, _ := c["email"].(string)
+
+				// check users active or not via stats
+				if enable, exists := enableMap[email]; exists && !enable {
+					logger.Infof("Remove Inbound User %s due to expiration or traffic limit", email)
+					continue
+				}
+
+				// check manual disabled flag
+				if manualEnable, ok := c["enable"].(bool); ok && !manualEnable {
+					continue
+				}
+
+				// clear client config for additional parameters
 				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" {
+					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "auth" {
 						delete(c, key)
 					}
-					if c["flow"] == "xtls-rprx-vision-udp443" {
+					if flow, ok := c["flow"].(string); ok && flow == "xtls-rprx-vision-udp443" {
 						c["flow"] = "xtls-rprx-vision"
 					}
 				}

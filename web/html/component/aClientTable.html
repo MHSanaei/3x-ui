@@ -30,7 +30,7 @@
   </a-tooltip>
 </template>
 <template slot="enable" slot-scope="text, client, index">
-  <a-switch v-model="client.enable" @change="switchEnableClient(record.id,client)"></a-switch>
+  <a-switch v-model="client.enable" @change="switchEnableClient(record.id, client, $event)"></a-switch>
 </template>
 <template slot="online" slot-scope="text, client, index">
   <a-popover :overlay-class-name="themeSwitcher.currentTheme">
@@ -165,7 +165,7 @@
         <span :style="{ color: '#FF4D4F' }"> {{ i18n "delete"}}</span>
       </a-menu-item>
       <a-menu-item>
-        <a-switch v-model="client.enable" size="small" @change="switchEnableClient(record.id,client)"></a-switch>
+        <a-switch v-model="client.enable" size="small" @change="switchEnableClient(record.id, client, $event)"></a-switch>
         {{ i18n "enable"}}
       </a-menu-item>
     </a-menu>

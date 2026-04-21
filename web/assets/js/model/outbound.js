@@ -169,18 +169,16 @@ class KcpStreamSettings extends CommonClass {
         tti = 20,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
-        congestion = false,
-        readBufferSize = 1,
-        writeBufferSize = 1,
+        cwndMultiplier = 0,
+        maxSendingWindow = 0,
     ) {
         super();
         this.mtu = mtu;
         this.tti = tti;
         this.upCap = uplinkCapacity;
         this.downCap = downlinkCapacity;
-        this.congestion = congestion;
-        this.readBuffer = readBufferSize;
-        this.writeBuffer = writeBufferSize;
+        this.cwndMultiplier = cwndMultiplier;
+        this.maxSendingWindow = maxSendingWindow;
     }
 
     static fromJson(json = {}) {
@@ -189,9 +187,8 @@ class KcpStreamSettings extends CommonClass {
             json.tti,
             json.uplinkCapacity,
             json.downlinkCapacity,
-            json.congestion,
-            json.readBufferSize,
-            json.writeBufferSize,
+            json.cwndMultiplier,
+            json.maxSendingWindow,
         );
     }
 
@@ -201,9 +198,8 @@ class KcpStreamSettings extends CommonClass {
             tti: this.tti,
             uplinkCapacity: this.upCap,
             downlinkCapacity: this.downCap,
-            congestion: this.congestion,
-            readBufferSize: this.readBuffer,
-            writeBufferSize: this.writeBuffer,
+            cwndMultiplier: this.cwndMultiplier,
+            maxSendingWindow: this.maxSendingWindow,
         };
     }
 }
@@ -577,8 +573,11 @@ class UdpMask extends CommonClass {
             case 'mkcp-aes128gcm':
                 return { password: settings.password || '' };
             case 'header-dns':
-            case 'xdns':
                 return { domain: settings.domain || '' };
+            case 'xdns':
+                return { resolvers: Array.isArray(settings.resolvers) ? settings.resolvers : [] };
+            case 'xicmp':
+                return { ip: settings.ip || '', id: settings.id ?? 0 };
             case 'mkcp-original':
             case 'header-dtls':
             case 'header-srtp':
@@ -586,6 +585,12 @@ class UdpMask extends CommonClass {
             case 'header-wechat':
             case 'header-wireguard':
                 return {}; // No settings needed
+            case 'header-custom':
+                return { client: [], server: [] };
+            case 'noise':
+                return { reset: 0, noise: [] };
+            case 'sudoku':
+                return { ascii: '', customTable: '', customTables: [], paddingMin: 0, paddingMax: 0 };
             default:
                 return settings;
         }
@@ -782,8 +787,8 @@ class Outbound extends CommonClass {
     }
 
     canEnableTls() {
-        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks, Protocols.Hysteria].includes(this.protocol)) return false;
-        if (this.protocol === Protocols.Hysteria) return this.stream.network === 'hysteria';
+        if (this.protocol === Protocols.Hysteria) return true;
+        if (![Protocols.VMess, Protocols.VLESS, Protocols.Trojan, Protocols.Shadowsocks].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "grpc", "httpupgrade", "xhttp"].includes(this.stream.network);
     }
 
@@ -1133,13 +1138,15 @@ Outbound.FreedomSettings = class extends CommonClass {
         domainStrategy = '',
         redirect = '',
         fragment = {},
-        noises = []
+        noises = [],
+        ipsBlocked = [],
     ) {
         super();
         this.domainStrategy = domainStrategy;
         this.redirect = redirect;
-        this.fragment = fragment;
-        this.noises = noises;
+        this.fragment = fragment || {};
+        this.noises = Array.isArray(noises) ? noises : [];
+        this.ipsBlocked = Array.isArray(ipsBlocked) ? ipsBlocked : [];
     }
 
     addNoise() {
@@ -1154,8 +1161,9 @@ Outbound.FreedomSettings = class extends CommonClass {
         return new Outbound.FreedomSettings(
             json.domainStrategy,
             json.redirect,
-            json.fragment ? Outbound.FreedomSettings.Fragment.fromJson(json.fragment) : undefined,
-            json.noises ? json.noises.map(noise => Outbound.FreedomSettings.Noise.fromJson(noise)) : undefined,
+            json.fragment ? Outbound.FreedomSettings.Fragment.fromJson(json.fragment) : {},
+            json.noises ? json.noises.map(noise => Outbound.FreedomSettings.Noise.fromJson(noise)) : [],
+            json.ipsBlocked || [],
         );
     }
 
@@ -1165,6 +1173,7 @@ Outbound.FreedomSettings = class extends CommonClass {
             redirect: ObjectUtil.isEmpty(this.redirect) ? undefined : this.redirect,
             fragment: Object.keys(this.fragment).length === 0 ? undefined : this.fragment,
             noises: this.noises.length === 0 ? undefined : Outbound.FreedomSettings.Noise.toJsonArray(this.noises),
+            ipsBlocked: this.ipsBlocked.length === 0 ? undefined : this.ipsBlocked,
         };
     }
 };

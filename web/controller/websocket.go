@@ -30,8 +30,10 @@ const (
 )
 
 var upgrader = ws.Upgrader{
-	ReadBufferSize:  4096, // Increased from 1024 for better performance
-	WriteBufferSize: 4096, // Increased from 1024 for better performance
+	ReadBufferSize:    32768,
+	WriteBufferSize:   32768,
+	EnableCompression: true, // Negotiate permessage-deflate compression if the client supports it
+
 	CheckOrigin: func(r *http.Request) bool {
 		// Check origin for security
 		origin := r.Header.Get("Origin")

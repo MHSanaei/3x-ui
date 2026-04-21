@@ -8,6 +8,7 @@ const Protocols = {
     HTTP: 'http',
     WIREGUARD: 'wireguard',
     TUN: 'tun',
+    HYSTERIA: 'hysteria',
 };
 
 const SSMethods = {
@@ -322,18 +323,16 @@ class KcpStreamSettings extends XrayCommonClass {
         tti = 20,
         uplinkCapacity = 5,
         downlinkCapacity = 20,
-        congestion = false,
-        readBufferSize = 1,
-        writeBufferSize = 1,
+        cwndMultiplier = 0,
+        maxSendingWindow = 0,
     ) {
         super();
         this.mtu = mtu;
         this.tti = tti;
         this.upCap = uplinkCapacity;
         this.downCap = downlinkCapacity;
-        this.congestion = congestion;
-        this.readBuffer = readBufferSize;
-        this.writeBuffer = writeBufferSize;
+        this.cwndMultiplier = cwndMultiplier;
+        this.maxSendingWindow = maxSendingWindow;
     }
 
     static fromJson(json = {}) {
@@ -342,9 +341,8 @@ class KcpStreamSettings extends XrayCommonClass {
             json.tti,
             json.uplinkCapacity,
             json.downlinkCapacity,
-            json.congestion,
-            json.readBufferSize,
-            json.writeBufferSize,
+            json.cwndMultiplier,
+            json.maxSendingWindow,
         );
     }
 
@@ -354,9 +352,8 @@ class KcpStreamSettings extends XrayCommonClass {
             tti: this.tti,
             uplinkCapacity: this.upCap,
             downlinkCapacity: this.downCap,
-            congestion: this.congestion,
-            readBufferSize: this.readBuffer,
-            writeBufferSize: this.writeBuffer,
+            cwndMultiplier: this.cwndMultiplier,
+            maxSendingWindow: this.maxSendingWindow,
         };
     }
 }
@@ -589,6 +586,106 @@ class xHTTPStreamSettings extends XrayCommonClass {
     }
 }
 
+class HysteriaStreamSettings extends XrayCommonClass {
+    constructor(
+        protocol,
+        version = 2,
+        auth = '',
+        udpIdleTimeout = 60,
+        masquerade,
+    ) {
+        super(protocol);
+        this.version = version;
+        this.auth = auth;
+        this.udpIdleTimeout = udpIdleTimeout;
+        this.masquerade = masquerade;
+    }
+
+    static fromJson(json = {}) {
+        return new HysteriaStreamSettings(
+            json.protocol,
+            json.version ?? 2,
+            json.auth ?? '',
+            json.udpIdleTimeout ?? 60,
+            json.masquerade ? HysteriaMasquerade.fromJson(json.masquerade) : undefined,
+        );
+    }
+
+    toJson() {
+        return {
+            protocol: this.protocol,
+            version: this.version,
+            auth: this.auth,
+            udpIdleTimeout: this.udpIdleTimeout,
+            masquerade: this.masqueradeSwitch ? this.masquerade.toJson() : undefined,
+        };
+    }
+
+    get masqueradeSwitch() {
+        return this.masquerade != undefined;
+    }
+
+    set masqueradeSwitch(value) {
+        this.masquerade = value ? new HysteriaMasquerade() : undefined;
+    }
+};
+
+class HysteriaMasquerade extends XrayCommonClass {
+    constructor(
+        type = 'proxy',
+        dir = '',
+        url = '',
+        rewriteHost = false,
+        insecure = false,
+        content = '',
+        headers = [],
+        statusCode = 0,
+    ) {
+        super();
+        this.type = type;
+        this.dir = dir;
+        this.url = url;
+        this.rewriteHost = rewriteHost;
+        this.insecure = insecure;
+        this.content = content;
+        this.headers = headers;
+        this.statusCode = statusCode;
+    }
+
+    addHeader(name, value) {
+        this.headers.push({ name: name, value: value });
+    }
+
+    removeHeader(index) {
+        this.headers.splice(index, 1);
+    }
+
+    static fromJson(json = {}) {
+        return new HysteriaMasquerade(
+            json.type,
+            json.dir,
+            json.url,
+            json.rewriteHost,
+            json.insecure,
+            json.content,
+            XrayCommonClass.toHeaders(json.headers),
+            json.statusCode,
+        );
+    }
+
+    toJson() {
+        return {
+            type: this.type,
+            dir: this.dir,
+            url: this.url,
+            rewriteHost: this.rewriteHost,
+            insecure: this.insecure,
+            content: this.content,
+            headers: XrayCommonClass.toV2Headers(this.headers, false),
+            statusCode: this.statusCode,
+        };
+    }
+};
 class TlsStreamSettings extends XrayCommonClass {
     constructor(
         serverName = '',
@@ -976,8 +1073,9 @@ class UdpMask extends XrayCommonClass {
             case 'mkcp-aes128gcm':
                 return { password: settings.password || '' };
             case 'header-dns':
-            case 'xdns':
                 return { domain: settings.domain || '' };
+            case 'xdns':
+                return { domains: Array.isArray(settings.domains) ? settings.domains : [] };
             case 'xicmp':
                 return { ip: settings.ip || '', id: settings.id ?? 0 };
             case 'mkcp-original':
@@ -987,6 +1085,12 @@ class UdpMask extends XrayCommonClass {
             case 'header-wechat':
             case 'header-wireguard':
                 return {};
+            case 'header-custom':
+                return { client: [], server: [] };
+            case 'noise':
+                return { reset: 0, noise: [] };
+            case 'sudoku':
+                return { ascii: '', customTable: '', customTables: [], paddingMin: 0, paddingMax: 0 };
             default:
                 return settings;
         }
@@ -1021,7 +1125,6 @@ class FinalMaskStreamSettings extends XrayCommonClass {
         return {
             udp: this.udp.map(udp => udp.toJson())
         };
-
     }
 }
 
@@ -1037,6 +1140,7 @@ class StreamSettings extends XrayCommonClass {
         grpcSettings = new GrpcStreamSettings(),
         httpupgradeSettings = new HTTPUpgradeStreamSettings(),
         xhttpSettings = new xHTTPStreamSettings(),
+        hysteriaSettings = new HysteriaStreamSettings(),
         finalmask = new FinalMaskStreamSettings(),
         sockopt = undefined,
     ) {
@@ -1052,6 +1156,7 @@ class StreamSettings extends XrayCommonClass {
         this.grpc = grpcSettings;
         this.httpupgrade = httpupgradeSettings;
         this.xhttp = xhttpSettings;
+        this.hysteria = hysteriaSettings;
         this.finalmask = finalmask;
         this.sockopt = sockopt;
     }
@@ -1116,6 +1221,7 @@ class StreamSettings extends XrayCommonClass {
             GrpcStreamSettings.fromJson(json.grpcSettings),
             HTTPUpgradeStreamSettings.fromJson(json.httpupgradeSettings),
             xHTTPStreamSettings.fromJson(json.xhttpSettings),
+            HysteriaStreamSettings.fromJson(json.hysteriaSettings),
             FinalMaskStreamSettings.fromJson(json.finalmask),
             SockoptStreamSettings.fromJson(json.sockopt),
         );
@@ -1135,6 +1241,7 @@ class StreamSettings extends XrayCommonClass {
             grpcSettings: network === 'grpc' ? this.grpc.toJson() : undefined,
             httpupgradeSettings: network === 'httpupgrade' ? this.httpupgrade.toJson() : undefined,
             xhttpSettings: network === 'xhttp' ? this.xhttp.toJson() : undefined,
+            hysteriaSettings: network === 'hysteria' ? this.hysteria.toJson() : undefined,
             finalmask: this.hasFinalMask ? this.finalmask.toJson() : undefined,
             sockopt: this.sockopt != undefined ? this.sockopt.toJson() : undefined,
         };
@@ -1146,27 +1253,42 @@ class Sniffing extends XrayCommonClass {
         enabled = false,
         destOverride = ['http', 'tls', 'quic', 'fakedns'],
         metadataOnly = false,
-        routeOnly = false) {
+        routeOnly = false,
+        ipsExcluded = [],
+        domainsExcluded = []) {
         super();
         this.enabled = enabled;
-        this.destOverride = destOverride;
+        this.destOverride = Array.isArray(destOverride) && destOverride.length > 0 ? destOverride : ['http', 'tls', 'quic', 'fakedns'];
         this.metadataOnly = metadataOnly;
         this.routeOnly = routeOnly;
+        this.ipsExcluded = Array.isArray(ipsExcluded) ? ipsExcluded : [];
+        this.domainsExcluded = Array.isArray(domainsExcluded) ? domainsExcluded : [];
     }
 
     static fromJson(json = {}) {
         let destOverride = ObjectUtil.clone(json.destOverride);
-        if (!ObjectUtil.isEmpty(destOverride) && !ObjectUtil.isArrEmpty(destOverride)) {
-            if (ObjectUtil.isEmpty(destOverride[0])) {
-                destOverride = ['http', 'tls', 'quic', 'fakedns'];
-            }
+        if (ObjectUtil.isEmpty(destOverride) || ObjectUtil.isArrEmpty(destOverride) || ObjectUtil.isEmpty(destOverride[0])) {
+            destOverride = ['http', 'tls', 'quic', 'fakedns'];
         }
         return new Sniffing(
             !!json.enabled,
             destOverride,
             json.metadataOnly,
             json.routeOnly,
+            json.ipsExcluded || [],
+            json.domainsExcluded || [],
         );
+    }
+
+    toJson() {
+        return {
+            enabled: this.enabled,
+            destOverride: this.destOverride,
+            metadataOnly: this.metadataOnly,
+            routeOnly: this.routeOnly,
+            ipsExcluded: this.ipsExcluded.length > 0 ? this.ipsExcluded : undefined,
+            domainsExcluded: this.domainsExcluded.length > 0 ? this.domainsExcluded : undefined,
+        };
     }
 }
 
@@ -1201,6 +1323,7 @@ class Inbound extends XrayCommonClass {
             case Protocols.VLESS: return this.settings.vlesses;
             case Protocols.TROJAN: return this.settings.trojans;
             case Protocols.SHADOWSOCKS: return this.isSSMultiUser ? this.settings.shadowsockses : null;
+            case Protocols.HYSTERIA: return this.settings.hysterias;
             default: return null;
         }
     }
@@ -1212,8 +1335,13 @@ class Inbound extends XrayCommonClass {
     set protocol(protocol) {
         this._protocol = protocol;
         this.settings = Inbound.Settings.getSettings(protocol);
+        this.stream = new StreamSettings();
         if (protocol === Protocols.TROJAN) {
             this.tls = false;
+        }
+        if (protocol === Protocols.HYSTERIA) {
+            this.stream.network = 'hysteria';
+            this.stream.security = 'tls';
         }
     }
 
@@ -1316,6 +1444,7 @@ class Inbound extends XrayCommonClass {
     }
 
     canEnableTls() {
+        if (this.protocol === Protocols.HYSTERIA) return true;
         if (![Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol)) return false;
         return ["tcp", "ws", "http", "grpc", "httpupgrade", "xhttp"].includes(this.network);
     }
@@ -1342,7 +1471,7 @@ class Inbound extends XrayCommonClass {
     }
 
     canEnableStream() {
-        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS].includes(this.protocol);
+        return [Protocols.VMESS, Protocols.VLESS, Protocols.TROJAN, Protocols.SHADOWSOCKS, Protocols.HYSTERIA].includes(this.protocol);
     }
 
     reset() {
@@ -1689,6 +1818,26 @@ class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
+    genHysteriaLink(address = '', port = this.port, remark = '', clientAuth) {
+        const protocol = this.settings.version == 2 ? "hysteria2" : "hysteria";
+        const link = `${protocol}://${clientAuth}@${address}:${port}`;
+
+        const params = new Map();
+        params.set("security", "tls");
+        if (this.stream.tls.settings.fingerprint?.length > 0) params.set("fp", this.stream.tls.settings.fingerprint);
+        if (this.stream.tls.alpn?.length > 0) params.set("alpn", this.stream.tls.alpn);
+        if (this.stream.tls.settings.allowInsecure) params.set("insecure", "1");
+        if (this.stream.tls.settings.echConfigList?.length > 0) params.set("ech", this.stream.tls.settings.echConfigList.join(','));
+        if (this.stream.tls.sni?.length > 0) params.set("sni", this.stream.tls.sni);
+
+        const url = new URL(link);
+        for (const [key, value] of params) {
+            url.searchParams.set(key, value);
+        }
+        url.hash = encodeURIComponent(remark);
+        return url.toString();
+    }
+
     getWireguardLink(address, port, remark, peerId) {
         let txt = `[Interface]\n`
         txt += `PrivateKey = ${this.settings.peers[peerId].privateKey}\n`
@@ -1721,6 +1870,8 @@ class Inbound extends XrayCommonClass {
                 return this.genSSLink(address, port, forceTls, remark, this.isSSMultiUser ? client.password : '');
             case Protocols.TROJAN:
                 return this.genTrojanLink(address, port, forceTls, remark, client.password);
+            case Protocols.HYSTERIA:
+                return this.genHysteriaLink(address, port, remark, client.auth.length > 0 ? client.auth : this.stream.hysteria.auth);
             default: return '';
         }
     }
@@ -1827,6 +1978,7 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.HTTP: return new Inbound.HttpSettings(protocol);
             case Protocols.WIREGUARD: return new Inbound.WireguardSettings(protocol);
             case Protocols.TUN: return new Inbound.TunSettings(protocol);
+            case Protocols.HYSTERIA: return new Inbound.HysteriaSettings(protocol);
             default: return null;
         }
     }
@@ -1842,12 +1994,101 @@ Inbound.Settings = class extends XrayCommonClass {
             case Protocols.HTTP: return Inbound.HttpSettings.fromJson(json);
             case Protocols.WIREGUARD: return Inbound.WireguardSettings.fromJson(json);
             case Protocols.TUN: return Inbound.TunSettings.fromJson(json);
+            case Protocols.HYSTERIA: return Inbound.HysteriaSettings.fromJson(json);
             default: return null;
         }
     }
 
     toJson() {
         return {};
+    }
+};
+
+/** Shared user-quota fields and UI helpers for multi-user protocol clients. */
+Inbound.ClientBase = class extends XrayCommonClass {
+    constructor(
+        email = RandomUtil.randomLowerAndNum(8),
+        limitIp = 0,
+        totalGB = 0,
+        expiryTime = 0,
+        enable = true,
+        tgId = '',
+        subId = RandomUtil.randomLowerAndNum(16),
+        comment = '',
+        reset = 0,
+        created_at = undefined,
+        updated_at = undefined,
+    ) {
+        super();
+        this.email = email;
+        this.limitIp = limitIp;
+        this.totalGB = totalGB;
+        this.expiryTime = expiryTime;
+        this.enable = enable;
+        this.tgId = tgId;
+        this.subId = subId;
+        this.comment = comment;
+        this.reset = reset;
+        this.created_at = created_at;
+        this.updated_at = updated_at;
+    }
+
+    static commonArgsFromJson(json = {}) {
+        return [
+            json.email,
+            json.limitIp,
+            json.totalGB,
+            json.expiryTime,
+            json.enable,
+            json.tgId,
+            json.subId,
+            json.comment,
+            json.reset,
+            json.created_at,
+            json.updated_at,
+        ];
+    }
+
+    _clientBaseToJson() {
+        return {
+            email: this.email,
+            limitIp: this.limitIp,
+            totalGB: this.totalGB,
+            expiryTime: this.expiryTime,
+            enable: this.enable,
+            tgId: this.tgId,
+            subId: this.subId,
+            comment: this.comment,
+            reset: this.reset,
+            created_at: this.created_at,
+            updated_at: this.updated_at,
+        };
+    }
+
+    get _expiryTime() {
+        if (this.expiryTime === 0 || this.expiryTime === '') {
+            return null;
+        }
+        if (this.expiryTime < 0) {
+            return this.expiryTime / -86400000;
+        }
+        return moment(this.expiryTime);
+    }
+
+    set _expiryTime(t) {
+        if (t == null || t === '') {
+            this.expiryTime = 0;
+        } else {
+            this.expiryTime = t.valueOf();
+        }
+    }
+
+    get _totalGB() {
+        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
+    }
+
+    set _totalGB(gb) {
+        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
     }
 };
 
@@ -1879,7 +2120,7 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.VmessSettings(
             Protocols.VMESS,
-            json.clients.map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
+            (json.clients || []).map(client => Inbound.VmessSettings.VMESS.fromJson(client)),
         );
     }
 
@@ -1890,80 +2131,32 @@ Inbound.VmessSettings = class extends Inbound.Settings {
     }
 };
 
-Inbound.VmessSettings.VMESS = class extends XrayCommonClass {
+Inbound.VmessSettings.VMESS = class extends Inbound.ClientBase {
     constructor(
         id = RandomUtil.randomUUID(),
         security = USERS_SECURITY.AUTO,
-        email = RandomUtil.randomLowerAndNum(8),
-        limitIp = 0,
-        totalGB = 0,
-        expiryTime = 0,
-        enable = true,
-        tgId = '',
-        subId = RandomUtil.randomLowerAndNum(16),
-        comment = '',
-        reset = 0,
-        created_at = undefined,
-        updated_at = undefined
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
     ) {
-        super();
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.id = id;
         this.security = security;
-        this.email = email;
-        this.limitIp = limitIp;
-        this.totalGB = totalGB;
-        this.expiryTime = expiryTime;
-        this.enable = enable;
-        this.tgId = tgId;
-        this.subId = subId;
-        this.comment = comment;
-        this.reset = reset;
-        this.created_at = created_at;
-        this.updated_at = updated_at;
     }
 
     static fromJson(json = {}) {
         return new Inbound.VmessSettings.VMESS(
             json.id,
             json.security,
-            json.email,
-            json.limitIp,
-            json.totalGB,
-            json.expiryTime,
-            json.enable,
-            json.tgId,
-            json.subId,
-            json.comment,
-            json.reset,
-            json.created_at,
-            json.updated_at,
+            ...Inbound.ClientBase.commonArgsFromJson(json),
         );
     }
-    get _expiryTime() {
-        if (this.expiryTime === 0 || this.expiryTime === "") {
-            return null;
-        }
-        if (this.expiryTime < 0) {
-            return this.expiryTime / -86400000;
-        }
-        return moment(this.expiryTime);
-    }
 
-    set _expiryTime(t) {
-        if (t == null || t === "") {
-            this.expiryTime = 0;
-        } else {
-            this.expiryTime = t.valueOf();
-        }
+    toJson() {
+        return {
+            id: this.id,
+            security: this.security,
+            ...this._clientBaseToJson(),
+        };
     }
-    get _totalGB() {
-        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
-    }
-
-    set _totalGB(gb) {
-        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
-    }
-
 };
 
 Inbound.VLESSSettings = class extends Inbound.Settings {
@@ -2041,85 +2234,36 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
 
         return json;
     }
-
-
 };
 
-Inbound.VLESSSettings.VLESS = class extends XrayCommonClass {
+Inbound.VLESSSettings.VLESS = class extends Inbound.ClientBase {
     constructor(
         id = RandomUtil.randomUUID(),
         flow = '',
-        email = RandomUtil.randomLowerAndNum(8),
-        limitIp = 0,
-        totalGB = 0,
-        expiryTime = 0,
-        enable = true,
-        tgId = '',
-        subId = RandomUtil.randomLowerAndNum(16),
-        comment = '',
-        reset = 0,
-        created_at = undefined,
-        updated_at = undefined
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
     ) {
-        super();
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.id = id;
         this.flow = flow;
-        this.email = email;
-        this.limitIp = limitIp;
-        this.totalGB = totalGB;
-        this.expiryTime = expiryTime;
-        this.enable = enable;
-        this.tgId = tgId;
-        this.subId = subId;
-        this.comment = comment;
-        this.reset = reset;
-        this.created_at = created_at;
-        this.updated_at = updated_at;
     }
 
     static fromJson(json = {}) {
         return new Inbound.VLESSSettings.VLESS(
             json.id,
             json.flow,
-            json.email,
-            json.limitIp,
-            json.totalGB,
-            json.expiryTime,
-            json.enable,
-            json.tgId,
-            json.subId,
-            json.comment,
-            json.reset,
-            json.created_at,
-            json.updated_at,
+            ...Inbound.ClientBase.commonArgsFromJson(json),
         );
     }
 
-    get _expiryTime() {
-        if (this.expiryTime === 0 || this.expiryTime === "") {
-            return null;
-        }
-        if (this.expiryTime < 0) {
-            return this.expiryTime / -86400000;
-        }
-        return moment(this.expiryTime);
-    }
-
-    set _expiryTime(t) {
-        if (t == null || t === "") {
-            this.expiryTime = 0;
-        } else {
-            this.expiryTime = t.valueOf();
-        }
-    }
-    get _totalGB() {
-        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
-    }
-
-    set _totalGB(gb) {
-        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
+    toJson() {
+        return {
+            id: this.id,
+            flow: this.flow,
+            ...this._clientBaseToJson(),
+        };
     }
 };
+
 Inbound.VLESSSettings.Fallback = class extends XrayCommonClass {
     constructor(name = "", alpn = '', path = '', dest = '', xver = 0) {
         super();
@@ -2179,7 +2323,7 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     static fromJson(json = {}) {
         return new Inbound.TrojanSettings(
             Protocols.TROJAN,
-            json.clients.map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
+            (json.clients || []).map(client => Inbound.TrojanSettings.Trojan.fromJson(client)),
             Inbound.TrojanSettings.Fallback.fromJson(json.fallbacks),);
     }
 
@@ -2191,95 +2335,28 @@ Inbound.TrojanSettings = class extends Inbound.Settings {
     }
 };
 
-Inbound.TrojanSettings.Trojan = class extends XrayCommonClass {
+Inbound.TrojanSettings.Trojan = class extends Inbound.ClientBase {
     constructor(
         password = RandomUtil.randomSeq(10),
-        email = RandomUtil.randomLowerAndNum(8),
-        limitIp = 0,
-        totalGB = 0,
-        expiryTime = 0,
-        enable = true,
-        tgId = '',
-        subId = RandomUtil.randomLowerAndNum(16),
-        comment = '',
-        reset = 0,
-        created_at = undefined,
-        updated_at = undefined
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
     ) {
-        super();
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.password = password;
-        this.email = email;
-        this.limitIp = limitIp;
-        this.totalGB = totalGB;
-        this.expiryTime = expiryTime;
-        this.enable = enable;
-        this.tgId = tgId;
-        this.subId = subId;
-        this.comment = comment;
-        this.reset = reset;
-        this.created_at = created_at;
-        this.updated_at = updated_at;
     }
 
     toJson() {
         return {
             password: this.password,
-            email: this.email,
-            limitIp: this.limitIp,
-            totalGB: this.totalGB,
-            expiryTime: this.expiryTime,
-            enable: this.enable,
-            tgId: this.tgId,
-            subId: this.subId,
-            comment: this.comment,
-            reset: this.reset,
-            created_at: this.created_at,
-            updated_at: this.updated_at,
+            ...this._clientBaseToJson(),
         };
     }
 
     static fromJson(json = {}) {
         return new Inbound.TrojanSettings.Trojan(
             json.password,
-            json.email,
-            json.limitIp,
-            json.totalGB,
-            json.expiryTime,
-            json.enable,
-            json.tgId,
-            json.subId,
-            json.comment,
-            json.reset,
-            json.created_at,
-            json.updated_at,
+            ...Inbound.ClientBase.commonArgsFromJson(json),
         );
     }
-
-    get _expiryTime() {
-        if (this.expiryTime === 0 || this.expiryTime === "") {
-            return null;
-        }
-        if (this.expiryTime < 0) {
-            return this.expiryTime / -86400000;
-        }
-        return moment(this.expiryTime);
-    }
-
-    set _expiryTime(t) {
-        if (t == null || t === "") {
-            this.expiryTime = 0;
-        } else {
-            this.expiryTime = t.valueOf();
-        }
-    }
-    get _totalGB() {
-        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
-    }
-
-    set _totalGB(gb) {
-        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
-    }
-
 };
 
 Inbound.TrojanSettings.Fallback = class extends XrayCommonClass {
@@ -2343,7 +2420,7 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
             json.method,
             json.password,
             json.network,
-            json.clients.map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
+            (json.clients || []).map(client => Inbound.ShadowsocksSettings.Shadowsocks.fromJson(client)),
             json.ivCheck,
         );
     }
@@ -2359,53 +2436,22 @@ Inbound.ShadowsocksSettings = class extends Inbound.Settings {
     }
 };
 
-Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
+Inbound.ShadowsocksSettings.Shadowsocks = class extends Inbound.ClientBase {
     constructor(
         method = '',
         password = RandomUtil.randomShadowsocksPassword(),
-        email = RandomUtil.randomLowerAndNum(8),
-        limitIp = 0,
-        totalGB = 0,
-        expiryTime = 0,
-        enable = true,
-        tgId = '',
-        subId = RandomUtil.randomLowerAndNum(16),
-        comment = '',
-        reset = 0,
-        created_at = undefined,
-        updated_at = undefined
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
     ) {
-        super();
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
         this.method = method;
         this.password = password;
-        this.email = email;
-        this.limitIp = limitIp;
-        this.totalGB = totalGB;
-        this.expiryTime = expiryTime;
-        this.enable = enable;
-        this.tgId = tgId;
-        this.subId = subId;
-        this.comment = comment;
-        this.reset = reset;
-        this.created_at = created_at;
-        this.updated_at = updated_at;
     }
 
     toJson() {
         return {
             method: this.method,
             password: this.password,
-            email: this.email,
-            limitIp: this.limitIp,
-            totalGB: this.totalGB,
-            expiryTime: this.expiryTime,
-            enable: this.enable,
-            tgId: this.tgId,
-            subId: this.subId,
-            comment: this.comment,
-            reset: this.reset,
-            created_at: this.created_at,
-            updated_at: this.updated_at,
+            ...this._clientBaseToJson(),
         };
     }
 
@@ -2413,45 +2459,56 @@ Inbound.ShadowsocksSettings.Shadowsocks = class extends XrayCommonClass {
         return new Inbound.ShadowsocksSettings.Shadowsocks(
             json.method,
             json.password,
-            json.email,
-            json.limitIp,
-            json.totalGB,
-            json.expiryTime,
-            json.enable,
-            json.tgId,
-            json.subId,
-            json.comment,
-            json.reset,
-            json.created_at,
-            json.updated_at,
+            ...Inbound.ClientBase.commonArgsFromJson(json),
+        );
+    }
+};
+
+Inbound.HysteriaSettings = class extends Inbound.Settings {
+    constructor(protocol, version = 2, hysterias = [new Inbound.HysteriaSettings.Hysteria()]) {
+        super(protocol);
+        this.version = version;
+        this.hysterias = hysterias;
+    }
+
+    static fromJson(json = {}) {
+        return new Inbound.HysteriaSettings(
+            Protocols.HYSTERIA,
+            json.version ?? 2,
+            (json.clients || []).map(client => Inbound.HysteriaSettings.Hysteria.fromJson(client)),
         );
     }
 
-    get _expiryTime() {
-        if (this.expiryTime === 0 || this.expiryTime === "") {
-            return null;
-        }
-        if (this.expiryTime < 0) {
-            return this.expiryTime / -86400000;
-        }
-        return moment(this.expiryTime);
+    toJson() {
+        return {
+            version: this.version,
+            clients: Inbound.HysteriaSettings.toJsonArray(this.hysterias),
+        };
+    }
+};
+
+Inbound.HysteriaSettings.Hysteria = class extends Inbound.ClientBase {
+    constructor(
+        auth = RandomUtil.randomSeq(10),
+        email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at,
+    ) {
+        super(email, limitIp, totalGB, expiryTime, enable, tgId, subId, comment, reset, created_at, updated_at);
+        this.auth = auth;
     }
 
-    set _expiryTime(t) {
-        if (t == null || t === "") {
-            this.expiryTime = 0;
-        } else {
-            this.expiryTime = t.valueOf();
-        }
-    }
-    get _totalGB() {
-        return NumberFormatter.toFixed(this.totalGB / SizeFormatter.ONE_GB, 2);
+    toJson() {
+        return {
+            auth: this.auth,
+            ...this._clientBaseToJson(),
+        };
     }
 
-    set _totalGB(gb) {
-        this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
+    static fromJson(json = {}) {
+        return new Inbound.HysteriaSettings.Hysteria(
+            json.auth,
+            ...Inbound.ClientBase.commonArgsFromJson(json),
+        );
     }
-
 };
 
 Inbound.TunnelSettings = class extends Inbound.Settings {
@@ -2682,29 +2739,60 @@ Inbound.TunSettings = class extends Inbound.Settings {
     constructor(
         protocol,
         name = 'xray0',
-        mtu = 1500,
-        userLevel = 0
+        mtu = [1500, 1280],
+        gateway = [],
+        dns = [],
+        userLevel = 0,
+        autoSystemRoutingTable = [],
+        autoOutboundsInterface = 'auto'
     ) {
         super(protocol);
         this.name = name;
-        this.mtu = mtu;
+        this.mtu = this._normalizeMtu(mtu);
+        this.gateway = Array.isArray(gateway) ? gateway : [];
+        this.dns = Array.isArray(dns) ? dns : [];
         this.userLevel = userLevel;
+        this.autoSystemRoutingTable = Array.isArray(autoSystemRoutingTable) ? autoSystemRoutingTable : [];
+        this.autoOutboundsInterface = autoOutboundsInterface;
+    }
+
+    _normalizeMtu(mtu) {
+        if (!Array.isArray(mtu)) {
+            const single = Number(mtu) || 1500;
+            return [single, single];
+        }
+        if (mtu.length === 0) {
+            return [1500, 1280];
+        }
+        if (mtu.length === 1) {
+            const single = Number(mtu[0]) || 1500;
+            return [single, single];
+        }
+        return [Number(mtu[0]) || 1500, Number(mtu[1]) || 1280];
     }
 
     static fromJson(json = {}) {
         return new Inbound.TunSettings(
             Protocols.TUN,
             json.name ?? 'xray0',
-            json.mtu ?? json.MTU ?? 1500,
-            json.userLevel ?? 0
+            json.mtu ?? json.MTU ?? [1500, 1280],
+            json.gateway ?? json.Gateway ?? [],
+            json.dns ?? json.DNS ?? [],
+            json.userLevel ?? 0,
+            json.autoSystemRoutingTable ?? [],
+            Object.prototype.hasOwnProperty.call(json, 'autoOutboundsInterface') ? json.autoOutboundsInterface : 'auto'
         );
     }
 
     toJson() {
         return {
             name: this.name || 'xray0',
-            mtu: this.mtu || 1500,
+            mtu: this._normalizeMtu(this.mtu),
+            gateway: this.gateway,
+            dns: this.dns,
             userLevel: this.userLevel || 0,
+            autoSystemRoutingTable: this.autoSystemRoutingTable,
+            autoOutboundsInterface: this.autoOutboundsInterface,
         };
     }
 };

@@ -6,7 +6,7 @@
   <a-sidebar></a-sidebar>
   <a-layout id="content-layout">
     <a-layout-content>
-      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}'>
+      <a-spin :spinning="loadingStates.spinning" :delay="500" tip='{{ i18n "loading"}}' size="large">
         <transition name="list" appear>
           <a-alert type="error" v-if="confAlerts.length>0 && loadingStates.fetched" :style="{ marginBottom: '10px' }"
             message='{{ i18n "secAlertTitle" }}' color="red" show-icon closable>
@@ -21,10 +21,7 @@
         <transition name="list" appear>
           <template>
             <a-row v-if="!loadingStates.fetched">
-              <a-card
-                :style="{ textAlign: 'center', padding: '30px 0', marginTop: '10px', background: 'transparent', border: 'none' }">
-                <a-spin tip='{{ i18n "loading" }}'></a-spin>
-              </a-card>
+              <div :style="{ minHeight: 'calc(100vh - 120px)' }"></div>
             </a-row>
             <a-row :gutter="[isMobile ? 8 : 16, isMobile ? 0 : 12]" v-else>
               <a-col>
@@ -82,10 +79,10 @@
                     </template>
                     {{ template "settings/panel/subscription/general" . }}
                   </a-tab-pane>
-                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable" :style="{ paddingTop: '20px' }">
+                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable || allSetting.subClashEnable" :style="{ paddingTop: '20px' }">
                     <template #tab>
                       <a-icon type="code"></a-icon>
-                      <span>{{ i18n "pages.settings.subSettings" }} (JSON)</span>
+                      <span>{{ i18n "pages.settings.subSettings" }} (Formats)</span>
                     </template>
                     {{ template "settings/panel/subscription/json" . }}
                   </a-tab-pane>
