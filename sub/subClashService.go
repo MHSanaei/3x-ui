@@ -249,12 +249,12 @@ func (s *SubClashService) buildHysteriaProxy(inbound *model.Inbound, client mode
 	}
 
 	proxy := map[string]any{
-		"name":    s.SubService.genRemark(inbound, client.Email, extraRemark),
-		"type":    proxyType,
-		"server":  inbound.Listen,
-		"port":    inbound.Port,
-		"udp":     true,
-		authKey:   client.Auth,
+		"name":   s.SubService.genRemark(inbound, client.Email, extraRemark),
+		"type":   proxyType,
+		"server": inbound.Listen,
+		"port":   inbound.Port,
+		"udp":    true,
+		authKey:  client.Auth,
 	}
 
 	var rawStream map[string]any
