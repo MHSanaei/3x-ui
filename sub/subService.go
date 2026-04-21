@@ -250,6 +250,21 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 			obj["host"] = searchHost(headers)
 		}
 		obj["mode"], _ = xhttp["mode"].(string)
+		// VMess base64 JSON supports arbitrary keys; copy the padding
+		// settings through so clients can match the server's xhttp
+		// xPaddingBytes range and, when the admin opted into obfs
+		// mode, the custom key / header / placement / method.
+		if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
+			obj["x_padding_bytes"] = xpb
+		}
+		if obfs, ok := xhttp["xPaddingObfsMode"].(bool); ok && obfs {
+			obj["xPaddingObfsMode"] = true
+			for _, field := range []string{"xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"} {
+				if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+					obj[field] = v
+				}
+			}
+		}
 	}
 	security, _ := stream["security"].(string)
 	obj["tls"] = security
@@ -408,6 +423,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 			params["host"] = searchHost(headers)
 		}
 		params["mode"], _ = xhttp["mode"].(string)
+		applyXhttpPaddingParams(xhttp, params)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -604,6 +620,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 			params["host"] = searchHost(headers)
 		}
 		params["mode"], _ = xhttp["mode"].(string)
+		applyXhttpPaddingParams(xhttp, params)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -803,6 +820,7 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 			params["host"] = searchHost(headers)
 		}
 		params["mode"], _ = xhttp["mode"].(string)
+		applyXhttpPaddingParams(xhttp, params)
 	}
 
 	security, _ := stream["security"].(string)
@@ -1055,6 +1073,59 @@ func searchKey(data any, key string) (any, bool) {
 		}
 	}
 	return nil, false
+}
+
+// applyXhttpPaddingParams copies the xPadding* fields from an xhttpSettings
+// map into the URL query params of a vless:// / trojan:// / ss:// link.
+//
+// Before this helper existed, only path / host / mode were propagated,
+// so a server configured with a non-default xPaddingBytes (e.g. 80-600)
+// or with xPaddingObfsMode=true + custom xPaddingKey / xPaddingHeader
+// would silently diverge from the client: the client kept defaults,
+// hit the server, and was rejected by its padding validation
+// ("invalid padding" in the inbound log) — the client-visible symptom
+// was "xhttp doesn't connect" on OpenWRT / sing-box.
+//
+// Two encodings are written so every popular client can read at least one:
+//
+//   - x_padding_bytes=<range>  — flat param, understood by sing-box and its
+//     derivatives (Podkop, OpenWRT sing-box, Karing, NekoBox, …).
+//   - extra=<url-encoded-json> — full xhttp settings blob, which is how
+//     xray-core clients (v2rayNG, Happ, Furious, Exclave, …) pick up the
+//     obfs-mode key / header / placement / method.
+//
+// Anything that doesn't map to a non-empty value is skipped, so simple
+// inbounds (no custom padding) produce exactly the same URL as before.
+func applyXhttpPaddingParams(xhttp map[string]any, params map[string]string) {
+	if xhttp == nil {
+		return
+	}
+
+	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
+		params["x_padding_bytes"] = xpb
+	}
+
+	extra := map[string]any{}
+	if xpb, ok := xhttp["xPaddingBytes"].(string); ok && len(xpb) > 0 {
+		extra["xPaddingBytes"] = xpb
+	}
+	if obfs, ok := xhttp["xPaddingObfsMode"].(bool); ok && obfs {
+		extra["xPaddingObfsMode"] = true
+		// The obfs-mode-only fields: only populate the ones the admin
+		// actually set, so xray-core falls back to its own defaults for
+		// the rest instead of seeing spurious empty strings.
+		for _, field := range []string{"xPaddingKey", "xPaddingHeader", "xPaddingPlacement", "xPaddingMethod"} {
+			if v, ok := xhttp[field].(string); ok && len(v) > 0 {
+				extra[field] = v
+			}
+		}
+	}
+
+	if len(extra) > 0 {
+		if b, err := json.Marshal(extra); err == nil {
+			params["extra"] = string(b)
+		}
+	}
 }
 
 func searchHost(headers any) string {
