@@ -781,11 +781,12 @@
 {{template "modals/inboundInfoModal"}}
 {{template "modals/clientsModal"}}
 {{template "modals/clientsBulkModal"}}
-<a-modal :title="copyClientsModal.title"
+<a-modal id="copy-clients-modal"
+  :title="copyClientsModal.title"
   :visible="copyClientsModal.visible"
   :confirm-loading="copyClientsModal.confirmLoading"
-  :ok-text="i18n('pages.client.copySelected')"
-  :cancel-text="i18n('cancel')"
+  ok-text='{{ i18n "pages.client.copySelected" }}'
+  cancel-text='{{ i18n "cancel" }}'
   :class="themeSwitcher.currentTheme"
   @ok="submitCopyClients"
   @cancel="closeCopyClientsModal"
