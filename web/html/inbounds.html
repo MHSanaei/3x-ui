@@ -786,10 +786,10 @@
   :visible="copyClientsModal.visible"
   :confirm-loading="copyClientsModal.confirmLoading"
   ok-text='{{ i18n "pages.client.copySelected" }}'
-  cancel-text='{{ i18n "cancel" }}'
+  cancel-text='{{ i18n "close" }}'
   :class="themeSwitcher.currentTheme"
-  @ok="submitCopyClients"
-  @cancel="closeCopyClientsModal"
+  @ok="copyClientsModal.ok"
+  @cancel="copyClientsModal.close"
   width="900px">
   <a-space direction="vertical" style="width: 100%;">
     <div>
@@ -797,7 +797,7 @@
       <a-select v-model="copyClientsModal.sourceInboundId"
         style="width: 100%;"
         :dropdown-class-name="themeSwitcher.currentTheme"
-        @change="onCopySourceChange">
+        @change="copyClientsModal.onSourceChange">
         <a-select-option v-for="item in copyClientsModal.sources"
           :key="item.id"
           :value="item.id">
@@ -807,8 +807,8 @@
     </div>
     <div v-if="copyClientsModal.sourceInboundId > 0">
       <a-space style="margin-bottom: 10px;">
-        <a-button size="small" @click="selectAllCopyClients">{{ i18n "pages.client.selectAll" }}</a-button>
-        <a-button size="small" @click="clearAllCopyClients">{{ i18n "pages.client.clearAll" }}</a-button>
+        <a-button size="small" @click="copyClientsModal.selectAll">{{ i18n "pages.client.selectAll" }}</a-button>
+        <a-button size="small" @click="copyClientsModal.clearAll">{{ i18n "pages.client.clearAll" }}</a-button>
       </a-space>
       <a-table :columns="copyClientsColumns"
         :data-source="copyClientsModal.sourceClients"
@@ -818,7 +818,7 @@
         :scroll="{ y: 280 }">
         <template slot="emailCheckbox" slot-scope="text, record">
           <a-checkbox :checked="copyClientsModal.selectedEmails.includes(record.email)"
-            @change="event => toggleCopyClientEmail(record.email, event.target.checked)">
+            @change="event => copyClientsModal.toggleEmail(record.email, event.target.checked)">
             [[ record.email ]]
           </a-checkbox>
         </template>
@@ -827,13 +827,126 @@
     <div v-if="copyClientsModal.selectedEmails.length > 0">
       <div style="margin-bottom: 4px;">{{ i18n "pages.client.copyEmailPreview" }}</div>
       <div style="max-height: 120px; overflow-y: auto;">
-        <a-tag v-for="preview in copyClientsPreviewEmails" :key="preview" style="margin-bottom: 4px;">
+        <a-tag v-for="preview in previewEmails" :key="preview" style="margin-bottom: 4px;">
           [[ preview ]]
         </a-tag>
       </div>
     </div>
   </a-space>
 </a-modal>
+<script>
+  const copyClientsColumns = [
+    { title: '{{ i18n "pages.inbounds.email" }}', width: 300, scopedSlots: { customRender: 'emailCheckbox' } },
+    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 160, dataIndex: 'trafficLabel' },
+    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 180, dataIndex: 'expiryLabel' },
+  ];
+
+  const copyClientsModal = {
+    visible: false,
+    confirmLoading: false,
+    title: '',
+    targetInboundId: 0,
+    targetInboundRemark: '',
+    sourceInboundId: 0,
+    sources: [],
+    sourceClients: [],
+    selectedEmails: [],
+    show(targetDbInbound) {
+      if (!targetDbInbound) return;
+      const sources = app.dbInbounds
+        .filter(row => row.id !== targetDbInbound.id && typeof row.isMultiUser === 'function' && row.isMultiUser())
+        .map(row => {
+          const clients = app.getInboundClients(row) || [];
+          return { id: row.id, label: `${row.remark} (${row.protocol}, ${clients.length})` };
+        });
+      this.targetInboundId = targetDbInbound.id;
+      this.targetInboundRemark = targetDbInbound.remark;
+      this.title = `{{ i18n "pages.client.copyToInbound" }} ${targetDbInbound.remark}`;
+      this.sources = sources;
+      this.sourceInboundId = 0;
+      this.sourceClients = [];
+      this.selectedEmails = [];
+      this.confirmLoading = false;
+      this.visible = true;
+    },
+    close() {
+      this.visible = false;
+      this.confirmLoading = false;
+    },
+    onSourceChange(sourceInboundId) {
+      const sourceInbound = app.dbInbounds.find(row => row.id === sourceInboundId);
+      if (!sourceInbound) {
+        this.sourceClients = [];
+        this.selectedEmails = [];
+        return;
+      }
+      const sourceClients = app.getInboundClients(sourceInbound) || [];
+      this.sourceClients = sourceClients.map(client => {
+        const stats = app.getClientStats(sourceInbound, client.email);
+        const used = stats ? (stats.up + stats.down) : 0;
+        return {
+          email: client.email,
+          trafficLabel: SizeFormatter.sizeFormat(used),
+          expiryLabel: client.expiryTime > 0 ? IntlUtil.formatDate(client.expiryTime) : '{{ i18n "unlimited" }}',
+        };
+      });
+      this.selectedEmails = [];
+    },
+    toggleEmail(email, checked) {
+      const selected = this.selectedEmails.slice();
+      if (checked) {
+        if (!selected.includes(email)) selected.push(email);
+      } else {
+        const idx = selected.indexOf(email);
+        if (idx >= 0) selected.splice(idx, 1);
+      }
+      this.selectedEmails = selected;
+    },
+    selectAll() {
+      this.selectedEmails = this.sourceClients.map(item => item.email);
+    },
+    clearAll() {
+      this.selectedEmails = [];
+    },
+    async ok() {
+      if (!copyClientsModal.sourceInboundId) {
+        app.$message.error('{{ i18n "pages.client.copySelectSourceFirst" }}');
+        return;
+      }
+      copyClientsModal.confirmLoading = true;
+      const payload = {
+        sourceInboundId: copyClientsModal.sourceInboundId,
+        clientEmails: copyClientsModal.selectedEmails,
+      };
+      const msg = await HttpUtil.post(`/panel/api/inbounds/${copyClientsModal.targetInboundId}/copyClients`, payload);
+      copyClientsModal.confirmLoading = false;
+      if (!msg.success) return;
+      const obj = msg.obj || {};
+      const addedCount = (obj.added || []).length;
+      const skippedCount = (obj.skipped || []).length;
+      const errorCount = (obj.errors || []).length;
+      app.$message.success(`{{ i18n "pages.client.copyResult" }}: +${addedCount}, ~${skippedCount}, !${errorCount}`);
+      copyClientsModal.close();
+      await app.getDBInbounds();
+    },
+  };
+
+  const copyClientsModalApp = new Vue({
+    delimiters: ['[[', ']]'],
+    el: '#copy-clients-modal',
+    data: {
+      copyClientsModal,
+      copyClientsColumns,
+      themeSwitcher,
+    },
+    computed: {
+      previewEmails() {
+        if (!this.copyClientsModal.targetInboundId) return [];
+        return this.copyClientsModal.selectedEmails.map(email => `${email}_${this.copyClientsModal.targetInboundId}`);
+      },
+    },
+  });
+</script>
 <script>
   const columns = [{
     title: "ID",
@@ -926,11 +1039,6 @@
     { title: '{{ i18n "pages.inbounds.client" }}', width: 90, align: 'left', scopedSlots: { customRender: 'client' } },
     { title: '{{ i18n "pages.inbounds.info" }}', width: 10, align: 'center', scopedSlots: { customRender: 'info' } },
   ];
-  const copyClientsColumns = [
-    { title: '{{ i18n "pages.inbounds.email" }}', width: 300, scopedSlots: { customRender: 'emailCheckbox' } },
-    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 160, dataIndex: 'trafficLabel' },
-    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 180, dataIndex: 'expiryLabel' },
-  ];
 
   const app = new Vue({
     delimiters: ['[[', ']]'],
@@ -972,18 +1080,6 @@
       showAlert: false,
       ipLimitEnable: false,
       pageSize: 0,
-      copyClientsColumns,
-      copyClientsModal: {
-        visible: false,
-        confirmLoading: false,
-        title: '',
-        targetInboundId: 0,
-        targetInboundRemark: '',
-        sourceInboundId: 0,
-        sources: [],
-        sourceClients: [],
-        selectedEmails: [],
-      },
     },
     methods: {
       loading(spinning = true) {
@@ -1210,7 +1306,7 @@
             this.openAddBulkClient(dbInbound.id)
             break;
           case "copyClients":
-            this.openCopyClientsModal(dbInbound.id);
+            copyClientsModal.show(dbInbound);
             break;
           case "export":
             this.inboundLinks(dbInbound.id);
@@ -1374,96 +1470,6 @@
             await this.addClient(clients, dbInboundId, clientsBulkModal);
           },
         });
-      },
-      openCopyClientsModal(dbInboundId) {
-        const targetInbound = this.dbInbounds.find(row => row.id === dbInboundId);
-        if (!targetInbound) {
-          return;
-        }
-        const sources = this.dbInbounds
-          .filter(row => row.id !== dbInboundId)
-          .map(row => {
-            const clients = this.getInboundClients(row) || [];
-            return {
-              id: row.id,
-              label: `${row.remark} (${row.protocol}, ${clients.length})`,
-            };
-          });
-        this.copyClientsModal.visible = true;
-        this.copyClientsModal.confirmLoading = false;
-        this.copyClientsModal.targetInboundId = dbInboundId;
-        this.copyClientsModal.targetInboundRemark = targetInbound.remark;
-        this.copyClientsModal.title = `{{ i18n "pages.client.copyToInbound" }} ${targetInbound.remark}`;
-        this.copyClientsModal.sources = sources;
-        this.copyClientsModal.sourceInboundId = 0;
-        this.copyClientsModal.sourceClients = [];
-        this.copyClientsModal.selectedEmails = [];
-      },
-      closeCopyClientsModal() {
-        this.copyClientsModal.visible = false;
-        this.copyClientsModal.confirmLoading = false;
-      },
-      onCopySourceChange(sourceInboundId) {
-        const sourceInbound = this.dbInbounds.find(row => row.id === sourceInboundId);
-        if (!sourceInbound) {
-          this.copyClientsModal.sourceClients = [];
-          this.copyClientsModal.selectedEmails = [];
-          return;
-        }
-        const sourceClients = this.getInboundClients(sourceInbound) || [];
-        this.copyClientsModal.sourceClients = sourceClients.map(client => {
-          const stats = this.getClientStats(sourceInbound, client.email);
-          const used = stats ? (stats.up + stats.down) : 0;
-          return {
-            email: client.email,
-            trafficLabel: SizeFormatter.sizeFormat(used),
-            expiryLabel: client.expiryTime > 0 ? IntlUtil.formatDate(client.expiryTime) : '{{ i18n "unlimited" }}',
-          };
-        });
-        this.copyClientsModal.selectedEmails = [];
-      },
-      toggleCopyClientEmail(email, checked) {
-        const selected = this.copyClientsModal.selectedEmails.slice();
-        if (checked) {
-          if (!selected.includes(email)) {
-            selected.push(email);
-          }
-        } else {
-          const idx = selected.indexOf(email);
-          if (idx >= 0) {
-            selected.splice(idx, 1);
-          }
-        }
-        this.copyClientsModal.selectedEmails = selected;
-      },
-      selectAllCopyClients() {
-        this.copyClientsModal.selectedEmails = this.copyClientsModal.sourceClients.map(item => item.email);
-      },
-      clearAllCopyClients() {
-        this.copyClientsModal.selectedEmails = [];
-      },
-      async submitCopyClients() {
-        if (!this.copyClientsModal.sourceInboundId) {
-          this.$message.error('{{ i18n "pages.client.copySelectSourceFirst" }}');
-          return;
-        }
-        this.copyClientsModal.confirmLoading = true;
-        const payload = {
-          sourceInboundId: this.copyClientsModal.sourceInboundId,
-          clientEmails: this.copyClientsModal.selectedEmails,
-        };
-        const msg = await HttpUtil.post(`/panel/api/inbounds/${this.copyClientsModal.targetInboundId}/copyClients`, payload);
-        this.copyClientsModal.confirmLoading = false;
-        if (!msg.success) {
-          return;
-        }
-        const obj = msg.obj || {};
-        const addedCount = (obj.added || []).length;
-        const skippedCount = (obj.skipped || []).length;
-        const errorCount = (obj.errors || []).length;
-        this.$message.success(`{{ i18n "pages.client.copyResult" }}: +${addedCount}, ~${skippedCount}, !${errorCount}`);
-        this.closeCopyClientsModal();
-        await this.getDBInbounds();
       },
       openEditClient(dbInboundId, client) {
         dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
@@ -2080,10 +2086,6 @@
       }
     },
     computed: {
-      copyClientsPreviewEmails() {
-        if (!this.copyClientsModal.targetInboundId) return [];
-        return this.copyClientsModal.selectedEmails.map(email => `${email}_${this.copyClientsModal.targetInboundId}`);
-      },
       total() {
         let down = 0, up = 0, allTime = 0;
         let clients = 0, deactive = [], depleted = [], expiring = [];
