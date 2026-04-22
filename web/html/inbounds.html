@@ -826,6 +826,20 @@
         </template>
       </a-table>
     </div>
+    <div v-if="copyClientsModal.showFlow">
+      <div style="margin-bottom: 6px;">{{ i18n "pages.client.copyFlowLabel" }}</div>
+      <a-select v-model="copyClientsModal.flow"
+        style="width: 100%;"
+        :dropdown-class-name="themeSwitcher.currentTheme"
+        allow-clear>
+        <a-select-option value="">{{ i18n "none" }}</a-select-option>
+        <a-select-option value="xtls-rprx-vision">xtls-rprx-vision</a-select-option>
+        <a-select-option value="xtls-rprx-vision-udp443">xtls-rprx-vision-udp443</a-select-option>
+      </a-select>
+      <div style="margin-top: 4px; font-size: 12px; opacity: 0.7;">
+        {{ i18n "pages.client.copyFlowHint" }}
+      </div>
+    </div>
     <div v-if="copyClientsModal.selectedEmails.length > 0">
       <div style="margin-bottom: 4px;">{{ i18n "pages.client.copyEmailPreview" }}</div>
       <div style="max-height: 120px; overflow-y: auto;">
@@ -849,6 +863,9 @@
     title: '',
     targetInboundId: 0,
     targetInboundRemark: '',
+    targetProtocol: '',
+    showFlow: false,
+    flow: '',
     sourceInboundId: undefined,
     sources: [],
     sourceClients: [],
@@ -861,8 +878,18 @@
           const clients = app.getInboundClients(row) || [];
           return { id: row.id, label: `${row.remark} (${row.protocol}, ${clients.length})` };
         });
+      let showFlow = false;
+      try {
+        const targetInbound = targetDbInbound.toInbound();
+        showFlow = !!(targetInbound && typeof targetInbound.canEnableTlsFlow === 'function' && targetInbound.canEnableTlsFlow());
+      } catch (e) {
+        showFlow = false;
+      }
       copyClientsModal.targetInboundId = targetDbInbound.id;
       copyClientsModal.targetInboundRemark = targetDbInbound.remark;
+      copyClientsModal.targetProtocol = targetDbInbound.protocol;
+      copyClientsModal.showFlow = showFlow;
+      copyClientsModal.flow = '';
       copyClientsModal.title = `{{ i18n "pages.client.copyToInbound" }} ${targetDbInbound.remark}`;
       copyClientsModal.sources = sources;
       copyClientsModal.sourceInboundId = undefined;
@@ -925,14 +952,23 @@
         sourceInboundId: copyClientsModal.sourceInboundId,
         clientEmails: copyClientsModal.selectedEmails,
       };
+      if (copyClientsModal.showFlow && copyClientsModal.flow) {
+        payload.flow = copyClientsModal.flow;
+      }
       try {
         const msg = await HttpUtil.post(`/panel/api/inbounds/${copyClientsModal.targetInboundId}/copyClients`, payload);
         if (!msg || !msg.success) return;
         const obj = msg.obj || {};
         const addedCount = (obj.added || []).length;
-        const skippedCount = (obj.skipped || []).length;
-        const errorCount = (obj.errors || []).length;
-        app.$message.success(`{{ i18n "pages.client.copyResult" }}: +${addedCount}, ~${skippedCount}, !${errorCount}`);
+        const errorList = obj.errors || [];
+        if (addedCount > 0) {
+          app.$message.success(`{{ i18n "pages.client.copyResultSuccess" }}: ${addedCount}`);
+        } else {
+          app.$message.warning('{{ i18n "pages.client.copyResultNone" }}');
+        }
+        if (errorList.length > 0) {
+          app.$message.error(`{{ i18n "pages.client.copyResultErrors" }}: ${errorList.join('; ')}`);
+        }
         copyClientsModal.close();
         await app.getDBInbounds();
       } finally {

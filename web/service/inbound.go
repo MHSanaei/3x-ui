@@ -801,7 +801,7 @@ func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol)
 	}
 }
 
-func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string) (model.Client, error) {
+func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string, flow string) (model.Client, error) {
 	nowTs := time.Now().UnixMilli()
 	target := source
 	target.Email = email
@@ -811,10 +811,16 @@ func (s *InboundService) buildTargetClientFromSource(source model.Client, target
 	target.ID = ""
 	target.Password = ""
 	target.Auth = ""
+	target.Flow = ""
 
 	switch targetProtocol {
-	case model.VMESS, model.VLESS:
+	case model.VMESS:
 		target.ID = s.generateRandomCredential(targetProtocol)
+	case model.VLESS:
+		target.ID = s.generateRandomCredential(targetProtocol)
+		if flow == "xtls-rprx-vision" || flow == "xtls-rprx-vision-udp443" {
+			target.Flow = flow
+		}
 	case model.Trojan, model.Shadowsocks:
 		target.Password = s.generateRandomCredential(targetProtocol)
 	case model.Hysteria:
@@ -840,7 +846,7 @@ func (s *InboundService) nextAvailableCopiedEmail(originalEmail string, targetID
 	}
 }
 
-func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID int, clientEmails []string) (*CopyClientsResult, bool, error) {
+func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID int, clientEmails []string, flow string) (*CopyClientsResult, bool, error) {
 	result := &CopyClientsResult{
 		Added:   []string{},
 		Skipped: []string{},
@@ -913,7 +919,7 @@ func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID
 		}
 
 		targetEmail := s.nextAvailableCopiedEmail(originalEmail, targetInboundID, occupiedEmails)
-		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail)
+		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail, flow)
 		if buildErr != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", originalEmail, buildErr))
 			continue
