@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/mhsanaei/3x-ui/v2/database"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
 	"github.com/mhsanaei/3x-ui/v2/logger"
@@ -24,6 +25,12 @@ import (
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
 	xrayApi xray.XrayAPI
+}
+
+type CopyClientsResult struct {
+	Added   []string `json:"added"`
+	Skipped []string `json:"skipped"`
+	Errors  []string `json:"errors"`
 }
 
 // GetInbounds retrieves all inbounds for a specific user.
@@ -748,6 +755,196 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	s.xrayApi.Close()
 
 	return needRestart, tx.Save(oldInbound).Error
+}
+
+func (s *InboundService) getClientPrimaryKey(protocol model.Protocol, client model.Client) string {
+	switch protocol {
+	case model.Trojan:
+		return client.Password
+	case model.Shadowsocks:
+		return client.Email
+	case model.Hysteria:
+		return client.Auth
+	default:
+		return client.ID
+	}
+}
+
+func (s *InboundService) writeBackClientSubID(sourceInboundID int, sourceProtocol model.Protocol, client model.Client, subID string) (bool, error) {
+	client.SubID = subID
+	client.UpdatedAt = time.Now().UnixMilli()
+	clientID := s.getClientPrimaryKey(sourceProtocol, client)
+	if clientID == "" {
+		return false, common.NewError("empty client ID")
+	}
+
+	settingsBytes, err := json.Marshal(map[string][]model.Client{
+		"clients": []model.Client{client},
+	})
+	if err != nil {
+		return false, err
+	}
+
+	updatePayload := &model.Inbound{
+		Id:       sourceInboundID,
+		Settings: string(settingsBytes),
+	}
+	return s.UpdateInboundClient(updatePayload, clientID)
+}
+
+func (s *InboundService) generateRandomCredential(targetProtocol model.Protocol) string {
+	switch targetProtocol {
+	case model.VMESS, model.VLESS:
+		return uuid.NewString()
+	default:
+		return strings.ReplaceAll(uuid.NewString(), "-", "")
+	}
+}
+
+func (s *InboundService) buildTargetClientFromSource(source model.Client, targetProtocol model.Protocol, email string) (model.Client, error) {
+	nowTs := time.Now().UnixMilli()
+	target := source
+	target.Email = email
+	target.CreatedAt = nowTs
+	target.UpdatedAt = nowTs
+
+	target.ID = ""
+	target.Password = ""
+	target.Auth = ""
+
+	switch targetProtocol {
+	case model.VMESS, model.VLESS:
+		target.ID = s.generateRandomCredential(targetProtocol)
+	case model.Trojan, model.Shadowsocks:
+		target.Password = s.generateRandomCredential(targetProtocol)
+	case model.Hysteria:
+		target.Auth = s.generateRandomCredential(targetProtocol)
+	default:
+		target.ID = s.generateRandomCredential(targetProtocol)
+	}
+
+	return target, nil
+}
+
+func (s *InboundService) nextAvailableCopiedEmail(originalEmail string, targetID int, occupied map[string]struct{}) string {
+	base := fmt.Sprintf("%s_%d", originalEmail, targetID)
+	candidate := base
+	suffix := 0
+	for {
+		if _, exists := occupied[strings.ToLower(candidate)]; !exists {
+			occupied[strings.ToLower(candidate)] = struct{}{}
+			return candidate
+		}
+		suffix++
+		candidate = fmt.Sprintf("%s_%d", base, suffix)
+	}
+}
+
+func (s *InboundService) CopyInboundClients(targetInboundID int, sourceInboundID int, clientEmails []string) (*CopyClientsResult, bool, error) {
+	result := &CopyClientsResult{
+		Added:   []string{},
+		Skipped: []string{},
+		Errors:  []string{},
+	}
+	if targetInboundID == sourceInboundID {
+		return result, false, common.NewError("source and target inbounds must be different")
+	}
+
+	targetInbound, err := s.GetInbound(targetInboundID)
+	if err != nil {
+		return result, false, err
+	}
+	sourceInbound, err := s.GetInbound(sourceInboundID)
+	if err != nil {
+		return result, false, err
+	}
+
+	sourceClients, err := s.GetClients(sourceInbound)
+	if err != nil {
+		return result, false, err
+	}
+	if len(sourceClients) == 0 {
+		return result, false, nil
+	}
+
+	allowedEmails := map[string]struct{}{}
+	if len(clientEmails) > 0 {
+		for _, email := range clientEmails {
+			allowedEmails[strings.ToLower(strings.TrimSpace(email))] = struct{}{}
+		}
+	}
+
+	occupiedEmails := map[string]struct{}{}
+	allEmails, err := s.getAllEmails()
+	if err != nil {
+		return result, false, err
+	}
+	for _, email := range allEmails {
+		clean := strings.Trim(email, "\"")
+		if clean != "" {
+			occupiedEmails[strings.ToLower(clean)] = struct{}{}
+		}
+	}
+
+	newClients := make([]model.Client, 0)
+	needRestart := false
+	for _, sourceClient := range sourceClients {
+		originalEmail := strings.TrimSpace(sourceClient.Email)
+		if originalEmail == "" {
+			continue
+		}
+		if len(allowedEmails) > 0 {
+			if _, ok := allowedEmails[strings.ToLower(originalEmail)]; !ok {
+				continue
+			}
+		}
+
+		if sourceClient.SubID == "" {
+			newSubID := uuid.NewString()
+			subNeedRestart, subErr := s.writeBackClientSubID(sourceInbound.Id, sourceInbound.Protocol, sourceClient, newSubID)
+			if subErr != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("%s: failed to write source subId: %v", originalEmail, subErr))
+				continue
+			}
+			if subNeedRestart {
+				needRestart = true
+			}
+			sourceClient.SubID = newSubID
+		}
+
+		targetEmail := s.nextAvailableCopiedEmail(originalEmail, targetInboundID, occupiedEmails)
+		targetClient, buildErr := s.buildTargetClientFromSource(sourceClient, targetInbound.Protocol, targetEmail)
+		if buildErr != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("%s: %v", originalEmail, buildErr))
+			continue
+		}
+		newClients = append(newClients, targetClient)
+		result.Added = append(result.Added, targetEmail)
+	}
+
+	if len(newClients) == 0 {
+		return result, needRestart, nil
+	}
+
+	settingsPayload, err := json.Marshal(map[string][]model.Client{
+		"clients": newClients,
+	})
+	if err != nil {
+		return result, needRestart, err
+	}
+
+	addNeedRestart, err := s.AddInboundClient(&model.Inbound{
+		Id:       targetInboundID,
+		Settings: string(settingsPayload),
+	})
+	if err != nil {
+		return result, needRestart, err
+	}
+	if addNeedRestart {
+		needRestart = true
+	}
+
+	return result, needRestart, nil
 }
 
 func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool, error) {

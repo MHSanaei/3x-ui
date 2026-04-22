@@ -41,6 +41,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
+	g.POST("/:id/copyClients", a.copyInboundClients)
 	g.POST("/:id/delClient/:clientId", a.delInboundClient)
 	g.POST("/updateClient/:clientId", a.updateInboundClient)
 	g.POST("/:id/resetClientTraffic/:email", a.resetClientTraffic)
@@ -52,6 +53,11 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/lastOnline", a.lastOnline)
 	g.POST("/updateClientTraffic/:email", a.updateClientTraffic)
 	g.POST("/:id/delClientByEmail/:email", a.delInboundClientByEmail)
+}
+
+type CopyInboundClientsRequest struct {
+	SourceInboundID int      `json:"sourceInboundId"`
+	ClientEmails    []string `json:"clientEmails"`
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -255,6 +261,36 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 		return
 	}
 	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+}
+
+// copyInboundClients copies clients from source inbound to target inbound.
+func (a *InboundController) copyInboundClients(c *gin.Context) {
+	targetID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+
+	req := &CopyInboundClientsRequest{}
+	err = c.ShouldBindJSON(req)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	if req.SourceInboundID <= 0 {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("invalid source inbound id"))
+		return
+	}
+
+	result, needRestart, err := a.inboundService.CopyInboundClients(targetID, req.SourceInboundID, req.ClientEmails)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonObj(c, result, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
