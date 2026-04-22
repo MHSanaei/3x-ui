@@ -262,10 +262,11 @@
                               <a-icon type="usergroup-add"></a-icon>
                               {{ i18n "pages.client.bulk"}}
                             </a-menu-item>
-                            <a-menu-item key="copyClients"
-                              @click="() => openCopyClientsModal(dbInbound.id)">
-                              <a-icon type="copy"></a-icon>
-                              {{ i18n "pages.client.copyFromInbound"}}
+                            <a-menu-item key="copyClients">
+                              <span @click.stop="openCopyClientsModal(dbInbound.id)">
+                                <a-icon type="copy"></a-icon>
+                                {{ i18n "pages.client.copyFromInbound"}}
+                              </span>
                             </a-menu-item>
                             <a-menu-item key="resetClients">
                               <a-icon type="file-done"></a-icon>
