@@ -56,8 +56,8 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 }
 
 type CopyInboundClientsRequest struct {
-	SourceInboundID int      `json:"sourceInboundId"`
-	ClientEmails    []string `json:"clientEmails"`
+	SourceInboundID int      `form:"sourceInboundId" json:"sourceInboundId"`
+	ClientEmails    []string `form:"clientEmails" json:"clientEmails"`
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
@@ -275,7 +275,7 @@ func (a *InboundController) copyInboundClients(c *gin.Context) {
 	}
 
 	req := &CopyInboundClientsRequest{}
-	err = c.ShouldBindJSON(req)
+	err = c.ShouldBind(req)
 	if err != nil {
 		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
 		return
