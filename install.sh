@@ -11,12 +11,6 @@ cur_dir=$(pwd)
 xui_folder="${XUI_MAIN_FOLDER:=/usr/local/x-ui}"
 xui_service="${XUI_SERVICE:=/etc/systemd/system}"
 
-# Source repository for building x-ui from source (our fork)
-XUI_REPO_URL="${XUI_REPO_URL:-https://github.com/RsNest/3x-uiRsNest.git}"
-XUI_REPO_BRANCH="${XUI_REPO_BRANCH:-feature/copy-clients}"
-XRAY_VERSION="${XRAY_VERSION:-v26.4.17}"
-GO_VERSION="${GO_VERSION:-1.26.2}"
-
 # check root
 [[ $EUID -ne 0 ]] && echo -e "${red}Fatal error: ${plain} Please run this script with root privilege \n " && exit 1
 
@@ -82,29 +76,29 @@ is_port_in_use() {
 install_base() {
     case "${release}" in
         ubuntu | debian | armbian)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl git build-essential unzip
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
         ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl git gcc make unzip
+            dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
         ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
-                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl git gcc make unzip
+                yum -y update && yum install -y cronie curl tar tzdata socat ca-certificates openssl
             else
-                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl git gcc make unzip
+                dnf -y update && dnf install -y -q cronie curl tar tzdata socat ca-certificates openssl
             fi
         ;;
         arch | manjaro | parch)
-            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl git base-devel unzip
+            pacman -Syu && pacman -Syu --noconfirm cronie curl tar tzdata socat ca-certificates openssl
         ;;
         opensuse-tumbleweed | opensuse-leap)
-            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl git gcc make unzip
+            zypper refresh && zypper -q install -y cron curl tar timezone socat ca-certificates openssl
         ;;
         alpine)
-            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl git build-base unzip
+            apk update && apk add dcron curl tar tzdata socat ca-certificates openssl
         ;;
         *)
-            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl git build-essential unzip
+            apt-get update && apt-get install -y -q cron curl tar tzdata socat ca-certificates openssl
         ;;
     esac
 }
@@ -788,181 +782,79 @@ config_after_install() {
     ${xui_folder}/x-ui migrate
 }
 
-install_go() {
-    # Install Go toolchain from go.dev if missing or too old
-    local required_major=1
-    local required_minor=26
-
-    if command -v go >/dev/null 2>&1; then
-        local existing_version
-        existing_version=$(go version 2>/dev/null | awk '{print $3}' | sed 's/^go//')
-        local existing_major existing_minor
-        existing_major=$(echo "${existing_version}" | cut -d. -f1)
-        existing_minor=$(echo "${existing_version}" | cut -d. -f2)
-        if [[ "${existing_major}" =~ ^[0-9]+$ ]] && [[ "${existing_minor}" =~ ^[0-9]+$ ]]; then
-            if (( existing_major > required_major )) || \
-               (( existing_major == required_major && existing_minor >= required_minor )); then
-                echo -e "${green}Go ${existing_version} is already installed${plain}"
-                return 0
+install_x-ui() {
+    cd ${xui_folder%/x-ui}/
+    
+    # Download resources
+    if [ $# == 0 ]; then
+        tag_version=$(curl -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        if [[ ! -n "$tag_version" ]]; then
+            echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
+            tag_version=$(curl -4 -Ls "https://api.github.com/repos/MHSanaei/3x-ui/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+            if [[ ! -n "$tag_version" ]]; then
+                echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
+                exit 1
             fi
         fi
-        echo -e "${yellow}Installed Go ${existing_version} is too old (need >= ${required_major}.${required_minor}), installing ${GO_VERSION}...${plain}"
+        echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Downloading x-ui failed, please be sure that your server can access GitHub ${plain}"
+            exit 1
+        fi
     else
-        echo -e "${yellow}Go toolchain not found, installing ${GO_VERSION}...${plain}"
+        tag_version=$1
+        tag_version_numeric=${tag_version#v}
+        min_version="2.3.5"
+        
+        if [[ "$(printf '%s\n' "$min_version" "$tag_version_numeric" | sort -V | head -n1)" != "$min_version" ]]; then
+            echo -e "${red}Please use a newer version (at least v2.3.5). Exiting installation.${plain}"
+            exit 1
+        fi
+        
+        url="https://github.com/MHSanaei/3x-ui/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz"
+        echo -e "Beginning to install x-ui $1"
+        curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz ${url}
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Download x-ui $1 failed, please check if the version exists ${plain}"
+            exit 1
+        fi
     fi
-
-    local go_arch
-    case "$(arch)" in
-        amd64) go_arch="amd64" ;;
-        386)   go_arch="386" ;;
-        arm64) go_arch="arm64" ;;
-        armv6 | armv7 | armv5) go_arch="armv6l" ;;
-        s390x) go_arch="s390x" ;;
-        *) echo -e "${red}Unsupported architecture for Go: $(arch)${plain}"; exit 1 ;;
-    esac
-
-    local go_tarball="go${GO_VERSION}.linux-${go_arch}.tar.gz"
-    echo -e "${green}Downloading Go ${GO_VERSION} (${go_arch}) from go.dev...${plain}"
-    curl -fLRo "/tmp/${go_tarball}" "https://go.dev/dl/${go_tarball}"
+    curl -4fLRo /usr/bin/x-ui-temp https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
     if [[ $? -ne 0 ]]; then
-        echo -e "${red}Failed to download Go${plain}"
+        echo -e "${red}Failed to download x-ui.sh${plain}"
         exit 1
     fi
-
-    rm -rf /usr/local/go
-    tar -C /usr/local -xzf "/tmp/${go_tarball}"
-    rm -f "/tmp/${go_tarball}"
-
-    export PATH="/usr/local/go/bin:${PATH}"
-    if ! grep -q '/usr/local/go/bin' /etc/profile 2>/dev/null; then
-        echo 'export PATH="/usr/local/go/bin:${PATH}"' >> /etc/profile
-    fi
-
-    if ! command -v go >/dev/null 2>&1; then
-        echo -e "${red}Go installation failed${plain}"
-        exit 1
-    fi
-    echo -e "${green}$(go version) installed${plain}"
-}
-
-fetch_xray_assets() {
-    # Downloads Xray-core binary and geo data files into current bin/ dir.
-    # Uses naming conventions compatible with install.sh arch() output.
-    local arch_name="$1"
-    local xray_arch=""
-    case "${arch_name}" in
-        amd64) xray_arch="64" ;;
-        386)   xray_arch="32" ;;
-        arm64) xray_arch="arm64-v8a" ;;
-        armv7) xray_arch="arm32-v7a" ;;
-        armv6) xray_arch="arm32-v6" ;;
-        armv5) xray_arch="arm32-v6" ;;
-        s390x) xray_arch="s390x" ;;
-        *) echo -e "${red}Unsupported architecture for Xray: ${arch_name}${plain}"; return 1 ;;
-    esac
-
-    mkdir -p bin
-    cd bin || return 1
-
-    echo -e "${green}Downloading Xray-core ${XRAY_VERSION} (${xray_arch})...${plain}"
-    curl -fLRO "https://github.com/XTLS/Xray-core/releases/download/${XRAY_VERSION}/Xray-linux-${xray_arch}.zip"
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}Failed to download Xray-core${plain}"
-        return 1
-    fi
-    unzip -o "Xray-linux-${xray_arch}.zip" >/dev/null
-    rm -f "Xray-linux-${xray_arch}.zip" geoip.dat geosite.dat
-    mv -f xray "xray-linux-${arch_name}"
-    chmod +x "xray-linux-${arch_name}"
-
-    echo -e "${green}Downloading geo data files...${plain}"
-    curl -fLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
-    curl -fLRO https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
-    curl -fLRo geoip_IR.dat   https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
-    curl -fLRo geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-    curl -fLRo geoip_RU.dat   https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
-    curl -fLRo geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
-
-    cd ..
-    return 0
-}
-
-install_x-ui() {
-    # Build x-ui from our fork instead of downloading upstream release.
-    install_go
-
-    local build_dir
-    build_dir=$(mktemp -d /tmp/3x-ui-build.XXXXXX)
-    trap "rm -rf '${build_dir}'" EXIT
-
-    echo -e "${green}Cloning ${XUI_REPO_URL} (branch: ${XUI_REPO_BRANCH})...${plain}"
-    git clone --depth=1 --branch "${XUI_REPO_BRANCH}" "${XUI_REPO_URL}" "${build_dir}/src"
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}Failed to clone repository${plain}"
-        exit 1
-    fi
-
-    cd "${build_dir}/src" || exit 1
-
-    local tag_version
-    tag_version="$(git describe --tags --always 2>/dev/null)"
-    [[ -z "${tag_version}" ]] && tag_version="${XUI_REPO_BRANCH}"
-
-    echo -e "${green}Building x-ui from source (this may take several minutes)...${plain}"
-    export CGO_ENABLED=1
-    export CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
-    export PATH="/usr/local/go/bin:${PATH}"
-    go build -ldflags "-w -s" -o x-ui main.go
-    if [[ $? -ne 0 ]]; then
-        echo -e "${red}go build failed${plain}"
-        exit 1
-    fi
-    echo -e "${green}Build succeeded${plain}"
-
-    local arch_name
-    arch_name=$(arch)
-
-    fetch_xray_assets "${arch_name}"
-    if [[ $? -ne 0 ]]; then
-        exit 1
-    fi
-
-    # Stop running x-ui (if any) and clean previous install
+    
+    # Stop x-ui service and remove old resources
     if [[ -e ${xui_folder}/ ]]; then
         if [[ $release == "alpine" ]]; then
-            rc-service x-ui stop 2>/dev/null
+            rc-service x-ui stop
         else
-            systemctl stop x-ui 2>/dev/null
+            systemctl stop x-ui
         fi
-        rm -rf "${xui_folder}/"
+        rm ${xui_folder}/ -rf
     fi
-
-    # Install built artifacts
-    mkdir -p "${xui_folder}"
-    cp -f x-ui            "${xui_folder}/x-ui"
-    cp -f x-ui.sh         "${xui_folder}/x-ui.sh"
-    cp -rf bin            "${xui_folder}/"
-    [ -f x-ui.service ]         && cp -f x-ui.service         "${xui_folder}/"
-    [ -f x-ui.service.debian ]  && cp -f x-ui.service.debian  "${xui_folder}/"
-    [ -f x-ui.service.arch ]    && cp -f x-ui.service.arch    "${xui_folder}/"
-    [ -f x-ui.service.rhel ]    && cp -f x-ui.service.rhel    "${xui_folder}/"
-    [ -f x-ui.rc ]              && cp -f x-ui.rc              "${xui_folder}/"
-
-    chmod +x "${xui_folder}/x-ui" "${xui_folder}/x-ui.sh"
-    chmod +x "${xui_folder}/bin/xray-linux-${arch_name}"
-
-    # Keep backward-compat naming for 32-bit ARM variants
-    if [[ "${arch_name}" == "armv5" || "${arch_name}" == "armv6" || "${arch_name}" == "armv7" ]]; then
-        mv -f "${xui_folder}/bin/xray-linux-${arch_name}" "${xui_folder}/bin/xray-linux-arm"
-        chmod +x "${xui_folder}/bin/xray-linux-arm"
+    
+    # Extract resources and set permissions
+    tar zxvf x-ui-linux-$(arch).tar.gz
+    rm x-ui-linux-$(arch).tar.gz -f
+    
+    cd x-ui
+    chmod +x x-ui
+    chmod +x x-ui.sh
+    
+    # Check the system's architecture and rename the file accordingly
+    if [[ $(arch) == "armv5" || $(arch) == "armv6" || $(arch) == "armv7" ]]; then
+        mv bin/xray-linux-$(arch) bin/xray-linux-arm
+        chmod +x bin/xray-linux-arm
     fi
-
-    # Install x-ui CLI wrapper
-    cp -f x-ui.sh /usr/bin/x-ui
+    chmod +x x-ui bin/xray-linux-$(arch)
+    
+    # Update x-ui cli and se set permission
+    mv -f /usr/bin/x-ui-temp /usr/bin/x-ui
     chmod +x /usr/bin/x-ui
     mkdir -p /var/log/x-ui
-
-    cd "${xui_folder}" || exit 1
     config_after_install
 
     # Etckeeper compatibility
@@ -978,43 +870,95 @@ install_x-ui() {
             echo -e "${green}Created /etc/.gitignore and added x-ui.db for etckeeper${plain}"
         fi
     fi
-
-    # Install service unit from locally-built repo files
+    
     if [[ $release == "alpine" ]]; then
-        if [ ! -f "${xui_folder}/x-ui.rc" ]; then
-            echo -e "${red}x-ui.rc not found in build output${plain}"
+        curl -4fLRo /etc/init.d/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.rc
+        if [[ $? -ne 0 ]]; then
+            echo -e "${red}Failed to download x-ui.rc${plain}"
             exit 1
         fi
-        cp -f "${xui_folder}/x-ui.rc" /etc/init.d/x-ui
         chmod +x /etc/init.d/x-ui
         rc-update add x-ui
         rc-service x-ui start
     else
-        local service_src=""
-        if [ -f "${xui_folder}/x-ui.service" ]; then
-            service_src="${xui_folder}/x-ui.service"
-        else
+        # Install systemd service file
+        service_installed=false
+        
+        if [ -f "x-ui.service" ]; then
+            echo -e "${green}Found x-ui.service in extracted files, installing...${plain}"
+            cp -f x-ui.service ${xui_service}/ >/dev/null 2>&1
+            if [[ $? -eq 0 ]]; then
+                service_installed=true
+            fi
+        fi
+        
+        if [ "$service_installed" = false ]; then
             case "${release}" in
-                ubuntu | debian | armbian)     service_src="${xui_folder}/x-ui.service.debian" ;;
-                arch | manjaro | parch)        service_src="${xui_folder}/x-ui.service.arch" ;;
-                *)                             service_src="${xui_folder}/x-ui.service.rhel" ;;
+                ubuntu | debian | armbian)
+                    if [ -f "x-ui.service.debian" ]; then
+                        echo -e "${green}Found x-ui.service.debian in extracted files, installing...${plain}"
+                        cp -f x-ui.service.debian ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
+                ;;
+                arch | manjaro | parch)
+                    if [ -f "x-ui.service.arch" ]; then
+                        echo -e "${green}Found x-ui.service.arch in extracted files, installing...${plain}"
+                        cp -f x-ui.service.arch ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
+                ;;
+                *)
+                    if [ -f "x-ui.service.rhel" ]; then
+                        echo -e "${green}Found x-ui.service.rhel in extracted files, installing...${plain}"
+                        cp -f x-ui.service.rhel ${xui_service}/x-ui.service >/dev/null 2>&1
+                        if [[ $? -eq 0 ]]; then
+                            service_installed=true
+                        fi
+                    fi
+                ;;
             esac
         fi
-
-        if [ ! -f "${service_src}" ]; then
-            echo -e "${red}Service file not found in build output: ${service_src}${plain}"
+        
+        # If service file not found in tar.gz, download from GitHub
+        if [ "$service_installed" = false ]; then
+            echo -e "${yellow}Service files not found in tar.gz, downloading from GitHub...${plain}"
+            case "${release}" in
+                ubuntu | debian | armbian)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.debian >/dev/null 2>&1
+                ;;
+                arch | manjaro | parch)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.arch >/dev/null 2>&1
+                ;;
+                *)
+                    curl -4fLRo ${xui_service}/x-ui.service https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.service.rhel >/dev/null 2>&1
+                ;;
+            esac
+            
+            if [[ $? -ne 0 ]]; then
+                echo -e "${red}Failed to install x-ui.service from GitHub${plain}"
+                exit 1
+            fi
+            service_installed=true
+        fi
+        
+        if [ "$service_installed" = true ]; then
+            echo -e "${green}Setting up systemd unit...${plain}"
+            chown root:root ${xui_service}/x-ui.service >/dev/null 2>&1
+            chmod 644 ${xui_service}/x-ui.service >/dev/null 2>&1
+            systemctl daemon-reload
+            systemctl enable x-ui
+            systemctl start x-ui
+        else
+            echo -e "${red}Failed to install x-ui.service file${plain}"
             exit 1
         fi
-
-        echo -e "${green}Installing systemd unit from ${service_src}...${plain}"
-        cp -f "${service_src}" "${xui_service}/x-ui.service"
-        chown root:root "${xui_service}/x-ui.service" >/dev/null 2>&1
-        chmod 644 "${xui_service}/x-ui.service" >/dev/null 2>&1
-        systemctl daemon-reload
-        systemctl enable x-ui
-        systemctl start x-ui
     fi
-
+    
     echo -e "${green}x-ui ${tag_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "┌───────────────────────────────────────────────────────┐
@@ -1038,6 +982,5 @@ install_x-ui() {
 }
 
 echo -e "${green}Running...${plain}"
-echo -e "${green}Source: ${XUI_REPO_URL} (branch: ${XUI_REPO_BRANCH})${plain}"
 install_base
-install_x-ui
+install_x-ui $1
