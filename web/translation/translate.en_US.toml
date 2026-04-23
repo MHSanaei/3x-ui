@@ -281,6 +281,8 @@
 "setDefaultCert" = "Set Cert from Panel"
 "telegramDesc" = "Please provide Telegram Chat ID. (use '/id' command in the bot) or (@userinfobot)"
 "subscriptionDesc" = "To find your subscription URL, navigate to the 'Details'. Additionally, you can use the same name for several clients."
+"shareQuota" = "Share quota across inbounds"
+"shareQuotaDesc" = "Pool totalGB and expiry time with every other client that has the same subId and shareQuota enabled."
 "info" = "Info"
 "same" = "Same"
 "inboundData" = "Inbound's Data"

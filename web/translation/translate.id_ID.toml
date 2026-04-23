@@ -281,6 +281,8 @@
 "setDefaultCert" = "Atur Sertifikat dari Panel"
 "telegramDesc" = "Harap berikan ID Obrolan Telegram. (gunakan perintah '/id' di bot) atau (@userinfobot)"
 "subscriptionDesc" = "Untuk menemukan URL langganan Anda, buka 'Rincian'. Selain itu, Anda dapat menggunakan nama yang sama untuk beberapa klien."
+"shareQuota" = "Share quota across inbounds"
+"shareQuotaDesc" = "Pool totalGB and expiry time with every other client that has the same subId and shareQuota enabled."
 "info" = "Info"
 "same" = "Sama"
 "inboundData" = "Data Masuk"

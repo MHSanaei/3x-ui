@@ -281,6 +281,8 @@
 "setDefaultCert" = "استخدم شهادة البانل"
 "telegramDesc" = "ادخل ID شات Telegram. (استخدم '/id' في البوت) أو (@userinfobot)"
 "subscriptionDesc" = "عشان تلاقي رابط الاشتراك، ادخل على 'التفاصيل'. وكمان ممكن تستخدم نفس الاسم لعدة عملاء."
+"shareQuota" = "Share quota across inbounds"
+"shareQuotaDesc" = "Pool totalGB and expiry time with every other client that has the same subId and shareQuota enabled."
 "info" = "معلومات"
 "same" = "نفسه"
 "inboundData" = "بيانات الإدخال"

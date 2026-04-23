@@ -108,6 +108,18 @@
     </template>
     <a-input v-model.trim="client.subId"></a-input>
   </a-form-item>
+  <a-form-item v-if="client.email && app.subSettings?.enable && client.subId">
+    <template slot="label">
+      <a-tooltip>
+        <template slot="title">
+          <span>{{ i18n "pages.inbounds.shareQuotaDesc" }}</span>
+        </template>
+        <span>{{ i18n "pages.inbounds.shareQuota" }}</span>
+        <a-icon type="question-circle"></a-icon>
+      </a-tooltip>
+    </template>
+    <a-switch v-model="client.shareQuota"></a-switch>
+  </a-form-item>
   <a-form-item v-if="client.email && app.tgBotEnable">
     <template slot="label">
       <a-tooltip>

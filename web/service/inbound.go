@@ -722,6 +722,49 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 		}
 	}()
 
+	// Coerce any incoming share-quota clients to the canonical values of an
+	// existing group (same subId, shareQuota=true), so a new arrival doesn't
+	// overwrite siblings' quota/expiry. Mutate both the typed slice and the JSON
+	// interface slice that gets persisted.
+	for i := range clients {
+		c := &clients[i]
+		if !c.ShareQuota || c.SubID == "" {
+			continue
+		}
+		var (
+			groupTotal  int64
+			groupExpiry int64
+			exists      bool
+		)
+		groupTotal, groupExpiry, exists, err = s.shareQuotaGroupValues(tx, c.SubID, c.Email)
+		if err != nil {
+			return false, err
+		}
+		if !exists {
+			continue
+		}
+		c.TotalGB = groupTotal
+		c.ExpiryTime = groupExpiry
+		for j := range interfaceClients {
+			cm, ok := interfaceClients[j].(map[string]any)
+			if !ok {
+				continue
+			}
+			if cm["email"] == c.Email {
+				cm["totalGB"] = groupTotal
+				cm["expiryTime"] = groupExpiry
+				interfaceClients[j] = cm
+			}
+		}
+	}
+	// Re-marshal settings in case share-quota coercion rewrote any client values.
+	oldSettings["clients"] = oldClients
+	newSettings, err = json.MarshalIndent(oldSettings, "", "  ")
+	if err != nil {
+		return false, err
+	}
+	oldInbound.Settings = string(newSettings)
+
 	needRestart := false
 	s.xrayApi.Init(p.GetAPIPort())
 	for _, client := range clients {
@@ -754,7 +797,20 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 	s.xrayApi.Close()
 
-	return needRestart, tx.Save(oldInbound).Error
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return needRestart, err
+	}
+
+	// After the new client rows exist, sync quota/expiry across every member of
+	// this share-quota group so they all agree.
+	for _, client := range clients {
+		if client.ShareQuota && client.SubID != "" {
+			if err = s.propagateShareQuota(tx, client.SubID, client.TotalGB, client.ExpiryTime); err != nil {
+				return needRestart, err
+			}
+		}
+	}
+	return needRestart, nil
 }
 
 func (s *InboundService) getClientPrimaryKey(protocol model.Protocol, client model.Client) string {
@@ -1115,12 +1171,21 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		return false, err
 	}
 	settingsClients := oldSettings["clients"].([]any)
-	// Preserve created_at and set updated_at for the replacing client
+	// Preserve created_at and set updated_at for the replacing client.
+	// Also preserve shareQuota if the incoming payload is missing the key
+	// (defensive: protects against clients running outdated JS that doesn't
+	// serialize the field).
 	var preservedCreated any
+	var preservedShareQuota any
+	var hadOldShareQuota bool
 	if clientIndex >= 0 && clientIndex < len(settingsClients) {
 		if oldMap, ok := settingsClients[clientIndex].(map[string]any); ok {
 			if v, ok2 := oldMap["created_at"]; ok2 {
 				preservedCreated = v
+			}
+			if v, ok2 := oldMap["shareQuota"]; ok2 {
+				preservedShareQuota = v
+				hadOldShareQuota = true
 			}
 		}
 	}
@@ -1131,6 +1196,26 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 			}
 			newMap["created_at"] = preservedCreated
 			newMap["updated_at"] = time.Now().Unix() * 1000
+			if _, hasShare := newMap["shareQuota"]; !hasShare && hadOldShareQuota {
+				// Normalise to bool; tolerate "true"/"false"/"1"/"0" strings or
+				// numeric 0/1 in case a legacy record stored a non-boolean.
+				var asBool bool
+				switch v := preservedShareQuota.(type) {
+				case bool:
+					asBool = v
+				case string:
+					asBool = strings.EqualFold(v, "true") || v == "1"
+				case float64:
+					asBool = v != 0
+				case int:
+					asBool = v != 0
+				case int64:
+					asBool = v != 0
+				}
+				newMap["shareQuota"] = asBool
+				// Keep the typed clients[0] consistent so downstream propagation sees it.
+				clients[0].ShareQuota = asBool
+			}
 			interfaceClients[0] = newMap
 		}
 	}
@@ -1219,7 +1304,17 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		logger.Debug("Client old email not found")
 		needRestart = true
 	}
-	return needRestart, tx.Save(oldInbound).Error
+	if err = tx.Save(oldInbound).Error; err != nil {
+		return needRestart, err
+	}
+	// If the saved client opted into share-quota, propagate its totalGB/expiryTime
+	// to every sibling with the same subId that also has shareQuota enabled.
+	if clients[0].ShareQuota && clients[0].SubID != "" {
+		if err = s.propagateShareQuota(tx, clients[0].SubID, clients[0].TotalGB, clients[0].ExpiryTime); err != nil {
+			return needRestart, err
+		}
+	}
+	return needRestart, nil
 }
 
 func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool) {
@@ -1536,9 +1631,328 @@ func (s *InboundService) disableInvalidInbounds(tx *gorm.DB) (bool, int64, error
 	return needRestart, count, err
 }
 
+// shareQuotaMember describes a single client participating in a shared-quota group.
+type shareQuotaMember struct {
+	Email     string
+	InboundId int
+	Tag       string
+}
+
+// shareQuotaGroup pools totalGB and expiryTime across clients sharing the same subId
+// and having ShareQuota enabled. MaxTotal=0 means unlimited; MinExpiry=0 means never.
+type shareQuotaGroup struct {
+	Members   []shareQuotaMember
+	TotalUp   int64
+	TotalDown int64
+	MaxTotal  int64
+	MinExpiry int64
+}
+
+// computeShareQuotaGroups walks every inbound's settings JSON, collects clients
+// with shareQuota==true && subId!="", groups them by subId, and joins with client_traffics
+// to accumulate pooled usage. Keyed by subId. Disabled inbounds are included so
+// a re-enable doesn't reset accounting.
+func (s *InboundService) computeShareQuotaGroups(tx *gorm.DB) (map[string]*shareQuotaGroup, error) {
+	var inbounds []*model.Inbound
+	err := tx.Model(model.Inbound{}).Find(&inbounds).Error
+	if err != nil {
+		return nil, err
+	}
+
+	groups := make(map[string]*shareQuotaGroup)
+	type memberMeta struct {
+		member shareQuotaMember
+		total  int64
+		expiry int64
+	}
+	staged := make(map[string][]memberMeta)
+
+	for _, inbound := range inbounds {
+		clients, err := s.GetClients(inbound)
+		if err != nil || clients == nil {
+			continue
+		}
+		for _, c := range clients {
+			if !c.ShareQuota || c.SubID == "" || c.Email == "" {
+				continue
+			}
+			staged[c.SubID] = append(staged[c.SubID], memberMeta{
+				member: shareQuotaMember{Email: c.Email, InboundId: inbound.Id, Tag: inbound.Tag},
+				total:  c.TotalGB,
+				expiry: c.ExpiryTime,
+			})
+		}
+	}
+
+	if len(staged) == 0 {
+		return groups, nil
+	}
+
+	// Collect every email in any group so we can fetch traffic in a single query.
+	emails := make([]string, 0)
+	for _, members := range staged {
+		for _, m := range members {
+			emails = append(emails, m.member.Email)
+		}
+	}
+	var trafficRows []xray.ClientTraffic
+	if len(emails) > 0 {
+		if err := tx.Model(xray.ClientTraffic{}).Where("email IN (?)", emails).Find(&trafficRows).Error; err != nil {
+			return nil, err
+		}
+	}
+	usage := make(map[string]*xray.ClientTraffic, len(trafficRows))
+	for i := range trafficRows {
+		usage[trafficRows[i].Email] = &trafficRows[i]
+	}
+
+	for subId, members := range staged {
+		if len(members) < 1 {
+			continue
+		}
+		g := &shareQuotaGroup{}
+		// Semantics: MaxTotal==0 means unlimited. If any member is unlimited (total==0)
+		// the group is unlimited; otherwise MaxTotal = max of member totals.
+		// Same pattern for MinExpiry: 0 means never.
+		var maxTotal int64
+		maxTotalSeen := false
+		anyUnlimited := false
+		var minExpiry int64
+		minExpirySeen := false
+		anyNever := false
+		for _, m := range members {
+			g.Members = append(g.Members, m.member)
+			if m.total == 0 {
+				anyUnlimited = true
+			} else if !maxTotalSeen || m.total > maxTotal {
+				maxTotal = m.total
+				maxTotalSeen = true
+			}
+			if m.expiry == 0 {
+				anyNever = true
+			} else if !minExpirySeen || m.expiry < minExpiry {
+				minExpiry = m.expiry
+				minExpirySeen = true
+			}
+			// Accumulate usage from client_traffics.
+			if t, ok := usage[m.member.Email]; ok {
+				g.TotalUp += t.Up
+				g.TotalDown += t.Down
+			}
+		}
+		if anyUnlimited {
+			g.MaxTotal = 0
+		} else {
+			g.MaxTotal = maxTotal
+		}
+		if anyNever {
+			g.MinExpiry = 0
+		} else {
+			g.MinExpiry = minExpiry
+		}
+		groups[subId] = g
+	}
+
+	return groups, nil
+}
+
+// propagateShareQuota keeps totalGB and expiryTime in sync across every client with a
+// matching subId where shareQuota is true. Writes both inbounds.settings JSON and the
+// affected client_traffics rows inside the provided transaction.
+func (s *InboundService) propagateShareQuota(tx *gorm.DB, subId string, totalGB, expiryTime int64) error {
+	if subId == "" {
+		return nil
+	}
+
+	var inbounds []*model.Inbound
+	err := tx.Model(model.Inbound{}).Where(`id in (
+		SELECT DISTINCT inbounds.id
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE JSON_EXTRACT(client.value, '$.subId') = ?
+			AND (JSON_EXTRACT(client.value, '$.shareQuota') = 1
+				OR JSON_EXTRACT(client.value, '$.shareQuota') = 'true'
+				OR JSON_EXTRACT(client.value, '$.shareQuota') = TRUE)
+	)`, subId).Find(&inbounds).Error
+	if err != nil {
+		return err
+	}
+	if len(inbounds) == 0 {
+		return nil
+	}
+
+	nowMs := time.Now().Unix() * 1000
+	touchedEmails := make([]string, 0)
+
+	for ibIdx := range inbounds {
+		var settings map[string]any
+		if err := json.Unmarshal([]byte(inbounds[ibIdx].Settings), &settings); err != nil {
+			return err
+		}
+		rawClients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		changed := false
+		for cIdx := range rawClients {
+			cm, ok := rawClients[cIdx].(map[string]any)
+			if !ok {
+				continue
+			}
+			// Type-safe field checks: JSON numbers unmarshal as float64.
+			cSub, _ := cm["subId"].(string)
+			cShare, _ := cm["shareQuota"].(bool)
+			if cSub != subId || !cShare {
+				continue
+			}
+			cm["totalGB"] = totalGB
+			cm["expiryTime"] = expiryTime
+			cm["updated_at"] = nowMs
+			rawClients[cIdx] = cm
+			changed = true
+			if email, ok := cm["email"].(string); ok && email != "" {
+				touchedEmails = append(touchedEmails, email)
+			}
+		}
+		if !changed {
+			continue
+		}
+		settings["clients"] = rawClients
+		newSettings, err := json.MarshalIndent(settings, "", "  ")
+		if err != nil {
+			return err
+		}
+		inbounds[ibIdx].Settings = string(newSettings)
+		if err := tx.Save(inbounds[ibIdx]).Error; err != nil {
+			return err
+		}
+	}
+
+	if len(touchedEmails) == 0 {
+		return nil
+	}
+	return tx.Model(xray.ClientTraffic{}).
+		Where("email IN (?)", touchedEmails).
+		Updates(map[string]any{
+			"total":       totalGB,
+			"expiry_time": expiryTime,
+		}).Error
+}
+
+// shareQuotaGroupValues returns the canonical totalGB/expiryTime of an existing group
+// (same subId, shareQuota=true) if one exists, and a bool indicating whether it exists.
+// Used so that a client joining an existing group adopts the group's values instead of
+// resetting every sibling to the new arrival's values.
+func (s *InboundService) shareQuotaGroupValues(tx *gorm.DB, subId string, excludeEmail string) (totalGB int64, expiryTime int64, exists bool, err error) {
+	if subId == "" {
+		return 0, 0, false, nil
+	}
+	var inbounds []*model.Inbound
+	err = tx.Model(model.Inbound{}).Where(`id in (
+		SELECT DISTINCT inbounds.id
+		FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE JSON_EXTRACT(client.value, '$.subId') = ?
+			AND (JSON_EXTRACT(client.value, '$.shareQuota') = 1
+				OR JSON_EXTRACT(client.value, '$.shareQuota') = 'true'
+				OR JSON_EXTRACT(client.value, '$.shareQuota') = TRUE)
+	)`, subId).Find(&inbounds).Error
+	if err != nil {
+		return 0, 0, false, err
+	}
+	for _, ib := range inbounds {
+		clients, errC := s.GetClients(ib)
+		if errC != nil {
+			continue
+		}
+		for _, c := range clients {
+			if c.SubID != subId || !c.ShareQuota {
+				continue
+			}
+			if excludeEmail != "" && c.Email == excludeEmail {
+				continue
+			}
+			return c.TotalGB, c.ExpiryTime, true, nil
+		}
+	}
+	return 0, 0, false, nil
+}
+
 func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error) {
 	now := time.Now().Unix() * 1000
 	needRestart := false
+
+	// First pass: handle share-quota groups so members are disabled together and
+	// excluded from the per-client pass below.
+	handledEmails := make(map[string]bool)
+	groups, err := s.computeShareQuotaGroups(tx)
+	if err != nil {
+		return false, 0, err
+	}
+	groupDepletedEmails := make([]string, 0)
+	if len(groups) > 0 && p != nil {
+		s.xrayApi.Init(p.GetAPIPort())
+		for _, g := range groups {
+			depleted := (g.MaxTotal > 0 && g.TotalUp+g.TotalDown >= g.MaxTotal) ||
+				(g.MinExpiry > 0 && g.MinExpiry <= now)
+			if !depleted {
+				continue
+			}
+			for _, m := range g.Members {
+				if handledEmails[m.Email] {
+					continue
+				}
+				err1 := s.xrayApi.RemoveUser(m.Tag, m.Email)
+				if err1 == nil {
+					logger.Debug("Shared-quota client disabled by api:", m.Email)
+				} else if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", m.Email)) {
+					logger.Debug("Shared-quota user already disabled. Nothing to do.")
+				} else {
+					logger.Debug("Error disabling shared-quota client by api:", err1)
+					needRestart = true
+				}
+				handledEmails[m.Email] = true
+				groupDepletedEmails = append(groupDepletedEmails, m.Email)
+			}
+		}
+		s.xrayApi.Close()
+	} else if len(groups) > 0 {
+		// No p (Xray process) available — still collect emails so DB state is consistent.
+		for _, g := range groups {
+			depleted := (g.MaxTotal > 0 && g.TotalUp+g.TotalDown >= g.MaxTotal) ||
+				(g.MinExpiry > 0 && g.MinExpiry <= now)
+			if !depleted {
+				continue
+			}
+			for _, m := range g.Members {
+				if handledEmails[m.Email] {
+					continue
+				}
+				handledEmails[m.Email] = true
+				groupDepletedEmails = append(groupDepletedEmails, m.Email)
+			}
+		}
+	}
+	if len(groupDepletedEmails) > 0 {
+		if err := tx.Model(xray.ClientTraffic{}).
+			Where("email IN (?)", groupDepletedEmails).
+			Update("enable", false).Error; err != nil {
+			return false, 0, err
+		}
+	}
+
+	// Build exclusion list for the per-client pass. Also exclude every email in any
+	// non-depleted share-quota group — their quota is pooled and mustn't be judged
+	// individually on the single-row thresholds.
+	excludedEmails := make([]string, 0)
+	for _, g := range groups {
+		for _, m := range g.Members {
+			if !handledEmails[m.Email] {
+				excludedEmails = append(excludedEmails, m.Email)
+			}
+		}
+	}
+	excludedEmails = append(excludedEmails, groupDepletedEmails...)
 
 	if p != nil {
 		var results []struct {
@@ -1546,12 +1960,14 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			Email string
 		}
 
-		err := tx.Table("inbounds").
+		q := tx.Table("inbounds").
 			Select("inbounds.tag, client_traffics.email").
 			Joins("JOIN client_traffics ON inbounds.id = client_traffics.inbound_id").
-			Where("((client_traffics.total > 0 AND client_traffics.up + client_traffics.down >= client_traffics.total) OR (client_traffics.expiry_time > 0 AND client_traffics.expiry_time <= ?)) AND client_traffics.enable = ?", now, true).
-			Scan(&results).Error
-		if err != nil {
+			Where("((client_traffics.total > 0 AND client_traffics.up + client_traffics.down >= client_traffics.total) OR (client_traffics.expiry_time > 0 AND client_traffics.expiry_time <= ?)) AND client_traffics.enable = ?", now, true)
+		if len(excludedEmails) > 0 {
+			q = q.Where("client_traffics.email NOT IN (?)", excludedEmails)
+		}
+		if err := q.Scan(&results).Error; err != nil {
 			return false, 0, err
 		}
 		s.xrayApi.Init(p.GetAPIPort())
@@ -1563,22 +1979,21 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
 					logger.Debug("User is already disabled. Nothing to do more...")
 				} else {
-					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-						logger.Debug("User is already disabled. Nothing to do more...")
-					} else {
-						logger.Debug("Error in disabling client by api:", err1)
-						needRestart = true
-					}
+					logger.Debug("Error in disabling client by api:", err1)
+					needRestart = true
 				}
 			}
 		}
 		s.xrayApi.Close()
 	}
-	result := tx.Model(xray.ClientTraffic{}).
-		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
-		Update("enable", false)
-	err := result.Error
-	count := result.RowsAffected
+	updateQ := tx.Model(xray.ClientTraffic{}).
+		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true)
+	if len(excludedEmails) > 0 {
+		updateQ = updateQ.Where("email NOT IN (?)", excludedEmails)
+	}
+	result := updateQ.Update("enable", false)
+	err = result.Error
+	count := result.RowsAffected + int64(len(groupDepletedEmails))
 	return needRestart, count, err
 }
 

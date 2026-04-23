@@ -145,6 +145,7 @@ type Client struct {
 	SubID      string `json:"subId" form:"subId"`           // Subscription identifier
 	Comment    string `json:"comment" form:"comment"`       // Client comment
 	Reset      int    `json:"reset" form:"reset"`           // Reset period in days
+	ShareQuota bool   `json:"shareQuota" form:"shareQuota"` // Pool totalGB/expiryTime with siblings sharing subId
 	CreatedAt  int64  `json:"created_at,omitempty"`         // Creation timestamp
 	UpdatedAt  int64  `json:"updated_at,omitempty"`         // Last update timestamp
 }

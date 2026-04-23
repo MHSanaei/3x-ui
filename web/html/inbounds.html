@@ -1183,7 +1183,89 @@
           this.ipLimitEnable = ipLimitEnable;
         }
       },
+      applyShareQuotaPooling(dbInbounds) {
+        // For every client that opted into shareQuota and has a subId, replace
+        // its clientStats up/down/allTime/total/expiryTime with values pooled
+        // across every sibling sharing the same subId. Existing rendering
+        // helpers (getUpStats, statsProgress, ...) then show the pooled totals
+        // without further changes.
+        //
+        // Note: enable is intentionally NOT pooled so an admin who disables a
+        // single sibling doesn't visually disable the others; depletion-driven
+        // disables are already applied per-row by the backend to every group
+        // member.
+        //
+        // The original per-row values are stashed under `_sharedQuotaRaw*` on
+        // first mutation so repeated calls on the same objects stay idempotent
+        // (no double-summing if setInbounds runs twice against the same array).
+        const readRaw = (stats, key) => {
+          const rawKey = '_sharedQuotaRaw_' + key;
+          return stats[rawKey] !== undefined ? stats[rawKey] : stats[key];
+        };
+        const stashRaw = (stats, key) => {
+          const rawKey = '_sharedQuotaRaw_' + key;
+          if (stats[rawKey] === undefined) stats[rawKey] = stats[key];
+        };
+        const groups = {};
+        for (const dbInbound of dbInbounds) {
+          if (!dbInbound.settings || dbInbound.settings.length === 0) continue;
+          let parsed;
+          try { parsed = JSON.parse(dbInbound.settings); } catch (_) { continue; }
+          const clients = parsed && parsed.clients;
+          if (!Array.isArray(clients)) continue;
+          for (const c of clients) {
+            if (!c || !c.shareQuota || !c.subId || !c.email) continue;
+            if (!groups[c.subId]) groups[c.subId] = { members: [] };
+            groups[c.subId].members.push({ dbInbound, email: c.email });
+          }
+        }
+        for (const subId in groups) {
+          const g = groups[subId];
+          if (g.members.length < 1) continue;
+          let up = 0, down = 0, allTime = 0;
+          let total = 0, totalUnlimited = false;
+          let expiryTime = 0, expiryNever = false, expirySet = false;
+          const rows = [];
+          for (const m of g.members) {
+            const stats = (m.dbInbound.clientStats || []).find(r => r.email === m.email);
+            if (!stats) continue;
+            rows.push(stats);
+            const rawUp = readRaw(stats, 'up');
+            const rawDown = readRaw(stats, 'down');
+            const rawAllTime = readRaw(stats, 'allTime');
+            const rawTotal = readRaw(stats, 'total');
+            const rawExpiry = readRaw(stats, 'expiryTime');
+            up += rawUp || 0;
+            down += rawDown || 0;
+            allTime += rawAllTime || 0;
+            if (rawTotal === 0) totalUnlimited = true;
+            else if (rawTotal > total) total = rawTotal;
+            if (rawExpiry === 0) expiryNever = true;
+            else {
+              if (!expirySet || rawExpiry < expiryTime) {
+                expiryTime = rawExpiry;
+                expirySet = true;
+              }
+            }
+          }
+          const pooledTotal = totalUnlimited ? 0 : total;
+          const pooledExpiry = expiryNever ? 0 : (expirySet ? expiryTime : 0);
+          for (const r of rows) {
+            stashRaw(r, 'up');
+            stashRaw(r, 'down');
+            stashRaw(r, 'allTime');
+            stashRaw(r, 'total');
+            stashRaw(r, 'expiryTime');
+            r.up = up;
+            r.down = down;
+            r.allTime = allTime;
+            r.total = pooledTotal;
+            r.expiryTime = pooledExpiry;
+          }
+        }
+      },
       setInbounds(dbInbounds) {
+        this.applyShareQuotaPooling(dbInbounds);
         this.inbounds.splice(0);
         this.dbInbounds.splice(0);
         this.clientCount.splice(0);

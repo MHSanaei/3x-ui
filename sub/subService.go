@@ -45,6 +45,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	var traffic xray.ClientTraffic
 	var lastOnline int64
 	var clientTraffics []xray.ClientTraffic
+	var clientShared []bool
 	inbounds, err := s.getInboundsBySubId(subId)
 	if err != nil {
 		return nil, 0, traffic, err
@@ -80,6 +81,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 				result = append(result, link)
 				ct := s.getClientTraffics(inbound.ClientStats, client.Email)
 				clientTraffics = append(clientTraffics, ct)
+				clientShared = append(clientShared, client.ShareQuota)
 				if ct.LastOnline > lastOnline {
 					lastOnline = ct.LastOnline
 				}
@@ -87,26 +89,88 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		}
 	}
 
-	// Prepare statistics
-	for index, clientTraffic := range clientTraffics {
-		if index == 0 {
-			traffic.Up = clientTraffic.Up
-			traffic.Down = clientTraffic.Down
-			traffic.Total = clientTraffic.Total
-			if clientTraffic.ExpiryTime > 0 {
-				traffic.ExpiryTime = clientTraffic.ExpiryTime
+	// Detect whether any member of this subId opted into shared quota.
+	hasShared := false
+	for _, shared := range clientShared {
+		if shared {
+			hasShared = true
+			break
+		}
+	}
+
+	if !hasShared {
+		// No shareQuota in this subId: preserve the original aggregation (Total
+		// sums across members; ExpiryTime collapses to 0 when members disagree).
+		for index, clientTraffic := range clientTraffics {
+			if index == 0 {
+				traffic.Up = clientTraffic.Up
+				traffic.Down = clientTraffic.Down
+				traffic.Total = clientTraffic.Total
+				if clientTraffic.ExpiryTime > 0 {
+					traffic.ExpiryTime = clientTraffic.ExpiryTime
+				}
+			} else {
+				traffic.Up += clientTraffic.Up
+				traffic.Down += clientTraffic.Down
+				if traffic.Total == 0 || clientTraffic.Total == 0 {
+					traffic.Total = 0
+				} else {
+					traffic.Total += clientTraffic.Total
+				}
+				if clientTraffic.ExpiryTime != traffic.ExpiryTime {
+					traffic.ExpiryTime = 0
+				}
+			}
+		}
+		return result, lastOnline, traffic, nil
+	}
+
+	// Mixed-or-all-shared case: Up/Down sum across everyone (actual consumption).
+	// Total combines max-of-shared-totals + sum-of-unshared-totals so shared
+	// members aren't double-counted while unshared ones still add their own cap.
+	// ExpiryTime = earliest non-zero across all; 0 only if every member is unset.
+	var sharedMax int64
+	sharedMaxSeen := false
+	sharedUnlimited := false
+	var unsharedSum int64
+	unsharedUnlimited := false
+	for i, ct := range clientTraffics {
+		traffic.Up += ct.Up
+		traffic.Down += ct.Down
+		if clientShared[i] {
+			if ct.Total == 0 {
+				sharedUnlimited = true
+			} else if !sharedMaxSeen || ct.Total > sharedMax {
+				sharedMax = ct.Total
+				sharedMaxSeen = true
 			}
 		} else {
-			traffic.Up += clientTraffic.Up
-			traffic.Down += clientTraffic.Down
-			if traffic.Total == 0 || clientTraffic.Total == 0 {
-				traffic.Total = 0
+			if ct.Total == 0 {
+				unsharedUnlimited = true
 			} else {
-				traffic.Total += clientTraffic.Total
+				unsharedSum += ct.Total
 			}
-			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
-				traffic.ExpiryTime = 0
-			}
+		}
+	}
+	if sharedUnlimited || unsharedUnlimited {
+		traffic.Total = 0
+	} else {
+		traffic.Total = 0
+		if sharedMaxSeen {
+			traffic.Total += sharedMax
+		}
+		traffic.Total += unsharedSum
+	}
+
+	traffic.ExpiryTime = 0
+	expirySet := false
+	for _, ct := range clientTraffics {
+		if ct.ExpiryTime == 0 {
+			continue
+		}
+		if !expirySet || ct.ExpiryTime < traffic.ExpiryTime {
+			traffic.ExpiryTime = ct.ExpiryTime
+			expirySet = true
 		}
 	}
 	return result, lastOnline, traffic, nil

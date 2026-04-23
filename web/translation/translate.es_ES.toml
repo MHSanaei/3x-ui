@@ -281,6 +281,8 @@
 "setDefaultCert" = "Establecer certificado desde el panel"
 "telegramDesc" = "Por favor, proporciona el ID de Chat de Telegram. (usa el comando '/id' en el bot) o (@userinfobot)"
 "subscriptionDesc" = "Puedes encontrar tu enlace de suscripción en Detalles, también puedes usar el mismo nombre para varias configuraciones."
+"shareQuota" = "Share quota across inbounds"
+"shareQuotaDesc" = "Pool totalGB and expiry time with every other client that has the same subId and shareQuota enabled."
 "info" = "Info"
 "same" = "misma"
 "inboundData" = "Datos de entrada"
