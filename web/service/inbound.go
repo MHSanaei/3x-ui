@@ -1783,6 +1783,7 @@ func (s *InboundService) propagateShareQuota(tx *gorm.DB, subId string, totalGB,
 
 	nowMs := time.Now().Unix() * 1000
 	touchedEmails := make([]string, 0)
+	dirtyInbounds := make([]*model.Inbound, 0)
 
 	for ibIdx := range inbounds {
 		var settings map[string]any
@@ -1823,7 +1824,12 @@ func (s *InboundService) propagateShareQuota(tx *gorm.DB, subId string, totalGB,
 			return err
 		}
 		inbounds[ibIdx].Settings = string(newSettings)
-		if err := tx.Save(inbounds[ibIdx]).Error; err != nil {
+		dirtyInbounds = append(dirtyInbounds, inbounds[ibIdx])
+	}
+
+	// Batch-save all modified inbounds in one statement instead of one per inbound.
+	if len(dirtyInbounds) > 0 {
+		if err := tx.Save(dirtyInbounds).Error; err != nil {
 			return err
 		}
 	}
@@ -1884,10 +1890,27 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 
 	// First pass: handle share-quota groups so members are disabled together and
 	// excluded from the per-client pass below.
+	//
+	// Skip the expensive full-inbound scan when no share-quota clients exist at all.
 	handledEmails := make(map[string]bool)
-	groups, err := s.computeShareQuotaGroups(tx)
-	if err != nil {
-		return false, 0, err
+	var shareQuotaCount int64
+	if err := tx.Raw(`
+		SELECT COUNT(1) FROM inbounds,
+			JSON_EACH(JSON_EXTRACT(inbounds.settings, '$.clients')) AS client
+		WHERE JSON_EXTRACT(client.value, '$.shareQuota') = 1
+			OR JSON_EXTRACT(client.value, '$.shareQuota') = 'true'
+			OR JSON_EXTRACT(client.value, '$.shareQuota') = TRUE
+	`).Scan(&shareQuotaCount).Error; err != nil {
+		shareQuotaCount = 0
+	}
+
+	var groups map[string]*shareQuotaGroup
+	var err error
+	if shareQuotaCount > 0 {
+		groups, err = s.computeShareQuotaGroups(tx)
+		if err != nil {
+			return false, 0, err
+		}
 	}
 	groupDepletedEmails := make([]string, 0)
 	if len(groups) > 0 && p != nil {
