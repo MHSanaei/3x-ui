@@ -1164,24 +1164,25 @@
         if (!msg.success) {
           return;
         }
-        with (msg.obj) {
-          this.expireDiff = expireDiff * 86400000;
-          this.trafficDiff = trafficDiff * 1073741824;
-          this.defaultCert = defaultCert;
-          this.defaultKey = defaultKey;
-          this.tgBotEnable = tgBotEnable;
-          this.subSettings = {
-            enable: subEnable,
-            subTitle: subTitle,
-            subURI: subURI,
-            subJsonURI: subJsonURI,
-            subJsonEnable: subJsonEnable,
-          };
-          this.pageSize = pageSize;
-          this.remarkModel = remarkModel;
-          this.datepicker = datepicker;
-          this.ipLimitEnable = ipLimitEnable;
-        }
+        const { expireDiff, trafficDiff, defaultCert, defaultKey, tgBotEnable,
+                subEnable, subTitle, subURI, subJsonURI, subJsonEnable,
+                pageSize, remarkModel, datepicker, ipLimitEnable } = msg.obj;
+        this.expireDiff = expireDiff * 86400000;
+        this.trafficDiff = trafficDiff * 1073741824;
+        this.defaultCert = defaultCert;
+        this.defaultKey = defaultKey;
+        this.tgBotEnable = tgBotEnable;
+        this.subSettings = {
+          enable: subEnable,
+          subTitle: subTitle,
+          subURI: subURI,
+          subJsonURI: subJsonURI,
+          subJsonEnable: subJsonEnable,
+        };
+        this.pageSize = pageSize;
+        this.remarkModel = remarkModel;
+        this.datepicker = datepicker;
+        this.ipLimitEnable = ipLimitEnable;
       },
       applyShareQuotaPooling(dbInbounds) {
         // For every client that opted into shareQuota and has a subId, replace

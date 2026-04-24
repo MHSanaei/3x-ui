@@ -835,7 +835,7 @@ func (s *InboundService) writeBackClientSubID(sourceInboundID int, sourceProtoco
 	}
 
 	settingsBytes, err := json.Marshal(map[string][]model.Client{
-		"clients": []model.Client{client},
+		"clients": {client},
 	})
 	if err != nil {
 		return false, err
