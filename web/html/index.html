@@ -139,7 +139,7 @@
                       <a-icon type="reload"></a-icon>
                       <span v-if="!isMobile">{{ i18n "pages.index.restartXray" }}</span>
                     </a-space>
-                    <a-space direction="horizontal" @click="openSelectV2rayVersion" class="jc-center">
+                    <a-space direction="horizontal" @click="openSelectV2rayVersion()" class="jc-center">
                       <a-icon type="tool"></a-icon>
                       <span v-if="!isMobile">
                         [[ status.xray.version != 'Unknown' ? `v${status.xray.version}` : '{{ i18n
@@ -184,6 +184,12 @@
                       <span>{{ i18n "pages.index.documentation" }}</span>
                     </a-tag>
                   </a>
+                  <template #actions>
+                    <a-space direction="horizontal" @click="openSelectV2rayVersion('0')" class="jc-center">
+                      <a-icon type="cloud-download"></a-icon>
+                      <span v-if="!isMobile">{{ i18n "pages.index.updatePanel" }}</span>
+                    </a-space>
+                  </template>
                 </a-card>
               </a-col>
               <a-col :sm="24" :lg="12">
@@ -319,7 +325,29 @@
   </a-layout>
   <a-modal id="version-modal" v-model="versionModal.visible" title='{{ i18n "pages.index.xraySwitch" }}'
     :closable="true" @ok="() => versionModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
-    <a-collapse default-active-key="1">
+    <a-collapse accordion :active-key="versionModal.activeKey" @change="key => versionModal.activeKey = key">
+      <a-collapse-panel key="0" header='3X-UI'>
+        <a-alert type="warning" class="mb-12 w-100" message='{{ i18n "pages.index.panelUpdateDesc" }}'
+          show-icon></a-alert>
+        <a-list class="ant-version-list w-100" bordered>
+          <a-list-item class="ant-version-list-item">
+            <span>{{ i18n "pages.index.currentPanelVersion" }}</span>
+            <a-tag color="green">v[[ versionModal.panelUpdate.currentVersion || '{{ .cur_ver }}' ]]</a-tag>
+          </a-list-item>
+          <a-list-item class="ant-version-list-item">
+            <span>{{ i18n "pages.index.latestPanelVersion" }}</span>
+            <a-tag :color="versionModal.panelUpdate.updateAvailable ? 'purple' : 'green'">
+              [[ versionModal.panelUpdate.latestVersion || '-' ]]
+            </a-tag>
+          </a-list-item>
+        </a-list>
+        <div class="mt-5 d-flex justify-end">
+          <a-button type="primary" icon="cloud-download" :disabled="!versionModal.panelUpdate.updateAvailable"
+            @click="updatePanel">
+            {{ i18n "pages.index.updatePanel" }}
+          </a-button>
+        </div>
+      </a-collapse-panel>
       <a-collapse-panel key="1" header='Xray'>
         <a-alert type="warning" class="mb-12 w-100" message='{{ i18n "pages.index.xraySwitchClickDesk" }}'
           show-icon></a-alert>
@@ -799,10 +827,20 @@
 
   const versionModal = {
     visible: false,
+    activeKey: '1',
     versions: [],
-    show(versions) {
+    panelUpdate: {
+      currentVersion: '{{ .cur_ver }}',
+      latestVersion: '',
+      updateAvailable: false,
+    },
+    show(versions, panelUpdate, activeKey = '1') {
       this.visible = true;
+      this.activeKey = activeKey;
       this.versions = versions;
+      if (panelUpdate) {
+        this.panelUpdate = panelUpdate;
+      }
     },
     hide() {
       this.visible = false;
@@ -1049,14 +1087,17 @@
           console.error('Failed to fetch bucketed cpu history', e)
         }
       },
-      async openSelectV2rayVersion() {
+      async openSelectV2rayVersion(activeKey = '1') {
         this.loading(true);
-        const msg = await HttpUtil.get('/panel/api/server/getXrayVersion');
+        const [xrayMsg, panelMsg] = await Promise.all([
+          HttpUtil.get('/panel/api/server/getXrayVersion'),
+          HttpUtil.get('/panel/api/server/getPanelUpdateInfo'),
+        ]);
         this.loading(false);
-        if (!msg.success) {
+        if (!xrayMsg.success && !panelMsg.success) {
           return;
         }
-        versionModal.show(msg.obj);
+        versionModal.show(xrayMsg.success ? xrayMsg.obj : [], panelMsg.success ? panelMsg.obj : null, activeKey);
         this.loadCustomGeo();
       },
       customGeoFormatTime(ts) {
@@ -1192,6 +1233,27 @@
             this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
             await HttpUtil.post(`/panel/api/server/installXray/${version}`);
             this.loading(false);
+          },
+        });
+      },
+      updatePanel() {
+        this.$confirm({
+          title: '{{ i18n "pages.index.panelUpdateDialog" }}',
+          content: '{{ i18n "pages.index.panelUpdateDialogDesc" }}'
+            .replace('#version#', versionModal.panelUpdate.latestVersion || ''),
+          okText: '{{ i18n "confirm"}}',
+          class: themeSwitcher.currentTheme,
+          cancelText: '{{ i18n "cancel"}}',
+          onOk: async () => {
+            versionModal.hide();
+            this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
+            const msg = await HttpUtil.post('/panel/api/server/updatePanel');
+            if (!msg.success) {
+              this.loading(false);
+              return;
+            }
+            await PromiseUtil.sleep(15000);
+            window.location.reload();
           },
         });
       },
