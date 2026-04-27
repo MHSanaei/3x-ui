@@ -130,6 +130,7 @@
 "panelUpdateDesc" = "This will update 3X-UI itself to the latest release and restart the panel service."
 "currentPanelVersion" = "Current panel version"
 "latestPanelVersion" = "Latest panel version"
+"panelUpToDate" = "Panel is up to date"
 "xrayStatusUnknown" = "Unknown"
 "xrayStatusRunning" = "Running"
 "xrayStatusStop" = "Stop"

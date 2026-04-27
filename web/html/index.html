@@ -334,11 +334,15 @@
             <span>{{ i18n "pages.index.currentPanelVersion" }}</span>
             <a-tag color="green">v[[ versionModal.panelUpdate.currentVersion || '{{ .cur_ver }}' ]]</a-tag>
           </a-list-item>
-          <a-list-item class="ant-version-list-item">
+          <a-list-item class="ant-version-list-item" v-if="versionModal.panelUpdate.updateAvailable">
             <span>{{ i18n "pages.index.latestPanelVersion" }}</span>
-            <a-tag :color="versionModal.panelUpdate.updateAvailable ? 'purple' : 'green'">
+            <a-tag color="purple">
               [[ versionModal.panelUpdate.latestVersion || '-' ]]
             </a-tag>
+          </a-list-item>
+          <a-list-item class="ant-version-list-item" v-else>
+            <span>{{ i18n "pages.index.panelUpToDate" }}</span>
+            <a-tag color="green">{{ i18n "pages.index.xrayStatusRunning" }}</a-tag>
           </a-list-item>
         </a-list>
         <div class="mt-5 d-flex justify-end">
