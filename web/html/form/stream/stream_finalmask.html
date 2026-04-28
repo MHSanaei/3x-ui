@@ -3,9 +3,199 @@
   :colon="false"
   :label-col="{ md: {span:8} }"
   :wrapper-col="{ md: {span:14} }"
-  v-if="inbound.protocol == Protocols.HYSTERIA || inbound.stream.network == 'kcp'"
+  v-if="inbound.protocol == Protocols.HYSTERIA || ['kcp', 'xhttp', 'raw', 'tcp', 'httpupgrade', 'ws', 'grpc'].includes(inbound.stream.network)"
 >
   <a-divider :style="{ margin: '5px 0 0' }"></a-divider>
+
+  <!-- TCP Masks – for raw/tcp/httpupgrade/ws/grpc/xhttp -->
+  <template v-if="['raw', 'tcp', 'httpupgrade', 'ws', 'grpc', 'xhttp'].includes(inbound.stream.network)">
+  <a-form-item label="TCP Masks">
+    <a-button
+      icon="plus"
+      type="primary"
+      size="small"
+      @click="inbound.stream.addTcpMask('fragment')"
+    ></a-button>
+  </a-form-item>
+  <template v-if="inbound.stream.finalmask.tcp && inbound.stream.finalmask.tcp.length > 0">
+    <a-form
+      v-for="(mask, index) in inbound.stream.finalmask.tcp"
+      :key="index"
+      :colon="false"
+      :label-col="{ md: {span:8} }"
+      :wrapper-col="{ md: {span:14} }"
+    >
+      <a-divider :style="{ margin: '0' }">
+        TCP Mask [[ index + 1 ]]
+        <a-icon
+          type="delete"
+          @click="() => inbound.stream.delTcpMask(index)"
+          :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
+        ></a-icon>
+      </a-divider>
+      <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+        <a-select
+          v-model="mask.type"
+          @change="(type) => { mask.settings = mask._getDefaultSettings(type, {}); }"
+          :dropdown-class-name="themeSwitcher.currentTheme"
+        >
+          <a-select-option value="fragment">Fragment</a-select-option>
+          <a-select-option value="header-custom">Header Custom</a-select-option>
+          <a-select-option value="sudoku">Sudoku</a-select-option>
+        </a-select>
+      </a-form-item>
+
+      <!-- Fragment settings -->
+      <template v-if="mask.type === 'fragment'">
+        <a-form-item label="Packets">
+          <a-select
+            v-model="mask.settings.packets"
+            :dropdown-class-name="themeSwitcher.currentTheme"
+          >
+            <a-select-option value="tlshello">tlshello</a-select-option>
+            <a-select-option value="1-3">1-3</a-select-option>
+            <a-select-option value="1-5">1-5</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="Length">
+          <a-input v-model.trim="mask.settings.length" placeholder="e.g. 100-200" />
+        </a-form-item>
+        <a-form-item label="Delay">
+          <a-input v-model.trim="mask.settings.delay" placeholder="e.g. 10-20" />
+        </a-form-item>
+        <a-form-item label="Max Split">
+          <a-input v-model.trim="mask.settings.maxSplit" placeholder="e.g. 3-6" />
+        </a-form-item>
+      </template>
+
+      <!-- Sudoku settings (TCP) -->
+      <template v-if="mask.type === 'sudoku'">
+        <a-form-item label="Password">
+          <a-input v-model.trim="mask.settings.password" placeholder="Obfuscation password" />
+        </a-form-item>
+        <a-form-item label="ASCII">
+          <a-input v-model.trim="mask.settings.ascii" placeholder="ASCII" />
+        </a-form-item>
+        <a-form-item label="Custom Table">
+          <a-input v-model.trim="mask.settings.customTable" placeholder="Custom Table" />
+        </a-form-item>
+        <a-form-item label="Custom Tables">
+          <a-input v-model.trim="mask.settings.customTables" placeholder="Custom Tables" />
+        </a-form-item>
+        <a-form-item label="Padding Min">
+          <a-input-number v-model.number="mask.settings.paddingMin" :min="0" />
+        </a-form-item>
+        <a-form-item label="Padding Max">
+          <a-input-number v-model.number="mask.settings.paddingMax" :min="0" />
+        </a-form-item>
+      </template>
+
+      <!-- Header Custom (TCP) – clients/servers/errors are 2D arrays of groups -->
+      <template v-if="mask.type === 'header-custom'">
+        <!-- Clients -->
+        <a-form-item label="Clients">
+          <a-button
+            icon="plus"
+            type="primary"
+            size="small"
+            @click="mask.settings.clients.push([{delay: 0, rand: 0, randRange: '0-255', type: 'array', packet: []}])"
+          ></a-button>
+        </a-form-item>
+        <template v-for="(group, gi) in mask.settings.clients" :key="'cg'+gi">
+          <a-divider :style="{ margin: '0' }">
+            Clients Group [[ gi + 1 ]]
+            <a-icon
+              type="delete"
+              @click="mask.settings.clients.splice(gi, 1)"
+              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+            ></a-icon>
+          </a-divider>
+          <template v-for="(item, ii) in group" :key="'ci'+ii">
+            <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+              <a-select v-model="item.type" :dropdown-class-name="themeSwitcher.currentTheme"
+                @change="t => { if(t === 'base64') item.packet = RandomUtil.randomBase64(); else if(t === 'array') { item.rand = 0; item.packet = []; } else { item.packet = ''; } }">
+                <a-select-option value="array">Array</a-select-option>
+                <a-select-option value="str">String</a-select-option>
+                <a-select-option value="hex">Hex</a-select-option>
+                <a-select-option value="base64">Base64</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Delay (ms)">
+              <a-input-number v-model.number="item.delay" :min="0" />
+            </a-form-item>
+            <template v-if="item.type === 'array'">
+              <a-form-item label="Rand">
+                <a-input-number v-model.number="item.rand" :min="0" />
+              </a-form-item>
+              <a-form-item label="Rand Range">
+                <a-input v-model.trim="item.randRange" placeholder="0-255" />
+              </a-form-item>
+            </template>
+            <a-form-item v-else label="Packet">
+              <a-input-group compact v-if="item.type === 'base64'">
+                <a-input v-model.trim="item.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
+                <a-button icon="reload" @click="item.packet = RandomUtil.randomBase64()" />
+              </a-input-group>
+              <a-input v-else v-model.trim="item.packet" placeholder="binary data" />
+            </a-form-item>
+          </template>
+        </template>
+
+        <!-- Servers -->
+        <a-form-item label="Servers">
+          <a-button
+            icon="plus"
+            type="primary"
+            size="small"
+            @click="mask.settings.servers.push([{delay: 0, rand: 0, randRange: '0-255', type: 'array', packet: []}])"
+          ></a-button>
+        </a-form-item>
+        <template v-for="(group, gi) in mask.settings.servers" :key="'sg'+gi">
+          <a-divider :style="{ margin: '0' }">
+            Servers Group [[ gi + 1 ]]
+            <a-icon
+              type="delete"
+              @click="mask.settings.servers.splice(gi, 1)"
+              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer', marginLeft: '8px' }"
+            ></a-icon>
+          </a-divider>
+          <template v-for="(item, ii) in group" :key="'si'+ii">
+            <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+              <a-select v-model="item.type" :dropdown-class-name="themeSwitcher.currentTheme"
+                @change="t => { if(t === 'base64') item.packet = RandomUtil.randomBase64(); else if(t === 'array') { item.rand = 0; item.packet = []; } else { item.packet = ''; } }">
+                <a-select-option value="array">Array</a-select-option>
+                <a-select-option value="str">String</a-select-option>
+                <a-select-option value="hex">Hex</a-select-option>
+                <a-select-option value="base64">Base64</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="Delay (ms)">
+              <a-input-number v-model.number="item.delay" :min="0" />
+            </a-form-item>
+            <template v-if="item.type === 'array'">
+              <a-form-item label="Rand">
+                <a-input-number v-model.number="item.rand" :min="0" />
+              </a-form-item>
+              <a-form-item label="Rand Range">
+                <a-input v-model.trim="item.randRange" placeholder="0-255" />
+              </a-form-item>
+            </template>
+            <a-form-item v-else label="Packet">
+              <a-input-group compact v-if="item.type === 'base64'">
+                <a-input v-model.trim="item.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
+                <a-button icon="reload" @click="item.packet = RandomUtil.randomBase64()" />
+              </a-input-group>
+              <a-input v-else v-model.trim="item.packet" placeholder="binary data" />
+            </a-form-item>
+          </template>
+        </template>
+      </template>
+
+    </a-form>
+  </template>
+  </template>
+
+  <template v-if="inbound.protocol == Protocols.HYSTERIA || inbound.stream.network == 'kcp'">
   <a-form-item label="UDP Masks">
     <a-button
       icon="plus"
@@ -64,17 +254,14 @@
             >
             <a-select-option value="xdns">xDNS</a-select-option>
             <a-select-option value="xicmp">xICMP</a-select-option>
-            <a-select-option value="header-custom"
-              >Header Custom</a-select-option
-            >
+            <a-select-option value="header-custom">Header Custom</a-select-option>
             <a-select-option value="noise">Noise</a-select-option>
-            <a-select-option value="sudoku">Sudoku</a-select-option>
           </template>
         </a-select>
       </a-form-item>
       <a-form-item
         label="Password"
-        v-if="['mkcp-aes128gcm', 'salamander', 'sudoku'].includes(mask.type)"
+        v-if="['mkcp-aes128gcm', 'salamander'].includes(mask.type)"
       >
         <a-input
           v-model.trim="mask.settings.password"
@@ -98,96 +285,17 @@
           ></a-select>
         </a-form-item>
       </template>
-      <template v-if="mask.type === 'header-custom'">
-        <a-form-item label="Client">
-          <a-icon
-            type="plus"
-            type="primary"
-            size="small"
-            @click="mask.settings.client.push({rand: 0, randRange: '0-255', type: 'array', packet: []})"
-          />
-        </a-form-item>
-        <template v-for="(c, index) in mask.settings.client" :key="index">
-          <a-divider :style="{ margin: '0' }">
-            Client [[ index + 1 ]]
-            <a-icon
-              type="delete"
-              @click="() => mask.settings.client.splice(index, 1)"
-              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
-            ></a-icon>
-          </a-divider>
-          <a-form-item label="Rand">
-            <a-input-number v-model.number="c.rand" />
-          </a-form-item>
-          <a-form-item label="Rand Range">
-            <a-input v-model.trim="c.randRange" placeholder="0-255" />
-          </a-form-item>
-          <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
-            <a-select
-              v-model="c.type"
-              :dropdown-class-name="themeSwitcher.currentTheme"
-            >
-              <a-select-option value="array">Array</a-select-option>
-              <a-select-option value="str">String</a-select-option>
-              <a-select-option value="hex">Hex</a-select-option>
-              <a-select-option value="base64">Base64</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="Packet">
-            <a-input v-model.trim="c.packet" placeholder="binary data" />
-          </a-form-item>
-        </template>
-        <a-divider :style="{ margin: '0' }"></a-divider>
-        <a-form-item label="Server">
-          <a-icon
-            type="plus"
-            type="primary"
-            size="small"
-            @click="mask.settings.server.push({rand: 0, randRange: '0-255', type: 'array', packet: []})"
-          />
-        </a-form-item>
-        <template v-for="(s, index) in mask.settings.server" :key="index">
-          <a-divider :style="{ margin: '0' }">
-            Server [[ index + 1 ]]
-            <a-icon
-              type="delete"
-              @click="() => mask.settings.server.splice(index, 1)"
-              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
-            ></a-icon>
-          </a-divider>
-          <a-form-item label="Rand">
-            <a-input-number v-model.number="s.rand" />
-          </a-form-item>
-          <a-form-item label="Rand Range">
-            <a-input v-model.trim="s.randRange" placeholder="0-255" />
-          </a-form-item>
-          <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
-            <a-select
-              v-model="s.type"
-              :dropdown-class-name="themeSwitcher.currentTheme"
-            >
-              <a-select-option value="array">Array</a-select-option>
-              <a-select-option value="str">String</a-select-option>
-              <a-select-option value="hex">Hex</a-select-option>
-              <a-select-option value="base64">Base64</a-select-option>
-            </a-select>
-          </a-form-item>
-          <a-form-item label="Packet">
-            <a-input v-model.trim="s.packet" placeholder="binary data" />
-          </a-form-item>
-        </template>
-      </template>
       <template v-if="mask.type === 'noise'">
         <a-form-item label="Reset">
           <a-input-number v-model.number="mask.settings.reset" :min="0" />
         </a-form-item>
         <a-form-item label="Noise">
-          <a-icon
-            type="plus"
+          <a-button
+            icon="plus"
             type="primary"
             size="small"
-            @click="mask.settings.noise.push({rand: '1-8192', randRange: '0-255', type: 'array', packet: '', delay: ''})"
-          />
+            @click="mask.settings.noise.push({rand: '1-8192', randRange: '0-255', type: 'array', packet: [], delay: '10-20'})"
+          ></a-button>
         </a-form-item>
         <template v-for="(n, index) in mask.settings.noise" :key="index">
           <a-divider :style="{ margin: '0' }">
@@ -198,16 +306,11 @@
               :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
             ></a-icon>
           </a-divider>
-          <a-form-item label="Rand">
-            <a-input v-model.trim="n.rand" placeholder="1-8192" />
-          </a-form-item>
-          <a-form-item label="Rand Range">
-            <a-input v-model.trim="n.randRange" placeholder="0-255" />
-          </a-form-item>
           <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
             <a-select
               v-model="n.type"
               :dropdown-class-name="themeSwitcher.currentTheme"
+              @change="t => { if(t === 'base64') n.packet = RandomUtil.randomBase64(); else if(t === 'array') n.packet = []; else n.packet = ''; }"
             >
               <a-select-option value="array">Array</a-select-option>
               <a-select-option value="str">String</a-select-option>
@@ -215,36 +318,118 @@
               <a-select-option value="base64">Base64</a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="Packet">
-            <a-input v-model.trim="n.packet" placeholder="binary data" />
+          <template v-if="n.type === 'array'">
+            <a-form-item label="Rand">
+              <a-input v-model.trim="n.rand" placeholder="0 or 1-8192" />
+            </a-form-item>
+            <a-form-item label="Rand Range">
+              <a-input v-model.trim="n.randRange" placeholder="0-255" />
+            </a-form-item>
+          </template>
+          <a-form-item v-else label="Packet">
+            <a-input-group compact v-if="n.type === 'base64'">
+              <a-input v-model.trim="n.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
+              <a-button icon="reload" @click="n.packet = RandomUtil.randomBase64()" />
+            </a-input-group>
+            <a-input v-else v-model.trim="n.packet" placeholder="binary data" />
           </a-form-item>
           <a-form-item label="Delay">
             <a-input v-model.trim="n.delay" placeholder="10-20" />
           </a-form-item>
         </template>
       </template>
-      <template v-if="mask.type === 'sudoku'">
-        <a-form-item label="ASCII">
-          <a-input v-model.trim="mask.settings.ascii" placeholder="ASCII" />
+      <template v-if="mask.type === 'header-custom'">
+        <a-form-item label="Client">
+          <a-button
+            icon="plus"
+            type="primary"
+            size="small"
+            @click="mask.settings.client.push({rand: 0, randRange: '0-255', type: 'array', packet: []})"
+          ></a-button>
         </a-form-item>
-        <a-form-item label="Custom Table">
-          <a-input
-            v-model.trim="mask.settings.customTable"
-            placeholder="Custom Table"
-          />
+        <template v-for="(c, index) in mask.settings.client" :key="index">
+          <a-divider :style="{ margin: '0' }">
+            Client [[ index + 1 ]]
+            <a-icon
+              type="delete"
+              @click="mask.settings.client.splice(index, 1)"
+              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
+            ></a-icon>
+          </a-divider>
+          <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+            <a-select
+              v-model="c.type"
+              :dropdown-class-name="themeSwitcher.currentTheme"
+              @change="t => { if(t === 'base64') c.packet = RandomUtil.randomBase64(); else if(t === 'array') c.packet = []; else c.packet = ''; }"
+            >
+              <a-select-option value="array">Array</a-select-option>
+              <a-select-option value="str">String</a-select-option>
+              <a-select-option value="hex">Hex</a-select-option>
+              <a-select-option value="base64">Base64</a-select-option>
+            </a-select>
+          </a-form-item>
+          <template v-if="c.type === 'array'">
+            <a-form-item label="Rand">
+              <a-input-number v-model.number="c.rand" />
+            </a-form-item>
+            <a-form-item label="Rand Range">
+              <a-input v-model.trim="c.randRange" placeholder="0-255" />
+            </a-form-item>
+          </template>
+          <a-form-item v-else label="Packet">
+            <a-input-group compact v-if="c.type === 'base64'">
+              <a-input v-model.trim="c.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
+              <a-button icon="reload" @click="c.packet = RandomUtil.randomBase64()" />
+            </a-input-group>
+            <a-input v-else v-model.trim="c.packet" placeholder="binary data" />
+          </a-form-item>
+        </template>
+        <a-divider :style="{ margin: '0' }"></a-divider>
+        <a-form-item label="Server">
+          <a-button
+            icon="plus"
+            type="primary"
+            size="small"
+            @click="mask.settings.server.push({rand: 0, randRange: '0-255', type: 'array', packet: []})"
+          ></a-button>
         </a-form-item>
-        <a-form-item label="Custom Tables">
-          <a-input
-            v-model.trim="mask.settings.customTables"
-            placeholder="Custom Tables"
-          />
-        </a-form-item>
-        <a-form-item label="Padding Min">
-          <a-input-number v-model.number="mask.settings.paddingMin" :min="0" />
-        </a-form-item>
-        <a-form-item label="Padding Max">
-          <a-input-number v-model.number="mask.settings.paddingMax" :min="0" />
-        </a-form-item>
+        <template v-for="(s, index) in mask.settings.server" :key="index">
+          <a-divider :style="{ margin: '0' }">
+            Server [[ index + 1 ]]
+            <a-icon
+              type="delete"
+              @click="mask.settings.server.splice(index, 1)"
+              :style="{ color: 'rgb(255, 77, 79)', cursor: 'pointer' }"
+            ></a-icon>
+          </a-divider>
+          <a-form-item label='{{ i18n "pages.xray.outbound.type" }}'>
+            <a-select
+              v-model="s.type"
+              :dropdown-class-name="themeSwitcher.currentTheme"
+              @change="t => { if(t === 'base64') s.packet = RandomUtil.randomBase64(); else if(t === 'array') s.packet = []; else s.packet = ''; }"
+            >
+              <a-select-option value="array">Array</a-select-option>
+              <a-select-option value="str">String</a-select-option>
+              <a-select-option value="hex">Hex</a-select-option>
+              <a-select-option value="base64">Base64</a-select-option>
+            </a-select>
+          </a-form-item>
+          <template v-if="s.type === 'array'">
+            <a-form-item label="Rand">
+              <a-input-number v-model.number="s.rand" />
+            </a-form-item>
+            <a-form-item label="Rand Range">
+              <a-input v-model.trim="s.randRange" placeholder="0-255" />
+            </a-form-item>
+          </template>
+          <a-form-item v-else label="Packet">
+            <a-input-group compact v-if="s.type === 'base64'">
+              <a-input v-model.trim="s.packet" placeholder="binary data" :style="{ width: 'calc(100% - 32px)' }" />
+              <a-button icon="reload" @click="s.packet = RandomUtil.randomBase64()" />
+            </a-input-group>
+            <a-input v-else v-model.trim="s.packet" placeholder="binary data" />
+          </a-form-item>
+        </template>
       </template>
       <template v-if="mask.type === 'xicmp'">
         <a-form-item label="IP">
@@ -255,6 +440,73 @@
         </a-form-item>
       </template>
     </a-form>
+  </template>
+  </template>
+
+  <!-- quicParams – only for xhttp H3 and hysteria -->
+  <template v-if="inbound.protocol == Protocols.HYSTERIA || inbound.stream.network == 'xhttp'">
+    <a-form-item label="QUIC Params">
+      <a-switch v-model="inbound.stream.finalmask.enableQuicParams"></a-switch>
+    </a-form-item>
+    <template v-if="inbound.stream.finalmask.enableQuicParams">
+      <a-form-item label="Congestion">
+        <a-select
+          v-model="inbound.stream.finalmask.quicParams.congestion"
+          :dropdown-class-name="themeSwitcher.currentTheme"
+        >
+          <a-select-option value="reno">Reno</a-select-option>
+          <a-select-option value="bbr">BBR</a-select-option>
+          <a-select-option value="brutal">Brutal</a-select-option>
+          <a-select-option value="force-brutal">Force Brutal</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="Debug">
+        <a-switch v-model="inbound.stream.finalmask.quicParams.debug"></a-switch>
+      </a-form-item>
+      <template v-if="['brutal','force-brutal'].includes(inbound.stream.finalmask.quicParams.congestion)">
+        <a-form-item label="Brutal Up">
+          <a-input v-model.trim="inbound.stream.finalmask.quicParams.brutalUp" placeholder="e.g. 60 mbps" />
+        </a-form-item>
+        <a-form-item label="Brutal Down">
+          <a-input v-model.trim="inbound.stream.finalmask.quicParams.brutalDown" placeholder="e.g. 60 mbps" />
+        </a-form-item>
+      </template>
+      <a-form-item label="UDP Hop">
+        <a-switch v-model="inbound.stream.finalmask.quicParams.hasUdpHop"></a-switch>
+      </a-form-item>
+      <template v-if="inbound.stream.finalmask.quicParams.hasUdpHop">
+        <a-form-item label="Hop Ports">
+          <a-input v-model.trim="inbound.stream.finalmask.quicParams.udpHop.ports" placeholder="e.g. 20000-50000" />
+        </a-form-item>
+        <a-form-item label="Hop Interval (s)">
+          <a-input-number v-model.number="inbound.stream.finalmask.quicParams.udpHop.interval" :min="5" />
+        </a-form-item>
+      </template>
+      <a-form-item label="Max Idle Timeout (s)">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.maxIdleTimeout" :min="4" :max="120" />
+      </a-form-item>
+      <a-form-item label="Keep Alive Period (s)">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.keepAlivePeriod" :min="0" :max="60" />
+      </a-form-item>
+      <a-form-item label="Disable Path MTU Dis">
+        <a-switch v-model="inbound.stream.finalmask.quicParams.disablePathMTUDiscovery"></a-switch>
+      </a-form-item>
+      <a-form-item label="Max Incoming Streams">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.maxIncomingStreams" :min="0" placeholder="0 = default" />
+      </a-form-item>
+      <a-form-item label="Init Stream Window">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.initStreamReceiveWindow" :min="0" placeholder="0 = default" />
+      </a-form-item>
+      <a-form-item label="Max Stream Window">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.maxStreamReceiveWindow" :min="0" placeholder="0 = default" />
+      </a-form-item>
+      <a-form-item label="Init Conn Window">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.initConnectionReceiveWindow" :min="0" placeholder="0 = default" />
+      </a-form-item>
+      <a-form-item label="Max Conn Window">
+        <a-input-number v-model.number="inbound.stream.finalmask.quicParams.maxConnectionReceiveWindow" :min="0" placeholder="0 = default" />
+      </a-form-item>
+    </template>
   </template>
 </a-form>
 {{end}}

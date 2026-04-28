@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -21,14 +21,6 @@
 > Este proyecto es solo para uso personal y comunicación, por favor no lo use para fines ilegales, por favor no lo use en un entorno de producción.
 
 Como una versión mejorada del proyecto X-UI original, 3X-UI proporciona mayor estabilidad, soporte más amplio de protocolos y características adicionales.
-
-## Fuentes DAT personalizadas GeoSite / GeoIP
-
-Los administradores pueden añadir archivos `.dat` de GeoSite y GeoIP desde URLs en el panel (mismo flujo que los geoficheros integrados). Los archivos se guardan junto al binario de Xray (`XUI_BIN_FOLDER`, por defecto `bin/`) con nombres fijos: `geosite_&lt;alias&gt;.dat` y `geoip_&lt;alias&gt;.dat`.
-
-**Enrutamiento:** use la forma `ext:`, por ejemplo `ext:geosite_myalias.dat:tag` o `ext:geoip_myalias.dat:tag`, donde `tag` es un nombre de lista dentro del DAT (igual que en archivos regionales como `ext:geoip_IR.dat:ir`).
-
-**Alias reservados:** solo para comprobar si un nombre está reservado se compara una forma normalizada (`strings.ToLower`, `-` → `_`). Los alias introducidos y los nombres en la base de datos no se reescriben; deben cumplir `^[a-z0-9_-]+$`. Por ejemplo, `geoip-ir` y `geoip_ir` chocan con la misma entrada reservada.
 
 ## Inicio Rápido
 
@@ -62,4 +54,4 @@ Para documentación completa, visita la [Wiki del proyecto](https://github.com/M
 
 ## Estrellas a lo Largo del Tiempo
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)

@@ -462,7 +462,12 @@ func (s *SettingService) GetTimeLocation() (*time.Location, error) {
 	if err != nil {
 		defaultLocation := defaultValueMap["timeLocation"]
 		logger.Errorf("location <%v> not exist, using default location: %v", l, defaultLocation)
-		return time.LoadLocation(defaultLocation)
+		location, err = time.LoadLocation(defaultLocation)
+		if err != nil {
+			logger.Errorf("failed to load default location, using UTC: %v", err)
+			return time.UTC, nil
+		}
+		return location, nil
 	}
 	return location, nil
 }

@@ -1802,7 +1802,14 @@ install_iplimit() {
     if ! command -v fail2ban-client &>/dev/null; then
         echo -e "${green}Fail2ban is not installed. Installing now...!${plain}\n"
 
-        # Check the OS and install necessary packages
+        # Install fail2ban together with nftables. Recent fail2ban packages
+        # default to `banaction = nftables-multiport` in /etc/fail2ban/jail.conf,
+        # but the `nftables` package isn't pulled in as a dependency on most
+        # minimal server images (Debian 12+, Ubuntu 24+, fresh RHEL-family).
+        # Without `nft` in PATH the default sshd jail fails to ban with
+        #   stderr: '/bin/sh: 1: nft: not found'
+        # even though our own 3x-ipl jail uses iptables. Bundling the binary
+        # at install time prevents that confusing log spam for new installs.
         case "${release}" in
         ubuntu)
             apt-get update
@@ -1810,34 +1817,34 @@ install_iplimit() {
                 apt-get install python3-pip -y
                 python3 -m pip install pyasynchat --break-system-packages
             fi
-            apt-get install fail2ban -y
+            apt-get install fail2ban nftables -y
             ;;
         debian)
             apt-get update
             if [ "$os_version" -ge 12 ]; then
                 apt-get install -y python3-systemd
             fi
-            apt-get install -y fail2ban
+            apt-get install -y fail2ban nftables
             ;;
         armbian)
-            apt-get update && apt-get install fail2ban -y
+            apt-get update && apt-get install fail2ban nftables -y
             ;;
         fedora | amzn | virtuozzo | rhel | almalinux | rocky | ol)
-            dnf -y update && dnf -y install fail2ban
+            dnf -y update && dnf -y install fail2ban nftables
             ;;
         centos)
             if [[ "${VERSION_ID}" =~ ^7 ]]; then
                 yum update -y && yum install epel-release -y
-                yum -y install fail2ban
+                yum -y install fail2ban nftables
             else
-                dnf -y update && dnf -y install fail2ban
+                dnf -y update && dnf -y install fail2ban nftables
             fi
             ;;
         arch | manjaro | parch)
-            pacman -Syu --noconfirm fail2ban
+            pacman -Syu --noconfirm fail2ban nftables
             ;;
         alpine)
-            apk add fail2ban
+            apk add fail2ban nftables
             ;;
         *)
             echo -e "${red}Unsupported operating system. Please check the script and install the necessary packages manually.${plain}\n"

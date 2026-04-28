@@ -152,6 +152,12 @@ class RandomUtil {
         return Base64.alternativeEncode(String.fromCharCode(...array));
     }
 
+    static randomBase64(length = 16) {
+        const array = new Uint8Array(length);
+        window.crypto.getRandomValues(array);
+        return Base64.alternativeEncode(String.fromCharCode(...array));
+    }
+
     static randomBase32String(length = 16) {
         const array = new Uint8Array(length);
 
