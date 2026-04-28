@@ -159,6 +159,13 @@ func (s *SubClashService) getProxies(inbound *model.Inbound, client model.Client
 }
 
 func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client, stream map[string]any, extraRemark string) map[string]any {
+	// Hysteria has its own transport + TLS model, applyTransport /
+	// applySecurity don't fit. IsHysteria also covers the literal
+	// "hysteria2" protocol string (#4081).
+	if model.IsHysteria(inbound.Protocol) {
+		return s.buildHysteriaProxy(inbound, client, extraRemark)
+	}
+
 	proxy := map[string]any{
 		"name":   s.SubService.genRemark(inbound, client.Email, extraRemark),
 		"server": inbound.Listen,
@@ -217,6 +224,82 @@ func (s *SubClashService) buildProxy(inbound *model.Inbound, client model.Client
 	security, _ := stream["security"].(string)
 	if !s.applySecurity(proxy, security, stream) {
 		return nil
+	}
+
+	return proxy
+}
+
+// buildHysteriaProxy produces a mihomo-compatible Clash entry for a
+// Hysteria (v1) or Hysteria2 inbound. It reads `inbound.StreamSettings`
+// directly instead of going through streamData/tlsData, because those
+// helpers prune fields (like `allowInsecure` / the salamander obfs
+// block) that the hysteria proxy wants preserved.
+func (s *SubClashService) buildHysteriaProxy(inbound *model.Inbound, client model.Client, extraRemark string) map[string]any {
+	var inboundSettings map[string]any
+	_ = json.Unmarshal([]byte(inbound.Settings), &inboundSettings)
+
+	proxyType := "hysteria2"
+	authKey := "password"
+	if v, ok := inboundSettings["version"].(float64); ok && int(v) == 1 {
+		proxyType = "hysteria"
+		authKey = "auth-str"
+	}
+
+	proxy := map[string]any{
+		"name":   s.SubService.genRemark(inbound, client.Email, extraRemark),
+		"type":   proxyType,
+		"server": inbound.Listen,
+		"port":   inbound.Port,
+		"udp":    true,
+		authKey:  client.Auth,
+	}
+
+	var rawStream map[string]any
+	_ = json.Unmarshal([]byte(inbound.StreamSettings), &rawStream)
+
+	// TLS details — hysteria always uses TLS.
+	if tlsSettings, ok := rawStream["tlsSettings"].(map[string]any); ok {
+		if serverName, ok := tlsSettings["serverName"].(string); ok && serverName != "" {
+			proxy["sni"] = serverName
+		}
+		if alpnList, ok := tlsSettings["alpn"].([]any); ok && len(alpnList) > 0 {
+			out := make([]string, 0, len(alpnList))
+			for _, a := range alpnList {
+				if s, ok := a.(string); ok && s != "" {
+					out = append(out, s)
+				}
+			}
+			if len(out) > 0 {
+				proxy["alpn"] = out
+			}
+		}
+		if inner, ok := tlsSettings["settings"].(map[string]any); ok {
+			if insecure, ok := inner["allowInsecure"].(bool); ok && insecure {
+				proxy["skip-cert-verify"] = true
+			}
+			if fp, ok := inner["fingerprint"].(string); ok && fp != "" {
+				proxy["client-fingerprint"] = fp
+			}
+		}
+	}
+
+	// Salamander obfs (Hysteria2). Read the same finalmask.udp[salamander]
+	// block the subscription link generator uses.
+	if finalmask, ok := rawStream["finalmask"].(map[string]any); ok {
+		if udpMasks, ok := finalmask["udp"].([]any); ok {
+			for _, m := range udpMasks {
+				mask, _ := m.(map[string]any)
+				if mask == nil || mask["type"] != "salamander" {
+					continue
+				}
+				settings, _ := mask["settings"].(map[string]any)
+				if pw, ok := settings["password"].(string); ok && pw != "" {
+					proxy["obfs"] = "salamander"
+					proxy["obfs-password"] = pw
+					break
+				}
+			}
+		}
 	}
 
 	return proxy

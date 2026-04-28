@@ -208,10 +208,6 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 
 		var ssCipherType shadowsocks.CipherType
 		switch cipher {
-		case "aes-128-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_128_GCM
-		case "aes-256-gcm":
-			ssCipherType = shadowsocks.CipherType_AES_256_GCM
 		case "chacha20-poly1305", "chacha20-ietf-poly1305":
 			ssCipherType = shadowsocks.CipherType_CHACHA20_POLY1305
 		case "xchacha20-poly1305", "xchacha20-ietf-poly1305":
@@ -231,7 +227,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]an
 				Email: userEmail,
 			})
 		}
-	case "hysteria":
+	case "hysteria", "hysteria2":
 		auth, err := getRequiredUserString(user, "auth")
 		if err != nil {
 			return err

@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -21,14 +21,6 @@
 > Этот проект предназначен только для личного использования, пожалуйста, не используйте его в незаконных целях и в производственной среде.
 
 Как улучшенная версия оригинального проекта X-UI, 3X-UI обеспечивает повышенную стабильность, более широкую поддержку протоколов и дополнительные функции.
-
-## Пользовательские GeoSite / GeoIP (DAT)
-
-В панели можно задать свои источники `.dat` по URL (тот же сценарий, что и для встроенных геофайлов). Файлы сохраняются в каталоге с бинарником Xray (`XUI_BIN_FOLDER`, по умолчанию `bin/`) как `geosite_&lt;alias&gt;.dat` и `geoip_&lt;alias&gt;.dat`.
-
-**Маршрутизация:** в правилах используйте форму `ext:имя_файла.dat:тег`, например `ext:geosite_myalias.dat:tag` (как у региональных списков `ext:geoip_IR.dat:ir`).
-
-**Зарезервированные псевдонимы:** только для проверки на резерв используется нормализованная форма (`strings.ToLower`, `-` → `_`). Введённые пользователем псевдонимы и имена файлов в БД не переписываются и должны соответствовать `^[a-z0-9_-]+$`. Например, `geoip-ir` и `geoip_ir` попадают под одну и ту же зарезервированную запись.
 
 ## Быстрый старт
 
@@ -62,4 +54,4 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## Звезды с течением времени
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)

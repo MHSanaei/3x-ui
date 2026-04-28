@@ -206,7 +206,10 @@ func (s *XrayService) GetXrayTraffic() ([]*xray.Traffic, []*xray.ClientTraffic, 
 		return nil, nil, err
 	}
 	apiPort := p.GetAPIPort()
-	s.xrayAPI.Init(apiPort)
+	if err := s.xrayAPI.Init(apiPort); err != nil {
+		logger.Debug("Failed to initialize Xray API:", err)
+		return nil, nil, err
+	}
 	defer s.xrayAPI.Close()
 
 	traffic, clientTraffic, err := s.xrayAPI.GetTraffic(true)

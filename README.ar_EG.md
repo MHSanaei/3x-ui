@@ -1,4 +1,4 @@
-[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) |  [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
+[English](/README.md) | [فارسی](/README.fa_IR.md) | [العربية](/README.ar_EG.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
 <p align="center">
   <picture>
@@ -21,14 +21,6 @@
 > هذا المشروع مخصص للاستخدام الشخصي والاتصال فقط، يرجى عدم استخدامه لأغراض غير قانونية، يرجى عدم استخدامه في بيئة الإنتاج.
 
 كمشروع محسن من مشروع X-UI الأصلي، يوفر 3X-UI استقرارًا محسنًا ودعمًا أوسع للبروتوكولات وميزات إضافية.
-
-## مصادر DAT مخصصة GeoSite / GeoIP
-
-يمكن للمسؤولين إضافة ملفات `.dat` لـ GeoSite وGeoIP من عناوين URL في اللوحة (نفس أسلوب تحديث ملفات الجيو المدمجة). تُحفظ الملفات بجانب ثنائي Xray (`XUI_BIN_FOLDER`، الافتراضي `bin/`) بأسماء ثابتة: `geosite_&lt;alias&gt;.dat` و`geoip_&lt;alias&gt;.dat`.
-
-**التوجيه:** استخدم الصيغة `ext:`، مثل `ext:geosite_myalias.dat:tag` أو `ext:geoip_myalias.dat:tag`، حيث `tag` اسم قائمة داخل ملف DAT (كما في `ext:geoip_IR.dat:ir`).
-
-**الأسماء المحجوزة:** يُقارَن شكل مُطبَّع فقط لمعرفة التحفظ (`strings.ToLower`، `-` → `_`). لا تُعاد كتابة الأسماء التي يدخلها المستخدم أو سجلات قاعدة البيانات؛ يجب أن تطابق `^[a-z0-9_-]+$`. مثلاً `geoip-ir` و`geoip_ir` يصطدمان بنفس الحجز.
 
 ## البدء السريع
 
@@ -61,4 +53,4 @@ bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.
 
 ## النجوم عبر الزمن
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui) 
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)

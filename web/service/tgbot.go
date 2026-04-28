@@ -249,18 +249,7 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 		return err
 	}
 
-	// After bot initialization, set up bot commands with localized descriptions
-	err = bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
-		Commands: []telego.BotCommand{
-			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
-			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
-			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
-			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
-		},
-	})
-	if err != nil {
-		logger.Warning("Failed to set bot commands:", err)
-	}
+	t.trySetBotCommands(bot)
 
 	// Start receiving Telegram bot messages
 	tgBotMutex.Lock()
@@ -272,6 +261,26 @@ func (t *Tgbot) Start(i18nFS embed.FS) error {
 	}
 
 	return nil
+}
+
+func (t *Tgbot) trySetBotCommands(bot *telego.Bot) {
+	defer func() {
+		if r := recover(); r != nil {
+			logger.Warning("Failed to register bot commands (Telegram may be rate-limiting); bot will continue without them:", r)
+		}
+	}()
+
+	err := bot.SetMyCommands(context.Background(), &telego.SetMyCommandsParams{
+		Commands: []telego.BotCommand{
+			{Command: "start", Description: t.I18nBot("tgbot.commands.startDesc")},
+			{Command: "help", Description: t.I18nBot("tgbot.commands.helpDesc")},
+			{Command: "status", Description: t.I18nBot("tgbot.commands.statusDesc")},
+			{Command: "id", Description: t.I18nBot("tgbot.commands.idDesc")},
+		},
+	})
+	if err != nil {
+		logger.Warning("Failed to set bot commands:", err)
+	}
 }
 
 // createRobustFastHTTPClient creates a fasthttp.Client with proper connection handling

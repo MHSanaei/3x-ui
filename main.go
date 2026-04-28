@@ -130,20 +130,22 @@ func runWebServer() {
 }
 
 // resetSetting resets all panel settings to their default values.
-func resetSetting() {
+func resetSetting() error {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Failed to initialize database:", err)
-		return
+		return err
 	}
 
 	settingService := service.SettingService{}
 	err = settingService.ResetSettings()
 	if err != nil {
 		fmt.Println("Failed to reset settings:", err)
+		return err
 	} else {
 		fmt.Println("Settings successfully reset.")
 	}
+	return nil
 }
 
 // showSetting displays the current panel settings if show is true.
@@ -255,11 +257,11 @@ func updateTgbotSetting(tgBotToken string, tgBotChatid string, tgBotRuntime stri
 }
 
 // updateSetting updates various panel settings including port, credentials, base path, listen IP, and two-factor authentication.
-func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) {
+func updateSetting(port int, username string, password string, webBasePath string, listenIP string, resetTwoFactor bool) error {
 	err := database.InitDB(config.GetDBPath())
 	if err != nil {
 		fmt.Println("Database initialization failed:", err)
-		return
+		return err
 	}
 
 	settingService := service.SettingService{}
@@ -311,6 +313,8 @@ func updateSetting(port int, username string, password string, webBasePath strin
 			fmt.Printf("listen %v set successfully", listenIP)
 		}
 	}
+
+	return nil
 }
 
 // updateCert updates the SSL certificate files for the panel.
@@ -481,9 +485,13 @@ func main() {
 			return
 		}
 		if reset {
-			resetSetting()
+			if err = resetSetting(); err != nil {
+				return
+			}
 		} else {
-			updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor)
+			if err = updateSetting(port, username, password, webBasePath, listenIP, resetTwoFactor); err != nil {
+				return
+			}
 		}
 		if show {
 			showSetting(show)

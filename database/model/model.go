@@ -21,8 +21,20 @@ const (
 	Shadowsocks Protocol = "shadowsocks"
 	Mixed       Protocol = "mixed"
 	WireGuard   Protocol = "wireguard"
-	Hysteria    Protocol = "hysteria"
+	// UI stores Hysteria v1 and v2 both as "hysteria" and uses
+	// settings.version to discriminate. Imports from outside the panel
+	// can carry the literal "hysteria2" string, so IsHysteria below
+	// accepts both.
+	Hysteria  Protocol = "hysteria"
+	Hysteria2 Protocol = "hysteria2"
 )
+
+// IsHysteria returns true for both "hysteria" and "hysteria2".
+// Use instead of a bare ==model.Hysteria check: a v2 inbound stored
+// with the literal v2 string would otherwise fall through (#4081).
+func IsHysteria(p Protocol) bool {
+	return p == Hysteria || p == Hysteria2
+}
 
 // User represents a user account in the 3x-ui panel.
 type User struct {

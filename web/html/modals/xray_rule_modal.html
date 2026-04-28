@@ -203,6 +203,7 @@
         }
         if (app.templateSettings.reverse.portals) this.outboundTags.push(...app.templateSettings.reverse.portals.map(b => b.tag));
       }
+      this.balancerTags = [""];
       if (app.templateSettings.routing && app.templateSettings.routing.balancers) {
         this.balancerTags = ["", ...app.templateSettings.routing.balancers.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag)];
       }
