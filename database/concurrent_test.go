@@ -89,9 +89,14 @@ func TestConcurrentWrites(t *testing.T) {
 		if err != nil {
 			t.Fatalf("gorm.Open: %v", err)
 		}
-		db.Exec("CREATE TABLE IF NOT EXISTS settings " +
-			"(id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT)")
-		sqlDB, _ := db.DB()
+		if err := db.Exec("CREATE TABLE IF NOT EXISTS settings " +
+			"(id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT, value TEXT)").Error; err != nil {
+			t.Fatalf("create settings table: %v", err)
+		}
+		sqlDB, err := db.DB()
+		if err != nil {
+			t.Fatalf("db.DB: %v", err)
+		}
 		sqlDB.SetMaxOpenConns(maxConns)
 		t.Cleanup(func() { sqlDB.Close() })
 		return sqlDB
@@ -147,7 +152,8 @@ func TestConcurrentWrites(t *testing.T) {
 	// writes successfully, regardless of busy_timeout.
 	t.Run("with_fix_pool_serialises_writes", func(t *testing.T) {
 		sqlDB := openTestDB(t, 1)
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
 		conn1, err := sqlDB.Conn(ctx)
 		if err != nil {

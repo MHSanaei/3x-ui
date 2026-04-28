@@ -139,7 +139,7 @@ func InitDB(dbPath string) error {
 	c := &gorm.Config{
 		Logger: gormLogger,
 	}
-	db, err = gorm.Open(sqlite.Open(dbPath+"?_journal_mode=WAL&_synchronous=NORMAL"), c)
+	db, err = gorm.Open(sqlite.Open(dbPath+"?_journal_mode=WAL"), c)
 	if err != nil {
 		return err
 	}
