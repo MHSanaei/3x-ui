@@ -366,10 +366,21 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	for _, client := range clients {
-		err := s.DelClientIPs(db, client.Email)
-		if err != nil {
-			return false, err
+	// Bulk-delete client IPs for every email in this inbound. The previous
+	// per-client loop fired one DELETE per row — at 7k+ clients that meant
+	// thousands of synchronous SQL roundtrips and a multi-second freeze.
+	if len(clients) > 0 {
+		emails := make([]string, 0, len(clients))
+		for i := range clients {
+			if clients[i].Email != "" {
+				emails = append(emails, clients[i].Email)
+			}
+		}
+		if len(emails) > 0 {
+			if err := db.Where("client_email IN ?", emails).
+				Delete(model.InboundClientIps{}).Error; err != nil {
+				return false, err
+			}
 		}
 	}
 
@@ -384,6 +395,58 @@ func (s *InboundService) GetInbound(id int) (*model.Inbound, error) {
 		return nil, err
 	}
 	return inbound, nil
+}
+
+// SetInboundEnable toggles only the enable flag of an inbound, without
+// rewriting the (potentially multi-MB) settings JSON. Used by the UI's
+// per-row enable switch — for inbounds with thousands of clients the full
+// UpdateInbound path is an order of magnitude too slow for an interactive
+// toggle (parses + reserialises every client, runs O(N) traffic diff).
+//
+// Returns (needRestart, error). needRestart is true when the xray runtime
+// could not be re-synced from the cached config and a full restart is
+// required to pick up the change.
+func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
+	inbound, err := s.GetInbound(id)
+	if err != nil {
+		return false, err
+	}
+	if inbound.Enable == enable {
+		return false, nil
+	}
+
+	db := database.GetDB()
+	if err := db.Model(model.Inbound{}).Where("id = ?", id).
+		Update("enable", enable).Error; err != nil {
+		return false, err
+	}
+	inbound.Enable = enable
+
+	// Sync xray runtime: drop the live inbound, add it back if we're enabling.
+	needRestart := false
+	s.xrayApi.Init(p.GetAPIPort())
+	defer s.xrayApi.Close()
+
+	_ = s.xrayApi.DelInbound(inbound.Tag)
+	if !enable {
+		return false, nil
+	}
+
+	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
+	if err != nil {
+		logger.Debug("SetInboundEnable: build runtime config failed:", err)
+		return true, nil
+	}
+	inboundJson, err := json.MarshalIndent(runtimeInbound.GenXrayInboundConfig(), "", "  ")
+	if err != nil {
+		logger.Debug("SetInboundEnable: marshal runtime config failed:", err)
+		return true, nil
+	}
+	if err := s.xrayApi.AddInbound(inboundJson); err != nil {
+		logger.Debug("SetInboundEnable: AddInbound via api failed:", err)
+		needRestart = true
+	}
+	return needRestart, nil
 }
 
 // UpdateInbound modifies an existing inbound configuration.
@@ -589,6 +652,11 @@ func (s *InboundService) buildRuntimeInboundForAPI(tx *gorm.DB, inbound *model.I
 	return &runtimeInbound, nil
 }
 
+// updateClientTraffics syncs the ClientTraffic rows with the inbound's clients
+// list: removes rows for emails that disappeared, inserts rows for newly-added
+// emails. Uses sets for O(N) lookup — the previous nested-loop implementation
+// was O(N²) and degraded into multi-second pauses on inbounds with thousands
+// of clients (toggling, saving, or deleting any such inbound felt frozen).
 func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inbound, newInbound *model.Inbound) error {
 	oldClients, err := s.GetClients(oldInbound)
 	if err != nil {
@@ -599,36 +667,31 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		return err
 	}
 
-	var emailExists bool
+	oldEmails := make(map[string]struct{}, len(oldClients))
+	for i := range oldClients {
+		oldEmails[oldClients[i].Email] = struct{}{}
+	}
+	newEmails := make(map[string]struct{}, len(newClients))
+	for i := range newClients {
+		newEmails[newClients[i].Email] = struct{}{}
+	}
 
-	for _, oldClient := range oldClients {
-		emailExists = false
-		for _, newClient := range newClients {
-			if oldClient.Email == newClient.Email {
-				emailExists = true
-				break
-			}
+	// Removed clients — drop their stats rows.
+	for i := range oldClients {
+		if _, kept := newEmails[oldClients[i].Email]; kept {
+			continue
 		}
-		if !emailExists {
-			err = s.DelClientStat(tx, oldClient.Email)
-			if err != nil {
-				return err
-			}
+		if err := s.DelClientStat(tx, oldClients[i].Email); err != nil {
+			return err
 		}
 	}
-	for _, newClient := range newClients {
-		emailExists = false
-		for _, oldClient := range oldClients {
-			if newClient.Email == oldClient.Email {
-				emailExists = true
-				break
-			}
+	// Added clients — create their stats rows.
+	for i := range newClients {
+		if _, existed := oldEmails[newClients[i].Email]; existed {
+			continue
 		}
-		if !emailExists {
-			err = s.AddClientStat(tx, oldInbound.Id, &newClient)
-			if err != nil {
-				return err
-			}
+		if err := s.AddClientStat(tx, oldInbound.Id, &newClients[i]); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -1320,20 +1383,27 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		return err
 	}
 
+	// Index by email for O(N) merge — the previous nested loop was O(N²)
+	// and dominated each cron tick on inbounds with thousands of active
+	// clients (7500 × 7500 = 56M string comparisons every 10 seconds).
+	trafficByEmail := make(map[string]*xray.ClientTraffic, len(traffics))
+	for i := range traffics {
+		if traffics[i] != nil {
+			trafficByEmail[traffics[i].Email] = traffics[i]
+		}
+	}
+	now := time.Now().UnixMilli()
 	for dbTraffic_index := range dbClientTraffics {
-		for traffic_index := range traffics {
-			if dbClientTraffics[dbTraffic_index].Email == traffics[traffic_index].Email {
-				dbClientTraffics[dbTraffic_index].Up += traffics[traffic_index].Up
-				dbClientTraffics[dbTraffic_index].Down += traffics[traffic_index].Down
-				dbClientTraffics[dbTraffic_index].AllTime += (traffics[traffic_index].Up + traffics[traffic_index].Down)
-
-				// Add user in onlineUsers array on traffic
-				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
-					onlineClients = append(onlineClients, traffics[traffic_index].Email)
-					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
-				}
-				break
-			}
+		t, ok := trafficByEmail[dbClientTraffics[dbTraffic_index].Email]
+		if !ok {
+			continue
+		}
+		dbClientTraffics[dbTraffic_index].Up += t.Up
+		dbClientTraffics[dbTraffic_index].Down += t.Down
+		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
+		if t.Up+t.Down > 0 {
+			onlineClients = append(onlineClients, t.Email)
+			dbClientTraffics[dbTraffic_index].LastOnline = now
 		}
 	}
 
@@ -2318,6 +2388,50 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
+// GetActiveClientTraffics returns the absolute ClientTraffic rows for the given
+// emails in a single batched query. Used by the WebSocket delta path to push
+// per-client absolute counters without re-serializing the full inbound list.
+// Empty input or a "record not found" result returns an empty slice.
+func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.ClientTraffic, error) {
+	if len(emails) == 0 {
+		return nil, nil
+	}
+	db := database.GetDB()
+	var traffics []*xray.ClientTraffic
+	err := db.Model(xray.ClientTraffic{}).Where("email IN (?)", emails).Find(&traffics).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return traffics, nil
+}
+
+// InboundTrafficSummary is the minimal projection of an inbound's traffic
+// counters used by the WebSocket delta path. Excludes Settings/StreamSettings
+// blobs so the broadcast stays compact even with many inbounds.
+type InboundTrafficSummary struct {
+	Id      int   `json:"id"`
+	Up      int64 `json:"up"`
+	Down    int64 `json:"down"`
+	Total   int64 `json:"total"`
+	AllTime int64 `json:"allTime"`
+	Enable  bool  `json:"enable"`
+}
+
+// GetInboundsTrafficSummary returns inbound-level absolute traffic counters
+// (no per-client expansion). Companion to GetActiveClientTraffics — together
+// they replace the heavy "full inbound list" broadcast on each cron tick.
+func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {
+	db := database.GetDB()
+	var summaries []InboundTrafficSummary
+	err := db.Model(&model.Inbound{}).
+		Select("id, up, down, total, all_time, enable").
+		Find(&summaries).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return nil, err
+	}
+	return summaries, nil
+}
+
 func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.ClientTraffic, err error) {
 	// Prefer retrieving along with client to reflect actual enabled state from inbound settings
 	t, client, err := s.GetClientByEmail(email)
@@ -2336,9 +2450,17 @@ func (s *InboundService) GetClientTrafficByEmail(email string) (traffic *xray.Cl
 func (s *InboundService) UpdateClientTrafficByEmail(email string, upload int64, download int64) error {
 	db := database.GetDB()
 
+	// Keep all_time monotonic: it represents historical cumulative usage and
+	// must never be less than the currently-tracked up+down. Without this,
+	// the UI showed "Общий трафик" (allTime) below the live consumed value
+	// after admins manually edited a client's counters.
 	result := db.Model(xray.ClientTraffic{}).
 		Where("email = ?", email).
-		Updates(map[string]any{"up": upload, "down": download})
+		Updates(map[string]any{
+			"up":       upload,
+			"down":     download,
+			"all_time": gorm.Expr("CASE WHEN COALESCE(all_time, 0) < ? THEN ? ELSE all_time END", upload+download, upload+download),
+		})
 
 	err := result.Error
 	if err != nil {

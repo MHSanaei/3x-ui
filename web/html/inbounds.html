@@ -318,19 +318,15 @@
                       </a-dropdown>
                     </template>
                     <template slot="protocol" slot-scope="text, dbInbound">
-                      <a-tag :style="{ margin: '0' }" color="purple">[[
-                        dbInbound.protocol ]]</a-tag>
-                      <template
-                        v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
-                        <a-tag :style="{ margin: '0' }" color="green">[[
-                          dbInbound.toInbound().stream.network ]]</a-tag>
-                        <a-tag :style="{ margin: '0' }"
-                          v-if="dbInbound.toInbound().stream.isTls"
-                          color="blue">TLS</a-tag>
-                        <a-tag :style="{ margin: '0' }"
-                          v-if="dbInbound.toInbound().stream.isReality"
-                          color="blue">Reality</a-tag>
-                      </template>
+                      <div class="protocol-tags">
+                        <a-tag color="purple">[[ dbInbound.protocol ]]</a-tag>
+                        <template
+                          v-if="dbInbound.isVMess || dbInbound.isVLess || dbInbound.isTrojan || dbInbound.isSS">
+                          <a-tag color="green">[[ dbInbound.toInbound().stream.network ]]</a-tag>
+                          <a-tag v-if="dbInbound.toInbound().stream.isTls" color="blue">TLS</a-tag>
+                          <a-tag v-if="dbInbound.toInbound().stream.isReality" color="blue">Reality</a-tag>
+                        </template>
+                      </div>
                     </template>
                     <template slot="clients" slot-scope="text, dbInbound">
                       <template v-if="clientCount[dbInbound.id]">
@@ -1107,7 +1103,7 @@
       trafficDiff: 0,
       defaultCert: '',
       defaultKey: '',
-      clientCount: [],
+      clientCount: {},
       onlineClients: [],
       lastOnlineMap: {},
       isRefreshEnabled: localStorage.getItem("isRefreshEnabled") === "true" ? true : false,
@@ -1130,6 +1126,71 @@
     methods: {
       loading(spinning = true) {
         this.loadingStates.spinning = spinning;
+      },
+      // applyClientStatsDelta updates client traffic counters and inbound totals
+      // in-place from a WebSocket delta payload. Avoids full-list re-fetch and
+      // re-render — critical at 10k+ client scale.
+      applyClientStatsDelta(payload) {
+        if (!payload || typeof payload !== 'object') return;
+
+        const inboundsById = new Map();
+        this.dbInbounds.forEach(ib => inboundsById.set(ib.id, ib));
+        const touched = new Set();
+
+        if (Array.isArray(payload.clients) && payload.clients.length > 0) {
+          for (const stat of payload.clients) {
+            const dbInbound = inboundsById.get(stat.inboundId);
+            if (!dbInbound || !Array.isArray(dbInbound.clientStats)) continue;
+            const cs = dbInbound.clientStats.find(c => c.email === stat.email);
+            if (!cs) continue;
+            cs.up = stat.up;
+            cs.down = stat.down;
+            // allTime is the cumulative-historical counter shown in the
+            // "Общий трафик" column. The previous handler updated up/down/
+            // total but skipped allTime, so that column stayed frozen at
+            // its initial-page-load value until a manual refresh.
+            if (stat.allTime !== undefined) cs.allTime = stat.allTime;
+            if (stat.total !== undefined) cs.total = stat.total;
+            if (stat.expiryTime !== undefined) cs.expiryTime = stat.expiryTime;
+            if (stat.lastOnline !== undefined) cs.lastOnline = stat.lastOnline;
+            if (stat.enable !== undefined) cs.enable = stat.enable;
+            touched.add(stat.inboundId);
+          }
+        }
+
+        if (Array.isArray(payload.inbounds) && payload.inbounds.length > 0) {
+          for (const summary of payload.inbounds) {
+            const dbInbound = inboundsById.get(summary.id);
+            if (!dbInbound) continue;
+            dbInbound.up = summary.up;
+            dbInbound.down = summary.down;
+            if (summary.total !== undefined) dbInbound.total = summary.total;
+            if (summary.allTime !== undefined) dbInbound.allTime = summary.allTime;
+            if (summary.enable !== undefined) dbInbound.enable = summary.enable;
+          }
+        }
+
+        // Recompute clientCount for inbounds whose stats changed. The cached
+        // parsed Inbound is fetched via dbInbound.toInbound() — earlier
+        // versions used `this.inbounds.find(ib => ib.id === id)` which
+        // ALWAYS returned undefined (the Inbound class has no id field), so
+        // this branch silently never ran and depleted/expiring/online filters
+        // never refreshed from delta updates.
+        if (touched.size > 0) {
+          for (const id of touched) {
+            const dbInbound = inboundsById.get(id);
+            if (dbInbound) {
+              this.$set(this.clientCount, id, this.getClientCounts(dbInbound, dbInbound.toInbound()));
+            }
+          }
+        }
+
+        // Re-run filter/search so the displayed slice picks up updated values.
+        if (this.enableFilter) {
+          this.filterInbounds();
+        } else {
+          this.searchInbounds(this.searchKey);
+        }
       },
       async getDBInbounds() {
         this.refreshing = true;
@@ -1185,7 +1246,11 @@
       setInbounds(dbInbounds) {
         this.inbounds.splice(0);
         this.dbInbounds.splice(0);
-        this.clientCount.splice(0);
+        // Drop every existing key — Vue.delete keeps it reactive so any
+        // template expression watching clientCount[id] re-renders cleanly.
+        for (const key of Object.keys(this.clientCount)) {
+          this.$delete(this.clientCount, key);
+        }
         for (const inbound of dbInbounds) {
           const dbInbound = new DBInbound(inbound);
           to_inbound = dbInbound.toInbound()
@@ -1195,7 +1260,9 @@
             if (dbInbound.isSS && (!to_inbound.isSSMultiUser)) {
               continue;
             }
-            this.clientCount[inbound.id] = this.getClientCounts(inbound, to_inbound);
+            // Reactive add — direct assignment on the map would not trigger
+            // template updates in Vue 2.
+            this.$set(this.clientCount, inbound.id, this.getClientCounts(inbound, to_inbound));
           }
         }
         if (!this.loadingStates.fetched) {
@@ -1681,37 +1748,29 @@
         newDbInbound = this.checkFallback(dbInbound);
         infoModal.show(newDbInbound, index);
       },
-      switchEnable(dbInboundId, state) {
-        let dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
+      // switchEnable toggles inbound.enable through a dedicated lightweight
+      // endpoint. The previous implementation re-submitted the entire
+      // inbound settings JSON (every client) just to flip a boolean — on a
+      // 7000+ client inbound that meant a multi-MB request, an O(N) traffic
+      // diff and a full xray-config rebuild for every click of the switch.
+      async switchEnable(dbInboundId, state) {
+        const dbInbound = this.dbInbounds.find(row => row.id === dbInboundId);
         if (!dbInbound) return;
-        dbInbound.enable = state;
-        let inbound = dbInbound.toInbound();
-        const data = {
-          up: dbInbound.up,
-          down: dbInbound.down,
-          total: dbInbound.total,
-          remark: dbInbound.remark,
-          enable: dbInbound.enable,
-          expiryTime: dbInbound.expiryTime,
-          trafficReset: dbInbound.trafficReset,
-          lastTrafficResetTime: dbInbound.lastTrafficResetTime,
 
-          listen: inbound.listen,
-          port: inbound.port,
-          protocol: inbound.protocol,
-          settings: inbound.settings.toString(),
-        };
-        if (inbound.canEnableStream()) {
-          data.streamSettings = inbound.stream.toString();
-        } else if (inbound.stream?.sockopt) {
-          data.streamSettings = JSON.stringify({ sockopt: inbound.stream.sockopt.toJson() }, null, 2);
-        }
-        data.sniffing = inbound.sniffing.toString();
+        const previous = dbInbound.enable;
+        dbInbound.enable = state; // optimistic: UI reflects the click immediately
 
         const formData = new FormData();
-        Object.keys(data).forEach(key => formData.append(key, data[key]));
+        formData.append('enable', String(state));
 
-        this.submit(`/panel/api/inbounds/update/${dbInboundId}`, formData);
+        try {
+          const msg = await HttpUtil.post(`/panel/api/inbounds/setEnable/${dbInboundId}`, formData);
+          if (!msg || !msg.success) {
+            dbInbound.enable = previous;
+          }
+        } catch (e) {
+          dbInbound.enable = previous;
+        }
       },
       async switchEnableClient(dbInboundId, client, state) {
         this.loading();
@@ -1820,9 +1879,15 @@
       },
       getAllTimeClient(dbInbound, email) {
         if (!email || email.length == 0) return 0;
-        let clientStats = this.getClientStats(dbInbound, email);
+        const clientStats = this.getClientStats(dbInbound, email);
         if (!clientStats) return 0;
-        return clientStats.allTime || (clientStats.up + clientStats.down);
+        // allTime represents cumulative historical usage and must never
+        // appear smaller than the currently-tracked counters. If a stale
+        // row drifts below up+down (manual edits, partial migrations) we
+        // surface the live total instead of the misleading historical one.
+        const current = (clientStats.up || 0) + (clientStats.down || 0);
+        const allTime = clientStats.allTime || 0;
+        return allTime > current ? allTime : current;
       },
       getRemStats(dbInbound, email) {
         if (!email || email.length == 0) return 0;
@@ -2029,16 +2094,21 @@
       }
       this.loading();
       this.getDefaultSettings();
-      
-      // Initial data fetch
+
+      // Bootstrap from REST first, then attach WebSocket subscriptions.
+      // Doing this in order eliminates a race where an early `inbounds` push
+      // fires getClientCounts() before this.onlineClients is populated,
+      // leaving online[] empty for every inbound and breaking the filter.
       this.getDBInbounds().then(() => {
         this.loading(false);
-      });
 
-      // Setup WebSocket for real-time updates
-      if (window.wsClient) {
+        if (!window.wsClient) {
+          // Fallback to polling if WebSocket is not available
+          if (this.isRefreshEnabled) this.startDataRefreshLoop();
+          return;
+        }
         window.wsClient.connect();
-        
+
         // Listen for inbounds updates
         window.wsClient.on('inbounds', (payload) => {
           if (payload && Array.isArray(payload)) {
@@ -2047,12 +2117,13 @@
           }
         });
 
-        // Listen for invalidate signals (sent when payload is too large for WebSocket)
-        // The server sends a lightweight notification and we re-fetch via REST API
+        // Listen for invalidate signals — last-resort safety only.
+        // Under normal operation the server pushes 'client_stats' deltas
+        // instead, so this fires only when an admin mutation produces an
+        // oversized full-list payload.
         let invalidateTimer = null;
         window.wsClient.on('invalidate', (payload) => {
           if (payload && (payload.type === 'inbounds' || payload.type === 'traffic')) {
-            // Debounce to avoid flooding the REST API with multiple invalidate signals
             if (invalidateTimer) clearTimeout(invalidateTimer);
             invalidateTimer = setTimeout(() => {
               invalidateTimer = null;
@@ -2061,15 +2132,36 @@
           }
         });
 
-        // Listen for traffic updates
+        // Real-time delta updates: per-client absolute counters + inbound
+        // totals applied in-place. Replaces the periodic full-list refresh
+        // and scales to 10k+ clients without REST fallback.
+        window.wsClient.on('client_stats', (payload) => {
+          if (!payload) return;
+          this.applyClientStatsDelta(payload);
+        });
+
+        // Listen for traffic updates.
+        // Note: clientTraffics contains DELTA values (incremental since last
+        // tick), not absolute totals. Absolute counters are updated through
+        // the 'client_stats' event in applyClientStatsDelta.
         window.wsClient.on('traffic', (payload) => {
-          // Note: Do NOT update total consumed traffic (stats.up, stats.down) from this event
-          // because clientTraffics contains delta/incremental values, not total accumulated values.
-          // Total traffic is updated via the 'inbounds' WebSocket event (or 'invalidate' fallback for large panels).
-          
-          // Update online clients list in real-time
-          if (payload && Array.isArray(payload.onlineClients)) {
-            const nextOnlineClients = payload.onlineClients;
+          if (!payload || typeof payload !== 'object') return;
+
+          // Normalize onlineClients: server marshals a nil []string slice as
+          // JSON null when nobody is online. Treat null/undefined/missing as
+          // an empty array so the "everyone went offline" transition still
+          // updates the UI — without this fix, the last set of online users
+          // stayed visible (and the online filter kept showing them) until
+          // someone came back online.
+          const hasOnlinePayload =
+            'onlineClients' in payload &&
+            (Array.isArray(payload.onlineClients) || payload.onlineClients == null);
+          if (hasOnlinePayload) {
+            const nextOnlineClients = Array.isArray(payload.onlineClients)
+              ? payload.onlineClients
+              : [];
+
+            // Detect change in either direction: length differs OR sets differ.
             let onlineChanged = this.onlineClients.length !== nextOnlineClients.length;
             if (!onlineChanged) {
               const prevSet = new Set(this.onlineClients);
@@ -2080,18 +2172,24 @@
                 }
               }
             }
+
             this.onlineClients = nextOnlineClients;
             if (onlineChanged) {
-              // Recalculate client counts to update online status
-              // Use $set for Vue 2 reactivity — direct array index assignment is not reactive
+              // Recompute clientCount for every inbound whose stats can host
+              // online clients. `dbInbound.toInbound()` returns the cached
+              // parsed Inbound (with the .clients array) — using it directly
+              // avoids a brittle `this.inbounds.find(ib => ib.id === ...)`
+              // lookup that ALWAYS failed because the Inbound class has no
+              // `id` field. That silent failure was the real cause of the
+              // online filter showing an empty list while a client was
+              // clearly online elsewhere on the page.
               this.dbInbounds.forEach(dbInbound => {
-                const inbound = this.inbounds.find(ib => ib.id === dbInbound.id);
-                if (inbound && this.clientCount[dbInbound.id]) {
-                  this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
-                }
+                const inbound = dbInbound.toInbound();
+                this.$set(this.clientCount, dbInbound.id, this.getClientCounts(dbInbound, inbound));
               });
 
-              // Always trigger UI refresh — not just when filter is enabled
+              // Re-run filter/search so the UI reflects the new state — both
+              // when clients come online and when they go offline.
               if (this.enableFilter) {
                 this.filterInbounds();
               } else {
@@ -2099,10 +2197,10 @@
               }
             }
           }
-          
-          // Update last online map in real-time
-          // Replace entirely (server sends the full map) to avoid unbounded growth from deleted clients
-          if (payload && payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
+
+          // Update last-online map. Server sends the full map (not delta) so
+          // we can replace entirely without growing unbounded from deleted clients.
+          if (payload.lastOnlineMap && typeof payload.lastOnlineMap === 'object') {
             this.lastOnlineMap = payload.lastOnlineMap;
           }
         });
@@ -2123,12 +2221,7 @@
             }
           }
         });
-      } else {
-        // Fallback to polling if WebSocket is not available
-        if (this.isRefreshEnabled) {
-          this.startDataRefreshLoop();
-        }
-      }
+      });
     },
     computed: {
       total() {
@@ -2170,6 +2263,66 @@
     #content-layout > .ant-layout-content > .ant-spin-nested-loading > div > .ant-spin {
       left: 50vw !important;
     }
+  }
+
+  /* Protocol cell — wrap tags into a flex grid with consistent gap so
+     vless/xhttp/Reality line up cleanly instead of stacking awkwardly. */
+  .inbounds-page .protocol-tags {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    max-width: 100%;
+  }
+  .inbounds-page .protocol-tags .ant-tag {
+    margin: 0;
+    line-height: 20px;
+  }
+
+  /* Traffic cell — text on the sides sizes to its content, the progress bar
+     takes whatever's left. Without this, fixed-width text cells leave gaps
+     around short values like "∞" and clip long ones like "999.99 GB". */
+  .inbounds-page .tr-table-box {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+  }
+  .inbounds-page .tr-table-rt,
+  .inbounds-page .tr-table-lt {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .inbounds-page .tr-table-rt { text-align: end; }
+  .inbounds-page .tr-table-lt { text-align: start; }
+  .inbounds-page .tr-table-bar {
+    flex: 1 1 auto;
+    min-width: 60px;
+  }
+
+  /* Make the progress widget fill its flex cell, and align the inner fill
+     pill with the outer track pill (the "two pills" drift was caused by
+     box-sizing: content-box plus a 1px border on .ant-progress-bg). */
+  .inbounds-page .tr-table-bar .ant-progress,
+  .inbounds-page .tr-table-bar .ant-progress-outer,
+  .inbounds-page .tr-table-bar .ant-progress-inner {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .inbounds-page .infinite-bar .ant-progress-inner,
+  .inbounds-page .tr-table-bar .ant-progress-inner {
+    box-sizing: border-box;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .inbounds-page .infinite-bar .ant-progress-inner .ant-progress-bg,
+  .inbounds-page .tr-table-bar .ant-progress-inner .ant-progress-bg {
+    box-sizing: border-box;
+    border: 0 !important;
   }
 </style>
 {{ template "page/body_end" .}}
