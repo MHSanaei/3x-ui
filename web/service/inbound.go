@@ -369,6 +369,7 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 	// Bulk-delete client IPs for every email in this inbound. The previous
 	// per-client loop fired one DELETE per row — at 7k+ clients that meant
 	// thousands of synchronous SQL roundtrips and a multi-second freeze.
+	// Chunked to stay under SQLite's bind-variable limit on huge inbounds.
 	if len(clients) > 0 {
 		emails := make([]string, 0, len(clients))
 		for i := range clients {
@@ -376,8 +377,8 @@ func (s *InboundService) DelInbound(id int) (bool, error) {
 				emails = append(emails, clients[i].Email)
 			}
 		}
-		if len(emails) > 0 {
-			if err := db.Where("client_email IN ?", emails).
+		for _, batch := range chunkStrings(uniqueNonEmptyStrings(emails), sqliteMaxVars) {
+			if err := db.Where("client_email IN ?", batch).
 				Delete(model.InboundClientIps{}).Error; err != nil {
 				return false, err
 			}
@@ -1528,9 +1529,14 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	for _, traffic := range traffics {
 		inbound_ids = append(inbound_ids, traffic.InboundId)
 	}
-	err = tx.Model(model.Inbound{}).Where("id IN ?", inbound_ids).Find(&inbounds).Error
-	if err != nil {
-		return false, 0, err
+	// Chunked to stay under SQLite's bind-variable limit when many inbounds
+	// are touched in a single tick.
+	for _, batch := range chunkInts(inbound_ids, sqliteMaxVars) {
+		var page []*model.Inbound
+		if err = tx.Model(model.Inbound{}).Where("id IN ?", batch).Find(&page).Error; err != nil {
+			return false, 0, err
+		}
+		inbounds = append(inbounds, page...)
 	}
 	for inbound_index := range inbounds {
 		settings := map[string]any{}
@@ -2390,15 +2396,24 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 		}
 	}
 
-	var traffics []*xray.ClientTraffic
-	err = db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error
-	if err != nil {
-		if err == gorm.ErrRecordNotFound {
-			logger.Warning("No ClientTraffic records found for emails:", emails)
-			return nil, nil
+	// Chunked to stay under SQLite's bind-variable limit when a single Telegram
+	// account owns thousands of clients across inbounds.
+	uniqEmails := uniqueNonEmptyStrings(emails)
+	traffics := make([]*xray.ClientTraffic, 0, len(uniqEmails))
+	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
+		var page []*xray.ClientTraffic
+		if err = db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				continue
+			}
+			logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", batch, err)
+			return nil, err
 		}
-		logger.Errorf("Error retrieving ClientTraffic for emails %v: %v", emails, err)
-		return nil, err
+		traffics = append(traffics, page...)
+	}
+	if len(traffics) == 0 {
+		logger.Warning("No ClientTraffic records found for emails:", emails)
+		return nil, nil
 	}
 
 	// Populate UUID and other client data for each traffic record
@@ -2413,18 +2428,86 @@ func (s *InboundService) GetClientTrafficTgBot(tgId int64) ([]*xray.ClientTraffi
 	return traffics, nil
 }
 
+// sqliteMaxVars is a safe ceiling for the number of bind parameters in a
+// single SQL statement. SQLite's SQLITE_MAX_VARIABLE_NUMBER is 999 on builds
+// before 3.32 and 32766 after; staying under 999 keeps queries portable
+// across forks/old binaries and also bounds per-query memory on truly large
+// installs (>32k clients) where even modern SQLite would refuse a single IN.
+const sqliteMaxVars = 900
+
+// uniqueNonEmptyStrings returns a deduplicated copy of in with empty strings
+// removed, preserving the order of first occurrence.
+func uniqueNonEmptyStrings(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[string]struct{}, len(in))
+	out := make([]string, 0, len(in))
+	for _, v := range in {
+		if v == "" {
+			continue
+		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// chunkStrings splits s into consecutive sub-slices of at most size elements.
+// Returns nil for an empty input or non-positive size.
+func chunkStrings(s []string, size int) [][]string {
+	if size <= 0 || len(s) == 0 {
+		return nil
+	}
+	out := make([][]string, 0, (len(s)+size-1)/size)
+	for i := 0; i < len(s); i += size {
+		end := i + size
+		if end > len(s) {
+			end = len(s)
+		}
+		out = append(out, s[i:end])
+	}
+	return out
+}
+
+// chunkInts splits s into consecutive sub-slices of at most size elements.
+// Returns nil for an empty input or non-positive size.
+func chunkInts(s []int, size int) [][]int {
+	if size <= 0 || len(s) == 0 {
+		return nil
+	}
+	out := make([][]int, 0, (len(s)+size-1)/size)
+	for i := 0; i < len(s); i += size {
+		end := i + size
+		if end > len(s) {
+			end = len(s)
+		}
+		out = append(out, s[i:end])
+	}
+	return out
+}
+
 // GetActiveClientTraffics returns the absolute ClientTraffic rows for the given
-// emails in a single batched query. Used by the WebSocket delta path to push
-// per-client absolute counters without re-serializing the full inbound list.
-// Empty input or a "record not found" result returns an empty slice.
+// emails. Used by the WebSocket delta path to push per-client absolute
+// counters without re-serializing the full inbound list. The query is chunked
+// to stay under SQLite's bind-variable limit on very large active sets.
+// Empty input returns (nil, nil).
 func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.ClientTraffic, error) {
-	if len(emails) == 0 {
+	uniq := uniqueNonEmptyStrings(emails)
+	if len(uniq) == 0 {
 		return nil, nil
 	}
 	db := database.GetDB()
-	var traffics []*xray.ClientTraffic
-	if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error; err != nil {
-		return nil, err
+	traffics := make([]*xray.ClientTraffic, 0, len(uniq))
+	for _, batch := range chunkStrings(uniq, sqliteMaxVars) {
+		var page []*xray.ClientTraffic
+		if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", batch).Find(&page).Error; err != nil {
+			return nil, err
+		}
+		traffics = append(traffics, page...)
 	}
 	return traffics, nil
 }
@@ -2824,11 +2907,16 @@ func (s *InboundService) GetClientsLastOnline() (map[string]int64, error) {
 func (s *InboundService) FilterAndSortClientEmails(emails []string) ([]string, []string, error) {
 	db := database.GetDB()
 
-	// Step 1: Get ClientTraffic records for emails in the input list
-	var clients []xray.ClientTraffic
-	err := db.Where("email IN ?", emails).Find(&clients).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return nil, nil, err
+	// Step 1: Get ClientTraffic records for emails in the input list.
+	// Chunked to stay under SQLite's bind-variable limit on huge inputs.
+	uniqEmails := uniqueNonEmptyStrings(emails)
+	clients := make([]xray.ClientTraffic, 0, len(uniqEmails))
+	for _, batch := range chunkStrings(uniqEmails, sqliteMaxVars) {
+		var page []xray.ClientTraffic
+		if err := db.Where("email IN ?", batch).Find(&page).Error; err != nil && err != gorm.ErrRecordNotFound {
+			return nil, nil, err
+		}
+		clients = append(clients, page...)
 	}
 
 	// Step 2: Sort clients by (Up + Down) descending
