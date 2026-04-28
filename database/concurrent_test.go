@@ -14,20 +14,23 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// TestInitDBConcurrencyConfig verifies that InitDB applies both settings that
-// are proven by TestConcurrentWrites to prevent "database is locked":
+// TestInitDBConcurrencyConfig verifies that InitDB applies both settings used
+// by TestConcurrentWrites to reduce "database is locked" errors from
+// concurrent access within this process:
 //
 //  1. WAL journal mode — reduces the window during which a write lock is held
 //     (readers no longer block writers and vice-versa).
 //  2. SetMaxOpenConns(1) — serialises all GORM writes through a single
-//     connection at the Go pool level, so SQLite write-lock contention cannot
-//     occur at all.
+//     connection at the Go pool level, which prevents the specific
+//     intra-process write-contention pattern exercised by these tests.
 //
 // Chain of proof:
 //
-//	TestConcurrentWrites/with_fix_* proves SetMaxOpenConns(1) fixes the bug.
+//	TestConcurrentWrites/with_fix_* shows SetMaxOpenConns(1) prevents the
+//	specific concurrent-write lock contention reproduced by that test.
 //	TestInitDBConcurrencyConfig/single_connection_pool proves InitDB calls it.
-//	Therefore InitDB fixes the bug.
+//	Therefore InitDB applies the same mitigation for this process/pool,
+//	without implying that SQLite lock errors cannot occur in all scenarios.
 func TestInitDBConcurrencyConfig(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	if err := InitDB(dbPath); err != nil {
