@@ -46,9 +46,9 @@ func checkSameOrigin(r *http.Request) bool {
 	}
 	host, _, err := net.SplitHostPort(r.Host)
 	if err != nil {
-		// IPv6 literal без порта приходит как "[::1]" — net.SplitHostPort
-		// в этом случае ошибается, а url.Hostname() возвращает адрес без
-		// скобок. Снимаем их вручную, чтобы same-origin не отказывал на IPv6.
+		// IPv6 literals without a port arrive as "[::1]"; net.SplitHostPort
+		// fails in that case while url.Hostname() returns the address without
+		// brackets. Strip them so same-origin checks pass for bare IPv6 hosts.
 		host = r.Host
 		if len(host) >= 2 && host[0] == '[' && host[len(host)-1] == ']' {
 			host = host[1 : len(host)-1]
