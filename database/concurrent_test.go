@@ -24,9 +24,10 @@ import (
 //     occur at all.
 //
 // Chain of proof:
-//   TestConcurrentWrites/with_fix_* proves SetMaxOpenConns(1) fixes the bug.
-//   TestInitDBConcurrencyConfig/single_connection_pool proves InitDB calls it.
-//   Therefore InitDB fixes the bug.
+//
+//	TestConcurrentWrites/with_fix_* proves SetMaxOpenConns(1) fixes the bug.
+//	TestInitDBConcurrencyConfig/single_connection_pool proves InitDB calls it.
+//	Therefore InitDB fixes the bug.
 func TestInitDBConcurrencyConfig(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	if err := InitDB(dbPath); err != nil {
@@ -63,13 +64,15 @@ func TestInitDBConcurrencyConfig(t *testing.T) {
 // The ONLY variable that differs between the two sub-tests is MaxOpenConns.
 //
 // Without fix (MaxOpenConns=2):
-//   conn1 acquires the SQLite write lock; conn2 is a separate connection that
-//   immediately tries to write and fails because it cannot wait out the lock.
+//
+//	conn1 acquires the SQLite write lock; conn2 is a separate connection that
+//	immediately tries to write and fails because it cannot wait out the lock.
 //
 // With fix (MaxOpenConns=1):
-//   conn2 cannot be acquired from the pool while conn1 is in use, so it
-//   blocks at the Go pool level instead of racing at the SQLite level.
-//   Once conn1 is released, conn2 gets the connection and writes without error.
+//
+//	conn2 cannot be acquired from the pool while conn1 is in use, so it
+//	blocks at the Go pool level instead of racing at the SQLite level.
+//	Once conn1 is released, conn2 gets the connection and writes without error.
 func TestConcurrentWrites(t *testing.T) {
 	const busyTimeout = 10 // ms — short so lock contention fails fast
 
