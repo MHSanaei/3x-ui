@@ -56,8 +56,8 @@ func TestInitDBConcurrencyConfig(t *testing.T) {
 	})
 }
 
-// TestConcurrentWrites proves that SetMaxOpenConns(1) is necessary and
-// sufficient to prevent the "database is locked" errors in issue #3739.
+// TestConcurrentWrites proves that SetMaxOpenConns(1) is sufficient to prevent
+// the "database is locked" errors in issue #3739.
 //
 // Both sub-tests use _busy_timeout=10ms so that lock contention surfaces
 // within milliseconds rather than the go-sqlite3 default of 5 000 ms.
