@@ -337,11 +337,16 @@ func (h *Hub) Register(c *Client) {
 	}
 }
 
-// Unregister removes a client from the hub. Non-blocking: if the unregister
-// channel is full (transient burst), the request is dropped — the client will
-// be unregistered on its next failed send or when the hub shuts down.
-// A blocking send here is unsafe because callers may include the hub goroutine
-// itself, which would self-deadlock.
+// Unregister removes a client from the hub. Fast path queues for the hub
+// goroutine; if the channel is saturated (disconnect storm) we fall back
+// to a direct removal under the write lock so dead clients aren't left in
+// the registry waiting for their Send buffer to fill (minutes of wasted
+// fanout work at low broadcast rates).
+//
+// Direct removal is safe from any caller: external goroutines (read/write
+// pumps) hold no hub locks, and the hub goroutine itself never holds h.mu
+// when it calls Unregister — fanout releases its RLock before per-client
+// sends, so we can't self-deadlock here.
 func (h *Hub) Unregister(c *Client) {
 	if h == nil || c == nil {
 		return
@@ -349,6 +354,7 @@ func (h *Hub) Unregister(c *Client) {
 	select {
 	case h.unregister <- c:
 	default:
+		h.removeClient(c)
 	}
 }
 

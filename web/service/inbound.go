@@ -423,13 +423,21 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 	inbound.Enable = enable
 
 	// Sync xray runtime: drop the live inbound, add it back if we're enabling.
+	// "User not found"-style errors from DelInbound mean the inbound was
+	// already absent from the live config — that's fine. Any other error
+	// means the live config and DB diverged, so we ask the caller to
+	// schedule a restart.
 	needRestart := false
 	s.xrayApi.Init(p.GetAPIPort())
 	defer s.xrayApi.Close()
 
-	_ = s.xrayApi.DelInbound(inbound.Tag)
+	if err := s.xrayApi.DelInbound(inbound.Tag); err != nil &&
+		!strings.Contains(err.Error(), "not found") {
+		logger.Debug("SetInboundEnable: DelInbound via api failed:", err)
+		needRestart = true
+	}
 	if !enable {
-		return false, nil
+		return needRestart, nil
 	}
 
 	runtimeInbound, err := s.buildRuntimeInboundForAPI(db, inbound)
@@ -667,27 +675,44 @@ func (s *InboundService) updateClientTraffics(tx *gorm.DB, oldInbound *model.Inb
 		return err
 	}
 
+	// Email is the unique key for ClientTraffic rows. Clients without an
+	// email have no stats row to sync — skip them on both sides instead of
+	// risking a unique-constraint hit or accidental delete of an unrelated row.
 	oldEmails := make(map[string]struct{}, len(oldClients))
 	for i := range oldClients {
+		if oldClients[i].Email == "" {
+			continue
+		}
 		oldEmails[oldClients[i].Email] = struct{}{}
 	}
 	newEmails := make(map[string]struct{}, len(newClients))
 	for i := range newClients {
+		if newClients[i].Email == "" {
+			continue
+		}
 		newEmails[newClients[i].Email] = struct{}{}
 	}
 
 	// Removed clients — drop their stats rows.
 	for i := range oldClients {
-		if _, kept := newEmails[oldClients[i].Email]; kept {
+		email := oldClients[i].Email
+		if email == "" {
 			continue
 		}
-		if err := s.DelClientStat(tx, oldClients[i].Email); err != nil {
+		if _, kept := newEmails[email]; kept {
+			continue
+		}
+		if err := s.DelClientStat(tx, email); err != nil {
 			return err
 		}
 	}
 	// Added clients — create their stats rows.
 	for i := range newClients {
-		if _, existed := oldEmails[newClients[i].Email]; existed {
+		email := newClients[i].Email
+		if email == "" {
+			continue
+		}
+		if _, existed := oldEmails[email]; existed {
 			continue
 		}
 		if err := s.AddClientStat(tx, oldInbound.Id, &newClients[i]); err != nil {
@@ -2398,8 +2423,7 @@ func (s *InboundService) GetActiveClientTraffics(emails []string) ([]*xray.Clien
 	}
 	db := database.GetDB()
 	var traffics []*xray.ClientTraffic
-	err := db.Model(xray.ClientTraffic{}).Where("email IN (?)", emails).Find(&traffics).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err := db.Model(xray.ClientTraffic{}).Where("email IN ?", emails).Find(&traffics).Error; err != nil {
 		return nil, err
 	}
 	return traffics, nil
@@ -2423,10 +2447,9 @@ type InboundTrafficSummary struct {
 func (s *InboundService) GetInboundsTrafficSummary() ([]InboundTrafficSummary, error) {
 	db := database.GetDB()
 	var summaries []InboundTrafficSummary
-	err := db.Model(&model.Inbound{}).
+	if err := db.Model(&model.Inbound{}).
 		Select("id, up, down, total, all_time, enable").
-		Find(&summaries).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+		Find(&summaries).Error; err != nil {
 		return nil, err
 	}
 	return summaries, nil

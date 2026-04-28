@@ -136,13 +136,17 @@ class WebSocketClient {
 
   #onMessage(event) {
     const data = event.data;
-    // Reject oversized payloads up front. event.data is a string for
-    // text frames; .length is the character count which is always ≤ byte
-    // count, so checking it is a conservative gate.
-    if (typeof data === 'string' && data.length > WebSocketClient.#MAX_PAYLOAD_BYTES) {
-      console.error(`WebSocket: payload too large (${data.length} chars), closing`);
-      try { this.ws?.close(1009, 'message too big'); } catch { /* ignore */ }
-      return;
+    // Reject oversized payloads up front. We compare actual UTF-8 byte
+    // length (via Blob.size) against the limit — string.length counts
+    // UTF-16 code units, which can undercount real bytes by up to 4× for
+    // payloads with non-ASCII characters and bypass the cap.
+    if (typeof data === 'string') {
+      const byteLen = new Blob([data]).size;
+      if (byteLen > WebSocketClient.#MAX_PAYLOAD_BYTES) {
+        console.error(`WebSocket: payload too large (${byteLen} bytes), closing`);
+        try { this.ws?.close(1009, 'message too big'); } catch { /* ignore */ }
+        return;
+      }
     }
     let message;
     try {
