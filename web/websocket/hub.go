@@ -36,11 +36,13 @@ const (
 	enqueueTimeout    = 100 * time.Millisecond
 	clientSendQueue   = 512  // ~50s of buffering for a momentarily slow browser.
 	hubBroadcastQueue = 2048 // Headroom for cron-storm + admin-mutation bursts.
+	hubControlQueue   = 64   // Backlog for register/unregister bursts (page reloads, disconnect storms).
 
 	// minBroadcastInterval throttles per-type broadcasts so cron storms or
 	// rapid mutations cannot drown the hub. Bursts collapse to one delivery.
-	// Status/traffic/notifications/xray_state/invalidate bypass this gate so
-	// real-time signals are never delayed.
+	// Only message types in throttledMessageTypes are gated — heartbeat and
+	// real-time signals (status, traffic, client_stats, notification,
+	// xray_state, invalidate) bypass this so they are never delayed.
 	minBroadcastInterval = 250 * time.Millisecond
 
 	// hubRestartAttempts caps panic-recovery restarts. After this many
@@ -91,21 +93,29 @@ func NewHub() *Hub {
 	return &Hub{
 		clients:       make(map[*Client]struct{}),
 		broadcast:     make(chan []byte, hubBroadcastQueue),
-		register:      make(chan *Client, 64),
-		unregister:    make(chan *Client, 64),
+		register:      make(chan *Client, hubControlQueue),
+		unregister:    make(chan *Client, hubControlQueue),
 		ctx:           ctx,
 		cancel:        cancel,
 		lastBroadcast: make(map[MessageType]time.Time),
 	}
 }
 
-// shouldThrottle returns true if a broadcast of msgType happened within
-// minBroadcastInterval. Status/traffic/invalidate skip the gate so heartbeats
-// and re-fetch signals are never dropped.
+// throttledMessageTypes is the explicit allow-list of message types subject to
+// the per-type rate limit. Everything else (status, traffic, client_stats,
+// notification, xray_state, invalidate) is heartbeat- or signal-class and must
+// not be delayed. Keeping the set explicit (vs. an exclusion list) makes the
+// intent obvious when new message types are added — by default they bypass.
+var throttledMessageTypes = map[MessageType]struct{}{
+	MessageTypeInbounds:  {},
+	MessageTypeOutbounds: {},
+}
+
+// shouldThrottle returns true if a broadcast of msgType is rate-limited and
+// happened within minBroadcastInterval of the previous one. Only message types
+// in throttledMessageTypes are gated.
 func (h *Hub) shouldThrottle(msgType MessageType) bool {
-	switch msgType {
-	case MessageTypeStatus, MessageTypeTraffic, MessageTypeClientStats,
-		MessageTypeInvalidate, MessageTypeNotification, MessageTypeXrayState:
+	if _, gated := throttledMessageTypes[msgType]; !gated {
 		return false
 	}
 	h.throttleMu.Lock()

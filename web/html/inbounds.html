@@ -1137,29 +1137,11 @@
         this.dbInbounds.forEach(ib => inboundsById.set(ib.id, ib));
         const touched = new Set();
 
-        // Per-inbound email→clientStat lookup cache. Without this, finding
-        // each delta target was O(N) (linear scan of clientStats), which
-        // turned into O(activeClients × totalClients) over the loop and
-        // re-introduced UI freezes at 10k+ client scale. We invalidate the
-        // cache when the underlying clientStats array reference changes.
-        const statsByEmail = (dbInbound) => {
-          if (!Array.isArray(dbInbound.clientStats)) return null;
-          if (dbInbound._clientStatsMap && dbInbound._clientStatsMapSrc === dbInbound.clientStats) {
-            return dbInbound._clientStatsMap;
-          }
-          const map = new Map();
-          for (const cs of dbInbound.clientStats) map.set(cs.email, cs);
-          dbInbound._clientStatsMap = map;
-          dbInbound._clientStatsMapSrc = dbInbound.clientStats;
-          return map;
-        };
-
         if (Array.isArray(payload.clients) && payload.clients.length > 0) {
           for (const stat of payload.clients) {
             const dbInbound = inboundsById.get(stat.inboundId);
             if (!dbInbound || !Array.isArray(dbInbound.clientStats)) continue;
-            const csMap = statsByEmail(dbInbound);
-            const cs = csMap ? csMap.get(stat.email) : null;
+            const cs = this.getClientStats(dbInbound, stat.email);
             if (!cs) continue;
             cs.up = stat.up;
             cs.down = stat.down;
@@ -1868,15 +1850,18 @@
       isExpiry(dbInbound, index) {
         return dbInbound.toInbound().isExpiry(index);
       },
+      // getClientStats returns the cached email→clientStat lookup for an
+      // inbound, building it lazily. The cache is invalidated when the
+      // underlying clientStats array reference changes (full re-fetch),
+      // so delta updates and post-refetch lookups never see stale entries.
+      // This is the single source of truth — applyClientStatsDelta uses it too.
       getClientStats(dbInbound, email) {
-        if (!dbInbound) return null;
-        if (!dbInbound._clientStatsMap) {
-            dbInbound._clientStatsMap = new Map();
-            if (dbInbound.clientStats && Array.isArray(dbInbound.clientStats)) {
-                for (const stats of dbInbound.clientStats) {
-                    dbInbound._clientStatsMap.set(stats.email, stats);
-                }
-            }
+        if (!dbInbound || !Array.isArray(dbInbound.clientStats)) return null;
+        if (!dbInbound._clientStatsMap || dbInbound._clientStatsMapSrc !== dbInbound.clientStats) {
+          const map = new Map();
+          for (const cs of dbInbound.clientStats) map.set(cs.email, cs);
+          dbInbound._clientStatsMap = map;
+          dbInbound._clientStatsMapSrc = dbInbound.clientStats;
         }
         return dbInbound._clientStatsMap.get(email);
       },
