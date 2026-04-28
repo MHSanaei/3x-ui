@@ -1,4 +1,8 @@
 {{define "settings/xray/reverse"}}
+<a-alert type="warning" show-icon :style="{ marginBottom: '12px' }"
+    message="Legacy reverse proxy is deprecated"
+    description="Xray-core v26+ removed the top-level `reverse` config (portals/bridges). Saving a config that still contains it will silently strip the block so the daemon can start. The replacement is VLESS Reverse Proxy, configured per-client on a VLESS inbound — see XTLS/Xray-core#5101.">
+</a-alert>
 <template v-if="reverseData.length > 0">
     <a-space direction="vertical" size="middle">
         <a-button type="primary" icon="plus" @click="addReverse()">
