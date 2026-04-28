@@ -14,23 +14,23 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// TestInitDBConcurrencyConfig verifies that InitDB applies both settings used
-// by TestConcurrentWrites to reduce "database is locked" errors from
+// TestInitDBConcurrencyConfig verifies that InitDB applies the concurrency
+// settings these tests rely on to reduce "database is locked" errors from
 // concurrent access within this process:
 //
-//  1. WAL journal mode — reduces the window during which a write lock is held
-//     (readers no longer block writers and vice-versa).
-//  2. SetMaxOpenConns(1) — serialises all GORM writes through a single
-//     connection at the Go pool level, which prevents the specific
-//     intra-process write-contention pattern exercised by these tests.
+//  1. WAL journal mode — asserted directly by this test via PRAGMA
+//     journal_mode.
+//  2. SetMaxOpenConns(1) — asserted directly by this test via
+//     sql.DB.Stats(), with its effect on the reproduced contention pattern
+//     demonstrated separately by TestConcurrentWrites.
 //
 // Chain of proof:
 //
 //	TestConcurrentWrites/with_fix_* shows SetMaxOpenConns(1) prevents the
 //	specific concurrent-write lock contention reproduced by that test.
-//	TestInitDBConcurrencyConfig/single_connection_pool proves InitDB calls it.
-//	Therefore InitDB applies the same mitigation for this process/pool,
-//	without implying that SQLite lock errors cannot occur in all scenarios.
+//	TestInitDBConcurrencyConfig/WAL_journal_mode proves InitDB enables WAL.
+//	TestInitDBConcurrencyConfig/single_connection_pool proves InitDB calls
+//	SetMaxOpenConns(1).
 func TestInitDBConcurrencyConfig(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "test.db")
 	if err := InitDB(dbPath); err != nil {
@@ -64,7 +64,8 @@ func TestInitDBConcurrencyConfig(t *testing.T) {
 //
 // Both sub-tests use _busy_timeout=10ms so that lock contention surfaces
 // within milliseconds rather than the go-sqlite3 default of 5 000 ms.
-// The ONLY variable that differs between the two sub-tests is MaxOpenConns.
+// The primary variable intentionally changed between the two sub-tests is
+// MaxOpenConns.
 //
 // Without fix (MaxOpenConns=2):
 //
