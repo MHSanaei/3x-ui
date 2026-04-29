@@ -83,24 +83,22 @@
         </tr>
       </table>
     </template>
-    <table>
-      <tr class="tr-table-box">
-        <td class="tr-table-rt"> [[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]] </td>
-        <td class="tr-table-bar" v-if="!client.enable">
-          <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false" :percent="statsProgress(record, client.email)" />
-        </td>
-        <td class="tr-table-bar" v-else-if="client.totalGB > 0">
-          <a-progress :stroke-color="clientStatsColor(record, client.email)" :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="statsProgress(record, client.email)" />
-        </td>
-        <td v-else class="infinite-bar tr-table-bar">
-          <a-progress :show-info="false" :percent="100"></a-progress>
-        </td>
-        <td class="tr-table-lt">
-          <template v-if="client.totalGB > 0">[[ client._totalGB + "GB" ]]</template>
-          <span v-else class="tr-infinity-ch">&infin;</span>
-        </td>
-      </tr>
-    </table>
+    <div class="tr-table-box">
+      <div class="tr-table-rt">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</div>
+      <div class="tr-table-bar" v-if="!client.enable">
+        <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false" :percent="statsProgress(record, client.email)" />
+      </div>
+      <div class="tr-table-bar" v-else-if="client.totalGB > 0">
+        <a-progress :stroke-color="clientStatsColor(record, client.email)" :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="statsProgress(record, client.email)" />
+      </div>
+      <div v-else class="infinite-bar tr-table-bar">
+        <a-progress :show-info="false" :percent="100"></a-progress>
+      </div>
+      <div class="tr-table-lt">
+        <template v-if="client.totalGB > 0">[[ client._totalGB + "GB" ]]</template>
+        <span v-else class="tr-infinity-ch">&infin;</span>
+      </div>
+    </div>
   </a-popover>
 </template>
 
@@ -114,15 +112,13 @@
         <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
         <span v-else>[[ IntlUtil.formatDate(client.expiryTime) ]]</span>
       </template>
-      <table>
-        <tr class="tr-table-box">
-          <td class="tr-table-rt"> [[ IntlUtil.formatRelativeTime(client.expiryTime) ]] </td>
-          <td class="infinite-bar tr-table-bar">
-            <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
-          </td>
-          <td class="tr-table-lt">[[ client.reset + "d" ]]</td>
-        </tr>
-      </table>
+      <div class="tr-table-box">
+        <div class="tr-table-rt">[[ IntlUtil.formatRelativeTime(client.expiryTime) ]]</div>
+        <div class="infinite-bar tr-table-bar">
+          <a-progress :show-info="false" :status="isClientDepleted(record, client.email)? 'exception' : ''" :percent="expireProgress(client.expiryTime, client.reset)" />
+        </div>
+        <div class="tr-table-lt">[[ client.reset + "d" ]]</div>
+      </div>
     </a-popover>
   </template>
   <template v-else>

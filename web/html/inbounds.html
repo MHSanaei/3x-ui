@@ -742,6 +742,7 @@
                         :columns="isMobile ? innerMobileColumns : innerColumns"
                         :data-source="getInboundClients(record)"
                         :pagination=pagination(getInboundClients(record))
+                        :scroll="isMobile ? {} : { x: 'max-content' }"
                         :style="{ margin: `-10px ${isMobile ? '2px' : '22px'} -11px` }">
                         {{template "component/aClientTable"}}
                       </a-table>
@@ -1067,13 +1068,13 @@
   }];
 
   const innerColumns = [
-    { title: '{{ i18n "pages.inbounds.operate" }}', width: 70, scopedSlots: { customRender: 'actions' } },
-    { title: '{{ i18n "pages.inbounds.enable" }}', width: 30, scopedSlots: { customRender: 'enable' } },
-    { title: '{{ i18n "online" }}', width: 32, scopedSlots: { customRender: 'online' } },
-    { title: '{{ i18n "pages.inbounds.client" }}', width: 80, scopedSlots: { customRender: 'client' } },
-    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 80, align: 'center', scopedSlots: { customRender: 'traffic' } },
-    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 60, align: 'center', scopedSlots: { customRender: 'allTime' } },
-    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 80, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
+    { title: '{{ i18n "pages.inbounds.operate" }}', width: 140, scopedSlots: { customRender: 'actions' } },
+    { title: '{{ i18n "pages.inbounds.enable" }}', width: 60, scopedSlots: { customRender: 'enable' } },
+    { title: '{{ i18n "online" }}', width: 80, scopedSlots: { customRender: 'online' } },
+    { title: '{{ i18n "pages.inbounds.client" }}', width: 160, scopedSlots: { customRender: 'client' } },
+    { title: '{{ i18n "pages.inbounds.traffic" }}', width: 200, align: 'center', scopedSlots: { customRender: 'traffic' } },
+    { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 110, align: 'center', scopedSlots: { customRender: 'allTime' } },
+    { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 180, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
   ];
 
   const innerMobileColumns = [
@@ -2282,27 +2283,51 @@
     line-height: 20px;
   }
 
-  /* Traffic cell — text on the sides sizes to its content, the progress bar
-     takes whatever's left. Without this, fixed-width text cells leave gaps
-     around short values like "∞" and clip long ones like "999.99 GB". */
+  /* Traffic / expiry cell — flex layout:
+     - Side text (.tr-table-rt / .tr-table-lt) sizes to content.
+     - Progress bar (.tr-table-bar) takes whatever's left and is allowed to
+       shrink (min-width: 0) so the cell never visually overflows its column,
+       no matter how long the surrounding values are ("999.99 GB", "365d").
+     A flex <div> replaces the previous <table>/<tr>/<td> hack — table layout
+     ignored width: 100% on the row, so the row grew to its content width and
+     pushed past the a-table column boundary. */
   .inbounds-page .tr-table-box {
-    display: inline-flex;
-    gap: 6px;
+    display: flex;
+    gap: 8px;
     align-items: center;
     width: 100%;
     min-width: 0;
+    box-sizing: border-box;
+    padding: 2px 10px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.04);
   }
+  /* Fixed widths so the bar starts/ends at the same X position across all
+     rows — without this, "126.45 MB" and "0 B" pushed the bar to different
+     spots, which read as misalignment in the column. */
   .inbounds-page .tr-table-rt,
   .inbounds-page .tr-table-lt {
     flex: 0 0 auto;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .inbounds-page .tr-table-rt { text-align: end; }
-  .inbounds-page .tr-table-lt { text-align: start; }
+  .inbounds-page .tr-table-rt {
+    text-align: end;
+    flex-basis: 70px;
+    min-width: 70px;
+  }
+  .inbounds-page .tr-table-lt {
+    text-align: start;
+    flex-basis: 28px;
+    min-width: 28px;
+  }
   .inbounds-page .tr-table-bar {
-    flex: 1 1 auto;
-    min-width: 60px;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    display: block;
   }
 
   /* Make the progress widget fill its flex cell, and align the inner fill
