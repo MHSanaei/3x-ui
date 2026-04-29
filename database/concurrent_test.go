@@ -82,7 +82,7 @@ func TestConcurrentWrites(t *testing.T) {
 
 	// openTestDB opens a fresh SQLite DB with the given MaxOpenConns.
 	// Both parts use the same busy_timeout so that MaxOpenConns is the
-	// only experimental variable.
+	// primary DB configuration variable under test.
 	openTestDB := func(t *testing.T, maxConns int) *sql.DB {
 		t.Helper()
 		dbPath := filepath.Join(t.TempDir(), "test.db")
