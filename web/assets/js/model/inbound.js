@@ -3,12 +3,12 @@ const Protocols = {
     VLESS: 'vless',
     TROJAN: 'trojan',
     SHADOWSOCKS: 'shadowsocks',
-    TUNNEL: 'tunnel',
+    WIREGUARD: 'wireguard',
+    HYSTERIA: 'hysteria',
     MIXED: 'mixed',
     HTTP: 'http',
-    WIREGUARD: 'wireguard',
+    TUNNEL: 'tunnel',
     TUN: 'tun',
-    HYSTERIA: 'hysteria',
 };
 
 const SSMethods = {
@@ -323,7 +323,7 @@ class KcpStreamSettings extends XrayCommonClass {
         uplinkCapacity = 5,
         downlinkCapacity = 20,
         cwndMultiplier = 1,
-        maxSendingWindow = 1350,
+        maxSendingWindow = 2097152,
     ) {
         super();
         this.mtu = mtu;
@@ -1085,11 +1085,15 @@ class UdpMask extends XrayCommonClass {
             case 'header-wireguard':
                 return {};
             case 'header-custom':
-                return { client: [], server: [] };
+                return {
+                    client: Array.isArray(settings.client) ? settings.client : [],
+                    server: Array.isArray(settings.server) ? settings.server : [],
+                };
             case 'noise':
-                return { reset: 0, noise: [] };
-            case 'sudoku':
-                return { ascii: '', customTable: '', customTables: [], paddingMin: 0, paddingMax: 0 };
+                return {
+                    reset: settings.reset ?? 0,
+                    noise: Array.isArray(settings.noise) ? settings.noise : [],
+                };
             default:
                 return settings;
         }
@@ -1103,27 +1107,219 @@ class UdpMask extends XrayCommonClass {
     }
 
     toJson() {
+        const cleanItem = item => {
+            const out = { ...item };
+            if (out.type === 'array') {
+                delete out.packet;
+            } else {
+                delete out.rand;
+                delete out.randRange;
+            }
+            return out;
+        };
+
+        let settings = this.settings;
+        if (this.type === 'noise' && settings && Array.isArray(settings.noise)) {
+            settings = { ...settings, noise: settings.noise.map(cleanItem) };
+        } else if (this.type === 'header-custom' && settings) {
+            settings = {
+                ...settings,
+                client: Array.isArray(settings.client) ? settings.client.map(cleanItem) : settings.client,
+                server: Array.isArray(settings.server) ? settings.server.map(cleanItem) : settings.server,
+            };
+        }
+
         return {
             type: this.type,
-            settings: (this.settings && Object.keys(this.settings).length > 0) ? this.settings : undefined
+            settings: (settings && Object.keys(settings).length > 0) ? settings : undefined
         };
     }
 }
 
-class FinalMaskStreamSettings extends XrayCommonClass {
-    constructor(udp = []) {
+class TcpMask extends XrayCommonClass {
+    constructor(type = 'fragment', settings = {}) {
         super();
-        this.udp = Array.isArray(udp) ? udp.map(u => new UdpMask(u.type, u.settings)) : [new UdpMask(udp.type, udp.settings)];
+        this.type = type;
+        this.settings = this._getDefaultSettings(type, settings);
+    }
+
+    _getDefaultSettings(type, settings = {}) {
+        switch (type) {
+            case 'fragment':
+                return {
+                    packets: settings.packets ?? 'tlshello',
+                    length: settings.length ?? '',
+                    delay: settings.delay ?? '',
+                    maxSplit: settings.maxSplit ?? '',
+                };
+            case 'sudoku':
+                return {
+                    password: settings.password ?? '',
+                    ascii: settings.ascii ?? '',
+                    customTable: settings.customTable ?? '',
+                    customTables: Array.isArray(settings.customTables) ? settings.customTables : [],
+                    paddingMin: settings.paddingMin ?? 0,
+                    paddingMax: settings.paddingMax ?? 0,
+                };
+            case 'header-custom':
+                return {
+                    clients: Array.isArray(settings.clients) ? settings.clients : [],
+                    servers: Array.isArray(settings.servers) ? settings.servers : [],
+                };
+            default:
+                return settings;
+        }
     }
 
     static fromJson(json = {}) {
-        return new FinalMaskStreamSettings(json.udp || []);
+        return new TcpMask(
+            json.type || 'fragment',
+            json.settings || {}
+        );
     }
 
     toJson() {
-        return {
-            udp: this.udp.map(udp => udp.toJson())
+        const cleanItem = item => {
+            const out = { ...item };
+            if (out.type === 'array') {
+                delete out.packet;
+            } else {
+                delete out.rand;
+                delete out.randRange;
+            }
+            return out;
         };
+
+        let settings = this.settings;
+        if (this.type === 'header-custom' && settings) {
+            const cleanGroup = group => Array.isArray(group) ? group.map(cleanItem) : group;
+            settings = {
+                ...settings,
+                clients: Array.isArray(settings.clients) ? settings.clients.map(cleanGroup) : settings.clients,
+                servers: Array.isArray(settings.servers) ? settings.servers.map(cleanGroup) : settings.servers,
+            };
+        }
+
+        return {
+            type: this.type,
+            settings: (settings && Object.keys(settings).length > 0) ? settings : undefined
+        };
+    }
+}
+
+class QuicParams extends XrayCommonClass {
+    constructor(
+        congestion = 'bbr',
+        debug = false,
+        brutalUp = '',
+        brutalDown = '',
+        udpHop = undefined,
+        initStreamReceiveWindow = 8388608,
+        maxStreamReceiveWindow = 8388608,
+        initConnectionReceiveWindow = 20971520,
+        maxConnectionReceiveWindow = 20971520,
+        maxIdleTimeout = 30,
+        keepAlivePeriod = 0,
+        disablePathMTUDiscovery = false,
+        maxIncomingStreams = 1024,
+    ) {
+        super();
+        this.congestion = congestion;
+        this.debug = debug;
+        this.brutalUp = brutalUp;
+        this.brutalDown = brutalDown;
+        this.udpHop = udpHop;
+        this.initStreamReceiveWindow = initStreamReceiveWindow;
+        this.maxStreamReceiveWindow = maxStreamReceiveWindow;
+        this.initConnectionReceiveWindow = initConnectionReceiveWindow;
+        this.maxConnectionReceiveWindow = maxConnectionReceiveWindow;
+        this.maxIdleTimeout = maxIdleTimeout;
+        this.keepAlivePeriod = keepAlivePeriod;
+        this.disablePathMTUDiscovery = disablePathMTUDiscovery;
+        this.maxIncomingStreams = maxIncomingStreams;
+    }
+
+    get hasUdpHop() {
+        return this.udpHop != null;
+    }
+
+    set hasUdpHop(value) {
+        this.udpHop = value ? (this.udpHop || { ports: '20000-50000', interval: '5-10' }) : undefined;
+    }
+
+    static fromJson(json = {}) {
+        if (!json || Object.keys(json).length === 0) return undefined;
+        return new QuicParams(
+            json.congestion,
+            json.debug,
+            json.brutalUp,
+            json.brutalDown,
+            json.udpHop ? { ports: json.udpHop.ports, interval: json.udpHop.interval } : undefined,
+            json.initStreamReceiveWindow,
+            json.maxStreamReceiveWindow,
+            json.initConnectionReceiveWindow,
+            json.maxConnectionReceiveWindow,
+            json.maxIdleTimeout,
+            json.keepAlivePeriod,
+            json.disablePathMTUDiscovery,
+            json.maxIncomingStreams,
+        );
+    }
+
+    toJson() {
+        const result = { congestion: this.congestion };
+        if (this.debug) result.debug = this.debug;
+        if (this.brutalUp) result.brutalUp = this.brutalUp;
+        if (this.brutalDown) result.brutalDown = this.brutalDown;
+        if (this.udpHop) result.udpHop = { ports: this.udpHop.ports, interval: this.udpHop.interval };
+        if (this.initStreamReceiveWindow > 0) result.initStreamReceiveWindow = this.initStreamReceiveWindow;
+        if (this.maxStreamReceiveWindow > 0) result.maxStreamReceiveWindow = this.maxStreamReceiveWindow;
+        if (this.initConnectionReceiveWindow > 0) result.initConnectionReceiveWindow = this.initConnectionReceiveWindow;
+        if (this.maxConnectionReceiveWindow > 0) result.maxConnectionReceiveWindow = this.maxConnectionReceiveWindow;
+        if (this.maxIdleTimeout !== 30 && this.maxIdleTimeout > 0) result.maxIdleTimeout = this.maxIdleTimeout;
+        if (this.keepAlivePeriod > 0) result.keepAlivePeriod = this.keepAlivePeriod;
+        if (this.disablePathMTUDiscovery) result.disablePathMTUDiscovery = this.disablePathMTUDiscovery;
+        if (this.maxIncomingStreams > 0) result.maxIncomingStreams = this.maxIncomingStreams;
+        return result;
+    }
+}
+
+class FinalMaskStreamSettings extends XrayCommonClass {
+    constructor(tcp = [], udp = [], quicParams = undefined) {
+        super();
+        this.tcp = Array.isArray(tcp) ? tcp.map(t => t instanceof TcpMask ? t : new TcpMask(t.type, t.settings)) : [];
+        this.udp = Array.isArray(udp) ? udp.map(u => new UdpMask(u.type, u.settings)) : [new UdpMask(udp.type, udp.settings)];
+        this.quicParams = quicParams instanceof QuicParams ? quicParams : (quicParams ? QuicParams.fromJson(quicParams) : undefined);
+    }
+
+    get enableQuicParams() {
+        return this.quicParams != null;
+    }
+
+    set enableQuicParams(value) {
+        this.quicParams = value ? (this.quicParams || new QuicParams()) : undefined;
+    }
+
+    static fromJson(json = {}) {
+        return new FinalMaskStreamSettings(
+            json.tcp || [],
+            json.udp || [],
+            json.quicParams ? QuicParams.fromJson(json.quicParams) : undefined,
+        );
+    }
+
+    toJson() {
+        const result = {};
+        if (this.tcp && this.tcp.length > 0) {
+            result.tcp = this.tcp.map(t => t.toJson());
+        }
+        if (this.udp && this.udp.length > 0) {
+            result.udp = this.udp.map(udp => udp.toJson());
+        }
+        if (this.quicParams) {
+            result.quicParams = this.quicParams.toJson();
+        }
+        return result;
     }
 }
 
@@ -1160,6 +1356,16 @@ class StreamSettings extends XrayCommonClass {
         this.sockopt = sockopt;
     }
 
+    addTcpMask(type = 'fragment') {
+        this.finalmask.tcp.push(new TcpMask(type));
+    }
+
+    delTcpMask(index) {
+        if (this.finalmask.tcp) {
+            this.finalmask.tcp.splice(index, 1);
+        }
+    }
+
     addUdpMask(type = 'salamander') {
         this.finalmask.udp.push(new UdpMask(type));
     }
@@ -1171,7 +1377,10 @@ class StreamSettings extends XrayCommonClass {
     }
 
     get hasFinalMask() {
-        return this.finalmask.udp && this.finalmask.udp.length > 0;
+        const hasTcp = this.finalmask.tcp && this.finalmask.tcp.length > 0;
+        const hasUdp = this.finalmask.udp && this.finalmask.udp.length > 0;
+        const hasQuicParams = this.finalmask.quicParams != null;
+        return hasTcp || hasUdp || hasQuicParams;
     }
 
     get isTls() {
@@ -1367,6 +1576,50 @@ class Inbound extends XrayCommonClass {
                     obj[k] = xhttp[k];
                 }
             });
+        }
+    }
+
+    static hasShareableFinalMaskValue(value) {
+        if (value == null) {
+            return false;
+        }
+        if (Array.isArray(value)) {
+            return value.some(item => Inbound.hasShareableFinalMaskValue(item));
+        }
+        if (typeof value === 'object') {
+            return Object.values(value).some(item => Inbound.hasShareableFinalMaskValue(item));
+        }
+        if (typeof value === 'string') {
+            return value.length > 0;
+        }
+        return true;
+    }
+
+    static serializeFinalMask(finalmask) {
+        if (!finalmask) {
+            return '';
+        }
+        const value = typeof finalmask.toJson === 'function' ? finalmask.toJson() : finalmask;
+        return Inbound.hasShareableFinalMaskValue(value) ? JSON.stringify(value) : '';
+    }
+
+    // Export finalmask with the same compact JSON payload shape that
+    // v2rayN-compatible share links use: fm=<json>.
+    static applyFinalMaskToParams(finalmask, params) {
+        if (!params) return;
+        const payload = Inbound.serializeFinalMask(finalmask);
+        if (payload.length > 0) {
+            params.set("fm", payload);
+        }
+    }
+
+    // VMess links are a base64 JSON object, so keep the same fm payload
+    // under a flat property instead of a URL query string.
+    static applyFinalMaskToObj(finalmask, obj) {
+        if (!obj) return;
+        const payload = Inbound.serializeFinalMask(finalmask);
+        if (payload.length > 0) {
+            obj.fm = payload;
         }
     }
 
@@ -1566,6 +1819,8 @@ class Inbound extends XrayCommonClass {
             }
         } else if (network === 'kcp') {
             const kcp = this.stream.kcp;
+            obj.mtu = kcp.mtu;
+            obj.tti = kcp.tti;
         } else if (network === 'ws') {
             const ws = this.stream.ws;
             obj.path = ws.path;
@@ -1587,6 +1842,8 @@ class Inbound extends XrayCommonClass {
             obj.type = xhttp.mode;
             Inbound.applyXhttpPaddingToObj(xhttp, obj);
         }
+
+        Inbound.applyFinalMaskToObj(this.stream.finalmask, obj);
 
         if (tls === 'tls') {
             if (!ObjectUtil.isEmpty(this.stream.tls.sni)) {
@@ -1626,6 +1883,8 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
+                params.set("mtu", kcp.mtu);
+                params.set("tti", kcp.tti);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1653,6 +1912,8 @@ class Inbound extends XrayCommonClass {
                 Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
+
+        Inbound.applyFinalMaskToParams(this.stream.finalmask, params);
 
         if (security === 'tls') {
             params.set("security", "tls");
@@ -1727,6 +1988,8 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
+                params.set("mtu", kcp.mtu);
+                params.set("tti", kcp.tti);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1754,6 +2017,8 @@ class Inbound extends XrayCommonClass {
                 Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
+
+        Inbound.applyFinalMaskToParams(this.stream.finalmask, params);
 
         if (security === 'tls') {
             params.set("security", "tls");
@@ -1804,6 +2069,8 @@ class Inbound extends XrayCommonClass {
                 break;
             case "kcp":
                 const kcp = this.stream.kcp;
+                params.set("mtu", kcp.mtu);
+                params.set("tti", kcp.tti);
                 break;
             case "ws":
                 const ws = this.stream.ws;
@@ -1831,6 +2098,8 @@ class Inbound extends XrayCommonClass {
                 Inbound.applyXhttpPaddingToParams(xhttp, params);
                 break;
         }
+
+        Inbound.applyFinalMaskToParams(this.stream.finalmask, params);
 
         if (security === 'tls') {
             params.set("security", "tls");
@@ -1899,6 +2168,8 @@ class Inbound extends XrayCommonClass {
             }
         }
 
+        Inbound.applyFinalMaskToParams(this.stream.finalmask, params);
+
         const url = new URL(link);
         for (const [key, value] of params) {
             url.searchParams.set(key, value);
@@ -1907,7 +2178,7 @@ class Inbound extends XrayCommonClass {
         return url.toString();
     }
 
-    getWireguardLink(address, port, remark, peerId) {
+    getWireguardTxt(address, port, remark, peerId) {
         let txt = `[Interface]\n`
         txt += `PrivateKey = ${this.settings.peers[peerId].privateKey}\n`
         txt += `Address = ${this.settings.peers[peerId].allowedIPs[0]}\n`
@@ -1927,6 +2198,48 @@ class Inbound extends XrayCommonClass {
             txt += `\nPersistentKeepalive = ${this.settings.peers[peerId].keepAlive}\n`
         }
         return txt;
+    }
+
+    getWireguardLink(address, port, remark, peerId) {
+        const peer = this.settings?.peers?.[peerId];
+        if (!peer) return '';
+
+        const link = `wireguard://${address}:${port}`;
+        const url = new URL(link);
+        url.username = peer.privateKey || '';
+
+        if (this.settings?.pubKey) {
+            url.searchParams.set("publickey", this.settings.pubKey);
+        }
+        if (Array.isArray(peer.allowedIPs) && peer.allowedIPs.length > 0 && peer.allowedIPs[0]) {
+            url.searchParams.set("address", peer.allowedIPs[0]);
+        }
+        if (this.settings?.mtu) {
+            url.searchParams.set("mtu", this.settings.mtu);
+        }
+
+        url.hash = encodeURIComponent(remark);
+        return url.toString();
+    }
+
+    genWireguardLinks(remark = '', remarkModel = '-ieo') {
+        const addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        const separationChar = remarkModel.charAt(0);
+        let links = [];
+        this.settings.peers.forEach((p, index) => {
+            links.push(this.getWireguardLink(addr, this.port, remark + separationChar + (index + 1), index));
+        });
+        return links.join('\r\n');
+    }
+
+    genWireguardConfigs(remark = '', remarkModel = '-ieo') {
+        const addr = !ObjectUtil.isEmpty(this.listen) && this.listen !== "0.0.0.0" ? this.listen : location.hostname;
+        const separationChar = remarkModel.charAt(0);
+        let links = [];
+        this.settings.peers.forEach((p, index) => {
+            links.push(this.getWireguardTxt(addr, this.port, remark + separationChar + (index + 1), index));
+        });
+        return links.join('\r\n');
     }
 
     genLink(address = '', port = this.port, forceTls = 'same', remark = '', client) {
@@ -1989,11 +2302,7 @@ class Inbound extends XrayCommonClass {
         } else {
             if (this.protocol == Protocols.SHADOWSOCKS && !this.isSSMultiUser) return this.genSSLink(addr, this.port, 'same', remark);
             if (this.protocol == Protocols.WIREGUARD) {
-                let links = [];
-                this.settings.peers.forEach((p, index) => {
-                    links.push(this.getWireguardLink(addr, this.port, remark + remarkModel.charAt(0) + (index + 1), index));
-                });
-                return links.join('\r\n');
+                return this.genWireguardConfigs(remark, remarkModel);
             }
             return '';
         }

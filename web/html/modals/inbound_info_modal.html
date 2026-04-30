@@ -513,9 +513,19 @@
                 <div v-html="infoModal.links[index].replaceAll(`\n`,`<br />`)"
                   :style="{ borderRadius: '1rem', padding: '0.5rem' }" class="client-table-odd-row">
                 </div>
+                <a-divider orientation="center">Link</a-divider>
+                <tr-info-title class="tr-info-title">
+                  <a-tag color="green">Link</a-tag>
+                  <a-tooltip title='{{ i18n "copy" }}'>
+                    <a-button :style="{ minWidth: '24px' }" size="small" icon="snippets"
+                      @click="copy(infoModal.wireguardLinks[index])"></a-button>
+                  </a-tooltip>
+                </tr-info-title>
+                <code :style="{ display: 'block', whiteSpace: 'normal', wordBreak: 'break-all' }">[[ infoModal.wireguardLinks[index] ]]</code>
               </tr-info-row>
             </td>
           </tr>
+        </template>
       </table>
     </template>
     </template>
@@ -603,6 +613,7 @@
     upStats: 0,
     downStats: 0,
     links: [],
+    wireguardLinks: [],
     index: null,
     isExpired: false,
     subLink: '',
@@ -633,9 +644,11 @@
         }
       }
       if (this.inbound.protocol == Protocols.WIREGUARD) {
-        this.links = this.inbound.genInboundLinks(dbInbound.remark).split('\r\n')
+        this.links = this.inbound.genWireguardConfigs(dbInbound.remark).split('\r\n')
+        this.wireguardLinks = this.inbound.genWireguardLinks(dbInbound.remark).split('\r\n')
       } else {
         this.links = this.inbound.genAllLinks(this.dbInbound.remark, app.remarkModel, this.clientSettings);
+        this.wireguardLinks = [];
       }
       if (this.clientSettings) {
         if (this.clientSettings.subId) {

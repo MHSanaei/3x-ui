@@ -1077,7 +1077,8 @@
             return;
           }
           if (!msg.obj) return;
-          const { geoip = [], geosite = [] } = msg.obj;
+          const geoip = msg.obj.geoip ?? [];
+          const geosite = msg.obj.geosite ?? [];
           const geoSuffix = this.customGeoAliasLabelSuffix || '';
           geoip.forEach((x) => {
             this.settingsData.IPsOptions.push({

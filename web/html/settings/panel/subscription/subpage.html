@@ -6,6 +6,23 @@
 <script src="{{ .base_path }}assets/js/util/index.js?{{ .cur_ver }}"></script>
 <script src="{{ .base_path }}assets/qrcode/qrious2.min.js?{{ .cur_ver }}"></script>
 <style>
+    .subscription-page tr-qr-box.qr-box {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        width: 220px;
+    }
+
+    .subscription-page tr-qr-box.qr-box .qr-tag {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .subscription-page tr-qr-box.qr-box .qr-bg,
+    .subscription-page tr-qr-box.qr-box .qr-bg-sub {
+        margin-inline: auto;
+    }
+
     .subscription-page .subscription-link-box {
         cursor: pointer;
         border-radius: 12px;
@@ -192,8 +209,6 @@
                                 [[ link ]]
                             </div>
                         </div>
-                    </div>
-
                     </div>
                     <br />
 

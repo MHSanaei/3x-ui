@@ -353,14 +353,17 @@ func (s *Server) startTask() {
 	isTgbotenabled, err := s.settingService.GetTgbotEnabled()
 	if (err == nil) && (isTgbotenabled) {
 		runtime, err := s.settingService.GetTgbotRuntime()
-		if err != nil || runtime == "" {
-			logger.Errorf("Add NewStatsNotifyJob error[%s], Runtime[%s] invalid, will run default", err, runtime)
+		if err != nil {
+			logger.Warningf("Add NewStatsNotifyJob: failed to load runtime: %v; using default @daily", err)
+			runtime = "@daily"
+		} else if strings.TrimSpace(runtime) == "" {
+			logger.Warning("Add NewStatsNotifyJob runtime is empty, using default @daily")
 			runtime = "@daily"
 		}
 		logger.Infof("Tg notify enabled,run at %s", runtime)
 		_, err = s.cron.AddJob(runtime, job.NewStatsNotifyJob())
 		if err != nil {
-			logger.Warning("Add NewStatsNotifyJob error", err)
+			logger.Warningf("Add NewStatsNotifyJob: failed to schedule runtime %q: %v", runtime, err)
 			return
 		}
 
