@@ -146,9 +146,16 @@ func (s *XrayService) GetXrayConfig() (*xray.Config, error) {
 					continue
 				}
 
-				// clear client config for additional parameters
+				// Keep only fields that are needed by Xray runtime config generation.
 				for key := range c {
-					if key != "email" && key != "id" && key != "password" && key != "flow" && key != "method" && key != "auth" {
+					if key != "email" &&
+						key != "id" &&
+						key != "password" &&
+						key != "flow" &&
+						key != "method" &&
+						key != "auth" &&
+						key != "uploadSpeedLimit" &&
+						key != "downloadSpeedLimit" {
 						delete(c, key)
 					}
 					if flow, ok := c["flow"].(string); ok && flow == "xtls-rprx-vision-udp443" {

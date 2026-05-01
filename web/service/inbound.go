@@ -733,13 +733,15 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 					cipher = oldSettings["method"].(string)
 				}
 				err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"auth":     client.Auth,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
+					"email":              client.Email,
+					"id":                 client.ID,
+					"auth":               client.Auth,
+					"security":           client.Security,
+					"flow":               client.Flow,
+					"password":           client.Password,
+					"cipher":             cipher,
+					"uploadSpeedLimit":   client.UploadSpeedLimit,
+					"downloadSpeedLimit": client.DownloadSpeedLimit,
 				})
 				if err1 == nil {
 					logger.Debug("Client added by api:", client.Email)
@@ -1199,13 +1201,15 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 				cipher = oldSettings["method"].(string)
 			}
 			err1 := s.xrayApi.AddUser(string(oldInbound.Protocol), oldInbound.Tag, map[string]any{
-				"email":    clients[0].Email,
-				"id":       clients[0].ID,
-				"security": clients[0].Security,
-				"flow":     clients[0].Flow,
-				"auth":     clients[0].Auth,
-				"password": clients[0].Password,
-				"cipher":   cipher,
+				"email":              clients[0].Email,
+				"id":                 clients[0].ID,
+				"security":           clients[0].Security,
+				"flow":               clients[0].Flow,
+				"auth":               clients[0].Auth,
+				"password":           clients[0].Password,
+				"cipher":             cipher,
+				"uploadSpeedLimit":   clients[0].UploadSpeedLimit,
+				"downloadSpeedLimit": clients[0].DownloadSpeedLimit,
 			})
 			if err1 == nil {
 				logger.Debug("Client edited by api:", clients[0].Email)
@@ -2094,13 +2098,15 @@ func (s *InboundService) ResetClientTraffic(id int, clientEmail string) (bool, e
 					cipher = oldSettings["method"].(string)
 				}
 				err1 := s.xrayApi.AddUser(string(inbound.Protocol), inbound.Tag, map[string]any{
-					"email":    client.Email,
-					"id":       client.ID,
-					"auth":     client.Auth,
-					"security": client.Security,
-					"flow":     client.Flow,
-					"password": client.Password,
-					"cipher":   cipher,
+					"email":              client.Email,
+					"id":                 client.ID,
+					"auth":               client.Auth,
+					"security":           client.Security,
+					"flow":               client.Flow,
+					"password":           client.Password,
+					"cipher":             cipher,
+					"uploadSpeedLimit":   client.UploadSpeedLimit,
+					"downloadSpeedLimit": client.DownloadSpeedLimit,
 				})
 				if err1 == nil {
 					logger.Debug("Client enabled due to reset traffic:", clientEmail)

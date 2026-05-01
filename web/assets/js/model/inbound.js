@@ -2387,6 +2387,8 @@ Inbound.ClientBase = class extends XrayCommonClass {
     constructor(
         email = RandomUtil.randomLowerAndNum(8),
         limitIp = 0,
+        uploadSpeedLimit = 0,
+        downloadSpeedLimit = 0,
         totalGB = 0,
         expiryTime = 0,
         enable = true,
@@ -2400,6 +2402,8 @@ Inbound.ClientBase = class extends XrayCommonClass {
         super();
         this.email = email;
         this.limitIp = limitIp;
+        this.uploadSpeedLimit = uploadSpeedLimit;
+        this.downloadSpeedLimit = downloadSpeedLimit;
         this.totalGB = totalGB;
         this.expiryTime = expiryTime;
         this.enable = enable;
@@ -2415,6 +2419,8 @@ Inbound.ClientBase = class extends XrayCommonClass {
         return [
             json.email,
             json.limitIp,
+            json.uploadSpeedLimit,
+            json.downloadSpeedLimit,
             json.totalGB,
             json.expiryTime,
             json.enable,
@@ -2431,6 +2437,8 @@ Inbound.ClientBase = class extends XrayCommonClass {
         return {
             email: this.email,
             limitIp: this.limitIp,
+            uploadSpeedLimit: this.uploadSpeedLimit,
+            downloadSpeedLimit: this.downloadSpeedLimit,
             totalGB: this.totalGB,
             expiryTime: this.expiryTime,
             enable: this.enable,
@@ -2467,6 +2475,22 @@ Inbound.ClientBase = class extends XrayCommonClass {
 
     set _totalGB(gb) {
         this.totalGB = NumberFormatter.toFixed(gb * SizeFormatter.ONE_GB, 0);
+    }
+
+    get _uploadSpeedLimitMB() {
+        return NumberFormatter.toFixed(this.uploadSpeedLimit / SizeFormatter.ONE_MB, 2);
+    }
+
+    set _uploadSpeedLimitMB(mb) {
+        this.uploadSpeedLimit = NumberFormatter.toFixed((mb || 0) * SizeFormatter.ONE_MB, 0);
+    }
+
+    get _downloadSpeedLimitMB() {
+        return NumberFormatter.toFixed(this.downloadSpeedLimit / SizeFormatter.ONE_MB, 2);
+    }
+
+    set _downloadSpeedLimitMB(mb) {
+        this.downloadSpeedLimit = NumberFormatter.toFixed((mb || 0) * SizeFormatter.ONE_MB, 0);
     }
 };
 
