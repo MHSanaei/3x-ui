@@ -90,6 +90,14 @@
                 <a-switch v-model="allSetting.subShowInfo"></a-switch>
             </template>
         </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subEmailInRemark"}}</template>
+            <template #description>{{ i18n
+                "pages.settings.subEmailInRemarkDesc"}}</template>
+            <template #control>
+                <a-switch v-model="allSetting.subEmailInRemark"></a-switch>
+            </template>
+        </a-setting-list-item>
         <a-divider>{{ i18n "pages.xray.basicTemplate"}}</a-divider>
         <a-setting-list-item paddings="small">
             <template #title>{{ i18n "pages.settings.subTitle"}}</template>

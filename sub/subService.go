@@ -825,7 +825,11 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		'e': "",
 		'o': "",
 	}
-	if len(email) > 0 {
+	emailInRemark, err := s.settingService.GetSubEmailInRemark()
+	if err != nil {
+		emailInRemark = true
+	}
+	if len(email) > 0 && emailInRemark {
 		orders['e'] = email
 	}
 	if len(inbound.Remark) > 0 {

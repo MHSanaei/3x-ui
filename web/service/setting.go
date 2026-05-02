@@ -68,6 +68,7 @@ var defaultValueMap = map[string]string{
 	"subUpdates":                  "12",
 	"subEncrypt":                  "true",
 	"subShowInfo":                 "true",
+	"subEmailInRemark":            "true",
 	"subURI":                      "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
@@ -550,6 +551,10 @@ func (s *SettingService) GetSubEncrypt() (bool, error) {
 
 func (s *SettingService) GetSubShowInfo() (bool, error) {
 	return s.getBool("subShowInfo")
+}
+
+func (s *SettingService) GetSubEmailInRemark() (bool, error) {
+	return s.getBool("subEmailInRemark")
 }
 
 func (s *SettingService) GetPageSize() (int, error) {
