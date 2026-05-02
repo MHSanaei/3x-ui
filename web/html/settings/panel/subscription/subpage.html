@@ -175,7 +175,7 @@
                                 <a-descriptions-item label='{{ i18n "subscription.totalQuota" }}'>[[
                                     app.total
                                     ]]</a-descriptions-item>
-                                <a-descriptions-item v-if="app.totalByte > 0" label='{{ i18n "remained" }}'>[[
+                                <a-descriptions-item v-if="app.totalByte > 0" label='<b>{{ i18n "remained" }}</b>'>[[
                                     app.remained ]]</a-descriptions-item>
                                 <a-descriptions-item label='{{ i18n "lastOnline" }}'>
                                     <template v-if="app.lastOnlineMs > 0">
