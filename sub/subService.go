@@ -28,6 +28,7 @@ type SubService struct {
 	showInfo       bool
 	remarkModel    string
 	datepicker     string
+	emailInRemark  bool
 	inboundService service.InboundService
 	settingService service.SettingService
 }
@@ -35,8 +36,9 @@ type SubService struct {
 // NewSubService creates a new subscription service with the given configuration.
 func NewSubService(showInfo bool, remarkModel string) *SubService {
 	return &SubService{
-		showInfo:    showInfo,
-		remarkModel: remarkModel,
+		showInfo:      showInfo,
+		remarkModel:   remarkModel,
+		emailInRemark: true,
 	}
 }
 
@@ -59,6 +61,11 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	s.datepicker, err = s.settingService.GetDatepicker()
 	if err != nil {
 		s.datepicker = "gregorian"
+	}
+
+	s.emailInRemark, err = s.settingService.GetSubEmailInRemark()
+	if err != nil {
+		s.emailInRemark = true
 	}
 	for _, inbound := range inbounds {
 		clients, err := s.inboundService.GetClients(inbound)
@@ -825,11 +832,7 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 		'e': "",
 		'o': "",
 	}
-	emailInRemark, err := s.settingService.GetSubEmailInRemark()
-	if err != nil {
-		emailInRemark = true
-	}
-	if len(email) > 0 && emailInRemark {
+	if len(email) > 0 && s.emailInRemark {
 		orders['e'] = email
 	}
 	if len(inbound.Remark) > 0 {
