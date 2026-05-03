@@ -74,6 +74,7 @@ type AllSetting struct {
 	SubEncrypt                  bool   `json:"subEncrypt" form:"subEncrypt"`                                   // Encrypt subscription responses
 	SubShowInfo                 bool   `json:"subShowInfo" form:"subShowInfo"`                                 // Show client information in subscriptions
 	SubURI                      string `json:"subURI" form:"subURI"`                                           // Subscription server URI
+	SubAdditionalURIs           string `json:"subAdditionalURIs" form:"subAdditionalURIs"`                     // Comma-separated list of additional subscription base URLs
 	SubJsonPath                 string `json:"subJsonPath" form:"subJsonPath"`                                 // Path for JSON subscription endpoint
 	SubJsonURI                  string `json:"subJsonURI" form:"subJsonURI"`                                   // JSON subscription server URI
 	SubClashEnable              bool   `json:"subClashEnable" form:"subClashEnable"`                           // Enable Clash/Mihomo subscription endpoint

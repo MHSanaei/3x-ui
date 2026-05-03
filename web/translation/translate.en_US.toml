@@ -473,6 +473,8 @@
 "subShowInfoDesc" = "The remaining traffic and date will be displayed in the client apps."
 "subURI" = "Reverse Proxy URI"
 "subURIDesc" = "The URI path of the subscription URL for use behind proxies."
+"subAdditionalURIs" = "Extra Subscription Base URLs"
+"subAdditionalURIsDesc" = "Comma-separated base URLs (e.g. https://x2.example.com:2096/sbp/). They work only when the same subscription ID exists on that server."
 "externalTrafficInformEnable" = "External Traffic Inform"
 "externalTrafficInformEnableDesc" = "Inform external API on every traffic update."
 "externalTrafficInformURI" = "External Traffic Inform URI"

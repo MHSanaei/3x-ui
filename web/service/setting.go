@@ -69,6 +69,7 @@ var defaultValueMap = map[string]string{
 	"subEncrypt":                  "true",
 	"subShowInfo":                 "true",
 	"subURI":                      "",
+	"subAdditionalURIs":           "",
 	"subJsonPath":                 "/json/",
 	"subJsonURI":                  "",
 	"subClashEnable":              "true",
@@ -562,6 +563,10 @@ func (s *SettingService) GetSubURI() (string, error) {
 
 func (s *SettingService) GetSubJsonURI() (string, error) {
 	return s.getString("subJsonURI")
+}
+
+func (s *SettingService) GetSubAdditionalURIs() (string, error) {
+	return s.getString("subAdditionalURIs")
 }
 
 func (s *SettingService) GetSubClashEnable() (bool, error) {

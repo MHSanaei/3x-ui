@@ -3,8 +3,10 @@ package sub
 import (
 	"encoding/base64"
 	"fmt"
+	"io"
 	"maps"
 	"net"
+	"net/http"
 	"net/url"
 	"slices"
 	"strings"
@@ -88,6 +90,7 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			}
 		}
 	}
+	result = append(result, s.getAdditionalSubs(subId)...)
 
 	// Prepare statistics
 	for index, clientTraffic := range clientTraffics {
@@ -112,6 +115,47 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 		}
 	}
 	return result, lastOnline, traffic, nil
+}
+
+func (s *SubService) getAdditionalSubs(subID string) []string {
+	additionalURIs, err := s.settingService.GetSubAdditionalURIs()
+	if err != nil || strings.TrimSpace(additionalURIs) == "" {
+		return nil
+	}
+	client := &http.Client{Timeout: 8 * time.Second}
+	var result []string
+	for _, baseURI := range strings.Split(additionalURIs, ",") {
+		baseURI = strings.TrimSpace(baseURI)
+		if baseURI == "" {
+			continue
+		}
+		if !strings.HasSuffix(baseURI, "/") {
+			baseURI += "/"
+		}
+		remoteSubURL := baseURI + subID
+		resp, reqErr := client.Get(remoteSubURL)
+		if reqErr != nil {
+			logger.Warningf("SubService - additional sub request failed for %s: %v", remoteSubURL, reqErr)
+			continue
+		}
+		body, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil || resp.StatusCode != http.StatusOK {
+			continue
+		}
+		rawBody := strings.TrimSpace(string(body))
+		decoded, decodeErr := base64.StdEncoding.DecodeString(rawBody)
+		if decodeErr == nil {
+			rawBody = string(decoded)
+		}
+		for _, line := range strings.Split(rawBody, "\n") {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				result = append(result, line)
+			}
+		}
+	}
+	return result
 }
 
 func (s *SubService) getInboundsBySubId(subId string) ([]*model.Inbound, error) {
