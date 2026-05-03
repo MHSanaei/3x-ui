@@ -473,6 +473,8 @@
 "subShowInfoDesc" = "Отображать остаток трафика и дату окончания после имени конфигурации"
 "subURI" = "URI обратного прокси"
 "subURIDesc" = "Изменить базовый URI URL-адреса подписки для использования за прокси-серверами"
+"subAdditionalURIs" = "Дополнительные базовые URL подписки"
+"subAdditionalURIsDesc" = "Базовые URL через запятую (например, https://x2.example.com:2096/sbp/). Работает только если на удалённом сервере существует подписка с тем же SubID."
 "externalTrafficInformEnable" = "Информация о внешнем трафике"
 "externalTrafficInformEnableDesc" = "Информировать внешний API о каждом обновлении трафика"
 "externalTrafficInformURI" = "URI информации о внешнем трафике"

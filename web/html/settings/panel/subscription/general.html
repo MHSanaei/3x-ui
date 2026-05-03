@@ -72,6 +72,16 @@
                     v-model="allSetting.subURI"></a-input>
             </template>
         </a-setting-list-item>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.subAdditionalURIs"}}</template>
+            <template #description>{{ i18n
+                "pages.settings.subAdditionalURIsDesc"}}</template>
+            <template #control>
+                <a-input type="text"
+                    placeholder="https://x2.example.com:2096/sbp/, https://x3.example.com/sub/"
+                    v-model="allSetting.subAdditionalURIs"></a-input>
+            </template>
+        </a-setting-list-item>
     </a-collapse-panel>
     <a-collapse-panel key="2" header='{{ i18n "pages.settings.information" }}'>
         <a-setting-list-item paddings="small">
