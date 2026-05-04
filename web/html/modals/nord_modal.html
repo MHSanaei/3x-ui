@@ -1,25 +1,31 @@
 {{define "modals/nordModal"}}
 <a-modal id="nord-modal" v-model="nordModal.visible" title="NordVPN NordLynx"
-         :confirm-loading="nordModal.confirmLoading" :closable="true" :mask-closable="true"
-         :footer="null" :class="themeSwitcher.currentTheme">
+    :confirm-loading="nordModal.confirmLoading" :closable="true" :mask-closable="true" :footer="null"
+    :class="themeSwitcher.currentTheme">
     <template v-if="nordModal.nordData == null">
         <a-tabs default-active-key="token" :class="themeSwitcher.currentTheme">
             <a-tab-pane key="token" tab='{{ i18n "pages.xray.outbound.accessToken" }}'>
-                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '20px' }">
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }"
+                    :style="{ marginTop: '20px' }">
                     <a-form-item label='{{ i18n "pages.xray.outbound.accessToken" }}'>
-                        <a-input v-model="nordModal.token" placeholder='{{ i18n "pages.xray.outbound.accessToken" }}'></a-input>
+                        <a-input v-model="nordModal.token"
+                            placeholder='{{ i18n "pages.xray.outbound.accessToken" }}'></a-input>
                         <div :style="{ marginTop: '10px' }">
-                            <a-button type="primary" icon="login" @click="login()" :loading="nordModal.confirmLoading">{{ i18n "login" }}</a-button>
+                            <a-button type="primary" icon="login" @click="login()"
+                                :loading="nordModal.confirmLoading">{{ i18n "login" }}</a-button>
                         </div>
                     </a-form-item>
                 </a-form>
             </a-tab-pane>
             <a-tab-pane key="key" tab='{{ i18n "pages.xray.outbound.privateKey" }}'>
-                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '20px' }">
+                <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }"
+                    :style="{ marginTop: '20px' }">
                     <a-form-item label='{{ i18n "pages.xray.outbound.privateKey" }}'>
-                        <a-input v-model="nordModal.manualKey" placeholder='{{ i18n "pages.xray.outbound.privateKey" }}'></a-input>
+                        <a-input v-model="nordModal.manualKey"
+                            placeholder='{{ i18n "pages.xray.outbound.privateKey" }}'></a-input>
                         <div :style="{ marginTop: '10px' }">
-                            <a-button type="primary" icon="save" @click="saveKey()" :loading="nordModal.confirmLoading">{{ i18n "save" }}</a-button>
+                            <a-button type="primary" icon="save" @click="saveKey()"
+                                :loading="nordModal.confirmLoading">{{ i18n "save" }}</a-button>
                         </div>
                     </a-form-item>
                 </a-form>
@@ -39,7 +45,8 @@
         </table>
         <a-button @click="logout" :loading="nordModal.confirmLoading" type="danger">{{ i18n "logout" }}</a-button>
         <a-divider :style="{ margin: '0' }">{{ i18n "pages.xray.outbound.settings" }}</a-divider>
-        <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }" :style="{ marginTop: '10px' }">
+        <a-form :colon="false" :label-col="{ md: {span:6} }" :wrapper-col="{ md: {span:18} }"
+            :style="{ marginTop: '10px' }">
             <a-form-item label='{{ i18n "pages.xray.outbound.country" }}'>
                 <a-select v-model="nordModal.countryId" @change="fetchServers" show-search option-filter-prop="label">
                     <a-select-option v-for="c in nordModal.countries" :key="c.id" :value="c.id" :label="c.name">
@@ -69,11 +76,13 @@
         <a-form :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
             <template v-if="nordOutboundIndex>=0">
                 <a-tag color="green" :style="{ lineHeight: '31px' }">{{ i18n "enabled" }}</a-tag>
-                <a-button @click="resetOutbound" :loading="nordModal.confirmLoading" type="danger">{{ i18n "reset" }}</a-button>
+                <a-button @click="resetOutbound" :loading="nordModal.confirmLoading"
+                    type="danger">{{ i18n "reset" }}</a-button>
             </template>
             <template v-else>
                 <a-tag color="orange" :style="{ lineHeight: '31px' }">{{ i18n "disabled" }}</a-tag>
-                <a-button @click="addOutbound" :disabled="!nordModal.serverId" :loading="nordModal.confirmLoading" type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
+                <a-button @click="addOutbound" :disabled="!nordModal.serverId" :loading="nordModal.confirmLoading"
+                    type="primary">{{ i18n "pages.xray.outbound.addOutbound" }}</a-button>
             </template>
         </a-form>
     </template>
@@ -115,7 +124,9 @@
         },
         async login() {
             this.loading(true);
-            const msg = await HttpUtil.post('/panel/xray/nord/reg', { token: this.token });
+            const msg = await HttpUtil.post('/panel/xray/nord/reg', {
+                token: this.token
+            });
             if (msg.success) {
                 this.nordData = JSON.parse(msg.obj);
                 await this.fetchCountries();
@@ -124,7 +135,9 @@
         },
         async saveKey() {
             this.loading(true);
-            const msg = await HttpUtil.post('/panel/xray/nord/setKey', { key: this.manualKey });
+            const msg = await HttpUtil.post('/panel/xray/nord/setKey', {
+                key: this.manualKey
+            });
             if (msg.success) {
                 this.nordData = JSON.parse(msg.obj);
                 await this.fetchCountries();
@@ -160,7 +173,9 @@
             this.cities = [];
             this.serverId = null;
             this.cityId = null;
-            const msg = await HttpUtil.post('/panel/xray/nord/servers', { countryId: this.countryId });
+            const msg = await HttpUtil.post('/panel/xray/nord/servers', {
+                countryId: this.countryId
+            });
             if (msg.success) {
                 const data = JSON.parse(msg.obj);
                 const locations = data.locations || [];
@@ -173,7 +188,7 @@
                     }
                 });
                 this.cities = Array.from(citiesMap.values()).sort((a, b) => a.name.localeCompare(b.name));
-                
+
                 this.servers = (data.servers || []).map(s => {
                     const firstLocId = (s.location_ids || [])[0];
                     const city = locToCity[firstLocId];
@@ -195,7 +210,7 @@
         addOutbound() {
             const server = this.servers.find(s => s.id === this.serverId);
             if (!server) return;
-            
+
             const tech = server.technologies.find(t => t.id === 35);
             const publicKey = tech.metadata.find(m => m.name === 'public_key').value;
 
@@ -221,7 +236,7 @@
         resetOutbound(index) {
             const server = this.servers.find(s => s.id === this.serverId);
             if (!server || index === -1) return;
-            
+
             const tech = server.technologies.find(t => t.id === 35);
             const publicKey = tech.metadata.find(m => m.name === 'public_key').value;
 
@@ -242,7 +257,7 @@
                 }
             };
             app.templateSettings.outbounds[index] = outbound;
-            
+
             // Sync routing rules
             app.templateSettings.routing.rules.forEach(r => {
                 if (r.outboundTag === oldTag) {
@@ -262,7 +277,8 @@
         },
         delRouting() {
             if (app.templateSettings && app.templateSettings.routing) {
-                app.templateSettings.routing.rules = app.templateSettings.routing.rules.filter(r => !r.outboundTag.startsWith("nord-"));
+                app.templateSettings.routing.rules = app.templateSettings.routing.rules.filter(r => !r.outboundTag
+                    .startsWith("nord-"));
             }
         }
     };
@@ -276,10 +292,14 @@
         methods: {
             login: () => nordModal.login(),
             saveKey: () => nordModal.saveKey(),
-            logout() { nordModal.logout(this.nordOutboundIndex) },
+            logout() {
+                nordModal.logout(this.nordOutboundIndex)
+            },
             fetchServers: () => nordModal.fetchServers(),
             addOutbound: () => nordModal.addOutbound(),
-            resetOutbound() { nordModal.resetOutbound(this.nordOutboundIndex) },
+            resetOutbound() {
+                nordModal.resetOutbound(this.nordOutboundIndex)
+            },
             onCityChange() {
                 if (this.filteredServers.length > 0) {
                     this.nordModal.serverId = this.filteredServers[0].id;
@@ -290,8 +310,9 @@
         },
         computed: {
             nordOutboundIndex: {
-                get: function () {
-                    return app.templateSettings ? app.templateSettings.outbounds.findIndex((o) => o.tag.startsWith("nord-")) : -1;
+                get: function() {
+                    return app.templateSettings ? app.templateSettings.outbounds.findIndex((o) => o.tag
+                        .startsWith("nord-")) : -1;
                 }
             },
             filteredServers: function() {

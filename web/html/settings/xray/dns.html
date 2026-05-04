@@ -29,7 +29,8 @@
                 <template #control>
                     <a-select v-model="dnsStrategy" :style="{ width: '100%' }"
                         :dropdown-class-name="themeSwitcher.currentTheme">
-                        <a-select-option :value="l" :label="l" v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']">
+                        <a-select-option :value="l" :label="l"
+                            v-for="l in ['UseSystem', 'UseIP', 'UseIPv4', 'UseIPv6']">
                             <span>[[ l ]]</span>
                         </a-select-option>
                     </a-select>

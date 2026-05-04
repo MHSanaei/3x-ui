@@ -981,15 +981,21 @@ func (s *InboundService) DelInboundClient(inboundId int, clientId string) (bool,
 	interfaceClients := settings["clients"].([]any)
 	var newClients []any
 	needApiDel := false
+	clientFound := false
 	for _, client := range interfaceClients {
 		c := client.(map[string]any)
 		c_id := c[client_key].(string)
 		if c_id == clientId {
+			clientFound = true
 			email, _ = c["email"].(string)
 			needApiDel, _ = c["enable"].(bool)
 		} else {
 			newClients = append(newClients, client)
 		}
+	}
+
+	if !clientFound {
+		return false, common.NewError("Client Not Found In Inbound For ID:", clientId)
 	}
 
 	if len(newClients) == 0 {

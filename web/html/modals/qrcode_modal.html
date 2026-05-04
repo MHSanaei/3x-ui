@@ -57,39 +57,44 @@
     border-radius: 1rem;
     overflow-x: hidden;
   }
-  
+
   /* QR code transition effects */
   .qr-cv {
     transition: all 0.3s ease-in-out;
   }
-  
-  .qr-transition-enter-active, .qr-transition-leave-active {
+
+  .qr-transition-enter-active,
+  .qr-transition-leave-active {
     transition: opacity 0.3s, transform 0.3s;
   }
-  
-  .qr-transition-enter, .qr-transition-leave-to {
+
+  .qr-transition-enter,
+  .qr-transition-leave-to {
     opacity: 0;
     transform: scale(0.9);
   }
-  
-  .qr-transition-enter-to, .qr-transition-leave {
+
+  .qr-transition-enter-to,
+  .qr-transition-leave {
     opacity: 1;
     transform: scale(1);
   }
-  
+
   .qr-flash {
     animation: qr-flash-animation 0.6s;
   }
-  
+
   @keyframes qr-flash-animation {
     0% {
       opacity: 1;
       transform: scale(1);
     }
+
     50% {
       opacity: 0.5;
       transform: scale(0.95);
     }
+
     100% {
       opacity: 1;
       transform: scale(1);
@@ -105,7 +110,7 @@
     qrcodes: [],
     visible: false,
     subId: '',
-    show: function (title = '', dbInbound, client) {
+    show: function(title = '', dbInbound, client) {
       this.title = title;
       this.dbInbound = dbInbound;
       this.inbound = dbInbound.toInbound();
@@ -135,7 +140,7 @@
       }
       this.visible = true;
     },
-    close: function () {
+    close: function() {
       this.visible = false;
     },
   };
@@ -159,7 +164,7 @@
           console.error("Failed to get status:", e);
         }
       },
-      
+
       toggleIPv4(index) {
         const row = qrModal.qrcodes[index];
         row.useIPv4 = !row.useIPv4;
@@ -170,13 +175,13 @@
         if (!this.serverStatus || !this.serverStatus.publicIP) {
           return;
         }
-        
+
         if (row.useIPv4 && this.serverStatus.publicIP.ipv4) {
           // Replace the hostname or IP in the link with the IPv4 address
           const originalLink = row.originalLink;
           const url = new URL(originalLink);
           const ipv4 = this.serverStatus.publicIP.ipv4;
-          
+
           if (qrModal.inbound.protocol == Protocols.WIREGUARD) {
             // Special handling for WireGuard config
             const endpointRegex = /Endpoint = ([^:]+):(\d+)/;
@@ -196,19 +201,19 @@
           // Restore original link
           row.link = row.originalLink;
         }
-        
+
         // Update QR code with transition effect
         const canvasElement = document.querySelector('#qrCode-' + index);
         if (canvasElement) {
           // Add flash animation class
           canvasElement.classList.add('qr-flash');
-          
+
           // Remove the class after animation completes
           setTimeout(() => {
             canvasElement.classList.remove('qr-flash');
           }, 600);
         }
-        
+
         this.setQrCode("qrCode-" + index, row.link);
       },
       copy(content) {

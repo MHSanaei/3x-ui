@@ -21,13 +21,13 @@
         fileName: '',
         qrcode: null,
         visible: false,
-        show: function (title = '', content = '', fileName = '') {
+        show: function(title = '', content = '', fileName = '') {
             this.title = title;
             this.content = content;
             this.fileName = fileName;
             this.visible = true;
         },
-        copy: function (content = '') {
+        copy: function(content = '') {
             ClipboardManager
                 .copyText(content)
                 .then(() => {
@@ -35,7 +35,7 @@
                     this.close();
                 })
         },
-        close: function () {
+        close: function() {
             this.visible = false;
         },
     };

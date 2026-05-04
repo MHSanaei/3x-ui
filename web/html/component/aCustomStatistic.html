@@ -1,13 +1,13 @@
 {{define "component/customStatistic"}}
 <template>
-    <a-statistic :title="title" :value="value">
-        <template #prefix>
-            <slot name="prefix"></slot>
-        </template>
-        <template #suffix>
-            <slot name="suffix"></slot>
-        </template>
-    </a-statistic>
+  <a-statistic :title="title" :value="value">
+    <template #prefix>
+      <slot name="prefix"></slot>
+    </template>
+    <template #suffix>
+      <slot name="suffix"></slot>
+    </template>
+  </a-statistic>
 </template>
 {{end}}
 
@@ -16,9 +16,11 @@
   .dark .ant-statistic-content {
     color: var(--dark-color-text-primary)
   }
+
   .dark .ant-statistic-title {
     color: rgba(255, 255, 255, 0.55)
   }
+
   .ant-statistic-content {
     font-size: 16px;
   }
@@ -36,7 +38,7 @@
         required: false
       }
     },
-    template: `{{template "component/customStatistic"}}`,
+    template: `{{template "component/customStatistic" .}}`,
   });
 </script>
 {{end}}

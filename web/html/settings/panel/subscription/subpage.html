@@ -100,7 +100,8 @@
                         <a-form-item>
                             <a-space direction="vertical" align="center">
                                 <a-row type="flex" :gutter="[8,8]" justify="center" style="width:100%">
-                                    <a-col :xs="24" :sm="app.subJsonUrl || app.subClashUrl ? 12 : 24" style="text-align:center;">
+                                    <a-col :xs="24" :sm="app.subJsonUrl || app.subClashUrl ? 12 : 24"
+                                        style="text-align:center;">
                                         <tr-qr-box class="qr-box">
                                             <a-tag color="purple" class="qr-tag">
                                                 <span>{{ i18n
@@ -270,11 +271,11 @@
 </a-layout>
 
 <!-- Bootstrap data for external JS -->
-<template id="subscription-data" data-sid="{{ .sId }}" data-sub-url="{{ .subUrl }}" data-subjson-url="{{ .subJsonUrl }}" data-subclash-url="{{ .subClashUrl }}"
-    data-download="{{ .download }}" data-upload="{{ .upload }}" data-used="{{ .used }}" data-total="{{ .total }}"
-    data-remained="{{ .remained }}" data-expire="{{ .expire }}" data-lastonline="{{ .lastOnline }}"
-    data-downloadbyte="{{ .downloadByte }}" data-uploadbyte="{{ .uploadByte }}" data-totalbyte="{{ .totalByte }}"
-    data-datepicker="{{ .datepicker }}"></template>
+<template id="subscription-data" data-sid="{{ .sId }}" data-sub-url="{{ .subUrl }}" data-subjson-url="{{ .subJsonUrl }}"
+    data-subclash-url="{{ .subClashUrl }}" data-download="{{ .download }}" data-upload="{{ .upload }}"
+    data-used="{{ .used }}" data-total="{{ .total }}" data-remained="{{ .remained }}" data-expire="{{ .expire }}"
+    data-lastonline="{{ .lastOnline }}" data-downloadbyte="{{ .downloadByte }}" data-uploadbyte="{{ .uploadByte }}"
+    data-totalbyte="{{ .totalByte }}" data-datepicker="{{ .datepicker }}"></template>
 <textarea id="subscription-links" style="display:none">{{ range .result }}{{ . }}
 {{ end }}</textarea>
 

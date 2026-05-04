@@ -1,15 +1,7 @@
 {{define "modals/balancerModal"}}
-<a-modal 
-    id="balancer-modal"
-    v-model="balancerModal.visible"
-    :title="balancerModal.title"
-    @ok="balancerModal.ok"
-    :confirm-loading="balancerModal.confirmLoading"
-    :ok-button-props="{ props: { disabled: !balancerModal.isValid } }"
-    :closable="true"
-    :mask-closable="false"
-    :ok-text="balancerModal.okText"
-    cancel-text='{{ i18n "close" }}'
+<a-modal id="balancer-modal" v-model="balancerModal.visible" :title="balancerModal.title" @ok="balancerModal.ok"
+    :confirm-loading="balancerModal.confirmLoading" :ok-button-props="{ props: { disabled: !balancerModal.isValid } }"
+    :closable="true" :mask-closable="false" :ok-text="balancerModal.okText" cancel-text='{{ i18n "close" }}'
     :class="themeSwitcher.currentTheme">
     <a-form :colon="false" :label-col="{ md: {span:8} }" :wrapper-col="{ md: {span:14} }">
         <a-form-item label='{{ i18n "pages.xray.balancer.tag" }}' has-feedback
@@ -35,7 +27,8 @@
         <a-form-item label="Fallback">
             <a-select v-model="balancerModal.balancer.fallbackTag" clearable
                 :dropdown-class-name="themeSwitcher.currentTheme">
-                <a-select-option v-for="tag in [ '', ...balancerModal.outboundTags]" :value="tag">[[ tag ]]</a-select-option>
+                <a-select-option v-for="tag in [ '', ...balancerModal.outboundTags]" :value="tag">[[ tag
+                    ]]</a-select-option>
             </a-select>
         </a-form-item>
         </table>
@@ -58,7 +51,7 @@
             fallbackTag: ''
         },
         outboundTags: [],
-        balancerTags:[],
+        balancerTags: [],
         ok() {
             if (balancerModal.balancer.selector.length == 0) {
                 balancerModal.emptySelector = true;
@@ -67,7 +60,14 @@
             balancerModal.emptySelector = false;
             ObjectUtil.execute(balancerModal.confirm, balancerModal.balancer);
         },
-        show({ title = '', okText = '{{ i18n "sure" }}', balancerTags = [], balancer, confirm = (balancer) => { }, isEdit = false }) {
+        show({
+            title = '',
+            okText = '{{ i18n "sure" }}',
+            balancerTags = [],
+            balancer,
+            confirm = (balancer) => {},
+            isEdit = false
+        }) {
             this.title = title;
             this.okText = okText;
             this.confirm = confirm;
@@ -83,7 +83,8 @@
                 };
             }
             this.balancerTags = balancerTags.filter((tag) => tag != balancer.tag);
-            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj => obj.tag);
+            this.outboundTags = app.templateSettings.outbounds.filter((o) => !ObjectUtil.isEmpty(o.tag)).map(obj =>
+                obj.tag);
             this.isEdit = isEdit;
             this.check();
             this.checkSelector();
@@ -92,7 +93,7 @@
             this.visible = false;
             this.loading(false);
         },
-        loading(loading=true) {
+        loading(loading = true) {
             this.confirmLoading = loading;
         },
         check() {
@@ -115,9 +116,7 @@
         data: {
             balancerModal: balancerModal
         },
-        methods: {
-        }
+        methods: {}
     });
-
 </script>
 {{end}}
