@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -24,7 +25,8 @@ import (
 // It handles CRUD operations for inbounds, client management, traffic monitoring,
 // and integration with the Xray API for real-time updates.
 type InboundService struct {
-	xrayApi xray.XrayAPI
+	xrayApi   xray.XrayAPI
+	jsonMutex sync.Mutex
 }
 
 type CopyClientsResult struct {
@@ -700,8 +702,22 @@ func (s *InboundService) AddInboundClient(data *model.Inbound) (bool, error) {
 	}
 
 	oldClients := oldSettings["clients"].([]any)
-	oldClients = append(oldClients, interfaceClients...)
 
+	// Sync subTotalGB to old clients on this inbound with the same SubID
+	for _, newClient := range clients {
+		if newClient.SubID != "" {
+			for i, cAny := range oldClients {
+				if cMap, ok := cAny.(map[string]any); ok {
+					if sid, ok := cMap["subId"].(string); ok && sid == newClient.SubID {
+						cMap["subTotalGB"] = newClient.SubTotalGB
+						oldClients[i] = cMap
+					}
+				}
+			}
+		}
+	}
+
+	oldClients = append(oldClients, interfaceClients...)
 	oldSettings["clients"] = oldClients
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
@@ -1141,6 +1157,19 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 		}
 	}
 	settingsClients[clientIndex] = interfaceClients[0]
+
+	// Sync subTotalGB to all clients on this inbound with the same SubID
+	if clients[0].SubID != "" {
+		for i, cAny := range settingsClients {
+			if cMap, ok := cAny.(map[string]any); ok {
+				if sid, ok := cMap["subId"].(string); ok && sid == clients[0].SubID {
+					cMap["subTotalGB"] = clients[0].SubTotalGB
+					settingsClients[i] = cMap
+				}
+			}
+		}
+	}
+
 	oldSettings["clients"] = settingsClients
 
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
@@ -1329,14 +1358,40 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 	for dbTraffic_index := range dbClientTraffics {
 		for traffic_index := range traffics {
 			if dbClientTraffics[dbTraffic_index].Email == traffics[traffic_index].Email {
-				dbClientTraffics[dbTraffic_index].Up += traffics[traffic_index].Up
-				dbClientTraffics[dbTraffic_index].Down += traffics[traffic_index].Down
-				dbClientTraffics[dbTraffic_index].AllTime += (traffics[traffic_index].Up + traffics[traffic_index].Down)
+				upToAdd := traffics[traffic_index].Up
+				downToAdd := traffics[traffic_index].Down
 
-				// Add user in onlineUsers array on traffic
-				if traffics[traffic_index].Up+traffics[traffic_index].Down > 0 {
-					onlineClients = append(onlineClients, traffics[traffic_index].Email)
-					dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
+				if upToAdd+downToAdd > 0 || dbClientTraffics[dbTraffic_index].ExpiryTime != traffics[traffic_index].ExpiryTime {
+					updates := map[string]any{
+						"up":       gorm.Expr("up + ?", upToAdd),
+						"down":     gorm.Expr("down + ?", downToAdd),
+						"all_time": gorm.Expr("all_time + ?", upToAdd+downToAdd),
+					}
+
+					// Update ExpiryTime if adjustTraffics modified it
+					if dbClientTraffics[dbTraffic_index].ExpiryTime > 0 {
+						updates["expiry_time"] = dbClientTraffics[dbTraffic_index].ExpiryTime
+					}
+
+					if upToAdd+downToAdd > 0 {
+						onlineClients = append(onlineClients, traffics[traffic_index].Email)
+						updates["last_online"] = time.Now().UnixMilli()
+					}
+
+					err = tx.Model(&xray.ClientTraffic{}).
+						Where("id = ?", dbClientTraffics[dbTraffic_index].Id).
+						Updates(updates).Error
+
+					if err != nil {
+						logger.Warning("AddClientTraffic update data ", err)
+					}
+
+					dbClientTraffics[dbTraffic_index].Up += upToAdd
+					dbClientTraffics[dbTraffic_index].Down += downToAdd
+					dbClientTraffics[dbTraffic_index].AllTime += (upToAdd + downToAdd)
+					if upToAdd+downToAdd > 0 {
+						dbClientTraffics[dbTraffic_index].LastOnline = time.Now().UnixMilli()
+					}
 				}
 				break
 			}
@@ -1345,11 +1400,6 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 
 	// Set onlineUsers
 	p.SetOnlineClients(onlineClients)
-
-	err = tx.Save(dbClientTraffics).Error
-	if err != nil {
-		logger.Warning("AddClientTraffic update data ", err)
-	}
 
 	return nil
 }
@@ -1368,6 +1418,10 @@ func (s *InboundService) adjustTraffics(tx *gorm.DB, dbClientTraffics []*xray.Cl
 		if err != nil {
 			return nil, err
 		}
+
+		s.jsonMutex.Lock()
+		defer s.jsonMutex.Unlock()
+
 		for inbound_index := range inbounds {
 			settings := map[string]any{}
 			json.Unmarshal([]byte(inbounds[inbound_index].Settings), &settings)
@@ -1650,6 +1704,9 @@ func (s *InboundService) SyncSubTotal(tx *gorm.DB, subId string, subTotal int64)
 	if subId == "" {
 		return nil
 	}
+
+	s.jsonMutex.Lock()
+	defer s.jsonMutex.Unlock()
 
 	// 1. Update client_traffics table
 	err := tx.Model(xray.ClientTraffic{}).

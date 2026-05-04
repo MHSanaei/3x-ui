@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"slices"
+	"encoding/json"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
 	"github.com/mhsanaei/3x-ui/v2/database/model"
@@ -107,6 +108,49 @@ func runSeeders(isUsersEmpty bool) error {
 				SeederName: "UserPasswordHash",
 			}
 			return db.Create(hashSeeder).Error
+		}
+
+		if !slices.Contains(seedersHistory, "SubTotalMigration") {
+			// Explicitly add sub_total column if it was somehow skipped, though AutoMigrate should handle it
+			if !db.Migrator().HasColumn(&xray.ClientTraffic{}, "sub_total") {
+				err := db.Exec("ALTER TABLE client_traffics ADD COLUMN sub_total integer DEFAULT 0").Error
+				if err != nil {
+					log.Printf("Error adding sub_total column to client_traffics: %v", err)
+				}
+			}
+
+			// Backfill subTotalGB into inbounds.settings JSON
+			var inbounds []model.Inbound
+			db.Find(&inbounds)
+
+			for i := range inbounds {
+				var settings map[string]any
+				if err := json.Unmarshal([]byte(inbounds[i].Settings), &settings); err != nil {
+					continue
+				}
+				
+				if clients, ok := settings["clients"].([]any); ok {
+					modified := false
+					for j := range clients {
+						if clientMap, ok := clients[j].(map[string]any); ok {
+							if _, exists := clientMap["subTotalGB"]; !exists {
+								clientMap["subTotalGB"] = 0
+								modified = true
+							}
+						}
+					}
+					
+					if modified {
+						newSettings, _ := json.MarshalIndent(settings, "", "  ")
+						db.Model(&inbounds[i]).Update("settings", string(newSettings))
+					}
+				}
+			}
+
+			subTotalSeeder := &model.HistoryOfSeeders{
+				SeederName: "SubTotalMigration",
+			}
+			db.Create(subTotalSeeder)
 		}
 	}
 
