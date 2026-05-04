@@ -90,7 +90,11 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 	}
 
 	// Prepare statistics
+	var subTotalGB int64 = 0
 	for index, clientTraffic := range clientTraffics {
+		if clientTraffic.SubTotal > 0 {
+			subTotalGB = clientTraffic.SubTotal
+		}
 		if index == 0 {
 			traffic.Up = clientTraffic.Up
 			traffic.Down = clientTraffic.Down
@@ -109,6 +113,16 @@ func (s *SubService) GetSubs(subId string, host string) ([]string, int64, xray.C
 			if clientTraffic.ExpiryTime != traffic.ExpiryTime {
 				traffic.ExpiryTime = 0
 			}
+		}
+	}
+
+	// Override with shared quota if applicable
+	if subTotalGB > 0 {
+		sharedUp, sharedDown, err := s.inboundService.GetSubTraffic(subId)
+		if err == nil {
+			traffic.Up = sharedUp
+			traffic.Down = sharedDown
+			traffic.Total = subTotalGB
 		}
 	}
 	return result, lastOnline, traffic, nil
