@@ -91,6 +91,18 @@
             </template>
             <a-input-number v-model.number="clientsBulkModal.totalGB" :min="0"></a-input-number>
         </a-form-item>
+        <a-form-item v-if="app.subSettings?.enable">
+            <template slot="label">
+                <a-tooltip>
+                    <template slot="title">
+                        0 <span>{{ i18n "pages.inbounds.meansNoLimit" }}</span>
+                    </template>
+                    {{ i18n "pages.inbounds.subTotalFlow" }}
+                    <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+            </template>
+            <a-input-number v-model.number="clientsBulkModal.subTotalGB" :min="0"></a-input-number>
+        </a-form-item>
         <a-form-item label='{{ i18n "pages.client.delayedStart" }}'>
             <a-switch v-model="clientsBulkModal.delayedStart" @click="clientsBulkModal.expiryTime=0"></a-switch>
         </a-form-item>
@@ -140,6 +152,7 @@
         inbound: new Inbound(),
         quantity: 1,
         totalGB: 0,
+        subTotalGB: 0,
         limitIp: 0,
         expiryTime: '',
         emailMethod: 0,
@@ -175,6 +188,7 @@
                 newClient.security = clientsBulkModal.security;
                 newClient.limitIp = clientsBulkModal.limitIp;
                 newClient._totalGB = clientsBulkModal.totalGB;
+                newClient._subTotalGB = clientsBulkModal.subTotalGB;
                 newClient._expiryTime = clientsBulkModal.expiryTime;
                 if (clientsBulkModal.inbound.canEnableTlsFlow()) {
                     newClient.flow = clientsBulkModal.flow;
@@ -196,6 +210,7 @@
             this.confirm = confirm;
             this.quantity = 1;
             this.totalGB = 0;
+            this.subTotalGB = 0;
             this.expiryTime = 0;
             this.emailMethod = 0;
             this.limitIp = 0;

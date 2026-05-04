@@ -257,6 +257,8 @@
 "monitorDesc" = "Biarkan kosong untuk mendengarkan semua IP"
 "meansNoLimit" = "= Unlimited. (unit: GB)"
 "totalFlow" = "Total Aliran"
+"subTotalFlow" = "Total Lalu Lintas Langganan"
+"subTotalFlowDesc" = "Batas lalu lintas agregat untuk semua klien yang berbagi SubID ini"
 "leaveBlankToNeverExpire" = "Biarkan kosong untuk tidak pernah kedaluwarsa"
 "noRecommendKeepDefault" = "Disarankan untuk tetap menggunakan pengaturan default"
 "certificatePath" = "Path Berkas"

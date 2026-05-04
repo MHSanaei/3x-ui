@@ -257,6 +257,8 @@
 "monitorDesc" = "به‌طور پیش‌فرض خالی‌بگذارید"
 "meansNoLimit" = "0 = واحد: گیگابایت) نامحدود)"
 "totalFlow" = "ترافیک کل"
+"subTotalFlow" = "ترافیک کل اشتراک"
+"subTotalFlowDesc" = "مجموع حجم مجاز برای تمام کاربران با این شناسه اشتراک"
 "leaveBlankToNeverExpire" = "برای منقضی‌نشدن خالی‌بگذارید"
 "noRecommendKeepDefault" = "توصیه‌می‌شود به‌طور پیش‌فرض حفظ‌شود"
 "certificatePath" = "مسیر فایل"

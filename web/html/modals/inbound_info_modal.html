@@ -272,6 +272,22 @@
           </td>
         </tr>
       </table>
+      <table v-if="infoModal.clientSettings.subId && infoModal.clientSettings.subTotalGB > 0" :style="{ display: 'inline-table', marginBlock: '10px', width: '100%', textAlign: 'center' }">
+        <tr>
+          <th>{{ i18n "remained" }} (Sub.)</th>
+          <th>{{ i18n "pages.inbounds.subTotalFlow" }}</th>
+          <th></th>
+        </tr>
+        <tr>
+          <td>
+            <a-tag color="blue"> [[ getSubRemStats() ]] </a-tag>
+          </td>
+          <td>
+            <a-tag color="blue"> [[ SizeFormatter.sizeFormat(infoModal.clientSettings.subTotalGB) ]] </a-tag>
+          </td>
+          <td></td>
+        </tr>
+      </table>
       <table :style="{ display: 'inline-table', marginBlock: '10px', width: '100%', textAlign: 'center' }">
         <tr>
           <th>{{ i18n "remained" }}</th>
@@ -639,6 +655,7 @@
     subJsonLink: '',
     clientIps: '',
     clientIpsArray: [],
+    subTraffic: { up: 0, down: 0 },
     show(dbInbound, index) {
       this.index = index;
       this.inbound = dbInbound.toInbound();
@@ -674,6 +691,11 @@
         if (this.clientSettings.subId) {
           this.subLink = this.genSubLink(this.clientSettings.subId);
           this.subJsonLink = app.subSettings.subJsonEnable ? this.genSubJsonLink(this.clientSettings.subId) : '';
+          HttpUtil.post(`/panel/api/inbounds/subTraffic/${this.clientSettings.subId}`).then(res => {
+            if (res.success) this.subTraffic = res.obj;
+          });
+        } else {
+          this.subTraffic = { up: 0, down: 0 };
         }
       }
       this.visible = true;
@@ -776,6 +798,13 @@
           .down;
         return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
       },
+    getSubRemStats() {
+      const stats = this.infoModal.subTraffic;
+      const settings = this.infoModal.clientSettings;
+      if (!stats || !settings || settings.subTotalGB <= 0) return "-";
+      let rem = settings.subTotalGB - (stats.up + stats.down);
+      return SizeFormatter.sizeFormat(rem < 0 ? 0 : rem);
+    },
       refreshIPs() {
         this.refreshing = true;
         refreshIPs(this.infoModal.clientStats.email)

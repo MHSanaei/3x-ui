@@ -257,6 +257,8 @@
 "monitorDesc" = "空白にするとすべてのIPを監視"
 "meansNoLimit" = "= 無制限（単位：GB）"
 "totalFlow" = "総トラフィック"
+"subTotalFlow" = "サブスクリプション総流量"
+"subTotalFlowDesc" = "このSubIDを共有するすべてのクライアントの集計トラフィック制限"
 "leaveBlankToNeverExpire" = "空白にすると期限なし"
 "noRecommendKeepDefault" = "デフォルト値を保持することをお勧めします"
 "certificatePath" = "ファイルパス"

@@ -91,6 +91,10 @@
           <td>{{ i18n "remained" }}</td>
           <td>[[ SizeFormatter.sizeFormat(getRemStats(record, client.email)) ]]</td>
         </tr>
+        <tr v-if="client.subTotalGB > 0">
+          <td>{{ i18n "pages.inbounds.subTotalFlow" }}</td>
+          <td>[[ SizeFormatter.sizeFormat(client.subTotalGB) ]]</td>
+        </tr>
       </table>
     </template>
     <table>
@@ -110,7 +114,11 @@
         </td>
         <td class="tr-table-lt">
           <template v-if="client.totalGB > 0">[[ client._totalGB + "GB" ]]</template>
-          <span v-else class="tr-infinity-ch">&infin;</span>
+          <template v-if="client.subTotalGB > 0">
+            <br v-if="client.totalGB > 0" />
+            <span :style="{ fontSize: '10px', color: '#1890ff' }">[[ client._subTotalGB + "GB (Sub)" ]]</span>
+          </template>
+          <span v-if="client.totalGB <= 0 && client.subTotalGB <= 0" class="tr-infinity-ch">&infin;</span>
         </td>
       </tr>
     </table>

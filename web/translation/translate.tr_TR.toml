@@ -257,6 +257,8 @@
 "monitorDesc" = "Tüm IP'leri dinlemek için boş bırakın"
 "meansNoLimit" = "= Sınırsız. (birim: GB)"
 "totalFlow" = "Toplam Akış"
+"subTotalFlow" = "Abonelik Toplam Trafiği"
+"subTotalFlowDesc" = "Bu SubID'yi paylaşan tüm istemciler için toplam trafik sınırı"
 "leaveBlankToNeverExpire" = "Hiçbir zaman sona ermemesi için boş bırakın"
 "noRecommendKeepDefault" = "Varsayılanı korumanız önerilir"
 "certificatePath" = "Dosya Yolu"

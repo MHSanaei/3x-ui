@@ -257,6 +257,8 @@
 "monitorDesc" = "留空表示監聽所有 IP"
 "meansNoLimit" = "= 無限制（單位：GB)"
 "totalFlow" = "總流量"
+"subTotalFlow" = "訂閱總流量"
+"subTotalFlowDesc" = "此 SubID 共享的所有客戶端的流量限制總額"
 "leaveBlankToNeverExpire" = "留空表示永不過期"
 "noRecommendKeepDefault" = "建議保留預設值"
 "certificatePath" = "檔案路徑"

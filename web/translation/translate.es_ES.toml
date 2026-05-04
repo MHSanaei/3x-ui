@@ -257,6 +257,8 @@
 "monitorDesc" = "Dejar en blanco por defecto"
 "meansNoLimit" = " = illimitata. (unidad: GB)"
 "totalFlow" = "Flujo Total"
+"subTotalFlow" = "Tráfico total de suscripción"
+"subTotalFlowDesc" = "Límite de tráfico agregado para todos los clientes que comparten este SubID"
 "leaveBlankToNeverExpire" = "Dejar en Blanco para Nunca Expirar"
 "noRecommendKeepDefault" = "No hay requisitos especiales para mantener la configuración predeterminada"
 "certificatePath" = "Ruta Cert"

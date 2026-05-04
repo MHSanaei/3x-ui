@@ -1552,6 +1552,7 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 			Email string
 		}
 
+		// Check individual limits
 		err := tx.Table("inbounds").
 			Select("inbounds.tag, client_traffics.email").
 			Joins("JOIN client_traffics ON inbounds.id = client_traffics.inbound_id").
@@ -1560,6 +1561,22 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 		if err != nil {
 			return false, 0, err
 		}
+
+		// Check shared quota (SubTotal)
+		var sharedResults []struct {
+			Tag   string
+			Email string
+		}
+		err = tx.Table("inbounds").
+			Select("inbounds.tag, client_traffics.email").
+			Joins("JOIN client_traffics ON inbounds.id = client_traffics.inbound_id").
+			Where("client_traffics.sub_id IN (SELECT sub_id FROM client_traffics WHERE sub_id != '' AND sub_total > 0 AND enable = ? GROUP BY sub_id, sub_total HAVING SUM(up + down) >= sub_total)", true).
+			Where("client_traffics.enable = ?", true).
+			Scan(&sharedResults).Error
+		if err == nil {
+			results = append(results, sharedResults...)
+		}
+
 		s.xrayApi.Init(p.GetAPIPort())
 		for _, result := range results {
 			err1 := s.xrayApi.RemoveUser(result.Tag, result.Email)
@@ -1569,22 +1586,27 @@ func (s *InboundService) disableInvalidClients(tx *gorm.DB) (bool, int64, error)
 				if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
 					logger.Debug("User is already disabled. Nothing to do more...")
 				} else {
-					if strings.Contains(err1.Error(), fmt.Sprintf("User %s not found.", result.Email)) {
-						logger.Debug("User is already disabled. Nothing to do more...")
-					} else {
-						logger.Debug("Error in disabling client by api:", err1)
-						needRestart = true
-					}
+					logger.Debug("Error in disabling client by api:", err1)
+					needRestart = true
 				}
 			}
 		}
 		s.xrayApi.Close()
 	}
+
+	// Update DB for individual limits
 	result := tx.Model(xray.ClientTraffic{}).
 		Where("((total > 0 and up + down >= total) or (expiry_time > 0 and expiry_time <= ?)) and enable = ?", now, true).
 		Update("enable", false)
 	err := result.Error
 	count := result.RowsAffected
+
+	// Update DB for shared quota
+	resultShared := tx.Exec("UPDATE client_traffics SET enable = ? WHERE sub_id IN (SELECT sub_id FROM client_traffics WHERE sub_id != '' AND sub_total > 0 AND enable = ? GROUP BY sub_id, sub_total HAVING SUM(up + down) >= sub_total) AND enable = ?", false, true, true)
+	if resultShared.Error == nil {
+		count += resultShared.RowsAffected
+	}
+
 	return needRestart, count, err
 }
 
@@ -1611,19 +1633,71 @@ func (s *InboundService) MigrationRemoveOrphanedTraffics() {
 	`)
 }
 
-func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
-	clientTraffic := xray.ClientTraffic{}
-	clientTraffic.InboundId = inboundId
-	clientTraffic.Email = client.Email
-	clientTraffic.Total = client.TotalGB
-	clientTraffic.ExpiryTime = client.ExpiryTime
-	clientTraffic.Enable = client.Enable
-	clientTraffic.Up = 0
-	clientTraffic.Down = 0
-	clientTraffic.Reset = client.Reset
-	result := tx.Create(&clientTraffic)
-	err := result.Error
-	return err
+func (s *InboundService) GetSubTraffic(subId string) (int64, int64, error) {
+	db := database.GetDB()
+	var result struct {
+		Up   int64
+		Down int64
+	}
+	err := db.Model(xray.ClientTraffic{}).
+		Select("SUM(up) as up, SUM(down) as down").
+		Where("sub_id = ?", subId).
+		Scan(&result).Error
+	return result.Up, result.Down, err
+}
+
+func (s *InboundService) SyncSubTotal(tx *gorm.DB, subId string, subTotal int64) error {
+	if subId == "" {
+		return nil
+	}
+
+	// 1. Update client_traffics table
+	err := tx.Model(xray.ClientTraffic{}).
+		Where("sub_id = ?", subId).
+		Update("sub_total", subTotal).Error
+	if err != nil {
+		return err
+	}
+
+	// 2. Update inbounds table (JSON settings)
+	var inbounds []*model.Inbound
+	// Use a partial match to find relevant inbounds efficiently
+	err = tx.Where("settings LIKE ?", "%"+subId+"%").Find(&inbounds).Error
+	if err != nil {
+		return err
+	}
+
+	for _, inbound := range inbounds {
+		var settings map[string]any
+		err := json.Unmarshal([]byte(inbound.Settings), &settings)
+		if err != nil {
+			continue
+		}
+		clients, ok := settings["clients"].([]any)
+		if !ok {
+			continue
+		}
+		modified := false
+		for _, c := range clients {
+			clientMap, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if sid, ok := clientMap["subId"].(string); ok && sid == subId {
+				// Update subTotalGB in the JSON
+				clientMap["subTotalGB"] = subTotal
+				modified = true
+			}
+		}
+		if modified {
+			newSettings, _ := json.MarshalIndent(settings, "", "  ")
+			err = tx.Model(model.Inbound{}).Where("id = ?", inbound.Id).Update("settings", string(newSettings)).Error
+			if err != nil {
+				logger.Warning("Failed to update inbound settings for sub_total sync:", err)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *model.Client) error {
@@ -1635,8 +1709,33 @@ func (s *InboundService) UpdateClientStat(tx *gorm.DB, email string, client *mod
 			"total":       client.TotalGB,
 			"expiry_time": client.ExpiryTime,
 			"reset":       client.Reset,
+			"sub_id":      client.SubID,
+			"sub_total":   client.SubTotalGB,
 		})
 	err := result.Error
+	if err == nil {
+		s.SyncSubTotal(tx, client.SubID, client.SubTotalGB)
+	}
+	return err
+}
+
+func (s *InboundService) AddClientStat(tx *gorm.DB, inboundId int, client *model.Client) error {
+	clientTraffic := xray.ClientTraffic{}
+	clientTraffic.InboundId = inboundId
+	clientTraffic.Email = client.Email
+	clientTraffic.Total = client.TotalGB
+	clientTraffic.ExpiryTime = client.ExpiryTime
+	clientTraffic.Enable = client.Enable
+	clientTraffic.Up = 0
+	clientTraffic.Down = 0
+	clientTraffic.Reset = client.Reset
+	clientTraffic.SubId = client.SubID
+	clientTraffic.SubTotal = client.SubTotalGB
+	result := tx.Create(&clientTraffic)
+	err := result.Error
+	if err == nil {
+		s.SyncSubTotal(tx, client.SubID, client.SubTotalGB)
+	}
 	return err
 }
 

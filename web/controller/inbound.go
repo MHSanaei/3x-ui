@@ -53,6 +53,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/lastOnline", a.lastOnline)
 	g.POST("/updateClientTraffic/:email", a.updateClientTraffic)
 	g.POST("/:id/delClientByEmail/:email", a.delInboundClientByEmail)
+	g.POST("/subTraffic/:subId", a.getSubTraffic)
 }
 
 type CopyInboundClientsRequest struct {
@@ -107,6 +108,16 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 		return
 	}
 	jsonObj(c, clientTraffics, nil)
+}
+
+func (a *InboundController) getSubTraffic(c *gin.Context) {
+	subId := c.Param("subId")
+	up, down, err := a.inboundService.GetSubTraffic(subId)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.obtain"), err)
+		return
+	}
+	jsonObj(c, map[string]int64{"up": up, "down": down}, nil)
 }
 
 // addInbound creates a new inbound configuration.

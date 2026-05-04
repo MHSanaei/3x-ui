@@ -257,6 +257,8 @@
 "monitorDesc" = "Оставьте пустым для прослушивания всех IP-адресов"
 "meansNoLimit" = "= Без ограничений (значение: ГБ)"
 "totalFlow" = "Общий расход"
+"subTotalFlow" = "Общий трафик подписки"
+"subTotalFlowDesc" = "Общий лимит трафика для всех клиентов с этим SubID"
 "leaveBlankToNeverExpire" = "Оставьте пустым, чтобы было бесконечным"
 "noRecommendKeepDefault" = "Рекомендуется оставить настройки по умолчанию"
 "certificatePath" = "Путь к сертификату"

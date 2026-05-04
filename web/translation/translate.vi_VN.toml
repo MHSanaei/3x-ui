@@ -257,6 +257,8 @@
 "monitorDesc" = "Mặc định để trống"
 "meansNoLimit" = "= Không giới hạn (đơn vị: GB)"
 "totalFlow" = "Tổng lưu lượng"
+"subTotalFlow" = "Tổng lưu lượng gói đăng ký"
+"subTotalFlowDesc" = "Giới hạn lưu lượng tổng hợp cho tất cả người dùng dùng chung SubID này"
 "leaveBlankToNeverExpire" = "Để trống để không bao giờ hết hạn"
 "noRecommendKeepDefault" = "Không yêu cầu đặc biệt để giữ nguyên cài đặt mặc định"
 "certificatePath" = "Đường dẫn tập"
