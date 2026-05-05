@@ -165,40 +165,32 @@
 {{template "modals/warpModal"}}
 {{template "modals/nordModal"}}
 <script>
+  // Modernised rules layout — 6 cells (#, source, network, destination,
+  // inbound, target). Each criterion renders as a single self-labelled
+  // pill that shows the first value plus a "+N" remainder badge for the
+  // rest; the full list is surfaced via tooltip on hover. The destination
+  // column has no fixed width and absorbs leftover horizontal space so the
+  // table fits typical viewports without a horizontal scrollbar.
   const rulesColumns = [
-    { title: "#", align: 'center', width: 15, scopedSlots: { customRender: 'action' } },
-    {
-      title: '{{ i18n "pages.xray.rules.source"}}', children: [
-        { title: 'IP', dataIndex: "sourceIP", align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'sourcePort', align: 'center', width: 10, ellipsis: true },
-        { title: 'VLESS Route', dataIndex: 'vlessRoute', align: 'center', width: 15, ellipsis: true }]
-    },
-    {
-      title: '{{ i18n "pages.inbounds.network"}}', children: [
-        { title: 'L4', dataIndex: 'network', align: 'center', width: 10 },
-        { title: '{{ i18n "protocol" }}', dataIndex: 'protocol', align: 'center', width: 15, ellipsis: true },
-        { title: 'Attrs', dataIndex: 'attrs', align: 'center', width: 10, ellipsis: true }]
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.dest"}}', children: [
-        { title: 'IP', dataIndex: 'ip', align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.xray.outbound.domain" }}', dataIndex: 'domain', align: 'center', width: 20, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.port" }}', dataIndex: 'port', align: 'center', width: 10, ellipsis: true }]
-    },
-    {
-      title: '{{ i18n "pages.xray.rules.inbound"}}', children: [
-        { title: '{{ i18n "pages.xray.outbound.tag" }}', dataIndex: 'inboundTag', align: 'center', width: 15, ellipsis: true },
-        { title: '{{ i18n "pages.inbounds.client" }}', dataIndex: 'user', align: 'center', width: 20, ellipsis: true }]
-    },
-    { title: '{{ i18n "pages.xray.rules.outbound"}}', dataIndex: 'outboundTag', align: 'center', width: 17 },
-    { title: '{{ i18n "pages.xray.rules.balancer"}}', dataIndex: 'balancerTag', align: 'center', width: 15 },
+    { title: '#', align: 'center', width: 70, scopedSlots: { customRender: 'action' } },
+    { title: '{{ i18n "pages.xray.rules.source"}}',   align: 'left', width: 180, scopedSlots: { customRender: 'source' } },
+    { title: '{{ i18n "pages.inbounds.network"}}',    align: 'left', width: 180, scopedSlots: { customRender: 'network' } },
+    { title: '{{ i18n "pages.xray.rules.dest"}}',     align: 'left',              scopedSlots: { customRender: 'destination' } },
+    { title: '{{ i18n "pages.xray.rules.inbound"}}',  align: 'left', width: 180, scopedSlots: { customRender: 'inbound' } },
+    { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'left', width: 170, scopedSlots: { customRender: 'target' } },
   ];
 
+  // Mobile: 3-column table — #, Inbound, Outbound. Source / Network /
+  // Destination criteria are dropped to keep the table readable on
+  // narrow viewports. Users see the rule's identity (Inbound) and
+  // what it does (Outbound) at a glance; full criteria are accessible
+  // by tapping Edit in the actions menu.
+  // # column is wider than desktop (110 vs 70) to fit the touch-friendly
+  // drag handle (padding: 6px → ~28px) alongside the index and dropdown.
   const rulesMobileColumns = [
-    { title: "#", align: 'center', width: 20, scopedSlots: { customRender: 'action' } },
-    { title: '{{ i18n "pages.xray.rules.inbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'inbound' } },
-    { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'outbound' } },
-    { title: '{{ i18n "pages.xray.rules.info"}}', align: 'center', width: 50, ellipsis: true, scopedSlots: { customRender: 'info' } },
+    { title: '#', align: 'center', width: 110, scopedSlots: { customRender: 'action' } },
+    { title: '{{ i18n "pages.xray.rules.inbound"}}',  align: 'left',              scopedSlots: { customRender: 'inbound' } },
+    { title: '{{ i18n "pages.xray.rules.outbound"}}', align: 'left', width: 140, scopedSlots: { customRender: 'target' } },
   ];
 
   const outboundColumns = [
@@ -632,6 +624,24 @@
       },
       isOutboundUntestable(outbound) {
         return outbound.protocol === 'blackhole' || outbound.tag === 'blocked';
+      },
+      // csv splits a comma-separated rule field into trimmed non-empty values.
+      // Routing rule data uses CSV strings for multi-value criteria (e.g.
+      // sourceIP "1.2.3.0/24,4.5.6.0/24"); the modern table renders each
+      // criterion as a single summary pill, so values are normally re-joined
+      // via joinCsv() but this helper is kept for callers that need an array.
+      csv(value) {
+        if (!value) return [];
+        return String(value)
+          .split(',')
+          .map(v => v.trim())
+          .filter(v => v.length > 0);
+      },
+      // joinCsv normalises a CSV-style rule field into a single comma-space
+      // separated string suitable for tooltips. Returns '' for empty inputs
+      // so v-if guards can short-circuit on the raw rule field.
+      joinCsv(value) {
+        return this.csv(value).join(', ');
       },
       findOutboundAddress(o) {
         serverObj = null;
@@ -1860,12 +1870,12 @@
   .xray-page .outbound-pill {
     display: inline-flex;
     align-items: center;
-    height: 22px;
-    padding: 0 9px;
+    min-height: 22px;
+    padding: 2px 9px;
     border-radius: 11px;
     font-size: 12px;
     font-weight: 500;
-    line-height: 1;
+    line-height: 1.4;
     letter-spacing: 0.01em;
     border: 1px solid transparent;
     white-space: nowrap;
@@ -1965,5 +1975,156 @@
     box-shadow: none;
     opacity: 0.45;
   }
+
+  /* ───────── Modern routing-rules table ─────────
+     Reuses the .outbound-pill tonal primitive (identical visual) so the
+     routing tab feels like the same panel as outbounds. Each cell groups
+     a routing criterion (Source / Network / Destination / Inbound) and
+     shows its values as labelled pills. */
+  .xray-page .routing-modern { width: 100%; }
+  .xray-page .routing-table .ant-table {
+    background: transparent;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+  .xray-page .routing-table .ant-table-thead > tr > th {
+    background: rgba(255, 255, 255, 0.025);
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 14px 18px;
+  }
+  .light .xray-page .routing-table .ant-table-thead > tr > th {
+    background: rgba(0, 0, 0, 0.02);
+    color: rgba(0, 0, 0, 0.55);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+  .xray-page .routing-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 16px 18px;
+    transition: background-color 0.15s ease;
+    vertical-align: top;
+  }
+  .light .xray-page .routing-table .ant-table-tbody > tr > td {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+  }
+  .xray-page .routing-table .ant-table-tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+  .xray-page .routing-table .ant-table-tbody > tr:hover > td {
+    background: rgba(255, 255, 255, 0.035) !important;
+  }
+  .light .xray-page .routing-table .ant-table-tbody > tr:hover > td {
+    background: rgba(0, 0, 0, 0.025) !important;
+  }
+
+  /* Sort handle / # / actions */
+  .xray-page .routing-action-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .xray-page .routing-index {
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    font-variant-numeric: tabular-nums;
+    min-width: 18px;
+    text-align: end;
+  }
+  .light .xray-page .routing-index { color: rgba(0, 0, 0, 0.7); }
+  .xray-page .routing-action-btn {
+    border: none;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.75);
+    transition: background 0.15s ease;
+  }
+  .xray-page .routing-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+  .light .xray-page .routing-action-btn {
+    background: rgba(0, 0, 0, 0.05);
+    color: rgba(0, 0, 0, 0.75);
+  }
+  .light .xray-page .routing-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+    color: #000;
+  }
+
+  /* Plain-text criterion rows — replaces pill primitives in condition
+     columns. Each criterion is a row of "label value (+N)" with form-label
+     styling on the label. No bg, no border, no color tones — keeps cells
+     light and lets the column header carry the type semantic. The cell's
+     visual weight is now proportional only to the data length, not to
+     decoration. The single colored pill in Outbound/Balancer remains as
+     the row's focal point. */
+  .xray-page .criterion-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+  .xray-page .criterion-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .xray-page .criterion-label {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.42);
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .light .xray-page .criterion-label { color: rgba(0, 0, 0, 0.45); }
+  .xray-page .criterion-value {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: rgba(255, 255, 255, 0.85);
+  }
+  .light .xray-page .criterion-value { color: rgba(0, 0, 0, 0.85); }
+  .xray-page .criterion-more {
+    flex: 0 0 auto;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.42);
+    font-weight: 500;
+  }
+  .light .xray-page .criterion-more { color: rgba(0, 0, 0, 0.45); }
+
+  .xray-page .routing-criteria-empty {
+    color: rgba(255, 255, 255, 0.3);
+    font-style: italic;
+  }
+  .light .xray-page .routing-criteria-empty { color: rgba(0, 0, 0, 0.3); }
+
+  /* Target cell (outbound / balancer) — vertically stacked rows of icon + pill */
+  .xray-page .routing-target-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .xray-page .routing-target-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .xray-page .routing-target-icon {
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 13px;
+  }
+  .light .xray-page .routing-target-icon { color: rgba(0, 0, 0, 0.45); }
+
 </style>
 {{ template "page/body_end" .}}
