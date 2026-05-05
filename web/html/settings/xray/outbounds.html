@@ -104,12 +104,12 @@
         </template>
         <template slot="traffic" slot-scope="text, outbound">
             <div class="outbound-traffic-cell">
-                <span class="outbound-traffic-up" :title='`{{ i18n "pages.inbounds.upload" }}`'>
+                <span class="outbound-traffic-up" :title='`{{ i18n "pages.index.upload" }}`'>
                     <a-icon type="arrow-up"></a-icon>
                     [[ SizeFormatter.sizeFormat(findOutboundUp(outbound)) ]]
                 </span>
                 <span class="outbound-traffic-sep" aria-hidden="true"></span>
-                <span class="outbound-traffic-down" :title='`{{ i18n "pages.inbounds.download" }}`'>
+                <span class="outbound-traffic-down" :title='`{{ i18n "pages.index.download" }}`'>
                     <a-icon type="arrow-down"></a-icon>
                     [[ SizeFormatter.sizeFormat(findOutboundDown(outbound)) ]]
                 </span>
