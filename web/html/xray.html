@@ -767,47 +767,14 @@
       },
       findOutboundUp(o)   { return this.outboundTrafficFor(o).up; },
       findOutboundDown(o) { return this.outboundTrafficFor(o).down; },
-      // Visual class for the protocol pill — keeps the colour palette consistent
-      // across rows and matches the tone used elsewhere in the panel.
-      outboundProtocolTone(protocol) {
-        switch ((protocol || '').toLowerCase()) {
-          case 'freedom':       return 'tone-emerald';
-          case 'blackhole':     return 'tone-violet';
-          case 'wireguard':     return 'tone-cyan';
-          case 'vmess':         return 'tone-blue';
-          case 'vless':         return 'tone-sky';
-          case 'trojan':        return 'tone-amber';
-          case 'shadowsocks':   return 'tone-pink';
-          case 'http':
-          case 'socks':         return 'tone-slate';
-          case 'dns':           return 'tone-indigo';
-          default:              return 'tone-slate';
-        }
-      },
-      // Distinct palette for the transport (network) pill so it never collides
-      // with the protocol tone in the same row.
-      outboundNetworkTone(network) {
-        switch ((network || '').toLowerCase()) {
-          case 'tcp':           return 'tone-slate';
-          case 'ws':            return 'tone-cyan';
-          case 'xhttp':         return 'tone-amber';
-          case 'h2':
-          case 'http':          return 'tone-indigo';
-          case 'grpc':          return 'tone-pink';
-          case 'quic':          return 'tone-violet';
-          case 'kcp':           return 'tone-emerald';
-          case 'httpupgrade':   return 'tone-rose';
-          default:              return 'tone-slate';
-        }
-      },
-      // TLS / reality / none tone — visually tied to the security model used.
-      outboundSecurityTone(security) {
-        switch ((security || '').toLowerCase()) {
-          case 'tls':           return 'tone-emerald';
-          case 'reality':       return 'tone-mint';
-          default:              return 'tone-slate';
-        }
-      },
+      // One tone per category instead of per-value. Adding a new protocol or
+      // transport inherits the category colour — no styling work required.
+      // Hierarchy: emerald (protocol — primary identity, matches brand) →
+      // slate (network — transport is plumbing, sits back) → violet (security —
+      // accent, only rendered for tls/reality so a stand-out hue is earned).
+      outboundProtocolTone() { return 'tone-emerald'; },
+      outboundNetworkTone()  { return 'tone-slate'; },
+      outboundSecurityTone() { return 'tone-violet'; },
       // Whether the security label is one we render as a pill in the table.
       isOutboundSecurityVisible(security) {
         return security === 'tls' || security === 'reality';
@@ -2230,17 +2197,12 @@
     white-space: nowrap;
     flex: 0 0 auto;
   }
+  /* Outbound pill tones: emerald = protocol, slate = network, violet = security.
+     tone-emerald and tone-violet are also consumed by routing.html for the
+     outboundTag / balancerTag pills. */
   .xray-page .outbound-pill.tone-emerald { background: rgba(0, 191, 165, 0.14);   color: #4dd4be; border-color: rgba(0, 191, 165, 0.28); }
-  .xray-page .outbound-pill.tone-mint    { background: rgba(72, 222, 128, 0.14);  color: #7ee2a4; border-color: rgba(72, 222, 128, 0.30); }
-  .xray-page .outbound-pill.tone-violet  { background: rgba(155, 89, 219, 0.16);  color: #b489e8; border-color: rgba(155, 89, 219, 0.32); }
-  .xray-page .outbound-pill.tone-cyan    { background: rgba(34, 184, 207, 0.16);  color: #6ed3e3; border-color: rgba(34, 184, 207, 0.32); }
-  .xray-page .outbound-pill.tone-sky     { background: rgba(56, 189, 248, 0.16);  color: #7dd3fc; border-color: rgba(56, 189, 248, 0.32); }
-  .xray-page .outbound-pill.tone-blue    { background: rgba(56, 116, 230, 0.16);  color: #82a7ee; border-color: rgba(56, 116, 230, 0.32); }
-  .xray-page .outbound-pill.tone-amber   { background: rgba(231, 154, 47, 0.16);  color: #f0b56a; border-color: rgba(231, 154, 47, 0.32); }
-  .xray-page .outbound-pill.tone-pink    { background: rgba(225, 79, 153, 0.16);  color: #ec85b6; border-color: rgba(225, 79, 153, 0.32); }
-  .xray-page .outbound-pill.tone-rose    { background: rgba(244, 63, 94, 0.14);   color: #fb7185; border-color: rgba(244, 63, 94, 0.30); }
   .xray-page .outbound-pill.tone-slate   { background: rgba(160, 174, 192, 0.14); color: #b8c2d0; border-color: rgba(160, 174, 192, 0.26); }
-  .xray-page .outbound-pill.tone-indigo  { background: rgba(99, 102, 241, 0.16);  color: #9ea0ee; border-color: rgba(99, 102, 241, 0.32); }
+  .xray-page .outbound-pill.tone-violet  { background: rgba(155, 89, 219, 0.16);  color: #b489e8; border-color: rgba(155, 89, 219, 0.32); }
 
   /* Traffic — dual arrow widget, fixed columns so all rows align */
   .xray-page .outbound-traffic-cell {
