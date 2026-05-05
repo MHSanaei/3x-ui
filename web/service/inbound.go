@@ -1317,7 +1317,7 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	return needRestart, tx.Save(oldInbound).Error
 }
 
-func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (error, bool, bool) {
+func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraffics []*xray.ClientTraffic) (bool, bool, error) {
 	var err error
 	db := database.GetDB()
 	tx := db.Begin()
@@ -1331,11 +1331,11 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	}()
 	err = s.addInboundTraffic(tx, inboundTraffics)
 	if err != nil {
-		return err, false, false
+		return false, false, err
 	}
 	err = s.addClientTraffic(tx, clientTraffics)
 	if err != nil {
-		return err, false, false
+		return false, false, err
 	}
 
 	needRestart0, count, err := s.autoRenewClients(tx)
@@ -1360,7 +1360,7 @@ func (s *InboundService) AddTraffic(inboundTraffics []*xray.Traffic, clientTraff
 	} else if count > 0 {
 		logger.Debugf("%v inbounds disabled", count)
 	}
-	return nil, (needRestart0 || needRestart1 || needRestart2), disabledClientsCount > 0
+	return needRestart0 || needRestart1 || needRestart2, disabledClientsCount > 0, nil
 }
 
 func (s *InboundService) addInboundTraffic(tx *gorm.DB, traffics []*xray.Traffic) error {
