@@ -39,10 +39,11 @@ const (
 	hubControlQueue   = 64   // Backlog for register/unregister bursts (page reloads, disconnect storms).
 
 	// minBroadcastInterval throttles per-type broadcasts so cron storms or
-	// rapid mutations cannot drown the hub. Bursts collapse to one delivery.
-	// Only message types in throttledMessageTypes are gated — heartbeat and
-	// real-time signals (status, traffic, client_stats, notification,
-	// xray_state, invalidate) bypass this so they are never delayed.
+	// rapid mutations cannot drown the hub. Bursts within the interval are
+	// dropped (not coalesced); the next broadcast outside the window delivers
+	// the latest state. Only message types in throttledMessageTypes are gated —
+	// heartbeat and real-time signals (status, traffic, client_stats,
+	// notification, xray_state, invalidate) bypass this so they are never delayed.
 	minBroadcastInterval = 250 * time.Millisecond
 
 	// hubRestartAttempts caps panic-recovery restarts. After this many
@@ -274,8 +275,10 @@ func trySend(c *Client, msg []byte) (ok bool) {
 
 // Broadcast serializes payload and queues it for delivery to all clients.
 // If the serialized message exceeds maxMessageSize, an invalidate signal is
-// queued instead so the frontend re-fetches via REST. Bursts of the same
-// message type within minBroadcastInterval collapse to a single delivery.
+// queued instead so the frontend re-fetches via REST. Broadcasts of throttled
+// message types (see throttledMessageTypes) within minBroadcastInterval of
+// the previous one are dropped — the next legitimate mutation will push the
+// fresh state.
 func (h *Hub) Broadcast(messageType MessageType, payload any) {
 	if h == nil || payload == nil || h.GetClientCount() == 0 {
 		return

@@ -1537,6 +1537,9 @@ func (s *InboundService) autoRenewClients(tx *gorm.DB) (bool, int64, error) {
 	for _, traffic := range traffics {
 		inbound_ids = append(inbound_ids, traffic.InboundId)
 	}
+	// Dedupe so an inbound hosting N expired clients is fetched and saved once
+	// per tick instead of N times across chunk boundaries.
+	inbound_ids = uniqueInts(inbound_ids)
 	// Chunked to stay under SQLite's bind-variable limit when many inbounds
 	// are touched in a single tick.
 	for _, batch := range chunkInts(inbound_ids, sqliteMaxVars) {
@@ -2514,6 +2517,23 @@ func uniqueNonEmptyStrings(in []string) []string {
 		if v == "" {
 			continue
 		}
+		if _, ok := seen[v]; ok {
+			continue
+		}
+		seen[v] = struct{}{}
+		out = append(out, v)
+	}
+	return out
+}
+
+// uniqueInts returns a deduplicated copy of in, preserving order of first occurrence.
+func uniqueInts(in []int) []int {
+	if len(in) == 0 {
+		return nil
+	}
+	seen := make(map[int]struct{}, len(in))
+	out := make([]int, 0, len(in))
+	for _, v := range in {
 		if _, ok := seen[v]; ok {
 			continue
 		}
