@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "Her trafik güncellemesinde harici API'yi bilgilendirin."
 "externalTrafficInformURI" = "Harici Trafik Bilgisi URI'si"
 "externalTrafficInformURIDesc" = "Trafik güncellemeleri bu URI'ye gönderildi."
+"restartXrayOnClientDisable" = "Otomatik Devre Dışı Sonrası Xray'i Yeniden Başlat"
+"restartXrayOnClientDisableDesc" = "Bir istemci süre dolumu veya trafik limiti nedeniyle otomatik devre dışı bırakıldığında Xray'i yeniden başlat."
 "fragment" = "Parçalama"
 "fragmentDesc" = "TLS merhaba paketinin parçalanmasını etkinleştir."
 "fragmentSett" = "Parçalama Ayarları"

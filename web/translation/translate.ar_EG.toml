@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "يبعت تنبيه لـ API خارجي مع كل تحديث للترافيك."
 "externalTrafficInformURI" = "مسار تنبيه الترافيك الخارجي"
 "externalTrafficInformURIDesc" = "تحديثات الترافيك هتتبعت للمسار ده."
+"restartXrayOnClientDisable" = "إعادة تشغيل Xray بعد التعطيل التلقائي"
+"restartXrayOnClientDisableDesc" = "عند تعطيل العميل تلقائيا بسبب انتهاء الصلاحية أو حد حركة المرور، أعد تشغيل Xray."
 "fragment" = "تجزئة"
 "fragmentDesc" = "يفعل تجزئة لحزمة TLS hello."
 "fragmentSett" = "إعدادات التجزئة"

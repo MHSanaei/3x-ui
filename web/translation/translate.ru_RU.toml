@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "Информировать внешний API о каждом обновлении трафика"
 "externalTrafficInformURI" = "URI информации о внешнем трафике"
 "externalTrafficInformURIDesc" = "Обновления трафика отправляются на этот URI"
+"restartXrayOnClientDisable" = "Перезапускать Xray после автоотключения"
+"restartXrayOnClientDisableDesc" = "Когда клиент автоматически отключается из-за окончания срока действия или лимита трафика, перезапускать Xray."
 "fragment" = "Фрагментация"
 "fragmentDesc" = "Включить фрагментацию TLS-хэндшейка"
 "fragmentSett" = "Настройки фрагментации"

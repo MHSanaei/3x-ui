@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "مصرف ترافیک به سرویس خارجی ارسال می شود"
 "externalTrafficInformURI" = "لینک اطلاع رسانی خارجی مصرف ترافیک"
 "externalTrafficInformURIDesc" = "ترافیک های مصرفی به این لینک هم ارسال می شود"
+"restartXrayOnClientDisable" = "ری‌استارت Xray بعد از غیرفعال‌سازی خودکار"
+"restartXrayOnClientDisableDesc" = "وقتی کاربر به‌صورت خودکار به‌دلیل اتمام زمان یا ترافیک غیرفعال می‌شود، Xray ری‌استارت شود."
 "fragment" = "فرگمنت"
 "fragmentDesc" = "فعال کردن فرگمنت برای بسته‌ی نخست تی‌ال‌اس"
 "fragmentSett" = "تنظیمات فرگمنت"

@@ -7,21 +7,16 @@
                     <span v-if="!isMobile">{{ i18n
                         "pages.xray.outbound.addOutbound" }}</span>
                 </a-button>
-                <a-button type="primary" icon="cloud"
-                    @click="showWarp()">WARP</a-button>
-                <a-button type="primary" icon="api"
-                    @click="showNord()">NordVPN</a-button>
+                <a-button type="primary" icon="cloud" @click="showWarp()">WARP</a-button>
+                <a-button type="primary" icon="api" @click="showNord()">NordVPN</a-button>
             </a-space>
         </a-col>
         <a-col :xs="24" :sm="10" :lg="10" class="outbounds-toolbar-right">
             <a-button-group>
-                <a-button icon="sync" @click="refreshOutboundTraffic()"
-                    :loading="refreshing"></a-button>
-                <a-popconfirm placement="topRight"
-                    @confirm="resetOutboundTraffic(-1)"
+                <a-button icon="sync" @click="refreshOutboundTraffic()" :loading="refreshing"></a-button>
+                <a-popconfirm placement="topRight" @confirm="resetOutboundTraffic(-1)"
                     title='{{ i18n "pages.inbounds.resetTrafficContent"}}'
-                    :overlay-class-name="themeSwitcher.currentTheme"
-                    ok-text='{{ i18n "reset"}}'
+                    :overlay-class-name="themeSwitcher.currentTheme" ok-text='{{ i18n "reset"}}'
                     cancel-text='{{ i18n "cancel"}}'>
                     <a-icon slot="icon" type="question-circle-o"
                         :style="{ color: '#008771' }"></a-icon>

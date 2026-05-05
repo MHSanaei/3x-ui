@@ -213,7 +213,7 @@
   });
 
   Vue.component('a-table-sort-trigger', {
-    template: `{{template "component/sortableTableTrigger"}}`,
+    template: `{{template "component/sortableTableTrigger" .}}`,
     props: {
       'item-index': { type: undefined, required: false },
     },

@@ -23,11 +23,19 @@
     okText: '{{ i18n "confirm" }}',
     isEdit: false,
     confirm: null,
-    fakeDns: { ...fakednsDefaultData },
+    fakeDns: {
+      ...fakednsDefaultData
+    },
     ok() {
       ObjectUtil.execute(fakednsModal.confirm, fakednsModal.fakeDns);
     },
-    show({ title = '', okText = '{{ i18n "confirm" }}', fakeDns, confirm = (fakeDns) => { }, isEdit = false }) {
+    show({
+      title = '',
+      okText = '{{ i18n "confirm" }}',
+      fakeDns,
+      confirm = (fakeDns) => {},
+      isEdit = false
+    }) {
       this.title = title;
       this.okText = okText;
       this.confirm = confirm;
@@ -35,7 +43,9 @@
       if (isEdit) {
         this.fakeDns = fakeDns;
       } else {
-        this.fakeDns = { ...fakednsDefaultData }
+        this.fakeDns = {
+          ...fakednsDefaultData
+        }
       }
       this.isEdit = isEdit;
     },
@@ -51,6 +61,5 @@
       fakednsModal: fakednsModal,
     }
   });
-
 </script>
 {{end}}
