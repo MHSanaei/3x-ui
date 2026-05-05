@@ -108,8 +108,15 @@
     el: '#app',
     data: {
       themeSwitcher,
-      loadingStates: { fetched: false, spinning: false },
-      user: { username: "", password: "", twoFactorCode: "" },
+      loadingStates: {
+        fetched: false,
+        spinning: false
+      },
+      user: {
+        username: "",
+        password: "",
+        twoFactorCode: ""
+      },
       twoFactorEnable: false,
       lang: "",
       animationStarted: false
@@ -143,7 +150,11 @@
       },
       initHeadline() {
         const animationDelay = 2000;
-        const headlines = this.$el.querySelectorAll('.headline');
+        const rootEl = this.$el instanceof Element ? this.$el : document.getElementById('app');
+        if (!rootEl || typeof rootEl.querySelectorAll !== 'function') {
+          return;
+        }
+        const headlines = rootEl.querySelectorAll('.headline');
         headlines.forEach((headline) => {
           const first = headline.querySelector('.is-visible');
           if (!first) return;
@@ -233,11 +244,16 @@
         }
       }
     });
-    pm_wait_for_forms.observe(pm_host, { childList: true, subtree: true });
+    pm_wait_for_forms.observe(pm_host, {
+      childList: true,
+      subtree: true
+    });
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', pm_init, { once: true });
+    document.addEventListener('DOMContentLoaded', pm_init, {
+      once: true
+    });
   } else {
     pm_init();
   }

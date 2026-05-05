@@ -199,6 +199,9 @@ func (j *CheckClientIpJob) processLogFile() bool {
 			inboundClientIps[email][ip] = timestamp
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		j.checkError(err)
+	}
 
 	shouldCleanLog := false
 	for email, ipTimestamps := range inboundClientIps {

@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "Informar a API externa sobre cada atualização de tráfego."
 "externalTrafficInformURI" = "URI de informação de tráfego externo"
 "externalTrafficInformURIDesc" = "As atualizações de tráfego são enviadas para este URI."
+"restartXrayOnClientDisable" = "Reiniciar Xray Após Desativação Automática"
+"restartXrayOnClientDisableDesc" = "Quando um cliente for desativado automaticamente por expiração ou limite de tráfego, reinicie o Xray."
 "fragment" = "Fragmentação"
 "fragmentDesc" = "Ativa a fragmentação para o pacote TLS hello."
 "fragmentSett" = "Configurações de Fragmentação"

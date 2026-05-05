@@ -83,6 +83,7 @@ var defaultValueMap = map[string]string{
 	"nord":                        "",
 	"externalTrafficInformEnable": "false",
 	"externalTrafficInformURI":    "",
+	"restartXrayOnClientDisable":  "true",
 	"xrayOutboundTestUrl":         "https://www.google.com/generate_204",
 
 	// LDAP defaults
@@ -626,6 +627,14 @@ func (s *SettingService) GetExternalTrafficInformURI() (string, error) {
 
 func (s *SettingService) SetExternalTrafficInformURI(InformURI string) error {
 	return s.setString("externalTrafficInformURI", InformURI)
+}
+
+func (s *SettingService) GetRestartXrayOnClientDisable() (bool, error) {
+	return s.getBool("restartXrayOnClientDisable")
+}
+
+func (s *SettingService) SetRestartXrayOnClientDisable(value bool) error {
+	return s.setBool("restartXrayOnClientDisable", value)
 }
 
 func (s *SettingService) GetIpLimitEnable() (bool, error) {

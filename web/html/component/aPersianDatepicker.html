@@ -34,7 +34,7 @@
                 required: false,
             },
         },
-        template: `{{template "component/persianDatepickerTemplate"}}`,
+        template: `{{template "component/persianDatepickerTemplate" .}}`,
         data() {
             return {
                 date: '',
@@ -42,7 +42,7 @@
             };
         },
         watch: {
-            value: function (date) {
+            value: function(date) {
                 this.date = this.convertToJalalian(date)
             }
         },
@@ -52,7 +52,8 @@
         },
         methods: {
             convertToGregorian(date) {
-                return date ? moment(moment(date, 'jYYYY/jMM/jDD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss')) : null
+                return date ? moment(moment(date, 'jYYYY/jMM/jDD HH:mm:ss').format('YYYY-MM-DD HH:mm:ss')) :
+                    null
             },
             convertToJalalian(date) {
                 return date && moment.isMoment(date) ? date.format('jYYYY/jMM/jDD HH:mm:ss') : null

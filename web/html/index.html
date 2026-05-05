@@ -10,6 +10,7 @@
     padding: 2px 6px;
     border-radius: 3px;
   }
+
   html[data-theme="ultra-dark"] body.dark .custom-geo-section code.custom-geo-ext-code {
     color: var(--dark-color-text-primary, rgba(255, 255, 255, 0.88));
     background: var(--dark-color-surface-700, #111929);
@@ -119,7 +120,8 @@
                           </a-row>
                         </span>
                         <template slot="content">
-                          <span class="max-w-400" v-for="line in (status.xray.errorMsg || '').split('\n')">[[ line ]]</span>
+                          <span class="max-w-400" v-for="line in (status.xray.errorMsg || '').split('\n')">[[ line
+                            ]]</span>
                         </template>
                         <a-badge :text="status.xray.stateMsg" :color="status.xray.color"
                           :class="status.xray.color === 'red' ? 'xray-error-animation' : ''" />
@@ -170,10 +172,11 @@
               <a-col :sm="24" :lg="12">
                 <a-card title='3X-UI' hoverable>
                   <template v-if="panelUpdateModal.info.updateAvailable" #extra>
-                    <a-tooltip :overlay-class-name="themeSwitcher.currentTheme" :title='`{{ i18n "pages.index.updatePanel" }}: ${panelUpdateModal.info.latestVersion}`'>
+                    <a-tooltip :overlay-class-name="themeSwitcher.currentTheme"
+                      :title='`{{ i18n "pages.index.updatePanel" }}: ${panelUpdateModal.info.latestVersion}`'>
                       <a-tag color="orange" style="cursor:pointer;margin:0" @click="openPanelUpdate">
                         <a-icon type="cloud-download"></a-icon>[[ panelUpdateModal.info.latestVersion ]]
-                      <span v-if="!isMobile">{{ i18n "pages.index.updatePanel" }}</span>
+                        <span v-if="!isMobile">{{ i18n "pages.index.updatePanel" }}</span>
                       </a-tag>
                     </a-tooltip>
                   </template>
@@ -327,8 +330,7 @@
   </a-layout>
   <a-modal id="panel-update-modal" v-model="panelUpdateModal.visible" title='{{ i18n "pages.index.updatePanel" }}'
     :closable="true" @ok="() => panelUpdateModal.visible = false" :class="themeSwitcher.currentTheme" footer="">
-    <a-alert type="warning" class="mb-12 w-100" message='{{ i18n "pages.index.panelUpdateDesc" }}'
-      show-icon></a-alert>
+    <a-alert type="warning" class="mb-12 w-100" message='{{ i18n "pages.index.panelUpdateDesc" }}' show-icon></a-alert>
     <a-list class="ant-version-list w-100" bordered>
       <a-list-item class="ant-version-list-item">
         <span>{{ i18n "pages.index.currentPanelVersion" }}</span>
@@ -379,57 +381,62 @@
       </a-collapse-panel>
       <a-collapse-panel key="3" header='{{ i18n "pages.index.customGeoTitle" }}'>
         <div class="custom-geo-section">
-        <a-alert type="info" show-icon class="mb-10"
-          message='{{ i18n "pages.index.customGeoRoutingHint" }}'></a-alert>
-        <div class="mb-10">
-          <a-button type="primary" icon="plus" @click="openCustomGeoModal(null)" :loading="customGeoLoading">
-            {{ i18n "pages.index.customGeoAdd" }}
-          </a-button>
-          <a-button class="ml-8" icon="reload" @click="updateAllCustomGeo" :loading="customGeoUpdatingAll">{{ i18n
+          <a-alert type="info" show-icon class="mb-10"
+            message='{{ i18n "pages.index.customGeoRoutingHint" }}'></a-alert>
+          <div class="mb-10">
+            <a-button type="primary" icon="plus" @click="openCustomGeoModal(null)" :loading="customGeoLoading">
+              {{ i18n "pages.index.customGeoAdd" }}
+            </a-button>
+            <a-button class="ml-8" icon="reload" @click="updateAllCustomGeo" :loading="customGeoUpdatingAll">{{ i18n
             "pages.index.geofilesUpdateAll" }}</a-button>
-        </div>
-        <a-table :columns="customGeoColumns" :data-source="customGeoList" :pagination="false" :row-key="r => r.id"
-          :loading="customGeoLoading" size="small" :scroll="{ x: 520 }">
-          <template slot="extDat" slot-scope="text, record">
-            <code class="custom-geo-ext-code">[[ customGeoExtDisplay(record) ]]</code>
-          </template>
-          <template slot="lastUpdatedAt" slot-scope="text, record">
-            <span v-if="record.lastUpdatedAt">[[ customGeoFormatTime(record.lastUpdatedAt) ]]</span>
-            <span v-else>—</span>
-          </template>
-          <template slot="action" slot-scope="text, record">
-            <a-space size="small">
-              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="title">{{ i18n "pages.index.customGeoEdit" }}</template>
-                <a-button type="link" size="small" icon="edit" @click="openCustomGeoModal(record)"></a-button>
-              </a-tooltip>
-              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="title">{{ i18n "pages.index.customGeoDownload" }}</template>
-                <a-button type="link" size="small" icon="reload" @click="downloadCustomGeo(record.id)" :loading="customGeoActionId === record.id"></a-button>
-              </a-tooltip>
-              <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="title">{{ i18n "pages.index.customGeoDelete" }}</template>
-                <a-button type="link" size="small" icon="delete" @click="confirmDeleteCustomGeo(record)"></a-button>
-              </a-tooltip>
-            </a-space>
-          </template>
-        </a-table>
+          </div>
+          <a-table :columns="customGeoColumns" :data-source="customGeoList" :pagination="false" :row-key="r => r.id"
+            :loading="customGeoLoading" size="small" :scroll="{ x: 520 }">
+            <template slot="extDat" slot-scope="text, record">
+              <code class="custom-geo-ext-code">[[ customGeoExtDisplay(record) ]]</code>
+            </template>
+            <template slot="lastUpdatedAt" slot-scope="text, record">
+              <span v-if="record.lastUpdatedAt">[[ customGeoFormatTime(record.lastUpdatedAt) ]]</span>
+              <span v-else>—</span>
+            </template>
+            <template slot="action" slot-scope="text, record">
+              <a-space size="small">
+                <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="title">{{ i18n "pages.index.customGeoEdit" }}</template>
+                  <a-button type="link" size="small" icon="edit" @click="openCustomGeoModal(record)"></a-button>
+                </a-tooltip>
+                <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="title">{{ i18n "pages.index.customGeoDownload" }}</template>
+                  <a-button type="link" size="small" icon="reload" @click="downloadCustomGeo(record.id)"
+                    :loading="customGeoActionId === record.id"></a-button>
+                </a-tooltip>
+                <a-tooltip :overlay-class-name="themeSwitcher.currentTheme">
+                  <template slot="title">{{ i18n "pages.index.customGeoDelete" }}</template>
+                  <a-button type="link" size="small" icon="delete" @click="confirmDeleteCustomGeo(record)"></a-button>
+                </a-tooltip>
+              </a-space>
+            </template>
+          </a-table>
         </div>
       </a-collapse-panel>
     </a-collapse>
   </a-modal>
-  <a-modal v-model="customGeoModal.visible" :title="customGeoModal.editId ? '{{ i18n "pages.index.customGeoModalEdit" }}' : '{{ i18n "pages.index.customGeoModalAdd" }}'"
-    :confirm-loading="customGeoModal.saving" @ok="submitCustomGeo" :ok-text="'{{ i18n "pages.index.customGeoModalSave" }}'" :cancel-text="'{{ i18n "close" }}'"
+  <a-modal v-model="customGeoModal.visible"
+    :title="customGeoModal.editId ? '{{ i18n "pages.index.customGeoModalEdit" }}' : '{{ i18n "pages.index.customGeoModalAdd" }}'"
+    :confirm-loading="customGeoModal.saving" @ok="submitCustomGeo"
+    :ok-text="'{{ i18n "pages.index.customGeoModalSave" }}'" :cancel-text="'{{ i18n "close" }}'"
     :class="themeSwitcher.currentTheme">
     <a-form layout="vertical">
       <a-form-item label='{{ i18n "pages.index.customGeoType" }}'>
-        <a-select v-model="customGeoModal.form.type" :disabled="!!customGeoModal.editId" :dropdown-class-name="themeSwitcher.currentTheme">
+        <a-select v-model="customGeoModal.form.type" :disabled="!!customGeoModal.editId"
+          :dropdown-class-name="themeSwitcher.currentTheme">
           <a-select-option value="geosite">geosite</a-select-option>
           <a-select-option value="geoip">geoip</a-select-option>
         </a-select>
       </a-form-item>
       <a-form-item label='{{ i18n "pages.index.customGeoAlias" }}'>
-        <a-input v-model.trim="customGeoModal.form.alias" :disabled="!!customGeoModal.editId" placeholder='{{ i18n "pages.index.customGeoAliasPlaceholder" }}'></a-input>
+        <a-input v-model.trim="customGeoModal.form.alias" :disabled="!!customGeoModal.editId"
+          placeholder='{{ i18n "pages.index.customGeoAliasPlaceholder" }}'></a-input>
       </a-form-item>
       <a-form-item label='{{ i18n "pages.index.customGeoUrl" }}'>
         <a-input v-model.trim="customGeoModal.form.url" placeholder="https://"></a-input>
@@ -469,7 +476,8 @@
         <a-checkbox v-model="logModal.syslog" @change="openLogs()">SysLog</a-checkbox>
       </a-form-item>
       <a-form-item style="float: right;">
-        <a-button type="primary" icon="download" @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
+        <a-button type="primary" icon="download"
+          @click="FileManager.downloadTextFile(logModal.logs?.join('\n'), 'x-ui.log')"></a-button>
       </a-form-item>
     </a-form>
     <div class="ant-input log-container" v-html="logModal.formattedLogs"></div>
@@ -547,7 +555,8 @@
       <sparkline :data="cpuHistoryLong" :labels="cpuHistoryLabels" :vb-width="840" :height="220"
         :stroke="status.cpu.color" :stroke-width="2.2" :show-grid="true" :show-axes="true" :tick-count-x="5"
         :max-points="cpuHistoryLong.length" :fill-opacity="0.18" :marker-radius="3.2" :show-tooltip="true" />
-      <div style="margin-top:4px;font-size:11px;opacity:0.65">Timeframe: [[ cpuHistoryModal.bucket ]] sec per point (total [[ cpuHistoryLong.length ]] points)</div>
+      <div style="margin-top:4px;font-size:11px;opacity:0.65">Timeframe: [[ cpuHistoryModal.bucket ]] sec per point
+        (total [[ cpuHistoryLong.length ]] points)</div>
     </div>
   </a-modal>
 </a-layout>
@@ -555,33 +564,93 @@
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aCustomStatistic" .}}
-{{template "modals/textModal"}}
+{{template "modals/textModal" .}}
 <script>
   // Tiny Sparkline component using an inline SVG polyline
   Vue.component('sparkline', {
     props: {
-      data: { type: Array, required: true },
+      data: {
+        type: Array,
+        required: true
+      },
       // viewBox width for drawing space; SVG width will be 100% of container
-      vbWidth: { type: Number, default: 320 },
-      height: { type: Number, default: 80 },
-      stroke: { type: String, default: '#008771' },
-      strokeWidth: { type: Number, default: 2 },
-      maxPoints: { type: Number, default: 120 },
-      showGrid: { type: Boolean, default: true },
-      gridColor: { type: String, default: 'rgba(0,0,0,0.1)' },
-      fillOpacity: { type: Number, default: 0.15 },
-      showMarker: { type: Boolean, default: true },
-      markerRadius: { type: Number, default: 2.8 },
+      vbWidth: {
+        type: Number,
+        default: 320
+      },
+      height: {
+        type: Number,
+        default: 80
+      },
+      stroke: {
+        type: String,
+        default: '#008771'
+      },
+      strokeWidth: {
+        type: Number,
+        default: 2
+      },
+      maxPoints: {
+        type: Number,
+        default: 120
+      },
+      showGrid: {
+        type: Boolean,
+        default: true
+      },
+      gridColor: {
+        type: String,
+        default: 'rgba(0,0,0,0.1)'
+      },
+      fillOpacity: {
+        type: Number,
+        default: 0.15
+      },
+      showMarker: {
+        type: Boolean,
+        default: true
+      },
+      markerRadius: {
+        type: Number,
+        default: 2.8
+      },
       // New opts for axes/labels/tooltip
-      labels: { type: Array, default: () => [] }, // same length as data for x labels (e.g., timestamps)
-      showAxes: { type: Boolean, default: false },
-      yTickStep: { type: Number, default: 25 }, // percent ticks
-      tickCountX: { type: Number, default: 4 },
-      paddingLeft: { type: Number, default: 32 },
-      paddingRight: { type: Number, default: 6 },
-      paddingTop: { type: Number, default: 6 },
-      paddingBottom: { type: Number, default: 20 },
-      showTooltip: { type: Boolean, default: false },
+      labels: {
+        type: Array,
+        default: () => []
+      }, // same length as data for x labels (e.g., timestamps)
+      showAxes: {
+        type: Boolean,
+        default: false
+      },
+      yTickStep: {
+        type: Number,
+        default: 25
+      }, // percent ticks
+      tickCountX: {
+        type: Number,
+        default: 4
+      },
+      paddingLeft: {
+        type: Number,
+        default: 32
+      },
+      paddingRight: {
+        type: Number,
+        default: 6
+      },
+      paddingTop: {
+        type: Number,
+        default: 6
+      },
+      paddingBottom: {
+        type: Number,
+        default: 20
+      },
+      showTooltip: {
+        type: Boolean,
+        default: false
+      },
     },
     data() {
       return {
@@ -644,7 +713,12 @@
         // draw at 25%, 50%, 75%
         return [0, 0.25, 0.5, 0.75, 1]
           .map(r => Math.round(this.paddingTop + h * r))
-          .map(y => ({ x1: this.paddingLeft, y1: y, x2: this.paddingLeft + w, y2: y }))
+          .map(y => ({
+            x1: this.paddingLeft,
+            y1: y,
+            x2: this.paddingLeft + w,
+            y2: y
+          }))
       },
       lastPoint() {
         if (this.pointsArr.length === 0) return null
@@ -656,7 +730,10 @@
         const ticks = []
         for (let p = 0; p <= 100; p += step) {
           const y = Math.round(this.paddingTop + (this.drawHeight - (p / 100) * this.drawHeight))
-          ticks.push({ y, label: `${p}%` })
+          ticks.push({
+            y,
+            label: `${p}%`
+          })
         }
         return ticks
       },
@@ -677,7 +754,10 @@
         positions.forEach(idx => {
           const label = labels[idx] != null ? String(labels[idx]) : String(idx)
           const x = Math.round(this.paddingLeft + idx * dx)
-          ticks.push({ x, label })
+          ticks.push({
+            x,
+            label
+          })
         })
         return ticks
       },
@@ -778,17 +858,36 @@
       this.disk = new CurTotal(0, 0);
       this.loads = [0, 0, 0];
       this.mem = new CurTotal(0, 0);
-      this.netIO = { up: 0, down: 0 };
-      this.netTraffic = { sent: 0, recv: 0 };
-      this.publicIP = { ipv4: 0, ipv6: 0 };
+      this.netIO = {
+        up: 0,
+        down: 0
+      };
+      this.netTraffic = {
+        sent: 0,
+        recv: 0
+      };
+      this.publicIP = {
+        ipv4: 0,
+        ipv6: 0
+      };
       this.swap = new CurTotal(0, 0);
       this.tcpCount = 0;
       this.udpCount = 0;
       this.uptime = 0;
       this.appUptime = 0;
-      this.appStats = { threads: 0, mem: 0, uptime: 0 };
+      this.appStats = {
+        threads: 0,
+        mem: 0,
+        uptime: 0
+      };
 
-      this.xray = { state: 'stop', stateMsg: "", errorMsg: "", version: "", color: "" };
+      this.xray = {
+        state: 'stop',
+        stateMsg: "",
+        errorMsg: "",
+        version: "",
+        color: ""
+      };
 
       if (data == null) {
         return;
@@ -864,6 +963,18 @@
     },
   };
 
+  const escapeHtml = (value) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  };
+
   const logModal = {
     visible: false,
     logs: [],
@@ -887,24 +998,28 @@
         if (index > 0) formattedLogs += '<br>';
 
         if (parts.length === 3) {
-          const d = parts[0];
-          const t = parts[1];
-          const level = parts[2];
-          const levelIndex = levels.indexOf(level, levels) || 5;
+          const d = escapeHtml(parts[0]);
+          const t = escapeHtml(parts[1]);
+          const levelRaw = parts[2];
+          const level = escapeHtml(levelRaw);
+          const idx = levels.indexOf(levelRaw);
+          const levelIndex = idx >= 0 ? idx : 5;
 
           //formattedLogs += `<span style="color: gray;">${index + 1}.</span>`;
           formattedLogs += `<span style="color: ${levelColors[0]};">${d} ${t}</span> `;
           formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${level}</span>`;
         } else {
-          const levelIndex = levels.indexOf(data, levels) || 5;
-          formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${data}</span>`;
+          const idx = levels.indexOf(data);
+          const levelIndex = idx >= 0 ? idx : 5;
+          formattedLogs += `<span style="color: ${levelColors[levelIndex]}">${escapeHtml(data)}</span>`;
         }
 
         if (message) {
-          if (message.startsWith("XRAY:"))
-            message = "<b>XRAY: </b>" + message.substring(5);
-          else
-            message = "<b>X-UI: </b>" + message;
+          if (message.startsWith("XRAY:")) {
+            message = "<b>XRAY: </b>" + escapeHtml(message.substring(5));
+          } else {
+            message = "<b>X-UI: </b>" + escapeHtml(message);
+          }
         }
 
         formattedLogs += message ? ' - ' + message : '';
@@ -918,20 +1033,20 @@
   };
 
   const xraylogModal = {
-      visible: false,
-      logs: [],
-      rows: 20,
-      showDirect: true,
-      showBlocked: true,
-      showProxy: true,
-      loading: false,
-      show(logs) {
-        this.visible = true;
-        this.logs = logs;
-        this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
-      },
-      formatLogs(logs) {
-        let formattedLogs = `
+    visible: false,
+    logs: [],
+    rows: 20,
+    showDirect: true,
+    showBlocked: true,
+    showProxy: true,
+    loading: false,
+    show(logs) {
+      this.visible = true;
+      this.logs = logs;
+      this.formattedLogs = this.logs?.length > 0 ? this.formatLogs(this.logs) : "No Record...";
+    },
+    formatLogs(logs) {
+      let formattedLogs = `
 <style>
   table {
     border-collapse: collapse;
@@ -954,38 +1069,37 @@
     </tr>
 `;
 
-        logs.reverse().forEach((log, index) => {
-          let outboundColor = '';
-          if (log.Event === 1) {
-            outboundColor = ' style="color: #e04141;"'; //red for blocked
-          }
-          else if (log.Event === 2) {
-            outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
-          }
+      logs.reverse().forEach((log, index) => {
+        let outboundColor = '';
+        if (log.Event === 1) {
+          outboundColor = ' style="color: #e04141;"'; //red for blocked
+        } else if (log.Event === 2) {
+          outboundColor = ' style="color: #3c89e8;"'; //blue for proxies
+        }
 
-          let text = ``;
-          if (log.Email !== "") {
-            text = `<td>${log.Email}</td>`;
-          }
+        let text = ``;
+        if (log.Email !== "") {
+          text = `<td>${escapeHtml(log.Email)}</td>`;
+        }
 
-          formattedLogs += `
+        formattedLogs += `
 <tr ${outboundColor}>
-    <td><b>${IntlUtil.formatDate(log.DateTime)}</b></td>
-    <td>${log.FromAddress}</td>
-    <td>${log.ToAddress}</td>
-    <td>${log.Inbound}</td>
-    <td>${log.Outbound}</td>
+    <td><b>${escapeHtml(IntlUtil.formatDate(log.DateTime))}</b></td>
+    <td>${escapeHtml(log.FromAddress)}</td>
+    <td>${escapeHtml(log.ToAddress)}</td>
+    <td>${escapeHtml(log.Inbound)}</td>
+    <td>${escapeHtml(log.Outbound)}</td>
     ${text}
 </tr>
 `;
-        });
+      });
 
-        return formattedLogs += "</table>";
-      },
-      hide() {
-        this.visible = false;
-      },
-    };
+      return formattedLogs += "</table>";
+    },
+    hide() {
+      this.visible = false;
+    },
+  };
   const backupModal = {
     visible: false,
     show() {
@@ -996,10 +1110,31 @@
     },
   };
 
-  const customGeoColumns = [
-    { title: '{{ i18n "pages.index.customGeoExtColumn" }}', key: 'extDat', scopedSlots: { customRender: 'extDat' }, ellipsis: true },
-    { title: '{{ i18n "pages.index.customGeoLastUpdated" }}', key: 'lastUpdatedAt', scopedSlots: { customRender: 'lastUpdatedAt' }, width: 160 },
-    { title: '{{ i18n "pages.index.customGeoActions" }}', key: 'action', scopedSlots: { customRender: 'action' }, width: 120, fixed: 'right' },
+  const customGeoColumns = [{
+      title: '{{ i18n "pages.index.customGeoExtColumn" }}',
+      key: 'extDat',
+      scopedSlots: {
+        customRender: 'extDat'
+      },
+      ellipsis: true
+    },
+    {
+      title: '{{ i18n "pages.index.customGeoLastUpdated" }}',
+      key: 'lastUpdatedAt',
+      scopedSlots: {
+        customRender: 'lastUpdatedAt'
+      },
+      width: 160
+    },
+    {
+      title: '{{ i18n "pages.index.customGeoActions" }}',
+      key: 'action',
+      scopedSlots: {
+        customRender: 'action'
+      },
+      width: 120,
+      fixed: 'right'
+    },
   ];
 
   const app = new Vue({
@@ -1016,7 +1151,10 @@
       cpuHistory: [], // small live widget history
       cpuHistoryLong: [], // aggregated points from backend
       cpuHistoryLabels: [],
-      cpuHistoryModal: { visible: false, bucket: 2 },
+      cpuHistoryModal: {
+        visible: false,
+        bucket: 2
+      },
       versionModal,
       panelUpdateModal,
       logModal,
@@ -1092,16 +1230,16 @@
             const labels = []
             for (const p of msg.obj) {
               const d = new Date(p.t * 1000)
-              const hh = String(d.getHours()).padStart(2,'0')
-              const mm = String(d.getMinutes()).padStart(2,'0')
-              const ss = String(d.getSeconds()).padStart(2,'0')
-              labels.push(bucket>=60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`)
+              const hh = String(d.getHours()).padStart(2, '0')
+              const mm = String(d.getMinutes()).padStart(2, '0')
+              const ss = String(d.getSeconds()).padStart(2, '0')
+              labels.push(bucket >= 60 ? `${hh}:${mm}` : `${hh}:${mm}:${ss}`)
               vals.push(Math.max(0, Math.min(100, p.cpu)))
             }
             this.cpuHistoryLabels = labels
             this.cpuHistoryLong = vals
           }
-        } catch(e) {
+        } catch (e) {
           console.error('Failed to fetch bucketed cpu history', e)
         }
       },
@@ -1129,9 +1267,9 @@
         return typeof moment !== 'undefined' ? moment(ts * 1000).format('YYYY-MM-DD HH:mm') : String(ts);
       },
       customGeoExtDisplay(record) {
-        const fn = record.type === 'geoip'
-          ? `geoip_${record.alias}.dat`
-          : `geosite_${record.alias}.dat`;
+        const fn = record.type === 'geoip' ?
+          `geoip_${record.alias}.dat` :
+          `geosite_${record.alias}.dat`;
         return `ext:${fn}:tag`;
       },
       async loadCustomGeo() {
@@ -1285,18 +1423,18 @@
         const isSingleFile = !!fileName;
         this.$confirm({
           title: '{{ i18n "pages.index.geofileUpdateDialog" }}',
-          content: isSingleFile
-            ? '{{ i18n "pages.index.geofileUpdateDialogDesc" }}'.replace("#filename#", fileName)
-            : '{{ i18n "pages.index.geofilesUpdateDialogDesc" }}',
+          content: isSingleFile ?
+            '{{ i18n "pages.index.geofileUpdateDialogDesc" }}'.replace("#filename#", fileName) :
+            '{{ i18n "pages.index.geofilesUpdateDialogDesc" }}',
           okText: '{{ i18n "confirm"}}',
           class: themeSwitcher.currentTheme,
           cancelText: '{{ i18n "cancel"}}',
           onOk: async () => {
             versionModal.hide();
             this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
-            const url = isSingleFile
-              ? `/panel/api/server/updateGeofile/${fileName}`
-              : `/panel/api/server/updateGeofile`;
+            const url = isSingleFile ?
+              `/panel/api/server/updateGeofile/${fileName}` :
+              `/panel/api/server/updateGeofile`;
             await HttpUtil.post(url);
             this.loading(false);
           },
@@ -1320,7 +1458,10 @@
       },
       async openLogs() {
         logModal.loading = true;
-        const msg = await HttpUtil.post('/panel/api/server/logs/' + logModal.rows, { level: logModal.level, syslog: logModal.syslog });
+        const msg = await HttpUtil.post('/panel/api/server/logs/' + logModal.rows, {
+          level: logModal.level,
+          syslog: logModal.syslog
+        });
         if (!msg.success) {
           return;
         }
@@ -1330,7 +1471,12 @@
       },
       async openXrayLogs() {
         xraylogModal.loading = true;
-        const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, { filter: xraylogModal.filter, showDirect: xraylogModal.showDirect, showBlocked: xraylogModal.showBlocked, showProxy: xraylogModal.showProxy });
+        const msg = await HttpUtil.post('/panel/api/server/xraylogs/' + xraylogModal.rows, {
+          filter: xraylogModal.filter,
+          showDirect: xraylogModal.showDirect,
+          showBlocked: xraylogModal.showBlocked,
+          showProxy: xraylogModal.showProxy
+        });
         if (!msg.success) {
           return;
         }
@@ -1347,10 +1493,15 @@
           try {
             const dt = l.DateTime ? new Date(l.DateTime) : null;
             const dateStr = dt && !isNaN(dt.getTime()) ? dt.toISOString() : '';
-            const eventMap = { 0: 'DIRECT', 1: 'BLOCKED', 2: 'PROXY' };
+            const eventMap = {
+              0: 'DIRECT',
+              1: 'BLOCKED',
+              2: 'PROXY'
+            };
             const eventText = eventMap[l.Event] || String(l.Event ?? '');
             const emailPart = l.Email ? ` Email=${l.Email}` : '';
-            return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`.trim();
+            return `${dateStr} FROM=${l.FromAddress || ''} TO=${l.ToAddress || ''} INBOUND=${l.Inbound || ''} OUTBOUND=${l.Outbound || ''}${emailPart} EVENT=${eventText}`
+              .trim();
           } catch (e) {
             return JSON.stringify(l);
           }
@@ -1442,7 +1593,7 @@
       // Setup WebSocket for real-time updates
       if (window.wsClient) {
         window.wsClient.connect();
-        
+
         // Listen for status updates
         window.wsClient.on('status', (payload) => {
           this.setStatus(payload);

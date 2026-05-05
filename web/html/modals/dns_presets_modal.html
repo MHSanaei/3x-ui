@@ -5,10 +5,12 @@
     <a-list-item v-for="dns in dnsPresetsDatabase" :style="{ padding: '12px 16px' }">
       <div class="ant-dns-presets-line">
         <a-space direction="horizontal" size="small" align="center">
-          <a-tag :color="dns.family ? 'purple' : 'green'">[[ dns.family ? '{{ i18n "pages.xray.dns.dnsPresetFamily" }}' : 'DNS' ]]</a-tag>
+          <a-tag :color="dns.family ? 'purple' : 'green'">[[ dns.family ? '{{ i18n "pages.xray.dns.dnsPresetFamily" }}'
+            : 'DNS' ]]</a-tag>
           <span class="ant-dns-presets-list-name">[[ dns.name ]]</span>
         </a-space>
-        <a-button class="ant-dns-presets-install" type="primary" @click="dnsPresetsModal.install(dns.data)">{{ i18n "install" }}</a-button>
+        <a-button class="ant-dns-presets-install" type="primary"
+          @click="dnsPresetsModal.install(dns.data)">{{ i18n "install" }}</a-button>
       </div>
     </a-list-item>
   </a-list>
@@ -36,8 +38,7 @@
 </style>
 
 <script>
-  const dnsPresetsDatabase = [
-    {
+  const dnsPresetsDatabase = [{
       name: 'Google DNS',
       family: false,
       data: [
@@ -96,7 +97,11 @@
     install(selectedPreset) {
       return ObjectUtil.execute(dnsPresetsModal.selected, selectedPreset);
     },
-    show({ title = '', selected = (selectedPreset) => { }, isEdit = false }) {
+    show({
+      title = '',
+      selected = (selectedPreset) => {},
+      isEdit = false
+    }) {
       this.title = title;
       this.selected = selected;
       this.visible = true;

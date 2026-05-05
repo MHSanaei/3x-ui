@@ -27,6 +27,34 @@ func NewInboundController(g *gin.RouterGroup) *InboundController {
 	return a
 }
 
+// broadcastInboundsUpdateClientLimit is the threshold past which we skip the
+// full-list push over WebSocket and signal the frontend to re-fetch via REST.
+// Mirrors the same heuristic used by the periodic traffic job.
+const broadcastInboundsUpdateClientLimit = 5000
+
+// broadcastInboundsUpdate fetches and broadcasts the inbound list for userId.
+// At scale (10k+ clients) the marshaled JSON exceeds the WS payload ceiling,
+// so we send an invalidate signal instead — frontend re-fetches via REST.
+// Skipped entirely when no WebSocket clients are connected.
+func (a *InboundController) broadcastInboundsUpdate(userId int) {
+	if !websocket.HasClients() {
+		return
+	}
+	inbounds, err := a.inboundService.GetInbounds(userId)
+	if err != nil {
+		return
+	}
+	totalClients := 0
+	for _, ib := range inbounds {
+		totalClients += len(ib.ClientStats)
+	}
+	if totalClients > broadcastInboundsUpdateClientLimit {
+		websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
+		return
+	}
+	websocket.BroadcastInbounds(inbounds)
+}
+
 // initRouter initializes the routes for inbound-related operations.
 func (a *InboundController) initRouter(g *gin.RouterGroup) {
 
@@ -38,6 +66,7 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 	g.POST("/add", a.addInbound)
 	g.POST("/del/:id", a.delInbound)
 	g.POST("/update/:id", a.updateInbound)
+	g.POST("/setEnable/:id", a.setInboundEnable)
 	g.POST("/clientIps/:email", a.getClientIps)
 	g.POST("/clearClientIps/:email", a.clearClientIps)
 	g.POST("/addClient", a.addInboundClient)
@@ -134,9 +163,7 @@ func (a *InboundController) addInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
 }
 
 // delInbound deletes an inbound configuration by its ID.
@@ -155,10 +182,8 @@ func (a *InboundController) delInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
 }
 
 // updateInbound updates an existing inbound configuration.
@@ -185,10 +210,43 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
-	// Broadcast inbounds update via WebSocket
 	user := session.GetLoginUser(c)
-	inbounds, _ := a.inboundService.GetInbounds(user.Id)
-	websocket.BroadcastInbounds(inbounds)
+	a.broadcastInboundsUpdate(user.Id)
+}
+
+// setInboundEnable flips only the enable flag of an inbound. This is a
+// dedicated endpoint because the regular update path serialises the entire
+// settings JSON (every client) — far too heavy for an interactive switch
+// on inbounds with thousands of clients. Frontend optimistically updates
+// the UI; we just persist + sync xray + nudge other open admin sessions.
+func (a *InboundController) setInboundEnable(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), err)
+		return
+	}
+	type form struct {
+		Enable bool `json:"enable" form:"enable"`
+	}
+	var f form
+	if err := c.ShouldBind(&f); err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	needRestart, err := a.inboundService.SetInboundEnable(id, f.Enable)
+	if err != nil {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), err)
+		return
+	}
+	jsonMsg(c, I18nWeb(c, "pages.inbounds.toasts.inboundUpdateSuccess"), nil)
+	if needRestart {
+		a.xrayService.SetToNeedRestart()
+	}
+	// Cross-admin sync: lightweight invalidate signal (a few hundred bytes)
+	// instead of fetching + serialising the whole inbound list. Other open
+	// sessions re-fetch via REST. The toggling admin's own UI already
+	// updated optimistically.
+	websocket.BroadcastInvalidate(websocket.MessageTypeInbounds)
 }
 
 // getClientIps retrieves the IP addresses associated with a client by email.

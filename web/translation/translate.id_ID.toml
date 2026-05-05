@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "Inform external API on every traffic update."
 "externalTrafficInformURI" = "Lalu Lintas Eksternal Menginformasikan URI"
 "externalTrafficInformURIDesc" = "Pembaruan lalu lintas dikirim ke URI ini."
+"restartXrayOnClientDisable" = "Nyalakan Ulang Xray Setelah Nonaktif Otomatis"
+"restartXrayOnClientDisableDesc" = "Saat klien otomatis dinonaktifkan karena kedaluwarsa atau batas trafik, mulai ulang Xray."
 "fragment" = "Fragmentasi"
 "fragmentDesc" = "Aktifkan fragmentasi untuk paket hello TLS"
 "fragmentSett" = "Pengaturan Fragmentasi"

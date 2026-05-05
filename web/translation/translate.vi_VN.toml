@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "Thông báo cho API bên ngoài về mọi cập nhật lưu lượng truy cập."
 "externalTrafficInformURI" = "URI thông báo lưu lượng truy cập bên ngoài"
 "externalTrafficInformURIDesc" = "Cập nhật lưu lượng truy cập được gửi tới URI này."
+"restartXrayOnClientDisable" = "Khởi Động Lại Xray Sau Khi Tự Động Vô Hiệu Hóa"
+"restartXrayOnClientDisableDesc" = "Khi người dùng bị vô hiệu hóa tự động do hết hạn hoặc chạm giới hạn lưu lượng, hãy khởi động lại Xray."
 "fragment" = "Sự phân mảnh"
 "fragmentDesc" = "Kích hoạt phân mảnh cho gói TLS hello"
 "fragmentSett" = "Cài đặt phân mảnh"

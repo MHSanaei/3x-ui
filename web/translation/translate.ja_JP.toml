@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "トラフィックの更新ごとに外部 API に通知します。"
 "externalTrafficInformURI" = "外部トラフィック通知 URI"
 "externalTrafficInformURIDesc" = "トラフィックの更新ごとに外部 API に通知します。"
+"restartXrayOnClientDisable" = "自動無効化後に Xray を再起動"
+"restartXrayOnClientDisableDesc" = "有効期限切れまたはトラフィック上限でクライアントが自動的に無効化されたとき、Xray を再起動します。"
 "fragment" = "フラグメント"
 "fragmentDesc" = "TLS helloパケットのフラグメントを有効にする"
 "fragmentSett" = "設定"

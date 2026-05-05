@@ -697,7 +697,6 @@ class TlsStreamSettings extends XrayCommonClass {
         certificates = [new TlsStreamSettings.Cert()],
         alpn = [ALPN_OPTION.H2, ALPN_OPTION.HTTP1],
         echServerKeys = '',
-        echForceQuery = 'none',
         settings = new TlsStreamSettings.Settings()
     ) {
         super();
@@ -711,7 +710,6 @@ class TlsStreamSettings extends XrayCommonClass {
         this.certs = certificates;
         this.alpn = alpn;
         this.echServerKeys = echServerKeys;
-        this.echForceQuery = echForceQuery;
         this.settings = settings;
     }
 
@@ -744,7 +742,6 @@ class TlsStreamSettings extends XrayCommonClass {
             certs,
             json.alpn,
             json.echServerKeys,
-            json.echForceQuery,
             settings,
         );
     }
@@ -761,7 +758,6 @@ class TlsStreamSettings extends XrayCommonClass {
             certificates: TlsStreamSettings.toJsonArray(this.certs),
             alpn: this.alpn,
             echServerKeys: this.echServerKeys,
-            echForceQuery: this.echForceQuery,
             settings: this.settings,
         };
     }
@@ -875,7 +871,7 @@ class RealityStreamSettings extends XrayCommonClass {
         if (!target && !serverNames) {
             const randomTarget = typeof getRandomRealityTarget !== 'undefined'
                 ? getRandomRealityTarget()
-                : { target: 'www.apple.com:443', sni: 'www.apple.com,apple.com' };
+                : { target: 'www.amazon.com:443', sni: 'www.amazon.com,amazon.com' };
             target = randomTarget.target;
             serverNames = randomTarget.sni;
         }
@@ -1211,15 +1207,15 @@ class QuicParams extends XrayCommonClass {
     constructor(
         congestion = 'bbr',
         debug = false,
-        brutalUp = '',
-        brutalDown = '',
+        brutalUp = 65537,
+        brutalDown = 65537,
         udpHop = undefined,
         initStreamReceiveWindow = 8388608,
         maxStreamReceiveWindow = 8388608,
         initConnectionReceiveWindow = 20971520,
         maxConnectionReceiveWindow = 20971520,
         maxIdleTimeout = 30,
-        keepAlivePeriod = 0,
+        keepAlivePeriod = 5,
         disablePathMTUDiscovery = false,
         maxIncomingStreams = 1024,
     ) {
@@ -1269,8 +1265,10 @@ class QuicParams extends XrayCommonClass {
     toJson() {
         const result = { congestion: this.congestion };
         if (this.debug) result.debug = this.debug;
-        if (this.brutalUp) result.brutalUp = this.brutalUp;
-        if (this.brutalDown) result.brutalDown = this.brutalDown;
+        if (['brutal', 'force-brutal'].includes(this.congestion)) {
+            if (this.brutalUp) result.brutalUp = this.brutalUp;
+            if (this.brutalDown) result.brutalDown = this.brutalDown;
+        }
         if (this.udpHop) result.udpHop = { ports: this.udpHop.ports, interval: this.udpHop.interval };
         if (this.initStreamReceiveWindow > 0) result.initStreamReceiveWindow = this.initStreamReceiveWindow;
         if (this.maxStreamReceiveWindow > 0) result.maxStreamReceiveWindow = this.maxStreamReceiveWindow;

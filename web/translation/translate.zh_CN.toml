@@ -477,6 +477,8 @@
 "externalTrafficInformEnableDesc" = "每次流量更新时通知外部 API"
 "externalTrafficInformURI" = "外部流量通知 URI"
 "externalTrafficInformURIDesc" = "流量更新将发送到此 URI"
+"restartXrayOnClientDisable" = "客户端自动禁用后重启 Xray"
+"restartXrayOnClientDisableDesc" = "当客户端因到期或流量超限被自动禁用时，重启 Xray。"
 "fragment" = "分片"
 "fragmentDesc" = "启用 TLS hello 数据包分片"
 "fragmentSett" = "设置"

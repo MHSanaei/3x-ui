@@ -2,7 +2,7 @@
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" :dialog-style="{ top: '20px' }"
     @ok="inModal.ok" :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
     :class="themeSwitcher.currentTheme" :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
-    {{template "form/inbound"}}
+    {{template "form/inbound" .}}
 </a-modal>
 <script>
     // Make inModal globally available to ensure it works with any base path
@@ -23,7 +23,7 @@
             okText = '{{ i18n "sure" }}',
             inbound = null,
             dbInbound = null,
-            confirm = (inbound, dbInbound) => { },
+            confirm = (inbound, dbInbound) => {},
             isEdit = false,
         }) {
             this.title = title;
@@ -127,17 +127,17 @@
             get client() {
                 return inModal.inbound &&
                     inModal.inbound.clients &&
-                    inModal.inbound.clients.length > 0
-                    ? inModal.inbound.clients[0]
-                    : null;
+                    inModal.inbound.clients.length > 0 ?
+                    inModal.inbound.clients[0] :
+                    null;
             },
             get datepicker() {
                 return app.datepicker;
             },
             get delayedExpireDays() {
-                return this.client && this.client.expiryTime < 0
-                    ? this.client.expiryTime / -86400000
-                    : 0;
+                return this.client && this.client.expiryTime < 0 ?
+                    this.client.expiryTime / -86400000 :
+                    0;
             },
             set delayedExpireDays(days) {
                 this.client.expiryTime = -86400000 * days;
@@ -147,14 +147,12 @@
             },
             set externalProxy(value) {
                 if (value) {
-                    inModal.inbound.stream.externalProxy = [
-                        {
-                            forceTls: "same",
-                            dest: window.location.hostname,
-                            port: inModal.inbound.port,
-                            remark: "",
-                        },
-                    ];
+                    inModal.inbound.stream.externalProxy = [{
+                        forceTls: "same",
+                        dest: window.location.hostname,
+                        port: inModal.inbound.port,
+                        remark: "",
+                    }, ];
                 } else {
                     inModal.inbound.stream.externalProxy = [];
                 }
@@ -182,8 +180,8 @@
                     ) {
                         const hasVisionFlow = inModal.inbound.settings.vlesses.some(
                             (c) =>
-                                c.flow === "xtls-rprx-vision" ||
-                                c.flow === "xtls-rprx-vision-udp443",
+                            c.flow === "xtls-rprx-vision" ||
+                            c.flow === "xtls-rprx-vision-udp443",
                         );
                         if (
                             hasVisionFlow &&

@@ -846,6 +846,10 @@ func (s *ServerService) GetXrayLogs(
 		entries = append(entries, entry)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil
+	}
+
 	if len(entries) > countInt {
 		entries = entries[len(entries)-countInt:]
 	}
