@@ -2156,11 +2156,11 @@
     gap: 8px;
     min-width: 0;
   }
-  /* Tag — monospace, single line, ellipsis on overflow.
-     A long tag (e.g. "vless_jphttp-ksjpnggl") would otherwise wrap and inflate
-     the row's height; the inline tooltip surfaces the full value on hover. */
+  /* Tag — inherits the table's font for visual parity, single line with
+     ellipsis on overflow. A long tag (e.g. "vless_jphttp-ksjpnggl") would
+     otherwise wrap and inflate the row's height; the inline tooltip surfaces
+     the full value on hover. */
   .xray-page .outbound-tag {
-    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
     font-size: 13px;
     color: rgba(255, 255, 255, 0.92);
     font-weight: 500;
