@@ -1408,6 +1408,9 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		}
 	}
 	now := time.Now().UnixMilli()
+	// Calculate start of today in local timezone (Unix milliseconds)
+	nowTime := time.Now()
+	today := time.Date(nowTime.Year(), nowTime.Month(), nowTime.Day(), 0, 0, 0, 0, nowTime.Location()).UnixMilli()
 	for dbTraffic_index := range dbClientTraffics {
 		t, ok := trafficByEmail[dbClientTraffics[dbTraffic_index].Email]
 		if !ok {
@@ -1416,6 +1419,15 @@ func (s *InboundService) addClientTraffic(tx *gorm.DB, traffics []*xray.ClientTr
 		dbClientTraffics[dbTraffic_index].Up += t.Up
 		dbClientTraffics[dbTraffic_index].Down += t.Down
 		dbClientTraffics[dbTraffic_index].AllTime += t.Up + t.Down
+		// Check if daily reset is needed (lazy reset at first traffic after 00:00)
+		if dbClientTraffics[dbTraffic_index].LastDailyReset < today {
+			dbClientTraffics[dbTraffic_index].DailyUp = 0
+			dbClientTraffics[dbTraffic_index].DailyDown = 0
+			dbClientTraffics[dbTraffic_index].LastDailyReset = today
+		}
+		// Add current traffic to daily counters
+		dbClientTraffics[dbTraffic_index].DailyUp += t.Up
+		dbClientTraffics[dbTraffic_index].DailyDown += t.Down
 		if t.Up+t.Down > 0 {
 			onlineClients = append(onlineClients, t.Email)
 			dbClientTraffics[dbTraffic_index].LastOnline = now

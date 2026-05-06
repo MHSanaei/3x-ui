@@ -221,6 +221,8 @@
 
 [pages.inbounds]
 "allTimeTraffic" = "All-time Traffic"
+"speed" = "Speed"
+"dailyTraffic" = "24h Traffic"
 "allTimeTrafficUsage" = "All Time Total Usage"
 "title" = "Inbounds"
 "totalDownUp" = "Total Sent/Received"

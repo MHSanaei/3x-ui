@@ -221,6 +221,8 @@
 
 [pages.inbounds]
 "allTimeTraffic" = "Общий трафик"
+"speed" = "Скорость"
+"dailyTraffic" = "За сутки"
 "allTimeTrafficUsage" = "Общее использование за все время"
 "title" = "Подключения"
 "totalDownUp" = "Отправлено/получено"
