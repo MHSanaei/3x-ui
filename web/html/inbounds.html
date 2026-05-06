@@ -992,8 +992,12 @@
     { title: '{{ i18n "pages.inbounds.operate" }}', width: 140, scopedSlots: { customRender: 'actions' } },
     { title: '{{ i18n "pages.inbounds.enable" }}', width: 60, scopedSlots: { customRender: 'enable' } },
     { title: '{{ i18n "online" }}', width: 80, scopedSlots: { customRender: 'online' } },
+    // Speed column is intentionally non-sortable to prevent UI jitter caused by volatile real-time values.
+    { title: '{{ i18n "pages.inbounds.speed" }}', width: 90, align: 'center', scopedSlots: { customRender: 'speed' } },
     { title: '{{ i18n "pages.inbounds.client" }}', width: 160, scopedSlots: { customRender: 'client' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', width: 200, align: 'center', scopedSlots: { customRender: 'traffic' } },
+    // DynamicMetricsColumns: Adds Speed and Daily Traffic visualization to the table.
+    { title: '{{ i18n "pages.inbounds.dailyTraffic" }}', width: 100, align: 'center', scopedSlots: { customRender: 'dailyTraffic' } },
     { title: '{{ i18n "pages.inbounds.allTimeTraffic" }}', width: 110, align: 'center', scopedSlots: { customRender: 'allTime' } },
     { title: '{{ i18n "pages.inbounds.expireDate" }}', width: 180, align: 'center', scopedSlots: { customRender: 'expiryTime' } },
   ];
@@ -1064,6 +1068,10 @@
       showAlert: false,
       ipLimitEnable: false,
       pageSize: 0,
+      // clientSpeedCache stores the previous traffic snapshot (total bytes, timestamp)
+      // for each client. Used to calculate instantaneous speed on the client-side
+      // without additional API requests.
+      clientSpeedCache: {},
     },
     methods: {
       loading(spinning = true) {
@@ -1857,6 +1865,88 @@
         const allTime = clientStats.allTime || 0;
         return allTime > current ? allTime : current;
       },
+
+      // DailyTrafficGetters & SpeedCalculator: Exposes 24h traffic counters (Up/Down/Sum)
+      // and calculates real-time client throughput. Speed computation uses a delta-caching
+      // strategy (1s interval) to prevent UI jitter during high-frequency WebSocket updates.
+      getDailyUpStats(dbInbound, email) {
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
+        return clientStats ? (clientStats.dailyUp || 0) : 0;
+      },
+      getDailyDownStats(dbInbound, email) {
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
+        return clientStats ? (clientStats.dailyDown || 0) : 0;
+      },
+      getDailySumStats(dbInbound, email) {
+        if (!email || email.length == 0) return 0;
+        let clientStats = this.getClientStats(dbInbound, email);
+        if (!clientStats) return 0;
+        return (clientStats.dailyUp || 0) + (clientStats.dailyDown || 0);
+      },
+      // getClientSpeed returns the current speed (bytes/sec) for a client
+      // Calculated from the delta between last known stats and current stats
+      // Uses same logic as dashboard total speed calculation
+      formatClientSpeed(dbInbound, email) {
+        const speed = this.getClientSpeed(dbInbound, email);
+        if (speed > 0) {
+          return SizeFormatter.sizeFormat(speed) + '/s';
+        }
+        return '-';
+      },
+      getClientSpeed(dbInbound, email) {
+        if (!email || !email.length) return 0;
+        if (!dbInbound || !dbInbound.id) return 0;
+        
+        const clientStats = this.getClientStats(dbInbound, email);
+        if (!clientStats) return 0;
+        
+        const now = Date.now();
+        const currentUp = clientStats.up || 0;
+        const currentDown = clientStats.down || 0;
+        const currentTotal = currentUp + currentDown;
+        const key = `${dbInbound.id}:${email}`;
+        
+        // Initialize cache entry if not exists
+        if (!this.clientSpeedCache[key]) {
+          this.$set(this.clientSpeedCache, key, { 
+            up: currentUp, 
+            down: currentDown, 
+            total: currentTotal, 
+            time: now, 
+            speed: 0 
+          });
+          return 0;
+        }
+
+        const cache = this.clientSpeedCache[key];
+        const timeDiff = (now - cache.time) / 1000;
+        
+        // Only recalculate speed if enough time passed (1 second for stability)
+        if (timeDiff >= 1.0) {
+          const upDelta = currentUp - cache.up;
+          const downDelta = currentDown - cache.down;
+          const totalDelta = upDelta + downDelta;
+          
+          // If traffic increased (positive delta), calculate speed
+          if (totalDelta >= 0 && timeDiff > 0) {
+            cache.speed = totalDelta / timeDiff;
+          } else {
+            // Traffic reset or counter overflow - keep last known speed
+            cache.speed = cache.speed || 0;
+          }
+          
+          // Update cache with current values
+          cache.up = currentUp;
+          cache.down = currentDown;
+          cache.total = currentTotal;
+          cache.time = now;
+        }
+        
+        return cache.speed || 0;
+      },
+
       getRemStats(dbInbound, email) {
         if (!email || email.length == 0) return 0;
         let clientStats = this.getClientStats(dbInbound, email);

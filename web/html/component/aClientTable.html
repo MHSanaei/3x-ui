@@ -54,6 +54,14 @@
     </template>
   </a-popover>
 </template>
+<!-- SpeedRenderer: Displays real-time client throughput calculated via delta between WebSocket updates.
+     Calculated client-side to reduce server load and avoid constant re-fetching of stats. -->
+<template slot="speed" slot-scope="text, client">
+  <a-tag color="cyan" style="cursor: default;">
+    <span v-if="client.email">[[ formatClientSpeed(record, client.email) ]]</span>
+    <span v-else>-</span>
+  </a-tag>
+</template>
 <template slot="client" slot-scope="text, client">
   <a-space direction="horizontal" :size="2">
     <a-tooltip>
@@ -114,6 +122,21 @@
 
 <template slot="allTime" slot-scope="text, client">
   <a-tag>[[ SizeFormatter.sizeFormat(getAllTimeClient(record, client.email)) ]]</a-tag>
+</template>
+<!-- DailyTrafficRenderer: Shows cumulative traffic for the current 24h cycle.
+     Includes a popover for granular Up/Down breakdown. -->
+<template slot="dailyTraffic" slot-scope="text, client">
+  <a-popover :overlay-class-name="themeSwitcher.currentTheme">
+    <template slot="content" v-if="client.email">
+      <table cellpadding="2" width="100%">
+        <tr>
+          <td>↑[[ SizeFormatter.sizeFormat(getDailyUpStats(record, client.email)) ]]</td>
+          <td>↓[[ SizeFormatter.sizeFormat(getDailyDownStats(record, client.email)) ]]</td>
+        </tr>
+      </table>
+    </template>
+    <a-tag>[[ SizeFormatter.sizeFormat(getDailySumStats(record, client.email)) ]]</a-tag>
+  </a-popover>
 </template>
 <template slot="expiryTime" slot-scope="text, client, index">
   <template v-if="client.expiryTime !=0 && client.reset >0">
