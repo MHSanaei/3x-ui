@@ -555,6 +555,9 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 	var versions []string
 	for _, release := range releases {
 		tagVersion := strings.TrimPrefix(release.TagName, "v")
+		if tagVersion == "26.5.3" {
+			continue
+		}
 		tagParts := strings.Split(tagVersion, ".")
 		if len(tagParts) != 3 {
 			continue
@@ -567,7 +570,7 @@ func (s *ServerService) GetXrayVersions() ([]string, error) {
 			continue
 		}
 
-		if major > 26 || (major == 26 && minor > 3) || (major == 26 && minor == 3 && patch >= 10) {
+		if major > 26 || (major == 26 && minor > 4) || (major == 26 && minor == 4 && patch >= 25) {
 			versions = append(versions, release.TagName)
 		}
 	}

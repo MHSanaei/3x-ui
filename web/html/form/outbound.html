@@ -342,6 +342,53 @@
           <a-form-item label="encryption">
             <a-input v-model.trim="outbound.settings.encryption"></a-input>
           </a-form-item>
+          <a-form-item>
+            <template slot="label">
+              <a-tooltip>
+                <template slot="title">
+                  <span>{{ i18n "pages.xray.outbound.reverseTagDesc" }}</span>
+                </template>
+                {{ i18n "pages.xray.outbound.reverseTag" }}
+                <a-icon type="question-circle"></a-icon>
+              </a-tooltip>
+            </template>
+            <a-input v-model.trim="outbound.settings.reverseTag" :placeholder='`{{ i18n "pages.xray.outbound.reverseTagPlaceholder" }}`'></a-input>
+          </a-form-item>
+          <template v-if="outbound.settings.reverseTag">
+            <a-form-item>
+              <span slot="label">
+                Reverse Sniffing
+                <a-tooltip>
+                  <template slot="title">
+                    <span>{{ i18n "pages.inbounds.noRecommendKeepDefault" }}</span>
+                  </template>
+                  <a-icon type="question-circle"></a-icon>
+                </a-tooltip>
+              </span>
+              <a-switch v-model="outbound.settings.reverseSniffing.enabled"></a-switch>
+            </a-form-item>
+            <template v-if="outbound.settings.reverseSniffing.enabled">
+              <a-form-item :wrapper-col="{span:24}">
+                <a-checkbox-group v-model="outbound.settings.reverseSniffing.destOverride">
+                  <a-checkbox v-for="key,value in SNIFFING_OPTION" :value="key">[[ value ]]</a-checkbox>
+                </a-checkbox-group>
+              </a-form-item>
+              <a-form-item label="Metadata Only">
+                <a-switch v-model="outbound.settings.reverseSniffing.metadataOnly"></a-switch>
+              </a-form-item>
+              <a-form-item label="Route Only">
+                <a-switch v-model="outbound.settings.reverseSniffing.routeOnly"></a-switch>
+              </a-form-item>
+              <a-form-item label="IPs Excluded">
+                <a-select mode="tags" v-model="outbound.settings.reverseSniffing.ipsExcluded" :style="{ width: '100%' }"
+                  :token-separators="[',']" placeholder="IP/CIDR/geoip:*/ext:*"></a-select>
+              </a-form-item>
+              <a-form-item label="Domains Excluded">
+                <a-select mode="tags" v-model="outbound.settings.reverseSniffing.domainsExcluded" :style="{ width: '100%' }"
+                  :token-separators="[',']" placeholder="domain:*/ext:*"></a-select>
+              </a-form-item>
+            </template>
+          </template>
         </template>
         <template v-if="outbound.canEnableTlsFlow()">
           <a-form-item label="Flow">

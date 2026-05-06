@@ -129,6 +129,18 @@
       <a-select-option v-for="key in TLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
     </a-select>
   </a-form-item>
+  <a-form-item v-if="inbound.protocol === Protocols.VLESS">
+    <template slot="label">
+      <a-tooltip>
+        <template slot="title">
+          <span>{{ i18n "pages.xray.outbound.reverseTagDesc" }}</span>
+        </template>
+        {{ i18n "pages.xray.outbound.reverseTag" }}
+        <a-icon type="question-circle"></a-icon>
+      </a-tooltip>
+    </template>
+    <a-input v-model.trim="client.reverseTag" :placeholder='`{{ i18n "pages.xray.outbound.reverseTagPlaceholder" }}`'></a-input>
+  </a-form-item>
   <a-form-item>
     <template slot="label">
       <a-tooltip>

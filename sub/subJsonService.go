@@ -44,7 +44,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 	fragmentOrNoises := false
 	if fragment != "" || noises != "" {
 		fragmentOrNoises = true
-		defaultOutboundsSettings := map[string]interface{}{
+		defaultOutboundsSettings := map[string]any{
 			"domainStrategy": "UseIP",
 			"redirect":       "",
 		}
@@ -57,7 +57,7 @@ func NewSubJsonService(fragment string, noises string, mux string, rules string,
 			defaultOutboundsSettings["noises"] = json_util.RawMessage(noises)
 		}
 
-		defaultDirectOutbound := map[string]interface{}{
+		defaultDirectOutbound := map[string]any{
 			"protocol": "freedom",
 			"settings": defaultOutboundsSettings,
 			"tag":      "direct_out",

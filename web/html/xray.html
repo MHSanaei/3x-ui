@@ -81,13 +81,6 @@
                   </template>
                   {{ template "settings/xray/outbounds" . }}
                 </a-tab-pane>
-                <a-tab-pane key="tpl-reverse" :style="{ paddingTop: '20px' }" force-render="true">
-                  <template #tab>
-                    <a-icon type="import"></a-icon>
-                    <span>{{ i18n "pages.xray.outbound.reverse"}}</span>
-                  </template>
-                  {{ template "settings/xray/reverse" . }}
-                </a-tab-pane>
                 <a-tab-pane key="tpl-balancer" :style="{ paddingTop: '20px' }" force-render="true">
                   <template #tab>
                     <a-icon type="cluster"></a-icon>
@@ -135,7 +128,6 @@
 {{template "component/aSettingListItem" .}}
 {{template "modals/ruleModal" .}}
 {{template "modals/outModal" .}}
-{{template "modals/reverseModal" .}}
 {{template "modals/balancerModal" .}}
 {{template "modals/dnsModal" .}}
 {{template "modals/dnsPresetsModal" .}}
@@ -177,39 +169,11 @@
     // network + security pills sit underneath it. Width chosen so the three
     // longest tonal pills (e.g. vless + httpupgrade + reality) fit on a
     // single line without wrapping.
-    { title: '{{ i18n "pages.xray.outbound.tag"}}', align: 'left', width: 280, scopedSlots: { customRender: 'identity' } },
-    { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'left', scopedSlots: { customRender: 'address' } },
+    { title: '{{ i18n "pages.xray.outbound.tag"}}', align: 'left', width: 190, scopedSlots: { customRender: 'identity' } },
+    { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'left', width: 230, scopedSlots: { customRender: 'address' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'left', width: 190, scopedSlots: { customRender: 'traffic' } },
     { title: '{{ i18n "pages.xray.outbound.testResult" }}', align: 'left', width: 130, scopedSlots: { customRender: 'testResult' } },
     { title: '{{ i18n "pages.xray.outbound.test" }}', align: 'center', width: 70, scopedSlots: { customRender: 'test' } },
-  ];
-
-  const reverseColumns = [{
-      title: "#",
-      align: 'center',
-      width: 20,
-      scopedSlots: {
-        customRender: 'action'
-      }
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.type"}}',
-      dataIndex: 'type',
-      align: 'center',
-      width: 50
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.tag"}}',
-      dataIndex: 'tag',
-      align: 'center',
-      width: 50
-    },
-    {
-      title: '{{ i18n "pages.xray.outbound.domain"}}',
-      dataIndex: 'domain',
-      align: 'center',
-      width: 50
-    },
   ];
 
   const balancerColumns = [{
@@ -316,6 +280,7 @@
       outboundTestUrl: 'https://www.google.com/generate_204',
       oldOutboundTestUrl: 'https://www.google.com/generate_204',
       inboundTags: [],
+      clientReverseTags: [],
       outboundsTraffic: [],
       outboundTestStates: {}, // Track testing state and results for each outbound
       saveBtnDisable: true,
@@ -595,6 +560,7 @@
           this.oldXraySetting = xs;
           this.xraySetting = xs;
           this.inboundTags = result.inboundTags;
+          this.clientReverseTags = result.clientReverseTags || [];
           this.outboundTestUrl = result.outboundTestUrl || 'https://www.google.com/generate_204';
           this.oldOutboundTestUrl = this.outboundTestUrl;
           this.saveBtnDisable = true;
@@ -944,110 +910,6 @@
           });
           Vue.prototype.$message.error('{{ i18n "pages.xray.outbound.testError" }}: ' + error.message);
         }
-      },
-      addReverse() {
-        reverseModal.show({
-          title: '{{ i18n "pages.xray.outbound.addReverse"}}',
-          okText: '{{ i18n "pages.xray.outbound.addReverse" }}',
-          confirm: (reverse, rules) => {
-            reverseModal.loading();
-            if (reverse.tag.length > 0) {
-              newTemplateSettings = this.templateSettings;
-              if (newTemplateSettings.reverse == undefined) newTemplateSettings.reverse = {};
-              if (newTemplateSettings.reverse[reverse.type + 's'] == undefined) newTemplateSettings.reverse[
-                reverse.type + 's'] = [];
-              newTemplateSettings.reverse[reverse.type + 's'].push({
-                tag: reverse.tag,
-                domain: reverse.domain
-              });
-              this.templateSettings = newTemplateSettings;
-
-              // Add related rules
-              this.templateSettings.routing.rules.push(...rules);
-              this.routingRuleSettings = JSON.stringify(this.templateSettings.routing.rules);
-            }
-            reverseModal.close();
-          },
-          isEdit: false
-        });
-      },
-      editReverse(index) {
-        if (this.reverseData[index].type == "bridge") {
-          oldRules = this.templateSettings.routing.rules.filter(r => r.inboundTag && r.inboundTag[0] == this
-            .reverseData[index].tag);
-        } else {
-          oldRules = this.templateSettings.routing.rules.filter(r => r.outboundTag && r.outboundTag == this
-            .reverseData[index].tag);
-        }
-        reverseModal.show({
-          title: '{{ i18n "pages.xray.outbound.editReverse"}} ' + (index + 1),
-          reverse: this.reverseData[index],
-          rules: oldRules,
-          confirm: (reverse, rules) => {
-            reverseModal.loading();
-            if (reverse.tag.length > 0) {
-              oldData = this.reverseData[index];
-              newTemplateSettings = this.templateSettings;
-              oldReverseIndex = newTemplateSettings.reverse[oldData.type + 's'].findIndex(rs => rs.tag ==
-                oldData.tag);
-              oldRuleIndex0 = oldRules.length > 0 ? newTemplateSettings.routing.rules.findIndex(r => JSON
-                .stringify(r) == JSON.stringify(oldRules[0])) : -1;
-              oldRuleIndex1 = oldRules.length == 2 ? newTemplateSettings.routing.rules.findIndex(r => JSON
-                .stringify(r) == JSON.stringify(oldRules[1])) : -1;
-              if (oldData.type == reverse.type) {
-                newTemplateSettings.reverse[oldData.type + 's'][oldReverseIndex] = {
-                  tag: reverse.tag,
-                  domain: reverse.domain
-                };
-              } else {
-                newTemplateSettings.reverse[oldData.type + 's'].splice(oldReverseIndex, 1);
-                // delete empty object
-                if (newTemplateSettings.reverse[oldData.type + 's'].length == 0) Reflect.deleteProperty(
-                  newTemplateSettings.reverse, oldData.type + 's');
-                // add other type of reverse if it is not exist
-                if (!newTemplateSettings.reverse[reverse.type + 's']) newTemplateSettings.reverse[reverse
-                  .type + 's'] = [];
-                newTemplateSettings.reverse[reverse.type + 's'].push({
-                  tag: reverse.tag,
-                  domain: reverse.domain
-                });
-              }
-              this.templateSettings = newTemplateSettings;
-
-              // Adjust Rules
-              newRules = this.templateSettings.routing.rules;
-              oldRuleIndex0 != -1 ? newRules[oldRuleIndex0] = rules[0] : newRules.push(rules[0]);
-              oldRuleIndex1 != -1 ? newRules[oldRuleIndex1] = rules[1] : newRules.push(rules[1]);
-              this.routingRuleSettings = JSON.stringify(newRules);
-            }
-            reverseModal.close();
-          },
-          isEdit: true
-        });
-      },
-      deleteReverse(index) {
-        oldData = this.reverseData[index];
-        newTemplateSettings = this.templateSettings;
-        reverseTypeObj = newTemplateSettings.reverse[oldData.type + 's'];
-        realIndex = reverseTypeObj.findIndex(r => r.tag == oldData.tag && r.domain == oldData.domain);
-        newTemplateSettings.reverse[oldData.type + 's'].splice(realIndex, 1);
-
-        // delete empty objects
-        if (reverseTypeObj.length == 0) Reflect.deleteProperty(newTemplateSettings.reverse, oldData.type + 's');
-        if (Object.keys(newTemplateSettings.reverse).length === 0) Reflect.deleteProperty(newTemplateSettings,
-          'reverse');
-
-        // delete related routing rules
-        newRules = newTemplateSettings.routing.rules;
-        if (oldData.type == "bridge") {
-          newRules = newTemplateSettings.routing.rules.filter(r => !(r.inboundTag && r.inboundTag.length == 1 && r
-            .inboundTag[0] == oldData.tag));
-        } else if (oldData.type == "portal") {
-          newRules = newTemplateSettings.routing.rules.filter(r => r.outboundTag != oldData.tag);
-        }
-        newTemplateSettings.routing.rules = newRules;
-
-        this.templateSettings = newTemplateSettings;
       },
       async refreshOutboundTraffic() {
         if (!this.refreshing) {
@@ -1453,32 +1315,6 @@
                 ...o
               });
             });
-          }
-          return data;
-        },
-      },
-      reverseData: {
-        get: function() {
-          data = []
-          if (this.templateSettings != null && this.templateSettings.reverse != null) {
-            if (this.templateSettings.reverse.bridges) {
-              this.templateSettings.reverse.bridges.forEach((o, index) => {
-                data.push({
-                  'key': index,
-                  'type': 'bridge',
-                  ...o
-                });
-              });
-            }
-            if (this.templateSettings.reverse.portals) {
-              this.templateSettings.reverse.portals.forEach((o, index) => {
-                data.push({
-                  'key': index,
-                  'type': 'portal',
-                  ...o
-                });
-              });
-            }
           }
           return data;
         },
@@ -2156,7 +1992,7 @@
     line-height: 1.5;
     border: 1px solid rgba(255, 255, 255, 0.06);
     display: inline-block;
-    max-width: 240px;
+    max-width: 190px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2436,6 +2272,90 @@
     font-size: 13px;
   }
   .light .xray-page .routing-target-icon { color: rgba(0, 0, 0, 0.45); }
+
+  /* ───────── Mobile outbound cards ───────── */
+  @media (max-width: 768px) {
+    .xray-page .outbounds-toolbar-right { text-align: left; }
+
+    .xray-page .outbound-card-empty {
+      text-align: center;
+      padding: 24px;
+      color: rgba(255, 255, 255, 0.35);
+      font-style: italic;
+    }
+    .light .xray-page .outbound-card-empty { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.15s ease;
+    }
+    .light .xray-page .outbound-card {
+      background: rgba(0, 0, 0, 0.025);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .xray-page .outbound-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .xray-page .outbound-card-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .xray-page .outbound-card-num {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .light .xray-page .outbound-card-num { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card .outbound-tag { font-size: 14px; }
+
+    .xray-page .outbound-card .outbound-protocol-cell { flex-wrap: wrap; }
+
+    .xray-page .outbound-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .xray-page .outbound-card .outbound-traffic-cell {
+      font-size: 12px;
+      padding: 4px 10px;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-test {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
 
 </style>
 {{ template "page/body_end" .}}

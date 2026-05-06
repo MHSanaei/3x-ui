@@ -50,6 +50,13 @@ const ALPN_OPTION = {
     HTTP1: "http/1.1",
 };
 
+const SNIFFING_OPTION = {
+    HTTP: "http",
+    TLS: "tls",
+    QUIC: "quic",
+    FAKEDNS: "fakedns"
+};
+
 const OutboundDomainStrategies = [
     "AsIs",
     "UseIP",
@@ -170,6 +177,7 @@ Object.freeze(SSMethods);
 Object.freeze(TLS_FLOW_CONTROL);
 Object.freeze(UTLS_FINGERPRINT);
 Object.freeze(ALPN_OPTION);
+Object.freeze(SNIFFING_OPTION);
 Object.freeze(OutboundDomainStrategies);
 Object.freeze(WireguardDomainStrategy);
 Object.freeze(USERS_SECURITY);
@@ -193,6 +201,50 @@ class CommonClass {
 
     toString(format = true) {
         return format ? JSON.stringify(this.toJson(), null, 2) : JSON.stringify(this.toJson());
+    }
+}
+
+class ReverseSniffing extends CommonClass {
+    constructor(
+        enabled = false,
+        destOverride = ['http', 'tls', 'quic', 'fakedns'],
+        metadataOnly = false,
+        routeOnly = false,
+        ipsExcluded = [],
+        domainsExcluded = [],
+    ) {
+        super();
+        this.enabled = enabled;
+        this.destOverride = Array.isArray(destOverride) && destOverride.length > 0 ? destOverride : ['http', 'tls', 'quic', 'fakedns'];
+        this.metadataOnly = metadataOnly;
+        this.routeOnly = routeOnly;
+        this.ipsExcluded = Array.isArray(ipsExcluded) ? ipsExcluded : [];
+        this.domainsExcluded = Array.isArray(domainsExcluded) ? domainsExcluded : [];
+    }
+
+    static fromJson(json = {}) {
+        if (!json || Object.keys(json).length === 0) {
+            return new ReverseSniffing();
+        }
+        return new ReverseSniffing(
+            !!json.enabled,
+            json.destOverride,
+            json.metadataOnly,
+            json.routeOnly,
+            json.ipsExcluded || [],
+            json.domainsExcluded || [],
+        );
+    }
+
+    toJson() {
+        return {
+            enabled: this.enabled,
+            destOverride: this.destOverride,
+            metadataOnly: this.metadataOnly,
+            routeOnly: this.routeOnly,
+            ipsExcluded: this.ipsExcluded.length > 0 ? this.ipsExcluded : undefined,
+            domainsExcluded: this.domainsExcluded.length > 0 ? this.domainsExcluded : undefined,
+        };
     }
 }
 
@@ -1747,13 +1799,15 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption, testpre = 0, testseed = [900, 500, 900, 256]) {
+    constructor(address, port, id, flow, encryption, reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = [900, 500, 900, 256]) {
         super();
         this.address = address;
         this.port = port;
         this.id = id;
         this.flow = flow;
         this.encryption = encryption;
+        this.reverseTag = reverseTag;
+        this.reverseSniffing = reverseSniffing;
         this.testpre = testpre;
         this.testseed = testseed;
     }
@@ -1766,6 +1820,8 @@ Outbound.VLESSSettings = class extends CommonClass {
             json.id,
             json.flow,
             json.encryption,
+            json.reverse?.tag || '',
+            ReverseSniffing.fromJson(json.reverse?.sniffing || {}),
             json.testpre || 0,
             json.testseed && json.testseed.length >= 4 ? json.testseed : [900, 500, 900, 256]
         );
@@ -1779,6 +1835,14 @@ Outbound.VLESSSettings = class extends CommonClass {
             flow: this.flow,
             encryption: this.encryption,
         };
+        if (!ObjectUtil.isEmpty(this.reverseTag)) {
+            const reverseSniffing = this.reverseSniffing ? this.reverseSniffing.toJson() : {};
+            const defaultReverseSniffing = new ReverseSniffing().toJson();
+            result.reverse = {
+                tag: this.reverseTag,
+                sniffing: JSON.stringify(reverseSniffing) === JSON.stringify(defaultReverseSniffing) ? {} : reverseSniffing,
+            };
+        }
         // Only include Vision settings when flow is set
         if (this.flow && this.flow !== '') {
             if (this.testpre > 0) {
