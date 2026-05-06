@@ -104,36 +104,6 @@ func (s *InboundService) GetInboundsByTrafficReset(period string) ([]*model.Inbo
 	return inbounds, nil
 }
 
-func (s *InboundService) checkPortExist(listen string, port int, ignoreId int) (bool, error) {
-	db := database.GetDB()
-	if listen == "" || listen == "0.0.0.0" || listen == "::" || listen == "::0" {
-		db = db.Model(model.Inbound{}).Where("port = ?", port)
-	} else {
-		db = db.Model(model.Inbound{}).
-			Where("port = ?", port).
-			Where(
-				db.Model(model.Inbound{}).Where(
-					"listen = ?", listen,
-				).Or(
-					"listen = \"\"",
-				).Or(
-					"listen = \"0.0.0.0\"",
-				).Or(
-					"listen = \"::\"",
-				).Or(
-					"listen = \"::0\""))
-	}
-	if ignoreId > 0 {
-		db = db.Where("id != ?", ignoreId)
-	}
-	var count int64
-	err := db.Count(&count).Error
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
 func (s *InboundService) GetClients(inbound *model.Inbound) ([]model.Client, error) {
 	settings := map[string][]model.Client{}
 	json.Unmarshal([]byte(inbound.Settings), &settings)
@@ -221,12 +191,22 @@ func (s *InboundService) checkEmailExistForInbound(inbound *model.Inbound) (stri
 // then saves the inbound to the database and optionally adds it to the running Xray instance.
 // Returns the created inbound, whether Xray needs restart, and any error.
 func (s *InboundService) AddInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
-	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, 0)
+	exist, err := s.checkPortConflict(inbound, 0)
 	if err != nil {
 		return inbound, false, err
 	}
 	if exist {
 		return inbound, false, common.NewError("Port already exists:", inbound.Port)
+	}
+
+	// pick a tag that won't collide with an existing row. for the common
+	// case this is the same "inbound-<port>" string the controller already
+	// set; only when this port already has another inbound on a different
+	// transport (now possible after the transport-aware port check) does
+	// this disambiguate with a -tcp/-udp suffix. see #4103.
+	inbound.Tag, err = s.generateInboundTag(inbound, 0)
+	if err != nil {
+		return inbound, false, err
 	}
 
 	existEmail, err := s.checkEmailExistForInbound(inbound)
@@ -462,7 +442,7 @@ func (s *InboundService) SetInboundEnable(id int, enable bool) (bool, error) {
 // It validates changes, updates the database, and syncs with the running Xray instance.
 // Returns the updated inbound, whether Xray needs restart, and any error.
 func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, bool, error) {
-	exist, err := s.checkPortExist(inbound.Listen, inbound.Port, inbound.Id)
+	exist, err := s.checkPortConflict(inbound, inbound.Id)
 	if err != nil {
 		return inbound, false, err
 	}
@@ -565,10 +545,11 @@ func (s *InboundService) UpdateInbound(inbound *model.Inbound) (*model.Inbound, 
 	oldInbound.Settings = inbound.Settings
 	oldInbound.StreamSettings = inbound.StreamSettings
 	oldInbound.Sniffing = inbound.Sniffing
-	if inbound.Listen == "" || inbound.Listen == "0.0.0.0" || inbound.Listen == "::" || inbound.Listen == "::0" {
-		oldInbound.Tag = fmt.Sprintf("inbound-%v", inbound.Port)
-	} else {
-		oldInbound.Tag = fmt.Sprintf("inbound-%v:%v", inbound.Listen, inbound.Port)
+	// regenerate tag with collision-aware logic. for this row we pass
+	// inbound.Id as ignoreId so it doesn't see its own old tag in the db.
+	oldInbound.Tag, err = s.generateInboundTag(inbound, inbound.Id)
+	if err != nil {
+		return inbound, false, err
 	}
 
 	needRestart := false
