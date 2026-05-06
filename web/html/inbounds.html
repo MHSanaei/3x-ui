@@ -182,6 +182,7 @@
                     <a-input v-if="!enableFilter" v-model.lazy="searchKey" placeholder='{{ i18n "search" }}' autofocus
                       :style="{ maxWidth: '300px' }" :size="isMobile ? 'small' : ''"></a-input>
                     <a-radio-group v-if="enableFilter" v-model="filterBy" @change="filterInbounds" button-style="solid"
+                      class="mobile-filter-group"
                       :size="isMobile ? 'small' : ''">
                       <a-radio-button value>{{ i18n "none" }}</a-radio-button>
                       <a-radio-button value="active">{{ i18n "subscription.active"
@@ -2240,6 +2241,31 @@
   @media (max-width: 768px) {
     #content-layout>.ant-layout-content>.ant-spin-nested-loading>div>.ant-spin {
       left: 50vw !important;
+    }
+
+    /* Keep filter choices in a single horizontal line on phones. */
+    .inbounds-page .mobile-filter-group {
+      display: flex;
+      flex-wrap: nowrap;
+      max-width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 2px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+    }
+    .inbounds-page .mobile-filter-group .ant-radio-button-wrapper {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    /* Prevent mobile row content from splitting across multiple lines. */
+    .inbounds-page .ant-table-tbody > tr > td {
+      white-space: nowrap;
+    }
+    .inbounds-page .ant-table-tbody > tr > td:nth-child(3) {
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   }
 

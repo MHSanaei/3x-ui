@@ -96,7 +96,7 @@
       </table>
     </template>
     <div class="tr-table-box">
-      <div class="tr-table-lt">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</div>
+      <div class="tr-table-rt">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</div>
       <div class="tr-table-bar" v-if="!client.enable">
         <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false" :percent="statsProgress(record, client.email)" />
       </div>
