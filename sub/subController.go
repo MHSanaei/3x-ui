@@ -140,6 +140,7 @@ func (a *SUBController) subs(c *gin.Context) {
 				"host":         page.Host,
 				"base_path":    page.BasePath,
 				"sId":          page.SId,
+				"enabled":      page.Enabled,
 				"download":     page.Download,
 				"upload":       page.Upload,
 				"total":        page.Total,

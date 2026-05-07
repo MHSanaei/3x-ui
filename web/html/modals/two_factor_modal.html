@@ -55,12 +55,12 @@
 
             twoFactorModal.close()
         },
-        show: function ({
+        show: function({
             title = '',
             description = '',
             token = '',
             type = 'set',
-            confirm = (success) => { }
+            confirm = (success) => {}
         }) {
             this.title = title;
             this.description = description;
@@ -78,7 +78,7 @@
                 secret: twoFactorModal.token,
             });
         },
-        close: function () {
+        close: function() {
             twoFactorModal.enteredCode = "";
             twoFactorModal.visible = false;
         },
@@ -91,34 +91,34 @@
             twoFactorModal: twoFactorModal,
         },
         updated() {
-          if (
-            this.twoFactorModal.visible &&
-            this.twoFactorModal.type === 'set' &&
-            document.getElementById('twofactor-qrcode')
-          ) {
-            this.setQrCode('twofactor-qrcode', this.twoFactorModal.totpObject.toString());
-          }
+            if (
+                this.twoFactorModal.visible &&
+                this.twoFactorModal.type === 'set' &&
+                document.getElementById('twofactor-qrcode')
+            ) {
+                this.setQrCode('twofactor-qrcode', this.twoFactorModal.totpObject.toString());
+            }
         },
         methods: {
-          setQrCode(elementId, content) {
-            new QRious({
-              element: document.getElementById(elementId),
-              size: 200,
-              value: content,
-              background: 'white',
-              backgroundAlpha: 0,
-              foreground: 'black',
-              padding: 2,
-              level: 'L'
-            });
-          },
-          copy(content) {
-            ClipboardManager
-              .copyText(content)
-              .then(() => {
-                app.$message.success('{{ i18n "copied" }}')
-              })
-          },
+            setQrCode(elementId, content) {
+                new QRious({
+                    element: document.getElementById(elementId),
+                    size: 200,
+                    value: content,
+                    background: 'white',
+                    backgroundAlpha: 0,
+                    foreground: 'black',
+                    padding: 2,
+                    level: 'L'
+                });
+            },
+            copy(content) {
+                ClipboardManager
+                    .copyText(content)
+                    .then(() => {
+                        app.$message.success('{{ i18n "copied" }}')
+                    })
+            },
         }
     });
 </script>

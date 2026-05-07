@@ -521,7 +521,8 @@
                       @click="copy(infoModal.wireguardLinks[index])"></a-button>
                   </a-tooltip>
                 </tr-info-title>
-                <code :style="{ display: 'block', whiteSpace: 'normal', wordBreak: 'break-all' }">[[ infoModal.wireguardLinks[index] ]]</code>
+                <code :style="{ display: 'block', whiteSpace: 'normal', wordBreak: 'break-all' }">[[
+                  infoModal.wireguardLinks[index] ]]</code>
               </tr-info-row>
             </td>
           </tr>
@@ -534,7 +535,10 @@
   function refreshIPs(email) {
     return HttpUtil.post(`/panel/api/inbounds/clientIps/${email}`).then((msg) => {
       if (!msg.success) {
-        return { text: 'No IP Record', array: [] };
+        return {
+          text: 'No IP Record',
+          array: []
+        };
       }
 
       const formatIpRecord = (record) => {
@@ -574,7 +578,10 @@
           try {
             ips = JSON.parse(ips);
           } catch (e) {
-            return { text: String(ips), array: [String(ips)] };
+            return {
+              text: String(ips),
+              array: [String(ips)]
+            };
           }
         }
 
@@ -586,20 +593,32 @@
         // New format or object array
         if (Array.isArray(ips) && ips.length > 0 && typeof ips[0] === 'object') {
           const result = ips.map((item) => formatIpRecord(item)).filter(Boolean);
-          return { text: result.join(' | '), array: result };
+          return {
+            text: result.join(' | '),
+            array: result
+          };
         }
 
         // Old format - simple array of IPs
         if (Array.isArray(ips) && ips.length > 0) {
           const result = ips.map((ip) => String(ip));
-          return { text: result.join(', '), array: result };
+          return {
+            text: result.join(', '),
+            array: result
+          };
         }
 
         // Fallback for any other format
-        return { text: String(ips), array: [String(ips)] };
+        return {
+          text: String(ips),
+          array: [String(ips)]
+        };
 
       } catch (e) {
-        return { text: 'Error loading IPs', array: [] };
+        return {
+          text: 'Error loading IPs',
+          array: []
+        };
       }
     });
   }
@@ -626,7 +645,8 @@
       this.dbInbound = new DBInbound(dbInbound);
       this.clientSettings = this.inbound.clients ? this.inbound.clients[index] : null;
       this.isExpired = this.inbound.clients ? this.inbound.isExpiry(index) : this.dbInbound.isExpiry;
-      this.clientStats = this.inbound.clients ? (this.dbInbound.clientStats.find(row => row.email === this.clientSettings.email) || null) : null;
+      this.clientStats = this.inbound.clients ? (this.dbInbound.clientStats.find(row => row.email === this
+        .clientSettings.email) || null) : null;
 
       if (
         [
@@ -752,7 +772,8 @@
         return ColorUtils.usageColor(stats.up + stats.down, app.trafficDiff, stats.total);
       },
       getRemStats() {
-        remained = this.infoModal.clientStats.total - this.infoModal.clientStats.up - this.infoModal.clientStats.down;
+        remained = this.infoModal.clientStats.total - this.infoModal.clientStats.up - this.infoModal.clientStats
+          .down;
         return remained > 0 ? SizeFormatter.sizeFormat(remained) : '-';
       },
       refreshIPs() {
@@ -775,7 +796,7 @@
             this.infoModal.clientIps = 'No IP Record';
             this.infoModal.clientIpsArray = [];
           })
-          .catch(() => { });
+          .catch(() => {});
       },
     },
   });

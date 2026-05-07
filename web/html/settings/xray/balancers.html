@@ -5,7 +5,8 @@
             <span>{{ i18n "pages.xray.balancer.addBalancer"}}</span>
         </a-button>
         <a-table :columns="balancerColumns" bordered :row-key="r => r.key" :data-source="balancersData"
-            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0" :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
+            :scroll="isMobile ? {} : { x: 200 }" :pagination="false" :indent-size="0"
+            :locale='{ filterConfirm: `{{ i18n "confirm" }}`, filterReset: `{{ i18n "reset" }}` }'>
             <template slot="action" slot-scope="text, balancer, index">
                 <span>[[ index+1 ]]</span>
                 <a-dropdown :trigger="['click']">
@@ -18,7 +19,7 @@
                         </a-menu-item>
                         <a-menu-item @click="deleteBalancer(index)">
                             <span :style="{ color: '#FF4D4F' }">
-                                <a-icon type="delete"></a-icon> 
+                                <a-icon type="delete"></a-icon>
                                 <span>{{ i18n "delete"}}</span>
                             </span>
                         </a-menu-item>
@@ -32,7 +33,8 @@
                 <a-tag :style="{ margin: '0' }" v-if="balancer.strategy=='leastPing'" color="green">Least Ping</a-tag>
             </template>
             <template slot="selector" slot-scope="text, balancer, index">
-                <a-tag class="info-large-tag" :style="{ margin: '1' }" v-for="sel in balancer.selector">[[ sel ]]</a-tag>
+                <a-tag class="info-large-tag" :style="{ margin: '1' }" v-for="sel in balancer.selector">[[ sel
+                    ]]</a-tag>
             </template>
         </a-table>
         <a-radio-group v-if="observatoryEnable || burstObservatoryEnable" v-model="obsSettings" @change="changeObsCode"

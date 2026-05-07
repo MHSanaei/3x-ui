@@ -2,7 +2,7 @@
 <a-modal id="inbound-modal" v-model="inModal.visible" :title="inModal.title" :dialog-style="{ top: '20px' }"
     @ok="inModal.ok" :confirm-loading="inModal.confirmLoading" :closable="true" :mask-closable="false"
     :class="themeSwitcher.currentTheme" :ok-text="inModal.okText" cancel-text='{{ i18n "close" }}'>
-    {{template "form/inbound"}}
+    {{template "form/inbound" .}}
 </a-modal>
 <script>
     // Make inModal globally available to ensure it works with any base path
@@ -23,7 +23,7 @@
             okText = '{{ i18n "sure" }}',
             inbound = null,
             dbInbound = null,
-            confirm = (inbound, dbInbound) => { },
+            confirm = (inbound, dbInbound) => {},
             isEdit = false,
         }) {
             this.title = title;
@@ -180,8 +180,8 @@
                     ) {
                         const hasVisionFlow = inModal.inbound.settings.vlesses.some(
                             (c) =>
-                                c.flow === "xtls-rprx-vision" ||
-                                c.flow === "xtls-rprx-vision-udp443",
+                            c.flow === "xtls-rprx-vision" ||
+                            c.flow === "xtls-rprx-vision-udp443",
                         );
                         if (
                             hasVisionFlow &&

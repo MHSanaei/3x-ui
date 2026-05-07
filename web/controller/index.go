@@ -10,7 +10,6 @@ import (
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
@@ -95,9 +94,8 @@ func (a *IndexController) login(c *gin.Context) {
 	logger.Infof("%s logged in successfully, Ip Address: %s\n", safeUser, getRemoteIp(c))
 	a.tgbot.UserLoginNotify(safeUser, ``, getRemoteIp(c), timeStr, 1)
 
-	session.SetLoginUser(c, user)
-	if err := sessions.Default(c).Save(); err != nil {
-		logger.Warning("Unable to save session: ", err)
+	if err := session.SetLoginUser(c, user); err != nil {
+		logger.Warning("Unable to save session:", err)
 		return
 	}
 
@@ -111,9 +109,8 @@ func (a *IndexController) logout(c *gin.Context) {
 	if user != nil {
 		logger.Infof("%s logged out successfully", user.Username)
 	}
-	session.ClearSession(c)
-	if err := sessions.Default(c).Save(); err != nil {
-		logger.Warning("Unable to save session after clearing:", err)
+	if err := session.ClearSession(c); err != nil {
+		logger.Warning("Unable to clear session on logout:", err)
 	}
 	c.Redirect(http.StatusTemporaryRedirect, c.GetString("base_path"))
 }

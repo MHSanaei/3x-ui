@@ -79,7 +79,8 @@
                     </template>
                     {{ template "settings/panel/subscription/general" . }}
                   </a-tab-pane>
-                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable || allSetting.subClashEnable" :style="{ paddingTop: '20px' }">
+                  <a-tab-pane key="5" v-if="allSetting.subJsonEnable || allSetting.subClashEnable"
+                    :style="{ paddingTop: '20px' }">
                     <template #tab>
                       <a-icon type="code"></a-icon>
                       <span>{{ i18n "pages.settings.subSettings" }} (Formats)</span>
@@ -102,7 +103,7 @@
 {{template "component/aSidebar" .}}
 {{template "component/aThemeSwitch" .}}
 {{template "component/aSettingListItem" .}}
-{{template "modals/twoFactorModal"}}
+{{template "modals/twoFactorModal" .}}
 <script>
   const app = new Vue({
     delimiters: ['[[', ']]'],
@@ -124,9 +125,19 @@
       user: {},
       lang: LanguageManager.getLanguage(),
       inboundOptions: [],
-      remarkModels: { i: 'Inbound', e: 'Email', o: 'Other' },
+      remarkModels: {
+        i: 'Inbound',
+        e: 'Email',
+        o: 'Other'
+      },
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
-      datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
+      datepickerList: [{
+        name: 'Gregorian (Standard)',
+        value: 'gregorian'
+      }, {
+        name: 'Jalalian (شمسی)',
+        value: 'jalalian'
+      }],
       remarkSample: '',
       defaultFragment: {
         packets: "tlshello",
@@ -134,17 +145,19 @@
         interval: "10-20",
         maxSplit: "300-400"
       },
-      defaultNoises: [
-        { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" }
-      ],
+      defaultNoises: [{
+        type: "rand",
+        packet: "10-20",
+        delay: "10-16",
+        applyTo: "ip"
+      }],
       defaultMux: {
         enabled: true,
         concurrency: 8,
         xudpConcurrency: 16,
         xudpProxyUDP443: "reject"
       },
-      defaultRules: [
-        {
+      defaultRules: [{
           type: "field",
           outboundTag: "direct",
           domain: [
@@ -160,26 +173,75 @@
           ]
         },
       ],
-      directIPsOptions: [
-        { label: 'Private IP', value: 'geoip:private' },
-        { label: '🇮🇷 Iran', value: 'geoip:ir' },
-        { label: '🇨🇳 China', value: 'geoip:cn' },
-        { label: '🇷🇺 Russia', value: 'geoip:ru' },
-        { label: '🇻🇳 Vietnam', value: 'geoip:vn' },
-        { label: '🇪🇸 Spain', value: 'geoip:es' },
-        { label: '🇮🇩 Indonesia', value: 'geoip:id' },
-        { label: '🇺🇦 Ukraine', value: 'geoip:ua' },
-        { label: '🇹🇷 Türkiye', value: 'geoip:tr' },
-        { label: '🇧🇷 Brazil', value: 'geoip:br' },
+      directIPsOptions: [{
+          label: 'Private IP',
+          value: 'geoip:private'
+        },
+        {
+          label: '🇮🇷 Iran',
+          value: 'geoip:ir'
+        },
+        {
+          label: '🇨🇳 China',
+          value: 'geoip:cn'
+        },
+        {
+          label: '🇷🇺 Russia',
+          value: 'geoip:ru'
+        },
+        {
+          label: '🇻🇳 Vietnam',
+          value: 'geoip:vn'
+        },
+        {
+          label: '🇪🇸 Spain',
+          value: 'geoip:es'
+        },
+        {
+          label: '🇮🇩 Indonesia',
+          value: 'geoip:id'
+        },
+        {
+          label: '🇺🇦 Ukraine',
+          value: 'geoip:ua'
+        },
+        {
+          label: '🇹🇷 Türkiye',
+          value: 'geoip:tr'
+        },
+        {
+          label: '🇧🇷 Brazil',
+          value: 'geoip:br'
+        },
       ],
-      diretDomainsOptions: [
-        { label: 'Private DNS', value: 'geosite:private' },
-        { label: '🇮🇷 Iran', value: 'geosite:category-ir' },
-        { label: '🇨🇳 China', value: 'geosite:cn' },
-        { label: '🇷🇺 Russia', value: 'geosite:category-ru' },
-        { label: 'Apple', value: 'geosite:apple' },
-        { label: 'Meta', value: 'geosite:meta' },
-        { label: 'Google', value: 'geosite:google' },
+      diretDomainsOptions: [{
+          label: 'Private DNS',
+          value: 'geosite:private'
+        },
+        {
+          label: '🇮🇷 Iran',
+          value: 'geosite:category-ir'
+        },
+        {
+          label: '🇨🇳 China',
+          value: 'geosite:cn'
+        },
+        {
+          label: '🇷🇺 Russia',
+          value: 'geosite:category-ru'
+        },
+        {
+          label: 'Apple',
+          value: 'geosite:apple'
+        },
+        {
+          label: 'Meta',
+          value: 'geosite:meta'
+        },
+        {
+          label: 'Google',
+          value: 'geosite:google'
+        },
       ],
       get remarkModel() {
         rm = this.allSetting.remarkModel;
@@ -317,7 +379,13 @@
         this.loading(true);
         await PromiseUtil.sleep(5000);
 
-        const { webDomain, webPort, webBasePath, webCertFile, webKeyFile } = this.allSetting;
+        const {
+          webDomain,
+          webPort,
+          webBasePath,
+          webCertFile,
+          webKeyFile
+        } = this.allSetting;
         const newProtocol = (webCertFile || webKeyFile) ? "https:" : "http:";
 
         let base = webBasePath ? webBasePath.replace(/^\//, "") : "";
@@ -358,7 +426,8 @@
             type: 'set',
             confirm: (success) => {
               if (success) {
-                Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalSetSuccess" }}')
+                Vue.prototype.$message['success'](
+                  '{{ i18n "pages.settings.security.twoFactorModalSetSuccess" }}')
 
                 this.allSetting.twoFactorToken = newTwoFactorToken
               }
@@ -374,7 +443,8 @@
             type: 'confirm',
             confirm: (success) => {
               if (success) {
-                Vue.prototype.$message['success']('{{ i18n "pages.settings.security.twoFactorModalDeleteSuccess" }}')
+                Vue.prototype.$message['success'](
+                  '{{ i18n "pages.settings.security.twoFactorModalDeleteSuccess" }}')
 
                 this.allSetting.twoFactorEnable = false
                 this.allSetting.twoFactorToken = ""
@@ -384,7 +454,12 @@
         }
       },
       addNoise() {
-        const newNoise = { type: "rand", packet: "10-20", delay: "10-16", applyTo: "ip" };
+        const newNoise = {
+          type: "rand",
+          packet: "10-20",
+          delay: "10-16",
+          applyTo: "ip"
+        };
         this.noisesArray = [...this.noisesArray, newNoise];
       },
       removeNoise(index) {
@@ -394,44 +469,60 @@
       },
       updateNoiseType(index, value) {
         const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], type: value };
+        updatedNoises[index] = {
+          ...updatedNoises[index],
+          type: value
+        };
         this.noisesArray = updatedNoises;
       },
       updateNoisePacket(index, value) {
         const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], packet: value };
+        updatedNoises[index] = {
+          ...updatedNoises[index],
+          packet: value
+        };
         this.noisesArray = updatedNoises;
       },
       updateNoiseDelay(index, value) {
         const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], delay: value };
+        updatedNoises[index] = {
+          ...updatedNoises[index],
+          delay: value
+        };
         this.noisesArray = updatedNoises;
       },
       updateNoiseApplyTo(index, value) {
         const updatedNoises = [...this.noisesArray];
-        updatedNoises[index] = { ...updatedNoises[index], applyTo: value };
+        updatedNoises[index] = {
+          ...updatedNoises[index],
+          applyTo: value
+        };
         this.noisesArray = updatedNoises;
       },
     },
     computed: {
       ldapInboundTagList: {
-        get: function () {
+        get: function() {
           const csv = this.allSetting.ldapInboundTags || "";
           return csv.length ? csv.split(',').map(s => s.trim()).filter(Boolean) : [];
         },
-        set: function (list) {
+        set: function(list) {
           this.allSetting.ldapInboundTags = Array.isArray(list) ? list.join(',') : '';
         }
       },
       fragment: {
-        get: function () { return this.allSetting?.subJsonFragment != ""; },
-        set: function (v) {
+        get: function() {
+          return this.allSetting?.subJsonFragment != "";
+        },
+        set: function(v) {
           this.allSetting.subJsonFragment = v ? JSON.stringify(this.defaultFragment) : "";
         }
       },
       fragmentPackets: {
-        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).packets : ""; },
-        set: function (v) {
+        get: function() {
+          return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).packets : "";
+        },
+        set: function(v) {
           if (v != "") {
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.packets = v;
@@ -440,8 +531,10 @@
         }
       },
       fragmentLength: {
-        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).length : ""; },
-        set: function (v) {
+        get: function() {
+          return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).length : "";
+        },
+        set: function(v) {
           if (v != "") {
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.length = v;
@@ -450,8 +543,10 @@
         }
       },
       fragmentInterval: {
-        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).interval : ""; },
-        set: function (v) {
+        get: function() {
+          return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).interval : "";
+        },
+        set: function(v) {
           if (v != "") {
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.interval = v;
@@ -460,8 +555,10 @@
         }
       },
       fragmentMaxSplit: {
-        get: function () { return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).maxSplit : ""; },
-        set: function (v) {
+        get: function() {
+          return this.fragment ? JSON.parse(this.allSetting.subJsonFragment).maxSplit : "";
+        },
+        set: function(v) {
           if (v != "") {
             newFragment = JSON.parse(this.allSetting.subJsonFragment);
             newFragment.maxSplit = v;
@@ -492,50 +589,60 @@
         }
       },
       enableMux: {
-        get: function () { return this.allSetting?.subJsonMux != ""; },
-        set: function (v) {
+        get: function() {
+          return this.allSetting?.subJsonMux != "";
+        },
+        set: function(v) {
           this.allSetting.subJsonMux = v ? JSON.stringify(this.defaultMux) : "";
         }
       },
       muxConcurrency: {
-        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).concurrency : -1; },
-        set: function (v) {
+        get: function() {
+          return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).concurrency : -1;
+        },
+        set: function(v) {
           newMux = JSON.parse(this.allSetting.subJsonMux);
           newMux.concurrency = v;
           this.allSetting.subJsonMux = JSON.stringify(newMux);
         }
       },
       muxXudpConcurrency: {
-        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpConcurrency : -1; },
-        set: function (v) {
+        get: function() {
+          return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpConcurrency : -1;
+        },
+        set: function(v) {
           newMux = JSON.parse(this.allSetting.subJsonMux);
           newMux.xudpConcurrency = v;
           this.allSetting.subJsonMux = JSON.stringify(newMux);
         }
       },
       muxXudpProxyUDP443: {
-        get: function () { return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpProxyUDP443 : "reject"; },
-        set: function (v) {
+        get: function() {
+          return this.enableMux ? JSON.parse(this.allSetting.subJsonMux).xudpProxyUDP443 : "reject";
+        },
+        set: function(v) {
           newMux = JSON.parse(this.allSetting.subJsonMux);
           newMux.xudpProxyUDP443 = v;
           this.allSetting.subJsonMux = JSON.stringify(newMux);
         }
       },
       enableDirect: {
-        get: function () { return this.allSetting?.subJsonRules != ""; },
-        set: function (v) {
+        get: function() {
+          return this.allSetting?.subJsonRules != "";
+        },
+        set: function(v) {
           this.allSetting.subJsonRules = v ? JSON.stringify(this.defaultRules) : "";
         }
       },
       directIPs: {
-        get: function () {
+        get: function() {
           if (!this.enableDirect) return [];
           const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return [];
           const ipRule = rules.find(r => r.ip);
           return ipRule?.ip ?? [];
         },
-        set: function (v) {
+        set: function(v) {
           let rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
 
@@ -554,14 +661,14 @@
         }
       },
       directDomains: {
-        get: function () {
+        get: function() {
           if (!this.enableDirect) return [];
           const rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return [];
           const domainRule = rules.find(r => r.domain);
           return domainRule?.domain ?? [];
         },
-        set: function (v) {
+        set: function(v) {
           let rules = JSON.parse(this.allSetting.subJsonRules);
           if (!Array.isArray(rules)) return;
           if (v.length == 0) {
@@ -576,7 +683,7 @@
         }
       },
       confAlerts: {
-        get: function () {
+        get: function() {
           if (!this.allSetting) return [];
           var alerts = []
           if (window.location.protocol !== "https:") alerts.push('{{ i18n "secAlertSSL" }}');
@@ -584,11 +691,13 @@
           panelPath = window.location.pathname.split('/').length < 4
           if (panelPath && this.allSetting.webBasePath == '/') alerts.push('{{ i18n "secAlertPanelURI" }}');
           if (this.allSetting.subEnable) {
-            subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this.allSetting.subPath;
+            subPath = this.allSetting.subURI.length > 0 ? new URL(this.allSetting.subURI).pathname : this
+              .allSetting.subPath;
             if (subPath == '/sub/') alerts.push('{{ i18n "secAlertSubURI" }}');
           }
           if (this.allSetting.subJsonEnable) {
-            subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname : this.allSetting.subJsonPath;
+            subJsonPath = this.allSetting.subJsonURI.length > 0 ? new URL(this.allSetting.subJsonURI).pathname :
+              this.allSetting.subJsonPath;
             if (subJsonPath == '/json/') alerts.push('{{ i18n "secAlertSubJsonURI" }}');
           }
           return alerts

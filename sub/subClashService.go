@@ -55,7 +55,7 @@ func (s *SubClashService) GetClash(subId string, host string) (string, string, e
 			}
 		}
 		for _, client := range clients {
-			if client.Enable && client.SubID == subId {
+			if client.SubID == subId {
 				clientTraffics = append(clientTraffics, s.SubService.getClientTraffics(inbound.ClientStats, client.Email))
 				proxies = append(proxies, s.getProxies(inbound, client, host)...)
 			}

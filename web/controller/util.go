@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"strings"
 
 	"github.com/mhsanaei/3x-ui/v2/config"
@@ -14,18 +16,58 @@ import (
 
 // getRemoteIp extracts the real IP address from the request headers or remote address.
 func getRemoteIp(c *gin.Context) string {
-	value := c.GetHeader("X-Real-IP")
-	if value != "" {
-		return value
+	if ip, ok := extractTrustedIP(c.GetHeader("X-Real-IP")); ok {
+		return ip
 	}
-	value = c.GetHeader("X-Forwarded-For")
-	if value != "" {
-		ips := strings.Split(value, ",")
-		return ips[0]
+
+	if xff := c.GetHeader("X-Forwarded-For"); xff != "" {
+		for _, part := range strings.Split(xff, ",") {
+			if ip, ok := extractTrustedIP(part); ok {
+				return ip
+			}
+		}
 	}
-	addr := c.Request.RemoteAddr
-	ip, _, _ := net.SplitHostPort(addr)
-	return ip
+
+	if ip, ok := extractTrustedIP(c.Request.RemoteAddr); ok {
+		return ip
+	}
+
+	return "unknown"
+}
+
+func extractTrustedIP(value string) (string, bool) {
+	candidate := strings.TrimSpace(value)
+	if candidate == "" {
+		return "", false
+	}
+
+	if ip, ok := parseIPCandidate(candidate); ok {
+		return ip.String(), true
+	}
+
+	if host, _, err := net.SplitHostPort(candidate); err == nil {
+		if ip, ok := parseIPCandidate(host); ok {
+			return ip.String(), true
+		}
+	}
+
+	if strings.Count(candidate, ":") == 1 {
+		if host, _, err := net.SplitHostPort(fmt.Sprintf("[%s]", candidate)); err == nil {
+			if ip, ok := parseIPCandidate(host); ok {
+				return ip.String(), true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func parseIPCandidate(value string) (netip.Addr, bool) {
+	ip, err := netip.ParseAddr(strings.TrimSpace(value))
+	if err != nil {
+		return netip.Addr{}, false
+	}
+	return ip.Unmap(), true
 }
 
 // jsonMsg sends a JSON response with a message and error status.

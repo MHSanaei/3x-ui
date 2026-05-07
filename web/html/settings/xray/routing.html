@@ -1,123 +1,193 @@
 {{define "settings/xray/routing"}}
-<a-space direction="vertical" size="middle">
-    <a-button type="primary" icon="plus" @click="addRule">{{ i18n "pages.xray.rules.add" }}</a-button>
-    <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns" bordered :row-key="r => r.key"
-        :data-source="routingRuleData" :scroll="isMobile ? {} : { x: 1000 }" :pagination="false" :indent-size="0"
+<a-space direction="vertical" size="middle" class="routing-modern">
+    <a-button type="primary" icon="plus" @click="addRule">{{ i18n
+        "pages.xray.rules.add" }}</a-button>
+    <a-table-sortable :columns="isMobile ? rulesMobileColumns : rulesColumns"
+        :row-key="r => r.key"
+        :data-source="routingRuleData"
+        :scroll="{}"
+        :pagination="false"
+        :indent-size="0"
+        class="routing-table"
         v-on:onSort="replaceRule">
         <template slot="action" slot-scope="text, rule, index">
-            <a-table-sort-trigger :item-index="index"></a-table-sort-trigger>
-            <span class="ant-table-row-index"> [[ index+1 ]] </span>
-            <a-dropdown :trigger="['click']">
-                <a-icon @click="e => e.preventDefault()" type="more"
-                    :style="{ fontSize: '16px', textDecoration: 'bold' }"></a-icon>
-                <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
-                    <a-menu-item v-if="index>0" @click="replaceRule(index,0)">
-                        <a-icon type="vertical-align-top"></a-icon>
-                        {{ i18n "pages.xray.rules.first"}}
-                    </a-menu-item>
-                    <a-menu-item v-if="index>0" @click="replaceRule(index,index-1)">
-                        <a-icon type="arrow-up"></a-icon>
-                        {{ i18n "pages.xray.rules.up"}}
-                    </a-menu-item>
-                    <a-menu-item v-if="index<routingRuleData.length-1" @click="replaceRule(index,index+1)">
-                        <a-icon type="arrow-down"></a-icon>
-                        {{ i18n "pages.xray.rules.down"}}
-                    </a-menu-item>
-                    <a-menu-item v-if="index<routingRuleData.length-1"
-                        @click="replaceRule(index,routingRuleData.length-1)">
-                        <a-icon type="vertical-align-bottom"></a-icon>
-                        {{ i18n "pages.xray.rules.last"}}
-                    </a-menu-item>
-                    <a-menu-item @click="editRule(index)">
-                        <a-icon type="edit"></a-icon>
-                        {{ i18n "edit" }}
-                    </a-menu-item>
-                    <a-menu-item @click="deleteRule(index)">
-                        <span :style="{ color: '#FF4D4F' }">
-                            <a-icon type="delete"></a-icon> {{ i18n "delete"}}
-                        </span>
-                    </a-menu-item>
-                </a-menu>
-            </a-dropdown>
+            <div class="routing-action-cell">
+                <a-table-sort-trigger :item-index="index"></a-table-sort-trigger>
+                <span class="routing-index">[[ index+1 ]]</span>
+                <a-dropdown :trigger="['click']">
+                    <a-button shape="circle" size="small" class="routing-action-btn"
+                        @click="e => e.preventDefault()">
+                        <a-icon type="more"></a-icon>
+                    </a-button>
+                    <a-menu slot="overlay" :theme="themeSwitcher.currentTheme">
+                        <a-menu-item @click="editRule(index)">
+                            <a-icon type="edit"></a-icon>
+                            <span>{{ i18n "edit" }}</span>
+                        </a-menu-item>
+                        <a-menu-item @click="deleteRule(index)">
+                            <span :style="{ color: '#FF4D4F' }">
+                                <a-icon type="delete"></a-icon>
+                                <span>{{ i18n "delete" }}</span>
+                            </span>
+                        </a-menu-item>
+                    </a-menu>
+                </a-dropdown>
+            </div>
         </template>
-        <template slot="inbound" slot-scope="text, rule, index">
-            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="content">
-                    <p v-if="rule.inboundTag">Inbound Tag: [[ rule.inboundTag ]]</p>
-                    <p v-if="rule.user">User email: [[ rule.user ]]</p>
-                </template>
-                [[ [rule.inboundTag,rule.user].join('\n') ]]
-            </a-popover>
+
+        <template slot="source" slot-scope="text, rule">
+            <div class="criterion-flow">
+                <a-tooltip v-if="rule.sourceIP"
+                    :title="'Source IP: ' + joinCsv(rule.sourceIP)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">IP</span>
+                        <span class="criterion-value">[[ csv(rule.sourceIP)[0] ]]</span>
+                        <span v-if="csv(rule.sourceIP).length > 1" class="criterion-more">+[[ csv(rule.sourceIP).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.sourcePort"
+                    :title="'Source Port: ' + joinCsv(rule.sourcePort)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Port</span>
+                        <span class="criterion-value">[[ csv(rule.sourcePort)[0] ]]</span>
+                        <span v-if="csv(rule.sourcePort).length > 1" class="criterion-more">+[[ csv(rule.sourcePort).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.vlessRoute"
+                    :title="'VLESS Route: ' + joinCsv(rule.vlessRoute)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">VLESS</span>
+                        <span class="criterion-value">[[ csv(rule.vlessRoute)[0] ]]</span>
+                        <span v-if="csv(rule.vlessRoute).length > 1" class="criterion-more">+[[ csv(rule.vlessRoute).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <span class="routing-criteria-empty"
+                    v-if="!rule.sourceIP && !rule.sourcePort && !rule.vlessRoute">—</span>
+            </div>
         </template>
-        <template slot="outbound" slot-scope="text, rule, index">
-            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="content">
-                    <p v-if="rule.outboundTag">Outbound Tag: [[ rule.outboundTag ]]</p>
-                </template>
-                [[ rule.outboundTag ]]
-            </a-popover>
+
+        <template slot="network" slot-scope="text, rule">
+            <div class="criterion-flow">
+                <a-tooltip v-if="rule.network"
+                    :title="'L4: ' + joinCsv(rule.network)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">L4</span>
+                        <span class="criterion-value">[[ csv(rule.network)[0] ]]</span>
+                        <span v-if="csv(rule.network).length > 1" class="criterion-more">+[[ csv(rule.network).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.protocol"
+                    :title="'Protocol: ' + joinCsv(rule.protocol)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Protocol</span>
+                        <span class="criterion-value">[[ csv(rule.protocol)[0] ]]</span>
+                        <span v-if="csv(rule.protocol).length > 1" class="criterion-more">+[[ csv(rule.protocol).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.attrs"
+                    :title="'Attrs: ' + joinCsv(rule.attrs)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Attrs</span>
+                        <span class="criterion-value">[[ csv(rule.attrs)[0] ]]</span>
+                        <span v-if="csv(rule.attrs).length > 1" class="criterion-more">+[[ csv(rule.attrs).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <span class="routing-criteria-empty"
+                    v-if="!rule.network && !rule.protocol && !rule.attrs">—</span>
+            </div>
         </template>
-        <template slot="balancer" slot-scope="text, rule, index">
-            <a-popover :overlay-class-name="themeSwitcher.currentTheme">
-                <template slot="content">
-                    <p v-if="rule.balancerTag">Balancer Tag: [[ rule.balancerTag ]]</p>
-                </template>
-                [[ rule.balancerTag ]]
-            </a-popover>
+
+        <template slot="destination" slot-scope="text, rule">
+            <div class="criterion-flow">
+                <a-tooltip v-if="rule.ip"
+                    :title="'Destination IP: ' + joinCsv(rule.ip)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">IP</span>
+                        <span class="criterion-value">[[ csv(rule.ip)[0] ]]</span>
+                        <span v-if="csv(rule.ip).length > 1" class="criterion-more">+[[ csv(rule.ip).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.domain"
+                    :title="'Domain: ' + joinCsv(rule.domain)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Domain</span>
+                        <span class="criterion-value">[[ csv(rule.domain)[0] ]]</span>
+                        <span v-if="csv(rule.domain).length > 1" class="criterion-more">+[[ csv(rule.domain).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.port"
+                    :title="'Destination Port: ' + joinCsv(rule.port)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Port</span>
+                        <span class="criterion-value">[[ csv(rule.port)[0] ]]</span>
+                        <span v-if="csv(rule.port).length > 1" class="criterion-more">+[[ csv(rule.port).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <span class="routing-criteria-empty"
+                    v-if="!rule.ip && !rule.domain && !rule.port">—</span>
+            </div>
         </template>
-        <template slot="info" slot-scope="text, rule, index">
-            <a-popover placement="bottomRight"
-                v-if="(rule.sourceIP+rule.sourcePort+rule.vlessRoute+rule.network+rule.protocol+rule.attrs+rule.ip+rule.domain+rule.port).length>0"
-                :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
-                <template slot="content">
-                    <table cellpadding="2" :style="{ maxWidth: '300px' }">
-                        <tr v-if="rule.sourceIP">
-                            <td>Source IP</td>
-                            <td><a-tag color="blue" v-for="r in rule.sourceIP.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.sourcePort">
-                            <td>Source Port</td>
-                            <td><a-tag color="green" v-for="r in rule.sourcePort.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.vlessRoute">
-                            <td>VLESS Route</td>
-                            <td><a-tag color="geekblue" v-for="r in rule.vlessRoute.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.network">
-                            <td>Network</td>
-                            <td><a-tag color="blue" v-for="r in rule.network.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.protocol">
-                            <td>Protocol</td>
-                            <td><a-tag color="green" v-for="r in rule.protocol.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.attrs">
-                            <td>Attrs</td>
-                            <td><a-tag color="blue" v-for="r in rule.attrs.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.ip">
-                            <td>IP</td>
-                            <td><a-tag color="green" v-for="r in rule.ip.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.domain">
-                            <td>Domain</td>
-                            <td><a-tag color="blue" v-for="r in rule.domain.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.port">
-                            <td>Port</td>
-                            <td><a-tag color="green" v-for="r in rule.port.split(',')">[[ r ]]</a-tag></td>
-                        </tr>
-                        <tr v-if="rule.balancerTag">
-                            <td>Balancer Tag</td>
-                            <td><a-tag color="blue">[[ rule.balancerTag ]]</a-tag></td>
-                        </tr>
-                    </table>
-                </template>
-                <a-button shape="round" size="small" :style="{ fontSize: '14px', padding: '0 10px' }">
-                    <a-icon type="info"></a-icon>
-                </a-button>
-            </a-popover>
+
+        <template slot="inbound" slot-scope="text, rule">
+            <div class="criterion-flow">
+                <a-tooltip v-if="rule.inboundTag"
+                    :title="'Inbound Tag: ' + joinCsv(rule.inboundTag)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">Tag</span>
+                        <span class="criterion-value">[[ csv(rule.inboundTag)[0] ]]</span>
+                        <span v-if="csv(rule.inboundTag).length > 1" class="criterion-more">+[[ csv(rule.inboundTag).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <a-tooltip v-if="rule.user"
+                    :title="'Client: ' + joinCsv(rule.user)"
+                    :overlay-class-name="themeSwitcher.currentTheme"
+                    :trigger="['hover', 'click']">
+                    <span class="criterion-row">
+                        <span class="criterion-label">User</span>
+                        <span class="criterion-value">[[ csv(rule.user)[0] ]]</span>
+                        <span v-if="csv(rule.user).length > 1" class="criterion-more">+[[ csv(rule.user).length - 1 ]]</span>
+                    </span>
+                </a-tooltip>
+                <span class="routing-criteria-empty"
+                    v-if="!rule.inboundTag && !rule.user">—</span>
+            </div>
         </template>
+
+        <template slot="target" slot-scope="text, rule">
+            <div class="routing-target-cell">
+                <div class="routing-target-row" v-if="rule.outboundTag">
+                    <a-icon type="export" class="routing-target-icon"></a-icon>
+                    <span class="outbound-pill tone-emerald">[[ rule.outboundTag ]]</span>
+                </div>
+                <div class="routing-target-row" v-if="rule.balancerTag">
+                    <a-icon type="cluster" class="routing-target-icon"></a-icon>
+                    <span class="outbound-pill tone-violet">[[ rule.balancerTag ]]</span>
+                </div>
+                <span class="routing-criteria-empty"
+                    v-if="!rule.outboundTag && !rule.balancerTag">—</span>
+            </div>
+        </template>
+
     </a-table-sortable>
 </a-space>
 {{end}}
