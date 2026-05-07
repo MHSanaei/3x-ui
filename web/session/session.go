@@ -73,6 +73,7 @@ func ClearSession(c *gin.Context) error {
 		Path:     cookiePath,
 		MaxAge:   -1,
 		HttpOnly: true,
+		Secure:   c.Request.TLS != nil,
 		SameSite: http.SameSiteLaxMode,
 	})
 	return s.Save()

@@ -104,15 +104,25 @@ class WebSocketClient {
     }
     this.ws = socket;
 
+    // Every handler must check `this.ws !== socket` first. A previous socket
+    // can still fire events (especially `close`) after we've moved on to a
+    // new one — e.g. connect() called while the old socket is in CLOSING
+    // state. Without the guard, a stale close would null out the freshly
+    // opened socket and silently break send().
     socket.addEventListener('open', () => {
+      if (this.ws !== socket) return;
       this.isConnected = true;
       this.reconnectAttempts = 0;
       this.#emit('connected');
     });
 
-    socket.addEventListener('message', (event) => this.#onMessage(event));
+    socket.addEventListener('message', (event) => {
+      if (this.ws !== socket) return;
+      this.#onMessage(event);
+    });
 
     socket.addEventListener('error', (event) => {
+      if (this.ws !== socket) return;
       // Browsers fire 'error' before 'close' on failure. We surface it for
       // consumers (so polling fallbacks can engage) but don't log every blip
       // — bad networks would flood the console otherwise.
@@ -120,6 +130,7 @@ class WebSocketClient {
     });
 
     socket.addEventListener('close', () => {
+      if (this.ws !== socket) return;
       this.isConnected = false;
       this.ws = null;
       this.#emit('disconnected');
@@ -196,6 +207,10 @@ class WebSocketClient {
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
+      // clearTimeout doesn't cancel a callback that has already fired but
+      // whose macrotask hasn't run yet — re-check shouldReconnect here so
+      // disconnect() called in that window can't be overridden.
+      if (!this.shouldReconnect) return;
       this.#openSocket();
     }, delay);
   }

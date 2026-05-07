@@ -292,9 +292,35 @@ check_config() {
     local existing_webBasePath=$(echo "$info" | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(echo "$info" | grep -Eo 'port: .+' | awk '{print $2}')
     local existing_cert=$(${xui_folder}/x-ui setting -getCert true | grep 'cert:' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
+    local URL_lists=(
+        "https://api4.ipify.org"
+        "https://ipv4.icanhazip.com"
+        "https://v4.api.ipinfo.io/ip"
+        "https://ipv4.myexternalip.com/raw"
+        "https://4.ident.me"
+        "https://check-host.net/ip"
+    )
+    local server_ip=""
+    for ip_address in "${URL_lists[@]}"; do
+        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2> /dev/null)
+        local http_code=$(echo "$response" | tail -n1)
+        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]"')
+        if [[ "${http_code}" == "200" && "${ip_result}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            server_ip="${ip_result}"
+            break
+        fi
+    done
+
+    if [[ -z "$server_ip" ]]; then
+        echo -e "${yellow}Could not auto-detect server IP from any provider.${plain}"
+        while [[ -z "$server_ip" ]]; do
+            read -rp "Please enter your server's public IPv4 address: " server_ip
+            server_ip="${server_ip// /}"
+            if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
+                server_ip=""
+            fi
+        done
     fi
 
     if [[ -n "$existing_cert" ]]; then
@@ -1139,14 +1165,35 @@ ssl_cert_issue_for_ip() {
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')
 
     # Get server IP
-    local server_ip=$(curl -s --max-time 3 https://api.ipify.org)
-    if [ -z "$server_ip" ]; then
-        server_ip=$(curl -s --max-time 3 https://4.ident.me)
-    fi
+    local URL_lists=(
+        "https://api4.ipify.org"
+        "https://ipv4.icanhazip.com"
+        "https://v4.api.ipinfo.io/ip"
+        "https://ipv4.myexternalip.com/raw"
+        "https://4.ident.me"
+        "https://check-host.net/ip"
+    )
+    local server_ip=""
+    for ip_address in "${URL_lists[@]}"; do
+        local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2> /dev/null)
+        local http_code=$(echo "$response" | tail -n1)
+        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]"')
+        if [[ "${http_code}" == "200" && "${ip_result}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            server_ip="${ip_result}"
+            break
+        fi
+    done
 
-    if [ -z "$server_ip" ]; then
-        LOGE "Failed to get server IP address"
-        return 1
+    if [[ -z "$server_ip" ]]; then
+        LOGI "Could not auto-detect server IP from any provider."
+        while [[ -z "$server_ip" ]]; do
+            read -rp "Please enter your server's public IPv4 address: " server_ip
+            server_ip="${server_ip// /}"
+            if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                LOGE "Invalid IPv4 address. Please try again."
+                server_ip=""
+            fi
+        done
     fi
 
     LOGI "Server IP detected: ${server_ip}"
@@ -2104,12 +2151,24 @@ SSH_port_forwarding() {
     for ip_address in "${URL_lists[@]}"; do
         local response=$(curl -s -w "\n%{http_code}" --max-time 3 "${ip_address}" 2> /dev/null)
         local http_code=$(echo "$response" | tail -n1)
-        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]')
-        if [[ "${http_code}" == "200" && -n "${ip_result}" ]]; then
+        local ip_result=$(echo "$response" | head -n-1 | tr -d '[:space:]"')
+        if [[ "${http_code}" == "200" && "${ip_result}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             server_ip="${ip_result}"
             break
         fi
     done
+
+    if [[ -z "$server_ip" ]]; then
+        echo -e "${yellow}Could not auto-detect server IP from any provider.${plain}"
+        while [[ -z "$server_ip" ]]; do
+            read -rp "Please enter your server's public IPv4 address: " server_ip
+            server_ip="${server_ip// /}"
+            if [[ ! "$server_ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                echo -e "${red}Invalid IPv4 address. Please try again.${plain}"
+                server_ip=""
+            fi
+        done
+    fi
 
     local existing_webBasePath=$(${xui_folder}/x-ui setting -show true | grep -Eo 'webBasePath: .+' | awk '{print $2}')
     local existing_port=$(${xui_folder}/x-ui setting -show true | grep -Eo 'port: .+' | awk '{print $2}')

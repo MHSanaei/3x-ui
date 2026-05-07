@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 
+	"github.com/mhsanaei/3x-ui/v2/web/middleware"
 	"github.com/mhsanaei/3x-ui/v2/web/service"
 	"github.com/mhsanaei/3x-ui/v2/web/session"
 
@@ -39,6 +40,7 @@ func (a *APIController) initRouter(g *gin.RouterGroup, customGeo *service.Custom
 	// Main API group
 	api := g.Group("/panel/api")
 	api.Use(a.checkAPIAuth)
+	api.Use(middleware.CSRFMiddleware())
 
 	// Inbounds API
 	inbounds := api.Group("/inbounds")

@@ -6,7 +6,6 @@ const REALITY_TARGETS = [
     { target: 'www.nvidia.com:443', sni: 'www.nvidia.com' },
     { target: 'www.amd.com:443', sni: 'www.amd.com' },
     { target: 'www.intel.com:443', sni: 'www.intel.com' },
-    { target: 'www.tesla.com:443', sni: 'www.tesla.com' },
     { target: 'www.sony.com:443', sni: 'www.sony.com' }
 ];
 
