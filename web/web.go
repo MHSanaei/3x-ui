@@ -170,6 +170,16 @@ func (s *Server) getHtmlTemplate(funcMap template.FuncMap) (*template.Template, 
 	return t, nil
 }
 
+func (s *Server) isDirectHTTPSConfigured() bool {
+	certFile, certErr := s.settingService.GetCertFile()
+	keyFile, keyErr := s.settingService.GetKeyFile()
+	if certErr != nil || keyErr != nil || certFile == "" || keyFile == "" {
+		return false
+	}
+	_, err := tls.LoadX509KeyPair(certFile, keyFile)
+	return err == nil
+}
+
 // initRouter initializes Gin, registers middleware, templates, static
 // assets, controllers and returns the configured engine.
 func (s *Server) initRouter() (*gin.Engine, error) {
@@ -182,6 +192,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	}
 
 	engine := gin.Default()
+	directHTTPS := s.isDirectHTTPSConfigured()
+	engine.Use(middleware.SecurityHeadersMiddleware(directHTTPS))
 
 	webDomain, err := s.settingService.GetWebDomain()
 	if err != nil {
@@ -209,6 +221,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	sessionOptions := sessions.Options{
 		Path:     basePath,
 		HttpOnly: true,
+		Secure:   directHTTPS,
 		SameSite: http.SameSiteLaxMode,
 	}
 	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil && sessionMaxAge > 0 {

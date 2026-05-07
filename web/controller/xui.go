@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"github.com/mhsanaei/3x-ui/v2/web/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +25,7 @@ func NewXUIController(g *gin.RouterGroup) *XUIController {
 func (a *XUIController) initRouter(g *gin.RouterGroup) {
 	g = g.Group("/panel")
 	g.Use(a.checkLogin)
+	g.Use(middleware.CSRFMiddleware())
 
 	g.GET("/", a.index)
 	g.GET("/inbounds", a.inbounds)
