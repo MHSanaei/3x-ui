@@ -1139,11 +1139,11 @@ class Outbound extends CommonClass {
         return false;
     }
 
-    // Vision seed applies only when vision flow is selected
+    // Vision seed applies only when the XTLS Vision (TCP/TLS) flow is selected.
+    // Excludes the UDP variant per spec.
     canEnableVisionSeed() {
         if (!this.canEnableTlsFlow()) return false;
-        const flow = this.settings?.flow;
-        return flow === TLS_FLOW_CONTROL.VISION || flow === TLS_FLOW_CONTROL.VISION_UDP443;
+        return this.settings?.flow === TLS_FLOW_CONTROL.VISION;
     }
 
     canEnableReality() {
@@ -1799,7 +1799,7 @@ Outbound.VmessSettings = class extends CommonClass {
     }
 };
 Outbound.VLESSSettings = class extends CommonClass {
-    constructor(address, port, id, flow, encryption, reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = [900, 500, 900, 256]) {
+    constructor(address, port, id, flow, encryption, reverseTag = '', reverseSniffing = new ReverseSniffing(), testpre = 0, testseed = []) {
         super();
         this.address = address;
         this.port = port;
@@ -1814,6 +1814,12 @@ Outbound.VLESSSettings = class extends CommonClass {
 
     static fromJson(json = {}) {
         if (ObjectUtil.isEmpty(json.address) || ObjectUtil.isEmpty(json.port)) return new Outbound.VLESSSettings();
+        const saved = json.testseed;
+        const testseed = (Array.isArray(saved)
+            && saved.length === 4
+            && saved.every(v => Number.isInteger(v) && v > 0))
+            ? saved
+            : [];
         return new Outbound.VLESSSettings(
             json.address,
             json.port,
@@ -1823,7 +1829,7 @@ Outbound.VLESSSettings = class extends CommonClass {
             json.reverse?.tag || '',
             ReverseSniffing.fromJson(json.reverse?.sniffing || {}),
             json.testpre || 0,
-            json.testseed && json.testseed.length >= 4 ? json.testseed : [900, 500, 900, 256]
+            testseed,
         );
     }
 
@@ -1843,12 +1849,14 @@ Outbound.VLESSSettings = class extends CommonClass {
                 sniffing: JSON.stringify(reverseSniffing) === JSON.stringify(defaultReverseSniffing) ? {} : reverseSniffing,
             };
         }
-        // Only include Vision settings when flow is set
-        if (this.flow && this.flow !== '') {
+        // Vision-specific knobs are only meaningful for the exact xtls-rprx-vision flow.
+        if (this.flow === TLS_FLOW_CONTROL.VISION) {
             if (this.testpre > 0) {
                 result.testpre = this.testpre;
             }
-            if (this.testseed && this.testseed.length >= 4) {
+            if (Array.isArray(this.testseed)
+                && this.testseed.length === 4
+                && this.testseed.every(v => Number.isInteger(v) && v > 0)) {
                 result.testseed = this.testseed;
             }
         }

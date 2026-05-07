@@ -169,8 +169,8 @@
     // network + security pills sit underneath it. Width chosen so the three
     // longest tonal pills (e.g. vless + httpupgrade + reality) fit on a
     // single line without wrapping.
-    { title: '{{ i18n "pages.xray.outbound.tag"}}', align: 'left', width: 280, scopedSlots: { customRender: 'identity' } },
-    { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'left', scopedSlots: { customRender: 'address' } },
+    { title: '{{ i18n "pages.xray.outbound.tag"}}', align: 'left', width: 190, scopedSlots: { customRender: 'identity' } },
+    { title: '{{ i18n "pages.xray.outbound.address"}}', align: 'left', width: 230, scopedSlots: { customRender: 'address' } },
     { title: '{{ i18n "pages.inbounds.traffic" }}', align: 'left', width: 190, scopedSlots: { customRender: 'traffic' } },
     { title: '{{ i18n "pages.xray.outbound.testResult" }}', align: 'left', width: 130, scopedSlots: { customRender: 'testResult' } },
     { title: '{{ i18n "pages.xray.outbound.test" }}', align: 'center', width: 70, scopedSlots: { customRender: 'test' } },
@@ -1992,7 +1992,7 @@
     line-height: 1.5;
     border: 1px solid rgba(255, 255, 255, 0.06);
     display: inline-block;
-    max-width: 240px;
+    max-width: 190px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -2272,6 +2272,90 @@
     font-size: 13px;
   }
   .light .xray-page .routing-target-icon { color: rgba(0, 0, 0, 0.45); }
+
+  /* ───────── Mobile outbound cards ───────── */
+  @media (max-width: 768px) {
+    .xray-page .outbounds-toolbar-right { text-align: left; }
+
+    .xray-page .outbound-card-empty {
+      text-align: center;
+      padding: 24px;
+      color: rgba(255, 255, 255, 0.35);
+      font-style: italic;
+    }
+    .light .xray-page .outbound-card-empty { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: background 0.15s ease;
+    }
+    .light .xray-page .outbound-card {
+      background: rgba(0, 0, 0, 0.025);
+      border-color: rgba(0, 0, 0, 0.06);
+    }
+
+    .xray-page .outbound-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-identity {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .xray-page .outbound-card-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .xray-page .outbound-card-num {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.35);
+      font-variant-numeric: tabular-nums;
+      flex: 0 0 auto;
+    }
+    .light .xray-page .outbound-card-num { color: rgba(0, 0, 0, 0.35); }
+
+    .xray-page .outbound-card .outbound-tag { font-size: 14px; }
+
+    .xray-page .outbound-card .outbound-protocol-cell { flex-wrap: wrap; }
+
+    .xray-page .outbound-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .xray-page .outbound-card .outbound-traffic-cell {
+      font-size: 12px;
+      padding: 4px 10px;
+      gap: 8px;
+    }
+
+    .xray-page .outbound-card-test {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+  }
 
 </style>
 {{ template "page/body_end" .}}

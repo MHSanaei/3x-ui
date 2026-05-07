@@ -403,16 +403,6 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 	shouldCleanLog := false
 	j.disAllowedIps = []string{}
 
-	// Open log file
-	logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		logger.Errorf("failed to open IP limit log file: %s", err)
-		return false
-	}
-	defer logIpFile.Close()
-	log.SetOutput(logIpFile)
-	log.SetFlags(log.LstdFlags)
-
 	// historical db-only ips are excluded from this count on purpose.
 	var keptLive []IPWithTimestamp
 	if len(liveIps) > limitIp {
@@ -422,13 +412,25 @@ func (j *CheckClientIpJob) updateInboundClientIps(inboundClientIps *model.Inboun
 		keptLive = liveIps[:limitIp]
 		bannedLive := liveIps[limitIp:]
 
+		// Open log file only when a ban entry needs to be written.
+		// Use a local logger to avoid mutating the global log.* state,
+		// which would redirect all standard-library logging to this file
+		// and leave a dangling closed-file handle after the defer fires.
+		logIpFile, err := os.OpenFile(xray.GetIPLimitLogPath(), os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			logger.Errorf("failed to open IP limit log file: %s", err)
+			return false
+		}
+		defer logIpFile.Close()
+		ipLogger := log.New(logIpFile, "", log.LstdFlags)
+
 		// log format is load-bearing: x-ui.sh create_iplimit_jails builds
 		// filter.d/3x-ipl.conf with
 		//   failregex = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 		// don't change the wording.
 		for _, ipTime := range bannedLive {
 			j.disAllowedIps = append(j.disAllowedIps, ipTime.IP)
-			log.Printf("[LIMIT_IP] Email = %s || Disconnecting OLD IP = %s || Timestamp = %d", clientEmail, ipTime.IP, ipTime.Timestamp)
+			ipLogger.Printf("[LIMIT_IP] Email = %s || Disconnecting OLD IP = %s || Timestamp = %d", clientEmail, ipTime.IP, ipTime.Timestamp)
 		}
 
 		// force xray to drop existing connections from banned ips

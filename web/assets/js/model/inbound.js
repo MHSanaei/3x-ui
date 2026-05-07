@@ -1763,12 +1763,13 @@ class Inbound extends XrayCommonClass {
         return false;
     }
 
-    // Vision seed applies only when vision flow is selected
+    // Vision seed applies only when the XTLS Vision (TCP/TLS) flow is selected.
+    // Excludes the UDP variant per spec.
     canEnableVisionSeed() {
         if (!this.canEnableTlsFlow()) return false;
         const clients = this.settings?.vlesses;
         if (!Array.isArray(clients)) return false;
-        return clients.some(c => c?.flow === TLS_FLOW_CONTROL.VISION || c?.flow === TLS_FLOW_CONTROL.VISION_UDP443);
+        return clients.some(c => c?.flow === TLS_FLOW_CONTROL.VISION);
     }
 
     canEnableReality() {
@@ -2542,15 +2543,13 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         decryption = "none",
         encryption = "none",
         fallbacks = [],
-        selectedAuth = undefined,
-        testseed = [900, 500, 900, 256],
+        testseed = [],
     ) {
         super(protocol);
         this.vlesses = vlesses;
         this.decryption = decryption;
         this.encryption = encryption;
         this.fallbacks = fallbacks;
-        this.selectedAuth = selectedAuth;
         this.testseed = testseed;
     }
 
@@ -2562,12 +2561,23 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         this.fallbacks.splice(index, 1);
     }
 
+    // Empty array means "use server defaults" (won't be sent).
+    // Anything else must be exactly 4 positive integers.
+    static isValidTestseed(arr) {
+        if (!Array.isArray(arr) || arr.length === 0) return true;
+        if (arr.length !== 4) return false;
+        return arr.every(v => Number.isInteger(v) && v > 0);
+    }
+
     static fromJson(json = {}) {
-        // Ensure testseed is always initialized as an array
-        let testseed = [900, 500, 900, 256];
-        if (json.testseed && Array.isArray(json.testseed) && json.testseed.length >= 4) {
-            testseed = json.testseed;
-        }
+        // Preserve a saved testseed only if it's a valid 4-positive-int array; otherwise leave empty
+        // so toJson omits it and the form falls back to placeholder defaults.
+        const saved = json.testseed;
+        const testseed = (Array.isArray(saved)
+            && saved.length === 4
+            && saved.every(v => Number.isInteger(v) && v > 0))
+            ? saved
+            : [];
 
         const obj = new Inbound.VLESSSettings(
             Protocols.VLESS,
@@ -2575,8 +2585,7 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
             json.decryption,
             json.encryption,
             Inbound.VLESSSettings.Fallback.fromJson(json.fallbacks || []),
-            json.selectedAuth,
-            testseed
+            testseed,
         );
         return obj;
     }
@@ -2598,13 +2607,15 @@ Inbound.VLESSSettings = class extends Inbound.Settings {
         if (this.fallbacks && this.fallbacks.length > 0) {
             json.fallbacks = Inbound.VLESSSettings.toJsonArray(this.fallbacks);
         }
-        if (this.selectedAuth) {
-            json.selectedAuth = this.selectedAuth;
-        }
 
-        // Only include testseed if at least one client has a flow set
-        const hasFlow = this.vlesses && this.vlesses.some(vless => vless.flow && vless.flow !== '');
-        if (hasFlow && this.testseed && this.testseed.length >= 4) {
+        // testseed is only meaningful for the exact xtls-rprx-vision flow, and only when
+        // the user supplied a complete 4-positive-int array. Otherwise omit and let the
+        // backend fall back to its safe defaults.
+        const hasVisionFlow = this.vlesses && this.vlesses.some(v => v.flow === TLS_FLOW_CONTROL.VISION);
+        if (hasVisionFlow
+            && Array.isArray(this.testseed)
+            && this.testseed.length === 4
+            && this.testseed.every(v => Number.isInteger(v) && v > 0)) {
             json.testseed = this.testseed;
         }
 

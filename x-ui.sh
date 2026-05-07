@@ -2034,14 +2034,14 @@ backend=auto
 filter=3x-ipl
 action=3x-ipl
 logpath=${iplimit_log_path}
-maxretry=2
+maxretry=1
 findtime=32
 bantime=${bantime}m
 EOF
 
     cat << EOF > /etc/fail2ban/filter.d/3x-ipl.conf
 [Definition]
-datepattern = ^%%Y/%%m/%%d %%H:%%M:%%S
+datepattern = ^%Y/%m/%d %H:%M:%S
 failregex   = \[LIMIT_IP\]\s*Email\s*=\s*<F-USER>.+</F-USER>\s*\|\|\s*Disconnecting OLD IP\s*=\s*<ADDR>\s*\|\|\s*Timestamp\s*=\s*\d+
 ignoreregex =
 EOF
@@ -2062,10 +2062,10 @@ actionstop = <iptables> -D <chain> -p <protocol> -j f2b-<name>
 actioncheck = <iptables> -n -L <chain> | grep -q 'f2b-<name>[ \t]'
 
 actionban = <iptables> -I f2b-<name> 1 -s <ip> -j <blocktype>
-            echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
+            echo "\$(date +"%Y/%m/%d %H:%M:%S")   BAN   [Email] = <F-USER> [IP] = <ip> banned for <bantime> seconds." >> ${iplimit_banned_log_path}
 
 actionunban = <iptables> -D f2b-<name> -s <ip> -j <blocktype>
-              echo "\$(date +"%%Y/%%m/%%d %%H:%%M:%%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
+              echo "\$(date +"%Y/%m/%d %H:%M:%S")   UNBAN   [Email] = <F-USER> [IP] = <ip> unbanned." >> ${iplimit_banned_log_path}
 
 [Init]
 name = default

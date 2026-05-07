@@ -63,7 +63,7 @@
   </a-tag>
 </template>
 <template slot="client" slot-scope="text, client">
-  <a-space direction="horizontal" :size="2">
+  <a-space direction="horizontal" :size="2" style="flex-wrap:nowrap;min-width:0">
     <a-tooltip>
       <template slot="title">
         <template v-if="isClientDepleted(record, client.email)">{{ i18n "depleted" }}</template>
@@ -73,8 +73,10 @@
       <a-badge :class="isClientOnline(client.email)? 'online-animation' : ''"
         :color="client.enable ? statsExpColor(record, client.email) : themeSwitcher.isDarkTheme ? '#2c3950' : '#bcbcbc'"></a-badge>
     </a-tooltip>
-    <a-space direction="vertical" :size="2">
-      <span class="client-email">[[ client.email ]]</span>
+    <a-space direction="vertical" :size="2" style="min-width:0;overflow:hidden">
+      <a-tooltip :title="client.email" :overlay-class-name="themeSwitcher.currentTheme">
+        <span class="client-email">[[ client.email ]]</span>
+      </a-tooltip>
       <template v-if="client.comment && client.comment.trim()">
         <a-tooltip v-if="client.comment.length > 50" :overlay-class-name="themeSwitcher.currentTheme">
           <template slot="title">
@@ -102,7 +104,7 @@
       </table>
     </template>
     <div class="tr-table-box">
-      <div class="tr-table-lt">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</div>
+      <div class="tr-table-rt">[[ SizeFormatter.sizeFormat(getSumStats(record, client.email)) ]]</div>
       <div class="tr-table-bar" v-if="!client.enable">
         <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false" :percent="statsProgress(record, client.email)" />
       </div>
@@ -207,20 +209,20 @@
   </a-dropdown>
 </template>
 <template slot="info" slot-scope="text, client, index">
-  <a-popover placement="bottomRight" :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
+  <a-popover :placement="isMobile ? 'bottomLeft' : 'bottomRight'" :overlay-class-name="themeSwitcher.currentTheme" trigger="click">
     <template slot="content">
       <table>
         <tr>
           <td colspan="3" :style="{ textAlign: 'center' }">{{ i18n "pages.inbounds.traffic" }}</td>
         </tr>
         <tr>
-          <td width="80px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[
+          <td width="65px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[
             SizeFormatter.sizeFormat(getUpStats(record, client.email) + getDownStats(record, client.email)) ]] </td>
-          <td width="120px" v-if="!client.enable">
+          <td width="90px" v-if="!client.enable">
             <a-progress :stroke-color="themeSwitcher.isDarkTheme ? 'rgb(72 84 105)' : '#bcbcbc'" :show-info="false"
               :percent="statsProgress(record, client.email)" />
           </td>
-          <td width="120px" v-else-if="client.totalGB > 0">
+          <td width="90px" v-else-if="client.totalGB > 0">
             <a-popover :overlay-class-name="themeSwitcher.currentTheme">
               <template slot="content" v-if="client.email">
                 <table cellpadding="2" width="100%">
@@ -239,11 +241,11 @@
                 :percent="statsProgress(record, client.email)" />
             </a-popover>
           </td>
-          <td width="120px" v-else class="infinite-bar">
+          <td width="90px" v-else class="infinite-bar">
             <a-progress :stroke-color="themeSwitcher.isDarkTheme ? '#2c1e32':'#F2EAF1'" :show-info="false"
               :percent="100"></a-progress>
           </td>
-          <td width="80px">
+          <td width="60px">
             <template v-if="client.totalGB > 0">[[ client._totalGB + "GB" ]]</template>
             <span v-else class="tr-infinity-ch">&infin;</span>
           </td>
@@ -256,9 +258,9 @@
         </tr>
         <tr>
           <template v-if="client.expiryTime !=0 && client.reset >0">
-            <td width="80px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[
+            <td width="65px" :style="{ margin: '0', textAlign: 'right', fontSize: '1em' }"> [[
               IntlUtil.formatRelativeTime(client.expiryTime) ]] </td>
-            <td width="120px" class="infinite-bar">
+            <td width="90px" class="infinite-bar">
               <a-popover :overlay-class-name="themeSwitcher.currentTheme">
                 <template slot="content">
                   <span v-if="client.expiryTime < 0">{{ i18n "pages.client.delayedStart" }}</span>
@@ -268,7 +270,7 @@
                   :percent="expireProgress(client.expiryTime, client.reset)" />
               </a-popover>
             </td>
-            <td width="60px">[[ client.reset + "d" ]]</td>
+            <td width="50px">[[ client.reset + "d" ]]</td>
           </template>
           <template v-else>
             <td colspan="3" :style="{ textAlign: 'center' }">

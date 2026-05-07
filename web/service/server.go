@@ -315,13 +315,21 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	}
 
 	// Network stats
-	ioStats, err := net.IOCounters(false)
+	ioStats, err := net.IOCounters(true)
 	if err != nil {
 		logger.Warning("get io counters failed:", err)
-	} else if len(ioStats) > 0 {
-		ioStat := ioStats[0]
-		status.NetTraffic.Sent = ioStat.BytesSent
-		status.NetTraffic.Recv = ioStat.BytesRecv
+	} else {
+		var totalSent, totalRecv uint64
+		for _, iface := range ioStats {
+			name := strings.ToLower(iface.Name)
+			if isVirtualInterface(name) {
+				continue
+			}
+			totalSent += iface.BytesSent
+			totalRecv += iface.BytesRecv
+		}
+		status.NetTraffic.Sent = totalSent
+		status.NetTraffic.Recv = totalRecv
 
 		if lastStatus != nil {
 			duration := now.Sub(lastStatus.T)
@@ -331,8 +339,6 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 			status.NetIO.Up = up
 			status.NetIO.Down = down
 		}
-	} else {
-		logger.Warning("can not find io counters")
 	}
 
 	// TCP/UDP connections
@@ -858,6 +864,34 @@ func (s *ServerService) GetXrayLogs(
 	}
 
 	return entries
+}
+
+// isVirtualInterface returns true for loopback and virtual/tunnel interfaces
+// that should be excluded from network traffic statistics.
+func isVirtualInterface(name string) bool {
+	// Exact matches
+	if name == "lo" || name == "lo0" {
+		return true
+	}
+	// Prefix matches for virtual/tunnel interfaces
+	virtualPrefixes := []string{
+		"loopback",
+		"docker",
+		"br-",
+		"veth",
+		"virbr",
+		"tun",
+		"tap",
+		"wg",
+		"tailscale",
+		"zt",
+	}
+	for _, prefix := range virtualPrefixes {
+		if strings.HasPrefix(name, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func logEntryContains(line string, suffixes []string) bool {
