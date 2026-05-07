@@ -135,8 +135,9 @@
         return enabledOk && expiryOk && trafficOk;
       },
       shadowrocketUrl() {
-        const rawUrl = this.app.subUrl + '?flag=shadowrocket';
-        const base64Url = btoa(rawUrl);
+        const separator = this.app.subUrl.includes('?') ? '&' : '?';
+        const rawUrl = this.app.subUrl + separator + 'flag=shadowrocket';
+        const base64Url = encodeURIComponent(btoa(rawUrl));
         const remark = encodeURIComponent(this.app.sId || 'Subscription');
         return `shadowrocket://add/sub/${base64Url}?remark=${remark}`;
       },

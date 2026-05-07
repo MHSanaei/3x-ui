@@ -90,14 +90,9 @@
       <a-tag :color="inbound.stream.security == 'none' ? 'red' : 'green'">[[
         inbound.stream.security ]]</a-tag>
       <br />
-      <td>Authentication</td>
-      <a-tag v-if="inbound.settings.selectedAuth" color="green">[[
-        inbound.settings.selectedAuth ? inbound.settings.selectedAuth : ''
-        ]]</a-tag>
-      <a-tag v-else color="red">{{ i18n "none" }}</a-tag>
-      <br />
       {{ i18n "encryption" }}
-      <a-tag class="info-large-tag" :color="inbound.settings.encryption ? 'green' : 'red'">[[
+      <a-tag class="info-large-tag"
+        :color="inbound.settings.encryption && inbound.settings.encryption !== 'none' ? 'green' : 'red'">[[
         inbound.settings.encryption ? inbound.settings.encryption : ''
         ]]</a-tag>
       <a-tooltip title='{{ i18n "copy" }}'>

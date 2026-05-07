@@ -37,6 +37,10 @@
   <a-form-item label="Stream-Up Server" v-if="inbound.stream.xhttp.mode === 'stream-up'">
     <a-input v-model.trim="inbound.stream.xhttp.scStreamUpServerSecs"></a-input>
   </a-form-item>
+  <a-form-item label="Server Max Header Bytes">
+    <a-input-number v-model.number="inbound.stream.xhttp.serverMaxHeaderBytes" :min="0"
+      placeholder="0 (default)"></a-input-number>
+  </a-form-item>
   <a-form-item label="Padding Bytes">
     <a-input v-model.trim="inbound.stream.xhttp.xPaddingBytes"></a-input>
   </a-form-item>
@@ -67,14 +71,6 @@
       </a-select>
     </a-form-item>
   </template>
-  <a-form-item label="Uplink HTTP Method">
-    <a-select v-model="inbound.stream.xhttp.uplinkHTTPMethod" :dropdown-class-name="themeSwitcher.currentTheme">
-      <a-select-option value>Default (POST)</a-select-option>
-      <a-select-option value="POST">POST</a-select-option>
-      <a-select-option value="PUT">PUT</a-select-option>
-      <a-select-option value="GET">GET (packet-up only)</a-select-option>
-    </a-select>
-  </a-form-item>
   <a-form-item label="Session Placement">
     <a-select v-model="inbound.stream.xhttp.sessionPlacement" :dropdown-class-name="themeSwitcher.currentTheme">
       <a-select-option value>Default (path)</a-select-option>
@@ -113,11 +109,6 @@
   <a-form-item label="Uplink Data Key"
     v-if="inbound.stream.xhttp.mode === 'packet-up' && inbound.stream.xhttp.uplinkDataPlacement && inbound.stream.xhttp.uplinkDataPlacement !== 'body'">
     <a-input v-model.trim="inbound.stream.xhttp.uplinkDataKey" placeholder="x_data"></a-input>
-  </a-form-item>
-  <a-form-item label="Uplink Chunk Size"
-    v-if="inbound.stream.xhttp.mode === 'packet-up' && inbound.stream.xhttp.uplinkDataPlacement && inbound.stream.xhttp.uplinkDataPlacement !== 'body'">
-    <a-input-number v-model.number="inbound.stream.xhttp.uplinkChunkSize" :min="0"
-      placeholder="0 (unlimited)"></a-input-number>
   </a-form-item>
   <a-form-item label="No SSE Header">
     <a-switch v-model="inbound.stream.xhttp.noSSEHeader"></a-switch>

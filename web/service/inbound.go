@@ -1213,6 +1213,28 @@ func (s *InboundService) UpdateInboundClient(data *model.Inbound, clientId strin
 	settingsClients[clientIndex] = interfaceClients[0]
 	oldSettings["clients"] = settingsClients
 
+	// testseed is only meaningful when at least one VLESS client uses the exact
+	// xtls-rprx-vision flow. The client-edit path only rewrites a single client,
+	// so re-check the flow set here and strip a stale testseed when nothing in the
+	// inbound still warrants it. The full-inbound update path already handles this
+	// on the JS side via VLESSSettings.toJson().
+	if oldInbound.Protocol == model.VLESS {
+		hasVisionFlow := false
+		for _, c := range settingsClients {
+			cm, ok := c.(map[string]any)
+			if !ok {
+				continue
+			}
+			if flow, _ := cm["flow"].(string); flow == "xtls-rprx-vision" {
+				hasVisionFlow = true
+				break
+			}
+		}
+		if !hasVisionFlow {
+			delete(oldSettings, "testseed")
+		}
+	}
+
 	newSettings, err := json.MarshalIndent(oldSettings, "", "  ")
 	if err != nil {
 		return false, err
@@ -2885,6 +2907,7 @@ func (s *InboundService) MigrationRequirements() {
 		if ok {
 			// Fix Client configuration problems
 			var newClients []any
+			hasVisionFlow := false
 			for client_index := range clients {
 				c := clients[client_index].(map[string]any)
 
@@ -2910,6 +2933,9 @@ func (s *InboundService) MigrationRequirements() {
 						c["flow"] = ""
 					}
 				}
+				if flow, _ := c["flow"].(string); flow == "xtls-rprx-vision" {
+					hasVisionFlow = true
+				}
 				// Backfill created_at and updated_at
 				if _, ok := c["created_at"]; !ok {
 					c["created_at"] = time.Now().Unix() * 1000
@@ -2918,6 +2944,15 @@ func (s *InboundService) MigrationRequirements() {
 				newClients = append(newClients, any(c))
 			}
 			settings["clients"] = newClients
+
+			// Drop orphaned testseed: VLESS-only field, only meaningful when at least
+			// one client uses the exact xtls-rprx-vision flow. Older versions saved it
+			// for any non-empty flow (including the UDP variant) or kept it after the
+			// flow was cleared from the client modal — clean those up here.
+			if inbounds[inbound_index].Protocol == model.VLESS && !hasVisionFlow {
+				delete(settings, "testseed")
+			}
+
 			modifiedSettings, err := json.MarshalIndent(settings, "", "  ")
 			if err != nil {
 				return

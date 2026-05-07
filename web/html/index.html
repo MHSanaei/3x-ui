@@ -1407,14 +1407,34 @@
           class: themeSwitcher.currentTheme,
           cancelText: '{{ i18n "cancel"}}',
           onOk: async () => {
+            const targetVersion = panelUpdateModal.info.latestVersion || '';
+            const baseTip = '{{ i18n "pages.index.dontRefresh"}}';
+            const tipPrefix = targetVersion ? `${baseTip} (${targetVersion})` : baseTip;
             panelUpdateModal.hide();
-            this.loading(true, '{{ i18n "pages.index.dontRefresh"}}');
+            this.loading(true, tipPrefix);
             const msg = await HttpUtil.post('/panel/api/server/updatePanel');
             if (!msg.success) {
               this.loading(false);
               return;
             }
-            await PromiseUtil.sleep(15000);
+
+            // Wait for the running process to exit, then poll the new panel
+            // until it answers (up to ~90s). Reload as soon as it's back.
+            await PromiseUtil.sleep(5000);
+            this.loading(true, tipPrefix);
+            const deadline = Date.now() + 90_000;
+            let back = false;
+            while (Date.now() < deadline) {
+              try {
+                const r = await axios.get('/panel/api/server/status', { timeout: 2000 });
+                if (r && r.data && r.data.success) { back = true; break; }
+              } catch (_) { /* still restarting */ }
+              await PromiseUtil.sleep(2000);
+            }
+            if (back) {
+              this.$message.success('{{ i18n "pages.index.panelUpdateStartedPopover" }}');
+              await PromiseUtil.sleep(800);
+            }
             window.location.reload();
           },
         });
